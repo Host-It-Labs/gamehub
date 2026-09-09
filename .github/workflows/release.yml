@@ -32,7 +32,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/neohuncho/gamehub
+          images: ghcr.io/host-it-labs/gamehub
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest,enable=${{ !github.event.release.prerelease }}

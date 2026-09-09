@@ -42,7 +42,7 @@ Solo matches and tutorials remain device-local and require no account. Online ma
 The public image supports Linux AMD64 and ARM64:
 
 ```sh
-docker pull ghcr.io/neohuncho/gamehub:0.1.0
+docker pull ghcr.io/host-it-labs/gamehub:0.1.0
 cp .env.example .env
 # Edit PUBLIC_ORIGIN to your public HTTPS URL.
 docker compose up -d
@@ -95,7 +95,7 @@ This revokes the account's existing sessions. Guest seats cannot be recovered by
 
 ## Releases and validation
 
-Pushes to `main` run typecheck, lint, rules/protocol tests, a production build, and a Docker persistence smoke test. Publishing a GitHub release reruns those checks and publishes `ghcr.io/neohuncho/gamehub` with version, `latest` (stable releases), and `sha-<full commit>` tags. A release tag must match `v` plus the package version. The workflow uses GitHub's scoped package token; no registry password is stored in the repository.
+Pushes to `main` run typecheck, lint, rules/protocol tests, a production build, and a Docker persistence smoke test. Publishing a GitHub release reruns those checks and publishes `ghcr.io/host-it-labs/gamehub` with version, `latest` (stable releases), and `sha-<full commit>` tags. A release tag must match `v` plus the package version. The workflow uses GitHub's scoped package token; no registry password is stored in the repository.
 
 Automated coverage includes complete seeded games, all player counts and viewer seats, mixed humans/bots, authentication, hidden information, stale/concurrent commands, SSE, and persisted recovery. Browser interaction, real phone gestures/audio, and your production reverse proxy require separate acceptance checks; protocol tests do not establish those results.
 
