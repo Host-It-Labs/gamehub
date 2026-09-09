@@ -48,9 +48,9 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Use the included `compose.yaml`. The image includes the frontend, backend, and SQLite support; it needs no external database or email service. One application container serves one HTTP port, and the `gamehub-data` volume retains accounts, sessions, tables, and matches. The runtime is non-root (UID/GID 1000); a bind-mounted `/data` directory must be writable by that UID. Keep SQLite on a local disk and run one replica.
+Use the included `compose.yaml`. The image includes the frontend, backend, and SQLite support; it needs no external database or email service. `GAMEHUB_PORT` is the client-facing port on your server and defaults to `8080`. Open `http://<server-address>:<GAMEHUB_PORT>` in a browser. The same application container handles `/api` internally on that origin, so there is no separate backend or database port to publish. The `gamehub-data` volume retains accounts, sessions, tables, and matches. The runtime is non-root (UID/GID 1000); a bind-mounted `/data` directory must be writable by that UID. Keep SQLite on a local disk and run one replica.
 
-The default host binding is `127.0.0.1:8080`, intended for a reverse proxy. Set `GAMEHUB_BIND` when a proxy on another host/network needs access. `PUBLIC_ORIGIN` must exactly match the public scheme, hostname, and port. Origin checks deliberately ignore forwarded headers; configure the public URL explicitly. HTTPS enables Secure cookies.
+Compose publishes the client-facing port on all server interfaces by default. Set `PUBLIC_ORIGIN` to the exact URL people use, including its scheme and any non-standard port; for example, `http://192.0.2.10:8080` for direct LAN access or `https://games.example.com` behind a reverse proxy. Origin checks deliberately ignore forwarded headers. HTTPS enables Secure cookies.
 
 Example nginx location inside your TLS virtual host:
 
