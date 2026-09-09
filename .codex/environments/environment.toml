@@ -1,0 +1,10 @@
+version = 1
+name = "Gamehub"
+
+[setup]
+script = "npm ci --no-audit --no-fund"
+
+[[actions]]
+name = "Start dev environment"
+icon = "run"
+command = "npm run dev"
