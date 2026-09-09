@@ -184,3 +184,32 @@ test('persistent match and deduplication survive reopening SQLite', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('host expansion choice reaches shared game and five-card exchange is accepted', () => {
+  const { db, tables, host } = setup();
+  try {
+    let t = tables.create(host);
+    t = command(tables, t, host, {
+      type: 'configure',
+      gameId: 'undertow',
+      capacity: 2,
+      difficulty: 'medium',
+      starter: true,
+    });
+    t = tables.join(t.token, actor('guest'));
+    assert.equal(tables.view(t, host).starter, true);
+    t = command(tables, t, host, { type: 'start' });
+    assert.equal(t.game.starter, true);
+    assert.ok(t.game.players.every((p) => p.wards === 2 && p.calms === 1));
+    t = command(tables, t, host, {
+      type: 'move',
+      move: {
+        type: 'pass',
+        cards: t.game.players[0].hand.slice(0, 5).map((c) => c.id),
+      },
+    });
+    assert.equal(t.game.active, 1);
+  } finally {
+    db.close();
+  }
+});

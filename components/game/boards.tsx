@@ -1,4 +1,5 @@
 'use client';
+import { ScrollArea } from './scroll-area';
 import { type CSSProperties } from 'react';
 import {
   HoverCard,
@@ -12,6 +13,7 @@ import {
   creatures,
   foods,
   habitats,
+  habitatOrder,
   dice,
   cardName,
   penalty,
@@ -19,6 +21,7 @@ import {
   foodBreakdown,
   scores,
   legalMoves,
+  passCount,
   counts,
   type PublicGame as Game,
   type GameId,
@@ -33,10 +36,14 @@ export function TokenArt({
 }) {
   return (
     <span className="token-art" aria-hidden="true">
-      <span
-        className="sprite"
-        style={{ backgroundPosition: `${kind * 20}% ${food ? 100 : 0}%` }}
-      />
+      {food ? (
+        <span
+          className="sprite"
+          style={{ backgroundPosition: `${kind * 20}% 100%` }}
+        />
+      ) : (
+        <img src={`/art/creature-${kind}-v5.png`} alt="" draggable={false} />
+      )}
     </span>
   );
 }
@@ -53,7 +60,6 @@ export function Face({
     return (
       <>
         <TokenArt kind={card.kind} />
-        <span className="creature-name">{creatures[card.kind]}</span>
       </>
     );
   if (id === 'midnight')
@@ -116,7 +122,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
           </p>
           <p>
             {g.phase === 'pass'
-              ? 'Select three cards to pass before the die rolls.'
+              ? `Select ${passCount(g)} cards to pass before the die rolls.`
               : playable
                 ? 'You can play this card.'
                 : g.active !== viewer
@@ -124,8 +130,10 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
                   : 'You must follow the led suit when possible.'}
           </p>
           <p>
-            One of 12 cards in {suitNames[c.kind]}. A ward halves the whole
-            trick, rounded up.
+            One of 12 cards in {suitNames[c.kind]}.
+            {g.starter !== false
+              ? ' An armed shield halves the captured trick, rounded up.'
+              : ' The base game has no shields.'}
           </p>
         </>
       ) : g.id === 'midnight' ? (
@@ -145,9 +153,10 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
             in the supply.
           </p>
           <div className="inspection-scores">
-            {habitats.map((h, z) => {
+            {habitatOrder.map((z) => {
+              const h = habitats[z];
               const zones = g.players[viewer].zones.map((r) => [...r]);
-              zones[z].push(c);
+              (zones[z] ??= []).push(c);
               const delta = zones.reduce(
                 (s, _, i) =>
                   s +
@@ -182,6 +191,7 @@ export function Board({
   selected,
   inspect,
   onPlace,
+  preparedZone,
 }: {
   g: Game;
   player?: number;
@@ -190,6 +200,7 @@ export function Board({
   selected?: number | null;
   inspect?: Inspect;
   onPlace?: (z: number) => void;
+  preparedZone?: number | null;
 }) {
   const p = g.players[player];
   if (g.id === 'undertow')
@@ -202,7 +213,7 @@ export function Board({
               {suitNames[g.trick[0].card.kind]}
             </>
           ) : g.phase === 'pass' ? (
-            'Select 3 cards to pass'
+            `Select ${passCount(g)} cards to pass`
           ) : g.phase === 'roll' ? (
             'Roll to reveal the dangerous 9'
           ) : g.lastTrick.length ? (
@@ -217,6 +228,7 @@ export function Board({
               <span>
                 {g.players[t.player].name}
                 {t.ward ? ' · shield' : ''}
+                {t.calm ? ' · Calm' : ''}
               </span>
               <div className="static-face">
                 <Face card={t.card} id={g.id} hazard={g.hazard} />
@@ -232,7 +244,8 @@ export function Board({
         className={`grove-board ${mini ? 'mini-board' : ''}`}
         data-coach="board"
       >
-        {habitats.map((h, z) => {
+        {habitatOrder.map((z) => {
+          const h = habitats[z];
           const allowed =
             player === viewer &&
             g.active === viewer &&
@@ -242,27 +255,19 @@ export function Board({
             );
           const content = (
             <>
-              <div className="region-heading">
+              <div className="region-heading" title={`${h.formula}. ${h.rule}`}>
                 <strong>{h.name}</strong>
                 <b>{zoneScore(p.zones, z)}</b>
               </div>
               <div className="region-pieces">
-                {p.zones[z].map((c) => (
+                {(p.zones[z] ?? []).map((c) => (
                   <TokenArt key={c.id} kind={c.kind} />
                 ))}
-                {Array.from(
-                  {
-                    length: Math.max(0, Math.min(h.cap, 4) - p.zones[z].length),
-                  },
-                  (_, i) => (
-                    <span className="piece-slot" key={i} />
-                  ),
-                )}
               </div>
               <div className="region-bottom">
                 <span>{h.formula}</span>
                 <small>
-                  {p.zones[z].length}/{h.cap}
+                  {p.zones[z]?.length ?? 0}/{h.cap}
                 </small>
               </div>
             </>
@@ -271,7 +276,7 @@ export function Board({
             <div
               data-drop={`zone:${z}`}
               data-coach={`region-${z}`}
-              className={`region region-${z} ${allowed ? 'legal-region' : ''} ${selected != null && !allowed && !mini ? 'blocked-region' : ''}`}
+              className={`region region-${z} ${allowed ? 'legal-region' : ''} ${preparedZone === z ? 'prepared-region' : ''} ${g.active === viewer && g.phase === 'play' && selected != null && !allowed && !mini ? 'blocked-region' : ''}`}
               key={h.name}
             >
               {mini ? (
@@ -288,7 +293,7 @@ export function Board({
                           <p className="big-rule">{h.formula}</p>
                           <p>{h.rule}</p>
                           <p>
-                            {p.zones[z].length} of {h.cap} spaces used.
+                            {p.zones[z]?.length ?? 0} of {h.cap} spaces used.
                             Currently <b>{zoneScore(p.zones, z)} points</b>.
                           </p>
                           <p>
@@ -325,8 +330,23 @@ export function Board({
         const content = (
           <>
             <div className={`dish-stack ${c[k] ? 'has-dish' : ''}`}>
-              <TokenArt kind={k} food />
-              {c[k] > 1 && <span className="stack-shadow" />}
+              {Array.from(
+                { length: Math.max(1, Math.min(c[k], 6)) },
+                (_, i) => (
+                  <span
+                    className="stack-layer"
+                    style={
+                      {
+                        '--layer': i,
+                        '--layers': Math.max(1, Math.min(c[k], 6)),
+                      } as CSSProperties
+                    }
+                    key={i}
+                  >
+                    <TokenArt kind={k} food />
+                  </span>
+                ),
+              )}
               <b className="quantity">×{c[k]}</b>
             </div>
             <strong>{f.name}</strong>
@@ -380,7 +400,7 @@ export function Players({ g, inspect }: { g: Game; inspect: Inspect }) {
                 body:
                   g.id === 'undertow' ? (
                     <p>
-                      {p.hand.length} cards remaining · {p.wards} wards.
+                      {p.hand.length} cards remaining · {p.wards} shields.
                     </p>
                   ) : (
                     <Board g={g} player={i} mini />
@@ -445,7 +465,8 @@ export function Hand({
   });
   const count = hand.length;
   return (
-    <div
+    <ScrollArea
+      itemSelector=":scope > .piece-wrap"
       className={`hand ${g.id === 'wildgrove' ? 'token-tray' : 'card-hand'} ${count > 12 ? 'large-hand' : ''}`}
       data-coach="hand"
       data-drop="hand"
@@ -458,7 +479,7 @@ export function Hand({
             key={c.id}
             cardId={c.id}
             label={cardName(g.id, c)}
-            className={`${g.id === 'wildgrove' ? 'creature-piece' : g.id === 'midnight' ? 'food-card' : 'standard-card'} ${(g.active !== viewer || !legalMoves(g).some((m) => m.type === 'play' && m.card === c.id)) && g.phase === 'play' ? 'not-playable' : ''}`}
+            className={`${g.id === 'wildgrove' ? 'creature-piece' : g.id === 'midnight' ? `food-card food-kind-${c.kind}` : 'standard-card'} ${(g.active !== viewer || !legalMoves(g).some((m) => m.type === 'play' && m.card === c.id)) && g.phase === 'play' ? 'not-playable' : ''}`}
             style={
               {
                 '--angle': `${g.id === 'wildgrove' ? relative * 5 : relative * 7}deg`,
@@ -477,6 +498,6 @@ export function Hand({
           </Piece>
         );
       })}
-    </div>
+    </ScrollArea>
   );
 }

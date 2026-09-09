@@ -9,8 +9,8 @@ export const lessons: Record<
     {
       target: 'hand',
       action: 'pass',
-      title: 'Pass three cards',
-      text: 'Tap three cards, then confirm. High cards can be risky; try leaving yourself a short suit.',
+      title: 'Choose your pass',
+      text: 'Select the number shown on the Pass button, then confirm. High cards can be risky; try leaving yourself a short suit.',
     },
     {
       target: 'die',
@@ -23,18 +23,6 @@ export const lessons: Record<
       action: 'play',
       title: 'Play to the trick',
       text: 'Drag a card onto the table, or tap it. Follow the led suit when you can.',
-    },
-    {
-      target: 'ward',
-      action: 'arm',
-      title: 'Arm a shield',
-      text: 'Tap a shield token. It halves the next trick you win, but is spent even if you lose.',
-    },
-    {
-      target: 'hand',
-      action: 'ward-play',
-      title: 'Try the shield',
-      text: 'Play a legal card with your shield armed. Keep your total marks low.',
     },
   ],
   wildgrove: [
@@ -60,7 +48,7 @@ export const lessons: Record<
       target: 'region-0',
       action: 'inspect',
       title: 'Explore the scoring',
-      text: 'Hold a region for a closer look. You can also use its i button.',
+      text: 'Hold a region for a closer look. On touch screens, you can also use its i button.',
     },
     {
       target: 'players',

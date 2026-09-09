@@ -1,6 +1,14 @@
 'use client';
 import { Play, BookOpen, ArrowRight } from 'lucide-react';
 import { catalog, type Game, type GameId } from '@/lib/games/trio/engine';
+const soon = [
+  { name: 'Orbit', genre: 'Connect the stars', symbol: '☄', color: '#343f69' },
+  { name: 'Bloom', genre: 'Grow a garden', symbol: '✿', color: '#8a5970' },
+  { name: 'Stack', genre: 'Balance & build', symbol: '▥', color: '#b37b3d' },
+  { name: 'Rally', genre: 'Race to the finish', symbol: '⚑', color: '#496f67' },
+  { name: 'Mosaic', genre: 'Make a pattern', symbol: '❖', color: '#7970a1' },
+  { name: 'Cove', genre: 'Find the treasure', symbol: '◈', color: '#42768a' },
+];
 export function Library({
   saves,
   onSetup,
@@ -16,7 +24,7 @@ export function Library({
     <main className="library-page">
       <div className="library-heading">
         <h1>Games</h1>
-        <span>{catalog.length} games · 2–6 players</span>
+        <span>3 to play · 6 on the way</span>
       </div>
       <div className="library-grid">
         {catalog.map((c) => (
@@ -26,31 +34,51 @@ export function Library({
               onClick={() => onSetup(c.id)}
               aria-label={`Play ${c.name}`}
             >
-              <img src={c.cover} alt="" draggable={false} />
+              <img src={c.cover} alt={c.name} draggable={false} />
             </button>
             <div className="tile-details">
               <span className="genre">{c.genre}</span>
-              <h2>{c.name}</h2>
-              <span className="player-range">You + 1–5 bots</span>
               <div className="tile-actions">
                 <button className="primary" onClick={() => onSetup(c.id)}>
-                  <Play size={15} />
+                  <Play size={14} />
                   Play
                 </button>
-                <button className="secondary" onClick={() => onLearn(c.id)}>
-                  <BookOpen size={15} />
+                <button
+                  className="secondary"
+                  onClick={() => onLearn(c.id)}
+                  aria-label={`Learn ${c.name}`}
+                >
+                  <BookOpen size={14} />
                   Learn
                 </button>
+                {saves[c.id] && saves[c.id]!.phase !== 'over' && (
+                  <button
+                    className="resume"
+                    onClick={() => onResume(saves[c.id]!)}
+                    aria-label={`Resume ${c.name}`}
+                  >
+                    <ArrowRight size={14} />
+                    <span className="resume-label">Resume</span>
+                  </button>
+                )}
               </div>
-              {saves[c.id] && saves[c.id]!.phase !== 'over' && (
-                <button
-                  className="resume"
-                  onClick={() => onResume(saves[c.id]!)}
-                >
-                  Resume round {saves[c.id]!.round}
-                  <ArrowRight size={14} />
-                </button>
-              )}
+            </div>
+          </article>
+        ))}
+        {soon.map((c) => (
+          <article
+            className="game-tile coming-soon"
+            aria-label={`${c.name}, coming soon`}
+            key={c.name}
+          >
+            <div className="soon-cover" style={{ background: c.color }}>
+              <span aria-hidden="true">{c.symbol}</span>
+              <h2>{c.name}</h2>
+              <small>Coming soon</small>
+            </div>
+            <div className="tile-details">
+              <span className="genre">{c.genre}</span>
+              <span className="soon-note">A new table is on its way</span>
             </div>
           </article>
         ))}

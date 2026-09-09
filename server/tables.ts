@@ -21,6 +21,7 @@ export type StoredTable = {
   owner: string;
   gameId: GameId;
   difficulty: Difficulty;
+  starter?: boolean;
   capacity: number;
   revision: number;
   status: Table['status'];
@@ -37,10 +38,11 @@ export function parseMove(value: unknown): Move {
   if (m.type === 'pass') {
     check(
       Array.isArray(m.cards) &&
-        m.cards.length === 3 &&
+        m.cards.length >= 3 &&
+        m.cards.length <= 5 &&
         m.cards.every(Number.isInteger),
       400,
-      'Choose three cards.',
+      'Choose three to five cards.',
     );
     return { type: 'pass', cards: m.cards as number[] };
   }
@@ -50,8 +52,9 @@ export function parseMove(value: unknown): Move {
       (m.zone === undefined ||
         (Number.isInteger(m.zone) &&
           Number(m.zone) >= 0 &&
-          Number(m.zone) < 6)) &&
-      (m.ward === undefined || typeof m.ward === 'boolean'),
+          Number(m.zone) < 7)) &&
+      (m.ward === undefined || typeof m.ward === 'boolean') &&
+      (m.calm === undefined || typeof m.calm === 'boolean'),
     400,
     'Invalid move.',
   );
@@ -60,6 +63,7 @@ export function parseMove(value: unknown): Move {
     card: m.card as number,
     ...(m.zone === undefined ? {} : { zone: m.zone as number }),
     ...(m.ward === undefined ? {} : { ward: m.ward as boolean }),
+    ...(m.calm === undefined ? {} : { calm: m.calm as boolean }),
   };
 }
 export class Tables {
@@ -158,6 +162,7 @@ export class Tables {
       token: t.token,
       gameId: t.gameId,
       difficulty: t.difficulty,
+      starter: t.starter ?? false,
       capacity: t.capacity,
       revision: t.revision,
       status: t.status,
@@ -241,6 +246,12 @@ export class Tables {
             400,
             'Choose 2–6 seats, enough for everyone at the table.',
           );
+          check(
+            a.starter === undefined || typeof a.starter === 'boolean',
+            400,
+            'Invalid expansion.',
+          );
+          t.starter = a.gameId === 'undertow' && (a.starter ?? false);
           t.gameId = a.gameId;
           t.difficulty = a.difficulty;
           t.capacity = a.capacity;
@@ -265,6 +276,7 @@ export class Tables {
             randomInt(4294967296),
             false,
             t.capacity,
+            t.starter ?? false,
           );
           t.game.players.forEach((p, i) => {
             p.name = t.seats[i].name;

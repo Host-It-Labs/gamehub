@@ -1,5 +1,6 @@
 import {
   rng,
+  passCount,
   shuffled,
   deck,
   legalMoves,
@@ -36,18 +37,26 @@ export function heuristic(g: Game | Observation, m: Move) {
       (wins
         ? -pot * (last ? 1 : 0.7) - c.rank * 0.3
         : penalty(c, g.hazard) + c.rank * 0.4) +
-      (m.ward ? (wins ? pot / 2 : 0) - (p.hand.length > 4 ? 5 : 2) : 0)
+      (m.ward ? (wins ? pot / 2 : 0) - (p.hand.length > 4 ? 5 : 2) : 0) +
+      (m.calm
+        ? (wins
+            ? Math.max(
+                c.kind === 4 ? c.rank : 0,
+                ...g.trick.map((t) => (t.card.kind === 4 ? t.card.rank : 0)),
+              ) * (m.ward ? 0.5 : 1)
+            : 0) - (p.hand.length > 4 ? 4 : 1)
+        : 0)
     );
   }
   if (g.id === 'wildgrove') {
     const z = m.zone!,
       zones = p.zones.map((x) => [...x]);
-    zones[z].push(c);
+    (zones[z] ??= []).push(c);
     const delta = zones.reduce(
       (s, _, i) => s + zoneScore(zones, i) - zoneScore(p.zones, i),
       0,
     );
-    const n = p.zones[z].filter((x) => x.kind === c.kind).length;
+    const n = (p.zones[z] ?? []).filter((x) => x.kind === c.kind).length;
     const remaining = 12 - p.zones.flat().length;
     return (
       delta +
@@ -93,7 +102,7 @@ function passMove(
     return {
       type: 'pass',
       cards: shuffled(hand, r)
-        .slice(0, 3)
+        .slice(0, passCount(g))
         .map((c) => c.id),
     };
   // High cards are dangerous even before the hazard is known; a short suit can be cleared.
@@ -105,7 +114,7 @@ function passMove(
     type: 'pass',
     cards: [...hand]
       .sort((a, b) => risk(b) - risk(a))
-      .slice(0, 3)
+      .slice(0, passCount(g))
       .map((c) => c.id),
   };
   function risk(c: Card) {

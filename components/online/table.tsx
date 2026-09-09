@@ -1,4 +1,5 @@
 'use client';
+import { ExpansionChoice } from '../game/expansions';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import {
   api,
@@ -457,6 +458,7 @@ function LobbySettings({
           onChange={(e) =>
             void dispatch({
               type: 'configure',
+              starter: table.starter ?? false,
               gameId: e.target.value as GameId,
               difficulty: table.difficulty,
               capacity: table.capacity,
@@ -478,6 +480,7 @@ function LobbySettings({
           onChange={(e) =>
             void dispatch({
               type: 'configure',
+              starter: table.starter ?? false,
               gameId: table.gameId,
               difficulty: table.difficulty,
               capacity: Number(e.target.value),
@@ -499,6 +502,7 @@ function LobbySettings({
           onChange={(e) =>
             void dispatch({
               type: 'configure',
+              starter: table.starter ?? false,
               gameId: table.gameId,
               difficulty: e.target.value as Difficulty,
               capacity: table.capacity,
@@ -512,6 +516,21 @@ function LobbySettings({
           ))}
         </select>
       </label>
+      {table.gameId === 'undertow' && (
+        <ExpansionChoice
+          enabled={table.starter ?? false}
+          disabled={disabled}
+          onChange={(starter) =>
+            void dispatch({
+              type: 'configure',
+              gameId: table.gameId,
+              difficulty: table.difficulty,
+              capacity: table.capacity,
+              starter,
+            })
+          }
+        />
+      )}
       <button
         className="primary"
         disabled={disabled || table.members.length > table.capacity}

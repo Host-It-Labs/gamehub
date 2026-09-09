@@ -42,7 +42,7 @@ Solo matches and tutorials remain device-local and require no account. Online ma
 The public image supports Linux AMD64 and ARM64:
 
 ```sh
-docker pull ghcr.io/host-it-labs/gamehub:0.1.0
+docker pull ghcr.io/host-it-labs/gamehub:0.1.1
 cp .env.example .env
 # Edit PUBLIC_ORIGIN to your public HTTPS URL.
 docker compose up -d
@@ -83,7 +83,7 @@ To restore, stop the service, retain the current volume as recovery data, and po
 
 ### Password recovery
 
-There is no email verification or emailed password reset in v0.1.0. The server owner can reset a password through standard input without placing it in command arguments:
+There is no email verification or emailed password reset in v0.1.1. The server owner can reset a password through standard input without placing it in command arguments:
 
 ```sh
 read -rs NEW_PASSWORD

@@ -3,7 +3,13 @@ export type GameId = 'undertow' | 'wildgrove' | 'midnight';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Card = { id: number; kind: number; rank: number };
 export type Move =
-  | { type: 'play'; card: number; zone?: number; ward?: boolean }
+  | {
+      type: 'play';
+      card: number;
+      zone?: number;
+      ward?: boolean;
+      calm?: boolean;
+    }
   | { type: 'pass'; cards: number[] }
   | { type: 'roll' };
 export type Event = {
@@ -20,10 +26,12 @@ export type Player = {
   zones: Card[][];
   score: number;
   wards: number;
+  calms?: number;
   packet: number;
 };
 export type Game = {
   version: 3;
+  starter?: boolean;
   id: GameId;
   difficulty: Difficulty;
   rngState: number;
@@ -37,8 +45,9 @@ export type Game = {
   hazard: number;
   die: number;
   passes: number[][];
-  trick: { player: number; card: Card; ward: boolean }[];
-  lastTrick: { player: number; card: Card; ward: boolean }[];
+  passCards?: number;
+  trick: { player: number; card: Card; ward: boolean; calm?: boolean }[];
+  lastTrick: { player: number; card: Card; ward: boolean; calm?: boolean }[];
   seen: Card[];
   voids: number[][];
   memory: Record<number, Card[]>[];
@@ -108,8 +117,8 @@ export const habitats = [
   {
     name: 'Harmony Hollow',
     cap: 4,
-    formula: '2 each + pairs ×4',
-    rule: '2 per creature plus 4 per matching pair.',
+    formula: 'Same species: 1 / 3 / 6 / 10',
+    rule: 'Only your largest group of one species scores: 1 creature earns 1, two earn 3, three earn 6, four earn 10. Other species here add nothing.',
   },
   {
     name: 'Rainbow Ridge',
@@ -130,42 +139,49 @@ export const habitats = [
     rule: '5 per creature whose species appears nowhere else on your board.',
   },
   {
-    name: 'Sun Garden',
+    name: 'Odd Garden',
     cap: 4,
-    formula: '3 each · balanced +4',
-    rule: '3 per creature plus 4 for exactly two species in equal numbers.',
+    formula: '4 per odd-count species',
+    rule: 'Each species with an odd number of creatures here earns 4. Even counts earn nothing. A second fox removes its 4 points; a third restores them.',
   },
   {
-    name: 'Open Meadow',
+    name: 'Riverbank',
     cap: 12,
-    formula: '1 each · variety +3',
-    rule: '1 per creature plus 3 with at least three different species.',
+    formula: '1 point per creature',
+    rule: 'An open overflow area: each creature earns 1 point. Always available, whatever the die shows.',
+  },
+  {
+    name: 'Quiet Glade',
+    cap: 3,
+    formula: 'One creature alone = 8',
+    rule: 'Exactly one creature earns 8 points. Two or three creatures earn nothing.',
   },
 ];
+export const habitatOrder = [0, 1, 2, 3, 4, 6, 5];
 export const dice = [
   {
-    name: 'Forest',
-    symbol: '♣',
-    zones: [0, 2, 3],
-    rule: 'Harmony Hollow, Moonlit Pairs, or Lookout.',
+    name: 'Top row',
+    symbol: '↑',
+    zones: [0, 1, 2],
+    rule: 'Place in any of the three regions in the top row.',
   },
   {
-    name: 'Clearing',
-    symbol: '◇',
-    zones: [1, 4, 5],
-    rule: 'Rainbow Ridge, Sun Garden, or Open Meadow.',
+    name: 'Bottom row',
+    symbol: '↓',
+    zones: [3, 4, 6],
+    rule: 'Place in any of the three regions in the bottom row.',
   },
   {
-    name: 'Sun',
-    symbol: '☀',
-    zones: [0, 1, 3],
-    rule: 'Harmony Hollow, Rainbow Ridge, or Lookout.',
+    name: 'Left two columns',
+    symbol: '←',
+    zones: [0, 1, 3, 4],
+    rule: 'Place in either of the two leftmost columns.',
   },
   {
-    name: 'Shade',
-    symbol: '☾',
-    zones: [2, 4, 5],
-    rule: 'Moonlit Pairs, Sun Garden, or Open Meadow.',
+    name: 'Right two columns',
+    symbol: '→',
+    zones: [1, 2, 4, 6],
+    rule: 'Place in either of the two rightmost columns.',
   },
   {
     name: 'Empty',
@@ -183,24 +199,24 @@ export const dice = [
 export const catalog = [
   {
     id: 'undertow' as GameId,
-    name: 'Undertow',
+    name: 'Tide',
     genre: 'Trick taking',
     color: '#38baca',
-    cover: '/art/covers-v3.png',
+    cover: '/art/tide-cover-v6.png',
   },
   {
     id: 'wildgrove' as GameId,
-    name: 'Wildgrove',
+    name: 'Grove',
     genre: 'Draft & place',
     color: '#75b965',
-    cover: '/art/covers-v3.png',
+    cover: '/art/grove-cover-v6.png',
   },
   {
     id: 'midnight' as GameId,
-    name: 'Midnight Market',
+    name: 'Yatai',
     genre: 'Set collection',
     color: '#df84bb',
-    cover: '/art/covers-v3.png',
+    cover: '/art/yatai-cover-v6.png',
   },
 ];
 export function rng(seed: number) {
@@ -275,10 +291,12 @@ function deal(g: Game) {
     p.hand = g.reserve
       .splice(0, n)
       .sort((a, b) => a.kind - b.kind || a.rank - b.rank);
-    p.wards = 2;
+    p.wards = g.id === 'undertow' && g.starter !== false ? 2 : 0;
+    p.calms = g.id === 'undertow' && g.starter === true ? 1 : 0;
     p.packet = (g.round - 1) * g.players.length + i;
   });
   g.passes = g.players.map(() => []);
+  g.passCards = passCount({ players: g.players });
   g.voids = g.players.map(() => []);
   g.memory = g.players.map(() => ({}));
   if (g.id === 'undertow') g.seen = [];
@@ -299,25 +317,25 @@ export function createGame(
   seed = 1,
   tutorial = false,
   playerCount = 3,
+  starter = false,
 ): Game {
   if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 6)
     throw new Error('Choose 2–6 players');
   const g: Game = {
     version: 3,
+    starter: id === 'undertow' && starter,
     id,
     difficulty,
     rngState: seed >>> 0,
     reserve: [],
-    players: names
-      .slice(0, playerCount)
-      .map((name) => ({
-        name,
-        hand: [],
-        zones: Array.from({ length: 6 }, () => []),
-        score: 0,
-        wards: 2,
-        packet: 0,
-      })),
+    players: names.slice(0, playerCount).map((name) => ({
+      name,
+      hand: [],
+      zones: Array.from({ length: id === 'wildgrove' ? 7 : 6 }, () => []),
+      score: 0,
+      wards: 2,
+      packet: 0,
+    })),
     active: 0,
     phase: 'play',
     round: 1,
@@ -347,11 +365,10 @@ export function counts(cards: Card[]) {
   );
 }
 export function zoneScore(zones: Card[][], zone: number) {
-  const cards = zones[zone],
+  const cards = zones[zone] ?? [],
     c = counts(cards),
     unique = c.filter(Boolean).length;
-  if (zone === 0)
-    return cards.length * 2 + c.reduce((s, n) => s + Math.floor(n / 2) * 4, 0);
+  if (zone === 0) return [0, 1, 3, 6, 10][Math.max(...c)];
   if (zone === 1) return unique * 3 + (unique === 4 ? 4 : 0);
   if (zone === 2)
     return c.reduce((s, n) => s + (n === 2 ? 7 : n === 1 ? 1 : 0), 0);
@@ -362,12 +379,9 @@ export function zoneScore(zones: Card[][], zone: number) {
           !zones.some((z, i) => i !== 3 && z.some((x) => x.kind === c.kind)),
       ).length * 5
     );
-  if (zone === 4)
-    return (
-      cards.length * 3 +
-      (unique === 2 && c.filter(Boolean)[0] === c.filter(Boolean)[1] ? 4 : 0)
-    );
-  return cards.length + (unique >= 3 ? 3 : 0);
+  if (zone === 4) return c.filter((n) => n % 2 === 1).length * 4;
+  if (zone === 6) return cards.length === 1 ? 8 : 0;
+  return cards.length;
 }
 export function foodBreakdown(cards: Card[], opponents: Card[][]): number[] {
   const c = counts(cards),
@@ -405,9 +419,11 @@ export function allowedZone(
   c: Card,
   z: number,
 ) {
-  if (g.players[p].zones[z].length >= habitats[z].cap) return false;
+  if (!habitats[z] || (g.players[p].zones[z]?.length ?? 0) >= habitats[z].cap)
+    return false;
+  if (z === 5) return true;
   if (p === g.roller) return true;
-  const region = g.players[p].zones[z];
+  const region = g.players[p].zones[z] ?? [];
   return g.die < 4
     ? dice[g.die].zones.includes(z)
     : g.die === 4
@@ -427,7 +443,15 @@ export function legalMoves(g: PublicGame): Move[] {
     }
     return hand.flatMap<Move>((c) => [
       { type: 'play', card: c.id },
-      ...(p.wards ? [{ type: 'play' as const, card: c.id, ward: true }] : []),
+      ...(g.starter !== false && p.wards
+        ? [{ type: 'play' as const, card: c.id, ward: true }]
+        : []),
+      ...(g.starter && p.calms
+        ? [{ type: 'play' as const, card: c.id, calm: true }]
+        : []),
+      ...(g.starter && p.calms && p.wards
+        ? [{ type: 'play' as const, card: c.id, ward: true, calm: true }]
+        : []),
     ]);
   }
   if (g.id === 'midnight')
@@ -445,12 +469,25 @@ export function legalMoves(g: PublicGame): Move[] {
         .filter(() => p.zones[5].length < 12)
         .map((c) => ({ type: 'play', card: c.id, zone: 5 }));
 }
+/** Papayoo: 3–4 seats pass 5, 5 seats pass 4, 6 seats pass 3.
+ * Nami extends the five-card exchange to its two-player variant.
+ * https://www.gigamic.com/index.php?controller=attachment&id_attachment=77
+ */
+export function passCount(
+  g: Pick<PublicGame, 'players' | 'passCards'> & { passes?: number[][] },
+) {
+  // Finish an exchange already started by a pre-update save at its original size.
+  const started = g.passes?.find((cards) => cards.length)?.length;
+  if (g.passCards !== undefined) return g.passCards;
+  if (started) return started;
+  return g.players.length <= 4 ? 5 : g.players.length === 5 ? 4 : 3;
+}
 export function validMove(g: PublicGame, m: Move) {
   if (g.phase === 'pass')
     return (
       m.type === 'pass' &&
-      m.cards.length === 3 &&
-      new Set(m.cards).size === 3 &&
+      m.cards.length === passCount(g) &&
+      new Set(m.cards).size === passCount(g) &&
       m.cards.every((id) => g.players[g.active].hand.some((c) => c.id === id))
     );
   return legalMoves(g).some(
@@ -460,7 +497,8 @@ export function validMove(g: PublicGame, m: Move) {
         m.type === 'play' &&
         x.card === m.card &&
         x.zone === m.zone &&
-        !!x.ward === !!m.ward),
+        !!x.ward === !!m.ward &&
+        !!x.calm === !!m.calm),
   );
 }
 function finishRound(g: Game) {
@@ -480,10 +518,14 @@ export function play(state: Game, m: Move): Game {
     n = g.players.length,
     p = g.players[g.active],
     actor = g.active;
+  if (g.id === 'wildgrove')
+    g.players.forEach((player) => {
+      while (player.zones.length < 7) player.zones.push([]);
+    });
   g.revision++;
   if (m.type === 'pass') {
     g.passes[actor] = m.cards;
-    emit(g, 'pass', actor, `${p.name} chose three cards to pass.`);
+    emit(g, 'pass', actor, `${p.name} chose ${passCount(g)} cards to pass.`);
     if (actor < n - 1) g.active++;
     else {
       const gifts = g.players.map((p, i) =>
@@ -494,6 +536,7 @@ export function play(state: Game, m: Move): Game {
         p.hand.push(...gifts[(i + (g.round % 2 ? n - 1 : 1)) % n]);
         p.hand.sort((a, b) => a.kind - b.kind || a.rank - b.rank);
       });
+      emit(g, 'pass', -1, 'Cards move to the next seat.');
       g.passes = g.players.map(() => []);
       g.phase = 'roll';
       g.roller = (g.round - 1) % n;
@@ -523,18 +566,19 @@ export function play(state: Game, m: Move): Game {
     g,
     'play',
     actor,
-    `${p.name}: ${cardName(g.id, card)}${m.zone !== undefined ? ` → ${habitats[m.zone].name}` : ''}${m.ward ? ' + ward' : ''}`,
+    `${p.name}: ${cardName(g.id, card)}${m.zone !== undefined ? ` → ${habitats[m.zone].name}` : ''}${m.ward ? ' + shield' : ''}${m.calm ? ' + Calm' : ''}`,
     card.kind,
   );
   if (g.id === 'undertow') {
     if (m.ward) p.wards--;
+    if (m.calm) p.calms = (p.calms ?? 0) - 1;
     if (
       g.trick.length &&
       card.kind !== g.trick[0].card.kind &&
       !g.voids[actor].includes(g.trick[0].card.kind)
     )
       g.voids[actor].push(g.trick[0].card.kind);
-    g.trick.push({ player: actor, card, ward: !!m.ward });
+    g.trick.push({ player: actor, card, ward: !!m.ward, calm: !!m.calm });
     if (g.trick.length < n) {
       g.active = (actor + 1) % n;
       return g;
@@ -543,6 +587,11 @@ export function play(state: Game, m: Move): Game {
       .filter((t) => t.card.kind === g.trick[0].card.kind)
       .sort((a, b) => b.card.rank - a.card.rank)[0];
     let cost = g.trick.reduce((s, t) => s + penalty(t.card, g.hazard), 0);
+    if (win.calm)
+      cost -= Math.max(
+        0,
+        ...g.trick.filter((t) => t.card.kind === 4).map((t) => t.card.rank),
+      );
     if (win.ward) cost = Math.ceil(cost / 2);
     g.players[win.player].score += cost;
     emit(
@@ -573,6 +622,12 @@ export function play(state: Game, m: Move): Game {
           p.hand = hands[from];
           p.packet = packets[from];
         });
+        emit(
+          g,
+          'pass',
+          -1,
+          `Packets pass ${g.round === 1 ? 'left' : 'right'} to the next player.`,
+        );
         remember(g);
         if (g.id === 'wildgrove') {
           g.roller = (g.roller + 1) % n;
@@ -598,6 +653,7 @@ export function observe(g: Game, viewer = g.active): Observation {
   });
   return {
     ...rest,
+    passCards: passCount(g),
     reserveCount: reserve.length,
     knownPackets: g.id === 'undertow' ? {} : memory[viewer],
   };
@@ -608,6 +664,8 @@ export function isSavedGame(x: unknown): x is Game {
     const g = x as Game;
     if (
       g.version !== 3 ||
+      (g.starter !== undefined && typeof g.starter !== 'boolean') ||
+      (g.passCards !== undefined && ![3, 4, 5].includes(g.passCards)) ||
       !catalog.some((c) => c.id === g.id) ||
       !['easy', 'medium', 'hard'].includes(g.difficulty) ||
       !['pass', 'roll', 'play', 'over'].includes(g.phase)
@@ -658,9 +716,12 @@ export function isSavedGame(x: unknown): x is Game {
           Number.isInteger(p.wards) &&
           p.wards >= 0 &&
           p.wards <= 2 &&
+          (p.calms === undefined ||
+            (Number.isInteger(p.calms) && p.calms >= 0 && p.calms <= 1)) &&
           Number.isInteger(p.packet) &&
           p.hand.every(card) &&
-          p.zones.length === 6 &&
+          (p.zones.length === 6 ||
+            (g.id === 'wildgrove' && p.zones.length === 7)) &&
           p.zones.every(
             (z, i) =>
               z.every(card) &&

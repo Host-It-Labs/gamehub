@@ -1,6 +1,6 @@
 services:
   gamehub:
-    image: ghcr.io/host-it-labs/gamehub:0.1.0
+    image: ghcr.io/host-it-labs/gamehub:0.1.1
     restart: unless-stopped
     init: true
     ports:

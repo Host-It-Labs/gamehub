@@ -19,6 +19,7 @@ export type Table = {
   token: string;
   gameId: GameId;
   difficulty: Difficulty;
+  starter?: boolean;
   capacity: number;
   revision: number;
   status: 'lobby' | 'playing' | 'finished' | 'closed';
@@ -35,6 +36,7 @@ export type TableCommand =
       type: 'configure';
       gameId: GameId;
       difficulty: Difficulty;
+      starter?: boolean;
       capacity: number;
     }
   | { type: 'start' | 'abandon' | 'close' | 'leave' | 'retry-bot' }

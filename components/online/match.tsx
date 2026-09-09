@@ -1,6 +1,10 @@
 'use client';
+import { ScrollArea } from '../game/scroll-area';
+import { Passing } from '../game/passing';
+import { ExpansionBadge } from '../game/expansions';
 import { useEffect, useRef, useState } from 'react';
-import { Board, Hand, Players, cardInspection } from '@/components/game/boards';
+import { Board, Hand, Players } from '@/components/game/boards';
+import { Die } from '@/components/game/die';
 import { Help } from '@/components/game/help';
 import {
   Dialog,
@@ -15,8 +19,8 @@ import {
   scores,
   validMove,
   totalRounds,
-  suits,
-  dice,
+  passCount,
+  habitats,
 } from '@/lib/games/trio/engine';
 import type { GameView } from '@/lib/online/types';
 import { cue, eventCue } from '@/lib/games/trio/sound';
@@ -33,11 +37,17 @@ export function OnlineMatch({
   send: (move: Move) => Promise<boolean>;
 }) {
   const [selected, setSelected] = useState<number | null>(null),
+    [preparedZone, setPreparedZone] = useState<number | null>(null),
     [passed, setPassed] = useState<number[]>([]),
     [order, setOrder] = useState<number[]>([]),
     [ward, setWard] = useState(false),
+    [calm, setCalm] = useState(false),
     [inspection, setInspection] = useState<Inspection | null>(null),
-    [panel, setPanel] = useState<'rules' | 'reference' | 'log' | null>(null),
+    [inspectorOpen, setInspectorOpen] = useState(false),
+    [panel, rememberPanel] = useState<'rules' | 'reference' | 'log' | null>(
+      null,
+    ),
+    [panelOpen, setPanelOpen] = useState(false),
     [volume, setVolume] = useState(() => {
       try {
         const v = Number(localStorage.getItem('gamehub.volume.v3') ?? '.5');
@@ -46,6 +56,24 @@ export function OnlineMatch({
         return 0.5;
       }
     });
+  const scope = `${g.round}:${g.players[viewer].packet}`;
+  const [preparationScope, setPreparationScope] = useState(scope);
+  // A new packet invalidates only local choices; keep the table, die and dialogs mounted.
+  if (preparationScope !== scope) {
+    setPreparationScope(scope);
+    setSelected(null);
+    setPreparedZone(null);
+    setPassed([]);
+    setWard(false);
+    setCalm(false);
+  }
+  function setPanel(value: typeof panel) {
+    if (value) {
+      rememberPanel(value);
+      setInspection(null);
+    }
+    setPanelOpen(!!value);
+  }
   const lastRevision = useRef(g.revision),
     origin = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -65,40 +93,51 @@ export function OnlineMatch({
         ? document.activeElement
         : null);
     setInspection(item);
+    setInspectorOpen(true);
   }
   async function commit(move: Move) {
     if (!mine || !validMove(g, move)) return;
-    if (await send(move)) {
+    if ((await send(move)) && move.type !== 'roll') {
       setSelected(null);
+      setPreparedZone(null);
       setPassed([]);
       setWard(false);
+      setCalm(false);
     }
   }
   function tap(c: Card) {
-    if (!mine || g.phase === 'roll') {
-      inspect(cardInspection(g, c, viewer));
-      return;
-    }
+    if (g.phase === 'over') return;
     if (g.phase === 'pass') {
+      // Seats before the current actor have already confirmed their pass.
+      if (g.active > viewer) return;
       setPassed((p) =>
         p.includes(c.id)
           ? p.filter((id) => id !== c.id)
-          : p.length < 3
+          : p.length < passCount(g)
             ? [...p, c.id]
             : p,
       );
       return;
     }
-    if (g.id === 'wildgrove') setSelected(c.id);
-    else {
-      const move: Move = {
-        type: 'play',
-        card: c.id,
-        ...(ward ? { ward: true } : {}),
-      };
-      if (validMove(g, move)) void commit(move);
-      else inspect(cardInspection(g, c, viewer));
+    if (!mine || g.phase === 'roll' || g.id === 'wildgrove') {
+      setSelected((previous) => (previous === c.id ? null : c.id));
+      setPreparedZone(null);
+      return;
     }
+    const move: Move = {
+      type: 'play',
+      card: c.id,
+      ...(ward ? { ward: true } : {}),
+      ...(calm ? { calm: true } : {}),
+    };
+    if (validMove(g, move)) void commit(move);
+    else setSelected((previous) => (previous === c.id ? null : c.id));
+  }
+  function place(zone: number) {
+    if (selected === null || g.phase === 'over') return;
+    if (mine && g.phase === 'play') {
+      void commit({ type: 'play', card: selected, zone });
+    } else setPreparedZone(zone);
   }
   function drop(c: Card, x: number, y: number) {
     const elements = document.elementsFromPoint(x, y),
@@ -125,7 +164,25 @@ export function OnlineMatch({
       setOrder(ids);
       return;
     }
-    if (!mine || g.phase !== 'play') return;
+    if (g.phase === 'over') return;
+    if (!mine || g.phase === 'roll') {
+      const destination = target?.dataset.drop;
+      if (g.phase === 'pass') return;
+      if (
+        (g.id === 'wildgrove' && destination?.startsWith('zone:')) ||
+        (g.id === 'undertow' && destination === 'trick') ||
+        (g.id === 'midnight' && destination === 'menu')
+      ) {
+        setSelected(c.id);
+        setPreparedZone(
+          destination?.startsWith('zone:')
+            ? Number(destination.split(':')[1])
+            : null,
+        );
+      }
+      return;
+    }
+    if (g.phase !== 'play') return;
     const dest = target?.dataset.drop;
     if (g.id === 'wildgrove' && dest?.startsWith('zone:'))
       void commit({
@@ -141,6 +198,7 @@ export function OnlineMatch({
         type: 'play',
         card: c.id,
         ...(ward ? { ward: true } : {}),
+        ...(calm ? { calm: true } : {}),
       });
   }
   const sc = scores(g),
@@ -172,8 +230,21 @@ export function OnlineMatch({
       </div>
       <div className="table-columns">
         <section className="play-area">
-          <Players g={g} inspect={inspect} />
           <div className="game-controls">
+            <Players g={g} inspect={inspect} />
+            <ExpansionBadge g={g} />
+            {g.starter && (
+              <button
+                className={`secondary calm-token ${calm ? 'armed' : ''}`}
+                aria-pressed={calm}
+                disabled={g.phase === 'over' || !g.players[viewer].calms}
+                onClick={() => setCalm(!calm)}
+                title="Arm before playing. Cancel the highest Storm card if you capture this trick; spent either way."
+              >
+                {calm ? 'Calm armed' : 'Arm Calm'} ·{' '}
+                {g.players[viewer].calms ?? 0}
+              </button>
+            )}
             <p className="turn-status" aria-live="polite">
               {g.phase === 'over'
                 ? 'Finished'
@@ -181,57 +252,104 @@ export function OnlineMatch({
                   ? 'Connecting or saving…'
                   : mine
                     ? g.phase === 'pass'
-                      ? 'Choose 3 cards to pass'
+                      ? `Choose ${passCount(g)} cards to pass`
                       : 'Your turn'
                     : `${g.players[g.active].name}’s turn`}
             </p>
             {g.id !== 'midnight' && (
               <button
-                className="dice-token"
+                className={`dice-token ${g.phase === 'roll' && mine ? 'ready-to-roll' : ''}`}
                 disabled={!mine || g.phase !== 'roll'}
                 onClick={() => void commit({ type: 'roll' })}
               >
-                {g.phase === 'roll'
-                  ? 'Roll die'
-                  : g.id === 'undertow'
-                    ? `${suits[g.hazard] ?? '—'} 9 = 40`
-                    : dice[g.die].name}
+                <Die g={g} />
               </button>
             )}
-            {g.id === 'undertow' && (
+            {g.id === 'undertow' && g.starter !== false && (
               <button
                 className={`secondary ${ward ? 'armed' : ''}`}
                 aria-pressed={ward}
-                disabled={
-                  !mine || g.phase !== 'play' || !g.players[viewer].wards
-                }
+                disabled={g.phase === 'over' || !g.players[viewer].wards}
                 onClick={() => setWard(!ward)}
               >
-                {ward ? 'Ward armed' : 'Arm ward'} · {g.players[viewer].wards}{' '}
-                left
+                {ward ? 'Shield armed' : 'Arm shield'} ·{' '}
+                {g.players[viewer].wards} left
               </button>
             )}
           </div>
-          <Board
-            g={g}
-            player={viewer}
-            viewer={viewer}
-            selected={mine ? selected : null}
-            inspect={inspect}
-            onPlace={(zone) => {
-              if (selected !== null)
-                void commit({ type: 'play', card: selected, zone });
-            }}
-          />
-          <div className="hand-controls">
-            <span>Your hand · {g.players[viewer].hand.length}</span>
-            {mine && g.phase === 'pass' ? (
+          <ScrollArea
+            className="board-viewport"
+            itemSelector=".region, .serving-dish, .table-card"
+          >
+            <Board
+              g={g}
+              player={viewer}
+              viewer={viewer}
+              selected={selected}
+              inspect={inspect}
+              onPlace={place}
+              preparedZone={preparedZone}
+            />
+          </ScrollArea>
+          {selected !== null && g.phase !== 'over' && g.phase !== 'pass' && (
+            <div className="prepared-move" aria-live="polite">
+              <span>
+                {mine && g.phase === 'play'
+                  ? 'Prepared choice'
+                  : 'Preparing your next move'}
+                {preparedZone !== null
+                  ? ` · ${habitats[preparedZone].name}`
+                  : ''}
+              </span>
               <button
                 className="primary"
-                disabled={passed.length !== 3}
+                disabled={
+                  !mine ||
+                  !validMove(g, {
+                    type: 'play',
+                    card: selected,
+                    ...(g.id === 'wildgrove'
+                      ? { zone: preparedZone ?? -1 }
+                      : {}),
+                    ...(ward ? { ward: true } : {}),
+                    ...(calm ? { calm: true } : {}),
+                  })
+                }
+                onClick={() =>
+                  void commit({
+                    type: 'play',
+                    card: selected,
+                    ...(g.id === 'wildgrove'
+                      ? { zone: preparedZone ?? -1 }
+                      : {}),
+                    ...(ward ? { ward: true } : {}),
+                    ...(calm ? { calm: true } : {}),
+                  })
+                }
+              >
+                Play choice
+              </button>
+              <button
+                className="secondary"
+                onClick={() => {
+                  setSelected(null);
+                  setPreparedZone(null);
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+          <Passing g={g} viewer={viewer} />
+          <div className="hand-controls">
+            <span>Your hand · {g.players[viewer].hand.length}</span>
+            {g.phase === 'pass' ? (
+              <button
+                className="primary"
+                disabled={!mine || passed.length !== passCount(g)}
                 onClick={() => void commit({ type: 'pass', cards: passed })}
               >
-                Pass {passed.length}/3
+                Pass {passed.length}/{passCount(g)}
               </button>
             ) : (
               <button
@@ -296,10 +414,10 @@ export function OnlineMatch({
         </aside>
       </div>
       <Dialog
-        open={!!inspection || !!panel}
+        open={inspectorOpen || panelOpen}
         onOpenChange={(open) => {
           if (!open) {
-            setInspection(null);
+            setInspectorOpen(false);
             setPanel(null);
             requestAnimationFrame(() => origin.current?.focus());
           }
@@ -309,7 +427,7 @@ export function OnlineMatch({
           <DialogTitle>
             {inspection?.title ??
               (panel === 'log'
-                ? 'Activity'
+                ? 'Scores & activity'
                 : panel === 'reference'
                   ? 'Reference'
                   : 'How to play')}
@@ -321,11 +439,21 @@ export function OnlineMatch({
               <div className="inspection-body">{inspection.body}</div>
             </>
           ) : panel === 'log' ? (
-            <ol>
-              {[...g.events].reverse().map((e) => (
-                <li key={e.id}>{e.text}</li>
+            <div>
+              <h3>Scores</h3>
+              {g.players.map((p, i) => (
+                <div className="score-row" key={i}>
+                  <span>{p.name}</span>
+                  <b>{sc[i]}</b>
+                </div>
               ))}
-            </ol>
+              <h3>Activity</h3>
+              <ol>
+                {[...g.events].reverse().map((e) => (
+                  <li key={e.id}>{e.text}</li>
+                ))}
+              </ol>
+            </div>
           ) : (
             <Help g={g} reference={panel === 'reference'} />
           )}

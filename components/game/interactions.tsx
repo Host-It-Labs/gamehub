@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   begin,
   travel,
@@ -47,8 +48,14 @@ export function Piece({
   const gesture = useRef<Gesture | null>(null),
     timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
     button = useRef<HTMLButtonElement>(null),
-    suppress = useRef(false);
-  const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
+    suppress = useRef(false),
+    bounds = useRef<DOMRect | null>(null);
+  const [offset, setOffset] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   function clear() {
     clearTimeout(timer.current);
     timer.current = undefined;
@@ -76,6 +83,7 @@ export function Piece({
       return;
     }
     clear();
+    bounds.current = e.currentTarget.getBoundingClientRect();
     suppress.current = false;
     gesture.current = begin(
       e.pointerId,
@@ -96,80 +104,125 @@ export function Piece({
     }, HOLD_MS);
   }
   return (
-    <div
-      className={`piece-wrap ${offset ? 'is-dragging' : ''}`}
-      data-card-id={cardId}
-      data-coach={coachId}
-      style={{
-        ...style,
-        ...(offset
-          ? {
-              transform: `translate(${offset.x}px,${offset.y}px) rotate(0deg)`,
-              zIndex: 1000,
+    <>
+      <div
+        className={`piece-wrap ${offset ? 'is-dragging' : ''}`}
+        data-card-id={cardId}
+        data-coach={coachId}
+        style={{
+          ...style,
+          ...(offset
+            ? {
+                opacity: 0,
+              }
+            : {}),
+        }}
+      >
+        <button
+          ref={button}
+          type="button"
+          className={`piece ${className} ${selected ? 'selected' : ''}`}
+          style={{ touchAction: draggable ? 'pan-x' : 'pan-x pan-y' }}
+          aria-label={label}
+          aria-pressed={selected}
+          onPointerDown={down}
+          onPointerMove={(e) => {
+            let g = gesture.current;
+            if (!g || g.pointer !== e.pointerId) return;
+            // A horizontal touch swipe belongs to the hand's native scroller.
+            if (
+              e.pointerType !== 'mouse' &&
+              g.mode === 'pending' &&
+              Math.abs(e.clientX - g.x) > 8 &&
+              Math.abs(e.clientX - g.x) > Math.abs(e.clientY - g.y)
+            ) {
+              cancel();
+              if (e.currentTarget.hasPointerCapture(e.pointerId))
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              return;
             }
-          : {}),
-      }}
-    >
-      <button
-        ref={button}
-        type="button"
-        className={`piece ${className} ${selected ? 'selected' : ''}`}
-        aria-label={label}
-        aria-pressed={selected}
-        onPointerDown={down}
-        onPointerMove={(e) => {
-          let g = gesture.current;
-          if (!g || g.pointer !== e.pointerId) return;
-          const before = g.mode;
-          g = travel(g, e.clientX, e.clientY);
-          gesture.current = g;
-          if (g.mode !== 'pending') clear();
-          if (g.mode === 'drag') {
-            e.preventDefault();
-            if (before !== 'drag') onLift?.();
-            setOffset({ x: e.clientX - g.x, y: e.clientY - g.y });
-          }
-        }}
-        onPointerUp={(e) => {
-          const g = gesture.current;
-          if (!g || g.pointer !== e.pointerId) return;
-          clear();
-          const action = release(g);
-          gesture.current = null;
-          setOffset(null);
-          suppress.current = true;
-          if (action === 'tap') onTap?.();
-          if (action === 'drop') onDrop?.(e.clientX, e.clientY);
-        }}
-        onPointerCancel={cancel}
-        onLostPointerCapture={() => {
-          if (gesture.current) cancel();
-        }}
-        onClick={(e) => {
-          if (e.detail === 0 && !suppress.current) onTap?.();
-          suppress.current = false;
-        }}
-        onKeyDown={(e) => {
-          if (e.key.toLowerCase() === 'i') {
-            e.preventDefault();
-            inspect();
-          } else if (e.key === 'Escape') cancel();
-          else if (e.key === 'Enter' || e.key === ' ') {
+            const before = g.mode;
+            g = travel(g, e.clientX, e.clientY);
+            gesture.current = g;
+            if (g.mode !== 'pending') clear();
+            if (g.mode === 'drag') {
+              e.preventDefault();
+              if (before !== 'drag') onLift?.();
+              const rect = bounds.current;
+              if (rect)
+                setOffset({
+                  x: rect.left + e.clientX - g.x,
+                  y: rect.top + e.clientY - g.y,
+                  width: rect.width,
+                  height: rect.height,
+                });
+            }
+          }}
+          onPointerUp={(e) => {
+            const g = gesture.current;
+            if (!g || g.pointer !== e.pointerId) return;
+            clear();
+            const action = release(g);
+            gesture.current = null;
+            setOffset(null);
+            suppress.current = true;
+            if (e.currentTarget.hasPointerCapture(e.pointerId))
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            e.currentTarget.blur();
+            if (action === 'tap') onTap?.();
+            if (action === 'drop') onDrop?.(e.clientX, e.clientY);
+          }}
+          onPointerCancel={cancel}
+          onLostPointerCapture={() => {
+            if (gesture.current) cancel();
+          }}
+          onClick={(e) => {
+            if (e.detail === 0 && !suppress.current) onTap?.();
             suppress.current = false;
-          }
-        }}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        {children}
-      </button>
-      <button
-        className="inspect-button"
-        aria-label={`Inspect ${label}`}
-        title="Inspect · hold or press I"
-        onClick={inspect}
-      >
-        i
-      </button>
-    </div>
+          }}
+          onKeyDown={(e) => {
+            if (e.key.toLowerCase() === 'i') {
+              e.preventDefault();
+              inspect();
+            } else if (e.key === 'Escape') {
+              cancel();
+              e.currentTarget.blur();
+            } else if (e.key === 'Enter' || e.key === ' ') {
+              suppress.current = false;
+            }
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          {children}
+        </button>
+        <button
+          className="inspect-button"
+          aria-label={`Inspect ${label}`}
+          title="Inspect · hold or press I"
+          onClick={inspect}
+        >
+          i
+        </button>
+      </div>
+      {offset &&
+        createPortal(
+          <div
+            className="drag-ghost"
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              left: offset.x,
+              top: offset.y,
+              width: offset.width,
+              height: offset.height,
+              zIndex: 10000,
+              pointerEvents: 'none',
+            }}
+          >
+            <div className={`piece ${className}`}>{children}</div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
