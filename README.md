@@ -48,15 +48,15 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Use the included `compose.yaml`. The image includes the frontend, backend, and SQLite support; it needs no external database or email service. `GAMEHUB_PORT` is the client-facing port on your server and defaults to `8080`. Open `http://<server-address>:<GAMEHUB_PORT>` in a browser. The same application container handles `/api` internally on that origin, so there is no separate backend or database port to publish. The `gamehub-data` volume retains accounts, sessions, tables, and matches. The runtime is non-root (UID/GID 1000); a bind-mounted `/data` directory must be writable by that UID. Keep SQLite on a local disk and run one replica.
+Use the included `compose.yaml`. The image includes the frontend, backend, and SQLite support; it needs no external database or email service. `GAMEHUB_PORT` is the client-facing port on your server and defaults to `3492`. Open `http://<server-address>:<GAMEHUB_PORT>` in a browser. The container listens on its isolated internal port `8080`; Compose publishes it as `3492:8080`, so it does not conflict with another container or host service using port `8080`. The same application container handles `/api` internally on that origin, so there is no separate backend or database port to publish. The `gamehub-data` volume retains accounts, sessions, tables, and matches. The runtime is non-root (UID/GID 1000); a bind-mounted `/data` directory must be writable by that UID. Keep SQLite on a local disk and run one replica.
 
-Compose publishes the client-facing port on all server interfaces by default. Set `PUBLIC_ORIGIN` to the exact URL people use, including its scheme and any non-standard port; for example, `http://192.0.2.10:8080` for direct LAN access or `https://games.example.com` behind a reverse proxy. Origin checks deliberately ignore forwarded headers. HTTPS enables Secure cookies.
+Compose publishes the client-facing port on all server interfaces by default. Set `PUBLIC_ORIGIN` to the exact URL people use, including its scheme and any non-standard port; for example, `http://192.0.2.10:3492` for direct LAN access or `https://games.example.com` behind a reverse proxy. Origin checks deliberately ignore forwarded headers. HTTPS enables Secure cookies.
 
 Example nginx location inside your TLS virtual host:
 
 ```nginx
 location / {
-    proxy_pass http://127.0.0.1:8080;
+    proxy_pass http://127.0.0.1:3492;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_buffering off;
