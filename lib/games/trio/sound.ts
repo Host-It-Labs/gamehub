@@ -11,15 +11,15 @@ export function cue(kind: string, volume = 0.5, variant = 0) {
     if (voices > 18 || (kind === 'pickup' && now - last < 0.08)) return;
     last = now;
     const pitches: Record<string, number[]> = {
-      pickup: [210, 290],
-      drop: [180, 110],
-      shuffle: [310, 230, 360],
-      roll: [190, 330, 240, 410, 280, 520],
+      pickup: [392, 523],
+      drop: [392, 587],
+      shuffle: [392, 494, 587],
+      roll: [294, 392, 440, 494, 587, 784],
       ward: [220, 330, 440, 660],
-      creature: [330, 490, 420],
+      creature: [392, 494, 659],
       dish: [520, 780],
       combo: [440, 554, 659, 880],
-      penalty: [160, 120, 85],
+      penalty: [392, 440],
       win: [392, 494, 587, 784, 988],
       tap: [420],
     };
@@ -38,11 +38,11 @@ export function cue(kind: string, volume = 0.5, variant = 0) {
       const f = frequency * (1 + variant * 0.065);
       osc.frequency.setValueAtTime(f, t);
       osc.frequency.exponentialRampToValueAtTime(
-        f * (kind === 'creature' ? 1.28 : 0.78),
+        f * (kind === 'creature' ? 1.06 : 1.015),
         t + 0.12,
       );
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.exponentialRampToValueAtTime(0.1 * volume, t + 0.009);
+      gain.gain.exponentialRampToValueAtTime(0.075 * volume, t + 0.018);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
       osc.connect(gain);
       gain.connect(context.destination);
@@ -66,7 +66,7 @@ export function cue(kind: string, volume = 0.5, variant = 0) {
       source.buffer = buffer;
       filter.type = 'lowpass';
       filter.frequency.value = kind === 'roll' ? 1400 : 3500;
-      gain.gain.value = 0.12 * volume;
+      gain.gain.value = 0.05 * volume;
       source.connect(filter);
       filter.connect(gain);
       gain.connect(context.destination);

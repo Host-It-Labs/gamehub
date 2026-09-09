@@ -1,4 +1,10 @@
 'use client';
+import {
+  useAutoRoll,
+  MoveConfirmation,
+  useMoveConfirmation,
+} from './confirmation';
+import { ArtworkLoading } from './artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { Passing } from '../game/passing';
 import { ExpansionChoice, ExpansionBadge } from '../game/expansions';
@@ -39,6 +45,7 @@ import {
   createGame,
   play,
   validMove,
+  canAct,
   observe,
   isSavedGame,
   scores,
@@ -46,7 +53,7 @@ import {
   dice,
   totalRounds,
   passCount,
-  habitats,
+  simultaneous,
   handSize,
   type Game,
   type GameId,
@@ -144,6 +151,8 @@ export default function SoloGame() {
       return { ...next, lesson: next.lesson + 1 };
     return next;
   }
+  const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g?.id);
+
   function inspect(item: Inspection, source?: HTMLElement) {
     origin.current =
       source ??
@@ -163,10 +172,10 @@ export default function SoloGame() {
     setInspectorOpen(false);
     requestAnimationFrame(() => origin.current?.focus());
   }
-  function commit(m: Move) {
+  function commit(m: Move, actor = 0) {
     const game = current.current;
-    if (!game || !validMove(game, m)) return;
-    let next = play(game, m);
+    if (!game || !validMove(game, m, actor)) return;
+    let next = play(game, m, actor);
     const action =
       m.type === 'pass'
         ? 'pass'
@@ -177,12 +186,12 @@ export default function SoloGame() {
             : m.ward
               ? 'ward-play'
               : 'play';
-    if (game.active === 0) next = progress(action, next);
-    for (const e of next.events.filter((e) => e.id >= next.revision * 10))
+    if (actor === 0) next = progress(action, next);
+    for (const e of next.events.filter((e) => e.id >= (game.revision + 1) * 10))
       eventCue(e, next.id, vol.current);
     store(next);
     if (
-      (game.active === 0 && m.type !== 'roll') ||
+      (actor === 0 && m.type !== 'roll') ||
       next.round !== game.round ||
       next.players[0].packet !== game.players[0].packet
     ) {
@@ -238,11 +247,12 @@ export default function SoloGame() {
     if (
       !g ||
       g.phase === 'over' ||
-      g.active === 0 ||
       (panelOpen && panel === 'leave') ||
       inspectorOpen
     )
       return;
+    const actor = g.players.findIndex((_, i) => i > 0 && canAct(g, i));
+    if (actor < 0) return;
     let worker: Worker | undefined,
       cancelled = false;
     const snapshot = g.revision;
@@ -256,7 +266,7 @@ export default function SoloGame() {
           e: MessageEvent<{ move?: Move; error?: string }>,
         ) => {
           if (cancelled || current.current?.revision !== snapshot) return;
-          if (e.data.move) commit(e.data.move);
+          if (e.data.move) commit(e.data.move, actor);
           else setBotError(true);
           worker?.terminate();
         };
@@ -264,7 +274,7 @@ export default function SoloGame() {
           if (!cancelled) setBotError(true);
           worker?.terminate();
         };
-        worker.postMessage(observe(g));
+        worker.postMessage({ ...observe(g, actor), active: actor });
       } catch {
         setBotError(true);
       }
@@ -276,22 +286,28 @@ export default function SoloGame() {
     };
     // Snapshot revision guards worker replies; mutable preferences are read through refs.
   }, [g, panelOpen, panel, inspectorOpen, retry]);
+  const [autoRoll, setAutoRoll] = useAutoRoll(
+    g?.id,
+    !!g && g.phase === 'roll' && canAct(g, 0),
+    () => {
+      commit({ type: 'roll' });
+    },
+  );
   function tap(c: Card) {
     if (!g) return;
     if (g.phase === 'over') return;
     if (g.phase === 'pass') {
       // Seats before the current actor have already confirmed their pass.
-      if (g.active > 0) return;
-      setPassed((p) =>
-        p.includes(c.id)
-          ? p.filter((id) => id !== c.id)
-          : p.length < passCount(g)
-            ? [...p, c.id]
-            : p,
-      );
+      if (!canAct(g, 0)) return;
+      const next = passed.includes(c.id)
+        ? passed.filter((id) => id !== c.id)
+        : passed.length < passCount(g)
+          ? [...passed, c.id]
+          : passed;
+      setPassed(next);
       return;
     }
-    if (g.active !== 0 || g.phase === 'roll' || g.id === 'wildgrove') {
+    if (!canAct(g, 0) || g.phase === 'roll' || g.id === 'wildgrove') {
       if (g.id === 'wildgrove' && selected !== c.id) {
         const next = progress('select', g);
         if (next !== g) store(next);
@@ -306,18 +322,32 @@ export default function SoloGame() {
       ...(ward ? { ward: true } : {}),
       ...(calm ? { calm: true } : {}),
     };
-    if (validMove(g, move)) commit(move);
+    if (!confirmMoves && validMove(g, move, 0)) commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
   }
   function place(zone: number) {
     if (!g) return;
     if (selected === null || g.phase === 'over') return;
-    if (g.active === 0 && g.phase === 'play') {
+    if (!confirmMoves && canAct(g, 0) && g.phase === 'play') {
       commit({ type: 'play', card: selected, zone });
     } else setPreparedZone(zone);
   }
-  function drop(c: Card, x: number, y: number) {
+  function drop(c: Card, x: number, y: number, before?: number | null) {
     if (!g) return;
+    if (before !== undefined) {
+      const ids = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-drop="hand"] > [data-card-id]',
+        ),
+      )
+        .map((el) => Number(el.dataset.cardId))
+        .filter((id) => id !== c.id);
+      const at = before === null ? ids.length : ids.indexOf(before);
+      ids.splice(at < 0 ? ids.length : at, 0, c.id);
+      setOrder(ids);
+      cue('drop', volume);
+      return;
+    }
     const elements = document.elementsFromPoint(x, y),
       target = elements.find(
         (e) => e instanceof HTMLElement && e.dataset.drop,
@@ -346,7 +376,7 @@ export default function SoloGame() {
       return;
     }
     if (g.phase === 'over') return;
-    if (g.active !== 0 || g.phase === 'roll') {
+    if (confirmMoves || !canAct(g, 0) || g.phase === 'roll') {
       const destination = target?.dataset.drop;
       if (g.phase === 'pass') return;
       if (
@@ -431,6 +461,7 @@ export default function SoloGame() {
         />
       ) : (
         <main className="table-layout">
+          <ArtworkLoading key={g.id} game={g.id} />
           <div className="table-toolbar">
             <button className="icon-label" onClick={() => setPanel('leave')}>
               <ArrowLeft size={17} />
@@ -489,20 +520,22 @@ export default function SoloGame() {
                   </button>
                 )}
                 <div className="turn-status" aria-live="polite">
-                  <i className={g.active === 0 ? 'your-turn' : 'bot-turn'} />
+                  <i className={canAct(g, 0) ? 'your-turn' : 'bot-turn'} />
                   {g.phase === 'over'
                     ? 'Finished'
-                    : g.active === 0
+                    : canAct(g, 0)
                       ? g.phase === 'pass'
                         ? `Choose ${passCount(g)} cards`
                         : g.phase === 'roll'
                           ? 'Roll the die'
                           : 'Your turn'
-                      : `${g.players[g.active].name} · ${g.difficulty}`}
+                      : simultaneous(g)
+                        ? 'Waiting for the other choices'
+                        : `${g.players[g.active].name} · ${g.difficulty}`}
                 </div>
                 {g.id !== 'midnight' && (
                   <Piece
-                    className={`dice-token ${g.phase === 'roll' && g.active === 0 ? 'ready-to-roll' : ''}`}
+                    className={`dice-token ${g.phase === 'roll' && canAct(g, 0) ? 'ready-to-roll' : ''}`}
                     coachId="die"
                     label="Dice"
                     inspect={() =>
@@ -534,7 +567,7 @@ export default function SoloGame() {
                       })
                     }
                     onTap={() =>
-                      g.active === 0 &&
+                      canAct(g, 0) &&
                       g.phase === 'roll' &&
                       commit({ type: 'roll' })
                     }
@@ -587,6 +620,7 @@ export default function SoloGame() {
               </div>
               <ScrollArea
                 className="board-viewport"
+                fitBoard={g.id}
                 itemSelector=".region, .serving-dish, .table-card"
               >
                 <Board
@@ -597,74 +631,38 @@ export default function SoloGame() {
                   preparedZone={preparedZone}
                 />
               </ScrollArea>
-              {selected !== null &&
-                g.phase !== 'over' &&
-                g.phase !== 'pass' && (
-                  <div className="prepared-move" aria-live="polite">
-                    <span>
-                      {g.active === 0 && g.phase === 'play'
-                        ? 'Prepared choice'
-                        : 'Preparing your next move'}
-                      {preparedZone !== null
-                        ? ` · ${habitats[preparedZone].name}`
-                        : ''}
-                    </span>
-                    <button
-                      className="primary"
-                      disabled={
-                        !(g.active === 0) ||
-                        !validMove(g, {
-                          type: 'play',
-                          card: selected,
-                          ...(g.id === 'wildgrove'
-                            ? { zone: preparedZone ?? -1 }
-                            : {}),
-                          ...(ward ? { ward: true } : {}),
-                          ...(calm ? { calm: true } : {}),
-                        })
-                      }
-                      onClick={() =>
-                        commit({
-                          type: 'play',
-                          card: selected,
-                          ...(g.id === 'wildgrove'
-                            ? { zone: preparedZone ?? -1 }
-                            : {}),
-                          ...(ward ? { ward: true } : {}),
-                          ...(calm ? { calm: true } : {}),
-                        })
-                      }
-                    >
-                      Play choice
-                    </button>
-                    <button
-                      className="secondary"
-                      onClick={() => {
-                        setSelected(null);
-                        setPreparedZone(null);
-                      }}
-                    >
-                      Clear
-                    </button>
-                  </div>
-                )}
-              <Passing g={g} />
+              <div className="hand-status-row">
+                <MoveConfirmation
+                  g={g}
+                  viewer={0}
+                  selected={selected}
+                  passed={passed}
+                  zone={preparedZone}
+                  ward={ward}
+                  calm={calm}
+
+                  enabled={confirmMoves}
+                  autoRoll={autoRoll}
+                  onAutoRollChange={setAutoRoll}
+                  onChange={setConfirmMoves}
+                  onConfirm={commit}
+                  onClear={() => {
+                    setSelected(null);
+                    setPreparedZone(null);
+                    setPassed([]);
+                  }}
+                />
+              </div>
               <div className="hand-controls">
                 <span>
                   {g.id === 'wildgrove' ? 'Creatures' : 'Your hand'}
                   <small>{g.players[0].hand.length}</small>
                 </span>
+                <Passing g={g} />
                 {g.phase === 'pass' ? (
-                  <button
-                    className="primary"
-                    disabled={
-                      !(g.active === 0) || passed.length !== passCount(g)
-                    }
-                    onClick={() => commit({ type: 'pass', cards: passed })}
-                  >
-                    Pass {passed.length}/{passCount(g)}{' '}
-                    {g.round % 2 ? '→' : '←'}
-                  </button>
+                  <span>
+                    {passed.length}/{passCount(g)} selected
+                  </span>
                 ) : g.id !== 'wildgrove' ? (
                   <button
                     className="sort-button"
@@ -679,9 +677,7 @@ export default function SoloGame() {
                     Sort
                   </button>
                 ) : (
-                  <span className="packet-direction">
-                    {g.round === 1 ? 'Pass →' : '← Pass'}
-                  </span>
+                  <span />
                 )}
               </div>
               <Hand
@@ -719,16 +715,6 @@ export default function SoloGame() {
               )}
             </section>
             <aside className="activity-sidebar">
-              <h2>Scores</h2>
-              {g.players.map((p, i) => (
-                <div className="score-row" key={p.name}>
-                  <span>{p.name}</span>
-                  <b>{sc[i]}</b>
-                </div>
-              ))}
-              <small>
-                {g.id === 'undertow' ? 'Lowest marks wins' : 'Most points wins'}
-              </small>
               <h2>Activity</h2>
               <ol>
                 {[...g.events].reverse().map((e) => (

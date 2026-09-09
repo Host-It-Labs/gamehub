@@ -42,7 +42,7 @@ export type TableCommand =
   | { type: 'start' | 'abandon' | 'close' | 'leave' | 'retry-bot' }
   | { type: 'replace' | 'remove'; memberId: string }
   | { type: 'rename'; name: string }
-  | { type: 'move'; move: Move };
+  | { type: 'move'; move: Move; decision?: string };
 export type Command = {
   requestId: string;
   matchId: string | null;

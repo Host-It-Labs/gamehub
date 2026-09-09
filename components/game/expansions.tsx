@@ -25,7 +25,7 @@ export function ExpansionChoice({
             disabled={disabled}
             onChange={(e) => onChange(e.target.checked)}
           />
-          <img src="/art/safe-harbour-v6.png" alt="" />
+          <img src="/art/safe-harbour-v6.webp" alt="" />
           <span>
             <strong>Safe Harbour</strong>
             <small>{enabled ? 'Enabled' : 'Add expansion'}</small>
@@ -66,7 +66,7 @@ export function ExpansionBadge({ g }: { g: PublicGame }) {
       }}
     >
       <summary>
-        <img src="/art/safe-harbour-v6.png" alt="" />
+        <img src="/art/safe-harbour-v6.webp" alt="" />
         Safe Harbour <span>i</span>
       </summary>
       <p>{description}</p>

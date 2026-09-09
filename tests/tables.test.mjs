@@ -107,7 +107,7 @@ test('ownership, revisions, idempotency, waiters, bot replacement and reusable l
       revision: t.revision,
       matchId: t.matchId,
     };
-    assert.throws(() => tables.command(t.token, guest, req), { status: 403 });
+    assert.throws(() => tables.command(t.token, guest, req), { status: 400 });
     const first = tables.command(t.token, host, req);
     const duplicate = tables.command(t.token, host, req);
     assert.equal(JSON.stringify(first), JSON.stringify(duplicate));
@@ -212,4 +212,40 @@ test('host expansion choice reaches shared game and five-card exchange is accept
   } finally {
     db.close();
   }
+});
+
+test('simultaneous human commands from the same update are accepted once per seat', () => {
+  const { db, tables, host } = setup();
+  const guest = actor('guest');
+  let t = tables.create(host);
+  t = command(tables, t, host, {
+    type: 'configure',
+    gameId: 'midnight',
+    difficulty: 'easy',
+    capacity: 2,
+  });
+  t = tables.join(t.token, guest);
+  t = command(tables, t, host, { type: 'start' });
+  const token = t.token;
+  const snapshot = structuredClone(t);
+  const original = structuredClone(tables.get(token).game.players);
+  const key = `${snapshot.game.round}:${snapshot.game.pick}:${snapshot.game.phase}`;
+  const submit = (who, move) =>
+    tables.command(token, who, {
+      requestId: randomUUID(),
+      matchId: snapshot.matchId,
+      revision: snapshot.revision,
+      action: { type: 'move', move, decision: key },
+    });
+  const first = { type: 'play', card: original[1].hand[0].id };
+  submit(guest, first);
+  assert.deepEqual(tables.get(token).game.players, original);
+  assert.throws(() => submit(guest, first), { status: 403 });
+  submit(host, { type: 'play', card: original[0].hand[0].id });
+  assert.equal(tables.get(token).game.pick, 2);
+  assert.throws(
+    () => submit(host, { type: 'play', card: original[0].hand[1].id }),
+    { status: 409 },
+  );
+  db.close();
 });

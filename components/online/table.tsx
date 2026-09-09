@@ -1,4 +1,5 @@
 'use client';
+import { decisionKey } from '@/lib/games/trio/engine';
 import { ExpansionChoice } from '../game/expansions';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import {
@@ -421,7 +422,13 @@ export function SharedTable({ invite }: { invite: string }) {
               g={table.game}
               viewer={table.viewerSeat}
               disabled={disabled}
-              send={(move) => dispatch({ type: 'move', move })}
+              send={(move) =>
+                dispatch({
+                  type: 'move',
+                  move,
+                  decision: decisionKey(table.game!),
+                })
+              }
             />
           ) : (
             table.status !== 'lobby' && (

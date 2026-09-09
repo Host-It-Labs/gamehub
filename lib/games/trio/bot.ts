@@ -136,6 +136,11 @@ export function determinize(o: Observation, r: () => number): Game {
     passes: o.players.map(() => []),
     memory: o.players.map(() => ({})),
   };
+  // Model unrevealed simultaneous choices without reading opponents’ submissions.
+  if (o.phase === 'pass' || (o.phase === 'play' && o.id !== 'undertow')) {
+    g.ready = o.players.map(() => false);
+    delete g.pending;
+  }
   const players = o.players.map((_, i) => i).filter((i) => i !== o.active);
   for (const i of players) {
     const memory =

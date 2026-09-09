@@ -69,7 +69,13 @@ test('observation conceals every other seat and server-private information', () 
       const g = createGame(id, 'medium', 37, false, n);
       for (let viewer = 0; viewer < n; viewer++) {
         const view = observe(g, viewer);
-        for (const key of ['rngState', 'reserve', 'passes', 'memory'])
+        for (const key of [
+          'rngState',
+          'reserve',
+          'passes',
+          'memory',
+          'pending',
+        ])
           assert.equal(key in view, false);
         for (let i = 0; i < n; i++)
           if (i === viewer)
@@ -281,7 +287,98 @@ test('Grove has six scoring areas and a one-point overflow available on every di
   assert.equal(g.players[0].zones.length, 7);
   const move = legalMoves(g).find((m) => m.zone === 6);
   assert.ok(move);
-  const next = play(g, move);
+  let next = play(g, move);
+  assert.equal(
+    next.players[g.active].zones[6].length,
+    0,
+    'placement stays private until every choice is ready',
+  );
+  while (next.pick === g.pick && next.phase === 'play')
+    next = play(next, legalMoves(next)[0]);
   assert.equal(next.players[g.active].zones[6].length, 1);
   assert.equal(isSavedGame(next), true);
+});
+
+test('simultaneous draft choices stay private, resolve together, and survive saves', () => {
+  for (const id of ['wildgrove', 'midnight']) {
+    let g = createGame(id, 'easy', 925, false, 3);
+    if (g.phase === 'roll') g = play(g, { type: 'roll' });
+    const original = structuredClone(g);
+    for (const actor of [2, 0, 1]) {
+      const move = legalMoves({ ...g, active: actor })[0];
+      const revision = g.revision;
+      g = play(g, move, actor);
+      assert.equal(g.revision, revision + 1);
+      assert.equal(isSavedGame(g), true);
+      assert.ok(!('pending' in observe(g, 0)));
+      if (actor !== 1) {
+        assert.deepEqual(
+          g.players,
+          original.players,
+          'no early reveal or packet rotation',
+        );
+        assert.equal(
+          validMove(g, move, actor),
+          false,
+          'a seat cannot submit twice',
+        );
+        g = JSON.parse(JSON.stringify(g));
+      }
+    }
+    assert.equal(g.pick, original.pick + 1);
+    g.players.forEach((p, i) =>
+      assert.equal(p.hand.length, original.players[i].hand.length - 1),
+    );
+    assert.equal(g.pending, undefined);
+  }
+});
+
+test('Tide exchanges can arrive out of order and only reveal together', () => {
+  let g = createGame('undertow', 'easy', 771, false, 3);
+  const original = structuredClone(g.players);
+  for (const actor of [2, 0, 1]) {
+    const cards = g.players[actor].hand.slice(0, passCount(g)).map((c) => c.id);
+    g = play(g, { type: 'pass', cards }, actor);
+    if (actor !== 1) {
+      assert.deepEqual(g.players, original);
+      assert.equal(g.phase, 'pass');
+      assert.ok(!('pending' in observe(g, 1)));
+    }
+  }
+  assert.equal(g.phase, 'roll');
+  assert.notDeepEqual(g.players[0].hand, original[0].hand);
+  assert.equal(
+    validMove(g, { type: 'roll' }, 1),
+    false,
+    'die rolls remain turn-based',
+  );
+});
+
+test('saved simultaneous choices reject malformed or mismatched pending moves', () => {
+  const initial = createGame('midnight', 'easy', 932, false, 3);
+  const g = play(initial, legalMoves({ ...initial, active: 2 })[0], 2);
+  for (const mutate of [
+    (s) => {
+      s.ready = [false];
+    },
+    (s) => {
+      s.pending = null;
+    },
+    (s) => {
+      s.ready[2] = false;
+    },
+    (s) => {
+      s.pending[2].card = -100;
+    },
+    (s) => {
+      s.pending[2] = null;
+    },
+    (s) => {
+      s.phase = 'roll';
+    },
+  ]) {
+    const broken = structuredClone(g);
+    mutate(broken);
+    assert.equal(isSavedGame(broken), false);
+  }
 });

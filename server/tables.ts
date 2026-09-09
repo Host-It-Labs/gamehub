@@ -5,6 +5,9 @@ import {
   observe,
   play,
   validMove,
+  canAct,
+  simultaneous,
+  decisionKey,
   catalog,
   type Game,
   type Move,
@@ -226,7 +229,12 @@ export class Tables {
       }
       check(t.status !== 'closed', 410, 'This table has closed.');
       check(
-        command.revision === t.revision && command.matchId === t.matchId,
+        command.matchId === t.matchId &&
+          (command.revision === t.revision ||
+            (command.action.type === 'move' &&
+              t.game &&
+              simultaneous(t.game) &&
+              command.action.decision === decisionKey(t.game))),
         409,
         'The table changed. Try again.',
       );
@@ -292,11 +300,21 @@ export class Tables {
             409,
             'No match is in progress.',
           );
-          const seat = t.seats[t.game.active];
-          check(seat.id === who.id && !seat.bot, 403, 'Wait for your turn.');
+          const actor = t.seats.findIndex(
+            (seat) => seat.id === who.id && !seat.bot,
+          );
+          check(
+            canAct(t.game, actor),
+            403,
+            'Your choice is already locked or it is not your turn.',
+          );
           const move = parseMove(a.move);
-          check(validMove(t.game, move), 400, 'That move is not allowed.');
-          t.game = play(t.game, move);
+          check(
+            validMove(t.game, move, actor),
+            400,
+            'That move is not allowed.',
+          );
+          t.game = play(t.game, move, actor);
           if (t.game.phase === 'over') t.status = 'finished';
           break;
         }
@@ -376,18 +394,20 @@ export class Tables {
       throw error;
     }
   }
-  botMove(invite: string, revision: number, move: Move | null) {
+  botMove(invite: string, revision: number, move: Move | null, actor?: number) {
     const t = this.get(invite);
+    const seat = actor ?? t.game?.active ?? -1;
     if (
       t.revision !== revision ||
       t.status !== 'playing' ||
       !t.game ||
-      !t.seats[t.game.active].bot
+      !t.seats[seat]?.bot ||
+      !canAct(t.game, seat)
     )
       return;
-    if (!move || !validMove(t.game, move)) t.botError = true;
+    if (!move || !validMove(t.game, move, seat)) t.botError = true;
     else {
-      t.game = play(t.game, move);
+      t.game = play(t.game, move, seat);
       if (t.game.phase === 'over') t.status = 'finished';
     }
     t.revision++;

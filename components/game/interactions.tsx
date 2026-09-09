@@ -1,4 +1,5 @@
 'use client';
+import { beginDragPreview } from './drag-preview';
 import {
   useRef,
   useState,
@@ -38,13 +39,14 @@ export function Piece({
   style?: CSSProperties;
   inspect: () => void;
   onTap?: () => void;
-  onDrop?: (x: number, y: number) => void;
+  onDrop?: (x: number, y: number, before?: number | null) => void;
   onLift?: () => void;
   draggable?: boolean;
   cardId?: number;
   selected?: boolean;
   coachId?: string;
 }) {
+  const preview = useRef<ReturnType<typeof beginDragPreview> | null>(null);
   const gesture = useRef<Gesture | null>(null),
     timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
     button = useRef<HTMLButtonElement>(null),
@@ -62,6 +64,8 @@ export function Piece({
   }
   function cancel() {
     clear();
+    preview.current?.clear();
+    preview.current = null;
     gesture.current = null;
     suppress.current = true;
     setOffset(null);
@@ -74,6 +78,7 @@ export function Piece({
     return () => {
       document.removeEventListener('pointerdown', multi, true);
       clearTimeout(timer.current);
+      preview.current?.clear();
     };
   }, []);
   function down(e: ReactPointerEvent<HTMLButtonElement>) {
@@ -147,7 +152,13 @@ export function Piece({
             if (g.mode !== 'pending') clear();
             if (g.mode === 'drag') {
               e.preventDefault();
-              if (before !== 'drag') onLift?.();
+              if (before !== 'drag') {
+                onLift?.();
+                preview.current = beginDragPreview(
+                  e.currentTarget.parentElement!,
+                );
+              }
+              preview.current?.move(e.clientX, e.clientY);
               const rect = bounds.current;
               if (rect)
                 setOffset({
@@ -163,6 +174,9 @@ export function Piece({
             if (!g || g.pointer !== e.pointerId) return;
             clear();
             const action = release(g);
+            const before = preview.current?.before;
+            preview.current?.clear();
+            preview.current = null;
             gesture.current = null;
             setOffset(null);
             suppress.current = true;
@@ -170,7 +184,7 @@ export function Piece({
               e.currentTarget.releasePointerCapture(e.pointerId);
             e.currentTarget.blur();
             if (action === 'tap') onTap?.();
-            if (action === 'drop') onDrop?.(e.clientX, e.clientY);
+            if (action === 'drop') onDrop?.(e.clientX, e.clientY, before);
           }}
           onPointerCancel={cancel}
           onLostPointerCapture={() => {
@@ -194,14 +208,6 @@ export function Piece({
           onContextMenu={(e) => e.preventDefault()}
         >
           {children}
-        </button>
-        <button
-          className="inspect-button"
-          aria-label={`Inspect ${label}`}
-          title="Inspect · hold or press I"
-          onClick={inspect}
-        >
-          i
         </button>
       </div>
       {offset &&

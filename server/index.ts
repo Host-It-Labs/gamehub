@@ -21,7 +21,7 @@ import {
   type Identity,
 } from './auth.ts';
 import { Tables } from './tables.ts';
-import { observe, type Move } from '../lib/games/trio/engine.ts';
+import { observe, canAct, type Move } from '../lib/games/trio/engine.ts';
 import type { Command } from '../lib/online/types.ts';
 
 type Client = {
@@ -127,13 +127,10 @@ export async function makeServer(
   function schedule(invite: string) {
     if (stopping || options.bots === false || jobs.has(invite)) return;
     const t = tables.get(invite);
-    if (
-      t.status !== 'playing' ||
-      !t.game ||
-      t.botError ||
-      !t.seats[t.game.active].bot
-    )
-      return;
+    const actor = t.game
+      ? t.seats.findIndex((seat, i) => seat.bot && canAct(t.game!, i))
+      : -1;
+    if (t.status !== 'playing' || !t.game || t.botError || actor < 0) return;
     const job: { timer: ReturnType<typeof setTimeout>; worker?: Worker } = {
       timer: setTimeout(() => {
         const latest = tables.get(invite);
@@ -150,12 +147,12 @@ export async function makeServer(
           void job.worker?.terminate();
           jobs.delete(invite);
           if (stopping) return;
-          tables.botMove(invite, t.revision, move);
+          tables.botMove(invite, t.revision, move, actor);
           publish(invite);
         };
         try {
           job.worker = new Worker(new URL('./bot-worker.ts', import.meta.url), {
-            workerData: observe(latest.game!),
+            workerData: { ...observe(latest.game!, actor), active: actor },
             execArgv: ['--experimental-strip-types'],
           });
           job.worker.once('message', (move: Move) => finish(move));
@@ -413,6 +410,7 @@ export async function makeServer(
       '.js': 'text/javascript',
       '.css': 'text/css',
       '.png': 'image/png',
+      '.webp': 'image/webp',
       '.svg': 'image/svg+xml',
       '.woff2': 'font/woff2',
       '.json': 'application/json',

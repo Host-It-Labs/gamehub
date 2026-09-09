@@ -99,8 +99,10 @@ export function Help({
         {tide ? (
           <>
             <li>
-              <b>Pass {passCount(g)} cards.</b> Choose them, then press Pass.
-              Everyone exchanges left in odd rounds and right in even rounds.
+              <b>Pass {passCount(g)} cards.</b> Everyone chooses at the same
+              time. Select your cards, then confirm. Cards are exchanged once
+              everyone is ready. Everyone exchanges left in odd rounds and right
+              in even rounds.
             </li>
             <li>
               <b>Roll the die.</b> Its suit tells everyone which 9 costs 40 this

@@ -21,6 +21,7 @@ import {
   foodBreakdown,
   scores,
   legalMoves,
+  canAct,
   passCount,
   counts,
   type PublicGame as Game,
@@ -37,12 +38,9 @@ export function TokenArt({
   return (
     <span className="token-art" aria-hidden="true">
       {food ? (
-        <span
-          className="sprite"
-          style={{ backgroundPosition: `${kind * 20}% 100%` }}
-        />
+        <img src={`/art/food-${kind}-v7.webp`} alt="" draggable={false} />
       ) : (
-        <img src={`/art/creature-${kind}-v5.png`} alt="" draggable={false} />
+        <img src={`/art/creature-${kind}-v5.webp`} alt="" draggable={false} />
       )}
     </span>
   );
@@ -98,7 +96,7 @@ export function Face({
 export function cardInspection(g: Game, c: Card, viewer = 0) {
   const playable =
     g.phase === 'play' &&
-    g.active === viewer &&
+    canAct(g, viewer) &&
     legalMoves(g).some((m) => m.type === 'play' && m.card === c.id);
   return {
     title: cardName(g.id, c),
@@ -125,7 +123,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
               ? `Select ${passCount(g)} cards to pass before the die rolls.`
               : playable
                 ? 'You can play this card.'
-                : g.active !== viewer
+                : !canAct(g, viewer)
                   ? 'Wait for your turn.'
                   : 'You must follow the led suit when possible.'}
           </p>
@@ -241,16 +239,16 @@ export function Board({
   if (g.id === 'wildgrove')
     return (
       <div
-        className={`grove-board ${mini ? 'mini-board' : ''}`}
+        className={`grove-board world-board ${mini ? 'mini-board' : ''}`}
         data-coach="board"
       >
         {habitatOrder.map((z) => {
           const h = habitats[z];
           const allowed =
             player === viewer &&
-            g.active === viewer &&
+            canAct(g, viewer) &&
             selected != null &&
-            legalMoves(g).some(
+            legalMoves({ ...g, active: viewer }).some(
               (m) => m.type === 'play' && m.card === selected && m.zone === z,
             );
           const content = (
@@ -276,7 +274,7 @@ export function Board({
             <div
               data-drop={`zone:${z}`}
               data-coach={`region-${z}`}
-              className={`region region-${z} ${allowed ? 'legal-region' : ''} ${preparedZone === z ? 'prepared-region' : ''} ${g.active === viewer && g.phase === 'play' && selected != null && !allowed && !mini ? 'blocked-region' : ''}`}
+              className={`region region-${z} ${allowed ? 'legal-region' : ''} ${preparedZone === z ? 'prepared-region' : ''} ${canAct(g, viewer) && g.phase === 'play' && selected != null && !allowed && !mini ? 'blocked-region' : ''}`}
               key={h.name}
             >
               {mini ? (
@@ -393,7 +391,7 @@ export function Players({ g, inspect }: { g: Game; inspect: Inspect }) {
       {g.players.map((p, i) => {
         const trigger = (
           <button
-            className={`player-button ${g.active === i && g.phase !== 'over' ? 'active' : ''}`}
+            className={`player-button ${canAct(g, i) ? 'active' : ''}`}
             onClick={() =>
               inspect({
                 title: `${p.name} · ${sc[i]} ${g.id === 'undertow' ? 'marks' : 'points'}`,
@@ -449,7 +447,7 @@ export function Hand({
   passed: number[];
   inspect: Inspect;
   onTap: (c: Card) => void;
-  onDrop: (c: Card, x: number, y: number) => void;
+  onDrop: (c: Card, x: number, y: number, before?: number | null) => void;
   onLift: () => void;
 }) {
   const hand = [...g.players[viewer].hand].sort((a, b) => {
@@ -479,7 +477,7 @@ export function Hand({
             key={c.id}
             cardId={c.id}
             label={cardName(g.id, c)}
-            className={`${g.id === 'wildgrove' ? 'creature-piece' : g.id === 'midnight' ? `food-card food-kind-${c.kind}` : 'standard-card'} ${(g.active !== viewer || !legalMoves(g).some((m) => m.type === 'play' && m.card === c.id)) && g.phase === 'play' ? 'not-playable' : ''}`}
+            className={`${g.id === 'wildgrove' ? 'creature-piece' : g.id === 'midnight' ? `food-card food-kind-${c.kind}` : 'standard-card'} ${(!canAct(g, viewer) || !legalMoves({ ...g, active: viewer }).some((m) => m.type === 'play' && m.card === c.id)) && g.phase === 'play' ? 'not-playable' : ''}`}
             style={
               {
                 '--angle': `${g.id === 'wildgrove' ? relative * 5 : relative * 7}deg`,
@@ -492,7 +490,7 @@ export function Hand({
             inspect={() => inspect(cardInspection(g, c, viewer))}
             onTap={() => onTap(c)}
             onLift={onLift}
-            onDrop={(x, y) => onDrop(c, x, y)}
+            onDrop={(x, y, before) => onDrop(c, x, y, before)}
           >
             <Face card={c} id={g.id} hazard={g.hazard} />
           </Piece>

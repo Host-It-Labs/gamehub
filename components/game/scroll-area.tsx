@@ -1,21 +1,61 @@
 'use client';
 import { useEffect, useRef, useState, type HTMLAttributes } from 'react';
 
-/** Passive edge labels: native scrolling remains the only interaction. */
+/** Native scrolling, with wheel routing only when the page has no vertical scroll. */
 export function ScrollArea({
   children,
   className = '',
   itemSelector = ':scope > *',
+  fitBoard,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { itemSelector?: string }) {
+}: HTMLAttributes<HTMLDivElement> & {
+  itemSelector?: string;
+  fitBoard?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState([0, 0, 0, 0]);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     let frame = 0;
+    const touchDevice = window.matchMedia('(any-pointer: coarse)');
     function measure() {
       if (!el) return;
+      // Scale the entire illustrated board, including pieces and hit targets.
+      const board = el.firstElementChild as HTMLElement | null;
+      if (fitBoard && board) {
+        if (fitBoard === 'undertow') {
+          const contentWidth = Math.max(
+            320,
+            board.querySelectorAll('.table-card').length * 119 + 20,
+          );
+          el.style.setProperty(
+            '--tide-content-scale',
+            String(
+              Math.min(
+                1,
+                Math.max(0.1, (el.clientWidth - 32) / contentWidth),
+                Math.max(0.1, (el.clientHeight - 24) / 220),
+              ),
+            ),
+          );
+        } else {
+          const width = fitBoard === 'wildgrove' ? 660 : 540;
+          const heightScale = Math.max(
+            0.01,
+            (el.clientHeight - 16) / ((width * 2) / 3),
+          );
+          const scale = touchDevice.matches
+            ? heightScale
+            : Math.max(
+                0.01,
+                Math.min((el.clientWidth - 12) / width, heightScale),
+              );
+          board.style.width = `${width}px`;
+          board.style.height = `${(width * 2) / 3}px`;
+          board.style.zoom = String(scale);
+        }
+      }
       const box = el.getBoundingClientRect();
       const next = [0, 0, 0, 0];
       el.querySelectorAll(itemSelector).forEach((item) => {
@@ -40,15 +80,62 @@ export function ScrollArea({
     if (el.firstElementChild) resize.observe(el.firstElementChild);
     const mutation = new MutationObserver(schedule);
     mutation.observe(el, { childList: true, subtree: true });
+    function wheel(e: WheelEvent) {
+      if (
+        !el ||
+        e.ctrlKey ||
+        e.shiftKey ||
+        Math.abs(e.deltaX) >= Math.abs(e.deltaY)
+      )
+        return;
+      const page = document.scrollingElement;
+      if (
+        !page ||
+        page.scrollHeight > page.clientHeight + 2 ||
+        el.scrollWidth <= el.clientWidth + 2
+      )
+        return;
+      // Preserve a nested panel that can actually scroll vertically in this direction.
+      let node = e.target instanceof Element ? e.target : null;
+      while (node && el.contains(node)) {
+        const style = getComputedStyle(node);
+        if (
+          /(auto|scroll)/.test(style.overflowY) &&
+          node.scrollHeight > node.clientHeight + 2 &&
+          (e.deltaY < 0
+            ? node.scrollTop > 0
+            : node.scrollTop < node.scrollHeight - node.clientHeight - 1)
+        )
+          return;
+        if (node === el) break;
+        node = node.parentElement;
+      }
+      const delta =
+        e.deltaY *
+        (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? el.clientWidth : 1);
+      const next = Math.max(
+        0,
+        Math.min(el.scrollWidth - el.clientWidth, el.scrollLeft + delta),
+      );
+      if (next === el.scrollLeft) return;
+      e.preventDefault();
+      el.scrollLeft = next;
+    }
+    touchDevice.addEventListener('change', schedule);
+    el.addEventListener('wheel', wheel, { passive: false });
     el.addEventListener('scroll', schedule, { passive: true });
     schedule();
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
       mutation.disconnect();
+      touchDevice.removeEventListener('change', schedule);
+      if (fitBoard && fitBoard !== 'undertow' && el.parentElement)
+        el.parentElement.style.minHeight = '';
       el.removeEventListener('scroll', schedule);
+      el.removeEventListener('wheel', wheel);
     };
-  }, [itemSelector]);
+  }, [itemSelector, fitBoard]);
   return (
     <div
       className={`scroll-frame ${className.includes('hand') ? 'hand-frame' : 'board-frame'} ${className.includes('token-tray') ? 'token-frame' : ''}`}

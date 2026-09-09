@@ -1,4 +1,10 @@
 'use client';
+import {
+  useAutoRoll,
+  MoveConfirmation,
+  useMoveConfirmation,
+} from '../game/confirmation';
+import { ArtworkLoading } from '../game/artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { Passing } from '../game/passing';
 import { ExpansionBadge } from '../game/expansions';
@@ -18,9 +24,10 @@ import {
   type Move,
   scores,
   validMove,
+  canAct,
   totalRounds,
   passCount,
-  habitats,
+  simultaneous,
 } from '@/lib/games/trio/engine';
 import type { GameView } from '@/lib/online/types';
 import { cue, eventCue } from '@/lib/games/trio/sound';
@@ -85,7 +92,9 @@ export function OnlineMatch({
       lastRevision.current = g.revision;
     }
   }, [g.revision, g.events, g.id, volume]);
-  const mine = g.active === viewer && g.phase !== 'over' && !disabled;
+  const mine = canAct(g, viewer) && !disabled;
+  const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g.id);
+
   function inspect(item: Inspection, source?: HTMLElement) {
     origin.current =
       source ??
@@ -96,7 +105,8 @@ export function OnlineMatch({
     setInspectorOpen(true);
   }
   async function commit(move: Move) {
-    if (!mine || !validMove(g, move)) return;
+    if (!mine || !validMove(g, move, viewer)) return;
+
     if ((await send(move)) && move.type !== 'roll') {
       setSelected(null);
       setPreparedZone(null);
@@ -105,18 +115,24 @@ export function OnlineMatch({
       setCalm(false);
     }
   }
+  const [autoRoll, setAutoRoll] = useAutoRoll(
+    g?.id,
+    !!g && g.phase === 'roll' && canAct(g, viewer) && !disabled,
+    () => {
+      void commit({ type: 'roll' });
+    },
+  );
   function tap(c: Card) {
     if (g.phase === 'over') return;
     if (g.phase === 'pass') {
       // Seats before the current actor have already confirmed their pass.
-      if (g.active > viewer) return;
-      setPassed((p) =>
-        p.includes(c.id)
-          ? p.filter((id) => id !== c.id)
-          : p.length < passCount(g)
-            ? [...p, c.id]
-            : p,
-      );
+      if (!canAct(g, viewer)) return;
+      const next = passed.includes(c.id)
+        ? passed.filter((id) => id !== c.id)
+        : passed.length < passCount(g)
+          ? [...passed, c.id]
+          : passed;
+      setPassed(next);
       return;
     }
     if (!mine || g.phase === 'roll' || g.id === 'wildgrove') {
@@ -130,16 +146,30 @@ export function OnlineMatch({
       ...(ward ? { ward: true } : {}),
       ...(calm ? { calm: true } : {}),
     };
-    if (validMove(g, move)) void commit(move);
+    if (!confirmMoves && validMove(g, move, viewer)) void commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
   }
   function place(zone: number) {
     if (selected === null || g.phase === 'over') return;
-    if (mine && g.phase === 'play') {
+    if (!confirmMoves && mine && g.phase === 'play') {
       void commit({ type: 'play', card: selected, zone });
     } else setPreparedZone(zone);
   }
-  function drop(c: Card, x: number, y: number) {
+  function drop(c: Card, x: number, y: number, before?: number | null) {
+    if (before !== undefined) {
+      const ids = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-drop="hand"] > [data-card-id]',
+        ),
+      )
+        .map((el) => Number(el.dataset.cardId))
+        .filter((id) => id !== c.id);
+      const at = before === null ? ids.length : ids.indexOf(before);
+      ids.splice(at < 0 ? ids.length : at, 0, c.id);
+      setOrder(ids);
+      cue('drop', volume);
+      return;
+    }
     const elements = document.elementsFromPoint(x, y),
       target = elements.find(
         (e) => e instanceof HTMLElement && e.dataset.drop,
@@ -165,7 +195,7 @@ export function OnlineMatch({
       return;
     }
     if (g.phase === 'over') return;
-    if (!mine || g.phase === 'roll') {
+    if (confirmMoves || !mine || g.phase === 'roll') {
       const destination = target?.dataset.drop;
       if (g.phase === 'pass') return;
       if (
@@ -205,6 +235,7 @@ export function OnlineMatch({
     winning = g.id === 'undertow' ? Math.min(...sc) : Math.max(...sc);
   return (
     <main className={`table-layout ${g.id}`}>
+      <ArtworkLoading key={g.id} game={g.id} />
       <div className="table-toolbar">
         <span>
           Round {g.round}/{totalRounds(g)}
@@ -254,7 +285,9 @@ export function OnlineMatch({
                     ? g.phase === 'pass'
                       ? `Choose ${passCount(g)} cards to pass`
                       : 'Your turn'
-                    : `${g.players[g.active].name}’s turn`}
+                    : simultaneous(g)
+                      ? 'Waiting for the other choices'
+                      : `${g.players[g.active].name}’s turn`}
             </p>
             {g.id !== 'midnight' && (
               <button
@@ -279,6 +312,7 @@ export function OnlineMatch({
           </div>
           <ScrollArea
             className="board-viewport"
+            fitBoard={g.id}
             itemSelector=".region, .serving-dish, .table-card"
           >
             <Board
@@ -291,66 +325,37 @@ export function OnlineMatch({
               preparedZone={preparedZone}
             />
           </ScrollArea>
-          {selected !== null && g.phase !== 'over' && g.phase !== 'pass' && (
-            <div className="prepared-move" aria-live="polite">
-              <span>
-                {mine && g.phase === 'play'
-                  ? 'Prepared choice'
-                  : 'Preparing your next move'}
-                {preparedZone !== null
-                  ? ` · ${habitats[preparedZone].name}`
-                  : ''}
-              </span>
-              <button
-                className="primary"
-                disabled={
-                  !mine ||
-                  !validMove(g, {
-                    type: 'play',
-                    card: selected,
-                    ...(g.id === 'wildgrove'
-                      ? { zone: preparedZone ?? -1 }
-                      : {}),
-                    ...(ward ? { ward: true } : {}),
-                    ...(calm ? { calm: true } : {}),
-                  })
-                }
-                onClick={() =>
-                  void commit({
-                    type: 'play',
-                    card: selected,
-                    ...(g.id === 'wildgrove'
-                      ? { zone: preparedZone ?? -1 }
-                      : {}),
-                    ...(ward ? { ward: true } : {}),
-                    ...(calm ? { calm: true } : {}),
-                  })
-                }
-              >
-                Play choice
-              </button>
-              <button
-                className="secondary"
-                onClick={() => {
-                  setSelected(null);
-                  setPreparedZone(null);
-                }}
-              >
-                Clear
-              </button>
-            </div>
-          )}
-          <Passing g={g} viewer={viewer} />
+          <div className="hand-status-row">
+            <MoveConfirmation
+              g={g}
+              viewer={viewer}
+              selected={selected}
+              passed={passed}
+              zone={preparedZone}
+              ward={ward}
+              calm={calm}
+
+              enabled={confirmMoves}
+              autoRoll={autoRoll}
+              onAutoRollChange={setAutoRoll}
+              onChange={setConfirmMoves}
+              onConfirm={commit}
+              disabled={disabled}
+              onClear={() => {
+                setSelected(null);
+                setPreparedZone(null);
+                setPassed([]);
+              }}
+            />
+          </div>
           <div className="hand-controls">
+            <Passing g={g} viewer={viewer} />
             <span>Your hand · {g.players[viewer].hand.length}</span>
+            <Passing g={g} viewer={viewer} />
             {g.phase === 'pass' ? (
-              <button
-                className="primary"
-                disabled={!mine || passed.length !== passCount(g)}
-                onClick={() => void commit({ type: 'pass', cards: passed })}
-              >
-                Pass {passed.length}/{passCount(g)}
-              </button>
+              <span>
+                {passed.length}/{passCount(g)} selected
+              </span>
             ) : (
               <button
                 className="sort-button"
@@ -398,13 +403,6 @@ export function OnlineMatch({
           )}
         </section>
         <aside className="activity-sidebar">
-          <h2>Scores</h2>
-          {g.players.map((p, i) => (
-            <div className="score-row" key={i}>
-              <span>{p.name}</span>
-              <b>{sc[i]}</b>
-            </div>
-          ))}
           <h2>Activity</h2>
           <ol>
             {[...g.events].reverse().map((e) => (

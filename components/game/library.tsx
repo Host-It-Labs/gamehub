@@ -1,4 +1,5 @@
 'use client';
+import { ArtworkImage, ArtworkLoading } from './artwork';
 import { Play, BookOpen, ArrowRight } from 'lucide-react';
 import { catalog, type Game, type GameId } from '@/lib/games/trio/engine';
 const soon = [
@@ -22,6 +23,7 @@ export function Library({
 }) {
   return (
     <main className="library-page">
+      <ArtworkLoading game="library" />
       <div className="library-heading">
         <h1>Games</h1>
         <span>3 to play · 6 on the way</span>
@@ -34,7 +36,13 @@ export function Library({
               onClick={() => onSetup(c.id)}
               aria-label={`Play ${c.name}`}
             >
-              <img src={c.cover} alt={c.name} draggable={false} />
+              <ArtworkImage
+                width={960}
+                height={640}
+                src={c.cover}
+                alt={c.name}
+                draggable={false}
+              />
             </button>
             <div className="tile-details">
               <span className="genre">{c.genre}</span>

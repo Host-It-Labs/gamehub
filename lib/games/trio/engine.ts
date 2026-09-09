@@ -46,6 +46,8 @@ export type Game = {
   die: number;
   passes: number[][];
   passCards?: number;
+  pending?: (Move | null)[];
+  ready?: boolean[];
   trick: { player: number; card: Card; ward: boolean; calm?: boolean }[];
   lastTrick: { player: number; card: Card; ward: boolean; calm?: boolean }[];
   seen: Card[];
@@ -58,7 +60,7 @@ export type Game = {
 };
 export type PublicGame = Omit<
   Game,
-  'rngState' | 'reserve' | 'memory' | 'passes'
+  'rngState' | 'reserve' | 'memory' | 'passes' | 'pending'
 >;
 export type Observation = PublicGame & {
   reserveCount: number;
@@ -202,21 +204,21 @@ export const catalog = [
     name: 'Tide',
     genre: 'Trick taking',
     color: '#38baca',
-    cover: '/art/tide-cover-v6.png',
+    cover: '/art/tide-cover-v7.webp',
   },
   {
     id: 'wildgrove' as GameId,
     name: 'Grove',
     genre: 'Draft & place',
     color: '#75b965',
-    cover: '/art/grove-cover-v6.png',
+    cover: '/art/grove-cover-v7.webp',
   },
   {
     id: 'midnight' as GameId,
     name: 'Yatai',
     genre: 'Set collection',
     color: '#df84bb',
-    cover: '/art/yatai-cover-v6.png',
+    cover: '/art/yatai-cover-v6.webp',
   },
 ];
 export function rng(seed: number) {
@@ -430,6 +432,23 @@ export function allowedZone(
       ? !region.length
       : !region.some((x) => x.kind === c.kind);
 }
+export function simultaneous(g: Pick<PublicGame, 'phase' | 'id'>) {
+  return g.phase === 'pass' || (g.phase === 'play' && g.id !== 'undertow');
+}
+export function decisionKey(g: PublicGame) {
+  return `${g.round}:${g.pick}:${g.phase}`;
+}
+export function readySeats(g: PublicGame): boolean[] {
+  return g.ready ?? g.players.map((_, i) => simultaneous(g) && i < g.active);
+}
+export function canAct(g: PublicGame, actor: number) {
+  return (
+    actor >= 0 &&
+    actor < g.players.length &&
+    g.phase !== 'over' &&
+    (simultaneous(g) ? !readySeats(g)[actor] : actor === g.active)
+  );
+}
 export function legalMoves(g: PublicGame): Move[] {
   if (g.phase === 'over') return [];
   if (g.phase === 'roll') return [{ type: 'roll' }];
@@ -482,7 +501,9 @@ export function passCount(
   if (started) return started;
   return g.players.length <= 4 ? 5 : g.players.length === 5 ? 4 : 3;
 }
-export function validMove(g: PublicGame, m: Move) {
+export function validMove(state: PublicGame, m: Move, actor = state.active) {
+  if (!canAct(state, actor)) return false;
+  const g = { ...state, active: actor };
   if (g.phase === 'pass')
     return (
       m.type === 'pass' &&
@@ -512,7 +533,31 @@ function finishRound(g: Game) {
     deal(g);
   }
 }
-export function play(state: Game, m: Move): Game {
+export function play(state: Game, m: Move, actor = state.active): Game {
+  if (!validMove(state, m, actor)) return state;
+  if (!simultaneous(state)) return applyMove(state, m);
+  let g = structuredClone(state);
+  g.ready = readySeats(g);
+  g.pending ??= g.players.map(() => null);
+  g.pending[actor] = structuredClone(m);
+  g.ready[actor] = true;
+  g.revision++;
+  if (g.ready.some((ready) => !ready)) {
+    g.active = g.ready.findIndex((ready) => !ready);
+    return g;
+  }
+  // Reveal and resolve the complete batch only when every seat has locked a choice.
+  const pending = g.pending;
+  delete g.pending;
+  delete g.ready;
+  for (let i = 0; i < pending.length; i++) {
+    if (!pending[i]) continue; // A legacy saved round may already have resolved early seats.
+    g.active = i;
+    g = applyMove(g, pending[i]!, false);
+  }
+  return g;
+}
+function applyMove(state: Game, m: Move, increment = true): Game {
   if (!validMove(state, m)) return state;
   const g = structuredClone(state),
     n = g.players.length,
@@ -522,7 +567,7 @@ export function play(state: Game, m: Move): Game {
     g.players.forEach((player) => {
       while (player.zones.length < 7) player.zones.push([]);
     });
-  g.revision++;
+  if (increment) g.revision++;
   if (m.type === 'pass') {
     g.passes[actor] = m.cards;
     emit(g, 'pass', actor, `${p.name} chose ${passCount(g)} cards to pass.`);
@@ -645,6 +690,7 @@ export function observe(g: Game, viewer = g.active): Observation {
     reserve,
     memory,
     passes: _passes,
+    pending: _pending,
     ...rest
   } = structuredClone(g);
   rest.players.forEach((p, i) => {
@@ -653,6 +699,7 @@ export function observe(g: Game, viewer = g.active): Observation {
   });
   return {
     ...rest,
+    ready: readySeats(g),
     passCards: passCount(g),
     reserveCount: reserve.length,
     knownPackets: g.id === 'undertow' ? {} : memory[viewer],
@@ -730,6 +777,30 @@ export function isSavedGame(x: unknown): x is Game {
       )
     )
       return false;
+    if (g.pending !== undefined || g.ready !== undefined) {
+      if (
+        !simultaneous(g) ||
+        !Array.isArray(g.pending) ||
+        !Array.isArray(g.ready) ||
+        g.pending.length !== n ||
+        g.ready.length !== n ||
+        !g.ready.every((v) => typeof v === 'boolean') ||
+        g.ready.every(Boolean) ||
+        g.active !== g.ready.findIndex((v) => !v)
+      )
+        return false;
+      const validation = { ...g, ready: g.players.map(() => false) };
+      for (let seat = 0; seat < n; seat++) {
+        const move = g.pending[seat];
+        if (
+          move !== null &&
+          (!g.ready[seat] || !validMove(validation, move, seat))
+        )
+          return false;
+        // Null ready entries are allowed for already-resolved seats in legacy saves.
+        if (move === null && g.ready[seat] && seat > g.active) return false;
+      }
+    }
     const all = [
       ...g.reserve,
       ...g.players.flatMap((p) => [...p.hand, ...p.zones.flat()]),
