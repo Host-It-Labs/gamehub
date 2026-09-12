@@ -1,3 +1,4 @@
+import { lessons } from '../lib/games/trio/lessons.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { randomInt } from 'node:crypto';
 import {
@@ -33,6 +34,7 @@ export type StoredTable = {
   matchId: string | null;
   game: Game | null;
   botError: boolean;
+  votes?: Partial<Record<GameId, string[]>>;
 };
 export function parseMove(value: unknown): Move {
   check(value && typeof value === 'object', 400, 'Invalid move.');
@@ -175,6 +177,7 @@ export class Tables {
       matchId: t.matchId,
       game,
       botError: t.botError,
+      votes: t.votes ?? {},
       members: [
         ...t.members.map((m, i) => ({
           ...m,
@@ -239,9 +242,34 @@ export class Tables {
         'The table changed. Try again.',
       );
       const a = command.action;
-      if (!['move', 'rename', 'leave'].includes(a.type))
+      if (!['move', 'rename', 'leave', 'vote'].includes(a.type))
         check(who.userId === t.owner, 403, 'Only the host can do that.');
       switch (a.type) {
+        case 'vote': {
+          check(t.status === 'lobby', 409, 'Voting is open in the lobby.');
+          check(
+            catalog.some((c) => c.id === a.gameId),
+            400,
+            'Unknown game.',
+          );
+          t.votes ??= {};
+          const voters = t.votes[a.gameId] ?? [];
+          t.votes[a.gameId] = voters.includes(who.id)
+            ? voters.filter((id) => id !== who.id)
+            : [...voters, who.id];
+          break;
+        }
+        case 'lesson':
+          check(t.game?.tutorial, 409, 'No lesson is in progress.');
+          check(
+            Number.isInteger(a.step) &&
+              a.step >= 0 &&
+              a.step < lessons[t.gameId].length,
+            400,
+            'Unknown lesson step.',
+          );
+          t.game!.lesson = a.step;
+          break;
         case 'configure':
           check(t.status === 'lobby', 409, 'Return to the lobby first.');
           check(
@@ -264,14 +292,29 @@ export class Tables {
           t.difficulty = a.difficulty;
           t.capacity = a.capacity;
           break;
+        case 'begin-match':
         case 'start': {
-          check(t.status === 'lobby', 409, 'Return to the lobby first.');
           check(
-            t.members.length <= t.capacity,
+            a.type === 'begin-match'
+              ? !!t.game?.tutorial
+              : t.status === 'lobby',
+            409,
+            'Return to the lobby or finish learning first.',
+          );
+          check(
+            a.type !== 'start' ||
+              a.learning === undefined ||
+              typeof a.learning === 'boolean',
+            400,
+            'Invalid learning mode.',
+          );
+          check(
+            a.type === 'begin-match' || t.members.length <= t.capacity,
             409,
             'Remove waiting guests or increase the seat count first.',
           );
-          t.seats = t.members.map((m) => ({ ...m, bot: false }));
+          if (a.type === 'start')
+            t.seats = t.members.map((m) => ({ ...m, bot: false }));
           while (t.seats.length < t.capacity)
             t.seats.push({
               id: token(),
@@ -282,7 +325,7 @@ export class Tables {
             t.gameId,
             t.difficulty,
             randomInt(4294967296),
-            false,
+            a.type === 'start' && (a.learning ?? false),
             t.capacity,
             t.starter ?? false,
           );
@@ -338,6 +381,8 @@ export class Tables {
             'Guests can only be removed in the lobby.',
           );
           t.members = t.members.filter((m) => m.id !== a.memberId);
+          for (const id of Object.keys(t.votes ?? {}) as GameId[])
+            t.votes![id] = t.votes![id]!.filter((v) => v !== a.memberId);
           break;
         case 'leave':
           check(
@@ -346,6 +391,8 @@ export class Tables {
             'Your seat is reserved until this match ends.',
           );
           t.members = t.members.filter((m) => m.id !== who.id);
+          for (const id of Object.keys(t.votes ?? {}) as GameId[])
+            t.votes![id] = t.votes![id]!.filter((v) => v !== who.id);
           break;
         case 'rename': {
           const name = displayName(a.name);

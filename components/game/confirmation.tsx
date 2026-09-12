@@ -43,37 +43,13 @@ function usePreference(
 export function useMoveConfirmation(game: GameId | undefined) {
   return usePreference(game, 'confirm-moves', true);
 }
-export function useAutoRoll(
-  game: GameId | undefined,
-  eligible: boolean,
-  roll: () => void,
-) {
-  const [enabled, change] = usePreference(game, 'auto-roll', false);
+export function useAutoRoll(eligible: boolean, roll: () => void) {
   const performRoll = useEffectEvent(roll);
   useEffect(() => {
-    if (!enabled || !eligible) return;
+    if (!eligible) return;
     const timer = setTimeout(() => performRoll(), 450);
     return () => clearTimeout(timer);
-  }, [enabled, eligible]);
-  return [enabled, change] as const;
-}
-export function AutoRoll({
-  enabled,
-  onChange,
-}: {
-  enabled: boolean;
-  onChange: (enabled: boolean) => void;
-}) {
-  return (
-    <label className="confirm-moves">
-      <input
-        type="checkbox"
-        checked={enabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      Auto-roll dice
-    </label>
-  );
+  }, [eligible]);
 }
 export function ConfirmMoves({
   enabled,
@@ -113,11 +89,8 @@ export function MoveConfirmation({
   ward,
   calm,
   enabled,
-  onChange,
   onConfirm,
   onClear,
-  autoRoll,
-  onAutoRollChange,
   disabled = false,
 }: {
   g: PublicGame;
@@ -128,11 +101,8 @@ export function MoveConfirmation({
   ward: boolean;
   calm: boolean;
   enabled: boolean;
-  onChange: (v: boolean) => void;
   onConfirm: (move: Move) => void;
   onClear: () => void;
-  autoRoll: boolean;
-  onAutoRollChange: (enabled: boolean) => void;
   disabled?: boolean;
 }) {
   const choice: Move | null =
@@ -154,48 +124,49 @@ export function MoveConfirmation({
               }
             : null;
   const card = g.players[viewer].hand.find((c) => c.id === selected);
-  const text =
-    !canAct(g, viewer) && simultaneous(g)
-      ? 'Choice locked · waiting for the others'
+  const text = disabled
+    ? 'Connecting or saving…'
+    : !canAct(g, viewer) && simultaneous(g)
+      ? 'Waiting for other players'
       : g.phase === 'roll'
         ? canAct(g, viewer)
-          ? 'Click the die to roll'
-          : 'Waiting for the die roll'
+          ? 'Rolling the die…'
+          : 'The die rolls automatically'
         : choice?.type === 'pass'
-          ? `Pass ${passed.length} of ${passCount(g)} cards · confirmation required`
+          ? `${passed.length} of ${passCount(g)} cards selected to pass`
           : card
-            ? `${cardName(g.id, card)}${zone !== null ? ` → ${habitats[zone].name}` : g.id === 'wildgrove' ? ' · choose a habitat' : ''}${ward ? ' + Safe Harbour' : ''}${calm ? ' + Calm' : ''}`
+            ? `${cardName(g.id, card)}${zone !== null ? ` → ${habitats[zone].name}` : g.id === 'wildgrove' ? ' · choose a habitat' : ''}${ward ? ' + Shield' : ''}${calm ? ' + Calm' : ''}`
             : g.phase === 'over'
               ? 'Game complete'
               : canAct(g, viewer)
                 ? enabled || g.phase === 'pass'
-                  ? 'Choose your move, then confirm'
-                  : 'Moves are sent as soon as you choose'
-                : 'You can prepare your next move';
+                  ? g.phase === 'pass'
+                    ? `Choose ${passCount(g)} cards to pass`
+                    : 'Your turn · choose a move'
+                  : 'Your turn · tap or drop to play'
+                : `${g.players[g.active].name}’s turn`;
   return (
-    <div className="preparation-slot">
-      <div className="move-preferences">
-        <ConfirmMoves enabled={enabled} onChange={onChange} />
-        {g.id !== 'midnight' && (
-          <AutoRoll enabled={autoRoll} onChange={onAutoRollChange} />
-        )}
-      </div>
+    <div
+      className={`preparation-slot ${canAct(g, viewer) && !disabled ? 'is-your-turn' : ''}`}
+    >
       <div className="prepared-move" aria-live="polite">
         <span>{text}</span>
-        {choice && (
-          <button
-            className="primary"
-            disabled={disabled || !validMove(g, choice, viewer)}
-            onClick={() => onConfirm(choice)}
-          >
-            Confirm
-          </button>
-        )}
-        {(selected !== null || passed.length > 0) && (
-          <button className="secondary" onClick={onClear}>
-            Clear
-          </button>
-        )}
+        <div className="move-actions">
+          {choice && (
+            <button
+              className="primary"
+              disabled={disabled || !validMove(g, choice, viewer)}
+              onClick={() => onConfirm(choice)}
+            >
+              Confirm
+            </button>
+          )}
+          {(selected !== null || passed.length > 0) && (
+            <button className="secondary" onClick={onClear}>
+              Clear
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ export type Table = {
   matchId: string | null;
   game: GameView | null;
   botError: boolean;
+  votes?: Partial<Record<GameId, string[]>>;
 };
 export type TableCommand =
   | {
@@ -39,7 +40,11 @@ export type TableCommand =
       starter?: boolean;
       capacity: number;
     }
-  | { type: 'start' | 'abandon' | 'close' | 'leave' | 'retry-bot' }
+  | { type: 'vote'; gameId: GameId }
+  | { type: 'lesson'; step: number }
+  | { type: 'start'; learning?: boolean }
+  | { type: 'begin-match' }
+  | { type: 'abandon' | 'close' | 'leave' | 'retry-bot' }
   | { type: 'replace' | 'remove'; memberId: string }
   | { type: 'rename'; name: string }
   | { type: 'move'; move: Move; decision?: string };

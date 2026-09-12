@@ -81,19 +81,19 @@ export const foods = [
   {
     name: 'Moon bun',
     formula: '2 → 7',
-    rule: 'Each pair earns 7. An unmatched bun earns 0.',
+    rule: 'Each pair of buns earns 7 points. A bun left without a partner earns 0.',
     example: 'Five buns = two pairs = 14 points.',
   },
   {
     name: 'Berry fizz',
     formula: '1 · 4 · 8 · 13 · 19',
-    rule: 'One through five fizz earn 1, 4, 8, 13, 19. Each extra adds 2.',
+    rule: 'Your total is 1, 4, 8, 13 or 19 points for one, two, three, four or five fizz. Each fizz after the fifth adds 2 points.',
     example: 'Four fizz earn 13. Six earn 21.',
   },
   {
     name: 'Cloud cake',
     formula: '4 + 4 + 1…',
-    rule: 'Your first two cakes earn 4 each. Every extra earns 1.',
+    rule: 'Your first two cakes earn 4 points each. Each additional cake earns 1 point.',
     example: 'Four cakes earn 4 + 4 + 1 + 1 = 10.',
   },
   {
@@ -105,13 +105,14 @@ export const foods = [
   {
     name: 'Lantern tea',
     formula: '2 each · most +6',
-    rule: 'Each tea earns 2. Sole tea leader earns 6 extra. Tied leaders with tea each earn 3 extra.',
-    example: 'Three tea and sole lead earn 6 + 6 = 12.',
+    rule: 'Each tea earns 2 points. The player with the most tea earns 6 bonus points. If players tie for the most, each earns 3 bonus points. You need at least one tea to earn a bonus.',
+    example:
+      'Three tea earn 6 points, plus 6 if you have more tea than every other player: 12 points.',
   },
   {
     name: 'Star skewer',
     formula: '3 → 12 · extra 1',
-    rule: 'Each trio earns 12. Leftover skewers earn 1 each.',
+    rule: 'Each group of three skewers earns 12 points. Leftover skewers earn 1 point each.',
     example: 'Five skewers earn 12 + 2 = 14.',
   },
 ];
@@ -126,19 +127,19 @@ export const habitats = [
     name: 'Rainbow Ridge',
     cap: 4,
     formula: '3 per species · four +4',
-    rule: '3 per different species plus 4 when four different species live here.',
+    rule: 'Earn 3 points for each different species here. If all four spaces contain different species, add 4 bonus points: 16 in total.',
   },
   {
     name: 'Moonlit Pairs',
     cap: 4,
     formula: 'pair 7 · single 1',
-    rule: '7 per species appearing exactly twice. Singletons earn 1. Three or four of one species earn 0.',
+    rule: 'For each species here: exactly two creatures earn 7 points, one earns 1 point, and three or four earn 0.',
   },
   {
     name: 'Lookout',
     cap: 3,
     formula: 'exclusive species ×5',
-    rule: '5 per creature whose species appears nowhere else on your board.',
+    rule: 'Each creature here earns 5 points if its species appears nowhere else on your board. Placing that species in another habitat removes these points.',
   },
   {
     name: 'Odd Garden',
@@ -150,7 +151,7 @@ export const habitats = [
     name: 'Riverbank',
     cap: 12,
     formula: '1 point per creature',
-    rule: 'An open overflow area: each creature earns 1 point. Always available, whatever the die shows.',
+    rule: 'Each creature earns 1 point. You can always place here when there is space, whatever the die shows.',
   },
   {
     name: 'Quiet Glade',
@@ -165,13 +166,13 @@ export const dice = [
     name: 'Top row',
     symbol: '↑',
     zones: [0, 1, 2],
-    rule: 'Place in any of the three regions in the top row.',
+    rule: 'Place in any of the three habitats in the top row.',
   },
   {
     name: 'Bottom row',
     symbol: '↓',
     zones: [3, 4, 6],
-    rule: 'Place in any of the three regions in the bottom row.',
+    rule: 'Place in any of the three habitats in the bottom row.',
   },
   {
     name: 'Left two columns',
@@ -189,13 +190,13 @@ export const dice = [
     name: 'Empty',
     symbol: '○',
     zones: [],
-    rule: 'A region with no creatures yet.',
+    rule: 'Place in a habitat that has no creatures yet.',
   },
   {
     name: 'New species',
     symbol: '✦',
     zones: [],
-    rule: 'A region without the species you are placing.',
+    rule: 'Place in a habitat that does not already contain this species.',
   },
 ];
 export const catalog = [
@@ -208,10 +209,10 @@ export const catalog = [
   },
   {
     id: 'wildgrove' as GameId,
-    name: 'Grove',
+    name: 'Mora',
     genre: 'Draft & place',
     color: '#75b965',
-    cover: '/art/grove-cover-v7.webp',
+    cover: '/art/mora-cover-v8.webp',
   },
   {
     id: 'midnight' as GameId,
@@ -596,7 +597,12 @@ function applyMove(state: Game, m: Move, increment = true): Game {
       emit(g, 'roll', actor, `${suits[g.hazard]} 9 is worth 40 this round.`);
     } else {
       g.die = Math.floor(random(g) * 6);
-      emit(g, 'roll', actor, `${dice[g.die].name}. ${p.name} is exempt.`);
+      emit(
+        g,
+        'roll',
+        actor,
+        `${dice[g.die].name}. ${p.name} can use any habitat with space.`,
+      );
     }
     g.phase = 'play';
     g.active = g.id === 'undertow' ? g.roller : 0;
@@ -643,7 +649,7 @@ function applyMove(state: Game, m: Move, increment = true): Game {
       g,
       'trick',
       win.player,
-      `${g.players[win.player].name} takes ${cost} marks.`,
+      `${g.players[win.player].name} takes ${cost} penalty points.`,
       undefined,
       cost,
     );

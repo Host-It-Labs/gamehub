@@ -26,7 +26,7 @@ export function Library({
       <ArtworkLoading game="library" />
       <div className="library-heading">
         <h1>Games</h1>
-        <span>3 to play · 6 on the way</span>
+        <span>3 games available · 6 coming soon</span>
       </div>
       <div className="library-grid">
         {catalog.map((c) => (
@@ -86,7 +86,7 @@ export function Library({
             </div>
             <div className="tile-details">
               <span className="genre">{c.genre}</span>
-              <span className="soon-note">A new table is on its way</span>
+              <span className="soon-note">Not available yet</span>
             </div>
           </article>
         ))}

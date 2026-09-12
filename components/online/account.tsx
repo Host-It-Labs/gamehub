@@ -167,9 +167,15 @@ export function MyTables() {
                     {catalog.find((g) => g.id === t.gameId)?.name}
                   </strong>
                   <span>
-                    {t.count} {t.count === 1 ? 'person' : 'people'} · {t.status}
+                    {t.count} {t.count === 1 ? 'person' : 'people'} ·{' '}
+                    {{
+                      lobby: 'Waiting to start',
+                      playing: 'In progress',
+                      finished: 'Finished',
+                      closed: 'Closed',
+                    }[t.status] ?? 'Unavailable'}
                   </span>
-                  <span>Join table →</span>
+                  <span>Open table →</span>
                 </a>
               ))}
             </div>

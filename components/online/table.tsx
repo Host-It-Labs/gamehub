@@ -15,9 +15,10 @@ import {
   type Table,
   type TableCommand,
 } from '@/lib/online/types';
-import { catalog, type GameId, type Difficulty } from '@/lib/games/trio/engine';
+import { catalog, type Difficulty } from '@/lib/games/trio/engine';
 import { OnlineHeader } from './account';
 import { OnlineMatch } from './match';
+import { LobbyGames, SharedLesson } from './lobby-games';
 
 export function SharedTable({ invite }: { invite: string }) {
   const [table, setTable] = useState<Table | null>(null),
@@ -201,7 +202,7 @@ export function SharedTable({ invite }: { invite: string }) {
           {needsName ? (
             <>
               <h1>Take a seat</h1>
-              <p>Just your name. No account needed.</p>
+              <p>Enter your name to join. You do not need an account.</p>
               <form onSubmit={join}>
                 <label>
                   Your name
@@ -236,14 +237,45 @@ export function SharedTable({ invite }: { invite: string }) {
         </main>
       ) : (
         <>
-          <details className="online-session" open={table.status === 'lobby'}>
+          <details
+            className={`online-session table-session ${table.isHost ? 'host-session' : 'guest-session'}`}
+            key={`${table.status}-${table.isHost}`}
+            open={table.status === 'lobby' && table.isHost}
+          >
             <summary>
-              Table · {connected ? 'Connected' : 'Reconnecting…'} · Manage
-              players & invite
+              <span>
+                {table.status === 'lobby'
+                  ? `${catalog.find((c) => c.id === table.gameId)?.name} · Up next`
+                  : 'Table menu'}
+                <small>
+                  {table.members.length} players ·{' '}
+                  {table.isHost
+                    ? 'You’re hosting'
+                    : table.status === 'lobby'
+                      ? 'Waiting for the host'
+                      : 'Table details'}
+                </small>
+              </span>
+              <span
+                className={`lobby-connection ${connected ? 'is-connected' : ''}`}
+              >
+                {connected ? 'Connected' : 'Reconnecting…'}
+              </span>
             </summary>
             <section className="online-card table-lobby">
               <div className="online-row">
-                <h1>{catalog.find((c) => c.id === table.gameId)?.name}</h1>
+                <div>
+                  <span className="lobby-eyebrow">
+                    {table.status === 'lobby'
+                      ? 'Gather your players'
+                      : 'Your table'}
+                  </span>
+                  <h1>
+                    {table.status === 'lobby'
+                      ? 'Around the table'
+                      : catalog.find((c) => c.id === table.gameId)?.name}
+                  </h1>
+                </div>
                 <button className="secondary" onClick={copy}>
                   {copied ? 'Copied!' : 'Copy invite link'}
                 </button>
@@ -251,7 +283,9 @@ export function SharedTable({ invite }: { invite: string }) {
               <output>
                 {connected
                   ? table.status === 'lobby'
-                    ? 'Invite your friends, then start when everyone is here.'
+                    ? table.isHost
+                      ? 'Share the invite. Choose a game below. Start when you’re ready.'
+                      : 'You’re in. Suggest a game below while everyone joins.'
                     : 'Table connected'
                   : 'Reconnecting… Your seat is saved.'}
               </output>
@@ -319,9 +353,11 @@ export function SharedTable({ invite }: { invite: string }) {
               </ul>
               {table.status === 'lobby' && (
                 <>
-                  <p>
-                    {Math.max(0, table.capacity - table.members.length)} empty
-                    seats will be filled by bots.
+                  <p className="lobby-seat-note">
+                    {table.members.length} of {table.capacity} seats taken
+                    {table.capacity > table.members.length
+                      ? ` · ${table.capacity - table.members.length} bots will fill the remaining seats`
+                      : ' · Everyone is here'}
                   </p>
                   {table.isHost && (
                     <LobbySettings
@@ -332,71 +368,73 @@ export function SharedTable({ invite }: { invite: string }) {
                   )}
                 </>
               )}
-              <details>
-                <summary>Change your name</summary>
-                <form onSubmit={rename} className="online-row">
-                  <label>
-                    Your name
-                    <input
-                      key={table.viewerId}
-                      name="name"
-                      defaultValue={
-                        table.members.find(
-                          (m) => m.id === table.viewerId && !m.bot,
-                        )?.name
-                      }
-                      maxLength={30}
-                      required
-                    />
-                  </label>
-                  <button className="secondary" disabled={disabled}>
-                    Save name
-                  </button>
-                </form>
-              </details>
-              <div className="online-actions">
-                {table.isHost && table.status !== 'lobby' && (
-                  <button
-                    className="primary"
-                    disabled={disabled}
-                    onClick={() => {
-                      if (
-                        table.status === 'finished' ||
-                        window.confirm(
-                          'End this match and return everyone to the lobby?',
+              <div className="lobby-utilities">
+                <details>
+                  <summary>Change your name</summary>
+                  <form onSubmit={rename} className="online-row">
+                    <label>
+                      Your name
+                      <input
+                        key={table.viewerId}
+                        name="name"
+                        defaultValue={
+                          table.members.find(
+                            (m) => m.id === table.viewerId && !m.bot,
+                          )?.name
+                        }
+                        maxLength={30}
+                        required
+                      />
+                    </label>
+                    <button className="secondary" disabled={disabled}>
+                      Save name
+                    </button>
+                  </form>
+                </details>
+                <div className="online-actions">
+                  {table.isHost && table.status !== 'lobby' && (
+                    <button
+                      className="primary"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (
+                          table.status === 'finished' ||
+                          window.confirm(
+                            'End this match and return everyone to the lobby?',
+                          )
                         )
-                      )
-                        void dispatch({ type: 'abandon' });
-                    }}
-                  >
-                    Return to lobby
-                  </button>
-                )}
-                {table.isHost && (
-                  <button
-                    className="text-button"
-                    disabled={disabled}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          'Close this table and disable its invite link?',
+                          void dispatch({ type: 'abandon' });
+                      }}
+                    >
+                      Return to lobby
+                    </button>
+                  )}
+                  {table.isHost && (
+                    <button
+                      className="text-button"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            'Close this table and disable its invite link?',
+                          )
                         )
-                      )
-                        void dispatch({ type: 'close' });
-                    }}
-                  >
-                    Close table
-                  </button>
-                )}
-                {!table.isHost && table.status === 'lobby' && (
-                  <button
-                    className="text-button"
-                    disabled={disabled}
-                    onClick={() => void dispatch({ type: 'leave' })}
-                  >
-                    Leave table
-                  </button>
-                )}
+                          void dispatch({ type: 'close' });
+                      }}
+                    >
+                      Close table
+                    </button>
+                  )}
+                  {!table.isHost && table.status === 'lobby' && (
+                    <button
+                      className="text-button"
+                      disabled={disabled}
+                      onClick={() => void dispatch({ type: 'leave' })}
+                    >
+                      Leave table
+                    </button>
+                  )}
+                </div>
               </div>
               {table.botError && (
                 <p role="alert">
@@ -416,6 +454,16 @@ export function SharedTable({ invite }: { invite: string }) {
               )}
             </section>
           </details>
+          {table.status === 'lobby' && (
+            <LobbyGames table={table} disabled={disabled} dispatch={dispatch} />
+          )}
+          {table.game?.tutorial && (
+            <SharedLesson
+              table={table}
+              disabled={disabled}
+              dispatch={dispatch}
+            />
+          )}
           {table.game && table.viewerSeat !== null ? (
             <OnlineMatch
               key={table.matchId}
@@ -455,30 +503,13 @@ function LobbySettings({
   disabled: boolean;
   dispatch: (action: TableCommand) => Promise<boolean>;
 }) {
+  const [learning, setLearning] = useState(false);
   return (
     <div className="lobby-settings">
-      <label>
-        Game
-        <select
-          value={table.gameId}
-          disabled={disabled}
-          onChange={(e) =>
-            void dispatch({
-              type: 'configure',
-              starter: table.starter ?? false,
-              gameId: e.target.value as GameId,
-              difficulty: table.difficulty,
-              capacity: table.capacity,
-            })
-          }
-        >
-          {catalog.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="lobby-settings-title">
+        <span className="lobby-eyebrow">Ready to play</span>
+        <h2>{catalog.find((game) => game.id === table.gameId)?.name}</h2>
+      </div>
       <label>
         Total seats
         <select
@@ -538,12 +569,27 @@ function LobbySettings({
           }
         />
       )}
-      <button
-        className="primary"
-        disabled={disabled || table.members.length > table.capacity}
-        onClick={() => void dispatch({ type: 'start' })}
+      <label
+        className="lobby-learning-choice"
+        aria-label="Learn together first"
       >
-        Start match
+        <input
+          type="checkbox"
+          checked={learning}
+          disabled={disabled}
+          onChange={(event) => setLearning(event.target.checked)}
+        />
+        <span>
+          <b>Learn together first</b>
+          <small>Interactive practice, with lessons led by you.</small>
+        </span>
+      </label>
+      <button
+        className="primary lobby-start"
+        disabled={disabled || table.members.length > table.capacity}
+        onClick={() => void dispatch({ type: 'start', learning })}
+      >
+        {learning ? 'Start learning together' : 'Start match'}
       </button>
     </div>
   );

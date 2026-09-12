@@ -25,19 +25,19 @@ export function Help({
     const placed = g.players.reduce((n, p) => n + p.zones.flat().length, 0);
     return (
       <div className="reference readable-reference">
-        <h3>Match supply</h3>
+        <h3>Cards and pieces in this game</h3>
         <dl className="match-facts">
           <dt>Players</dt>
           <dd>{g.players.length}</dd>
-          <dt>Full supply</dt>
+          <dt>{grove ? 'Full creature supply' : 'Full deck'}</dt>
           <dd>
             {tide
               ? '60 cards · 5 suits × 12 ranks'
               : `72 ${grove ? 'creatures' : 'cards'} · 6 types × 12`}
           </dd>
-          <dt>Used in this match</dt>
+          <dt>Used in this game</dt>
           <dd>{tide ? 60 : used}</dd>
-          <dt>Set aside, unseen</dt>
+          <dt>Not used (hidden)</dt>
           <dd>{tide ? 0 : omitted}</dd>
           <dt>Round</dt>
           <dd>
@@ -61,7 +61,7 @@ export function Help({
             </>
           )}
         </dl>
-        <h3>Public table counts</h3>
+        <h3>Each player’s collection</h3>
         <div className="public-counts">
           {g.players.map((p, i) => (
             <p key={i}>
@@ -74,8 +74,8 @@ export function Help({
           ))}
         </div>
         <p className="reference-note">
-          Only public totals are shown. The identities of other players’ cards
-          and set-aside items stay hidden.
+          You can see how many cards or pieces each player has, but not what is
+          in their hand. Unused cards and pieces also stay hidden.
         </p>
       </div>
     );
@@ -85,12 +85,12 @@ export function Help({
       <section className="reference-goal">
         <h3>
           {tide
-            ? 'Win with the fewest penalty marks'
+            ? 'Win with the fewest penalty points'
             : 'Win with the most points'}
         </h3>
         <p>
           {tide
-            ? `Play ${totalRounds(g)} rounds. Storm cards cost their number; the die-selected suit’s 9 costs 40. All other cards cost zero. Tied players share the win.`
+            ? `Play ${totalRounds(g)} rounds. Each Storm card adds penalty points equal to its number. The 9 of the suit shown on the die adds 40 points. Other cards add no penalty points. Tied players share the win.`
             : `Keep one ${grove ? 'creature' : 'dish'} per turn. After two rounds you will have kept twelve. Your collection stays between rounds. Tied players share the win.`}
         </p>
       </section>
@@ -105,42 +105,46 @@ export function Help({
               in even rounds.
             </li>
             <li>
-              <b>Roll the die.</b> Its suit tells everyone which 9 costs 40 this
-              round.
+              <b>The die rolls automatically.</b> The 9 of the suit shown is
+              worth 40 penalty points for this round.
             </li>
             <li>
               <b>Play one card.</b> Follow the first card’s suit if you have it.
-              Otherwise play any card. There is no trump suit.
+              Otherwise play any card. Select or drag your card, then confirm if
+              confirmation is on. No suit beats the others: only cards matching
+              the first suit can win the trick.
             </li>
             <li>
-              <b>Resolve the trick.</b> Once everyone has played, the highest
-              card in the first suit takes all the cards and their penalties,
-              then leads next.
+              <b>Collect the trick.</b> A trick is one card from each player.
+              The player who played the highest card of the first suit wins it,
+              takes its penalty points, and plays first in the next trick.
             </li>
           </>
         ) : (
           <>
             {grove && (
               <li>
-                <b>Roll once for the table.</b> Everyone follows the face’s
-                placement rule except the roller. Full regions are always
-                unavailable.
+                <b>The die rolls automatically before each pick.</b> Its rule
+                applies to everyone except the player marked ROLLER. That player
+                may use any habitat with space. No one can place in a full
+                habitat.
               </li>
             )}
             <li>
               <b>Choose one {grove ? 'creature' : 'dish'}.</b>{' '}
               {grove
-                ? 'Select it and tap a highlighted region, or drag it there.'
-                : 'Tap a card to keep it, or drag it onto your serving board.'}
+                ? 'Select a creature and tap a highlighted habitat, or drag the creature there. Confirm your move if confirmation is on.'
+                : 'Select a card, then confirm to keep it. With confirmation off, tap a card or drag it onto your board to keep it immediately.'}
             </li>
             <li>
               <b>Pass the rest.</b> After everyone chooses, hands move to the
-              next player. Watch the seating diagram above your hand to see who
-              receives yours.
+              next player. The name above your hand shows who receives it. Tap
+              the seating icon to see the passing direction.
             </li>
             <li>
-              <b>Start round two after six picks.</b> Deal six new items to each
-              player and reverse the passing direction.
+              <b>Round two starts after six picks.</b> Everyone receives six new
+              cards or creatures. Passing changes direction. Keep everything
+              already on your board.
             </li>
           </>
         )}
@@ -153,21 +157,21 @@ export function Help({
               : 'Shields in this saved match'}
           </h3>
           <p>
-            <b>Two shields each round:</b> arm one before playing. If you take
-            the trick, halve its total penalty, rounding up. A 45-mark trick
-            becomes 23.
+            <b>Two shields each round:</b> select one before playing your card.
+            If you take the trick, halve its total penalty, rounding up. A trick
+            worth 45 points becomes 23.
           </p>
           {g.starter && (
             <p>
-              <b>One Calm each round:</b> arm it before playing. If you take the
-              trick, remove the highest Storm card’s penalty. It never cancels
-              the dangerous 9. Calm applies before a shield: 40 + Storm 8
-              becomes 40, then 20 with both.
+              <b>One Calm each round:</b> select it before playing your card. If
+              you take the trick, remove the highest Storm card’s penalty. It
+              never cancels the dangerous 9. Calm applies before a shield: 40 +
+              Storm 8 becomes 40, then 20 with both.
             </p>
           )}
           <p>
-            Armed tokens are spent even when you lose the trick. Tap an armed
-            token again to turn it off before playing.
+            Selected tokens are spent even when you lose the trick. Tap a
+            selected token again to turn it off before playing.
           </p>
         </section>
       )}
@@ -175,7 +179,7 @@ export function Help({
         <>
           <h3>
             {grove
-              ? 'Where to place — and why'
+              ? 'How each habitat scores'
               : tide
                 ? 'Know your cards'
                 : 'What each dish earns'}
@@ -206,7 +210,7 @@ export function Help({
           )}
           {grove && (
             <>
-              <h3>Read the die</h3>
+              <h3>What each die face means</h3>
               {dice.map((d) => (
                 <section className="reference-rule" key={d.name}>
                   <b>
@@ -255,9 +259,9 @@ export function Help({
         </>
       )}
       <p className="reference-note">
-        Swipe sideways through your hand. Tap to choose; hold a card or region,
-        or use its information button, for details. Other players’ collections
-        are public; their hands stay hidden.
+        Swipe sideways through your hand. Tap to choose; press and hold a card
+        or habitat for details. Other players’ collections are public; their
+        hands stay hidden.
       </p>
     </div>
   );

@@ -1,24 +1,25 @@
 'use client';
+/* oxlint-disable jsx-a11y/no-noninteractive-tabindex -- Overflow regions must be focusable for native keyboard scrolling. */
+import { illustratedBoardScale } from '@/lib/games/viewport';
 import { useEffect, useRef, useState, type HTMLAttributes } from 'react';
 
 /** Native scrolling, with wheel routing only when the page has no vertical scroll. */
 export function ScrollArea({
   children,
   className = '',
-  itemSelector = ':scope > *',
   fitBoard,
   ...props
-}: HTMLAttributes<HTMLDivElement> & {
-  itemSelector?: string;
+}: HTMLAttributes<HTMLElement> & {
   fitBoard?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [hidden, setHidden] = useState([0, 0, 0, 0]);
+  const ref = useRef<HTMLElement>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const [explored, setExplored] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     let frame = 0;
-    const touchDevice = window.matchMedia('(any-pointer: coarse)');
+    const portrait = window.matchMedia('(orientation: portrait)');
     function measure() {
       if (!el) return;
       // Scale the entire illustrated board, including pieces and hit targets.
@@ -41,36 +42,30 @@ export function ScrollArea({
           );
         } else {
           const width = fitBoard === 'wildgrove' ? 660 : 540;
-          const heightScale = Math.max(
-            0.01,
-            (el.clientHeight - 16) / ((width * 2) / 3),
+          const scale = illustratedBoardScale(
+            width,
+            el.clientWidth,
+            el.clientHeight,
+            portrait.matches,
           );
-          const scale = touchDevice.matches
-            ? heightScale
-            : Math.max(
-                0.01,
-                Math.min((el.clientWidth - 12) / width, heightScale),
-              );
           board.style.width = `${width}px`;
           board.style.height = `${(width * 2) / 3}px`;
           board.style.zoom = String(scale);
         }
       }
-      const box = el.getBoundingClientRect();
-      const next = [0, 0, 0, 0];
-      el.querySelectorAll(itemSelector).forEach((item) => {
-        const r = item.getBoundingClientRect();
-        if (r.left < box.left - 6) next[0]++;
-        if (r.right > box.right + 6) next[1]++;
-        if (r.top < box.top - 6) next[2]++;
-        if (r.bottom > box.bottom + 6) next[3]++;
-      });
-      if (el.scrollLeft < 2) next[0] = 0;
-      if (el.scrollWidth - el.clientWidth - el.scrollLeft < 2) next[1] = 0;
-      if (el.scrollTop < 2) next[2] = 0;
-      if (el.scrollHeight - el.clientHeight - el.scrollTop < 2) next[3] = 0;
-      setHidden((old) => (old.every((n, i) => n === next[i]) ? old : next));
+      const next = {
+        left: el.scrollLeft > 3,
+        right: el.scrollWidth - el.clientWidth - el.scrollLeft > 3,
+      };
+      setEdges((old) =>
+        old.left === next.left && old.right === next.right ? old : next,
+      );
     }
+    function onScroll() {
+      if (el && el.scrollLeft > 8) setExplored(true);
+      schedule();
+    }
+
     function schedule() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(measure);
@@ -121,39 +116,46 @@ export function ScrollArea({
       e.preventDefault();
       el.scrollLeft = next;
     }
-    touchDevice.addEventListener('change', schedule);
     el.addEventListener('wheel', wheel, { passive: false });
-    el.addEventListener('scroll', schedule, { passive: true });
+    portrait.addEventListener('change', schedule);
+    el.addEventListener('scroll', onScroll, { passive: true });
     schedule();
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
       mutation.disconnect();
-      touchDevice.removeEventListener('change', schedule);
       if (fitBoard && fitBoard !== 'undertow' && el.parentElement)
         el.parentElement.style.minHeight = '';
-      el.removeEventListener('scroll', schedule);
+      portrait.removeEventListener('change', schedule);
+      el.removeEventListener('scroll', onScroll);
       el.removeEventListener('wheel', wheel);
     };
-  }, [itemSelector, fitBoard]);
+  }, [fitBoard]);
   return (
     <div
       className={`scroll-frame ${className.includes('hand') ? 'hand-frame' : 'board-frame'} ${className.includes('token-tray') ? 'token-frame' : ''}`}
     >
-      <div {...props} className={className} ref={ref}>
+      <section
+        {...props}
+        className={className}
+        ref={ref}
+        tabIndex={edges.left || edges.right ? 0 : undefined}
+        aria-label={
+          fitBoard
+            ? 'Game board. Scroll sideways to explore.'
+            : 'Your hand. Scroll sideways to see more.'
+        }
+      >
         {children}
-      </div>
-      {hidden.map(
-        (n, i) =>
-          n > 0 && (
-            <span
-              key={i}
-              className={`scroll-hint edge-${i}`}
-              aria-label={`${n} partially or fully hidden ${['to the left', 'to the right', 'above', 'below'][i]}`}
-            >
-              {n} {['left', 'right', 'above', 'below'][i]}
-            </span>
-          ),
+      </section>
+      {edges.left && (
+        <span className="scroll-fade scroll-fade-left" aria-hidden="true" />
+      )}
+      {edges.right && (
+        <span className="scroll-fade scroll-fade-right" aria-hidden="true" />
+      )}
+      {fitBoard && !explored && (edges.left || edges.right) && (
+        <span className="board-pan-cue">↔ Swipe or scroll to explore</span>
       )}
     </div>
   );

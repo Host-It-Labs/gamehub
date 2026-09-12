@@ -94,13 +94,11 @@ export function ArtworkLoading({ game }: { game: GameId | 'library' }) {
         {error
           ? 'The artwork couldn’t load'
           : game === 'library'
-            ? 'Opening the game shelf…'
+            ? 'Loading games…'
             : `Setting the ${catalog.find((c) => c.id === game)?.name} table…`}
       </strong>
       <span>
-        {error
-          ? 'Check your connection and try again.'
-          : 'A little moment for the finishing touches'}
+        {error ? 'Check your connection and try again.' : 'Loading artwork…'}
       </span>
       {error && (
         <button

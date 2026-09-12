@@ -109,7 +109,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
       g.id === 'undertow' ? (
         <>
           <p>
-            <b>{penalty(c, g.hazard)} penalty marks</b> if captured in a trick.
+            <b>{penalty(c, g.hazard)} penalty points</b> if captured in a trick.
           </p>
           <p>
             {c.kind === 4
@@ -130,7 +130,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
           <p>
             One of 12 cards in {suitNames[c.kind]}.
             {g.starter !== false
-              ? ' An armed shield halves the captured trick, rounded up.'
+              ? ' A selected Shield halves the trick’s penalty points, rounded up.'
               : ' The base game has no shields.'}
           </p>
         </>
@@ -213,7 +213,7 @@ export function Board({
           ) : g.phase === 'pass' ? (
             `Select ${passCount(g)} cards to pass`
           ) : g.phase === 'roll' ? (
-            'Roll to reveal the dangerous 9'
+            'The die is revealing the 9 worth 40 points…'
           ) : g.lastTrick.length ? (
             'Last trick'
           ) : (
@@ -296,7 +296,7 @@ export function Board({
                           </p>
                           <p>
                             {player === g.roller
-                              ? 'You are the roller: the placement restriction does not apply.'
+                              ? 'You are the roller: choose any habitat with space.'
                               : `Current restriction: ${dice[g.die].name}. ${dice[g.die].rule}`}
                           </p>
                         </>
@@ -394,7 +394,7 @@ export function Players({ g, inspect }: { g: Game; inspect: Inspect }) {
             className={`player-button ${canAct(g, i) ? 'active' : ''}`}
             onClick={() =>
               inspect({
-                title: `${p.name} · ${sc[i]} ${g.id === 'undertow' ? 'marks' : 'points'}`,
+                title: `${p.name} · ${sc[i]} ${g.id === 'undertow' ? 'penalty points' : 'points'}`,
                 body:
                   g.id === 'undertow' ? (
                     <p>
@@ -464,27 +464,18 @@ export function Hand({
   const count = hand.length;
   return (
     <ScrollArea
-      itemSelector=":scope > .piece-wrap"
       className={`hand ${g.id === 'wildgrove' ? 'token-tray' : 'card-hand'} ${count > 12 ? 'large-hand' : ''}`}
       data-coach="hand"
       data-drop="hand"
       style={{ '--count': count } as CSSProperties}
     >
-      {hand.map((c, i) => {
-        const relative = (i - (count - 1) / 2) / Math.max(1, count / 2);
+      {hand.map((c) => {
         return (
           <Piece
             key={c.id}
             cardId={c.id}
             label={cardName(g.id, c)}
             className={`${g.id === 'wildgrove' ? 'creature-piece' : g.id === 'midnight' ? `food-card food-kind-${c.kind}` : 'standard-card'} ${(!canAct(g, viewer) || !legalMoves({ ...g, active: viewer }).some((m) => m.type === 'play' && m.card === c.id)) && g.phase === 'play' ? 'not-playable' : ''}`}
-            style={
-              {
-                '--angle': `${g.id === 'wildgrove' ? relative * 5 : relative * 7}deg`,
-                '--lift': `${relative * relative * 14}px`,
-                '--index': i,
-              } as CSSProperties
-            }
             selected={selected === c.id || passed.includes(c.id)}
             draggable
             inspect={() => inspect(cardInspection(g, c, viewer))}

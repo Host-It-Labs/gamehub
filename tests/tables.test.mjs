@@ -249,3 +249,102 @@ test('simultaneous human commands from the same update are accepted once per sea
   );
   db.close();
 });
+
+test('lobby suggestions are shared, toggle per member, and disappear when a guest leaves', () => {
+  const { db, tables, host } = setup();
+  try {
+    const guest = actor('guest');
+    let t = tables.join(tables.create(host).token, guest);
+    t = command(tables, t, guest, { type: 'vote', gameId: 'midnight' });
+    t = command(tables, t, host, { type: 'vote', gameId: 'midnight' });
+    assert.deepEqual(tables.view(tables.get(t.token), guest).votes.midnight, [
+      'guest',
+      'host',
+    ]);
+    assert.equal(t.gameId, 'undertow');
+    assert.throws(
+      () =>
+        command(tables, t, guest, {
+          type: 'configure',
+          gameId: 'midnight',
+          difficulty: 'easy',
+          capacity: 2,
+        }),
+      { status: 403 },
+    );
+    assert.throws(
+      () => command(tables, t, guest, { type: 'vote', gameId: 'unknown' }),
+      { status: 400 },
+    );
+    t = command(tables, t, guest, { type: 'vote', gameId: 'midnight' });
+    assert.deepEqual(t.votes.midnight, ['host']);
+    t = command(tables, t, guest, { type: 'vote', gameId: 'wildgrove' });
+    t = command(tables, t, guest, { type: 'leave' });
+    assert.deepEqual(t.votes.wildgrove, []);
+    t = command(tables, t, host, { type: 'start' });
+    assert.throws(
+      () => command(tables, t, host, { type: 'vote', gameId: 'midnight' }),
+      { status: 409 },
+    );
+  } finally {
+    db.close();
+  }
+});
+
+test('shared practice accepts moves while only the host controls lessons and a fresh real match', () => {
+  const { db, tables, host } = setup();
+  try {
+    for (const gameId of ['undertow', 'wildgrove', 'midnight']) {
+      const guest = actor('guest');
+      let t = tables.join(tables.create(host).token, guest);
+      t = command(tables, t, host, {
+        type: 'configure',
+        gameId,
+        difficulty: 'medium',
+        capacity: 2,
+      });
+      t = command(tables, t, host, { type: 'start', learning: true });
+      const practiceId = t.matchId;
+      assert.equal(tables.view(t, guest).game.tutorial, true);
+      assert.throws(
+        () => command(tables, t, guest, { type: 'lesson', step: 1 }),
+        { status: 403 },
+      );
+      assert.throws(() => command(tables, t, guest, { type: 'begin-match' }), {
+        status: 403,
+      });
+      assert.throws(
+        () => command(tables, t, host, { type: 'lesson', step: 999 }),
+        { status: 400 },
+      );
+      t = command(tables, t, host, { type: 'lesson', step: 1 });
+      assert.equal(tables.view(tables.get(t.token), guest).game.lesson, 1);
+      for (let i = 0; i < 6; i++) {
+        const seat = t.game.active;
+        t = command(tables, t, seat === 0 ? host : guest, {
+          type: 'move',
+          move: chooseMove(observe(t.game)),
+        });
+        assert.equal(t.game.lesson, 1);
+      }
+      t = tables.join(t.token, actor('late-guest'));
+      t = command(tables, t, host, { type: 'begin-match' });
+      assert.equal(tables.view(t, actor('late-guest')).viewerSeat, null);
+      assert.notEqual(t.matchId, practiceId);
+      assert.equal(t.game.tutorial, false);
+      assert.equal(t.game.round, 1);
+      assert.equal(t.game.lesson, 0);
+      assert.equal(tables.view(t, guest).viewerSeat, 1);
+      assert.throws(
+        () => command(tables, t, host, { type: 'lesson', step: 1 }),
+        { status: 409 },
+      );
+      assert.throws(() => command(tables, t, host, { type: 'begin-match' }), {
+        status: 409,
+      });
+      command(tables, t, host, { type: 'close' });
+    }
+  } finally {
+    db.close();
+  }
+});

@@ -3523,37 +3523,6 @@ svg {
 .token-frame {
   flex-basis: 132px;
 }
-.scroll-hint {
-  position: absolute;
-  z-index: 20;
-  pointer-events: none;
-  background: #fff9eeef;
-  color: #554366;
-  box-shadow: 0 1px 7px #24172b30;
-  border: 1px solid #cbbbcd;
-  padding: 3px 6px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-}
-.edge-0 {
-  left: 2px;
-  top: 50%;
-}
-.edge-1 {
-  right: 2px;
-  top: 50%;
-}
-.edge-2 {
-  top: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.edge-3 {
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-}
 .board-viewport .table-card {
   width: 108px;
   flex: 0 0 108px;
@@ -3931,11 +3900,6 @@ svg {
 .seating-popover p {
   font-size: 12px;
   margin: 0;
-}
-.scroll-hint.edge-0,
-.scroll-hint.edge-1 {
-  top: auto;
-  bottom: 11px;
 }
 .dice-token,
 .dice-token.ready-to-roll {
@@ -4327,54 +4291,6 @@ svg {
   }
 }
 
-/* Preserve readable boards and the hand below them, including short touch screens. */
-@media (any-pointer: coarse) {
-  .at-table
-    .table-layout:has(.board-viewport > :is(.grove-board, .market-board)) {
-    overflow-y: auto;
-  }
-  .table-layout:has(.board-viewport > :is(.grove-board, .market-board))
-    > .table-columns {
-    flex: 1 0 auto;
-    min-height: min-content;
-  }
-  .play-area:has(.board-viewport > :is(.grove-board, .market-board)) {
-    min-height: min-content;
-  }
-  .board-frame:has(> .board-viewport > :is(.grove-board, .market-board)) {
-    min-height: clamp(340px, 56vw, 456px);
-  }
-  .board-viewport:has(> :is(.grove-board, .market-board)) {
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
-}
-
-/* Landscape keeps board, controls and hand within the screen height. */
-@media (any-pointer: coarse) and (orientation: landscape) {
-  .at-table
-    .table-layout:has(.board-viewport > :is(.grove-board, .market-board)) {
-    overflow: hidden;
-  }
-  .table-layout:has(.board-viewport > :is(.grove-board, .market-board))
-    > .table-columns {
-    flex: 1 1 0;
-    min-height: 0;
-  }
-  .play-area:has(.board-viewport > :is(.grove-board, .market-board)),
-  .board-frame:has(> .board-viewport > :is(.grove-board, .market-board)) {
-    min-height: 0;
-  }
-  .play-area:has(.board-viewport > :is(.grove-board, .market-board))
-    > .game-controls {
-    margin-block: 2px;
-    gap: 5px;
-  }
-  .play-area:has(.market-board) > .hand-frame {
-    flex-basis: clamp(126px, 25dvh, 180px);
-  }
-}
-
 /* Tide and Yatai: full card faces in fixed slots. Only dragging moves a slot. */
 .hand.card-hand {
   --hand-card-width: 108px;
@@ -4514,5 +4430,671 @@ svg {
   .card-hand > .piece-wrap,
   .card-hand .piece {
     transition: none;
+  }
+}
+
+/* Shared table sizing: reserve the viewport for the board, with the hand below. */
+.at-table .app-header {
+  height: 40px;
+  flex-basis: 40px;
+}
+.at-table .table-layout {
+  padding: 4px 8px max(4px, env(safe-area-inset-bottom));
+}
+.at-table .table-toolbar {
+  margin-bottom: 3px;
+  min-height: 32px;
+}
+.at-table .play-area {
+  padding: 4px 6px;
+}
+.at-table .game-controls {
+  gap: 4px 8px;
+  margin: 0 0 4px;
+  min-height: 36px;
+}
+.at-table .game-controls .players {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  flex: 1 1 180px;
+  padding: 0;
+}
+.at-table .game-controls .player-button {
+  min-height: 32px;
+}
+.at-table .board-viewport {
+  overscroll-behavior: auto;
+  touch-action: pan-x pan-y;
+  display: flex;
+  align-items: center;
+}
+.at-table .board-viewport > :is(.grove-board, .market-board) {
+  min-width: 0;
+  flex-shrink: 0;
+}
+.at-table .hand-status-row {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding-block: 2px;
+}
+.at-table .preparation-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.at-table .move-preferences {
+  margin: 0;
+  flex: none;
+}
+.at-table .prepared-move {
+  flex: 1;
+  min-width: 0;
+}
+.at-table .hand-controls {
+  min-height: 32px;
+  margin: 0;
+}
+.at-table .hand-frame {
+  flex-basis: 150px;
+}
+.at-table .hand.card-hand {
+  --hand-card-width: 96px;
+  --hand-card-height: 128px;
+  padding: 10px 12px;
+}
+.at-table .token-frame {
+  flex-basis: 86px;
+}
+.at-table .token-tray {
+  padding: 5px 10px;
+}
+.at-table .token-tray > .piece-wrap {
+  flex-basis: 76px;
+  width: 76px;
+  height: 74px;
+}
+.at-table .confirm-moves {
+  min-height: 32px;
+}
+.at-table .dice-token {
+  min-height: 36px;
+  padding: 2px 6px;
+}
+.expansion-choice {
+  position: relative;
+  border: 2px solid #c6b9cd;
+  border-radius: 12px;
+}
+.expansion-choice.enabled {
+  border-color: #765391;
+  box-shadow: 0 0 0 2px #76539120;
+}
+.expansion-choice:focus-visible {
+  outline: 3px solid #49345f;
+  outline-offset: 3px;
+}
+.expansion-choice:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.expansion-check {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #765391;
+  color: white;
+}
+.expansion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+}
+.expansion-info-button {
+  width: 36px;
+  height: 36px;
+}
+.expansion-help {
+  max-width: calc(100vw - 24px);
+  max-height: min(480px, 75dvh);
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 16px;
+  background: #fffcf5;
+}
+@media (max-width: 700px) {
+  .at-table .preparation-slot {
+    gap: 5px;
+  }
+  .at-table .game-controls .players {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .at-table .hand-frame {
+    flex-basis: 138px;
+  }
+  .at-table .hand.card-hand {
+    --hand-card-width: 88px;
+    --hand-card-height: 118px;
+    padding: 8px 12px;
+  }
+  .at-table .token-frame {
+    flex-basis: 76px;
+  }
+  .at-table .token-tray > .piece-wrap {
+    flex-basis: 66px;
+    width: 66px;
+    height: 64px;
+  }
+}
+@media (orientation: landscape) and (max-height: 850px) {
+  .at-table .app-header {
+    height: 34px;
+    flex-basis: 34px;
+  }
+  .at-table .hand-frame {
+    flex-basis: 124px;
+  }
+  .at-table .hand.card-hand {
+    --hand-card-width: 82px;
+    --hand-card-height: 108px;
+    padding-block: 6px;
+  }
+  .at-table .card-hand .token-art {
+    height: 44px;
+  }
+  .at-table .token-frame {
+    flex-basis: 66px;
+  }
+  .at-table .token-tray > .piece-wrap {
+    flex-basis: 56px;
+    width: 56px;
+    height: 54px;
+  }
+  .at-table .hand-status-row {
+    min-height: 34px;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .at-table .app-header {
+    display: none;
+  }
+  .at-table .game-controls .players {
+    display: flex;
+    flex-basis: 120px;
+    order: 0;
+  }
+  .at-table .hand-frame {
+    flex-basis: 104px;
+  }
+  .at-table .hand.card-hand {
+    --hand-card-width: 72px;
+    --hand-card-height: 88px;
+  }
+  .at-table .card-hand .token-art {
+    height: 28px;
+  }
+  .at-table .token-frame {
+    flex-basis: 58px;
+  }
+  .at-table .token-tray > .piece-wrap {
+    flex-basis: 48px;
+    width: 48px;
+    height: 46px;
+  }
+}
+
+.at-table .online-session:not([open]) {
+  margin-block: 0;
+}
+.at-table .online-session > summary {
+  padding: 5px 12px;
+  min-height: 32px;
+}
+.at-table .toolbar-actions > button {
+  min-height: 32px;
+  padding: 5px 8px;
+}
+.at-table .app-header .brand-icon {
+  width: 28px;
+  height: 28px;
+}
+.at-table .app-header .icon-button {
+  min-height: 32px;
+  height: 32px;
+}
+.at-table .app-header .secondary {
+  min-height: 32px;
+  padding-block: 4px;
+}
+
+/* Table composition: navigation, players, board, then a single action dock. */
+.at-table .app-header {
+  display: none;
+}
+.at-table .table-layout {
+  max-width: 1600px;
+  padding-top: 6px;
+}
+.at-table .table-toolbar {
+  gap: 12px;
+  min-height: 40px;
+  margin-bottom: 4px;
+}
+.table-game-name {
+  font-family: Georgia, serif;
+  font-size: 20px;
+}
+.table-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 4px 10px;
+  margin-left: auto;
+  border: 1px solid #d6ccde;
+  background: #fffcf7;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.table-menu {
+  width: 285px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+  padding: 12px;
+  background: #fffcf7;
+}
+.table-menu > button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 8px;
+  text-align: left;
+  min-height: 40px;
+  border-radius: 8px;
+}
+.table-menu > button:hover {
+  background: #eee7f3;
+}
+.table-menu-preference {
+  border-top: 1px solid #e0d8e5;
+  margin-top: 4px;
+  padding: 10px 8px 4px;
+}
+.table-menu .confirm-moves {
+  font-size: 14px;
+  min-height: 36px;
+  gap: 9px;
+}
+.table-menu .confirm-moves input {
+  width: 18px;
+  height: 18px;
+}
+.table-menu-preference p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+  color: #766a7d;
+}
+.at-table .table-columns {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.at-table .activity-sidebar {
+  display: none;
+}
+.at-table .play-area {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+.table-players {
+  min-width: 0;
+  padding: 0 0 5px;
+}
+.at-table .table-players .players {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: safe center;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 2px;
+}
+.at-table .table-players .player-button {
+  min-height: 30px;
+  padding: 3px 7px;
+  font-size: 11px;
+  border-radius: 20px;
+}
+.at-table .table-players .avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+}
+.at-table .board-frame {
+  border-radius: 16px;
+}
+.at-table .board-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: #a38b7290 transparent;
+  border-radius: 16px;
+}
+.at-table .board-viewport:focus-visible {
+  outline: 2px solid #765391;
+  outline-offset: -2px;
+}
+.scroll-fade {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  pointer-events: none;
+}
+.scroll-fade-left {
+  left: 0;
+  background: linear-gradient(90deg, #33291f40, transparent);
+  border-radius: 16px 0 0 16px;
+}
+.scroll-fade-right {
+  right: 0;
+  background: linear-gradient(270deg, #33291f40, transparent);
+  border-radius: 0 16px 16px 0;
+}
+.board-pan-cue {
+  position: absolute;
+  z-index: 11;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #fffcf4e8;
+  color: #5b4a36;
+  font-size: 11px;
+  box-shadow: 0 1px 5px #30200f20;
+}
+.at-table .game-controls {
+  flex: 0 0 58px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 5px 0 0;
+  padding: 5px 10px;
+  background: #fffcf7;
+  border: 1px solid #e4dce7;
+  border-radius: 12px;
+}
+.at-table .preparation-slot {
+  min-width: 0;
+  flex: 1;
+  border-left: 3px solid #d9d0de;
+  padding-left: 9px;
+}
+.at-table .preparation-slot.is-your-turn {
+  border-color: #66836a;
+}
+.at-table .prepared-move {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  min-width: 0;
+}
+.at-table .prepared-move > span {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #5c4c64;
+  white-space: normal;
+  min-width: 0;
+}
+.move-actions {
+  display: flex;
+  gap: 5px;
+  flex: none;
+}
+.move-actions:empty {
+  display: none;
+}
+.at-table .prepared-move button {
+  min-height: 34px;
+  padding: 5px 10px;
+}
+.at-table .game-controls > .dice-token {
+  order: 0;
+  flex: none;
+  border: 0;
+  border-left: 1px solid #e4dce7;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 0 10px;
+  min-height: 38px;
+}
+.at-table .die-display {
+  gap: 6px;
+}
+.at-table .die-caption {
+  font-size: 11px;
+  max-width: 90px;
+  white-space: normal;
+}
+.die-help {
+  max-width: calc(100vw - 24px);
+  background: #fffcf7;
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.at-table .hand-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 10px;
+  min-height: 32px;
+  padding-inline: 4px;
+}
+.hand-abilities {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  order: 5;
+}
+.hand-abilities:empty {
+  display: none;
+}
+.at-table .hand-controls:has(.hand-abilities:not(:empty)) > span:first-of-type {
+  display: none;
+}
+.at-table .hand-controls .wards {
+  gap: 3px;
+}
+.at-table .hand-controls .ward-token {
+  width: 30px;
+  height: 30px;
+}
+.at-table .hand-controls .expansion-badge {
+  min-height: 30px;
+  padding: 2px 4px;
+}
+.at-table .hand-controls .calm-token {
+  min-height: 30px;
+}
+@media (max-width: 700px) {
+  .at-table .table-toolbar {
+    gap: 8px;
+  }
+  .at-table .round-counter {
+    font-size: 12px;
+  }
+  .at-table .round-counter small {
+    display: none;
+  }
+  .at-table .game-controls {
+    flex-basis: 64px;
+    gap: 6px;
+    padding: 4px 7px;
+  }
+  .at-table .prepared-move {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .at-table .die-display {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .at-table .die-caption {
+    max-width: 78px;
+    text-align: center;
+    font-size: 10px;
+  }
+  .at-table .game-controls > .dice-token {
+    padding-left: 6px;
+  }
+  .table-menu-trigger span {
+    display: none;
+  }
+  .table-menu-trigger {
+    min-width: 38px;
+    padding-inline: 7px;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .at-table .table-toolbar {
+    min-height: 32px;
+    margin-bottom: 0;
+  }
+  .table-players {
+    padding-bottom: 1px;
+  }
+  .at-table .table-players .avatar {
+    display: none;
+  }
+  .at-table .game-controls {
+    flex-basis: 46px;
+    min-height: 46px;
+    margin-top: 3px;
+    padding-block: 2px;
+  }
+  .at-table .prepared-move {
+    flex-direction: row;
+    align-items: center;
+  }
+  .at-table .die-display {
+    flex-direction: row;
+  }
+}
+
+/* Every hand uses flat slots; dragging retains its separate horizontal reorder shift. */
+.hand > .piece-wrap {
+  transform: none;
+}
+.hand .creature-piece:hover .token-art {
+  transform: none;
+}
+.at-table .token-tray {
+  align-items: center;
+  padding-block: 4px;
+  border-width: 1px 1px 3px;
+}
+
+/* Navigation, game identity and progress each have a distinct place. */
+.at-table .table-toolbar {
+  gap: 14px;
+  padding-block: 3px;
+}
+.table-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 6px 9px;
+  border: 1px solid #dcd3e1;
+  border-radius: 10px;
+  color: #76667d;
+  font-size: 12px;
+}
+.table-back:hover {
+  background: #fffaf4;
+}
+.table-heading {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+}
+.table-heading .table-game-name {
+  font-size: 22px;
+  line-height: 1.15;
+  color: #49384f;
+}
+.table-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 16px;
+  border-left: 1px solid #d7ccde;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.table-progress > span {
+  color: #786b7f;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.table-progress b {
+  color: #4d4055;
+  font-weight: 700;
+  margin-left: 3px;
+}
+.table-progress small {
+  color: #8a7d8e;
+  font-size: 10px;
+  line-height: 1.3;
+}
+@media (max-width: 700px) {
+  .at-table .table-toolbar {
+    gap: 9px;
+  }
+  .table-back {
+    padding: 6px;
+  }
+  .table-back span {
+    display: none;
+  }
+  .table-heading {
+    gap: 12px;
+  }
+  .table-heading .table-game-name {
+    font-size: 20px;
+  }
+  .table-progress {
+    padding-left: 12px;
+  }
+}
+@media (min-width: 701px) and (min-height: 650px) {
+  .at-table .hand-controls {
+    margin-top: 12px;
+    margin-bottom: 5px;
   }
 }

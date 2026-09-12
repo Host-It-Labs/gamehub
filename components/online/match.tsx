@@ -1,16 +1,19 @@
 'use client';
+import { ArrowLeft } from 'lucide-react';
+import { TableHeading } from '../game/table-heading';
 import {
   useAutoRoll,
   MoveConfirmation,
   useMoveConfirmation,
 } from '../game/confirmation';
+import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from '../game/artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { Passing } from '../game/passing';
 import { ExpansionBadge } from '../game/expansions';
 import { useEffect, useRef, useState } from 'react';
 import { Board, Hand, Players } from '@/components/game/boards';
-import { Die } from '@/components/game/die';
+import { DieControl } from '@/components/game/die';
 import { Help } from '@/components/game/help';
 import {
   Dialog,
@@ -25,9 +28,7 @@ import {
   scores,
   validMove,
   canAct,
-  totalRounds,
   passCount,
-  simultaneous,
 } from '@/lib/games/trio/engine';
 import type { GameView } from '@/lib/online/types';
 import { cue, eventCue } from '@/lib/games/trio/sound';
@@ -115,8 +116,7 @@ export function OnlineMatch({
       setCalm(false);
     }
   }
-  const [autoRoll, setAutoRoll] = useAutoRoll(
-    g?.id,
+  useAutoRoll(
     !!g && g.phase === 'roll' && canAct(g, viewer) && !disabled,
     () => {
       void commit({ type: 'roll' });
@@ -237,84 +237,33 @@ export function OnlineMatch({
     <main className={`table-layout ${g.id}`}>
       <ArtworkLoading key={g.id} game={g.id} />
       <div className="table-toolbar">
-        <span>
-          Round {g.round}/{totalRounds(g)}
-        </span>
-        <div className="toolbar-actions">
-          <button onClick={() => setPanel('rules')}>Rules</button>
-          <button onClick={() => setPanel('reference')}>Reference</button>
-          <button onClick={() => setPanel('log')}>Activity</button>
-          <button
-            onClick={() => {
-              const next = volume ? 0 : 0.5;
-              setVolume(next);
-              try {
-                localStorage.setItem('gamehub.volume.v3', String(next));
-              } catch {
-                /* Optional preference. */
-              }
-            }}
-          >
-            {volume ? 'Mute' : 'Unmute'}
-          </button>
-        </div>
+        <a className="table-back" href="/tables" aria-label="Back to my tables">
+          <ArrowLeft size={17} />
+          <span>My tables</span>
+        </a>
+        <TableHeading g={g} />
+        <TableMenu
+          confirmMoves={confirmMoves}
+          onConfirmMoves={setConfirmMoves}
+          onRules={() => setPanel('rules')}
+          onCounts={() => setPanel('reference')}
+          onScores={() => setPanel('log')}
+          soundLabel={volume ? 'Mute sound' : 'Unmute sound'}
+          onSound={() => {
+            const next = volume ? 0 : 0.5;
+            setVolume(next);
+            try {
+              localStorage.setItem('gamehub.volume.v3', String(next));
+            } catch {}
+          }}
+        />
       </div>
       <div className="table-columns">
         <section className="play-area">
-          <div className="game-controls">
+          <div className="table-players">
             <Players g={g} inspect={inspect} />
-            <ExpansionBadge g={g} />
-            {g.starter && (
-              <button
-                className={`secondary calm-token ${calm ? 'armed' : ''}`}
-                aria-pressed={calm}
-                disabled={g.phase === 'over' || !g.players[viewer].calms}
-                onClick={() => setCalm(!calm)}
-                title="Arm before playing. Cancel the highest Storm card if you capture this trick; spent either way."
-              >
-                {calm ? 'Calm armed' : 'Arm Calm'} ·{' '}
-                {g.players[viewer].calms ?? 0}
-              </button>
-            )}
-            <p className="turn-status" aria-live="polite">
-              {g.phase === 'over'
-                ? 'Finished'
-                : disabled
-                  ? 'Connecting or saving…'
-                  : mine
-                    ? g.phase === 'pass'
-                      ? `Choose ${passCount(g)} cards to pass`
-                      : 'Your turn'
-                    : simultaneous(g)
-                      ? 'Waiting for the other choices'
-                      : `${g.players[g.active].name}’s turn`}
-            </p>
-            {g.id !== 'midnight' && (
-              <button
-                className={`dice-token ${g.phase === 'roll' && mine ? 'ready-to-roll' : ''}`}
-                disabled={!mine || g.phase !== 'roll'}
-                onClick={() => void commit({ type: 'roll' })}
-              >
-                <Die g={g} />
-              </button>
-            )}
-            {g.id === 'undertow' && g.starter !== false && (
-              <button
-                className={`secondary ${ward ? 'armed' : ''}`}
-                aria-pressed={ward}
-                disabled={g.phase === 'over' || !g.players[viewer].wards}
-                onClick={() => setWard(!ward)}
-              >
-                {ward ? 'Shield armed' : 'Arm shield'} ·{' '}
-                {g.players[viewer].wards} left
-              </button>
-            )}
           </div>
-          <ScrollArea
-            className="board-viewport"
-            fitBoard={g.id}
-            itemSelector=".region, .serving-dish, .table-card"
-          >
+          <ScrollArea className="board-viewport" fitBoard={g.id}>
             <Board
               g={g}
               player={viewer}
@@ -325,7 +274,7 @@ export function OnlineMatch({
               preparedZone={preparedZone}
             />
           </ScrollArea>
-          <div className="hand-status-row">
+          <div className="game-controls">
             <MoveConfirmation
               g={g}
               viewer={viewer}
@@ -336,9 +285,7 @@ export function OnlineMatch({
               calm={calm}
 
               enabled={confirmMoves}
-              autoRoll={autoRoll}
-              onAutoRollChange={setAutoRoll}
-              onChange={setConfirmMoves}
+
               onConfirm={commit}
               disabled={disabled}
               onClear={() => {
@@ -347,9 +294,35 @@ export function OnlineMatch({
                 setPassed([]);
               }}
             />
+            {g.id !== 'midnight' && <DieControl g={g} />}
           </div>
           <div className="hand-controls">
-            <Passing g={g} viewer={viewer} />
+            <div className="hand-abilities">
+              <ExpansionBadge g={g} />
+              {g.starter && (
+                <button
+                  className={`secondary calm-token ${calm ? 'armed' : ''}`}
+                  aria-pressed={calm}
+                  disabled={g.phase === 'over' || !g.players[viewer].calms}
+                  onClick={() => setCalm(!calm)}
+                  title="Select before playing. If you win the trick, cancel its highest Storm card. The token is spent even if you lose."
+                >
+                  {calm ? 'Calm selected' : 'Use Calm'} ·{' '}
+                  {g.players[viewer].calms ?? 0}
+                </button>
+              )}
+              {g.id === 'undertow' && g.starter !== false && (
+                <button
+                  className={`secondary ${ward ? 'armed' : ''}`}
+                  aria-pressed={ward}
+                  disabled={g.phase === 'over' || !g.players[viewer].wards}
+                  onClick={() => setWard(!ward)}
+                >
+                  {ward ? 'Shield selected' : 'Use Shield'} ·{' '}
+                  {g.players[viewer].wards} left
+                </button>
+              )}
+            </div>
             <span>Your hand · {g.players[viewer].hand.length}</span>
             <Passing g={g} viewer={viewer} />
             {g.phase === 'pass' ? (
@@ -395,7 +368,8 @@ export function OnlineMatch({
               </h2>
               {g.players.map((p, i) => (
                 <p key={i}>
-                  {p.name}: {sc[i]} {g.id === 'undertow' ? 'marks' : 'points'}
+                  {p.name}: {sc[i]}{' '}
+                  {g.id === 'undertow' ? 'penalty points' : 'points'}
                 </p>
               ))}
               <p>The host can return to the lobby for another game.</p>
@@ -427,7 +401,7 @@ export function OnlineMatch({
               (panel === 'log'
                 ? 'Scores & activity'
                 : panel === 'reference'
-                  ? 'Reference'
+                  ? 'Card counts'
                   : 'How to play')}
           </DialogTitle>
           <DialogDescription>Table details</DialogDescription>

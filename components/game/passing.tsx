@@ -21,7 +21,7 @@ export function Passing({ g, viewer = 0 }: { g: PublicGame; viewer?: number }) {
   return (
     <div className="passing-control">
       <span>
-        To <b>{g.players[to].name}</b>
+        Pass to <b>{g.players[to].name}</b>
       </span>
       <Popover>
         <PopoverTrigger
@@ -126,9 +126,9 @@ export function Passing({ g, viewer = 0 }: { g: PublicGame; viewer?: number }) {
           </svg>
           <p>
             {g.id === 'undertow'
-              ? 'Exchange cards'
+              ? 'Pass your selected cards'
               : 'Pass your remaining hand'}{' '}
-            with <b>{g.players[to].name}</b>.
+            to <b>{g.players[to].name}</b>.
           </p>
         </PopoverContent>
       </Popover>

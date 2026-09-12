@@ -1,24 +1,17 @@
 'use client';
+import { TableHeading } from '../game/table-heading';
 import {
   useAutoRoll,
   MoveConfirmation,
   useMoveConfirmation,
 } from './confirmation';
+import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from './artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { Passing } from '../game/passing';
 import { ExpansionChoice, ExpansionBadge } from '../game/expansions';
 import { useEffect, useRef, useState } from 'react';
-import {
-  ArrowLeft,
-  Volume2,
-  VolumeX,
-  BookOpen,
-  List,
-  ScrollText,
-  Shield,
-  RotateCcw,
-} from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Shield, RotateCcw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -38,7 +31,7 @@ import { Library } from '@/components/game/library';
 import { Board, Hand, Players } from '@/components/game/boards';
 import { Piece, type Inspection } from '@/components/game/interactions';
 import { Tutorial, lessons } from '@/components/game/tutorial';
-import { Die } from '@/components/game/die';
+import { DieControl } from '@/components/game/die';
 import { Help } from '@/components/game/help';
 import {
   catalog,
@@ -49,12 +42,7 @@ import {
   observe,
   isSavedGame,
   scores,
-  suits,
-  dice,
-  totalRounds,
   passCount,
-  simultaneous,
-  handSize,
   type Game,
   type GameId,
   type Card,
@@ -286,13 +274,9 @@ export default function SoloGame() {
     };
     // Snapshot revision guards worker replies; mutable preferences are read through refs.
   }, [g, panelOpen, panel, inspectorOpen, retry]);
-  const [autoRoll, setAutoRoll] = useAutoRoll(
-    g?.id,
-    !!g && g.phase === 'roll' && canAct(g, 0),
-    () => {
-      commit({ type: 'roll' });
-    },
-  );
+  useAutoRoll(!!g && g.phase === 'roll' && canAct(g, 0), () => {
+    commit({ type: 'roll' });
+  });
   function tap(c: Card) {
     if (!g) return;
     if (g.phase === 'over') return;
@@ -463,166 +447,30 @@ export default function SoloGame() {
         <main className="table-layout">
           <ArtworkLoading key={g.id} game={g.id} />
           <div className="table-toolbar">
-            <button className="icon-label" onClick={() => setPanel('leave')}>
+            <button
+              className="table-back"
+              aria-label="Back to games"
+              onClick={() => setPanel('leave')}
+            >
               <ArrowLeft size={17} />
               <span>Games</span>
             </button>
-            <span className="round-counter">
-              Round {g.round}/{totalRounds(g)}
-              <small>
-                {g.phase === 'pass'
-                  ? 'Passing'
-                  : g.phase === 'roll'
-                    ? 'Dice'
-                    : `Pick ${Math.min(g.pick, handSize(g))}/${handSize(g)}`}
-              </small>
-            </span>
-            <div className="toolbar-actions">
-              <button
-                onClick={() => setPanel('rules')}
-                aria-label="How to play"
-              >
-                <BookOpen size={18} />
-                <span>Rules</span>
-              </button>
-              <button
-                onClick={() => setPanel('reference')}
-                aria-label="Game reference"
-              >
-                <List size={18} />
-                <span>Reference</span>
-              </button>
-              <button
-                className="mobile-log"
-                onClick={() => setPanel('log')}
-                aria-label="Scores and activity"
-              >
-                <ScrollText size={18} />
-                <span>Scores</span>
-              </button>
-            </div>
+            <TableHeading g={g} />
+            <TableMenu
+              confirmMoves={confirmMoves}
+              onConfirmMoves={setConfirmMoves}
+              onRules={() => setPanel('rules')}
+              onCounts={() => setPanel('reference')}
+              onScores={() => setPanel('log')}
+              onSound={() => setPanel('sound')}
+            />
           </div>
           <div className="table-columns">
             <section className="play-area">
-              <div className="game-controls">
+              <div className="table-players">
                 <Players g={g} inspect={inspect} />
-                <ExpansionBadge g={g} />
-                {g.starter && (
-                  <button
-                    className={`secondary calm-token ${calm ? 'armed' : ''}`}
-                    aria-pressed={calm}
-                    disabled={g.phase === 'over' || !g.players[0].calms}
-                    onClick={() => setCalm(!calm)}
-                    title="Arm before playing. Cancel the highest Storm card if you capture this trick; spent either way."
-                  >
-                    {calm ? 'Calm armed' : 'Arm Calm'} ·{' '}
-                    {g.players[0].calms ?? 0}
-                  </button>
-                )}
-                <div className="turn-status" aria-live="polite">
-                  <i className={canAct(g, 0) ? 'your-turn' : 'bot-turn'} />
-                  {g.phase === 'over'
-                    ? 'Finished'
-                    : canAct(g, 0)
-                      ? g.phase === 'pass'
-                        ? `Choose ${passCount(g)} cards`
-                        : g.phase === 'roll'
-                          ? 'Roll the die'
-                          : 'Your turn'
-                      : simultaneous(g)
-                        ? 'Waiting for the other choices'
-                        : `${g.players[g.active].name} · ${g.difficulty}`}
-                </div>
-                {g.id !== 'midnight' && (
-                  <Piece
-                    className={`dice-token ${g.phase === 'roll' && canAct(g, 0) ? 'ready-to-roll' : ''}`}
-                    coachId="die"
-                    label="Dice"
-                    inspect={() =>
-                      inspect({
-                        title:
-                          g.id === 'undertow' ? 'Hazard die' : 'Placement die',
-                        body:
-                          g.id === 'undertow' ? (
-                            <>
-                              <p>
-                                Four equally likely faces:{' '}
-                                {suits.slice(0, 4).join(' ')}.
-                              </p>
-                              <p>
-                                The selected suit’s 9 costs 40 this round. The
-                                roll happens after passing.
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <h3>{dice[g.die].name}</h3>
-                              <p>{dice[g.die].rule}</p>
-                              <p>
-                                {g.players[g.roller].name} is exempt. Capacity
-                                still applies.
-                              </p>
-                            </>
-                          ),
-                      })
-                    }
-                    onTap={() =>
-                      canAct(g, 0) &&
-                      g.phase === 'roll' &&
-                      commit({ type: 'roll' })
-                    }
-                  >
-                    <Die g={g} />
-                  </Piece>
-                )}
-                {g.id === 'undertow' && g.starter !== false && (
-                  <div className="wards" data-coach="ward">
-                    {[0, 1].map((i) => (
-                      <Piece
-                        key={i}
-                        label={`Shield ${i + 1}`}
-                        className={`ward-token ${i >= g.players[0].wards ? 'spent' : ''} ${ward && i === 0 ? 'armed' : ''}`}
-                        inspect={() =>
-                          inspect({
-                            title: 'Shield',
-                            body: (
-                              <>
-                                <p>
-                                  Spend before playing. If you capture the
-                                  trick, halve <b>all</b> its penalties, rounded
-                                  up.
-                                </p>
-                                <div className="example">
-                                  A 40-point 9 plus 5 Storm marks becomes 23.
-                                </div>
-                                <p>
-                                  A shield is spent even if you lose. Two
-                                  refresh each round.
-                                </p>
-                              </>
-                            ),
-                          })
-                        }
-                        onTap={() => {
-                          if (g.phase !== 'over' && i < g.players[0].wards) {
-                            setWard(!ward);
-                            cue('ward', volume);
-                            const next = progress('arm', g);
-                            if (next !== g) store(next);
-                          }
-                        }}
-                      >
-                        <Shield size={25} />
-                      </Piece>
-                    ))}
-                  </div>
-                )}
               </div>
-              <ScrollArea
-                className="board-viewport"
-                fitBoard={g.id}
-                itemSelector=".region, .serving-dish, .table-card"
-              >
+              <ScrollArea className="board-viewport" fitBoard={g.id}>
                 <Board
                   g={g}
                   selected={selected}
@@ -631,7 +479,7 @@ export default function SoloGame() {
                   preparedZone={preparedZone}
                 />
               </ScrollArea>
-              <div className="hand-status-row">
+              <div className="game-controls">
                 <MoveConfirmation
                   g={g}
                   viewer={0}
@@ -642,9 +490,7 @@ export default function SoloGame() {
                   calm={calm}
 
                   enabled={confirmMoves}
-                  autoRoll={autoRoll}
-                  onAutoRollChange={setAutoRoll}
-                  onChange={setConfirmMoves}
+
                   onConfirm={commit}
                   onClear={() => {
                     setSelected(null);
@@ -652,8 +498,66 @@ export default function SoloGame() {
                     setPassed([]);
                   }}
                 />
+                {g.id !== 'midnight' && <DieControl g={g} />}
               </div>
               <div className="hand-controls">
+                <div className="hand-abilities">
+                  <ExpansionBadge g={g} />
+                  {g.starter && (
+                    <button
+                      className={`secondary calm-token ${calm ? 'armed' : ''}`}
+                      aria-pressed={calm}
+                      disabled={g.phase === 'over' || !g.players[0].calms}
+                      onClick={() => setCalm(!calm)}
+                      title="Select before playing. If you win the trick, cancel its highest Storm card. The token is spent even if you lose."
+                    >
+                      {calm ? 'Calm selected' : 'Use Calm'} ·{' '}
+                      {g.players[0].calms ?? 0}
+                    </button>
+                  )}
+                  {g.id === 'undertow' && g.starter !== false && (
+                    <div className="wards" data-coach="ward">
+                      {[0, 1].map((i) => (
+                        <Piece
+                          key={i}
+                          label={`Shield ${i + 1}`}
+                          className={`ward-token ${i >= g.players[0].wards ? 'spent' : ''} ${ward && i === 0 ? 'armed' : ''}`}
+                          inspect={() =>
+                            inspect({
+                              title: 'Shield',
+                              body: (
+                                <>
+                                  <p>
+                                    Spend before playing. If you capture the
+                                    trick, halve <b>all</b> its penalties,
+                                    rounded up.
+                                  </p>
+                                  <div className="example">
+                                    A 40-point 9 plus 5 Storm points becomes 23.
+                                  </div>
+                                  <p>
+                                    A shield is spent even if you lose. Two
+                                    refresh each round.
+                                  </p>
+                                </>
+                              ),
+                            })
+                          }
+                          onTap={() => {
+                            if (g.phase !== 'over' && i < g.players[0].wards) {
+                              setWard(!ward);
+                              cue('ward', volume);
+                              const next = progress('arm', g);
+                              if (next !== g) store(next);
+                            }
+                          }}
+                        >
+                          <Shield size={25} />
+                        </Piece>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <span>
                   {g.id === 'wildgrove' ? 'Creatures' : 'Your hand'}
                   <small>{g.players[0].hand.length}</small>
@@ -764,7 +668,7 @@ export default function SoloGame() {
             </RadioGroup>
           </fieldset>
           <fieldset>
-            <legend>Bots</legend>
+            <legend>Bot difficulty</legend>
             <RadioGroup
               className="choices"
               value={difficulty}
@@ -781,13 +685,6 @@ export default function SoloGame() {
           {setup === 'undertow' && (
             <ExpansionChoice enabled={starter} onChange={setStarter} />
           )}
-          <p className="setup-detail">
-            {difficulty === 'easy'
-              ? 'Random legal moves.'
-              : difficulty === 'medium'
-                ? 'Bots look for immediate advantages.'
-                : 'Bots remember seen packets and simulate possible futures.'}
-          </p>
           <button className="primary" onClick={() => setup && start(setup)}>
             Play
           </button>
@@ -810,7 +707,7 @@ export default function SoloGame() {
             {panel === 'rules'
               ? 'How to play'
               : panel === 'reference'
-                ? 'Game reference'
+                ? 'Card and piece counts'
                 : panel === 'log'
                   ? 'Scores & activity'
                   : panel === 'sound'
@@ -929,7 +826,7 @@ export default function SoloGame() {
             {winners.length > 1 ? 'Shared victory' : `${winners[0]?.name} wins`}
           </DialogTitle>
           <DialogDescription>
-            {bestScore} {g?.id === 'undertow' ? 'marks' : 'points'}
+            {bestScore} {g?.id === 'undertow' ? 'penalty points' : 'points'}
           </DialogDescription>
           {g?.players.map((p, i) => (
             <div className="score-row" key={p.name}>

@@ -1,5 +1,11 @@
 'use client';
 import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverTitle,
+} from '@/components/ui/popover';
+import {
   dice,
   suits,
   habitatOrder,
@@ -11,7 +17,7 @@ export function Die({ g }: { g: PublicGame }) {
   const ready = g.phase === 'roll';
   const face = g.id === 'undertow' ? g.hazard : g.die;
   const label = ready
-    ? 'Roll die'
+    ? 'Rolling…'
     : g.id === 'undertow'
       ? `${suits[face] ?? '—'} 9 = 40`
       : dice[face].name;
@@ -43,5 +49,42 @@ export function Die({ g }: { g: PublicGame }) {
       </span>
       <span className="die-caption">{label}</span>
     </span>
+  );
+}
+
+export function DieControl({ g }: { g: PublicGame }) {
+  return (
+    <Popover>
+      <PopoverTrigger
+        className="dice-token"
+        data-coach="die"
+        aria-label="Die result and rule"
+      >
+        <Die g={g} />
+      </PopoverTrigger>
+      <PopoverContent className="die-help" side="top" align="end">
+        <PopoverTitle>
+          {g.id === 'undertow' ? 'Penalty die' : 'Placement die'}
+        </PopoverTitle>
+        {g.phase === 'roll' ? (
+          <p>The die rolls automatically.</p>
+        ) : g.id === 'undertow' ? (
+          <p>
+            The {suits[g.hazard]} 9 is worth 40 penalty points this round. The
+            die rolls after everyone has passed their cards.
+          </p>
+        ) : (
+          <>
+            <p>
+              <b>{dice[g.die].name}:</b> {dice[g.die].rule}
+            </p>
+            <p>
+              {g.players[g.roller].name} can use any habitat with space.
+              Everyone else follows the die. The Riverbank is always available.
+            </p>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
