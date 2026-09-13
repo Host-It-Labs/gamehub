@@ -5098,3 +5098,111 @@ svg {
     margin-bottom: 5px;
   }
 }
+
+/* Full-proportion Tide cards expose a readable index when the hand overlaps. */
+.playing-face.tide-face {
+  --tide-ink: #202333;
+  --tide-paper: #fffdfa;
+  color: var(--tide-ink);
+  background: var(--tide-paper);
+  border-radius: 12px;
+  border: 1px solid #cfc8c4;
+}
+.tide-face.suit-1 {
+  --tide-ink: #ba3049;
+}
+.tide-face.suit-2 {
+  --tide-ink: #202333;
+}
+.tide-face.suit-3 {
+  --tide-ink: #ba3049;
+}
+.tide-face.suit-4 {
+  --tide-ink: #fffdfa;
+  --tide-paper: #293a50;
+  background: var(--tide-paper);
+}
+.tide-index {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 10px;
+}
+.tide-pips {
+  position: absolute;
+  inset: 26% 22% 26% 39%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-content: center;
+  gap: 2px;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.1;
+}
+.tide-bottom {
+  position: absolute;
+  bottom: 7px;
+  right: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: rotate(180deg);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+}
+.tide-face .tide-suit {
+  font-size: 19px;
+  line-height: 1;
+}
+.tide-face .tide-rank {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+.tide-face .tide-cost {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.hand.card-hand.tide-hand {
+  --hand-card-width: 100px;
+  --hand-card-height: 140px;
+  gap: 0;
+  padding: 10px 8px;
+  scroll-padding-inline: 8px;
+}
+.tide-hand > .piece-wrap:not(:last-child) {
+  margin-right: -54px;
+}
+.hand-frame:has(.tide-hand) {
+  min-height: 164px;
+  flex-basis: 164px;
+}
+.tide-hand > .piece-wrap:has(.selected) {
+  translate: 0 -6px;
+}
+.tide-hand > .piece-wrap:focus-within {
+  z-index: 3;
+}
+.tide-hand .piece {
+  border-radius: 12px;
+}
+.inspect-face .tide-rank {
+  font-size: 48px;
+}
+.inspect-face .tide-pips {
+  font-size: 24px;
+}
+.inspect-face .tide-suit {
+  font-size: 30px;
+}
+.inspect-face .tide-cost {
+  font-size: 15px;
+}

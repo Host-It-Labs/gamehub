@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3017. The **Start dev environment** Codex action runs the same command. It starts frontend hot reload and the backend together, uses `.data/gamehub.sqlite`, and stops both with Ctrl+C. An occupied port produces an error without stopping another process. Set `DEV_PORT` and `API_PORT` for alternative ports. If you create `.env`, set `PUBLIC_ORIGIN=http://localhost:3017` for development.
+Open http://localhost:3017. The **Start dev environment** Codex action first stops any process listening on port 3017, then starts frontend hot reload and the backend together. It uses `.data/gamehub.sqlite` and stops both with Ctrl+C. Running `npm run dev` directly still reports an occupied port without stopping another process. Set `DEV_PORT` and `API_PORT` for alternative ports. If you create `.env`, set `PUBLIC_ORIGIN=http://localhost:3017` for development.
 
 For other devices on your LAN, set `PUBLIC_ORIGIN` to your computer's LAN URL and use that exact URL on every device. Production should use HTTPS. Browser clipboard access may be unavailable on plain HTTP; copy the address-bar link instead.
 

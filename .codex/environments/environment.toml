@@ -7,4 +7,4 @@ script = "npm ci --no-audit --no-fund"
 [[actions]]
 name = "Start dev environment"
 icon = "run"
-command = "npm run dev"
+command = "lsof -tiTCP:3017 -sTCP:LISTEN | xargs kill 2>/dev/null; while lsof -tiTCP:3017 -sTCP:LISTEN >/dev/null; do sleep 0.1; done; npm run dev"

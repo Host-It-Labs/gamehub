@@ -6,6 +6,12 @@ export function beginDragPreview(source: HTMLElement) {
     : [];
   const from = cards.indexOf(source);
   const bounds = cards.map((el) => el.getBoundingClientRect());
+  const stride = (i: number) =>
+    bounds[i + 1]
+      ? bounds[i + 1].left - bounds[i].left
+      : i > 0
+        ? bounds[i].left - bounds[i - 1].left
+        : (bounds[i]?.width ?? 50);
   const startScroll = hand?.scrollLeft ?? 0;
   let before: number | null | undefined;
   let target: HTMLElement | null = null;
@@ -34,11 +40,15 @@ export function beginDragPreview(source: HTMLElement) {
         const scroll = hand.scrollLeft - startScroll;
         const insertion = cards.findIndex(
           (_, i) =>
-            i !== from && x < bounds[i].left - scroll + bounds[i].width / 2,
+            i !== from &&
+            x <
+              bounds[i].left -
+                scroll +
+                Math.min(bounds[i].width, stride(i)) / 2,
         );
         const destination = insertion < 0 ? cards.length : insertion;
         before = insertion < 0 ? null : Number(cards[insertion].dataset.cardId);
-        const space = bounds[from]?.width ?? 50;
+        const space = stride(from);
         cards.forEach((card, i) => {
           const shift =
             i >= destination && i < from

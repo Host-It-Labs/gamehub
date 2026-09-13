@@ -382,3 +382,26 @@ test('saved simultaneous choices reject malformed or mismatched pending moves', 
     assert.equal(isSavedGame(broken), false);
   }
 });
+
+test('Tide clears the previous trick and penalty suit before the next pass', () => {
+  let g = createGame('undertow', 'medium', 37, false, 4);
+  let steps = 0;
+  let before;
+  while (g.round === 1) {
+    before = g;
+    g = play(g, chooseMove(observe(g), 'medium'));
+    assert.ok(++steps < 300);
+  }
+  assert.equal(g.phase, 'pass');
+  assert.equal(g.hazard, -1);
+  assert.deepEqual(g.trick, []);
+  assert.deepEqual(g.lastTrick, []);
+  const reveal = g.events.findLast((event) => event.type === 'trick');
+  assert.equal(reveal.trick.length, 4);
+  assert.deepEqual(reveal.trick.slice(0, 3), before.trick);
+  assert.deepEqual(reveal.trick[3].card, before.players[before.active].hand[0]);
+  assert.equal(reveal.hazard, before.hazard);
+  for (let kind = 0; kind < 4; kind++)
+    assert.equal(penalty({ id: kind, kind, rank: 9 }, g.hazard), 0);
+  assert.ok(isSavedGame(g));
+});

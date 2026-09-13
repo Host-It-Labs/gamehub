@@ -189,7 +189,6 @@ export default function SoloGame() {
       setWard(false);
       setCalm(false);
     }
-    if (next.phase === 'over') setShowResults(true);
   }
   function start(id: GameId, tutorial = false) {
     const next = createGame(
@@ -231,6 +230,14 @@ export default function SoloGame() {
     setPanel(null);
     setBotError(false);
   }
+  useEffect(() => {
+    if (g?.phase !== 'over') return;
+    const timer = setTimeout(
+      () => setShowResults(true),
+      g.id === 'undertow' ? 2600 : 0,
+    );
+    return () => clearTimeout(timer);
+  }, [g?.phase, g?.id]);
   useEffect(() => {
     if (
       !g ||

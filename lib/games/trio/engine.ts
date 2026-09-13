@@ -19,6 +19,8 @@ export type Event = {
   text: string;
   kind?: number;
   points?: number;
+  trick?: Game['trick'];
+  hazard?: number;
 };
 export type Player = {
   name: string;
@@ -302,7 +304,12 @@ function deal(g: Game) {
   g.passCards = passCount({ players: g.players });
   g.voids = g.players.map(() => []);
   g.memory = g.players.map(() => ({}));
-  if (g.id === 'undertow') g.seen = [];
+  if (g.id === 'undertow') {
+    g.seen = [];
+    g.trick = [];
+    g.lastTrick = [];
+    g.hazard = -1;
+  }
   remember(g);
   g.phase =
     g.id === 'undertow' ? 'pass' : g.id === 'wildgrove' ? 'roll' : 'play';
@@ -654,6 +661,11 @@ function applyMove(state: Game, m: Move, increment = true): Game {
       cost,
     );
     g.active = win.player;
+    // Retain the complete reveal even when the final trick immediately deals a new round.
+    Object.assign(g.events[g.events.length - 1], {
+      trick: g.trick,
+      hazard: g.hazard,
+    });
     g.lastTrick = g.trick;
     g.trick = [];
     g.pick++;

@@ -1,6 +1,6 @@
 'use client';
 import { ScrollArea } from './scroll-area';
-import { type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import {
   HoverCard,
   HoverCardTrigger,
@@ -69,26 +69,22 @@ export function Face({
       </>
     );
   return (
-    <div className={`playing-face suit-${card.kind}`}>
-      <span className="rank-corner">
-        {card.rank}
-        <b>{suits[card.kind]}</b>
+    <div className={`playing-face tide-face suit-${card.kind}`}>
+      <span className="tide-index">
+        <strong className="tide-rank">{card.rank}</strong>
+        <span className="tide-suit">{suits[card.kind]}</span>
+        <span className="tide-cost">
+          {penalty(card, hazard) > 0 ? `+${penalty(card, hazard)}` : ''}
+        </span>
       </span>
-      <div className="pips">
-        {card.kind === 4 ? (
-          <b>{card.rank}</b>
-        ) : (
-          Array.from({ length: Math.min(card.rank, 10) }, (_, i) => (
-            <span key={i}>{suits[card.kind]}</span>
-          ))
-        )}
-      </div>
-      {penalty(card, hazard) > 0 && (
-        <span className="penalty-badge">+{penalty(card, hazard)}</span>
-      )}
-      <span className="rank-corner bottom">
+      <span className="tide-pips" aria-hidden="true">
+        {Array.from({ length: card.rank }, (_, i) => (
+          <span key={i}>{suits[card.kind]}</span>
+        ))}
+      </span>
+      <span className="tide-bottom" aria-hidden="true">
         {card.rank}
-        <b>{suits[card.kind]}</b>
+        <span>{suits[card.kind]}</span>
       </span>
     </div>
   );
@@ -201,11 +197,30 @@ export function Board({
   preparedZone?: number | null;
 }) {
   const p = g.players[player];
+  const completed = [...g.events].reverse().find((e) => e.type === 'trick');
+  const [dismissedTrick, setDismissedTrick] = useState(completed?.id);
+  const reveal =
+    completed?.trick && completed.id !== dismissedTrick ? completed : undefined;
+  const revealId = reveal?.id;
+  useEffect(() => {
+    if (revealId === undefined) return;
+    const timer = setTimeout(() => setDismissedTrick(revealId), 2500);
+    return () => clearTimeout(timer);
+  }, [revealId]);
   if (g.id === 'undertow')
     return (
       <div className="trick-board" data-drop="trick" data-coach="table">
         <div className="trick-info">
-          {g.trick.length ? (
+          {reveal ? (
+            <>
+              {reveal.text} ·{' '}
+              {g.phase === 'over'
+                ? 'Final trick'
+                : g.phase === 'pass'
+                  ? 'Next: pass cards'
+                  : `${g.players[reveal.player].name} leads next`}
+            </>
+          ) : g.trick.length ? (
             <>
               {suits[g.trick[0].card.kind]} Follow{' '}
               {suitNames[g.trick[0].card.kind]}
@@ -214,14 +229,14 @@ export function Board({
             `Select ${passCount(g)} cards to pass`
           ) : g.phase === 'roll' ? (
             'The die is revealing the 9 worth 40 points…'
-          ) : g.lastTrick.length ? (
-            'Last trick'
+          ) : g.phase === 'over' ? (
+            'Game complete'
           ) : (
-            'Play a card here'
+            `${g.players[g.active].name} leads · play a card`
           )}
         </div>
         <div className="trick-row">
-          {(g.trick.length ? g.trick : g.lastTrick).map((t) => (
+          {(reveal?.trick ?? g.trick).map((t) => (
             <div className="table-card" key={t.card.id}>
               <span>
                 {g.players[t.player].name}
@@ -229,7 +244,11 @@ export function Board({
                 {t.calm ? ' · Calm' : ''}
               </span>
               <div className="static-face">
-                <Face card={t.card} id={g.id} hazard={g.hazard} />
+                <Face
+                  card={t.card}
+                  id={g.id}
+                  hazard={reveal?.hazard ?? g.hazard}
+                />
               </div>
             </div>
           ))}
@@ -464,7 +483,7 @@ export function Hand({
   const count = hand.length;
   return (
     <ScrollArea
-      className={`hand ${g.id === 'wildgrove' ? 'token-tray' : 'card-hand'} ${count > 12 ? 'large-hand' : ''}`}
+      className={`hand ${g.id === 'wildgrove' ? 'token-tray' : 'card-hand'} ${g.id === 'undertow' ? 'tide-hand' : ''} ${count > 12 ? 'large-hand' : ''}`}
       data-coach="hand"
       data-drop="hand"
       style={{ '--count': count } as CSSProperties}

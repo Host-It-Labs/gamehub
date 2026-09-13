@@ -14,21 +14,24 @@ import {
 /** A single solid face avoids intersecting textures during a roll. */
 export function Die({ g }: { g: PublicGame }) {
   const roll = [...g.events].reverse().find((e) => e.type === 'roll');
+  const pending = g.id === 'undertow' && g.phase === 'pass';
   const ready = g.phase === 'roll';
   const face = g.id === 'undertow' ? g.hazard : g.die;
-  const label = ready
-    ? 'Rolling…'
-    : g.id === 'undertow'
-      ? `${suits[face] ?? '—'} 9 = 40`
-      : dice[face].name;
+  const label = pending
+    ? 'Rolls after passing'
+    : ready
+      ? 'Rolling…'
+      : g.id === 'undertow'
+        ? `${suits[face] ?? '—'} 9 = 40`
+        : dice[face].name;
   return (
     <span className="die-display">
       <span
         key={roll?.id ?? 'ready'}
-        className={`die-solid ${roll ? 'die-bounce' : ''}`}
+        className={`die-solid ${roll && !pending && !ready ? 'die-bounce' : ''}`}
         aria-hidden="true"
       >
-        {ready ? (
+        {ready || pending ? (
           '?'
         ) : g.id === 'undertow' ? (
           suits[face]
@@ -66,7 +69,12 @@ export function DieControl({ g }: { g: PublicGame }) {
         <PopoverTitle>
           {g.id === 'undertow' ? 'Penalty die' : 'Placement die'}
         </PopoverTitle>
-        {g.phase === 'roll' ? (
+        {g.id === 'undertow' && g.phase === 'pass' ? (
+          <p>
+            The penalty suit is unknown. The die rolls after everyone has
+            passed.
+          </p>
+        ) : g.phase === 'roll' ? (
           <p>The die rolls automatically.</p>
         ) : g.id === 'undertow' ? (
           <p>
