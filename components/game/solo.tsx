@@ -1,4 +1,9 @@
 'use client';
+import { useAdvancedView } from '@/components/game/advanced-view';
+import { readSetup, saveSetup } from './setup-preferences';
+import { OpponentBoards } from '@/components/game/opponent-boards';
+import { ExtensionAction } from './extension-action';
+import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
 import { TableHeading } from '../game/table-heading';
 import {
   useAutoRoll,
@@ -9,7 +14,7 @@ import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from './artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { Passing } from '../game/passing';
-import { ExpansionChoice, ExpansionBadge } from '../game/expansions';
+import { ExpansionChoice, FestivalExpansionChoice } from '../game/expansions';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Volume2, VolumeX, Shield, RotateCcw } from 'lucide-react';
 import {
@@ -43,6 +48,7 @@ import {
   isSavedGame,
   scores,
   passCount,
+  tidePenaltyValue,
   type Game,
   type GameId,
   type Card,
@@ -50,6 +56,7 @@ import {
   type Difficulty,
 } from '@/lib/games/trio/engine';
 import { cue, eventCue } from '@/lib/games/trio/sound';
+import { fallbackMove } from '@/lib/games/trio/bot';
 const SAVE = 'gamehub.tables.v3';
 function seed() {
   return crypto.getRandomValues(new Uint32Array(1))[0];
@@ -59,6 +66,8 @@ export default function SoloGame() {
     [saves, setSaves] = useState<Partial<Record<GameId, Game>>>({}),
     [setup, setSetup] = useState<GameId | null>(null),
     [starter, setStarter] = useState(false),
+    [nightMarket, setNightMarket] = useState(false),
+    [fastMode, setFastMode] = useState(false),
     [difficulty, setDifficulty] = useState<Difficulty>('medium'),
     [players, setPlayers] = useState(3),
     [volume, setVolume] = useState(0.5),
@@ -73,11 +82,12 @@ export default function SoloGame() {
     [passed, setPassed] = useState<number[]>([]),
     [order, setOrder] = useState<number[]>([]),
     [ward, setWard] = useState(false),
-    [calm, setCalm] = useState(false),
+    [tack, setTack] = useState(false),
     [notice, setNotice] = useState(''),
     [botError, setBotError] = useState(false),
     [retry, setRetry] = useState(0),
     [showResults, setShowResults] = useState(false);
+  const festival = useFestivalChoice(g, 0);
   function setPanel(value: typeof panel) {
     if (value) rememberPanel(value);
     setPanelOpen(!!value);
@@ -139,6 +149,7 @@ export default function SoloGame() {
       return { ...next, lesson: next.lesson + 1 };
     return next;
   }
+  const [advanced, setAdvanced] = useAdvancedView(g?.id);
   const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g?.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
@@ -162,6 +173,7 @@ export default function SoloGame() {
   }
   function commit(m: Move, actor = 0) {
     const game = current.current;
+    if (actor === 0) m = festival.withChoice(m);
     if (!game || !validMove(game, m, actor)) return;
     let next = play(game, m, actor);
     const action =
@@ -187,8 +199,24 @@ export default function SoloGame() {
       setPreparedZone(null);
       setPassed([]);
       setWard(false);
-      setCalm(false);
+      setTack(false);
     }
+  }
+  const commitRef = useRef(commit);
+  useEffect(() => {
+    commitRef.current = commit;
+  });
+  useEffect(() => {
+    if (setup) saveSetup(setup, { players, difficulty, starter, fastMode, nightMarket });
+  }, [setup, players, difficulty, starter, fastMode, nightMarket]);
+  function openSetup(id: GameId) {
+    const saved = readSetup(id);
+    setPlayers(saved.players);
+    setDifficulty(saved.difficulty);
+    setStarter(saved.starter);
+    setFastMode(saved.fastMode);
+    setNightMarket(saved.nightMarket);
+    setSetup(id);
   }
   function start(id: GameId, tutorial = false) {
     const next = createGame(
@@ -197,7 +225,9 @@ export default function SoloGame() {
       seed(),
       tutorial,
       players,
-      setup === id && starter,
+      setup === id ? starter : g?.id === id ? (g.starter ?? false) : false,
+      setup === id ? fastMode : g?.id === id ? (g.fastMode ?? false) : false,
+      setup === id ? nightMarket : g?.id === id ? (g.nightMarket ?? false) : false,
     );
     store(next);
     setSetup(null);
@@ -205,7 +235,7 @@ export default function SoloGame() {
     setOrder([]);
     setPassed([]);
     setWard(false);
-    setCalm(false);
+    setTack(false);
     setSelected(null);
     setPreparedZone(null);
     setBotError(false);
@@ -220,7 +250,7 @@ export default function SoloGame() {
     setSelected(null);
     setPreparedZone(null);
     setWard(false);
-    setCalm(false);
+    setTack(false);
     setBotError(false);
     setShowResults(false);
   }
@@ -249,6 +279,7 @@ export default function SoloGame() {
     const actor = g.players.findIndex((_, i) => i > 0 && canAct(g, i));
     if (actor < 0) return;
     let worker: Worker | undefined,
+      watchdog: ReturnType<typeof setTimeout> | undefined,
       cancelled = false;
     const snapshot = g.revision;
     const timer = setTimeout(() => {
@@ -261,22 +292,31 @@ export default function SoloGame() {
           e: MessageEvent<{ move?: Move; error?: string }>,
         ) => {
           if (cancelled || current.current?.revision !== snapshot) return;
-          if (e.data.move) commit(e.data.move, actor);
-          else setBotError(true);
+          clearTimeout(watchdog);
+          commitRef.current(e.data.move ?? fallbackMove(g, actor), actor);
           worker?.terminate();
         };
         worker.onerror = () => {
-          if (!cancelled) setBotError(true);
+          clearTimeout(watchdog);
+          if (!cancelled && current.current?.revision === snapshot)
+            commitRef.current(fallbackMove(g, actor), actor);
           worker?.terminate();
         };
         worker.postMessage({ ...observe(g, actor), active: actor });
+        watchdog = setTimeout(() => {
+          if (!cancelled && current.current?.revision === snapshot)
+            commitRef.current(fallbackMove(g, actor), actor);
+          worker?.terminate();
+        }, 4000);
       } catch {
-        setBotError(true);
+        if (!cancelled && current.current?.revision === snapshot)
+          commitRef.current(fallbackMove(g, actor), actor);
       }
     }, 350);
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      clearTimeout(watchdog);
       worker?.terminate();
     };
     // Snapshot revision guards worker replies; mutable preferences are read through refs.
@@ -298,7 +338,8 @@ export default function SoloGame() {
       setPassed(next);
       return;
     }
-    if (!canAct(g, 0) || g.phase === 'roll' || g.id === 'wildgrove') {
+    if (!canAct(g, 0) || g.phase === 'roll') return;
+    if (g.id === 'wildgrove') {
       if (g.id === 'wildgrove' && selected !== c.id) {
         const next = progress('select', g);
         if (next !== g) store(next);
@@ -311,9 +352,9 @@ export default function SoloGame() {
       type: 'play',
       card: c.id,
       ...(ward ? { ward: true } : {}),
-      ...(calm ? { calm: true } : {}),
+      ...(tack ? { tack: true } : {}),
     };
-    if (!confirmMoves && validMove(g, move, 0)) commit(move);
+    if (!confirmMoves && validMove(g, festival.withChoice(move), 0)) commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
   }
   function place(zone: number) {
@@ -398,7 +439,7 @@ export default function SoloGame() {
         type: 'play',
         card: c.id,
         ...(ward ? { ward: true } : {}),
-        ...(calm ? { calm: true } : {}),
+        ...(tack ? { tack: true } : {}),
       });
     else cue('drop', volume);
   }
@@ -443,11 +484,7 @@ export default function SoloGame() {
       {!g ? (
         <Library
           saves={saves}
-          onSetup={(id) => {
-            setStarter(false);
-            setSetup(id);
-          }}
-          onLearn={(id) => start(id, true)}
+          onSetup={openSetup}
           onResume={resume}
         />
       ) : (
@@ -464,6 +501,8 @@ export default function SoloGame() {
             </button>
             <TableHeading g={g} />
             <TableMenu
+              advanced={advanced}
+              onAdvanced={g.id !== 'undertow' ? setAdvanced : undefined}
               confirmMoves={confirmMoves}
               onConfirmMoves={setConfirmMoves}
               onRules={() => setPanel('rules')}
@@ -472,12 +511,12 @@ export default function SoloGame() {
               onSound={() => setPanel('sound')}
             />
           </div>
-          <div className="table-columns">
+          <div className={`table-columns ${advanced && g.id !== 'undertow' ? 'with-opponents' : ''}`}>
             <section className="play-area">
               <div className="table-players">
                 <Players g={g} inspect={inspect} />
               </div>
-              <ScrollArea className="board-viewport" fitBoard={g.id}>
+              <ScrollArea className="board-viewport" fitBoard={g.id} fitBoardWidth={advanced}>
                 <Board
                   g={g}
                   selected={selected}
@@ -494,7 +533,8 @@ export default function SoloGame() {
                   passed={passed}
                   zone={preparedZone}
                   ward={ward}
-                  calm={calm}
+                  tack={tack}
+                  festivalChoice={festival.choice}
 
                   enabled={confirmMoves}
 
@@ -505,22 +545,15 @@ export default function SoloGame() {
                     setPassed([]);
                   }}
                 />
-                {g.id !== 'midnight' && <DieControl g={g} />}
+                {g.id !== 'midnight' && <DieControl g={g} viewer={0} />}
               </div>
               <div className="hand-controls">
                 <div className="hand-abilities">
-                  <ExpansionBadge g={g} />
+                  <FestivalControls g={g} viewer={0} choice={festival.choice} onChange={festival.setChoice} inspect={inspect} />
                   {g.starter && (
-                    <button
-                      className={`secondary calm-token ${calm ? 'armed' : ''}`}
-                      aria-pressed={calm}
-                      disabled={g.phase === 'over' || !g.players[0].calms}
-                      onClick={() => setCalm(!calm)}
-                      title="Select before playing. If you win the trick, cancel its highest Storm card. The token is spent even if you lose."
-                    >
-                      {calm ? 'Calm selected' : 'Use Calm'} ·{' '}
-                      {g.players[0].calms ?? 0}
-                    </button>
+                    <ExtensionAction kind="tack" label="Tack" selected={tack} count={g.players[0].tacks ?? 0}
+ disabled={g.phase !== 'play' || g.active !== 0 || !g.players[0].tacks || !g.trick.length || !g.players[0].hand.some((c) => c.kind === g.trick[0].card.kind) || !g.players[0].hand.some((c) => c.kind !== g.trick[0].card.kind)} onTap={() => { setTack(!tack); setWard(false); }} inspect={inspect}
+ description="Once each round, Tack lets you break the follow-suit rule. Select it, then play a card of a different suit, even when you hold the led suit. For example, if Hearts are led and you hold Hearts, Tack lets you shed a dangerous Storm card instead. Only cards of the led suit can win the trick, and all penalties still count. Use it to shed a dangerous card or save a strong led-suit card for later. Tack is spent only when you play the off-suit card. You cannot use it when leading, when you already cannot follow suit, or together with a Shield. Tap it again to cancel before playing. One Tack refreshes each round." />
                   )}
                   {g.id === 'undertow' && g.starter !== false && (
                     <div className="wards" data-coach="ward">
@@ -540,7 +573,9 @@ export default function SoloGame() {
                                     rounded up.
                                   </p>
                                   <div className="example">
-                                    A 40-point 9 plus 5 Storm points becomes 23.
+                                    A {tidePenaltyValue(g)}-point card plus 5
+                                    Storm points becomes{' '}
+                                    {Math.ceil((tidePenaltyValue(g) + 5) / 2)}.
                                   </div>
                                   <p>
                                     A shield is spent even if you lose. Two
@@ -553,6 +588,7 @@ export default function SoloGame() {
                           onTap={() => {
                             if (g.phase !== 'over' && i < g.players[0].wards) {
                               setWard(!ward);
+                              setTack(false);
                               cue('ward', volume);
                               const next = progress('arm', g);
                               if (next !== g) store(next);
@@ -565,10 +601,6 @@ export default function SoloGame() {
                     </div>
                   )}
                 </div>
-                <span>
-                  {g.id === 'wildgrove' ? 'Creatures' : 'Your hand'}
-                  <small>{g.players[0].hand.length}</small>
-                </span>
                 <Passing g={g} />
                 {g.phase === 'pass' ? (
                   <span>
@@ -599,6 +631,7 @@ export default function SoloGame() {
                 inspect={inspect}
                 onTap={tap}
                 onDrop={drop}
+                onDragSelect={setSelected}
                 onLift={() => {
                   cue('pickup', volume);
                 }}
@@ -625,6 +658,7 @@ export default function SoloGame() {
                 </button>
               )}
             </section>
+            {advanced && g.id !== 'undertow' && <OpponentBoards g={g} viewer={0} inspect={inspect} />}
             <aside className="activity-sidebar">
               <h2>Activity</h2>
               <ol>
@@ -657,7 +691,10 @@ export default function SoloGame() {
         }}
       >
         <DialogContent className="modal setup-modal">
-          <DialogTitle>{setupMeta?.name}</DialogTitle>
+          <div className="setup-heading">
+            <DialogTitle>{setupMeta?.name}</DialogTitle>
+            <button className="secondary setup-learn" onClick={() => setup && start(setup, true)}>Learn</button>
+          </div>
           <DialogDescription>Choose your table.</DialogDescription>
           <fieldset>
             <legend>Players, including you</legend>
@@ -690,16 +727,28 @@ export default function SoloGame() {
             </RadioGroup>
           </fieldset>
           {setup === 'undertow' && (
-            <ExpansionChoice enabled={starter} onChange={setStarter} />
+            <>
+              <label className="tide-fast-mode" aria-label="Fast mode">
+                <input
+                  type="checkbox"
+                  checked={fastMode}
+                  onChange={(e) => setFastMode(e.target.checked)}
+                />
+                <span>
+                  <b>Fast mode</b>
+                  <small>Cards 1–5 · the 4 matching the die is +8</small>
+                </span>
+              </label>
+              <ExpansionChoice
+                enabled={starter}
+                fastMode={fastMode}
+                onChange={setStarter}
+              />
+            </>
           )}
+          {setup === 'midnight' && <FestivalExpansionChoice enabled={nightMarket} onChange={setNightMarket} />}
           <button className="primary" onClick={() => setup && start(setup)}>
             Play
-          </button>
-          <button
-            className="secondary"
-            onClick={() => setup && start(setup, true)}
-          >
-            Learn by playing
           </button>
         </DialogContent>
       </Dialog>

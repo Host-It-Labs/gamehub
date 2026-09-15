@@ -1,3 +1,4 @@
+import { FestivalRules } from './yatai-festival';
 import {
   foods,
   creatures,
@@ -5,6 +6,9 @@ import {
   dice,
   suits,
   handSize,
+  tideRanks,
+  tidePenaltyRank,
+  tidePenaltyValue,
   passCount,
   totalRounds,
   type PublicGame as Game,
@@ -18,6 +22,8 @@ export function Help({
 }) {
   const tide = g.id === 'undertow',
     grove = g.id === 'wildgrove';
+  const tideUsed = handSize(g) * g.players.length;
+  const tideTotal = 5 * tideRanks(g);
   const used = g.players.length * 12,
     omitted = 72 - used;
   if (reference) {
@@ -25,6 +31,7 @@ export function Help({
     const placed = g.players.reduce((n, p) => n + p.zones.flat().length, 0);
     return (
       <div className="reference readable-reference">
+      {g.id === 'midnight' && g.nightMarket && <FestivalRules />}
         <h3>Cards and pieces in this game</h3>
         <dl className="match-facts">
           <dt>Players</dt>
@@ -32,13 +39,13 @@ export function Help({
           <dt>{grove ? 'Full creature supply' : 'Full deck'}</dt>
           <dd>
             {tide
-              ? '60 cards · 5 suits × 12 ranks'
+              ? `${tideTotal} cards · 5 suits × ${tideRanks(g)} ranks`
               : `72 ${grove ? 'creatures' : 'cards'} · 6 types × 12`}
           </dd>
           <dt>Used in this game</dt>
-          <dd>{tide ? 60 : used}</dd>
+          <dd>{tide ? tideUsed : used}</dd>
           <dt>Not used (hidden)</dt>
-          <dd>{tide ? 0 : omitted}</dd>
+          <dd>{tide ? tideTotal - tideUsed : omitted}</dd>
           <dt>Round</dt>
           <dd>
             {g.round} / {totalRounds(g)}
@@ -50,7 +57,7 @@ export function Help({
               <dt>Cards in current trick</dt>
               <dd>{g.trick.length}</dd>
               <dt>Cards played this round</dt>
-              <dd>{60 - inHands}</dd>
+              <dd>{tideUsed - inHands}</dd>
             </>
           ) : (
             <>
@@ -82,6 +89,7 @@ export function Help({
   }
   return (
     <div className="reference readable-reference">
+      {g.id === 'midnight' && g.nightMarket && <FestivalRules />}
       <section className="reference-goal">
         <h3>
           {tide
@@ -90,7 +98,7 @@ export function Help({
         </h3>
         <p>
           {tide
-            ? `Play ${totalRounds(g)} rounds. Each Storm card adds penalty points equal to its number. The 9 of the suit shown on the die adds 40 points. Other cards add no penalty points. Tied players share the win.`
+            ? `Play ${totalRounds(g)} rounds. Each Storm card adds penalty points equal to its number. The ${tidePenaltyRank(g)} of the suit shown on the die adds ${tidePenaltyValue(g)} points. Other cards add no penalty points. Tied players share the win.`
             : `Keep one ${grove ? 'creature' : 'dish'} per turn. After two rounds you will have kept twelve. Your collection stays between rounds. Tied players share the win.`}
         </p>
       </section>
@@ -105,8 +113,9 @@ export function Help({
               in even rounds.
             </li>
             <li>
-              <b>The die rolls automatically.</b> The 9 of the suit shown is
-              worth 40 penalty points for this round.
+              <b>The die rolls automatically.</b> The {tidePenaltyRank(g)} of
+              the suit shown is worth {tidePenaltyValue(g)} penalty points for
+              this round.
             </li>
             <li>
               <b>Play one card.</b> Follow the first card’s suit if you have it.
@@ -153,7 +162,7 @@ export function Help({
         <section className="reference-goal">
           <h3>
             {g.starter
-              ? 'Safe Harbour expansion'
+              ? 'Change of Tack expansion'
               : 'Shields in this saved match'}
           </h3>
           <p>
@@ -163,10 +172,10 @@ export function Help({
           </p>
           {g.starter && (
             <p>
-              <b>One Calm each round:</b> select it before playing your card. If
-              you take the trick, remove the highest Storm card’s penalty. It
-              never cancels the dangerous 9. Calm applies before a shield: 40 +
-              Storm 8 becomes 40, then 20 with both.
+              <b>One Tack each round:</b> select it to play off-suit even
+              when you have the led suit. Only led-suit cards can win, and all
+              penalty points still count. Tack is spent when you play that
+              off-suit card. You cannot use it on the lead or with a Shield.
             </p>
           )}
           <p>
@@ -195,9 +204,10 @@ export function Help({
             ))
           ) : tide ? (
             <p>
-              Five suits, with cards numbered 1–12 in each: {suits.join(' ')}.
-              Storm is a separate suit, so follow it when it is led. Each of the
-              four ordinary suits is equally likely on the die.
+              Five suits, with cards numbered 1–{tideRanks(g)} in each:{' '}
+              {suits.join(' ')}. Storm is a separate suit, so follow it when it
+              is led. Each of the four ordinary suits is equally likely on the
+              die.
             </p>
           ) : (
             foods.map((f) => (
@@ -220,8 +230,9 @@ export function Help({
                 </section>
               ))}
               <p>
-                Each face is equally likely. The Riverbank is always available
-                and earns one point per creature, whatever the die shows.
+                Each face is equally likely. Release is always available: trash
+                a creature from your hand for zero points. It leaves your board
+                and never counts in any scoring area.
               </p>
             </>
           )}
@@ -230,9 +241,9 @@ export function Help({
       <h3>What is in this match?</h3>
       {tide ? (
         <p>
-          All 60 cards are dealt every round: <b>{handSize(g)} cards each</b>{' '}
-          for {g.players.length} players. No cards are set aside. Shuffle and
-          deal again next round.
+          Each round, deal <b>{handSize(g)} cards each</b> for{' '}
+          {g.players.length} players. {tideTotal - tideUsed} cards are set aside
+          face down. Shuffle and deal again next round.
         </p>
       ) : (
         <>

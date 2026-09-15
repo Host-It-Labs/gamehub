@@ -135,6 +135,40 @@ test('HTTP accounts, guest identity, authorization, renamed guests and logout', 
     await app.close();
   }
 });
+test('move confirmation preferences follow accounts and guests keep browser defaults', async () => {
+  const { app, client } = await fixture();
+  try {
+    const anonymous = client();
+    assert.deepEqual(
+      (await anonymous.request('/api/preferences/confirm-moves.undertow')).data,
+      { account: false, value: null },
+    );
+    const signedIn = client();
+    await signedIn.request('/api/auth/signup', {
+      name: 'Preference owner',
+      email: 'preferences@example.com',
+      password: 'test-password-123',
+    });
+    assert.deepEqual(
+      (await signedIn.request('/api/preferences/confirm-moves.undertow')).data,
+      { account: true, value: null },
+    );
+    assert.deepEqual(
+      (
+        await signedIn.request('/api/preferences/confirm-moves.undertow', {
+          value: true,
+        })
+      ).data,
+      { account: true, value: true },
+    );
+    assert.deepEqual(
+      (await signedIn.request('/api/preferences/confirm-moves.undertow')).data,
+      { account: true, value: true },
+    );
+  } finally {
+    await app.close();
+  }
+});
 test('SSE sends only viewer state, tracks presence and reconnects; moves deduplicate', async () => {
   const { app, client } = await fixture();
   const controller = new AbortController();
@@ -251,5 +285,26 @@ test('real bot worker advances an online turn', async () => {
     assert.equal(t.game.revision, 2);
   } finally {
     await app.close();
+  }
+});
+
+test('development permits alternate local origins while production rejects them', async () => {
+  const previous = process.env.NODE_ENV;
+  try {
+    for (const mode of ['development', 'production']) {
+      process.env.NODE_ENV = mode;
+      const { app, client } = await fixture();
+      try {
+        const { path } = await hostTable(client);
+        const guest = client();
+        const joined = await guest.request(path + '/join', { name: 'Local tester' }, { Origin: 'http://127.0.0.1:4317' });
+        assert.equal(joined.status, mode === 'development' ? 200 : 403);
+      } finally {
+        await app.close();
+      }
+    }
+  } finally {
+    if (previous === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previous;
   }
 });

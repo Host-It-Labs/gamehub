@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { randomInt } from 'node:crypto';
 import {
   createGame,
+  festivalOrders,
   observe,
   play,
   validMove,
@@ -17,6 +18,7 @@ import {
 } from '../lib/games/trio/engine.ts';
 import type { Command, GameView, Table } from '../lib/online/types.ts';
 import { check, displayName, token, type Identity } from './auth.ts';
+import { fallbackMove } from '../lib/games/trio/bot.ts';
 
 type Participant = { id: string; name: string };
 type Seat = Participant & { bot: boolean };
@@ -26,6 +28,8 @@ export type StoredTable = {
   gameId: GameId;
   difficulty: Difficulty;
   starter?: boolean;
+  nightMarket?: boolean;
+  fastMode?: boolean;
   capacity: number;
   revision: number;
   status: Table['status'];
@@ -59,7 +63,9 @@ export function parseMove(value: unknown): Move {
           Number(m.zone) >= 0 &&
           Number(m.zone) < 7)) &&
       (m.ward === undefined || typeof m.ward === 'boolean') &&
-      (m.calm === undefined || typeof m.calm === 'boolean'),
+      (m.tack === undefined || typeof m.tack === 'boolean') &&
+      (m.stall === undefined || typeof m.stall === 'boolean') &&
+      (m.order === undefined || (Number.isInteger(m.order) && Number(m.order) >= 0 && Number(m.order) < festivalOrders.length)),
     400,
     'Invalid move.',
   );
@@ -68,7 +74,9 @@ export function parseMove(value: unknown): Move {
     card: m.card as number,
     ...(m.zone === undefined ? {} : { zone: m.zone as number }),
     ...(m.ward === undefined ? {} : { ward: m.ward as boolean }),
-    ...(m.calm === undefined ? {} : { calm: m.calm as boolean }),
+    ...(m.tack === undefined ? {} : { tack: m.tack as boolean }),
+    ...(m.order === undefined ? {} : { order: m.order as number }),
+    ...(m.stall === undefined ? {} : { stall: m.stall as boolean }),
   };
 }
 export class Tables {
@@ -168,6 +176,8 @@ export class Tables {
       gameId: t.gameId,
       difficulty: t.difficulty,
       starter: t.starter ?? false,
+      nightMarket: t.nightMarket ?? false,
+      fastMode: t.fastMode ?? false,
       capacity: t.capacity,
       revision: t.revision,
       status: t.status,
@@ -287,6 +297,15 @@ export class Tables {
             400,
             'Invalid expansion.',
           );
+          check(
+            a.fastMode === undefined || typeof a.fastMode === 'boolean',
+            400,
+            'Invalid fast mode.',
+          );
+          check(a.nightMarket === undefined || typeof a.nightMarket === 'boolean', 400, 'Invalid Lantern Festival expansion.');
+          t.nightMarket = a.gameId === 'midnight' && (a.nightMarket ?? (t.gameId === a.gameId && t.nightMarket) ?? false);
+          t.fastMode =
+            a.gameId === 'undertow' && (a.fastMode ?? t.fastMode ?? false);
           t.starter = a.gameId === 'undertow' && (a.starter ?? false);
           t.gameId = a.gameId;
           t.difficulty = a.difficulty;
@@ -328,6 +347,8 @@ export class Tables {
             a.type === 'start' && (a.learning ?? false),
             t.capacity,
             t.starter ?? false,
+            t.fastMode ?? false,
+            t.nightMarket ?? false,
           );
           t.game.players.forEach((p, i) => {
             p.name = t.seats[i].name;
@@ -452,11 +473,11 @@ export class Tables {
       !canAct(t.game, seat)
     )
       return;
-    if (!move || !validMove(t.game, move, seat)) t.botError = true;
-    else {
-      t.game = play(t.game, move, seat);
-      if (t.game.phase === 'over') t.status = 'finished';
-    }
+    const safeMove =
+      move && validMove(t.game, move, seat) ? move : fallbackMove(t.game, seat);
+    t.game = play(t.game, safeMove, seat);
+    t.botError = false;
+    if (t.game.phase === 'over') t.status = 'finished';
     t.revision++;
     this.save(t);
   }

@@ -12,7 +12,7 @@ export function openDatabase(path: string) {
   const version = (
     db.prepare('PRAGMA user_version').get() as { user_version: number }
   ).user_version;
-  if (version > 1)
+  if (version > 2)
     throw new Error(
       'Database is newer than this application; restore a compatible backup before downgrading.',
     );
@@ -26,7 +26,15 @@ export function openDatabase(path: string) {
     CREATE TABLE tables (token TEXT PRIMARY KEY, owner TEXT NOT NULL REFERENCES users(id), state TEXT NOT NULL);
     CREATE INDEX tables_owner ON tables(owner);
     CREATE TABLE commands (table_token TEXT NOT NULL REFERENCES tables(token), actor TEXT NOT NULL, request_id TEXT NOT NULL, body TEXT NOT NULL, PRIMARY KEY(table_token, actor, request_id));
-    PRAGMA user_version=1;
+    CREATE TABLE user_preferences (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(user_id, key));
+    PRAGMA user_version=2;
+    COMMIT;
+  `);
+  if (version === 1)
+    db.exec(`
+    BEGIN IMMEDIATE;
+    CREATE TABLE user_preferences (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(user_id, key));
+    PRAGMA user_version=2;
     COMMIT;
   `);
   return db;

@@ -1,6 +1,6 @@
 {
   "name": "gamehub",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "private": true,
   "engines": {
     "node": ">=22.22.0"
@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "NODE_ENV=production PUBLIC_ORIGIN=http://localhost:4173 PORT=4173 node --experimental-strip-types server/index.ts",
     "dev:web": "vinext dev --port 3017",
-    "dev:server": "node --experimental-strip-types --watch server/index.ts",
+    "dev:server": "NODE_ENV=development node --experimental-strip-types --watch server/index.ts",
     "password:reset": "node --experimental-strip-types scripts/reset-password.ts",
     "backup": "node --experimental-strip-types scripts/backup.ts"
   },

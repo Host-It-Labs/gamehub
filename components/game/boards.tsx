@@ -1,4 +1,9 @@
 'use client';
+import { festivalBreakdown } from '@/lib/games/trio/engine';
+import { moraMap } from '@/lib/games/trio/mora-map';
+import { MoraTrash } from './mora-trash';
+import { Store } from 'lucide-react';
+import { FestivalSummary } from './yatai-festival';
 import { ScrollArea } from './scroll-area';
 import { useEffect, useState, type CSSProperties } from 'react';
 import {
@@ -17,6 +22,9 @@ import {
   dice,
   cardName,
   penalty,
+  tideRanks,
+  tidePenaltyRank,
+  tidePenaltyValue,
   zoneScore,
   foodBreakdown,
   scores,
@@ -49,10 +57,14 @@ export function Face({
   card,
   id,
   hazard = -1,
+  penaltyRank = 8,
+  penaltyValue = 40,
 }: {
   card: Card;
   id: GameId;
   hazard?: number;
+  penaltyRank?: number;
+  penaltyValue?: number;
 }) {
   if (id === 'wildgrove')
     return (
@@ -74,7 +86,9 @@ export function Face({
         <strong className="tide-rank">{card.rank}</strong>
         <span className="tide-suit">{suits[card.kind]}</span>
         <span className="tide-cost">
-          {penalty(card, hazard) > 0 ? `+${penalty(card, hazard)}` : ''}
+          {penalty(card, hazard, penaltyRank, penaltyValue) > 0
+            ? `+${penalty(card, hazard, penaltyRank, penaltyValue)}`
+            : ''}
         </span>
       </span>
       <span className="tide-pips" aria-hidden="true">
@@ -98,33 +112,45 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
     title: cardName(g.id, c),
     art: (
       <div className={`inspect-face ${g.id}`}>
-        <Face card={c} id={g.id} hazard={g.hazard} />
+        <Face
+          card={c}
+          id={g.id}
+          hazard={g.hazard}
+          penaltyRank={tidePenaltyRank(g)}
+          penaltyValue={tidePenaltyValue(g)}
+        />
       </div>
     ),
     body:
       g.id === 'undertow' ? (
         <>
           <p>
-            <b>{penalty(c, g.hazard)} penalty points</b> if captured in a trick.
+            <b>
+              {penalty(c, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g))}{' '}
+              penalty points
+            </b>{' '}
+            if captured in a trick.
           </p>
           <p>
             {c.kind === 4
               ? 'Storm is its own suit, not trump.'
-              : c.rank === 9
-                ? 'This 9 costs 40 when its suit matches the die.'
+              : c.rank === tidePenaltyRank(g)
+                ? `This ${tidePenaltyRank(g)} costs ${tidePenaltyValue(g)} when its suit matches the die.`
                 : 'Follow the first card’s suit if you can.'}
           </p>
           <p>
             {g.phase === 'pass'
               ? `Select ${passCount(g)} cards to pass before the die rolls.`
               : playable
-                ? 'You can play this card.'
+                ? legalMoves(g).some((m) => m.type === 'play' && m.card === c.id && !m.tack)
+                  ? 'You can play this card.'
+                  : 'Select Tack to play this card off-suit.'
                 : !canAct(g, viewer)
                   ? 'Wait for your turn.'
                   : 'You must follow the led suit when possible.'}
           </p>
           <p>
-            One of 12 cards in {suitNames[c.kind]}.
+            One of {tideRanks(g)} cards in {suitNames[c.kind]}.
             {g.starter !== false
               ? ' A selected Shield halves the trick’s penalty points, rounded up.'
               : ' The base game has no shields.'}
@@ -147,7 +173,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
             in the supply.
           </p>
           <div className="inspection-scores">
-            {habitatOrder.map((z) => {
+            {habitatOrder.filter((z) => z !== 5).map((z) => {
               const h = habitats[z];
               const zones = g.players[viewer].zones.map((r) => [...r]);
               (zones[z] ??= []).push(c);
@@ -158,7 +184,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
                   zoneScore(g.players[viewer].zones, i),
                 0,
               );
-              const legal = legalMoves(g).some(
+              const legal = legalMoves({ ...g, active: viewer }).some(
                 (m) => m.type === 'play' && m.card === c.id && m.zone === z,
               );
               return (
@@ -228,7 +254,7 @@ export function Board({
           ) : g.phase === 'pass' ? (
             `Select ${passCount(g)} cards to pass`
           ) : g.phase === 'roll' ? (
-            'The die is revealing the 9 worth 40 points…'
+            `The die is revealing the ${tidePenaltyRank(g)} worth ${tidePenaltyValue(g)} points…`
           ) : g.phase === 'over' ? (
             'Game complete'
           ) : (
@@ -241,13 +267,15 @@ export function Board({
               <span>
                 {g.players[t.player].name}
                 {t.ward ? ' · shield' : ''}
-                {t.calm ? ' · Calm' : ''}
+                {t.tack ? ' · Tack' : ''}
               </span>
               <div className="static-face">
                 <Face
                   card={t.card}
                   id={g.id}
                   hazard={reveal?.hazard ?? g.hazard}
+                  penaltyRank={tidePenaltyRank(g)}
+                  penaltyValue={tidePenaltyValue(g)}
                 />
               </div>
             </div>
@@ -257,79 +285,52 @@ export function Board({
     );
   if (g.id === 'wildgrove')
     return (
-      <div
-        className={`grove-board world-board ${mini ? 'mini-board' : ''}`}
-        data-coach="board"
-      >
-        {habitatOrder.map((z) => {
+      <div className={`mora-board ${mini ? 'mini-board' : ''} ${player !== viewer ? 'opponent-board' : ''}`} data-coach="board">
+        <img className="mora-landscape" src={moraMap.image} alt="Mora woodland sanctuary: moss nests, flower meadow, twin root hollows, a winding stone trail, mushroom grove and a raised lookout." draggable={false} />
+        {!mini && <div className="mora-ambient" aria-hidden="true">
+          {[0, 1, 2].map((route) => <span key={route} className={`mora-wanderer mora-wanderer-${route}`}><span className="mora-critter" /></span>)}
+          <span className="mora-firefly mora-firefly-one" />
+          <span className="mora-firefly mora-firefly-two" />
+        </div>}
+        {moraMap.habitats.map((art) => {
+          const z = art.zone;
           const h = habitats[z];
-          const allowed =
-            player === viewer &&
-            canAct(g, viewer) &&
-            selected != null &&
-            legalMoves({ ...g, active: viewer }).some(
-              (m) => m.type === 'play' && m.card === selected && m.zone === z,
-            );
-          const content = (
-            <>
-              <div className="region-heading" title={`${h.formula}. ${h.rule}`}>
-                <strong>{h.name}</strong>
-                <b>{zoneScore(p.zones, z)}</b>
-              </div>
-              <div className="region-pieces">
-                {(p.zones[z] ?? []).map((c) => (
-                  <TokenArt key={c.id} kind={c.kind} />
-                ))}
-              </div>
-              <div className="region-bottom">
-                <span>{h.formula}</span>
-                <small>
-                  {p.zones[z]?.length ?? 0}/{h.cap}
-                </small>
-              </div>
-            </>
-          );
-          return (
-            <div
-              data-drop={`zone:${z}`}
-              data-coach={`region-${z}`}
-              className={`region region-${z} ${allowed ? 'legal-region' : ''} ${preparedZone === z ? 'prepared-region' : ''} ${canAct(g, viewer) && g.phase === 'play' && selected != null && !allowed && !mini ? 'blocked-region' : ''}`}
-              key={h.name}
-            >
-              {mini ? (
-                <div className="region-inner">{content}</div>
-              ) : (
-                <Piece
-                  className="region-inner"
-                  label={h.name}
-                  inspect={() =>
-                    inspect?.({
-                      title: h.name,
-                      body: (
-                        <>
-                          <p className="big-rule">{h.formula}</p>
-                          <p>{h.rule}</p>
-                          <p>
-                            {p.zones[z]?.length ?? 0} of {h.cap} spaces used.
-                            Currently <b>{zoneScore(p.zones, z)} points</b>.
-                          </p>
-                          <p>
-                            {player === g.roller
-                              ? 'You are the roller: choose any habitat with space.'
-                              : `Current restriction: ${dice[g.die].name}. ${dice[g.die].rule}`}
-                          </p>
-                        </>
-                      ),
-                    })
-                  }
-                  onTap={() => selected != null && onPlace?.(z)}
-                >
-                  {content}
-                </Piece>
-              )}
-            </div>
-          );
+          const allowed = player === viewer && !mini && canAct(g, viewer) && selected != null &&
+            legalMoves({ ...g, active: viewer }).some((m) => m.type === 'play' && m.card === selected && m.zone === z);
+          const [x, y, width, height] = art.bounds;
+          const relative = (point: [number, number]): CSSProperties => ({ left: `${(point[0] - x) / width * 100}%`, top: `${(point[1] - y) / height * 100}%` });
+          const overflow = (p.zones[z] ?? []).slice(h.cap);
+          const content = <>
+            <span className="mora-ground-label" style={relative(art.label)}>
+              <strong>{h.name} <b>{zoneScore(p.zones, z)}</b></strong>
+              <small>{art.summary}</small>
+            </span>
+            {art.slots.map((point, i) => {
+              const creature = p.zones[z]?.[i];
+              return <span key={i} className={`mora-nest ${creature ? 'occupied' : 'empty'}`} style={{ ...relative(point), width: `${art.tokenWidth / width * 100}%` }}>
+                {z === 3 && <span className="mora-trail-step">{i + 1}</span>}
+                {creature && <TokenArt kind={creature.kind} />}
+              </span>;
+            })}
+            {overflow.length > 0 && <span className="mora-legacy-creatures" title="Creatures retained from the previous map. This habitat cannot accept more.">
+              {overflow.map((creature) => <span key={creature.id}><TokenArt kind={creature.kind} /></span>)}
+            </span>}
+          </>;
+          return <div key={z} className={`mora-habitat mora-habitat-${z} ${allowed ? 'legal-region' : ''} ${preparedZone === z ? 'prepared-region' : ''}`}
+            style={{ left: `${x}%`, top: `${y}%`, width: `${width}%`, height: `${height}%` }}
+            data-drop={mini ? undefined : `zone:${z}`} data-drop-allowed={allowed ? 'true' : 'false'} data-coach={`region-${z}`}>
+            {mini ? <div className="mora-habitat-inner">{content}</div> : <Piece className="mora-habitat-inner"
+              label={`${h.name}. ${h.rule} ${p.zones[z]?.length ?? 0} of ${h.cap} spaces used. ${zoneScore(p.zones, z)} points.`}
+              inspect={() => inspect?.({ title: h.name, body: <>
+                <p className="big-rule">{h.formula}</p><p>{h.rule}</p>
+                <p>{p.zones[z]?.length ?? 0} of {h.cap} spaces used. Currently <b>{zoneScore(p.zones, z)} points</b>.</p>
+                <p>{(p.zones[z] ?? []).map((creature) => creatures[creature.kind]).join(' · ') || 'This habitat is empty.'}</p>
+                <p>{player === g.roller ? 'You are the roller: choose any habitat with space.' : `Current restriction: ${dice[g.die].name}. ${dice[g.die].rule}`}</p>
+              </> })}
+              onTap={() => allowed && onPlace?.(z)}>{content}</Piece>}
+          </div>;
         })}
+        {!mini && player === viewer && onPlace && <MoraTrash g={g} viewer={viewer} selected={selected ?? null} preparedZone={preparedZone ?? null} onPlace={onPlace} />}
       </div>
     );
   const c = counts(p.zones[0]),
@@ -337,13 +338,26 @@ export function Board({
       p.zones[0],
       g.players.filter((_, i) => i !== player).map((p) => p.zones[0]),
     );
+  if (mini) return <div className="compact-market" aria-label={`${p.name}’s dishes`}>
+    {foods.map((food, kind) => {
+      const stall = g.nightMarket ? festivalBreakdown(p).stalls.find((item) => item.kind === kind) : undefined;
+      return <div className="compact-dish" key={kind}>
+        <TokenArt kind={kind} food />
+        <strong>{food.name}</strong>
+        <span className="compact-dish-count">×{c[kind]}</span>
+        <b className="compact-dish-score">{sc[kind]} pts</b>
+        {stall && <small>Stall +{stall.points}</small>}
+      </div>;
+    })}
+  </div>;
   return (
     <div
-      className={`market-board ${mini ? 'mini-board' : ''}`}
+      className={`market-board ${g.nightMarket ? 'festival-board' : ''} ${mini ? 'mini-board' : ''}`}
       data-drop="menu"
       data-coach="board"
     >
       {foods.map((f, k) => {
+        const stall = g.nightMarket ? festivalBreakdown(p).stalls.find((item) => item.kind === k) : undefined;
         const content = (
           <>
             <div className={`dish-stack ${c[k] ? 'has-dish' : ''}`}>
@@ -368,6 +382,7 @@ export function Board({
             </div>
             <strong>{f.name}</strong>
             <span className="collection-score">{sc[k]} pts</span>
+            {stall && <span className="dish-permit" aria-label={`Specialty stall: +${stall.points} of 6 bonus points`}><Store size={16} aria-hidden="true" /><b>+{stall.points}</b></span>}
           </>
         );
         return (
@@ -388,6 +403,7 @@ export function Board({
                         <div className="example">{f.example}</div>
                         <p>
                           {c[k]} collected · {sc[k]} points.
+                          {stall && ` Specialty stall: +${stall.points}/6 bonus points. Every matching dish drafted after opening earns +2; the opening dish does not count. This permit lasts across rounds.`}
                         </p>
                       </>
                     ),
@@ -420,7 +436,7 @@ export function Players({ g, inspect }: { g: Game; inspect: Inspect }) {
                       {p.hand.length} cards remaining · {p.wards} shields.
                     </p>
                   ) : (
-                    <Board g={g} player={i} mini />
+                    <><FestivalSummary g={g} player={i} /><Board g={g} player={i} mini /></>
                   ),
               })
             }
@@ -428,7 +444,9 @@ export function Players({ g, inspect }: { g: Game; inspect: Inspect }) {
             <span className={`avatar avatar-${i}`}>{p.name.slice(0, 1)}</span>
             <span>{p.name}</span>
             <b>{sc[i]}</b>
-            {g.id === 'wildgrove' && g.roller === i && <small>ROLLER</small>}
+            {g.id === 'wildgrove' && g.roller === i && (
+              <small className="roller-badge">ROLLER</small>
+            )}
           </button>
         );
         return g.id === 'undertow' ? (
@@ -440,7 +458,7 @@ export function Players({ g, inspect }: { g: Game; inspect: Inspect }) {
               <strong>
                 {p.name} · {sc[i]} points
               </strong>
-              <Board g={g} player={i} mini />
+              <><FestivalSummary g={g} player={i} /><Board g={g} player={i} mini /></>
             </HoverCardContent>
           </HoverCard>
         );
@@ -458,6 +476,7 @@ export function Hand({
   onTap,
   onDrop,
   onLift,
+  onDragSelect,
 }: {
   g: Game;
   viewer?: number;
@@ -468,6 +487,7 @@ export function Hand({
   onTap: (c: Card) => void;
   onDrop: (c: Card, x: number, y: number, before?: number | null) => void;
   onLift: () => void;
+  onDragSelect?: (id: number) => void;
 }) {
   const hand = [...g.players[viewer].hand].sort((a, b) => {
     const ai = order.indexOf(a.id),
@@ -499,10 +519,19 @@ export function Hand({
             draggable
             inspect={() => inspect(cardInspection(g, c, viewer))}
             onTap={() => onTap(c)}
-            onLift={onLift}
+            onLift={() => {
+              if (g.id === 'wildgrove') onDragSelect?.(c.id);
+              onLift();
+            }}
             onDrop={(x, y, before) => onDrop(c, x, y, before)}
           >
-            <Face card={c} id={g.id} hazard={g.hazard} />
+            <Face
+              card={c}
+              id={g.id}
+              hazard={g.hazard}
+              penaltyRank={tidePenaltyRank(g)}
+              penaltyValue={tidePenaltyValue(g)}
+            />
           </Piece>
         );
       })}

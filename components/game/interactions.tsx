@@ -31,6 +31,7 @@ export function Piece({
   draggable = false,
   cardId,
   selected = false,
+  unavailable = false,
   coachId,
 }: {
   children: ReactNode;
@@ -44,6 +45,7 @@ export function Piece({
   draggable?: boolean;
   cardId?: number;
   selected?: boolean;
+  unavailable?: boolean;
   coachId?: string;
 }) {
   const preview = useRef<ReturnType<typeof beginDragPreview> | null>(null);
@@ -130,6 +132,7 @@ export function Piece({
           style={{ touchAction: draggable ? 'pan-x' : 'pan-x pan-y' }}
           aria-label={label}
           aria-pressed={selected}
+          aria-disabled={unavailable || undefined}
           onPointerDown={down}
           onPointerMove={(e) => {
             let g = gesture.current;

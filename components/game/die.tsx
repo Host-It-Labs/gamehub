@@ -7,6 +7,8 @@ import {
 } from '@/components/ui/popover';
 import {
   dice,
+  tidePenaltyRank,
+  tidePenaltyValue,
   suits,
   habitatOrder,
   type PublicGame,
@@ -22,7 +24,7 @@ export function Die({ g }: { g: PublicGame }) {
     : ready
       ? 'Rolling…'
       : g.id === 'undertow'
-        ? `${suits[face] ?? '—'} 9 = 40`
+        ? `${suits[face] ?? '—'} ${tidePenaltyRank(g)} = ${tidePenaltyValue(g)}`
         : dice[face].name;
   return (
     <span className="die-display">
@@ -55,15 +57,21 @@ export function Die({ g }: { g: PublicGame }) {
   );
 }
 
-export function DieControl({ g }: { g: PublicGame }) {
+export function DieControl({ g, viewer }: { g: PublicGame; viewer?: number }) {
+  const exempt = g.id === 'wildgrove' && viewer === g.roller;
   return (
     <Popover>
       <PopoverTrigger
-        className="dice-token"
+        className={`dice-token ${exempt ? 'die-exempt' : ''}`}
         data-coach="die"
-        aria-label="Die result and rule"
+        aria-label={
+          exempt
+            ? 'You are the roller. The placement die does not restrict you.'
+            : 'Die result and rule'
+        }
       >
         <Die g={g} />
+        {exempt && <span className="roller-badge">ROLLER</span>}
       </PopoverTrigger>
       <PopoverContent className="die-help" side="top" align="end">
         <PopoverTitle>
@@ -78,8 +86,9 @@ export function DieControl({ g }: { g: PublicGame }) {
           <p>The die rolls automatically.</p>
         ) : g.id === 'undertow' ? (
           <p>
-            The {suits[g.hazard]} 9 is worth 40 penalty points this round. The
-            die rolls after everyone has passed their cards.
+            The {suits[g.hazard]} {tidePenaltyRank(g)} is worth{' '}
+            {tidePenaltyValue(g)} penalty points this round. The die rolls after
+            everyone has passed their cards.
           </p>
         ) : (
           <>
@@ -88,7 +97,8 @@ export function DieControl({ g }: { g: PublicGame }) {
             </p>
             <p>
               {g.players[g.roller].name} can use any habitat with space.
-              Everyone else follows the die. The Riverbank is always available.
+              Everyone else follows the die. Releasing a creature is always
+              available and scores nothing.
             </p>
           </>
         )}

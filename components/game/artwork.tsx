@@ -46,7 +46,7 @@ export function ArtworkImage({
       style={{
         ...props.style,
         opacity: ready === src ? 1 : 0,
-        transition: 'opacity 240ms ease',
+        transition: 'opacity 240ms ease, transform var(--artwork-zoom-duration, 350ms) ease',
       }}
     />
   );
@@ -64,7 +64,7 @@ export function ArtworkLoading({ game }: { game: GameId | 'library' }) {
         ? catalog.map((c) => c.cover)
         : game === 'wildgrove'
           ? [
-              '/art/grove-board-v7.webp',
+              '/art/mora-sanctuary-v10.webp',
               ...Array.from(
                 { length: 6 },
                 (_, i) => `/art/creature-${i}-v5.webp`,

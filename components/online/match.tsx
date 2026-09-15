@@ -1,4 +1,7 @@
 'use client';
+import { useAdvancedView } from '@/components/game/advanced-view';
+import { OpponentBoards } from '@/components/game/opponent-boards';
+import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
 import { ArrowLeft } from 'lucide-react';
 import { TableHeading } from '../game/table-heading';
 import {
@@ -10,7 +13,7 @@ import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from '../game/artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { Passing } from '../game/passing';
-import { ExpansionBadge } from '../game/expansions';
+import { ExtensionAction } from '../game/extension-action';
 import { useEffect, useRef, useState } from 'react';
 import { Board, Hand, Players } from '@/components/game/boards';
 import { DieControl } from '@/components/game/die';
@@ -49,7 +52,7 @@ export function OnlineMatch({
     [passed, setPassed] = useState<number[]>([]),
     [order, setOrder] = useState<number[]>([]),
     [ward, setWard] = useState(false),
-    [calm, setCalm] = useState(false),
+    [tack, setTack] = useState(false),
     [inspection, setInspection] = useState<Inspection | null>(null),
     [inspectorOpen, setInspectorOpen] = useState(false),
     [panel, rememberPanel] = useState<'rules' | 'reference' | 'log' | null>(
@@ -64,7 +67,7 @@ export function OnlineMatch({
         return 0.5;
       }
     });
-  const scope = `${g.round}:${g.players[viewer].packet}`;
+  const scope = `${g.round}:${g.players[viewer].packet}:${g.revision}`;
   const [preparationScope, setPreparationScope] = useState(scope);
   // A new packet invalidates only local choices; keep the table, die and dialogs mounted.
   if (preparationScope !== scope) {
@@ -73,8 +76,9 @@ export function OnlineMatch({
     setPreparedZone(null);
     setPassed([]);
     setWard(false);
-    setCalm(false);
+    setTack(false);
   }
+  const festival = useFestivalChoice(g, viewer);
   function setPanel(value: typeof panel) {
     if (value) {
       rememberPanel(value);
@@ -94,6 +98,7 @@ export function OnlineMatch({
     }
   }, [g.revision, g.events, g.id, volume]);
   const mine = canAct(g, viewer) && !disabled;
+  const [advanced, setAdvanced] = useAdvancedView(g.id);
   const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
@@ -106,14 +111,15 @@ export function OnlineMatch({
     setInspectorOpen(true);
   }
   async function commit(move: Move) {
-    if (!mine || !validMove(g, move, viewer)) return;
+    move = festival.withChoice(move);
+    if (!mine || !validMove(g, festival.withChoice(move), viewer)) return;
 
     if ((await send(move)) && move.type !== 'roll') {
       setSelected(null);
       setPreparedZone(null);
       setPassed([]);
       setWard(false);
-      setCalm(false);
+      setTack(false);
     }
   }
   useAutoRoll(
@@ -135,7 +141,8 @@ export function OnlineMatch({
       setPassed(next);
       return;
     }
-    if (!mine || g.phase === 'roll' || g.id === 'wildgrove') {
+    if (!mine || g.phase === 'roll') return;
+    if (g.id === 'wildgrove') {
       setSelected((previous) => (previous === c.id ? null : c.id));
       setPreparedZone(null);
       return;
@@ -144,9 +151,9 @@ export function OnlineMatch({
       type: 'play',
       card: c.id,
       ...(ward ? { ward: true } : {}),
-      ...(calm ? { calm: true } : {}),
+      ...(tack ? { tack: true } : {}),
     };
-    if (!confirmMoves && validMove(g, move, viewer)) void commit(move);
+    if (!confirmMoves && validMove(g, festival.withChoice(move), viewer)) void commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
   }
   function place(zone: number) {
@@ -228,7 +235,7 @@ export function OnlineMatch({
         type: 'play',
         card: c.id,
         ...(ward ? { ward: true } : {}),
-        ...(calm ? { calm: true } : {}),
+        ...(tack ? { tack: true } : {}),
       });
   }
   const sc = scores(g),
@@ -243,6 +250,8 @@ export function OnlineMatch({
         </a>
         <TableHeading g={g} />
         <TableMenu
+              advanced={advanced}
+              onAdvanced={g.id !== 'undertow' ? setAdvanced : undefined}
           confirmMoves={confirmMoves}
           onConfirmMoves={setConfirmMoves}
           onRules={() => setPanel('rules')}
@@ -258,12 +267,12 @@ export function OnlineMatch({
           }}
         />
       </div>
-      <div className="table-columns">
+      <div className={`table-columns ${advanced && g.id !== 'undertow' ? 'with-opponents' : ''}`}>
         <section className="play-area">
           <div className="table-players">
             <Players g={g} inspect={inspect} />
           </div>
-          <ScrollArea className="board-viewport" fitBoard={g.id}>
+          <ScrollArea className="board-viewport" fitBoard={g.id} fitBoardWidth={advanced}>
             <Board
               g={g}
               player={viewer}
@@ -274,7 +283,7 @@ export function OnlineMatch({
               preparedZone={preparedZone}
             />
           </ScrollArea>
-          <div className="game-controls">
+              <div className="game-controls">
             <MoveConfirmation
               g={g}
               viewer={viewer}
@@ -282,7 +291,8 @@ export function OnlineMatch({
               passed={passed}
               zone={preparedZone}
               ward={ward}
-              calm={calm}
+              tack={tack}
+                  festivalChoice={festival.choice}
 
               enabled={confirmMoves}
 
@@ -294,36 +304,22 @@ export function OnlineMatch({
                 setPassed([]);
               }}
             />
-            {g.id !== 'midnight' && <DieControl g={g} />}
+                {g.id !== 'midnight' && <DieControl g={g} viewer={viewer} />}
           </div>
           <div className="hand-controls">
             <div className="hand-abilities">
-              <ExpansionBadge g={g} />
+              <FestivalControls g={g} viewer={viewer} choice={festival.choice} onChange={festival.setChoice} inspect={inspect} disabled={disabled} />
               {g.starter && (
-                <button
-                  className={`secondary calm-token ${calm ? 'armed' : ''}`}
-                  aria-pressed={calm}
-                  disabled={g.phase === 'over' || !g.players[viewer].calms}
-                  onClick={() => setCalm(!calm)}
-                  title="Select before playing. If you win the trick, cancel its highest Storm card. The token is spent even if you lose."
-                >
-                  {calm ? 'Calm selected' : 'Use Calm'} ·{' '}
-                  {g.players[viewer].calms ?? 0}
-                </button>
+                <ExtensionAction kind="tack" label="Tack" selected={tack} count={g.players[viewer].tacks ?? 0}
+ disabled={g.phase !== 'play' || g.active !== viewer || !g.players[viewer].tacks || !g.trick.length || !g.players[viewer].hand.some((c) => c.kind === g.trick[0].card.kind) || !g.players[viewer].hand.some((c) => c.kind !== g.trick[0].card.kind)} onTap={() => { setTack(!tack); setWard(false); }} inspect={inspect}
+ description="Once each round, Tack lets you break the follow-suit rule. Select it, then play a card of a different suit, even when you hold the led suit. For example, if Hearts are led and you hold Hearts, Tack lets you shed a dangerous Storm card instead. Only cards of the led suit can win the trick, and all penalties still count. Use it to shed a dangerous card or save a strong led-suit card for later. Tack is spent only when you play the off-suit card. You cannot use it when leading, when you already cannot follow suit, or together with a Shield. Tap it again to cancel before playing. One Tack refreshes each round." />
               )}
               {g.id === 'undertow' && g.starter !== false && (
-                <button
-                  className={`secondary ${ward ? 'armed' : ''}`}
-                  aria-pressed={ward}
-                  disabled={g.phase === 'over' || !g.players[viewer].wards}
-                  onClick={() => setWard(!ward)}
-                >
-                  {ward ? 'Shield selected' : 'Use Shield'} ·{' '}
-                  {g.players[viewer].wards} left
-                </button>
+                <ExtensionAction kind="shield" label="Shield" selected={ward} count={g.players[viewer].wards}
+ disabled={g.phase === 'over' || !g.players[viewer].wards} onTap={() => { setWard(!ward); setTack(false); }} inspect={inspect}
+ description="Select before playing to halve the trick's penalties, rounding up, if you win it. Spent even if you lose. Two Shields refresh each round. Tap again to cancel." />
               )}
             </div>
-            <span>Your hand · {g.players[viewer].hand.length}</span>
             <Passing g={g} viewer={viewer} />
             {g.phase === 'pass' ? (
               <span>
@@ -353,6 +349,7 @@ export function OnlineMatch({
             inspect={inspect}
             onTap={tap}
             onDrop={drop}
+                onDragSelect={setSelected}
             onLift={() => cue('pickup', volume)}
           />
           {g.phase === 'over' && (
@@ -376,7 +373,8 @@ export function OnlineMatch({
             </div>
           )}
         </section>
-        <aside className="activity-sidebar">
+        {advanced && g.id !== 'undertow' && <OpponentBoards g={g} viewer={viewer} inspect={inspect} />}
+            <aside className="activity-sidebar">
           <h2>Activity</h2>
           <ol>
             {[...g.events].reverse().map((e) => (

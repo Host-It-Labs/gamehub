@@ -12,26 +12,27 @@ import {
   isSavedGame,
   penalty,
   allowedZone,
-  dice,
   legalMoves,
+  habitats,
 } from '../lib/games/trio/engine.ts';
-import { chooseMove } from '../lib/games/trio/bot.ts';
+import { moraMap } from '../lib/games/trio/mora-map.ts';
+import { chooseMove, heuristic } from '../lib/games/trio/bot.ts';
 const c = (kind, id = kind) => ({ kind, rank: 0, id });
 const zones = (cards, at = 0) =>
   Array.from({ length: 6 }, (_, i) => (i === at ? cards : []));
 
 test('current habitat and food scoring matches the published rules', () => {
-  assert.equal(zoneScore(zones([c(0), c(0)]), 0), 3);
-  assert.equal(zoneScore(zones([c(0), c(1), c(2), c(3)], 1), 1), 16);
+  assert.equal(zoneScore(zones([c(0), c(0)]), 0), 6);
+  assert.equal(zoneScore(zones([c(0), c(1), c(2), c(3)], 1), 1), 14);
   assert.equal(zoneScore(zones([c(0), c(0), c(0)], 2), 2), 0);
-  assert.equal(zoneScore(zones([c(0), c(0), c(1), c(1)], 2), 2), 14);
-  assert.equal(zoneScore(zones([c(0), c(1), c(2)], 3), 3), 15);
+  assert.equal(zoneScore(zones([c(0), c(0), c(1), c(1)], 2), 2), 16);
+  assert.equal(zoneScore(zones([c(0), c(1), c(2)], 3), 3), 12);
   assert.equal(foodScore([c(0), c(0)], []), 7);
   assert.equal(foodScore([c(1), c(1), c(1), c(1)], []), 13);
   assert.equal(foodScore([c(2), c(2), c(2)], []), 9);
   assert.equal(foodScore([c(4)], [[c(4)]]), 5);
   assert.equal(foodScore([c(4)], []), 8);
-  assert.equal(penalty({ id: 0, kind: 2, rank: 9 }, 2), 40);
+  assert.equal(penalty({ id: 0, kind: 2, rank: 8 }, 2), 40);
 });
 test('seeded matches terminate legally with conserved cards at every player count', () => {
   for (const id of ['undertow', 'wildgrove', 'midnight'])
@@ -48,8 +49,10 @@ test('seeded matches terminate legally with conserved cards at every player coun
               (a, p) => a + p.hand.length + p.zones.flat().length,
               0,
             ) +
-            (id === 'undertow' ? g.seen.length : 0);
-          assert.equal(count, id === 'undertow' ? 60 : 72);
+            (id === 'undertow' ? g.seen.length : id === 'wildgrove'
+              ? g.seen.filter((card) => !g.players.some((p) => p.zones.some((zone) => zone.some((placed) => placed.id === card.id)))).length
+              : 0);
+          assert.equal(count, id === 'undertow' ? 50 : 72);
           const move = chooseMove(observe(g), 'medium');
           assert.ok(validMove(g, move));
           const previous = JSON.stringify(g);
@@ -159,119 +162,86 @@ test('an older partially confirmed pass retains three cards in both private and 
     assert.equal(move.cards.length, 3);
     g = play(g, move);
   }
-  assert.ok(g.players.every((p) => p.hand.length === 15));
+  assert.ok(g.players.every((p) => p.hand.length === 12));
 });
 
 test('starter expansion is opt-in and tokens cannot be smuggled into base moves', () => {
   const base = createGame('undertow');
   base.phase = 'play';
   assert.equal(base.starter, false);
-  assert.ok(base.players.every((p) => p.wards === 0 && p.calms === 0));
+  assert.ok(base.players.every((p) => p.wards === 0 && p.tacks === 0));
   const card = base.players[0].hand[0].id;
   assert.equal(validMove(base, { type: 'play', card, ward: true }), false);
-  assert.equal(validMove(base, { type: 'play', card, calm: true }), false);
+  assert.equal(validMove(base, { type: 'play', card, tack: true }), false);
   const extra = createGame('undertow', 'medium', 1, false, 3, true);
-  assert.ok(extra.players.every((p) => p.wards === 2 && p.calms === 1));
+  assert.ok(extra.players.every((p) => p.wards === 2 && p.tacks === 1));
   extra.phase = 'play';
-  assert.ok(
+  assert.equal(
     validMove(extra, {
       type: 'play',
       card: extra.players[0].hand[0].id,
-      calm: true,
+      tack: true,
       ward: true,
-    }),
+    }), false,
   );
   assert.ok(isSavedGame(extra));
 });
 
-test('Calm cancels only the highest Storm before shields, and is spent on a loss', () => {
-  const setup = (rank = 12) => {
+test('Tack breaks follow-suit once without reducing penalties or declaring a void', () => {
+  const setup = () => {
     const g = createGame('undertow', 'medium', 1, false, 3, true);
     g.phase = 'play';
     g.hazard = 0;
     g.active = 0;
     g.players[0].hand = [
-      { id: 100, kind: 0, rank },
+      { id: 100, kind: 0, rank: 10 },
       { id: 101, kind: 2, rank: 1 },
     ];
     g.players[1].hand = [
-      { id: 102, kind: 0, rank: 9 },
-      { id: 103, kind: 2, rank: 2 },
+      { id: 102, kind: 0, rank: 8 },
+      { id: 103, kind: 4, rank: 5 },
     ];
     g.players[2].hand = [
-      { id: 104, kind: 4, rank: 8 },
+      { id: 104, kind: 0, rank: 2 },
       { id: 105, kind: 2, rank: 3 },
     ];
     return g;
   };
-  let g = play(setup(), { type: 'play', card: 100, calm: true, ward: true });
-  g = play(g, { type: 'play', card: 102 });
-  g = play(g, { type: 'play', card: 104 });
-  assert.equal(g.players[0].score, 20);
-  assert.equal(g.players[0].calms, 0);
-  assert.equal(g.players[0].wards, 1);
-  assert.equal(validMove(g, { type: 'play', card: 101, calm: true }), false);
-  let loss = play(setup(1), { type: 'play', card: 100, calm: true });
-  loss = play(loss, { type: 'play', card: 102 });
-  loss = play(loss, { type: 'play', card: 104 });
-  assert.equal(loss.players[0].calms, 0);
-  assert.equal(loss.players[1].score, 48);
-});
-
-test('Grove has distinct herd, odd-count, and exclusive-species choices', () => {
-  assert.equal(zoneScore(zones([c(0), c(0), c(0), c(1)]), 0), 6);
-  assert.equal(zoneScore(zones([c(0), c(0)], 4), 4), 0);
-  assert.equal(zoneScore(zones([c(0), c(0), c(0)], 4), 4), 4);
-  const board = zones([c(0), c(1)], 3);
-  assert.equal(zoneScore(board, 3), 10);
-  board[5].push(c(0));
-  assert.equal(zoneScore(board, 3), 5);
-});
-
-test('expanded bot matches finish and refresh tokens on each deal', () => {
-  let g = createGame('undertow', 'medium', 31, false, 3, true),
-    steps = 0;
-  while (g.phase !== 'over') {
-    const round = g.round;
-    g = play(g, chooseMove(observe(g), 'medium'));
-    assert.ok(isSavedGame(g));
-    if (round !== g.round)
-      assert.ok(g.players.every((p) => p.wards === 2 && p.calms === 1));
-    assert.ok(++steps < 500);
+  for (const shield of [false, true]) {
+    let g = setup();
+    assert.equal(validMove(g, { type: 'play', card: 100, tack: true }), false);
+    g = play(g, { type: 'play', card: 100, ward: shield });
+    assert.equal(validMove(g, { type: 'play', card: 103 }), false);
+    assert.equal(validMove(g, { type: 'play', card: 102, tack: true }), false);
+    assert.equal(validMove(g, { type: 'play', card: 103, tack: true, ward: true }), false);
+    assert.ok(validMove(g, { type: 'play', card: 103, tack: true }));
+    g = play(g, { type: 'play', card: 103, tack: true });
+    assert.equal(g.players[1].tacks, 0);
+    assert.equal(g.players[1].wards, 2);
+    assert.ok(!g.voids[1].includes(0));
+    g = play(g, { type: 'play', card: 104 });
+    assert.equal(g.active, 0);
+    assert.equal(g.players[0].score, shield ? 3 : 5);
+    assert.equal(g.players[1].score, 0);
+    g = play(g, { type: 'play', card: 101 });
+    assert.equal(validMove(g, { type: 'play', card: 102, tack: true }), false);
   }
+  const g = play(setup(), { type: 'play', card: 100 });
+  g.players[1].tacks = 0;
+  assert.equal(validMove(g, { type: 'play', card: 103, tack: true }), false);
+  g.players[1].tacks = 1;
+  g.players[1].hand = g.players[1].hand.filter((c) => c.kind !== 0);
+  assert.ok(validMove(g, { type: 'play', card: 103 }));
+  assert.equal(validMove(g, { type: 'play', card: 103, tack: true }), false);
 });
 
-test('placement die maps directly to board rows and columns', () => {
-  const g = createGame('wildgrove');
-  g.roller = 1;
-  for (const [face, expected] of [
-    [0, [0, 1, 2]],
-    [1, [3, 4, 6]],
-    [2, [0, 1, 3, 4]],
-    [3, [1, 2, 4, 6]],
-  ]) {
-    g.die = face;
-    assert.deepEqual(dice[face].zones, expected);
-    assert.deepEqual(
-      [0, 1, 2, 3, 4, 6].filter((z) => allowedZone(g, 0, c(0), z)),
-      expected,
-    );
-  }
-  g.players[0].zones[0] = [c(0)];
-  g.die = 4;
-  assert.equal(allowedZone(g, 0, c(1), 0), false);
-  g.die = 5;
-  assert.equal(allowedZone(g, 0, c(1), 0), true);
-  assert.equal(allowedZone(g, 0, c(0), 0), false);
-});
-
-test('Grove has six scoring areas and a one-point overflow available on every die face', () => {
+test('Grove has six scoring areas and zero-point release available on every die face', () => {
   let g = createGame('wildgrove');
   assert.equal(g.players[0].zones.length, 7);
-  assert.equal(zoneScore(zones([c(0), c(1), c(2)], 5), 5), 3);
+  assert.equal(zoneScore(zones([c(0), c(1), c(2)], 5), 5), 0);
   const board = Array.from({ length: 7 }, () => []);
   board[6] = [c(0)];
-  assert.equal(zoneScore(board, 6), 8);
+  assert.equal(zoneScore(board, 6), 0);
   board[6].push(c(1));
   assert.equal(zoneScore(board, 6), 0);
   g.roller = 1;
@@ -404,4 +374,123 @@ test('Tide clears the previous trick and penalty suit before the next pass', () 
   for (let kind = 0; kind < 4; kind++)
     assert.equal(penalty({ id: kind, kind, rank: 9 }, g.hazard), 0);
   assert.ok(isSavedGame(g));
+});
+
+
+test('Mora release removes creatures and completes a simultaneous pick without scoring', () => {
+  let g = play(createGame('wildgrove'), { type: 'roll' });
+  const handSize = g.players[0].hand.length;
+  const released = g.players.map((p) => p.hand[0].id);
+  for (let seat = 0; seat < g.players.length; seat++) {
+    const move = { type: 'play', card: released[seat], zone: 5 };
+    assert.ok(validMove(g, move, seat));
+    g = play(g, move, seat);
+  }
+  assert.equal(g.pick, 2);
+  assert.equal(g.phase, 'roll');
+  assert.ok(g.players.every((p) => p.hand.length === handSize - 1));
+  assert.ok(g.players.every((p) => p.zones.flat().length === 0));
+  assert.deepEqual(scores(g), g.players.map(() => 0));
+  assert.ok(released.every((id) => g.seen.some((card) => card.id === id)));
+  assert.ok(isSavedGame(g));
+});
+
+test('Mora herd retains its scoring and legacy trash cannot block discarding', () => {
+  assert.equal(zoneScore(zones([c(0), c(0), c(0), c(0)], 0), 0), 17);
+  const g = createGame('wildgrove');
+  g.players[0].zones[5] = Array.from({ length: 12 }, (_, i) => c(0, 100 + i));
+  assert.ok(allowedZone(g, 0, c(0), 5));
+});
+
+test('Mora trail scores neighbouring differences in placement order', () => {
+  for (const [kinds, expected] of [[[], 0], [[0], 2], [[0, 0], 4], [[0, 1], 7], [[0, 0, 0], 6], [[0, 0, 1], 9], [[0, 1, 0], 12], [[0, 1, 2], 12]]) {
+    assert.equal(zoneScore(zones(kinds.map((kind) => c(kind)), 3), 3), expected);
+  }
+});
+
+test('Mora shared counts each species once and ignores trash', () => {
+  const board = Array.from({ length: 7 }, () => []);
+  board[3] = [c(0), c(1)];
+  board[4] = [c(0), c(0), c(2)];
+  board[5] = [c(2)];
+  assert.equal(zoneScore(board, 4), 4);
+  board[0] = [c(2)];
+  assert.equal(zoneScore(board, 4), 8);
+});
+
+test('Mora lookout counts habitats with its resident species, excluding trash and itself', () => {
+  const board = Array.from({ length: 7 }, () => []);
+  board[6] = [c(0)];
+  board[5] = [c(0)];
+  board[0] = [c(1)];
+  assert.equal(zoneScore(board, 6), 0);
+  for (let area = 0; area < 5; area++) {
+    board[area] = [c(0), c(0)];
+    assert.equal(zoneScore(board, 6), (area + 1) * 2);
+  }
+  board[6] = [c(1)];
+  assert.equal(zoneScore(board, 6), 0, 'changing the resident changes the score');
+  board[3].push(c(1));
+  assert.equal(zoneScore(board, 6), 2);
+  board[6].push(c(0));
+  assert.equal(zoneScore(board, 6), 2, 'legacy overflow does not add extra lookout species');
+  board[6] = [];
+  assert.equal(zoneScore(board, 6), 0);
+});
+
+test('Mora bot values trail completion and avoids breaking a scoring pair on the last pick', () => {
+  const g = createGame('wildgrove');
+  g.phase = 'play'; g.round = 2; g.pick = 6; g.roller = g.active = 0;
+  g.players[0].zones[2] = [c(0, 101), c(0, 102)];
+  g.players[0].zones[3] = [c(1, 103), c(0, 104)];
+  g.players[0].hand = [c(1, 105)];
+  const complete = { type: 'play', card: 105, zone: 3 };
+  assert.equal(heuristic(g, complete), 5);
+  assert.deepEqual(chooseMove(observe(g), 'medium'), complete);
+  g.players[0].hand = [c(0, 105)];
+  assert.equal(validMove(g, { type: 'play', card: 105, zone: 2 }), false);
+});
+
+test('Mora hard bot chooses a best final scoring move with the revised rules', () => {
+  let g = createGame('wildgrove', 'medium', 19, false, 3);
+  while (!(g.round === 2 && g.pick === 6 && g.phase === 'play')) {
+    g = play(g, chooseMove(observe(g), 'medium'));
+  }
+  const observation = observe(g);
+  const move = chooseMove(observation, 'hard', 1234, 2, 0);
+  assert.ok(validMove(g, move));
+  const bestValue = Math.max(...legalMoves(observation).map((candidate) => heuristic(observation, candidate)));
+  assert.equal(heuristic(observation, move), bestValue);
+});
+
+
+test('Mora sanctuary capacities include a single lookout and a two-creature hollow', () => {
+  const g = createGame('wildgrove');
+  for (const [zone, cap] of [[0, 4], [1, 4], [2, 2], [3, 3], [4, 3], [6, 1]]) {
+    g.players[0].zones[zone] = Array.from({ length: cap - 1 }, (_, i) => c(0, 200 + i));
+    assert.equal(allowedZone(g, 0, c(1), zone), true);
+    g.players[0].zones[zone].push(c(1, 210));
+    assert.equal(allowedZone(g, 0, c(1), zone), false);
+  }
+});
+
+
+test('Mora painted spaces match every playable capacity and lie within their drop targets', () => {
+  assert.equal(moraMap.habitats.reduce((n, art) => n + art.slots.length, 0), 17);
+  for (const art of moraMap.habitats) {
+    assert.equal(art.slots.length, habitats[art.zone].cap);
+    const [left, top, width, height] = art.bounds;
+    for (const [x, y] of art.slots) {
+      assert.ok(x >= left && x <= left + width && y >= top && y <= top + height);
+    }
+  }
+});
+
+test('Mora keeps legacy creatures on load while enforcing smaller capacities for new placements', () => {
+  const g = createGame('wildgrove');
+  g.players[0].zones[2] = [c(0, 500), c(0, 501), c(1, 502), c(1, 503)];
+  g.players[0].zones[6] = [c(0, 504), c(1, 505), c(2, 506)];
+  assert.ok(isSavedGame(g));
+  assert.equal(allowedZone(g, 0, c(0), 2), false);
+  assert.equal(allowedZone(g, 0, c(0), 6), false);
 });

@@ -17,7 +17,11 @@ export function TableMenu({
   onScores,
   onSound,
   soundLabel = 'Sound settings',
+  advanced = false,
+  onAdvanced,
 }: {
+  advanced?: boolean;
+  onAdvanced?: (enabled: boolean) => void;
   confirmMoves: boolean;
   onConfirmMoves: (enabled: boolean) => void;
   onRules: () => void;
@@ -56,11 +60,20 @@ export function TableMenu({
           {soundLabel}
         </button>
         <div className="table-menu-preference">
+          {onAdvanced && (
+            <label className="confirm-moves">
+              <input
+                type="checkbox"
+                checked={advanced}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  show(() => onAdvanced(enabled));
+                }}
+              />
+              Advanced view
+            </label>
+          )}
           <ConfirmMoves enabled={confirmMoves} onChange={onConfirmMoves} />
-          <p>
-            Review your selection before playing. Passing cards always requires
-            confirmation.
-          </p>
         </div>
       </PopoverContent>
     </Popover>

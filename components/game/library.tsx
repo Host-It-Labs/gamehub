@@ -1,6 +1,6 @@
 'use client';
 import { ArtworkImage, ArtworkLoading } from './artwork';
-import { Play, BookOpen, ArrowRight } from 'lucide-react';
+import { Play, ArrowRight } from 'lucide-react';
 import { catalog, type Game, type GameId } from '@/lib/games/trio/engine';
 const soon = [
   { name: 'Orbit', genre: 'Connect the stars', symbol: '☄', color: '#343f69' },
@@ -13,12 +13,10 @@ const soon = [
 export function Library({
   saves,
   onSetup,
-  onLearn,
   onResume,
 }: {
   saves: Partial<Record<GameId, Game>>;
   onSetup: (id: GameId) => void;
-  onLearn: (id: GameId) => void;
   onResume: (g: Game) => void;
 }) {
   return (
@@ -50,14 +48,6 @@ export function Library({
                 <button className="primary" onClick={() => onSetup(c.id)}>
                   <Play size={14} />
                   Play
-                </button>
-                <button
-                  className="secondary"
-                  onClick={() => onLearn(c.id)}
-                  aria-label={`Learn ${c.name}`}
-                >
-                  <BookOpen size={14} />
-                  Learn
                 </button>
                 {saves[c.id] && saves[c.id]!.phase !== 'over' && (
                   <button

@@ -3173,7 +3173,7 @@ svg {
   font-size: 10px;
   white-space: nowrap;
 }
-.calm-token {
+.tack-token {
   padding: 5px 8px;
   font-size: 11px;
   min-height: 32px;
@@ -4932,7 +4932,7 @@ svg {
   min-height: 30px;
   padding: 2px 4px;
 }
-.at-table .hand-controls .calm-token {
+.at-table .hand-controls .tack-token {
   min-height: 30px;
 }
 @media (max-width: 700px) {
@@ -5185,10 +5185,7 @@ svg {
   min-height: 164px;
   flex-basis: 164px;
 }
-.tide-hand > .piece-wrap:has(.selected) {
-  translate: 0 -6px;
-}
-.tide-hand > .piece-wrap:focus-within {
+.tide-hand > .piece-wrap:has(.piece:focus-visible) {
   z-index: 3;
 }
 .tide-hand .piece {
@@ -5205,4 +5202,501 @@ svg {
 }
 .inspect-face .tide-cost {
   font-size: 15px;
+}
+
+/* Tide setup: base settings followed by a compact extension list. */
+.expansion-picker {
+  border-top: 1px solid #c6b9cd;
+  padding-top: 12px;
+  margin-top: 8px;
+}
+.expansion-picker legend { padding-right: 10px; font-size: 14px; }
+.expansion-picker .expansion-choice { display: inline-flex; gap: 8px; padding: 4px 10px 4px 4px; min-height: 40px; }
+.expansion-picker .expansion-choice img { width: 36px; height: 36px; }
+.expansion-picker .expansion-choice > span:not(.expansion-check) { font-size: 13px; }
+.tide-fast-mode { display: flex; align-items: center; gap: 8px; }
+.tide-fast-mode input { width: 16px; height: 16px; flex: 0 0 auto; }
+.tide-fast-mode small { display: block; font-size: 12px; font-weight: 400; }
+
+/* Mora: printed rules and larger pieces, shared with opponent previews. */
+.grove-board.world-board {
+  container-type: inline-size;
+  background-image: url('/art/grove-board-rules-v9.webp');
+}
+.grove-board.world-board .region-inner { overflow: hidden; }
+.grove-board.world-board .region-heading {
+  inset: auto 18% 13% auto;
+  display: flex;
+  transform: none;
+}
+.grove-board.world-board .region-heading strong,
+.grove-board.world-board .region-rule {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.grove-board.world-board .region-heading b {
+  position: static;
+  width: auto;
+  height: auto;
+  font-size: 1.4cqw;
+  padding: .2cqw .6cqw;
+}
+.grove-board.world-board .region-pieces {
+  position: absolute;
+  inset: 46% 19% 20%;
+  margin: 0;
+  min-height: 0;
+  overflow: visible;
+  display: block;
+}
+.grove-board.world-board .grove-creature {
+  position: absolute;
+  width: 48%;
+  height: 62%;
+  left: 0;
+  top: 0;
+  transform: rotate(-6deg);
+}
+.grove-board.world-board .grove-creature:nth-child(2) { left: 50%; top: 4%; transform: rotate(7deg); }
+.grove-board.world-board .grove-creature:nth-child(3) { left: 2%; top: 51%; transform: rotate(4deg); }
+.grove-board.world-board .grove-creature:nth-child(4) { left: 52%; top: 53%; transform: rotate(-5deg); }
+.grove-board.world-board .region-pieces .token-art {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  filter: drop-shadow(1px 0 0 #fff9e8) drop-shadow(-1px 0 0 #fff9e8) drop-shadow(0 1px 0 #fff9e8) drop-shadow(0 -1px 0 #fff9e8) drop-shadow(0 2px 2px #263020a0);
+}
+.grove-board.world-board .blocked-region { outline: none; box-shadow: none; }
+.grove-board.world-board .blocked-region .region-pieces { opacity: .5; }
+.grove-board.world-board .legal-region { outline: 2px solid #fff0ac; outline-offset: -1cqw; }
+.grove-board.world-board .legal-region.drag-target { outline: 3px solid #fff9dd !important; background: #fff3b326; }
+.mora-trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 5px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 9px;
+  border: 1px solid #b8a68b;
+  border-radius: 12px;
+  color: #5d4633;
+  background: #f6eddd;
+  font-size: 11px;
+}
+.mora-trash[aria-disabled="true"] { opacity: .5; }
+.mora-trash.prepared { outline: 2px solid #8a6743; }
+.roller-badge,
+.player-button > small.roller-badge {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 3px 5px;
+  border-radius: 5px;
+  font-size: 8px;
+  line-height: 1.2;
+  font-weight: 800;
+  background: #f5c755;
+  color: #513b0c;
+}
+.dice-token.die-exempt { position: relative; gap: 5px; }
+.die-exempt .die-solid { opacity: .4; filter: grayscale(1); }
+.die-exempt .die-caption { opacity: .5; }
+.die-exempt .roller-badge { align-self: center; }
+
+/* Keep each extension and its rules action together as the list wraps. */
+.expansion-picker { flex-wrap: wrap; justify-content: flex-start; }
+.expansion-entry { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
+.expansion-entry .expansion-choice { width: auto; flex: 0 1 auto; }
+.expansion-entry .expansion-info-button { flex: 0 0 36px; margin: 0; }
+.expansion-placeholder { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #e6dfed; color: #493556; font-weight: 800; }
+.expansion-picker .expansion-choice small { display: block; font-size: 10px; }
+
+/* Lantern Festival keeps the six serving dishes together below a compact score strip. */
+.festival-emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ffd390;
+  background: linear-gradient(145deg, #873c48, #3c253b);
+  border: 1px solid #d7a369;
+  border-radius: 12px;
+  min-width: 40px;
+  min-height: 40px;
+}
+.expansion-choice > .festival-emblem { width: 64px; height: 64px; font-size: 36px; }
+.expansion-choice small { display: block; font-size: 11px; font-weight: 400; }
+.market-board.festival-board,
+.board-viewport .market-board.festival-board {
+  grid-template-rows: auto repeat(2, minmax(0, 1fr));
+}
+.festival-summary {
+  grid-column: 1 / -1;
+  padding: 6px 10px;
+  border: 1px solid #c79d72;
+  border-radius: 10px;
+  background: #f7e8d7;
+  color: #4a2b29;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+}
+.festival-summary > div { display: flex; flex-wrap: wrap; gap: 3px 14px; }
+.festival-summary strong { font-size: 12px; }
+.festival-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 5px 0; flex-shrink: 0; }
+.festival-controls label { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; min-width: 0; }
+.festival-controls select { min-width: 0; max-width: 100%; font: inherit; padding: 6px; border-radius: 8px; }
+.festival-controls button { min-height: 34px; font-size: 12px; }
+.festival-controls .armed { background: #815035; color: #fff3dc; border-color: #d7a369; }
+@media (max-width: 600px) {
+  .festival-controls label { width: 100%; }
+  .festival-controls select { width: 100%; }
+}
+
+
+/* Extension tiles expose setup help; table abilities explain themselves on hold/I. */
+.expansion-entry { position: relative; padding-left: 18px; }
+.expansion-entry .expansion-info-button {
+  position: absolute; top: -5px; left: -4px; width: 28px; height: 28px;
+  min-width: 28px; min-height: 28px; padding: 0; margin: 0; border: 0;
+  background: transparent; box-shadow: none; color: inherit; font: 600 12px Georgia, serif;
+}
+.festival-orders { display: flex; flex-wrap: wrap; gap: 6px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.festival-controls .festival-order {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 112px; height: 58px; min-height: 58px; padding: 5px 16px 5px 4px;
+  border: 2px solid #c49a63; border-radius: 12px; background: #fff0d2;
+  color: #55341d; box-shadow: 0 3px 0 #a77a48; overflow: hidden;
+}
+.order-dishes { display: flex; align-items: center; }
+.order-dishes img { width: 29px; height: 35px; object-fit: contain; }
+.order-reward { position: absolute; right: 4px; bottom: 3px; font-size: 11px; font-weight: 800; }
+.extension-action.piece {
+  position: relative; display: grid; place-items: center; flex: none;
+  width: 58px; height: 58px; min-height: 58px; padding: 8px;
+  border: 2px solid #ac7848; border-radius: 16px; background: #ffe6b4;
+  color: #703e22; box-shadow: 0 3px 0 #9b683b;
+}
+.extension-action-tack.piece { background: #d9edf3; color: #24566a; border-color: #6b9bab; box-shadow: 0 3px 0 #537a89; }
+.extension-action-shield.piece { background: #e4e7fa; color: #444e83; border-color: #8a91bb; }
+.extension-count { position: absolute; bottom: 2px; right: 5px; font-size: 12px; font-weight: 800; }
+.extension-selected { position: absolute; top: 1px; right: 4px; width: 12px; height: 16px; font-size: 12px; font-weight: 900; }
+.extension-action.piece.selected, .festival-controls .festival-order.selected {
+  border-color: #428368; background: #d9f2d8; color: #234d39; box-shadow: 0 3px 0 #36634d, inset 0 0 0 2px #ffffff80;
+}
+.extension-action.piece.unavailable, .festival-order.unavailable { opacity: .55; }
+.extension-action.piece:focus-visible, .festival-order:focus-visible { outline: 3px solid #477caf; outline-offset: 3px; }
+
+/* Mora sanctuary: illustration owns the terrain; targets follow its painted nests. */
+.mora-board {
+  position: relative;
+  container-type: inline-size;
+  flex-shrink: 0;
+  width: 780px;
+  aspect-ratio: 3 / 2;
+  margin: auto;
+  border-radius: 20px;
+  isolation: isolate;
+}
+.mora-landscape { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: inherit; pointer-events: none; user-select: none; }
+.mora-habitat { position: absolute; border-radius: 40%; }
+.mora-habitat > .piece-wrap { width: 100%; height: 100%; }
+.mora-habitat .mora-habitat-inner { position: relative; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 40%; background: transparent; box-shadow: none; color: #352f20; }
+.mora-ground-label { position: absolute; transform: translate(-50%, -50%); width: max-content; max-width: 115%; text-align: center; pointer-events: none; line-height: 1.15; color: #342c20; text-shadow: 0 1px 1px #fff8d8, 1px 0 2px #fff8d8, -1px 0 2px #fff8d8; }
+.mora-ground-label > strong { display: block; font-family: Georgia, serif; font-size: 2cqw; font-weight: 800; }
+.mora-ground-label b { display: inline-grid; place-items: center; min-width: 2.2cqw; padding: .2cqw .4cqw; border-radius: 50%; color: #fff8e8; background: #443820db; font-family: inherit; font-size: 1.5cqw; text-shadow: none; }
+.mora-ground-label small { display: block; font-size: 1.35cqw; font-weight: 700; margin-top: .3cqw; }
+.mora-nest { position: absolute; transform: translate(-50%, -62%); aspect-ratio: 1; display: block; pointer-events: none; }
+.mora-nest .token-art { display: block; width: 100%; height: 100%; min-width: 0; filter: drop-shadow(0 .45cqw .25cqw #30251e65); }
+.mora-nest .token-art img { width: 100%; height: 100%; object-fit: contain; }
+.mora-nest::after { content: ''; position: absolute; inset: 37% 6% 0; border-radius: 50%; border: 2px solid transparent; transition: border-color .15s, background .15s; }
+.mora-habitat.legal-region .mora-nest.empty::after { border: 2px dashed #fff7bf; background: #fff5b422; box-shadow: 0 0 8px #ffe08d; }
+.mora-habitat.prepared-region .mora-nest.empty::after,
+.mora-habitat.drag-target .mora-nest.empty::after { border: 3px solid #fff9d2; background: #ffed8855; box-shadow: 0 0 12px #ffd65a; }
+.mora-habitat.drag-target { outline: none !important; background: transparent !important; }
+.mora-trail-step { position: absolute; bottom: -8%; left: 50%; transform: translateX(-50%); font: 700 1.4cqw Georgia, serif; color: #403d2b; text-shadow: 0 1px #fff4cf; }
+.mora-board .mora-trash { position: absolute; left: 90.5%; top: 3.7%; width: 9%; height: 12%; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 35%; background: transparent; color: #332b1f; opacity: 1; }
+.mora-board .mora-trash span { position: absolute; bottom: -6%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 1.2cqw; font-weight: 700; text-shadow: 0 1px 2px #fff6d0, 1px 0 2px #fff6d0; }
+.mora-board .mora-trash[aria-disabled="false"] { outline: 2px dashed #fff7bf; }
+.mora-board .mora-trash.prepared,
+.mora-board .mora-trash.drag-target { outline: 3px solid #fff7bf; background: #ffed8833; }
+.mora-board.mini-board { width: 100%; height: auto; min-height: 0; aspect-ratio: 3 / 2; }
+.mora-board.mini-board .mora-ground-label small { display: none; }
+.mora-legacy-creatures { display: flex; position: absolute; bottom: -3%; left: 35%; height: 18%; width: 50%; }
+.mora-legacy-creatures > span { width: 33%; }
+.mora-legacy-creatures .token-art { width: 100%; height: 100%; }
+
+/* One stable left-hand ability group in every game's hand toolbar. */
+.hand-abilities { order: 0; margin-right: auto; flex-wrap: wrap; }
+.at-table .hand-controls:has(.hand-abilities:not(:empty)) > span:first-of-type { display: inline; }
+.hand-controls .festival-controls { padding: 0; gap: 6px; }
+.hand-controls .extension-action.piece,
+.at-table .hand-controls .ward-token,
+.hand-controls .ward-token { width: 40px; height: 40px; min-height: 40px; padding: 4px; border-radius: 12px; }
+.hand-controls .ward-token svg { width: 24px; height: 24px; }
+.tack-suits { display: flex; gap: 1px; align-items: center; font-size: 17px; }
+.tack-suits > span:first-child { color: #b33b47; }
+.tack-suits > span:last-child { color: #25465a; }
+.extension-count { font-size: 10px; bottom: 0; right: 3px; }
+.extension-selected { top: -3px; right: 1px; }
+.expansion-entry { padding-left: 0; }
+.expansion-entry .expansion-info-button {
+  top: -9px; left: -9px; width: 26px; height: 26px; min-width: 26px; min-height: 26px;
+  display: grid; place-items: center; border: 2px solid #fff8e8; border-radius: 9px;
+  background: #e6d6b6; color: #624831; box-shadow: 0 2px 3px #49382135; z-index: 1;
+}
+.expansion-entry .expansion-info-button:hover { background: #f5e8c9; }
+.festival-order, .festival-controls .festival-order {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 98px; height: 40px; min-height: 40px; padding: 2px 8px 10px;
+  border: 2px solid #c49a63; border-radius: 10px; background: #fff0d2;
+  color: #55341d; box-shadow: 0 3px 0 #a77a48; overflow: hidden;
+}
+.order-dishes img { width: 25px; height: 25px; }
+.order-reward { bottom: 0; right: 5px; font-size: 9px; line-height: 11px; }
+.order-round { position: absolute; left: 3px; top: 0; font-size: 9px; }
+.festival-preview-menus { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.festival-preview-menus:empty { display: none; }
+.market-board.festival-board, .board-viewport .market-board.festival-board { grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.market-board .serving-dish { position: relative; min-height: 0; }
+.dish-permit { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; gap: 2px; padding: 4px; border: 1px solid #a97637; border-radius: 7px 7px 10px 10px; background: #ffe0a0; color: #65451f; box-shadow: 0 2px 0 #97692c; font-size: 10px; }
+.market-board .collection-score { position: relative; z-index: 1; }
+/* Reserve real space for the food name and score inside each ceramic plate. */
+.market-board .serving-dish > .piece-wrap > .piece,
+.market-board .serving-dish > div:not(.piece-wrap) {
+  display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 2px;
+  width: 100%; height: 100%; padding: 10px 6px 8px; box-sizing: border-box;
+}
+.market-board .serving-dish .dish-stack { height: 100%; min-height: 0; }
+.market-board .stack-layer { width: 64px; height: 58px; max-height: 100%; left: calc(50% - 32px); }
+.market-board .serving-dish strong { font-size: 11px; line-height: 14px; }
+.market-board .serving-dish .collection-score { font-size: 12px; line-height: 15px; }
+.dish-permit { z-index: 15; }
+
+/* Sunlit, quieter terrain; crisp pieces and labels remain outside this treatment. */
+.mora-landscape { filter: brightness(1.12) contrast(.87) saturate(.88) blur(.35px); }
+.mora-board .mora-habitat.legal-region,
+.mora-board .mora-habitat.prepared-region,
+.mora-board .mora-habitat.drag-target {
+  background: transparent !important; box-shadow: none;
+  outline: 2px solid #fff5d5; outline-offset: -2px;
+}
+.mora-board .mora-habitat.prepared-region,
+.mora-board .mora-habitat.drag-target { outline: 3px solid #fffbea !important; }
+.mora-board .mora-habitat .mora-nest.empty::after { background: transparent; box-shadow: none; border-color: transparent; }
+.mora-board .mora-trash.prepared,
+.mora-board .mora-trash.drag-target { background: transparent !important; box-shadow: none; }
+.mora-ambient { position: absolute; inset: 0; pointer-events: none; user-select: none; overflow: hidden; border-radius: inherit; }
+.mora-wanderer { position: absolute; left: 33%; top: 51%; width: 1.8%; height: 2.5%; animation: mora-stair-stroll 46s linear infinite; }
+.mora-critter { position: absolute; inset: 0; border-radius: 45% 45% 40% 40%; background: #c7a27c; box-shadow: 0 2px 2px #503d3340; animation: mora-footsteps .7s ease-in-out infinite alternate; }
+.mora-critter::before { content: ''; position: absolute; left: 8%; top: -42%; width: 30%; height: 60%; border-radius: 60%; background: #b88f6a; box-shadow: .7cqw 0 #b88f6a; }
+.mora-critter::after { content: ''; position: absolute; right: -20%; bottom: 5%; width: 40%; height: 40%; border-radius: 50%; background: #fff2d9; }
+.mora-firefly { position: absolute; width: .45%; aspect-ratio: 1; border-radius: 50%; background: #fff6be; box-shadow: 0 0 5px #ffedb2; animation: mora-drift 13s ease-in-out infinite alternate; }
+.mora-firefly-one { left: 64%; top: 15%; }
+.mora-firefly-two { left: 40%; top: 60%; animation-delay: -6s; }
+.mora-board:not(.mini-board) .mora-nest.occupied .token-art { transform-origin: 50% 85%; animation: mora-stir 19s ease-in-out infinite; }
+.mora-habitat:nth-child(even) .mora-nest.occupied .token-art { animation-delay: -8s; }
+@keyframes mora-footsteps { to { transform: translateY(-1px) rotate(4deg); } }
+@keyframes mora-drift { 0% { opacity: .15; transform: translate(0, 0); } 60% { opacity: .8; } 100% { opacity: .2; transform: translate(1.4cqw, -1cqw); } }
+@keyframes mora-stir { 0%, 84%, 100% { transform: rotate(0); } 88% { transform: rotate(-3deg); } 92% { transform: rotate(2deg); } 96% { transform: rotate(-1deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .mora-ambient { display: none; }
+  .mora-board:not(.mini-board) .mora-nest.occupied .token-art { animation: none; }
+}
+
+/* Shared inspection rhythm: outcome, short steps, secondary constraints. */
+.rule-explanation { display: grid; gap: 12px; margin-block: 12px; line-height: 1.55; }
+.rule-explanation .rule-outcome { padding: 14px 16px; border-radius: 12px; background: #eee9f6; color: #493b67; font-weight: 600; }
+.rule-steps { display: grid; gap: 10px; }
+.rule-explanation p { margin: 0; }
+.rule-explanation .rule-note { font-size: .88em; color: #68616e; padding-top: 10px; border-top: 1px solid #ded8e5; }
+.extension-emblem { width: 64px; height: 64px; flex: none; }
+.expansion-entry .expansion-info-button { background: #f7f5f0; color: #4f5661; border-color: #d5d6d8; box-shadow: 0 2px 3px #00000015; }
+.expansion-entry .expansion-info-button:hover { background: #e9edf1; }
+.expansion-picker { gap: 18px; }
+.hand-controls .extension-action-tack.piece { width: 64px; min-width: 64px; height: 44px; min-height: 44px; border-radius: 22px; overflow: hidden; }
+.tack-suits { gap: 3px; }
+.hand-abilities { gap: 12px; }
+.hand-controls .festival-controls { gap: 14px; align-items: center; flex-wrap: wrap; }
+.festival-orders { gap: 10px; }
+.festival-controls > .piece-wrap:has(.extension-action-stall) { margin-left: 10px; padding-left: 14px; border-left: 1px solid #b8a795; }
+.hand-controls .extension-action-stall.piece { border-radius: 50%; background: #e7efdf; border-color: #809373; color: #425c3c; box-shadow: 0 3px 0 #718466; }
+.order-dish { position: relative; display: inline-flex; }
+.order-dish.complete { background: #d7ead8; border-radius: 5px; }
+.order-dish-check { position: absolute; right: -1px; bottom: -2px; border-radius: 50%; background: #287445; color: white; font: 800 9px/12px sans-serif; width: 12px; height: 12px; text-align: center; }
+.festival-order.settled, .festival-controls .festival-order.settled { width: 48px; padding: 4px; gap: 4px; background: #f0ece4; border-color: #b4aa9b; box-shadow: none; }
+.festival-order.settled .order-reward { position: static; font-size: 11px; }
+.order-result { font-size: 19px; color: #827970; }
+.order-result.complete { color: #287445; }
+@media (prefers-reduced-motion: no-preference) {
+  .extension-action-tack.selected .tack-suits { animation: tack-turn .25s ease-out; }
+  @keyframes tack-turn { from { transform: translateX(-7px) rotate(-12deg); } to { transform: none; } }
+}
+
+/* Grounded routes traced against mora-sanctuary-v10; coordinates mark feet. */
+.mora-wanderer { transform: translate(-50%, -100%); animation: mora-central-walk 48s linear infinite; }
+.mora-wanderer-1 { animation: mora-exit-walk 38s linear -13s infinite; }
+.mora-wanderer-2 { animation: mora-tree-walk 34s linear -19s infinite; }
+.mora-wanderer-1 .mora-critter { background: #8fa5a0; }
+.mora-wanderer-2 .mora-critter { background: #c69b91; }
+@keyframes mora-central-walk {
+  0%, 5% { left: 27%; top: 53%; opacity: 0; }
+  10% { left: 29%; top: 50%; opacity: 1; }
+  22% { left: 33%; top: 44%; opacity: 1; }
+  35% { left: 37%; top: 38%; opacity: 1; }
+  43% { left: 38%; top: 34%; opacity: 1; }
+  53% { left: 36%; top: 28%; opacity: 1; }
+  60% { left: 35%; top: 25%; opacity: 1; }
+  69% { left: 36%; top: 20%; opacity: 1; }
+  79% { left: 38%; top: 14%; opacity: 1; }
+  86% { left: 40%; top: 10%; opacity: 1; }
+  92%, 100% { left: 42%; top: 8%; opacity: 0; }
+}
+@keyframes mora-exit-walk {
+  0%, 7% { left: 18%; top: 75%; opacity: 0; }
+  15% { left: 22%; top: 78%; opacity: 1; }
+  30% { left: 28%; top: 79%; opacity: 1; }
+  45% { left: 33%; top: 83%; opacity: 1; }
+  60% { left: 36%; top: 89%; opacity: 1; }
+  74% { left: 39%; top: 94%; opacity: 1; }
+  84%, 100% { left: 41%; top: 97%; opacity: 0; }
+}
+@keyframes mora-tree-walk {
+  0%, 8% { left: 57%; top: 90%; opacity: 0; }
+  17% { left: 60%; top: 87%; opacity: 1; }
+  32% { left: 64%; top: 81%; opacity: 1; }
+  48% { left: 68%; top: 74%; opacity: 1; }
+  62% { left: 70%; top: 68%; opacity: 1; }
+  73% { left: 71%; top: 63%; opacity: 1; }
+  83%, 100% { left: 71%; top: 60%; opacity: 0; }
+}
+.mora-board.opponent-board .mora-nest .token-art img { filter: drop-shadow(.6px 0 0 #fff5dd) drop-shadow(-.6px 0 0 #fff5dd) drop-shadow(0 .6px 0 #fff5dd) drop-shadow(0 -.6px 0 #fff5dd); }
+.hand-controls .extension-action-tack.piece { width: 40px; min-width: 40px; height: 40px; min-height: 40px; border-radius: 10px; background: #f8f0dc; border: 1px solid #aa8e5e; color: #6b507f; box-shadow: 0 3px 0 #bca784; overflow: visible; }
+.tack-wild-card { display: grid; justify-items: center; gap: 3px; }
+.tack-wild-card > span { font-size: 27px; line-height: 1; }
+.tack-wild-card small { font-size: 10px; font-weight: 700; }
+.extension-action-tack.spent { filter: grayscale(1); opacity: .4; box-shadow: none !important; }
+.extension-action-tack.spent::after { content: ''; position: absolute; width: 80%; height: 1px; background: currentColor; transform: rotate(-45deg); }
+.advanced-toggle { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
+.table-columns.with-opponents { display: grid; grid-template-columns: minmax(0, 1fr) clamp(160px, 25vw, 300px); grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 12px; }
+.table-columns.with-opponents > .activity-sidebar { display: none; }
+.opponent-boards { min-width: 0; border: 1px solid #d7cbb9; border-radius: 16px; background: #f7f1e6; overflow: hidden; }
+.opponent-boards header { padding: 14px; border-bottom: 1px solid #d7cbb9; }
+.opponent-boards h2, .opponent-boards h3, .opponent-boards p { margin: 0 0 8px; }
+.opponent-boards p, .opponent-boards small { font-size: 12px; }
+.opponent-board-scroll { max-height: 72dvh; overflow-y: auto; overscroll-behavior: contain; padding: 12px; }
+.opponent-board-scroll section + section { margin-top: 18px; }
+.opponent-board-scroll h3 { font-size: 13px; }
+.opponent-board-scroll .mini-board { width: 100%; }
+@media (min-width: 1000px) { .library-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 1320px; } }
+.game-tile .cover img { transition: transform 350ms ease; }
+@media (max-width: 760px) { .table-columns.with-opponents { grid-template-columns: minmax(0, 1fr) 140px; gap: 6px; } }
+@media (prefers-reduced-motion: reduce) { .game-tile .cover img { transition: none; } }
+.hand-controls .extension-action-tack.piece.selected { background: #e2efd8; border-color: #428368; color: #234d39; box-shadow: 0 3px 0 #36634d, inset 0 0 0 2px #ffffff80; }
+@media (prefers-reduced-motion: reduce) { .game-tile .cover img { --artwork-zoom-duration: 0ms; } }
+
+/* Keep the play column stretched: its board needs a definite flex height. */
+.table-columns.with-opponents > .play-area { min-width: 0; min-height: 0; height: 100%; }
+.table-columns.with-opponents > .opponent-boards { min-height: 0; height: 100%; display: flex; flex-direction: column; }
+.opponent-boards .opponent-board-scroll { flex: 1; min-height: 0; max-height: none; padding: 10px; }
+.opponent-board-scroll section + section { margin-top: 0; }
+.your-seat { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border: 1px solid #a28cac; border-radius: 20px; background: #e9dff0; color: #644576; font-size: 13px; font-weight: 700; }
+.seat-pass-arrow { display: block; text-align: center; padding: 5px; color: #9a859d; }
+.opponent-board-scroll h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Compact graphical abilities share one baseline and symmetric selection rings. */
+.hand-controls .tack-wild-card { display: block; width: 30px; height: 30px; }
+.hand-controls .extension-action.piece, .hand-controls .ward-token { box-sizing: border-box; }
+.hand-abilities > .wards,
+.hand-abilities > .piece-wrap:has(.extension-action-shield) { position: relative; margin-left: 10px; }
+.hand-abilities > .wards::before,
+.hand-abilities > .piece-wrap:has(.extension-action-shield)::before { content: ''; position: absolute; left: -11px; top: 6px; bottom: 6px; width: 1px; background: #b8a795; }
+.festival-controls > .piece-wrap:has(.extension-action-stall) { padding-left: 0; border-left: 0; margin-left: 16px; }
+.festival-controls > .piece-wrap:has(.extension-action-stall)::before { content: ''; position: absolute; left: -15px; top: 6px; bottom: 6px; width: 1px; background: #b8a795; }
+.hand-controls .festival-order.piece,
+.hand-controls .extension-action.piece { transform: none; }
+.hand-controls .festival-order.piece.selected,
+.hand-controls .extension-action.piece.selected { outline: none; box-shadow: 0 0 0 2px #fff4e0, 0 0 0 4px #8e6aa7; }
+.hand-controls .festival-order .extension-selected,
+.hand-controls .extension-action .extension-selected { top: 1px; right: 2px; }
+.festival-controls .festival-order { box-sizing: border-box; }
+
+.setup-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-right: 30px; }
+.setup-heading [data-slot='dialog-title'] { margin: 0; }
+.setup-learn { min-height: 32px; padding: 5px 12px; }
+.expansion-entry > .piece-wrap { width: max-content; }
+.expansion-entry .expansion-choice { height: auto; }
+.expansion-entry .expansion-choice.selected { outline: none; }
+.expansion-help { width: min(520px, calc(100vw - 32px)); }
+.modal.inspector { width: min(600px, calc(100vw - 32px)); max-width: 600px; }
+
+/* Fixed card bands: one title line, flexible art, two reserved scoring lines. */
+.card-hand .food-card { display: grid; grid-template-rows: 15px minmax(0, 1fr) 30px; gap: 4px; padding: 6px 5px !important; align-items: center; justify-items: center; }
+.card-hand .food-card .dish-name { width: 100%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 15px; font-size: 11px; }
+.card-hand .food-card .token-art { width: 100%; height: 100%; min-height: 0; max-width: 82px; }
+.card-hand .food-card .token-art img { width: 100%; height: 100%; object-fit: contain; }
+.card-hand .food-card .dish-formula { box-sizing: border-box; width: 100%; height: 30px; margin: 0; display: flex; align-items: center; justify-content: center; padding: 3px 2px; font-size: 9px; line-height: 12px; overflow: hidden; }
+@media (max-width: 700px), (max-height: 550px) and (orientation: landscape) {
+  .card-hand .food-card { grid-template-rows: 13px minmax(0, 1fr) 28px; gap: 3px; padding: 5px 4px !important; }
+  .card-hand .food-card .dish-name { font-size: 9px; line-height: 13px; }
+  .card-hand .food-card .dish-formula { height: 28px; font-size: 8px; line-height: 11px; }
+}
+
+/* All three face bands share the same full-width grid column and center axis. */
+.card-hand .food-card { grid-template-columns: minmax(0, 1fr); justify-content: stretch; text-align: center; }
+.card-hand .food-card > .dish-name,
+.card-hand .food-card > .dish-formula,
+.card-hand .food-card > .token-art { position: static; inset: auto; transform: none; margin-inline: auto; justify-self: center; text-align: center; }
+.card-hand .food-card > .token-art {
+  position: relative;
+  display: block;
+  grid-row: 2;
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  contain: size;
+}
+.card-hand .food-card > .token-art img {
+  position: absolute;
+  inset: 3px;
+  display: block;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Readable compact boards use real text rows instead of shrinking score overlays. */
+.opponent-board-scroll h3 { display: flex; justify-content: space-between; align-items: center; gap: 6px; white-space: normal; }
+.opponent-board-scroll h3 > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opponent-board-scroll h3 > b { flex: none; font-size: 12px; }
+.opponent-boards .mora-ground-label { display: none; }
+.compact-habitat-scores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; margin: 8px 0 0; font-size: 11px; }
+.compact-habitat-scores > div { display: flex; justify-content: space-between; gap: 4px; }
+.compact-habitat-scores dt { min-width: 0; }
+.compact-habitat-scores dd { margin: 0; white-space: nowrap; font-weight: 700; }
+.compact-market { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; container-type: inline-size; }
+.compact-dish { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 44px auto auto; align-items: center; gap: 3px; padding: 7px; border: 1px solid #d6baa0; border-radius: 12px; background: #fff6e6; text-align: center; }
+.compact-dish > .token-art { grid-column: 1 / -1; width: 100%; height: 44px; }
+.compact-dish > .token-art img { width: 100%; height: 100%; object-fit: contain; }
+.compact-dish > strong { grid-column: 1 / -1; font-size: 11px; line-height: 15px; }
+.compact-dish-count, .compact-dish-score { font-size: 12px; line-height: 18px; white-space: nowrap; }
+.compact-dish-count { text-align: left; }
+.compact-dish > small { grid-column: 1 / -1; font-size: 10px; color: #80502b; }
+@media (max-width: 760px) {
+  .opponent-boards .compact-market, .compact-habitat-scores { grid-template-columns: minmax(0, 1fr); }
 }

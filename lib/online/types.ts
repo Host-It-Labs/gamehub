@@ -20,6 +20,8 @@ export type Table = {
   gameId: GameId;
   difficulty: Difficulty;
   starter?: boolean;
+  nightMarket?: boolean;
+  fastMode?: boolean;
   capacity: number;
   revision: number;
   status: 'lobby' | 'playing' | 'finished' | 'closed';
@@ -38,6 +40,8 @@ export type TableCommand =
       gameId: GameId;
       difficulty: Difficulty;
       starter?: boolean;
+  nightMarket?: boolean;
+      fastMode?: boolean;
       capacity: number;
     }
   | { type: 'vote'; gameId: GameId }

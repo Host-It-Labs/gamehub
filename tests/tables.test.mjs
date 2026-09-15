@@ -84,6 +84,31 @@ test('full human and mixed games for all three games and all supported seat coun
     db.close();
   }
 });
+test('an invalid or missing bot-worker result falls back to a legal move', () => {
+  const { db, tables, host } = setup();
+  try {
+    let t = tables.create(host);
+    t = command(tables, t, host, {
+      type: 'configure',
+      gameId: 'undertow',
+      difficulty: 'medium',
+      capacity: 2,
+    });
+    t = command(tables, t, host, { type: 'start' });
+    t = command(tables, t, host, {
+      type: 'move',
+      move: chooseMove(observe(t.game), 'medium'),
+    });
+    assert.equal(t.seats[t.game.active].bot, true);
+    const revision = t.revision;
+    tables.botMove(t.token, revision, null, t.game.active);
+    t = tables.get(t.token);
+    assert.equal(t.botError, false);
+    assert.ok(t.revision > revision);
+  } finally {
+    db.close();
+  }
+});
 test('ownership, revisions, idempotency, waiters, bot replacement and reusable links', () => {
   const { db, tables, host, online } = setup();
   try {
@@ -200,7 +225,7 @@ test('host expansion choice reaches shared game and five-card exchange is accept
     assert.equal(tables.view(t, host).starter, true);
     t = command(tables, t, host, { type: 'start' });
     assert.equal(t.game.starter, true);
-    assert.ok(t.game.players.every((p) => p.wards === 2 && p.calms === 1));
+    assert.ok(t.game.players.every((p) => p.wards === 2 && p.tacks === 1));
     t = command(tables, t, host, {
       type: 'move',
       move: {
@@ -344,6 +369,40 @@ test('shared practice accepts moves while only the host controls lessons and a f
       });
       command(tables, t, host, { type: 'close' });
     }
+  } finally {
+    db.close();
+  }
+});
+
+test('Tide Fast mode survives settings, shared practice, and match start', () => {
+  const { db, tables, host } = setup();
+  try {
+    let t = tables.create(host);
+    const settings = {
+      type: 'configure',
+      gameId: 'undertow',
+      difficulty: 'easy',
+      capacity: 3,
+      starter: true,
+    };
+    t = command(tables, t, host, { ...settings, fastMode: true });
+    assert.equal(tables.view(t, host).fastMode, true);
+    t = command(tables, t, host, settings);
+    assert.equal(t.fastMode, true);
+    assert.throws(() =>
+      command(tables, t, host, { ...settings, fastMode: 'yes' }),
+    );
+    t = command(tables, t, host, { type: 'start', learning: true });
+    assert.equal(t.game.fastMode, true);
+    assert.equal(t.game.starter, true);
+    assert.ok(
+      t.game.players.every(
+        (p) => p.hand.length === 8 && p.hand.every((c) => c.rank <= 5),
+      ),
+    );
+    t = command(tables, t, host, { type: 'begin-match' });
+    assert.equal(t.game.fastMode, true);
+    assert.equal(t.game.tutorial, false);
   } finally {
     db.close();
   }

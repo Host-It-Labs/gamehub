@@ -8,9 +8,11 @@ export function ScrollArea({
   children,
   className = '',
   fitBoard,
+  fitBoardWidth = false,
   ...props
 }: HTMLAttributes<HTMLElement> & {
   fitBoard?: string;
+  fitBoardWidth?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
@@ -46,7 +48,7 @@ export function ScrollArea({
             width,
             el.clientWidth,
             el.clientHeight,
-            portrait.matches,
+            portrait.matches && !fitBoardWidth,
           );
           board.style.width = `${width}px`;
           board.style.height = `${(width * 2) / 3}px`;
@@ -130,7 +132,7 @@ export function ScrollArea({
       el.removeEventListener('scroll', onScroll);
       el.removeEventListener('wheel', wheel);
     };
-  }, [fitBoard]);
+  }, [fitBoard, fitBoardWidth]);
   return (
     <div
       className={`scroll-frame ${className.includes('hand') ? 'hand-frame' : 'board-frame'} ${className.includes('token-tray') ? 'token-frame' : ''}`}

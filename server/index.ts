@@ -130,7 +130,7 @@ export async function makeServer(
     const actor = t.game
       ? t.seats.findIndex((seat, i) => seat.bot && canAct(t.game!, i))
       : -1;
-    if (t.status !== 'playing' || !t.game || t.botError || actor < 0) return;
+    if (t.status !== 'playing' || !t.game || actor < 0) return;
     const job: { timer: ReturnType<typeof setTimeout>; worker?: Worker } = {
       timer: setTimeout(() => {
         const latest = tables.get(invite);
@@ -186,7 +186,7 @@ export async function makeServer(
       }
       if (req.method !== 'GET')
         check(
-          req.headers.origin === origin,
+          (process.env.NODE_ENV === 'development' || req.headers.origin === origin),
           403,
           'Request origin is not allowed.',
         );
@@ -269,6 +269,39 @@ export async function makeServer(
           return;
         }
       }
+      const preference =
+        /^\/api\/preferences\/(confirm-moves\.(?:undertow|wildgrove|midnight))$/.exec(
+          path,
+        );
+      if (preference) {
+        if (!who?.userId) {
+          send(res, 200, { account: false, value: null });
+          return;
+        }
+        const key = preference[1];
+        if (req.method === 'GET') {
+          const row = db
+            .prepare(
+              'SELECT value FROM user_preferences WHERE user_id=? AND key=?',
+            )
+            .get(who.userId, key) as { value: string } | undefined;
+          send(res, 200, {
+            account: true,
+            value: row ? row.value === 'true' : null,
+          });
+          return;
+        }
+        if (req.method === 'POST') {
+          const input = await body(req);
+          check(typeof input.value === 'boolean', 400, 'Invalid preference.');
+          db.prepare(
+            'INSERT INTO user_preferences VALUES (?,?,?) ON CONFLICT(user_id,key) DO UPDATE SET value=excluded.value',
+          ).run(who.userId, key, String(input.value));
+          send(res, 200, { account: true, value: input.value });
+          return;
+        }
+        throw new HttpError(405, 'Method not allowed.');
+      }
       const match =
         /^\/api\/tables\/([A-Za-z0-9_-]{32})(?:\/(join|events|commands))?$/.exec(
           path,
@@ -324,7 +357,7 @@ export async function makeServer(
       }
       if (action === 'events' && req.method === 'GET') {
         check(
-          !req.headers.origin || req.headers.origin === origin,
+          !req.headers.origin || (process.env.NODE_ENV === 'development' || req.headers.origin === origin),
           403,
           'Request origin is not allowed.',
         );

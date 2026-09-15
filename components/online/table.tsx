@@ -1,6 +1,6 @@
 'use client';
 import { decisionKey } from '@/lib/games/trio/engine';
-import { ExpansionChoice } from '../game/expansions';
+import { ExpansionChoice, FestivalExpansionChoice } from '../game/expansions';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import {
   api,
@@ -519,6 +519,7 @@ function LobbySettings({
             void dispatch({
               type: 'configure',
               starter: table.starter ?? false,
+              fastMode: table.fastMode ?? false,
               gameId: table.gameId,
               difficulty: table.difficulty,
               capacity: Number(e.target.value),
@@ -541,6 +542,7 @@ function LobbySettings({
             void dispatch({
               type: 'configure',
               starter: table.starter ?? false,
+              fastMode: table.fastMode ?? false,
               gameId: table.gameId,
               difficulty: e.target.value as Difficulty,
               capacity: table.capacity,
@@ -555,20 +557,49 @@ function LobbySettings({
         </select>
       </label>
       {table.gameId === 'undertow' && (
-        <ExpansionChoice
-          enabled={table.starter ?? false}
-          disabled={disabled}
-          onChange={(starter) =>
-            void dispatch({
-              type: 'configure',
-              gameId: table.gameId,
-              difficulty: table.difficulty,
-              capacity: table.capacity,
-              starter,
-            })
-          }
-        />
+        <>
+          <label className="tide-fast-mode" aria-label="Fast mode">
+            <input
+              type="checkbox"
+              checked={table.fastMode ?? false}
+              disabled={disabled}
+              onChange={(e) =>
+                void dispatch({
+                  type: 'configure',
+                  gameId: table.gameId,
+                  difficulty: table.difficulty,
+                  capacity: table.capacity,
+                  starter: table.starter ?? false,
+                  fastMode: e.target.checked,
+                })
+              }
+            />
+            <span>
+              <b>Fast mode</b>
+              <small>Cards 1–5 · the 4 matching the die is +8</small>
+            </span>
+          </label>
+          <ExpansionChoice
+            enabled={table.starter ?? false}
+            fastMode={table.fastMode ?? false}
+            disabled={disabled}
+            onChange={(starter) =>
+              void dispatch({
+                type: 'configure',
+                gameId: table.gameId,
+                difficulty: table.difficulty,
+                capacity: table.capacity,
+                starter,
+                fastMode: table.fastMode ?? false,
+              })
+            }
+          />
+        </>
       )}
+      {table.gameId === 'midnight' && <FestivalExpansionChoice
+        enabled={table.nightMarket ?? false} disabled={disabled}
+        onChange={(nightMarket) => void dispatch({ type: 'configure', gameId: table.gameId,
+          difficulty: table.difficulty, capacity: table.capacity, nightMarket })} />}
       <label
         className="lobby-learning-choice"
         aria-label="Learn together first"

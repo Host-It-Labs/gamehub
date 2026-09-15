@@ -1,5 +1,10 @@
 'use client';
-import { useSyncExternalStore, useEffect, useEffectEvent } from 'react';
+import {
+  useSyncExternalStore,
+  useEffect,
+  useEffectEvent,
+  useState,
+} from 'react';
 import type { GameId } from '@/lib/games/trio/engine';
 function subscribe(listener: () => void) {
   window.addEventListener('storage', listener);
@@ -41,7 +46,52 @@ function usePreference(
   return [enabled, change] as const;
 }
 export function useMoveConfirmation(game: GameId | undefined) {
-  return usePreference(game, 'confirm-moves', true);
+  const [browserValue, setBrowserValue] = usePreference(
+    game,
+    'confirm-moves',
+    false,
+  );
+  const [accountPreference, setAccountPreference] = useState<{
+    game: GameId;
+    value: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (!game) return;
+    let active = true;
+    void fetch(`/api/preferences/confirm-moves.${game}`, {
+      headers: { Accept: 'application/json' },
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as {
+          account: boolean;
+          value: boolean | null;
+        };
+      })
+      .then((result) => {
+        if (active && result?.account)
+          setAccountPreference({ game, value: result.value ?? false });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [game]);
+  function change(enabled: boolean) {
+    if (game) setAccountPreference({ game, value: enabled });
+    setBrowserValue(enabled);
+    if (!game) return;
+    void fetch(`/api/preferences/confirm-moves.${game}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: enabled }),
+    }).catch(() => {});
+  }
+  const accountValue =
+    accountPreference && accountPreference.game === game
+      ? accountPreference.value
+      : null;
+  return [accountValue ?? browserValue, change] as const;
 }
 export function useAutoRoll(eligible: boolean, roll: () => void) {
   const performRoll = useEffectEvent(roll);
@@ -87,7 +137,8 @@ export function MoveConfirmation({
   passed,
   zone,
   ward,
-  calm,
+  tack,
+  festivalChoice = {},
   enabled,
   onConfirm,
   onClear,
@@ -99,7 +150,8 @@ export function MoveConfirmation({
   passed: number[];
   zone: number | null;
   ward: boolean;
-  calm: boolean;
+  tack: boolean;
+  festivalChoice?: { order?: number; stall?: boolean };
   enabled: boolean;
   onConfirm: (move: Move) => void;
   onClear: () => void;
@@ -118,9 +170,10 @@ export function MoveConfirmation({
             ? {
                 type: 'play',
                 card: selected,
+                ...festivalChoice,
                 ...(g.id === 'wildgrove' ? { zone: zone ?? -1 } : {}),
                 ...(ward ? { ward: true } : {}),
-                ...(calm ? { calm: true } : {}),
+                ...(tack ? { tack: true } : {}),
               }
             : null;
   const card = g.players[viewer].hand.find((c) => c.id === selected);
@@ -135,7 +188,7 @@ export function MoveConfirmation({
         : choice?.type === 'pass'
           ? `${passed.length} of ${passCount(g)} cards selected to pass`
           : card
-            ? `${cardName(g.id, card)}${zone !== null ? ` → ${habitats[zone].name}` : g.id === 'wildgrove' ? ' · choose a habitat' : ''}${ward ? ' + Shield' : ''}${calm ? ' + Calm' : ''}`
+            ? `${cardName(g.id, card)}${zone !== null ? ` → ${habitats[zone].name}` : g.id === 'wildgrove' ? ' · choose a habitat' : ''}${ward ? ' + Shield' : ''}${tack ? ' + Tack' : ''}${festivalChoice.stall ? ' + open stall' : ''}${festivalChoice.order !== undefined ? ' + customer order' : ''}`
             : g.phase === 'over'
               ? 'Game complete'
               : canAct(g, viewer)

@@ -65,7 +65,7 @@ export function beginDragPreview(source: HTMLElement) {
           document
             .elementsFromPoint(x, y)
             .map((el) => el.closest<HTMLElement>('[data-drop]'))
-            .find((el) => el && el.dataset.drop !== 'hand') ?? null;
+            .find((el) => el && el.dataset.drop !== 'hand' && el.dataset.dropAllowed !== 'false') ?? null;
         target?.classList.add('drag-target');
       }
     },
