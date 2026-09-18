@@ -4,7 +4,9 @@ name = "Gamehub"
 [setup]
 script = "npm ci --no-audit --no-fund"
 
+# Same entry point as the Harness workspace action (.agents/actions.json), so the
+# port reclaim and dev stack are defined in exactly one place.
 [[actions]]
-name = "Start dev environment"
+name = "Start local environment"
 icon = "run"
-command = "lsof -tiTCP:3017 -sTCP:LISTEN | xargs kill 2>/dev/null; while lsof -tiTCP:3017 -sTCP:LISTEN >/dev/null; do sleep 0.1; done; npm run dev"
+command = "scripts/env/start.sh"

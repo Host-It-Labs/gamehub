@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "actions": [
+    {
+      "id": "start-local-environment",
+      "name": "Start local environment",
+      "icon": "run",
+      "command": "scripts/env/start.sh",
+      "shortcut": "ctrl+shift+k d"
+    }
+  ]
+}
