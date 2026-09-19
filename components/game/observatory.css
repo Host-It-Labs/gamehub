@@ -1,0 +1,805 @@
+/* The Observatory table: Mora's inland paper world as a full-bleed scene.
+   Sections, in cascade order: scene and stage · board (pads, rings, cards,
+   Release, migration pieces, landing) · dock (die, actions, goals, tray) ·
+   toolbar and player tags · Others inspection · phone layout.
+   Landscape and portrait rules are kept in their media blocks. Values here are
+   final: an earlier pass removed every declaration a later one overrode. */
+
+/* The woodland reaches every edge; where the sharp scene cannot, the canvas paints a soft copy of the same forest. */
+.at-table .table-layout[data-game='wildgrove'][data-environment='observatory'] { background: #2f3a2a; }
+.reference-rule .mora-die-symbol { vertical-align: middle; margin-right: 5px; }
+
+/* ===== 1. Scene and stage: full-bleed woodland, pads, die faces, goals card, tray =====
+   One full-bleed woodland. Everything laid on it is a handmade object: a folded
+   cardstock creature tray with a bark rim, a stone-white die engraved with a tiny
+   map, stitched field tags for players, a field-notebook card for goals. */
+.at-table .table-layout[data-environment='observatory'] .play-area .board-frame,
+.at-table .table-layout[data-environment='observatory'] .play-area .board-frame > .board-viewport {
+  overflow: visible; padding: 0; touch-action: auto; border-radius: 0; box-sizing: border-box;
+}
+
+/* Placement pads: the painted paper pads carry a thin ink outline whose shape
+   (square or round) is the same shape the die shows. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest::before {
+  content: ''; position: absolute; left: 8%; width: 84%; top: 24%; height: 74%;
+  border: 1.5px solid #5f4c2e66; background: #fff9e41c;
+  box-shadow: inset 0 0 0 2px #fffaea66; opacity: 1; pointer-events: none;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.square-space::before { border-radius: 12%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.round-space::before { border-radius: 50%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.occupied::before { opacity: .55; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.die-matching-region .mora-nest.empty::before {
+  border-color: #3d5a36; background: #eaf3c955; box-shadow: inset 0 0 0 2px #fffaea, 0 0 0 2px #dce9b8aa;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-nest.empty::before {
+  border: 2px dashed #7a5a1d; background: #fff1a866; box-shadow: 0 0 10px #ffe08d;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region .mora-nest.empty::before,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target .mora-nest.empty::before {
+  border: 2px solid #7a5a1d; background: #ffe98866; box-shadow: 0 0 12px #ffd65a;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest::after { content: none; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.die-matching-region { outline: none; }
+
+/* The die: a chalky stone cube. Static faces engrave the map of six habitats;
+   lit squares and circles are the pads this roll allows. */
+.mora-die-map rect, .mora-die-map circle { fill: #cdc6ad; stroke: #6d6449; stroke-width: 1.4; }
+.mora-die-map .lit { fill: #2f4a30; stroke: #1c2f1d; }
+.die-solid .mora-die-map { width: 88%; height: 88%; }
+.at-table .table-layout:is([data-environment='observatory'], [data-environment='cabin']) .die-solid {
+  width: 46px; height: 46px; border-radius: 11px; border: 1px solid #a89a7a;
+  background: linear-gradient(150deg, #fbf8ec, #e2dac3); color: #2f4a30;
+  box-shadow: inset 0 2px 0 #fffdf5, inset 0 -3px 0 #c9bfa4, 3px 5px 0 #8f8266, 5px 9px 12px #0e1a1266;
+}
+.at-table .table-layout[data-environment='observatory'] .dice-token { color: #33402c;
+}
+
+/* Sanctuary goals: a field-notebook card, dark ink on cream, readable over the forest. */
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements {
+  background: linear-gradient(180deg, #fbf5e4, #efe4c8); color: #3b3220;
+  border: 1px solid #a8916a; border-radius: 6px 16px 6px 14px; padding: 5px 16px 8px; margin-top: 0;
+  box-shadow: inset 0 1px 0 #fffdf3, 0 3px 0 #a08b62, 0 6px 0 #6f5d42, 0 12px 16px #0e1a1266;
+  transform: rotate(-.6deg);
+}
+.at-table .table-layout[data-environment='observatory'] .achievements-heading { color: #5a4a2a; font-family: Georgia, serif; font-size: 11px; letter-spacing: .14em; }
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal.piece { color: #3b3220; }
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-reward { background: #3b3220; color: #fff7dd; border: 1px solid #fff7dd; }
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-progress i { border-color: #8a7550; background: #fff8e6; }
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-progress i.filled { background: #4a6b3a; }
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal.complete .sanctuary-goal-reward { background: #7a5a1d; }
+
+/* The creature tray: layers of folded cardstock with a bark edge, deep enough
+   for the fanned pieces to rise out of it. The frame around it is invisible. */
+.at-table .table-layout[data-environment='observatory'] .hand-frame {
+  background: none; border: 0; box-shadow: none; padding: 0; overflow: visible; border-radius: 0;
+}
+.at-table .table-layout[data-environment='observatory'] .token-tray {
+  position: relative; overflow: visible; margin-inline: auto;
+}
+.at-table .table-layout[data-environment='observatory'] .token-tray::before { position: absolute; pointer-events: none;
+}
+.at-table .table-layout[data-environment='observatory'] .token-tray > .piece-wrap { z-index: 1; }
+.at-table .table-layout[data-environment='observatory'] .creature-piece {
+  border-radius: 50%; border: 1px solid #fffdf2; background: radial-gradient(circle at 35% 30%, #fffdf3, #e9e0c9);
+  box-shadow: inset 0 0 0 3px #fffaea, 0 3px 0 #b3a58b, 0 6px 0 #8f8266, 0 10px 10px #1a2a2066;
+}
+@media (max-width: 1200px), (max-height: 800px) {
+  .at-table .table-layout[data-environment='observatory'] .token-tray { --fan-lift: 12px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .at-table .table-layout[data-environment='observatory'] .token-tray { --fan-lift: 0px; }
+}
+
+/* ===== 2. Dock geometry: centred tray, goals placement, wooden tray ===== */
+@media (orientation: landscape) and (min-height: 501px) {
+  .at-table .table-layout[data-environment='observatory'] .hand-frame {
+    inset-inline: auto; left: 50%; transform: translateX(-50%); max-width: none;
+  }
+  .at-table .table-layout[data-environment='observatory'] .hand-controls { inset-inline: 14px; }
+  /* Goals live with the die and actions: a card standing just above them. */
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements {
+    position: absolute; z-index: 4; margin: 0;
+  }
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements {
+    position: absolute; top: auto; margin: 0;
+  }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goals { padding-top: 2px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash { min-width: 52px; }
+}
+
+/* The tray is a shallow wooden box lined with paper: grain on the rim, cream inside. */
+.at-table .table-layout[data-environment='observatory'] .token-tray { border-bottom-width: 12px;
+}
+.at-table .table-layout[data-environment='observatory'] .token-tray::before {
+  inset: 5px 6px; border: 1px dashed #b39c6f66; border-radius: 12px;
+}
+.at-table .table-layout[data-environment='observatory'] .hand-abilities {
+  background: none; border: 0; box-shadow: none; padding: 0;
+}
+
+/* ===== 3. Player tags, Others control, cube die, habitat label sizes, inspection grid ===== */
+@media (orientation: landscape) and (min-height: 501px) {
+  .at-table .table-layout[data-environment='observatory'] .player-button { flex: 0 0 168px; justify-content: flex-start; }
+}
+.at-table .table-layout[data-environment='observatory'] .player-button > span:nth-child(2) { flex: 1; min-width: 0; max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-table .table-layout[data-environment='observatory'] .player-button > b { flex: none; }
+.at-table .table-layout[data-environment='observatory'] .players { justify-content: center; flex-wrap: wrap; }
+.at-table .table-layout[data-environment='observatory'] .table-board-button {
+  display: flex; justify-content: center; align-items: center; padding: 0;
+  background: none; border: 0; box-shadow: none; cursor: pointer;
+}
+.at-table .table-layout[data-environment='observatory'] .table-board-chip {
+  display: inline-flex; align-items: center; min-height: 30px;
+}
+.at-table .table-layout[data-environment='observatory'] .table-board-button:focus-visible { outline: none; }
+.at-table .table-layout[data-environment='observatory'] .table-board-button:focus-visible .table-board-chip { outline: 3px solid #5c3680; outline-offset: 2px; }
+.at-table .table-layout[data-environment='observatory'] .table-players { background: none; box-shadow: none; }
+@media (orientation: landscape) and (min-height: 501px) {
+  .at-table .table-layout[data-environment='observatory'] .table-board-button { flex-basis: 100%; margin-top: 6px; }
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .table-board-button { margin-top: 4px; }
+}
+
+/* The die cube itself is shared: see die.css. Only the paper tag around it is styled here. */
+
+/* Habitat labels read at the size of the pads they describe. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { font-size: clamp(12px, 2.5cqw, 20px); }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { font-size: clamp(10px, 1.55cqw, 14px); }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label b { font-size: .95em; min-width: 2.2em; }
+
+/* Table inspection: a sticky one-line passing cycle, then boards; three across with several opponents. */
+.all-boards-modal[data-slot='dialog-content'] { grid-template-rows: minmax(0, 1fr); padding: 16px 20px; }
+.all-boards-modal > [data-slot='dialog-close'] { z-index: 3; }
+.all-boards-grid { position: relative; padding-top: 0; }
+.all-boards-grid .table-passing-order {
+  position: sticky; top: 0; z-index: 2; margin: 0 0 12px; padding: 8px 12px;
+  background: #faf2ddf2; border: 1px solid #9b8c69; border-bottom-width: 2px; border-radius: 4px 14px 4px 14px; box-shadow: 0 3px 6px #23352c22;
+}
+.all-boards-grid .table-passing-order b, .all-boards-grid .passing-return-arrow { padding: 5px 10px; }
+.all-boards-grid .table-passing-order .your-seat b { background: #37533f; color: #fff6df; }
+.all-boards-grid .passing-return-arrow { color: #37533f; }
+@media (min-width: 1100px) { .all-boards-grid:not(.seats-1):not(.seats-2) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.table-board-card h3 { margin-bottom: 8px; }
+.table-board-card .player-resources { margin-top: 8px; }
+
+/* ===== 4. Dock sizing, die tag, habitat card layout, Release shape ===== */
+@media (orientation: landscape) and (min-height: 501px) {
+  .at-table .table-layout[data-environment='observatory'] .play-area { --observatory-hand-height: 104px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements {
+    left: auto; right: 14px; bottom: var(--observatory-bottom-gap); transform: rotate(.6deg);
+  }
+  .at-table .table-layout[data-environment='observatory'] .hand-frame { width: min(560px, calc(100% - 640px)); }
+}
+@media (orientation: landscape) and (min-height: 501px) and (max-width: 1100px) {
+  .at-table .table-layout[data-environment='observatory'] .hand-frame { width: min(430px, calc(100% - 560px)); }
+}
+@media (max-width: 1200px), (max-height: 800px) {
+  .at-table .table-layout[data-environment='observatory'] .play-area { --observatory-hand-height: 88px; }
+}
+/* The tray: a single folded cardstock strip, only as tall as the fanned pieces need. */
+.at-table .table-layout[data-environment='observatory'] .token-tray {
+  --fan-lift: 10px;
+  padding: 14px 16px 8px; gap: 10px; border: 1px solid #a48c62; border-top-color: #fffaeb; border-radius: 18px;
+  background: linear-gradient(180deg, #f8f1df, #ecdfc2);
+  box-shadow: inset 0 2px 0 #fffbee, inset 0 -5px 8px #a68c5e33, 0 4px 0 #b59b6e, 0 7px 0 #8d7550, 0 14px 18px #0e1a1255;
+}
+.at-table .table-layout[data-environment='observatory'] .token-tray::before { content: none; }
+@media (max-width: 1200px), (max-height: 800px) {
+  .at-table .table-layout[data-environment='observatory'] .token-tray { padding: 12px 12px 7px; gap: 8px; }
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .token-tray { --fan-lift: 8px; padding: 11px 10px 7px; }
+  .at-table .table-layout[data-environment='observatory'] .hand-frame { height: 74px; min-height: 74px; max-height: 74px; }
+}
+
+/* The die lives in its own paper tag; faces are seamless, edges softly lit. */
+.at-table .table-layout[data-environment='observatory'] .dice-token {
+  background: linear-gradient(180deg, #f8f1df, #e7dabb); border: 1px solid #a48c62; border-radius: 6px 14px 6px 14px;
+  box-shadow: 0 3px 0 #b59b6e, 0 6px 8px #0e1a1244;
+}
+.mora-die-symbol .ink-fill { fill: #2f4a30; }
+.mora-die-symbol .paper-fill { fill: #f6efdc; }
+.mora-die-symbol .ink-line { fill: none; stroke: #2f4a30; stroke-width: 3; stroke-linecap: round; }
+.mora-die-symbol .ink-dash { fill: none; stroke: #2f4a30; stroke-width: 3; stroke-dasharray: 5 4; stroke-linecap: round; }
+.reference-rule .mora-die-symbol { width: 30px; height: 30px; }
+
+/* Habitat cards: centred title and score, left-aligned scoring in unbreakable phrases. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { flex-direction: column; align-items: stretch; text-align: left;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { align-self: center; white-space: nowrap;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { flex-wrap: wrap; column-gap: .45em; row-gap: 0; justify-content: flex-start;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small .summary-segment { white-space: nowrap; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small .summary-segment:only-child { white-space: normal; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small .summary-dot { margin-left: .35em; }
+/* Cards size to their title; only the scoring phrases wrap. Portrait keeps the title alone. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { overflow: visible; }
+@media (orientation: landscape) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { max-width: 26cqw; overflow: visible; }
+}
+
+/* Scoring stays on one line; one keyword per area is bold. Portrait drops the name. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { max-width: none; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small {
+  display: block; white-space: nowrap; text-align: left; margin-top: .2em;
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { display: block; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { font-size: clamp(11px, 3.8cqw, 16px); }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label .habitat-name { display: none; }
+}
+
+/* Release sits exactly on the painted clearing and takes its shape. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash {
+  min-width: 0; min-height: 0; padding: 0; display: grid; place-items: center; text-align: center; line-height: 1.1;
+  background: #ece0c4cc; border: 1.5px dashed #8a7550; box-shadow: inset 0 0 0 3px #f8f1df88, 0 2px 0 #b59b6e66;
+}
+.observatory-board[data-paper-world='landscape']:not(.mini-board) .mora-trash { width: 11.5%; height: 9.5%; border-radius: 48% 52% 46% 54% / 58% 46% 54% 42%; }
+.observatory-board[data-paper-world='portrait']:not(.mini-board) .mora-trash { width: 16%; height: 6.5%; border-radius: 50% 50% 46% 54% / 60% 60% 40% 40%; }
+/* A card that would leave the stage slides inward by the measured nudge. */
+.observatory-board[data-paper-world]:not(.mini-board) .mora-ground-label { transform: translate(calc(-50% + var(--label-nudge, 0px)), -50%); }
+/* Absolutely positioned flex boxes shrink to their habitat; a block with intrinsic width does not. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { display: block; width: max-content; min-width: max-content; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { display: flex; justify-content: center; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { max-width: none; width: max-content; }
+
+/* The die tag never changes size: fixed box, two-line caption slot. When the
+   roll does not bind you, the die is dimmed and the roller mark sits on the corner. */
+.at-table .table-layout[data-environment='observatory'] .dice-token {
+  position: relative; width: 84px; height: 98px; min-width: 0; padding: 10px 6px 6px; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: visible;
+}
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt .die-display { opacity: .45; filter: grayscale(.7); }
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt {
+  background: linear-gradient(180deg, #ece7da, #dcd4c1); border-style: dashed; box-shadow: 0 2px 0 #b5a88e, 0 4px 6px #0e1a1233;
+}
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt > .turn-roller,
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt > .player-status-icons {
+  position: absolute; top: -9px; right: -9px; margin: 0; z-index: 2;
+  width: 24px; height: 24px; background: #fff9e7; border: 2px solid #593c77; border-radius: 6px; transform: rotate(-7deg);
+  box-shadow: 0 2px 4px #0e1a1244;
+}
+@media (max-width: 719px), (max-height: 500px) {
+  .at-table .table-layout[data-environment='observatory'] .dice-token { width: 76px; height: 92px; }
+}
+/* The keyword is only slightly heavier than the rest of the line. */
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt > .player-status-icons { display: grid; place-items: center; border: 0; background: none; box-shadow: none; transform: none; }
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt > .player-status-icons .turn-state { display: none; }
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt > .player-status-icons .turn-roller {
+  width: 24px; height: 24px; background: #fff9e7; border: 2px solid #593c77; border-radius: 6px; transform: rotate(-7deg); box-shadow: 0 2px 4px #0e1a1244;
+}
+.at-table .table-layout[data-environment='observatory'] .hand-abilities { overflow: visible; max-height: none; }
+.at-table .table-layout[data-environment='observatory'] .dice-token.die-exempt > .player-status-icons { position: absolute; top: -9px; right: -9px; z-index: 3; }
+/* The action row sits above the goals card so the roller mark can peek over its edge. */
+.at-table .table-layout[data-environment='observatory'] .hand-controls { z-index: 5; }
+
+/* ===== 5. Toolbar islands, second line, board stage insets, phone dock ===== */
+/* Back + title is one island; round and pick sit centred on the line under the players. */
+.at-table .table-layout[data-environment='observatory'] .table-back span { font: 700 15px/1 Georgia, serif; letter-spacing: .02em; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line { gap: 12px; margin-top: 6px;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress {
+  display: inline-flex; align-items: baseline; box-sizing: border-box; border-radius: 12px 4px 12px 4px; color: #33402c;
+  font-size: 12px;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress small { display: inline; font-size: 11px; }
+.at-table .table-layout[data-environment='observatory'] .table-board-button { flex-basis: auto; margin: 0; }
+@media (orientation: landscape) and (min-height: 501px) {
+  /* More headroom above the courtyard; the shorter tray freed the bottom. */
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .table-second-line { grid-column: 1 / -1; margin-top: 4px; gap: 8px; }
+  /* Cards: the score is a small badge on the top edge; the explanation may take two lines. */
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { padding-top: .95em; overflow: visible;
+  }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong {
+    position: absolute; top: 0; left: 50%; transform: translate(-50%, -55%); margin: 0; padding: 0;
+  }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong > b { padding: .1em .55em; border-radius: 1em; background: #fff8e6; color: #243f28;
+    border: 1px solid #b7a37e; box-shadow: 0 2px 0 #b59b6e66;
+  }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small {
+    white-space: normal; width: auto; max-width: 100%; text-align: center; margin-top: 0;
+  }
+  /* Bottom row: die and actions on the left, a compact goals card on the right, tray below. */
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements {
+    inset-inline: auto; transform: none; z-index: 6;
+  }
+  .at-table .table-layout[data-environment='observatory'] .achievements-heading { display: none; }
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress { flex-direction: row; flex-wrap: nowrap; white-space: nowrap; }
+.at-table .table-layout[data-environment='observatory'] .table-back span { display: inline; }
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress { font-size: 11px; padding: 3px 9px; min-height: 28px; gap: 6px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { min-width: 0; width: max-content; }
+}
+
+/* ===== 6. Board overlays: rings, migration pieces, round and pick chips ===== */
+/* Nothing is painted over the pads or trail; the illustration is the board. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest::before,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest::after { content: none; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-trail-step { display: none; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-target { display: block; width: 100%; height: 100%; }
+/* The only drawn cue: while a creature is chosen or dragged, a soft cream ring
+   wraps each habitat that can take it, from its card around all of its pads. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat { border-radius: 46% 54% 48% 52% / 52% 46% 54% 48%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat .mora-habitat-inner { border-radius: inherit; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target {
+  outline: none; background: transparent;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target {
+  box-shadow: 0 0 0 4px #fffdf5, 0 0 0 9px #fff9e666, 0 0 26px 8px #ffe9a3a6;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.migration-preview-region { outline: none; background: transparent; }
+/* Placed creatures become pieces of their own while Migration is available. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.migratable { pointer-events: auto; z-index: 4; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.migratable .piece-wrap { width: 100%; height: 100%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature {
+  width: 100%; height: 100%; padding: 0; border: 0; background: none; box-shadow: none; border-radius: 50%; cursor: grab;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature .token-art { width: 100%; height: 100%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature.selected .token-art,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature.migrated .token-art {
+  filter: drop-shadow(0 0 3px #fff9e6) drop-shadow(0 0 6px #ffe9a3) drop-shadow(0 3px 1px #38462e44);
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature.selected { outline: none; transform: translateY(-6%); }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature:focus-visible { outline: 3px solid #5c3680; outline-offset: 2px; }
+
+/* Round and pick: two separate objects, a green wax-seal stamp and a paper tally tag. */
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress {
+  background: none; border: 0; box-shadow: none; padding: 0; min-height: 0; gap: 8px;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress > span {
+  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px 0 10px; box-sizing: border-box;
+  background: radial-gradient(circle at 35% 30%, #4e7047, #2f4a30); color: #f6f0dc; border: 1px solid #1f3320;
+  border-radius: 50% 45% 50% 45% / 45% 50% 45% 50%; box-shadow: inset 0 1px 0 #7d9c74, 0 2px 0 #1f3320, 0 4px 6px #0e1a1244;
+  font: 700 11px/1 Georgia, serif; letter-spacing: .04em; text-transform: uppercase;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress > span b { font-size: 14px; color: #fff8dd; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress > small {
+  display: inline-flex; align-items: center; height: 30px; padding: 0 12px; box-sizing: border-box;
+  background: linear-gradient(180deg, #f8f1df, #e7dabb); color: #33402c; border: 1px solid #a48c62;
+  border-radius: 3px 10px 3px 10px; box-shadow: 0 2px 0 #b59b6e, 0 4px 6px #0e1a1244; font: 700 12px/1 Georgia, serif; white-space: nowrap;
+}
+
+/* Phone bottom row: die, actions and goals share one height, a touch smaller overall. */
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .hand-controls { height: 62px; }
+  .at-table .table-layout[data-environment='observatory'] .hand-abilities { align-items: stretch; }
+  .at-table .table-layout[data-environment='observatory'] .dice-token { width: 58px; height: 62px; padding: 6px 3px 3px; }
+  .at-table .table-layout[data-environment='observatory'] .extension-action { min-width: 0; min-height: 0; padding: 4px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements {
+    height: 62px; padding: 0 6px; display: flex; align-items: center; box-sizing: border-box;
+  }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goals { gap: 5px; padding: 0; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal.piece { min-width: 40px; width: 40px; min-height: 52px; gap: 3px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-medal { width: 34px; height: 34px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-medal > svg,
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-creature { width: 28px; height: 28px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-reward { min-width: 19px; height: 16px; font-size: 10px; right: -6px; }
+}
+
+/* ===== 7. Player tag collapse, roller badge, phone toolbar layout ===== */
+@media (orientation: landscape) and (min-height: 501px) {
+  /* 16vh is as low as the landscape source's upper woodland allows while still covering the top. */
+  .at-table .table-layout[data-environment='observatory'] .board-frame { inset: min(16vh, 180px) 0 118px; }
+}
+/* Player tags: the roller mark floats on the tag's top-right corner instead of taking a slot. */
+.at-table .table-layout[data-environment='observatory'] .player-button { position: relative; overflow: visible; }
+.at-table .table-layout[data-environment='observatory'] .player-button .player-status-icons .turn-roller {
+  position: absolute; top: -9px; right: -9px; width: 22px; height: 22px; z-index: 2;
+  background: #fff9e7; border: 2px solid #593c77; border-radius: 6px; transform: rotate(-7deg); box-shadow: 0 2px 4px #0e1a1244;
+}
+/* Tags collapse to avatar, score and state when the row would overflow. */
+.at-table .table-layout[data-environment='observatory'] .table-players { container-type: inline-size; }
+@media (orientation: landscape) and (min-height: 501px) {
+  .at-table .table-layout[data-environment='observatory'] .player-button { width: 150px; flex-basis: 150px; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .avatar { display: inline-grid; }
+}
+@container (max-width: 340px) { .at-table .table-layout[data-environment='observatory'] .players.count-2 .player-button { width: auto; flex-basis: auto; } .at-table .table-layout[data-environment='observatory'] .players.count-2 .player-button > span:nth-child(2) { display: none; } }
+@container (max-width: 500px) { .at-table .table-layout[data-environment='observatory'] .players.count-3 .player-button { width: auto; flex-basis: auto; } .at-table .table-layout[data-environment='observatory'] .players.count-3 .player-button > span:nth-child(2) { display: none; } }
+@container (max-width: 660px) { .at-table .table-layout[data-environment='observatory'] .players.count-4 .player-button { width: auto; flex-basis: auto; } .at-table .table-layout[data-environment='observatory'] .players.count-4 .player-button > span:nth-child(2) { display: none; } }
+@container (max-width: 820px) { .at-table .table-layout[data-environment='observatory'] .players.count-5 .player-button { width: auto; flex-basis: auto; } .at-table .table-layout[data-environment='observatory'] .players.count-5 .player-button > span:nth-child(2) { display: none; } }
+@container (max-width: 980px) { .at-table .table-layout[data-environment='observatory'] .players.count-6 .player-button { width: auto; flex-basis: auto; } .at-table .table-layout[data-environment='observatory'] .players.count-6 .player-button > span:nth-child(2) { display: none; } }
+
+/* Phone: only a back arrow and a dots menu; the player tags sit between them; no names. */
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .table-back span,
+  .at-table .table-layout[data-environment='observatory'] .table-menu-trigger span { display: none; }
+  .at-table .table-layout[data-environment='observatory'] .table-back,
+  .at-table .table-layout[data-environment='observatory'] .table-menu-trigger { min-width: 44px; padding: 5px 8px; }
+  .at-table .table-layout[data-environment='observatory'] .table-toolbar { z-index: 6; }
+  .at-table .table-layout[data-environment='observatory'] .table-players {
+    top: max(8px, env(safe-area-inset-top)); padding: 0; z-index: 7; pointer-events: none;
+  }
+  .at-table .table-layout[data-environment='observatory'] .table-players .players {
+    display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; min-height: 44px; pointer-events: auto;
+  }
+  .at-table .table-layout[data-environment='observatory'] .player-button {
+    width: auto; min-width: 0;
+  }
+  .at-table .table-layout[data-environment='observatory'] .player-button > span:nth-child(2) { display: none; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .avatar { display: inline-grid; }
+  .at-table .table-layout[data-environment='observatory'] .table-second-line {
+    position: absolute; margin: 0;
+  }
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .table-players .players { overflow: visible; }
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .table-players { inset-inline: 66px; }
+  .at-table .table-layout[data-environment='observatory'] .table-players .players { gap: 4px; }
+  .at-table .table-layout[data-environment='observatory'] .player-button { min-height: 38px; }
+  .at-table .table-layout[data-environment='observatory'] .player-button > b { font-size: 13px; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .player-status-icons .turn-roller { width: 18px; height: 18px; }
+}
+
+/* ===== 8. Round marker, quiet cards, elliptical rings, portal landing, actions, Others header ===== */
+/* Nothing clips the roller mark; the tags are flat paper, no 3D lip. */
+.at-table .table-layout[data-environment='observatory'] .players { overflow: visible; }
+.at-table .table-layout[data-environment='observatory'] .player-button,
+.at-table .table-layout[data-environment='observatory'] .player-button.active { box-shadow: none; border-left-width: 1px; border-radius: 12px; }
+.at-table .table-layout[data-environment='observatory'] .player-button.active { border-color: #4e742c; outline: none; }
+
+/* Round marker: a strip of paper with one punched hole per round, the played ones inked. */
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > span { box-shadow: none; height: auto; border-radius: 0;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > span b { font-size: 14px; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > i { display: inline-flex; gap: 4px; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > i b { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #6d5b3a; }
+
+/* Habitat cards: quieter paper, lighter ink, so the artwork leads. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { border-color: #b7a37e99;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { font-weight: 600; color: #3e3729; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong > b { font-weight: 700; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { font-weight: 400; }
+
+/* Legal rings: an ellipse that hugs each area, a little larger than its box. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target { box-shadow: none; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target::after {
+  content: ''; position: absolute; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 3px #fff9e6e6, 0 0 0 7px #fff9e64d, 0 0 22px 6px #fff2c680;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target::after {
+  box-shadow: 0 0 0 4px #fffdf5, 0 0 0 9px #fff9e666, 0 0 26px 8px #ffe9a3a6;
+}
+
+/* Landing: the pad opens like a small portal, the creature drops through it. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest { overflow: visible; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .portal-burst {
+  position: absolute; left: 50%; top: 62%; width: 120%; height: 78%; transform: translate(-50%, -50%) scale(.2); border-radius: 50%;
+  pointer-events: none; opacity: 0; z-index: -1;
+  background: radial-gradient(ellipse, #fff9e6 0%, #ffe9a3cc 35%, #b99cf055 65%, transparent 72%);
+  box-shadow: 0 0 0 2px #fff9e6cc, 0 0 18px 4px #d7c4ff99;
+  animation: portal-open 900ms ease-out;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.occupied .token-art {
+  animation: portal-drop 620ms cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes portal-open {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.2); }
+  25% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  60% { opacity: .8; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
+}
+@keyframes portal-drop {
+  0% { transform: translateY(-90%) scale(1.5); opacity: 0; filter: brightness(1.8) drop-shadow(0 0 8px #fff9e6); }
+  55% { transform: translateY(-4%) scale(.94); opacity: 1; }
+  100% { transform: translateY(-8%) scale(1); filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board .portal-burst,
+  .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.occupied .token-art { animation: none; }
+}
+
+/* Actions: bigger leaf and slip, a paper-ink divider from the die, no 'active' green. */
+.at-table .table-layout[data-environment='observatory'] .hand-abilities { gap: 10px; }
+.at-table .table-layout[data-environment='observatory'] .dice-token { margin-right: 6px; }
+.at-table .table-layout[data-environment='observatory'] .dice-token::after {
+  content: ''; position: absolute; right: -12px; top: 12%; height: 76%; width: 0; border-left: 1px dashed #f6f0dc99;
+}
+.at-table .table-layout[data-environment='observatory'] .extension-action { width: 64px; height: 72px; min-width: 0; min-height: 0; }
+.at-table .table-layout[data-environment='observatory'] .extension-action svg { width: 28px; height: 28px; }
+.at-table .table-layout[data-environment='observatory'] .mora-roam-action.piece {
+  background: linear-gradient(135deg, #e6dcbfd9, #f5ecd6), var(--mora-paper); color: #5a4a2a; border: 2px solid #b39a6f; box-shadow: inset -3px -3px 0 #c9b88f55, 2px 4px 0 #a08b62;
+}
+.at-table .table-layout[data-environment='observatory'] .extension-action[aria-pressed='true'],
+.at-table .table-layout[data-environment='observatory'] .extension-action.selected { outline: 3px solid #8365b6; outline-offset: 2px; background-color: #efe8ff; }
+
+/* Release: a real target on the painted clearing. */
+@media (orientation: landscape) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash { font-size: clamp(9px, 1.1cqw, 12px); }
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash { width: 16%; height: 6.5%; font-size: 9px; }
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash.prepared,
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash.drag-target { box-shadow: 0 0 0 3px #fff9e6e6, 0 0 18px 4px #fff2c680; }
+
+/* Modal cards: name, remaining abilities and goals, score on one line above the board. */
+.table-board-card h3 > .player-resources { flex: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
+.table-board-card h3 .nature-reserves { margin: 0; gap: 6px; }
+.table-board-card h3 .nature-reserves > div { padding: 3px 8px; gap: 6px; font-size: 12px; font-weight: 500; }
+.table-board-card h3 .sanctuary-goals { position: static; transform: none; padding: 0; gap: 4px; background: none; box-shadow: none; }
+.table-board-card h3 .sanctuary-goal.piece { min-width: 40px; min-height: 36px; }
+.table-board-card h3 .sanctuary-goal-medal { width: 26px; height: 26px; }
+.table-board-card h3 .sanctuary-goal-medal > svg, .table-board-card h3 .sanctuary-goal-creature { width: 22px; height: 22px; }
+
+/* Phone: readable tags, tighter cards, breathing room above the tray. */
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .player-button { padding: 3px 6px 3px 4px; gap: 4px; border-radius: 20px; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .avatar { width: 26px; height: 26px; font-size: 12px; border-style: solid; background: #fff8df; }
+  .at-table .table-layout[data-environment='observatory'] .player-button > b { font: 700 13px/1 Georgia, serif; min-width: 0; padding: 0 2px; background: none; border: 0; color: #243f28; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .player-status-icons { right: -6px; bottom: -6px; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .turn-state svg { width: 10px; height: 10px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { padding: .8em .5cqw .25cqw; max-width: 36cqw; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { font-size: calc(clamp(9px, 2.9cqw, 12px) - 1px); line-height: 1.15; }
+  /* Phrases break between scoring segments, never mid-phrase; short cards stay on one line. */
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { max-width: 30cqw; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong > b { font-size: clamp(10px, 3.2cqw, 13px); }
+  .at-table .table-layout[data-environment='observatory'] .hand-controls { bottom: calc(108px + env(safe-area-inset-bottom)); inset-inline: 12px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements { bottom: calc(108px + env(safe-area-inset-bottom)); }
+  .at-table .table-layout[data-environment='observatory'] .hand-abilities { gap: 8px; }
+  .at-table .table-layout[data-environment='observatory'] .dice-token { margin-right: 4px; }
+  .at-table .table-layout[data-environment='observatory'] .dice-token::after { right: -9px; }
+  .at-table .table-layout[data-environment='observatory'] .extension-action { width: 50px; height: 62px; }
+  .at-table .table-layout[data-environment='observatory'] .extension-action svg { width: 22px; height: 22px; }
+  .at-table .table-layout[data-environment='observatory'] .board-frame { inset: 100px 8px 192px; }
+  .at-table .table-layout[data-environment='observatory'] .hand-confirmation { bottom: calc(180px + env(safe-area-inset-bottom)); }
+}
+/* Score pill: cream with green ink in both orientations; chip labels never wrap. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong > b { color: #2f4a30; border: 1px solid #b7a37e; padding: .1em .5em; border-radius: 1em;
+}
+.at-table .table-layout[data-environment='observatory'] .table-board-chip { white-space: nowrap; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line { flex-wrap: nowrap; }
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .player-button .player-status-icons { position: static; margin-left: 1px; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .player-status-icons .turn-roller { position: absolute; top: -8px; right: -8px; bottom: auto; }
+  .at-table .table-layout[data-environment='observatory'] .player-button .turn-state { width: 18px; height: 18px; }
+  .at-table .table-layout[data-environment='observatory'] .table-second-line .table-round { padding: 0 10px; font-size: 11px; }
+}
+
+/* Habitat cards recede further: smaller, fainter paper, softer ink. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { border: 1px solid #b7a37e66; box-shadow: none; color: #55503f;
+}
+@media (orientation: landscape) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { font-size: clamp(10px, 1.85cqw, 15px); font-weight: 600; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { font-size: clamp(8px, 1.3cqw, 12px); }
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { color: #5a5442; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small b { color: #3b5637; font-weight: 700; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong > b { background: #fff8e6cc; border-color: #b7a37e99; box-shadow: none; }
+
+/* Round marker is a flat inked note, not a button; the Others control clearly is one. */
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round { font-weight: 600;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > span b { color: #fff8dd; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > i b { border-color: #f6f0dc; background: transparent; box-shadow: 0 1px 2px #0e1a12aa; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > i b.done { background: #f6f0dc; border-color: #f6f0dc; }
+
+/* ===== 9. Second-line placement, goals card and dialog, variant switcher, small-screen dock ===== */
+.at-table .table-layout[data-environment='observatory'] .table-second-line {
+  position: absolute; left: 10px; right: 10px; top: calc(max(8px, env(safe-area-inset-top)) + 52px);
+  display: flex; justify-content: space-between; align-items: center; margin: 0; flex-basis: auto; pointer-events: none; z-index: 8;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line > * { pointer-events: auto; }
+/* The round note: a small paper label with the count in a score pill. Not a button. */
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px 0 10px; box-sizing: border-box;
+  background: #f3edddd9; border: 1px solid #b7a37e99; border-radius: 2px 9px 2px 6px; box-shadow: none;
+  color: #4a4232; text-shadow: none; font: 600 12px/1 Georgia, serif; letter-spacing: .02em;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > span { font: inherit; color: inherit; background: none; border: 0; padding: 0; text-transform: none; letter-spacing: inherit; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > b {
+  display: inline-flex; align-items: baseline; padding: .1em .5em; border-radius: 1em; background: #fff8e6; color: #2f4a30;
+  border: 1px solid #b7a37e; font: 700 13px/1.1 Georgia, serif;
+}
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-round > b small { font-size: .78em; font-weight: 600; opacity: .8; }
+.at-table .table-layout[data-environment='observatory'] .table-second-line .table-board-button { margin: 0; }
+@media (orientation: portrait) {
+  /* The line lives inside the 66px-inset player row; stretch it back to the page so the
+     round note centres on the screen and Others sits under the menu button as an icon alone. */
+  .at-table .table-layout[data-environment='observatory'] .table-second-line { left: -58px; right: -58px; width: auto; top: calc(max(8px, env(safe-area-inset-top)) + 46px); justify-content: center; }
+  .at-table .table-layout[data-environment='observatory'] .table-second-line .table-board-button { position: absolute; right: 2px; top: 0; }
+  .at-table .table-layout[data-environment='observatory'] .table-second-line .table-board-chip > span { display: none; }
+  .at-table .table-layout[data-environment='observatory'] .table-second-line .table-board-chip { min-width: 44px; justify-content: center; padding: 0; }
+  .at-table .table-layout[data-environment='observatory'] .table-second-line .table-board-chip svg { margin: 0; }
+  .at-table .table-layout[data-environment='observatory'] .table-board-button { grid-column: auto; }
+  /* Goals fill the space to the actions, with a divider like the die's. */
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements { max-width: none; left: 200px; right: 12px; width: auto; justify-content: center; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goals { justify-content: space-evenly; width: 100%; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements::before {
+    content: ''; position: absolute; left: -12px; top: 12%; height: 76%; border-left: 1px dashed #f6f0dc99;
+  }
+}
+/* Cards a touch more opaque for the scoring line. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { background: #f3edddd9; }
+
+/* One ring only: hover and focus on an area add nothing; the ring sits above while
+   the area's pads and card ease back a little, as if seen from higher up. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat .mora-habitat-inner,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat .mora-habitat-inner:hover,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat .mora-habitat-inner:focus,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target .mora-habitat-inner { outline: none; box-shadow: none; background: transparent; transform: none; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat .mora-habitat-inner:focus-visible { outline: 3px solid #5c3680; outline-offset: -3px; border-radius: inherit; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region.drag-target::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region.prepared-region::after {
+  box-shadow: 0 0 0 4px #fffdf5, 0 0 0 9px #fff9e666, 0 0 26px 8px #ffe9a3a6;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest { transition: transform 220ms ease; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-ground-label { transition: transform 220ms ease, opacity 220ms ease; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region ~ .mora-nest,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-nest { transform: translate(-50%, -62%) scale(.93); }
+
+/* No ease-back; one ring only, whatever hover, drag or focus does. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-nest { transform: translate(-50%, -62%); }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-ground-label { transform: translate(-50%, -50%); opacity: 1; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target .mora-habitat-inner,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-trash.drag-target { outline: none !important; }
+
+/* Goals card is one piece; the rules open wide, all goals side by side. */
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goals.piece { cursor: pointer; border: 0; background: none; box-shadow: none; padding: 4px 2px 0; }
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goals.piece:focus-visible { outline: 3px solid #5c3680; outline-offset: 4px; border-radius: 12px; }
+.at-table .table-layout[data-environment='observatory'] .observatory-achievements .piece-wrap { display: block; }
+.inspector-wide .inspection-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 18px; align-items: start; }
+.inspector-wide .inspection-body > :first-child { grid-column: 1 / -1; }
+.inspector-wide .inspection-body section h3 { margin: 0 0 6px; }
+
+/* Temporary artwork review control. Remove with <ArtVariantSwitcher/> when a variant is chosen. */
+.art-variant-switcher {
+  position: absolute; left: 10px; bottom: 50%; z-index: 30; display: flex; flex-direction: column; gap: 4px; padding: 4px;
+  background: #1b2418cc; border: 1px solid #f6f0dc55; border-radius: 10px; backdrop-filter: blur(4px);
+}
+.art-variant-switcher button {
+  min-width: 44px; min-height: 28px; padding: 3px 8px; border-radius: 7px; border: 1px solid #f6f0dc55;
+  background: transparent; color: #f6f0dc; font: 600 11px/1 Georgia, serif; cursor: pointer;
+}
+.art-variant-switcher button[aria-pressed='true'] { background: #f6f0dc; color: #1b2418; }
+@media (orientation: portrait) { .art-variant-switcher { left: 6px; bottom: 45%; } }
+.art-variant-switcher { margin: 0; min-width: 0; }
+
+/* Goals card: tray height in landscape, count pills instead of dots; rules as three cards. */
+.sanctuary-goal-count {
+  display: inline-flex; align-items: baseline; padding: .05em .5em; border-radius: 1em; background: #fff8e6; color: #2f4a30;
+  border: 1px solid #b7a37e; font: 700 12px/1.2 Georgia, serif;
+}
+.sanctuary-goal-count small { font-size: .8em; font-weight: 600; opacity: .8; }
+@media (orientation: landscape) and (min-height: 501px) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements {
+    height: var(--observatory-hand-height); box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 4px 16px;
+  }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goals { gap: 16px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal.piece { min-width: 74px; min-height: 0; gap: 5px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-medal { width: 48px; height: 48px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-medal > svg,
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-creature { width: 36px; height: 36px; }
+  .inspector-wide .inspection-body { display: block; }
+  .goal-cards { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 16px; }
+}
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-count { font-size: 10px; padding: 0 .4em; }
+}
+.goal-cards { display: grid; gap: 12px; }
+.goal-card { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 12px 10px; border: 1px solid #b7a37e; border-radius: 6px 16px 6px 14px; background: #faf3e2; }
+.goal-card .sanctuary-goal-medal { width: 56px; height: 56px; }
+.goal-card .sanctuary-goal-medal > svg, .goal-card .sanctuary-goal-creature { width: 40px; height: 40px; }
+.goal-card h3 { margin: 0; font: 700 15px Georgia, serif; }
+.goal-card p { margin: 0; font-size: 13px; }
+.goal-card-status { color: #5a4a2a; }
+.goal-card.complete { border-color: #497244; background: #eef3dc; }
+
+/* Release: only its label at rest; the clearing lights up when a creature is chosen or dragged. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash[data-drop-allowed='false'] {
+  background: none; border-color: transparent; box-shadow: none; color: #4a4232; text-shadow: 0 1px 2px #fff8e6;
+}
+
+/* Goals dialog: full width of the modal, never a horizontal scrollbar. */
+.inspector-wide[data-slot='dialog-content'] { width: min(96vw, 1100px); max-width: min(96vw, 1100px); overflow-x: hidden; }
+.inspector-wide .inspection-body { overflow-x: hidden; }
+.goal-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .goal-cards { grid-template-columns: 1fr; } }
+
+/* Others: name left, abilities and goals centred, points right; boards keep their aspect. */
+.table-board-card h3 { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.table-board-card h3 > .player-resources.compact { justify-content: center; flex-wrap: nowrap; min-width: 0; gap: 14px; }
+.table-board-card h3 .player-resources.compact .nature-reserves { gap: 6px; flex-wrap: nowrap; }
+.table-board-card h3 .player-resources.compact .nature-reserves > div { padding: 4px 8px; gap: 5px; font-size: 13px; font-weight: 700; }
+.table-board-card h3 .player-resources.compact .nature-reserves dt { gap: 0; }
+.table-board-card h3 .player-resources.compact .sanctuary-goals,
+.table-board-card h3 .player-resources.compact .sanctuary-goals.piece { border-left: 1px dashed #9b8c69; padding: 0 0 0 14px; margin-left: 2px; gap: 14px; background: none; box-shadow: none; }
+.table-board-card h3 .player-resources.compact .sanctuary-goal.piece,
+.table-board-card h3 .player-resources.compact .sanctuary-goal { min-width: 44px; width: auto; }
+.table-board-card h3 .player-resources.compact .sanctuary-goal-count { font-size: 10px; }
+.table-board-card .mora-board.mini-board { width: 100%; max-width: 100%; height: auto; overflow: hidden; }
+.table-board-card .mora-board.mini-board .mora-landscape { object-fit: fill; }
+.all-boards-grid { overflow-x: hidden; }
+/* Miniature boards are bare artwork plus creatures: no pad outlines, trail numbers or rings. */
+.mora-board.mini-board .mora-nest::before, .mora-board.mini-board .mora-nest::after { content: none; }
+.mora-board.mini-board .mora-trail-step { display: none; }
+.mora-board.mini-board .mora-habitat, .mora-board.mini-board .mora-habitat-inner { outline: none !important; box-shadow: none; background: transparent; }
+.mora-board.mini-board .mora-habitat::after { content: none; }
+.mora-board.mini-board .mora-legacy-creatures { display: none; }
+
+/* Actions as tall as their neighbours; goals shrink with the dock on smaller landscape screens. */
+@media (orientation: landscape) and (min-height: 501px) {
+  .at-table .table-layout[data-environment='observatory'] .extension-action { width: 66px; height: 88px; }
+  .at-table .table-layout[data-environment='observatory'] .extension-action svg { width: 30px; height: 30px; }
+}
+@media (orientation: landscape) and (min-height: 501px) and ((max-width: 1200px) or (max-height: 800px)) {
+  .at-table .table-layout[data-environment='observatory'] .extension-action { width: 58px; height: 76px; }
+  .at-table .table-layout[data-environment='observatory'] .extension-action svg { width: 26px; height: 26px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements { padding: 3px 10px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goals { gap: 10px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal.piece { min-width: 52px; gap: 3px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-medal { width: 36px; height: 36px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-medal > svg,
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-creature { width: 27px; height: 27px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-reward { min-width: 18px; height: 15px; font-size: 9px; right: -5px; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-count { font-size: 10px; padding: 0 .4em; }
+}
+
+/* Others: the same island language as the toolbar, aligned under the menu. */
+.at-table .table-layout[data-environment='observatory'] .table-board-chip {
+  height: 36px; min-width: 76px; padding: 0 12px; border-radius: 18px; gap: 7px; justify-content: center;
+  background: #f8f2e5f2; border: 1px solid #9caa86; color: #293726; box-shadow: 0 2px 5px #23352c30;
+  font: 600 13px/1 Georgia, serif; letter-spacing: 0;
+}
+.at-table .table-layout[data-environment='observatory'] .table-board-button:hover .table-board-chip { background: #fffbed; }
+.at-table .table-layout[data-environment='observatory'] .table-board-button:active .table-board-chip { transform: translateY(1px); box-shadow: 0 1px 2px #23352c30; }
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .table-board-chip { height: 32px; min-width: 44px; font-size: 12px; padding: 0; }
+}
+
+/* The bold keyword is plain inline text; only the score wears the pill. */
+.mora-ground-label small b { display: inline; min-width: 0; padding: 0; margin: 0; background: none; border: 0; border-radius: 0; text-shadow: none; }
+/* Placed creatures accept a tap or grab a little outside their outline. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature { position: relative; overflow: visible; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature::before { content: ''; position: absolute; inset: -22%; border-radius: 50%; }
+
+/* Keyword: plain inline bold on the same baseline as the rest of the line. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small b,
+.mora-board .mora-ground-label small b {
+  display: inline; min-width: 0; padding: 0; margin: 0; background: none; border: 0; border-radius: 0; text-shadow: none;
+  font-size: inherit; line-height: inherit; vertical-align: baseline; color: #2f4a30; font-weight: 700;
+}
+/* Rings wrap the pads only and end above the card; cards keep sitting below their group. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target::after { inset: -8% -10%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-4.legal-region::after { inset: -5% -18%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-6.legal-region::after { inset: -14% -20%; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-ground-label { overflow: visible; }
+@media (orientation: landscape) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash { width: 9%; height: 8.5%; }
+}
+/* While a ring shows, the card turns opaque and sits above it, so the ring reads as ending at the card's border. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-ground-label,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region .mora-ground-label,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target .mora-ground-label { background: #f3eddd; z-index: 5; }
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region::after,
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target::after { z-index: 1; }
+/* Glasshouse trail: a tighter ring sitting a little lower, clear of the release clearing. */
+@media (orientation: landscape) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-3.legal-region::after,
+  .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-3.prepared-region::after,
+  .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-3.drag-target::after { inset: 4% -6% -10%; }
+}

@@ -60,7 +60,7 @@ async function act(client, path, t, action, requestId = randomUUID()) {
   });
 }
 
-test('HTTP accounts, guest identity, authorization, renamed guests and logout', async () => {
+await test('HTTP accounts, guest identity, authorization, renamed guests and logout', async () => {
   const { app, client } = await fixture();
   try {
     const anon = client();
@@ -135,7 +135,7 @@ test('HTTP accounts, guest identity, authorization, renamed guests and logout', 
     await app.close();
   }
 });
-test('move confirmation preferences follow accounts and guests keep browser defaults', async () => {
+await test('move confirmation preferences follow accounts and guests keep browser defaults', async () => {
   const { app, client } = await fixture();
   try {
     const anonymous = client();
@@ -169,7 +169,7 @@ test('move confirmation preferences follow accounts and guests keep browser defa
     await app.close();
   }
 });
-test('SSE sends only viewer state, tracks presence and reconnects; moves deduplicate', async () => {
+await test('SSE sends only viewer state, tracks presence and reconnects; moves deduplicate', async () => {
   const { app, client } = await fixture();
   const controller = new AbortController();
   try {
@@ -255,7 +255,7 @@ test('SSE sends only viewer state, tracks presence and reconnects; moves dedupli
     await app.close();
   }
 });
-test('real bot worker advances an online turn', async () => {
+await test('real bot worker advances an online turn', async () => {
   const { app, client } = await fixture(true);
   try {
     const { host, path } = await hostTable(client);
@@ -276,19 +276,21 @@ test('real bot worker advances an online turn', async () => {
       })
     ).data;
     const deadline = Date.now() + 8000;
-    while (t.game.active === 1 && Date.now() < deadline) {
+    while (t.game.pick < 2 && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 100));
       t = (await host.request(path)).data;
     }
     assert.equal(t.botError, false);
-    assert.equal(t.game.active, 0);
-    assert.equal(t.game.revision, 2);
+    assert.equal(t.game.pick, 2);
+    assert.ok(t.game.players.every((player) => player.zones[0].length === 1));
+    // The bot may already have submitted its hidden choice for the next pick.
+    assert.ok(t.game.revision === 2 || t.game.revision === 3);
   } finally {
     await app.close();
   }
 });
 
-test('development permits alternate local origins while production rejects them', async () => {
+await test('development permits alternate local origins while production rejects them', async () => {
   const previous = process.env.NODE_ENV;
   try {
     for (const mode of ['development', 'production']) {
@@ -297,7 +299,11 @@ test('development permits alternate local origins while production rejects them'
       try {
         const { path } = await hostTable(client);
         const guest = client();
-        const joined = await guest.request(path + '/join', { name: 'Local tester' }, { Origin: 'http://127.0.0.1:4317' });
+        const joined = await guest.request(
+          path + '/join',
+          { name: 'Local tester' },
+          { Origin: 'http://127.0.0.1:4317' },
+        );
         assert.equal(joined.status, mode === 'development' ? 200 : 403);
       } finally {
         await app.close();

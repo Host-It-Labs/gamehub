@@ -44,3 +44,6 @@ next-env.d.ts
 *.sqlite-shm
 *.tsbuildinfo
 !.env.example
+
+# per-conversation worktree environments (created by the harness)
+/.worktrees/

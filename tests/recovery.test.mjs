@@ -12,7 +12,7 @@ import {
   digest,
 } from '../server/auth.ts';
 
-test('password reset revokes sessions; consistent backups restore and refuse overwrite', async () => {
+await test('password reset revokes sessions; consistent backups restore and refuse overwrite', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'gamehub-recovery-')),
     path = join(dir, 'live.sqlite'),
     backup = join(dir, 'backup.sqlite');

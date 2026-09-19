@@ -8,7 +8,7 @@ export const lessons: Record<
       target: 'hand',
       action: 'pass',
       title: 'Choose your pass',
-      text: 'Select the required number of cards, then tap Confirm to exchange them with another player.',
+      text: 'Select the required number of cards, then lock your pass to exchange them with another player.',
     },
     {
       target: 'die',
@@ -78,7 +78,7 @@ export const lessons: Record<
       target: 'players',
       action: 'opponent',
       title: 'Check the competition',
-      text: 'Tap a player to view their collection. Tea rewards the biggest collection.',
+      text: 'Tap a player to view their collection. Check the scoring rule: different menus reward different collections.',
     },
   ],
 };

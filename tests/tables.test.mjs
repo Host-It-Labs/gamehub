@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { openDatabase } from '../server/database.ts';
 import { Tables } from '../server/tables.ts';
-import { observe } from '../lib/games/trio/engine.ts';
+import { observe, preparationKey } from '../lib/games/trio/engine.ts';
 import { chooseMove } from '../lib/games/trio/bot.ts';
 const actor = (id, user = false) => ({
   id,
@@ -36,7 +36,7 @@ function command(tables, t, who, action, requestId = randomUUID()) {
   });
 }
 
-test('full human and mixed games for all three games and all supported seat counts', () => {
+await test('full human and mixed games for all three games and all supported seat counts', () => {
   const { db, tables, host } = setup();
   try {
     for (const gameId of ['undertow', 'wildgrove', 'midnight'])
@@ -67,7 +67,12 @@ test('full human and mixed games for all three games and all supported seat coun
             const g = t.game,
               move = chooseMove(observe(g), 'medium');
             if (t.seats[g.active].bot) {
-              tables.botMove(t.token, t.revision, move);
+              tables.botMove(
+                t.token,
+                preparationKey(g, g.active),
+                move,
+                g.active,
+              );
               t = tables.get(t.token);
             } else
               t = command(tables, t, actors[g.active], { type: 'move', move });
@@ -84,7 +89,7 @@ test('full human and mixed games for all three games and all supported seat coun
     db.close();
   }
 });
-test('an invalid or missing bot-worker result falls back to a legal move', () => {
+await test('an invalid or missing bot-worker result falls back to a legal move', () => {
   const { db, tables, host } = setup();
   try {
     let t = tables.create(host);
@@ -97,11 +102,16 @@ test('an invalid or missing bot-worker result falls back to a legal move', () =>
     t = command(tables, t, host, { type: 'start' });
     t = command(tables, t, host, {
       type: 'move',
-      move: chooseMove(observe(t.game), 'medium'),
+      move: chooseMove({ ...observe(t.game, 0), active: 0 }, 'medium'),
     });
     assert.equal(t.seats[t.game.active].bot, true);
     const revision = t.revision;
-    tables.botMove(t.token, revision, null, t.game.active);
+    tables.botMove(
+      t.token,
+      preparationKey(t.game, t.game.active),
+      null,
+      t.game.active,
+    );
     t = tables.get(t.token);
     assert.equal(t.botError, false);
     assert.ok(t.revision > revision);
@@ -109,7 +119,7 @@ test('an invalid or missing bot-worker result falls back to a legal move', () =>
     db.close();
   }
 });
-test('ownership, revisions, idempotency, waiters, bot replacement and reusable links', () => {
+await test('ownership, revisions, idempotency, waiters, bot replacement and reusable links', () => {
   const { db, tables, host, online } = setup();
   try {
     let t = tables.create(host);
@@ -127,7 +137,10 @@ test('ownership, revisions, idempotency, waiters, bot replacement and reusable l
     assert.throws(() => tables.join(t.token, actor('full')), { status: 409 });
     t = command(tables, t, host, { type: 'start' });
     const req = {
-      action: { type: 'move', move: chooseMove(observe(t.game)) },
+      action: {
+        type: 'move',
+        move: chooseMove({ ...observe(t.game, 0), active: 0 }),
+      },
       requestId: randomUUID(),
       revision: t.revision,
       matchId: t.matchId,
@@ -179,7 +192,7 @@ test('ownership, revisions, idempotency, waiters, bot replacement and reusable l
     db.close();
   }
 });
-test('persistent match and deduplication survive reopening SQLite', () => {
+await test('persistent match and deduplication survive reopening SQLite', () => {
   const dir = mkdtempSync(join(tmpdir(), 'gamehub-test-'));
   const path = join(dir, 'data.sqlite');
   let app = setup(path);
@@ -188,7 +201,10 @@ test('persistent match and deduplication survive reopening SQLite', () => {
     let t = app.tables.create(host);
     t = command(app.tables, t, host, { type: 'start' });
     const req = {
-      action: { type: 'move', move: chooseMove(observe(t.game)) },
+      action: {
+        type: 'move',
+        move: chooseMove({ ...observe(t.game, 0), active: 0 }),
+      },
       requestId: randomUUID(),
       revision: t.revision,
       matchId: t.matchId,
@@ -210,7 +226,7 @@ test('persistent match and deduplication survive reopening SQLite', () => {
   }
 });
 
-test('host expansion choice reaches shared game and five-card exchange is accepted', () => {
+await test('host expansion choice reaches shared game and five-card exchange is accepted', () => {
   const { db, tables, host } = setup();
   try {
     let t = tables.create(host);
@@ -219,13 +235,15 @@ test('host expansion choice reaches shared game and five-card exchange is accept
       gameId: 'undertow',
       capacity: 2,
       difficulty: 'medium',
-      starter: true,
+      shields: true,
     });
     t = tables.join(t.token, actor('guest'));
-    assert.equal(tables.view(t, host).starter, true);
+    assert.equal(tables.view(t, host).shields, true);
     t = command(tables, t, host, { type: 'start' });
-    assert.equal(t.game.starter, true);
-    assert.ok(t.game.players.every((p) => p.wards === 2 && p.tacks === 1));
+    assert.equal(t.game.shields, true);
+    assert.ok(
+      t.game.players.every((p) => p.wards === 2 && p.salvageClaims === 0),
+    );
     t = command(tables, t, host, {
       type: 'move',
       move: {
@@ -239,7 +257,7 @@ test('host expansion choice reaches shared game and five-card exchange is accept
   }
 });
 
-test('simultaneous human commands from the same update are accepted once per seat', () => {
+await test('simultaneous human commands from the same update are accepted once per seat', () => {
   const { db, tables, host } = setup();
   const guest = actor('guest');
   let t = tables.create(host);
@@ -275,7 +293,7 @@ test('simultaneous human commands from the same update are accepted once per sea
   db.close();
 });
 
-test('lobby suggestions are shared, toggle per member, and disappear when a guest leaves', () => {
+await test('lobby suggestions are shared, toggle per member, and disappear when a guest leaves', () => {
   const { db, tables, host } = setup();
   try {
     const guest = actor('guest');
@@ -316,7 +334,7 @@ test('lobby suggestions are shared, toggle per member, and disappear when a gues
   }
 });
 
-test('shared practice accepts moves while only the host controls lessons and a fresh real match', () => {
+await test('shared practice accepts moves while only the host controls lessons and a fresh real match', () => {
   const { db, tables, host } = setup();
   try {
     for (const gameId of ['undertow', 'wildgrove', 'midnight']) {
@@ -374,7 +392,7 @@ test('shared practice accepts moves while only the host controls lessons and a f
   }
 });
 
-test('Tide Fast mode survives settings, shared practice, and match start', () => {
+await test('Tide Fast mode survives settings, shared practice, and match start', () => {
   const { db, tables, host } = setup();
   try {
     let t = tables.create(host);
@@ -383,7 +401,7 @@ test('Tide Fast mode survives settings, shared practice, and match start', () =>
       gameId: 'undertow',
       difficulty: 'easy',
       capacity: 3,
-      starter: true,
+      shields: true,
     };
     t = command(tables, t, host, { ...settings, fastMode: true });
     assert.equal(tables.view(t, host).fastMode, true);
@@ -394,7 +412,7 @@ test('Tide Fast mode survives settings, shared practice, and match start', () =>
     );
     t = command(tables, t, host, { type: 'start', learning: true });
     assert.equal(t.game.fastMode, true);
-    assert.equal(t.game.starter, true);
+    assert.equal(t.game.shields, true);
     assert.ok(
       t.game.players.every(
         (p) => p.hand.length === 8 && p.hand.every((c) => c.rank <= 5),

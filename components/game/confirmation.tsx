@@ -122,11 +122,8 @@ export function ConfirmMoves({
 
 import {
   canAct,
-  simultaneous,
   validMove,
   passCount,
-  cardName,
-  habitats,
   type PublicGame,
   type Move,
 } from '@/lib/games/trio/engine';
@@ -137,8 +134,8 @@ export function MoveConfirmation({
   passed,
   zone,
   ward,
-  tack,
   festivalChoice = {},
+  natureChoice = {},
   enabled,
   onConfirm,
   onClear,
@@ -150,7 +147,10 @@ export function MoveConfirmation({
   passed: number[];
   zone: number | null;
   ward: boolean;
-  tack: boolean;
+  natureChoice?: {
+    roam?: boolean;
+    migration?: { card: number; from: number; to: number };
+  };
   festivalChoice?: { order?: number; stall?: boolean };
   enabled: boolean;
   onConfirm: (move: Move) => void;
@@ -171,56 +171,78 @@ export function MoveConfirmation({
                 type: 'play',
                 card: selected,
                 ...festivalChoice,
+                ...natureChoice,
                 ...(g.id === 'wildgrove' ? { zone: zone ?? -1 } : {}),
                 ...(ward ? { ward: true } : {}),
-                ...(tack ? { tack: true } : {}),
               }
             : null;
-  const card = g.players[viewer].hand.find((c) => c.id === selected);
-  const text = disabled
-    ? 'Connecting or saving…'
-    : !canAct(g, viewer) && simultaneous(g)
-      ? 'Waiting for other players'
-      : g.phase === 'roll'
-        ? canAct(g, viewer)
-          ? 'Rolling the die…'
-          : 'The die rolls automatically'
-        : choice?.type === 'pass'
-          ? `${passed.length} of ${passCount(g)} cards selected to pass`
-          : card
-            ? `${cardName(g.id, card)}${zone !== null ? ` → ${habitats[zone].name}` : g.id === 'wildgrove' ? ' · choose a habitat' : ''}${ward ? ' + Shield' : ''}${tack ? ' + Tack' : ''}${festivalChoice.stall ? ' + open stall' : ''}${festivalChoice.order !== undefined ? ' + customer order' : ''}`
-            : g.phase === 'over'
-              ? 'Game complete'
-              : canAct(g, viewer)
-                ? enabled || g.phase === 'pass'
-                  ? g.phase === 'pass'
-                    ? `Choose ${passCount(g)} cards to pass`
-                    : 'Your turn · choose a move'
-                  : 'Your turn · tap or drop to play'
-                : `${g.players[g.active].name}’s turn`;
-  return (
-    <div
-      className={`preparation-slot ${canAct(g, viewer) && !disabled ? 'is-your-turn' : ''}`}
-    >
-      <div className="prepared-move" aria-live="polite">
-        <span>{text}</span>
-        <div className="move-actions">
-          {choice && (
-            <button
-              className="primary"
-              disabled={disabled || !validMove(g, choice, viewer)}
-              onClick={() => onConfirm(choice)}
-            >
-              Confirm
-            </button>
-          )}
-          {(selected !== null || passed.length > 0) && (
-            <button className="secondary" onClick={onClear}>
-              Clear
-            </button>
-          )}
-        </div>
+  const [salvageDraft, setSalvageDraft] = useState<{
+    key: string;
+    claim: boolean;
+  } | null>(null);
+  const key = `${g.round}:${g.pick}:${g.phase}`;
+  const salvageChoice = salvageDraft?.key === key ? salvageDraft.claim : null;
+  if (g.phase === 'salvage')
+    return canAct(g, viewer) ? (
+      <div
+        className="hand-confirmation salvage-decision"
+        aria-label="Secret Salvage decision"
+      >
+        <button
+          className={salvageChoice === true ? 'primary' : 'secondary'}
+          aria-pressed={salvageChoice === true}
+          disabled={disabled}
+          onClick={() => setSalvageDraft({ key, claim: true })}
+        >
+          Claim · −6 / +3
+        </button>
+        <button
+          className={salvageChoice === false ? 'primary' : 'secondary'}
+          aria-pressed={salvageChoice === false}
+          disabled={disabled}
+          onClick={() => setSalvageDraft({ key, claim: false })}
+        >
+          Pass
+        </button>
+        <button
+          className="primary confirm-action"
+          disabled={disabled || salvageChoice === null}
+          onClick={() => {
+            if (salvageChoice !== null)
+              onConfirm({ type: 'salvage', claim: salvageChoice });
+          }}
+        >
+          Lock choice
+        </button>
       </div>
+    ) : null;
+  if (
+    (!enabled && g.phase !== 'pass') ||
+    !canAct(g, viewer) ||
+    g.phase === 'roll' ||
+    g.phase === 'over'
+  )
+    return null;
+  return (
+    <div className="hand-confirmation" aria-label="Confirm prepared move">
+      <button
+        className="primary confirm-action"
+        disabled={disabled || !choice || !validMove(g, choice, viewer)}
+        onClick={() => {
+          if (choice) onConfirm(choice);
+        }}
+      >
+        {g.phase === 'pass'
+          ? `Pass ${passed.length}/${passCount(g)}`
+          : 'Confirm move'}
+      </button>
+      <button
+        className="secondary"
+        disabled={disabled || (selected === null && passed.length === 0)}
+        onClick={onClear}
+      >
+        Clear
+      </button>
     </div>
   );
 }

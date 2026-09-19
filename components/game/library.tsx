@@ -1,15 +1,8 @@
 'use client';
-import { ArtworkImage, ArtworkLoading } from './artwork';
+import { type CSSProperties } from 'react';
+import { ArtworkImage } from './artwork';
 import { Play, ArrowRight } from 'lucide-react';
 import { catalog, type Game, type GameId } from '@/lib/games/trio/engine';
-const soon = [
-  { name: 'Orbit', genre: 'Connect the stars', symbol: '☄', color: '#343f69' },
-  { name: 'Bloom', genre: 'Grow a garden', symbol: '✿', color: '#8a5970' },
-  { name: 'Stack', genre: 'Balance & build', symbol: '▥', color: '#b37b3d' },
-  { name: 'Rally', genre: 'Race to the finish', symbol: '⚑', color: '#496f67' },
-  { name: 'Mosaic', genre: 'Make a pattern', symbol: '❖', color: '#7970a1' },
-  { name: 'Cove', genre: 'Find the treasure', symbol: '◈', color: '#42768a' },
-];
 export function Library({
   saves,
   onSetup,
@@ -20,27 +13,44 @@ export function Library({
   onResume: (g: Game) => void;
 }) {
   return (
-    <main className="library-page">
-      <ArtworkLoading game="library" />
-      <div className="library-heading">
-        <h1>Games</h1>
-        <span>3 games available · 6 coming soon</span>
-      </div>
-      <div className="library-grid">
+    <main className="library-page box-library" aria-label="Games">
+      <div className="library-grid box-shelf">
         {catalog.map((c) => (
-          <article className={`game-tile ${c.id}`} key={c.id}>
+          <article className={`game-tile game-box ${c.id}`} key={c.id}>
             <button
-              className="cover"
+              className="cover box-object"
               onClick={() => onSetup(c.id)}
               aria-label={`Play ${c.name}`}
             >
-              <ArtworkImage
-                width={960}
-                height={640}
-                src={c.cover}
-                alt={c.name}
-                draggable={false}
-              />
+              {c.id === 'wildgrove' &&
+                Array.from({ length: 16 }, (_, layer) => (
+                  <span
+                    key={layer}
+                    className="box-stone-layer"
+                    aria-hidden="true"
+                    style={{ '--stone-layer': layer + 1 } as CSSProperties}
+                  />
+                ))}
+              <span className="box-back" aria-hidden="true" />
+              <span className="box-top" aria-hidden="true" />
+              <span className="box-spine" aria-hidden="true">
+                {c.name}
+              </span>
+              <span className="box-front">
+                <ArtworkImage
+                  width={c.id === 'undertow' ? 1024 : 1122}
+                  height={c.id === 'undertow' ? 1536 : 1402}
+                  sizes={
+                    c.id === 'undertow'
+                      ? '(min-width: 1024px) 324px, (max-width: 480px) 212px, 240px'
+                      : '(min-width: 1024px) 400px, (max-width: 480px) 264px, 296px'
+                  }
+                  src={`/art/box-${c.id}-v2.png`}
+                  alt={c.name}
+                  draggable={false}
+                />
+                <span className="cover-wordmark">{c.name}</span>
+              </span>
             </button>
             <div className="tile-details">
               <span className="genre">{c.genre}</span>
@@ -60,23 +70,6 @@ export function Library({
                   </button>
                 )}
               </div>
-            </div>
-          </article>
-        ))}
-        {soon.map((c) => (
-          <article
-            className="game-tile coming-soon"
-            aria-label={`${c.name}, coming soon`}
-            key={c.name}
-          >
-            <div className="soon-cover" style={{ background: c.color }}>
-              <span aria-hidden="true">{c.symbol}</span>
-              <h2>{c.name}</h2>
-              <small>Coming soon</small>
-            </div>
-            <div className="tile-details">
-              <span className="genre">{c.genre}</span>
-              <span className="soon-note">Not available yet</span>
             </div>
           </article>
         ))}

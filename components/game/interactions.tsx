@@ -17,7 +17,7 @@ import {
   HOLD_MS,
   type Gesture,
 } from '@/lib/games/trio/gesture';
-export type Inspection = { title: string; art?: ReactNode; body: ReactNode };
+export type Inspection = { title: string; art?: ReactNode; body: ReactNode; wide?: boolean };
 export type Inspect = (item: Inspection, source?: HTMLElement) => void;
 export function Piece({
   children,

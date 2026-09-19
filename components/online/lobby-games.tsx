@@ -80,9 +80,9 @@ export function LobbyGames({ table, disabled, dispatch }: Props) {
                           gameId: game.id,
                           capacity: table.capacity,
                           difficulty: table.difficulty,
-                          starter:
+                          shields:
                             game.id === table.gameId &&
-                            (table.starter ?? false),
+                            (table.shields ?? false),
                         })
                       }
                     >

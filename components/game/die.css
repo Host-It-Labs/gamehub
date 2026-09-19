@@ -1,0 +1,60 @@
+/* The die: one real cube shared by every table. A game sets only its size and
+   material through the custom properties below; the geometry, the seams and
+   the tumble live here so no table can lose its corners again.
+   Faces are near-square on purpose: a rounded face on a cube leaves the corner
+   of every edge open, and whatever sits behind the die shows through (dark on
+   Nox, invisible on Mora's paper tag). The bevel comes from the inset light. */
+.dice-token .die-display:has(.die-cube-scene) {
+  position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; gap: 0; padding: 2px 0 0;
+}
+.dice-token .die-cube-scene {
+  --die-size: 34px;
+  --die-face: #f3ecd8; --die-face-light: #fbf7ec; --die-face-dark: #d9d0b8; --die-face-side: #e6dec8;
+  --die-edge: #fffdf5; --die-shade: #c9bea3; --die-ink: #2f4a30; --die-shadow: #0e1a1288;
+  position: relative; display: block; width: var(--die-size); height: var(--die-size); margin: 0 auto;
+  perspective: calc(var(--die-size) * 7.6); perspective-origin: 55% 35%;
+}
+.dice-token .die-cube {
+  position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d;
+  transform: rotateX(-18deg) rotateY(-24deg) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+}
+.dice-token .die-cube.die-rolling { animation: die-tumble 900ms cubic-bezier(.2, .8, .3, 1); }
+.dice-token .die-face {
+  position: absolute; inset: 0; display: grid; place-items: center; backface-visibility: hidden;
+  border: 0; border-radius: 1.5px; background: var(--die-face); color: var(--die-ink);
+  font: 700 calc(var(--die-size) * .53) / 1 Georgia, serif;
+  box-shadow: inset 0 0 0 1.5px var(--die-edge), inset 0 0 calc(var(--die-size) * .18) var(--die-shade);
+}
+.dice-token .die-face-0 { transform: translateZ(calc(var(--die-size) / 2)); }
+.dice-token .die-face-1 { transform: rotateY(90deg) translateZ(calc(var(--die-size) / 2)); background: var(--die-face-side); }
+.dice-token .die-face-2 { transform: rotateY(180deg) translateZ(calc(var(--die-size) / 2)); }
+.dice-token .die-face-3 { transform: rotateY(-90deg) translateZ(calc(var(--die-size) / 2)); background: var(--die-face-side); }
+.dice-token .die-face-4 { transform: rotateX(90deg) translateZ(calc(var(--die-size) / 2)); background: var(--die-face-light); }
+.dice-token .die-face-5 { transform: rotateX(-90deg) translateZ(calc(var(--die-size) / 2)); background: var(--die-face-dark); }
+.dice-token .die-face .die-suit { display: block; line-height: 1; }
+.dice-token .die-face .mora-die-symbol { width: 74%; height: 74%; }
+.dice-token .die-face .mora-die-map { width: 80%; height: 80%; }
+/* The shadow pool under the cube. */
+.dice-token .die-cube-scene::after {
+  content: ''; position: absolute; left: 2px; right: -4px; bottom: calc(var(--die-size) * -.26); height: 8px; border-radius: 50%;
+  background: radial-gradient(ellipse, var(--die-shadow), transparent 70%); z-index: -1;
+}
+/* A two-line caption slot, so the token never changes size between results. */
+.dice-token .die-display:has(.die-cube-scene) .die-caption {
+  width: 100%; max-width: none; height: 2.3em; margin-top: 12px; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; white-space: normal; text-align: center; text-shadow: none; font: 700 10px/1.15 Georgia, serif;
+}
+@keyframes die-tumble {
+  0% { transform: translateY(-22px) rotateX(-18deg) rotateY(-24deg) rotateX(calc(var(--rx, 0deg) + 540deg)) rotateY(calc(var(--ry, 0deg) + 720deg)); }
+  55% { transform: translateY(4px) rotateX(-18deg) rotateY(-24deg) rotateX(calc(var(--rx, 0deg) + 30deg)) rotateY(calc(var(--ry, 0deg) - 40deg)); }
+  75% { transform: translateY(-4px) rotateX(-18deg) rotateY(-24deg) rotateX(calc(var(--rx, 0deg) - 8deg)) rotateY(calc(var(--ry, 0deg) + 10deg)); }
+  100% { transform: rotateX(-18deg) rotateY(-24deg) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+}
+/* Phones: a smaller cube in the dock row. */
+@media (orientation: portrait) {
+  .dice-token .die-cube-scene { --die-size: 22px; }
+  .dice-token .die-display:has(.die-cube-scene) .die-caption { margin-top: 6px; font-size: 8px; height: 2.2em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dice-token .die-cube.die-rolling { animation: none; }
+}

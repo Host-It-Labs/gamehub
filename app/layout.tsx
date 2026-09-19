@@ -3,7 +3,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Gamehub — Your little corner of play',
   description:
-    'Three original tabletop escapes. Play Undertow, Wildgrove, and Midnight Market with tutorials and three bot levels.',
+    'Three original tabletop escapes. Play Nox, Mora, and Yata with tutorials and three bot levels.',
 };
 export const viewport: Viewport = {
   width: 'device-width',

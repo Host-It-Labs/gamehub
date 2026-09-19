@@ -12,9 +12,17 @@ export default function Gamehub() {
   );
   if (path === null)
     return (
-      <div className="app">
-        <output className="online-card">Loading Gamehub…</output>
-      </div>
+      <main className="startup-loading" aria-busy="true">
+        <output className="startup-loading-content">
+          <span className="startup-tiles" aria-hidden="true">
+            <i>✦</i>
+            <i>✿</i>
+            <i>☾</i>
+          </span>
+          <strong>Gamehub</strong>
+          <span>A little moment before we play</span>
+        </output>
+      </main>
     );
   if (path === '/auth') return <Account />;
   if (path === '/tables') return <MyTables />;

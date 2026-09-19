@@ -1,5 +1,6 @@
 import type {
   Difficulty,
+  GameOptions,
   GameId,
   Move,
   Observation,
@@ -15,12 +16,13 @@ export type Member = {
   seat: number | null;
   bot: boolean;
 };
-export type Table = {
+export type Table = GameOptions & {
   token: string;
   gameId: GameId;
   difficulty: Difficulty;
-  starter?: boolean;
-  nightMarket?: boolean;
+  shields?: boolean;
+  customerOrders?: boolean;
+  sanctuaryGoalsEnabled?: boolean;
   fastMode?: boolean;
   capacity: number;
   revision: number;
@@ -37,10 +39,18 @@ export type Table = {
 export type TableCommand =
   | {
       type: 'configure';
+      contentSet?: GameOptions['contentSet'];
+      roamEnabled?: boolean;
+      turningTide?: boolean;
+      marketSeasons?: boolean;
+      migration?: boolean;
+      salvage?: boolean;
+      specialtyStalls?: boolean;
       gameId: GameId;
       difficulty: Difficulty;
-      starter?: boolean;
-  nightMarket?: boolean;
+      shields?: boolean;
+      customerOrders?: boolean;
+      sanctuaryGoalsEnabled?: boolean;
       fastMode?: boolean;
       capacity: number;
     }

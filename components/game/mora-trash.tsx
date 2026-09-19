@@ -1,7 +1,16 @@
 'use client';
+import type { CSSProperties } from 'react';
 import { canAct, type PublicGame } from '@/lib/games/trio/engine';
 
-export function MoraTrash({ g, viewer, selected, preparedZone, onPlace }: {
+export function MoraTrash({
+  g,
+  viewer,
+  selected,
+  preparedZone,
+  onPlace,
+  style,
+}: {
+  style?: CSSProperties;
   g: PublicGame;
   viewer: number;
   selected: number | null;
@@ -12,16 +21,19 @@ export function MoraTrash({ g, viewer, selected, preparedZone, onPlace }: {
   const allowed = g.phase === 'play' && canAct(g, viewer) && selected !== null;
   return (
     <button
+      style={style}
       type="button"
       className={`mora-trash ${preparedZone === 5 ? 'prepared' : ''}`}
       data-drop="zone:5"
       data-drop-allowed={allowed ? 'true' : 'false'}
-      aria-label="Trash selected creature for zero points. It leaves the board and uses this turn."
+      aria-label="Release selected creature for zero points. It leaves the board and uses this turn."
       aria-disabled={!allowed}
-      title="Trash a creature · 0 points · always available"
-      onClick={() => { if (allowed) onPlace(5); }}
+      title="Release a creature · 0 points · always available"
+      onClick={() => {
+        if (allowed) onPlace(5);
+      }}
     >
-      <span>Discard · 0 pts</span>
+      <span>Release · 0 pts</span>
     </button>
   );
 }

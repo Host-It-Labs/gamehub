@@ -2,8 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createGame,
-  deck,
-  handSize,
   tideRanks,
   tidePenaltyRank,
   tidePenaltyValue,
@@ -16,7 +14,7 @@ import {
 } from '../lib/games/trio/engine.ts';
 import { chooseMove, determinize } from '../lib/games/trio/bot.ts';
 
-test('both Tide modes deal equal hands and complete at every seat count with and without Safe Harbour', () => {
+await test('both Tide modes deal equal hands and complete at every seat count with and without Safe Harbour', () => {
   for (const fast of [false, true])
     for (const expansion of [false, true])
       for (let seats = 2; seats <= 6; seats++) {
@@ -65,7 +63,7 @@ test('both Tide modes deal equal hands and complete at every seat count with and
       }
 });
 
-test('only the matching 8 or fast 4 costs its mode bonus; Storm remains rank-valued', () => {
+await test('only the matching 8 or fast 4 costs its mode bonus; Storm remains rank-valued', () => {
   for (const fast of [false, true]) {
     const g = createGame('undertow', 'easy', 1, false, 3, false, fast);
     for (let rank = 1; rank <= tideRanks(g); rank++) {
@@ -89,26 +87,13 @@ test('only the matching 8 or fast 4 costs its mode bonus; Storm remains rank-val
   }
 });
 
-test('pre-update saved Tide matches retain twelve ranks and the nine penalty', () => {
+await test('pre-update rules versions cannot resume', () => {
   const g = createGame('undertow');
-  delete g.fastMode;
-  const cards = deck('undertow', 1, 12);
-  g.players.forEach((p) => {
-    p.hand = cards.splice(0, 20);
-  });
-  g.reserve = cards;
-  g.memory = g.players.map(() => ({}));
-  assert.equal(handSize(g), 20);
-  assert.equal(tidePenaltyRank(g), 9);
-  assert.ok(isSavedGame(g));
-  const simulation = determinize(observe(g), () => 0.5);
-  assert.equal(simulation.players.flatMap((p) => p.hand).length, 60);
-  assert.ok(
-    simulation.players.flatMap((p) => p.hand).some((c) => c.rank === 12),
-  );
+  g.version = 3;
+  assert.equal(isSavedGame(g), false);
 });
 
-test('Tide AI uses Fast mode card bounds, exchange size, and hazard value', () => {
+await test('Tide AI uses Fast mode card bounds, exchange size, and hazard value', () => {
   for (const difficulty of ['easy', 'medium', 'hard']) {
     const g = createGame('undertow', difficulty, 77, false, 3, false, true);
     const move = chooseMove(observe(g), difficulty);

@@ -1,5 +1,6 @@
 import {
   rng,
+  migratedZones,
   passCount,
   shuffled,
   deck,
@@ -11,6 +12,8 @@ import {
   tidePenaltyValue,
   tideRanks,
   zoneScore,
+  lowTide,
+  sanctuaryBonus,
   foodScore,
   festivalBreakdown,
   orderProgress,
@@ -27,11 +30,28 @@ const best = <T>(a: T[], f: (x: T) => number) => {
   let value = f(winner);
   for (let i = 1; i < a.length; i++) {
     const next = f(a[i]);
-    if (next > value) { winner = a[i]; value = next; }
+    if (next > value) {
+      winner = a[i];
+      value = next;
+    }
   }
   return winner;
 };
-export function heuristic(g: Game | Observation, m: Move) {
+export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
+  if (m.type === 'salvage') {
+    if (!m.claim) return 0;
+    const hand = g.players[g.active].hand;
+    const strengths = Array.from({ length: 5 }, (_, kind) => {
+      const ranks = hand.filter((c) => c.kind === kind).map((c) => c.rank);
+      if (!ranks.length) return 0;
+      const edge = lowTide(g)
+        ? (tideRanks(g) + 1 - Math.min(...ranks)) / tideRanks(g)
+        : Math.max(...ranks) / tideRanks(g);
+      return edge ** Math.max(1, g.players.length - 1);
+    });
+    const chance = strengths.reduce((a, b) => a + b, 0) / 5;
+    return 9 * chance - 3 - (hand.length > 4 ? 0.7 : 0.15);
+  }
   if (m.type !== 'play') return 0;
   const p = g.players[g.active],
     c = p.hand.find((c) => c.id === m.card)!;
@@ -41,7 +61,16 @@ export function heuristic(g: Game | Observation, m: Move) {
         0,
         ...g.trick.filter((t) => t.card.kind === lead).map((t) => t.card.rank),
       );
-    const wins = c.kind === lead && c.rank > high,
+    const wins =
+        c.kind === lead &&
+        (lowTide(g)
+          ? c.rank <
+            Math.min(
+              ...g.trick
+                .filter((t) => t.card.kind === lead)
+                .map((t) => t.card.rank),
+            )
+          : c.rank > high),
       pot =
         penalty(c, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g)) +
         g.trick.reduce(
@@ -51,30 +80,59 @@ export function heuristic(g: Game | Observation, m: Move) {
           0,
         );
     const last = g.trick.length === g.players.length - 1;
+    const strength = lowTide(g) ? tideRanks(g) + 1 - c.rank : c.rank;
+    const captureChance = wins
+      ? last
+        ? 1
+        : (strength / tideRanks(g)) ** (g.players.length - g.trick.length - 1)
+      : 0;
+    const myClaim = (g.salvageClaimants ?? []).includes(g.active);
+    // Revealed claims are public: deny a rival's −6 reward / +3 failure swing
+    // when taking the ordinary penalties is cheaper. Never inspect hidden hands.
+    const rivalsClaiming = (g.salvageClaimants ?? []).filter(
+      (seat) => seat !== g.active,
+    ).length;
+    const salvageValue =
+      captureChance *
+      9 *
+      (myClaim ? 1 : rivalsClaiming ? 1 / (g.players.length - 1) : 0);
     return (
       (wins
-        ? -pot * (last ? 1 : 0.7) - c.rank * 0.3
+        ? -pot * (last ? 1 : 0.7) - strength * 0.3
         : penalty(c, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g)) +
-          c.rank * 0.4) +
+          strength * 0.4) +
       (m.ward ? (wins ? pot / 2 : 0) - (p.hand.length > 4 ? 5 : 2) : 0) +
-      (m.tack ? -(p.hand.length > 4 ? 6 : 1) : 0)
+      salvageValue
     );
   }
   if (g.id === 'wildgrove') {
     const z = m.zone!;
     if (z === 5) return 0;
-    const zones = p.zones.map((area) => [...area]);
+    const zones = m.migration
+      ? migratedZones(p.zones, m.migration)
+      : p.zones.map((area) => [...area]);
     (zones[z] ??= []).push(c);
     const remaining = Math.max(0, (3 - g.round) * 6 - g.pick);
-    const value = (areas: Card[][]) => areas.reduce((sum, _, zone) => sum + zoneScore(areas, zone), 0);
+    const value = (areas: Card[][]) =>
+      areas.reduce(
+        (sum, _, zone) => sum + zoneScore(areas, zone, g.contentSet),
+        0,
+      ) +
+      (g.sanctuaryGoalsEnabled
+        ? sanctuaryBonus(areas, g.sanctuaryGoals, g.contentSet)
+        : 0);
     const current = value(zones);
     let potential = 0;
     // A short completion search values unfinished pairs, herds, and trails
     // using the actual scoring rules, without looking at hidden hands. Charge
     // three points per future pick so speculative completions are not free.
-    const depth = Math.max(0, Math.min(3, remaining, habitats[z].cap - zones[z].length));
+    const depth = Math.max(
+      0,
+      Math.min(lookahead, remaining, habitats[z].cap - zones[z].length),
+    );
     const extend = (steps: number, firstKind: number) => {
-      if (steps > 0) potential = Math.max(potential, value(zones) - current - 3 * steps);
+      if (steps > 0)
+        potential = Math.max(potential, value(zones) - current - 3 * steps);
       if (steps === depth) return;
       for (let kind = firstKind; kind < 6; kind++) {
         zones[z].push({ id: -1, rank: 0, kind });
@@ -83,7 +141,13 @@ export function heuristic(g: Game | Observation, m: Move) {
       }
     };
     extend(0, 0);
-    return current - value(p.zones) + potential * 0.65;
+    return (
+      current -
+      value(p.zones) +
+      potential * 0.65 -
+      (m.migration && remaining > 3 ? 1.5 : 0) -
+      (m.roam ? (remaining > 3 ? 1.5 : 0.3) : 0)
+    );
   }
 
   const opponents = g.players
@@ -92,26 +156,41 @@ export function heuristic(g: Game | Observation, m: Move) {
     old = p.zones[0],
     n = counts(old);
   let festivalValue = 0;
-  if (g.nightMarket && p.festival) {
+  if ((g.customerOrders || g.specialtyStalls) && p.festival) {
     const after = structuredClone(p);
     after.zones[0].push(c);
     if (m.order !== undefined) after.festival!.orders.push(m.order);
-    if (m.stall) after.festival!.stalls.push({ kind: c.kind, from: after.zones[0].length });
+    if (m.stall)
+      after.festival!.stalls.push({
+        kind: c.kind,
+        from: after.zones[0].length,
+      });
     festivalValue = festivalBreakdown(after).total - festivalBreakdown(p).total;
     const order = after.festival!.orders[g.round - 1];
     const beforeProgress = orderProgress(old.slice((g.round - 1) * 6), order);
-    const afterProgress = orderProgress(after.zones[0].slice((g.round - 1) * 6), order);
+    const afterProgress = orderProgress(
+      after.zones[0].slice((g.round - 1) * 6),
+      order,
+    );
     // Value useful progress, but do not double-count the completion reward.
-    if (afterProgress < 3) festivalValue += (afterProgress - beforeProgress) * 1.8;
+    if (afterProgress < 3)
+      festivalValue += (afterProgress - beforeProgress) * 1.8;
     if (m.stall) {
       const future = 12 - after.zones[0].length;
-      const inHand = p.hand.filter((card) => card.id !== c.id && card.kind === c.kind).length;
+      const inHand = p.hand.filter(
+        (card) => card.id !== c.id && card.kind === c.kind,
+      ).length;
       festivalValue += Math.min(4, future * 0.25 + inHand * 0.7) - 1;
     }
   }
   return (
-    festivalValue + foodScore([...old, c], opponents) -
-    foodScore(old, opponents) +
+    (g.marketSeasons &&
+    c.kind === g.seasonForecast?.[(g.round - 1) * 6 + g.pick - 1]
+      ? 2
+      : 0) +
+    festivalValue +
+    foodScore([...old, c], opponents, g.contentSet) -
+    foodScore(old, opponents, g.contentSet) +
     (12 - old.length > 2
       ? c.kind === 0 && n[0] % 2 === 0
         ? 2
@@ -175,6 +254,10 @@ export function determinize(o: Observation, r: () => number): Game {
     passes: o.players.map(() => []),
     memory: o.players.map(() => ({})),
   };
+  if (o.phase === 'salvage') {
+    g.ready = o.players.map((p, i) => i === o.trickLeader || !p.salvageClaims);
+    g.pending = o.players.map(() => null);
+  }
   // Model unrevealed simultaneous choices without reading opponents’ submissions.
   if (o.phase === 'pass' || (o.phase === 'play' && o.id !== 'undertow')) {
     g.ready = o.players.map(() => false);
@@ -225,12 +308,26 @@ export function determinize(o: Observation, r: () => number): Game {
   }
   return g;
 }
+/** Rollouts play plain placements: migrations and roams multiply the legal
+ *  moves several times over and are only worth weighing for the real choice. */
+/** Rollouts value moves with a one-step completion search: cheap enough
+ *  that many more determinizations fit the budget, which beat a deeper
+ *  search with a single sample in hard-versus-medium trials. */
+const ROLLOUT_LOOKAHEAD = 1;
+function rolloutMoves(g: Game): Move[] {
+  const all = legalMoves(g);
+  if (g.id !== 'wildgrove') return all;
+  const plain = all.filter(
+    (m) => m.type !== 'play' || (!m.migration && !m.roam),
+  );
+  return plain.length ? plain : all;
+}
 export function chooseMove(
   o: Observation,
   difficulty: Difficulty = o.difficulty,
   seed = 9341 + o.revision * 7919,
   iterations = 24,
-  budgetMs = 900,
+  budgetMs = o.id === 'wildgrove' ? 600 : 900,
 ): Move {
   const r = rng(seed);
   if (o.phase === 'pass') return passMove(o, difficulty, r);
@@ -242,7 +339,10 @@ export function chooseMove(
     if (o.id !== 'wildgrove') return best(all, (m) => heuristic(o, m));
     // Seeded tie-breaking avoids always preferring the first habitat when
     // several plans have effectively equal value.
-    return best(all.map((move) => ({ move, value: heuristic(o, move) + r() * 0.1 })), (candidate) => candidate.value).move;
+    return best(
+      all.map((move) => ({ move, value: heuristic(o, move) + r() * 0.1 })),
+      (candidate) => candidate.value,
+    ).move;
   }
   const ranked = all.map((move) => ({ move, value: heuristic(o, move) }));
   const distinct = new Set<string>();
@@ -250,7 +350,7 @@ export function chooseMove(
     .sort((a, b) => b.value - a.value)
     .filter(({ move }) => {
       if (o.id !== 'wildgrove' || move.type !== 'play') return true;
-      const key = `${o.players[o.active].hand.find((card) => card.id === move.card)?.kind}:${move.zone}`;
+      const key = `${o.players[o.active].hand.find((card) => card.id === move.card)?.kind}:${move.zone}:${!!move.roam}:${JSON.stringify(move.migration)}`;
       if (distinct.has(key)) return false;
       distinct.add(key);
       return true;
@@ -274,7 +374,7 @@ export function chooseMove(
         const m =
           g.phase === 'pass'
             ? passMove(g, 'medium', r)
-            : best(legalMoves(g), (m) => heuristic(g, m));
+            : best(rolloutMoves(g), (m) => heuristic(g, m, ROLLOUT_LOOKAHEAD));
         g = play(g, m);
       }
       const sc = scores(g),
@@ -289,7 +389,11 @@ export function chooseMove(
               0.35));
     }
     rounds++;
-    if (rounds >= (o.id === 'wildgrove' ? 1 : 3) && performance.now() - start > budgetMs) break;
+    if (
+      rounds >= (o.id === 'wildgrove' ? 1 : 3) &&
+      performance.now() - start > budgetMs
+    )
+      break;
   }
   return best(
     candidates,

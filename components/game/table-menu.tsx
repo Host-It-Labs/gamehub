@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Ellipsis, BookOpen, List, Trophy, Volume2 } from 'lucide-react';
+import { Ellipsis, BookOpen, List, Trophy, Volume2, Maximize, Minimize } from 'lucide-react';
 import {
   Popover,
   PopoverTrigger,
@@ -19,7 +19,10 @@ export function TableMenu({
   soundLabel = 'Sound settings',
   advanced = false,
   onAdvanced,
+  fullscreen,
 }: {
+  /** When given, fullscreen lives in the menu instead of a separate toolbar button. */
+  fullscreen?: { active: boolean; toggle: () => void | Promise<void> };
   advanced?: boolean;
   onAdvanced?: (enabled: boolean) => void;
   confirmMoves: boolean;
@@ -59,6 +62,12 @@ export function TableMenu({
           <Volume2 size={18} />
           {soundLabel}
         </button>
+        {fullscreen && (
+          <button onClick={() => show(() => void fullscreen.toggle())}>
+            {fullscreen.active ? <Minimize size={18} /> : <Maximize size={18} />}
+            {fullscreen.active ? 'Exit fullscreen' : 'Play fullscreen'}
+          </button>
+        )}
         <div className="table-menu-preference">
           {onAdvanced && (
             <label className="confirm-moves">

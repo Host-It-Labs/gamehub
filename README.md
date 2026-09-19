@@ -1,6 +1,8 @@
 # Gamehub
 
-Three tabletop games for friends: **Undertow**, **Wildgrove**, and **Midnight Market**. Play solo against bots or host an online table for 2–6 players. Guests follow your link, enter a name once, and return to their seat from the same browser.
+Three tabletop games for friends: **Nox**, **Mora**, and **Yata**. Play solo against bots or host an online table for 2–6 players. Guests follow your link, enter a name once, and return to their seat from the same browser.
+
+See [the design guide](docs/DESIGN.md) for the shared art direction, worlds, extension rules, and interaction standards.
 
 ## Local development
 

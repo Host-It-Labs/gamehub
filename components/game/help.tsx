@@ -1,9 +1,13 @@
-import { FestivalRules } from './yatai-festival';
+import { MoraDieSymbol } from './mora-symbols';
+import { NewExtensionRules } from './new-extensions';
+import { WildTrailsRules } from './mora-extension';
+import { AbilityRules, CustomerOrderRules } from './extension-rules';
 import {
-  foods,
-  creatures,
-  habitats,
+  foodsFor,
+  creaturesFor,
+  habitatsFor,
   dice,
+  placementDieRule,
   suits,
   handSize,
   tideRanks,
@@ -31,7 +35,16 @@ export function Help({
     const placed = g.players.reduce((n, p) => n + p.zones.flat().length, 0);
     return (
       <div className="reference readable-reference">
-      {g.id === 'midnight' && g.nightMarket && <FestivalRules />}
+        {g.id === 'wildgrove' && g.sanctuaryGoalsEnabled && (
+          <WildTrailsRules goals={g.sanctuaryGoals} contentSet={g.contentSet} />
+        )}
+        {g.customerOrders && <CustomerOrderRules />}
+        {g.specialtyStalls && <AbilityRules kind="stall" />}
+        {g.migration && <NewExtensionRules kind="migration" />}
+        {g.salvage && <NewExtensionRules kind="salvage" />}
+        {g.roamEnabled && <NewExtensionRules kind="roamEnabled" />}
+        {g.turningTide && <NewExtensionRules kind="turningTide" />}
+        {g.marketSeasons && <NewExtensionRules kind="marketSeasons" />}
         <h3>Cards and pieces in this game</h3>
         <dl className="match-facts">
           <dt>Players</dt>
@@ -89,7 +102,16 @@ export function Help({
   }
   return (
     <div className="reference readable-reference">
-      {g.id === 'midnight' && g.nightMarket && <FestivalRules />}
+      {g.id === 'wildgrove' && g.sanctuaryGoalsEnabled && (
+        <WildTrailsRules goals={g.sanctuaryGoals} contentSet={g.contentSet} />
+      )}
+      {g.customerOrders && <CustomerOrderRules />}
+      {g.specialtyStalls && <AbilityRules kind="stall" />}
+      {g.migration && <NewExtensionRules kind="migration" />}
+      {g.salvage && <NewExtensionRules kind="salvage" />}
+      {g.roamEnabled && <NewExtensionRules kind="roamEnabled" />}
+      {g.turningTide && <NewExtensionRules kind="turningTide" />}
+      {g.marketSeasons && <NewExtensionRules kind="marketSeasons" />}
       <section className="reference-goal">
         <h3>
           {tide
@@ -125,7 +147,10 @@ export function Help({
             </li>
             <li>
               <b>Collect the trick.</b> A trick is one card from each player.
-              The player who played the highest card of the first suit wins it,
+              The player who played{' '}
+              {g.turningTide
+                ? 'the highest led-suit card on odd tricks or lowest on even tricks wins it,'
+                : 'the highest card of the first suit wins it,'}
               takes its penalty points, and plays first in the next trick.
             </li>
           </>
@@ -158,32 +183,7 @@ export function Help({
           </>
         )}
       </ol>
-      {tide && g.starter !== false && (
-        <section className="reference-goal">
-          <h3>
-            {g.starter
-              ? 'Change of Tack expansion'
-              : 'Shields in this saved match'}
-          </h3>
-          <p>
-            <b>Two shields each round:</b> select one before playing your card.
-            If you take the trick, halve its total penalty, rounding up. A trick
-            worth 45 points becomes 23.
-          </p>
-          {g.starter && (
-            <p>
-              <b>One Tack each round:</b> select it to play off-suit even
-              when you have the led suit. Only led-suit cards can win, and all
-              penalty points still count. Tack is spent when you play that
-              off-suit card. You cannot use it on the lead or with a Shield.
-            </p>
-          )}
-          <p>
-            Selected tokens are spent even when you lose the trick. Tap a
-            selected token again to turn it off before playing.
-          </p>
-        </section>
-      )}
+      {tide && g.shields && <AbilityRules kind="shield" />}
       {!reference && (
         <>
           <h3>
@@ -194,7 +194,7 @@ export function Help({
                 : 'What each dish earns'}
           </h3>
           {grove ? (
-            habitats.map((h, i) => (
+            habitatsFor(g.contentSet).map((h, i) => (
               <section className="reference-rule" key={h.name}>
                 <b>
                   {i + 1}. {h.name} · {h.cap} spaces
@@ -210,7 +210,7 @@ export function Help({
               die.
             </p>
           ) : (
-            foods.map((f) => (
+            foodsFor(g.contentSet).map((f) => (
               <section className="reference-rule" key={f.name}>
                 <b>{f.name}</b>
                 <span>{f.rule}</span>
@@ -224,15 +224,15 @@ export function Help({
               {dice.map((d) => (
                 <section className="reference-rule" key={d.name}>
                   <b>
-                    {d.symbol} {d.name}
+                    <MoraDieSymbol face={dice.indexOf(d)} /> {d.name}
                   </b>
-                  <span>{d.rule}</span>
+                  <span>{placementDieRule(dice.indexOf(d), g.contentSet)}</span>
                 </section>
               ))}
               <p>
-                Each face is equally likely. Release is always available: trash
-                a creature from your hand for zero points. It leaves your board
-                and never counts in any scoring area.
+                Each face is equally likely. Release is always available:
+                release a creature from your hand for zero points. It leaves
+                your board and never counts in any scoring area.
               </p>
             </>
           )}
@@ -263,8 +263,9 @@ export function Help({
           </p>
           {grove && (
             <p>
-              The species are {creatures.join(', ')}. They share the same
-              placement rules; their arrangement earns the points.
+              The species are {creaturesFor(g.contentSet).join(', ')}. They
+              share the same placement rules; their arrangement earns the
+              points.
             </p>
           )}
         </>

@@ -1,27 +1,241 @@
 'use client';
-import { useRef, useState, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
+import {
+  Anchor,
+  Award,
+  Footprints,
+  Info,
+  MoveRight,
+  ReceiptText,
+  Shield,
+  Store,
+  Sun,
+  Waves,
+  type LucideIcon,
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { NewExtensionRules } from './new-extensions';
+import { AbilityRules, CustomerOrderRules } from './extension-rules';
+import { WildTrailsRules } from './mora-extension';
 import { Piece } from './interactions';
-import { FestivalRules } from './yatai-festival';
-import { AbilityRules } from './extension-rules';
-import { Popover, PopoverContent, PopoverTitle } from '@/components/ui/popover';
-
-function ExtensionEmblem({ festival }: { festival: boolean }) {
-  return <svg className="extension-emblem" viewBox="0 0 96 96" fill="none" aria-hidden="true">
-    <circle cx="48" cy="48" r="43" fill={festival ? '#fff0cf' : '#e8eef4'} />
-    {festival ? <g stroke="#8c4938" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M32 25h32M48 17v8M34 71h28M48 71v10"/><path d="M32 28Q20 48 34 68h28Q76 48 64 28Z" fill="#edb45d"/><path d="M42 29q-8 19 0 37m12-37q8 19 0 37M29 47h38"/><path d="m17 23 3 5 5 2-5 2-3 5-2-5-5-2 5-2Z" fill="#8c4938" strokeWidth="1"/></g> : <g stroke="#37566e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m29 25 19-7 19 7v22c0 15-19 27-19 27S29 62 29 47Z" fill="#c0d1e0"/><path d="M21 54c9-20 29-20 48-12m-8-12 10 13-15 6" stroke="#37566e"/><path d="M20 78q14-8 28 0t28 0"/></g>}
-  </svg>;
+import type { GameId, GameOptions } from '@/lib/games/trio/engine';
+type Choices = GameOptions & {
+  shields?: boolean;
+  customerOrders?: boolean;
+  sanctuaryGoalsEnabled?: boolean;
+};
+function ExtensionChoice({
+  title,
+  Icon,
+  enabled,
+  disabled,
+  onChange,
+  children,
+}: {
+  title: string;
+  Icon: LucideIcon;
+  enabled: boolean;
+  disabled: boolean;
+  onChange: () => void;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const tile = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  function openHelp(source?: HTMLElement) {
+    returnFocus.current =
+      source ??
+      tile.current?.querySelector<HTMLButtonElement>(
+        '.extension-tile-toggle',
+      ) ??
+      null;
+    setOpen(true);
+  }
+  return (
+    <div ref={tile} className={`extension-tile ${enabled ? 'enabled' : ''}`}>
+      <Piece
+        className="extension-tile-toggle"
+        label={`${title}. ${enabled ? 'Enabled' : 'Disabled'}. Hold or press I for rules.`}
+        selected={enabled}
+        unavailable={disabled}
+        onTap={disabled ? undefined : onChange}
+        inspect={() => openHelp()}
+      >
+        <Icon aria-hidden="true" />
+        <strong>{title}</strong>
+        {enabled && <span className="expansion-check">✓</span>}
+      </Piece>
+      <button
+        type="button"
+        className="extension-info"
+        aria-label={`${title} rules`}
+        aria-haspopup="dialog"
+        onClick={(event) => openHelp(event.currentTarget)}
+      >
+        <Info size={17} />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          finalFocus={returnFocus}
+          className="modal extension-rules-modal"
+        >
+          <DialogTitle>{title}</DialogTitle>
+          {children}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
-function ExtensionChoice({ title, enabled, onChange, disabled = false, festival = false, children }: { title: string; enabled: boolean; onChange: (value: boolean) => void; disabled?: boolean; festival?: boolean; children: ReactNode }) {
-  const [helpOpen, setHelpOpen] = useState(false);
-  const anchor = useRef<HTMLDivElement>(null);
-  return <fieldset className="expansion-option expansion-picker" aria-label="Extensions"><legend>Extensions</legend><div className="expansion-entry" ref={anchor}>
-    <Piece className={`expansion-choice ${enabled ? 'enabled' : ''}`} label={`${title} expansion. Hold or press I for rules.`} selected={enabled} unavailable={disabled} onTap={disabled ? undefined : () => onChange(!enabled)} inspect={() => setHelpOpen(true)}><ExtensionEmblem festival={festival}/><span>{title}</span>{enabled && <span className="expansion-check" aria-hidden="true">✓</span>}</Piece>
-    <Popover open={helpOpen} onOpenChange={setHelpOpen}><PopoverContent anchor={anchor} className="expansion-help" align="start"><PopoverTitle>{title}</PopoverTitle>{children}</PopoverContent></Popover>
-  </div></fieldset>;
+export function ContentChoice({
+  id,
+  options,
+  onChange,
+  disabled = false,
+}: {
+  id: GameId;
+  options: GameOptions;
+  onChange: (value: GameOptions) => void;
+  disabled?: boolean;
+}) {
+  if (id === 'undertow') return null;
+  return (
+    <fieldset className="content-choice">
+      <legend>{id === 'wildgrove' ? 'Field station' : 'Menu'}</legend>
+      <div>
+        {(['beginner', 'intermediate'] as const).map((set) => (
+          <button
+            type="button"
+            key={set}
+            disabled={disabled}
+            aria-pressed={(options.contentSet ?? 'beginner') === set}
+            onClick={() => onChange({ ...options, contentSet: set })}
+          >
+            <strong>
+              {id === 'wildgrove'
+                ? set === 'beginner'
+                  ? 'The Observatory'
+                  : 'Floodline Station'
+                : set === 'beginner'
+                  ? 'After Hours'
+                  : 'Side B'}
+            </strong>
+            <small>
+              {set === 'beginner' ? 'Original rules' : 'Alternate scoring'}
+            </small>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
 }
-export function ExpansionChoice(props: { enabled: boolean; onChange: (value: boolean) => void; fastMode?: boolean; disabled?: boolean }) {
-  return <ExtensionChoice {...props} title="Change of Tack"><h3>Shield</h3><AbilityRules kind="shield"/><h3>Tack</h3><AbilityRules kind="tack"/></ExtensionChoice>;
-}
-export function FestivalExpansionChoice(props: { enabled: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
-  return <ExtensionChoice {...props} title="Lantern Festival" festival><FestivalRules/></ExtensionChoice>;
+export function GameExtensionChoices({
+  id,
+  options,
+  shields,
+  customerOrders,
+  sanctuaryGoalsEnabled,
+  onChange,
+  disabled = false,
+}: {
+  id: GameId;
+  options: GameOptions;
+  shields: boolean;
+  customerOrders: boolean;
+  sanctuaryGoalsEnabled: boolean;
+  onChange: (value: Choices) => void;
+  disabled?: boolean;
+}) {
+  const values: Choices = {
+    ...options,
+    shields,
+    customerOrders,
+    sanctuaryGoalsEnabled,
+  };
+  const entries: {
+    key: keyof Choices;
+    title: string;
+    Icon: LucideIcon;
+    rules: ReactNode;
+  }[] =
+    id === 'undertow'
+      ? [
+          {
+            key: 'shields',
+            title: 'Shields',
+            Icon: Shield,
+            rules: <AbilityRules kind="shield" />,
+          },
+          {
+            key: 'turningTide',
+            title: 'Turning Tide',
+            Icon: Waves,
+            rules: <NewExtensionRules kind="turningTide" />,
+          },
+          {
+            key: 'salvage',
+            title: 'Salvage',
+            Icon: Anchor,
+            rules: <NewExtensionRules kind="salvage" />,
+          },
+        ]
+      : id === 'wildgrove'
+        ? [
+            {
+              key: 'roamEnabled',
+              title: 'Roam',
+              Icon: Footprints,
+              rules: <NewExtensionRules kind="roamEnabled" />,
+            },
+            {
+              key: 'migration',
+              title: 'Migration',
+              Icon: MoveRight,
+              rules: <NewExtensionRules kind="migration" />,
+            },
+            {
+              key: 'sanctuaryGoalsEnabled',
+              title: 'Sanctuary Goals',
+              Icon: Award,
+              rules: <WildTrailsRules contentSet={options.contentSet} />,
+            },
+          ]
+        : [
+            {
+              key: 'customerOrders',
+              title: 'Customer Orders',
+              Icon: ReceiptText,
+              rules: <CustomerOrderRules />,
+            },
+            {
+              key: 'specialtyStalls',
+              title: 'Specialty Stalls',
+              Icon: Store,
+              rules: <AbilityRules kind="stall" />,
+            },
+            {
+              key: 'marketSeasons',
+              title: 'Market Seasons',
+              Icon: Sun,
+              rules: <NewExtensionRules kind="marketSeasons" />,
+            },
+          ];
+  return (
+    <fieldset className="extension-choices">
+      <legend>Extensions</legend>
+      <div className="extension-grid">
+        {entries.map((entry) => (
+          <ExtensionChoice
+            key={entry.key}
+            title={entry.title}
+            Icon={entry.Icon}
+            enabled={!!values[entry.key]}
+            disabled={disabled}
+            onChange={() => onChange({ [entry.key]: !values[entry.key] })}
+          >
+            {entry.rules}
+          </ExtensionChoice>
+        ))}
+      </div>
+    </fieldset>
+  );
 }

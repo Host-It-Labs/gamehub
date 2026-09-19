@@ -1,0 +1,367 @@
+{
+ "source": "/art/mora-paper-world-landscape-v5-a.png",
+ "image": "/art/optimized/mora-paper-world-landscape-v5-a.webp",
+ "boardImage": "/art/optimized/mora-paper-world-landscape-v5-a-board.webp",
+ "width": 1536,
+ "height": 1024,
+ "crop": {
+  "left": 80,
+  "top": 90,
+  "width": 1350,
+  "height": 650
+ },
+ "landmarks": {
+  "roofTop": 100,
+  "protectedBounds": [
+   {
+    "name": "root hollow",
+    "bounds": [
+     90,
+     280,
+     300,
+     240
+    ]
+   },
+   {
+    "name": "roof garden",
+    "bounds": [
+     455,
+     190,
+     270,
+     230
+    ]
+   },
+   {
+    "name": "observatory",
+    "bounds": [
+     790,
+     100,
+     300,
+     360
+    ]
+   },
+   {
+    "name": "glasshouse",
+    "bounds": [
+     520,
+     480,
+     560,
+     240
+    ]
+   },
+   {
+    "name": "dry channel",
+    "bounds": [
+     1150,
+     400,
+     180,
+     320
+    ]
+   },
+   {
+    "name": "watchpost",
+    "bounds": [
+     1230,
+     180,
+     190,
+     220
+    ]
+   }
+  ]
+ },
+ "habitats": [
+  {
+   "zone": 0,
+   "bounds": [
+    806,
+    290,
+    181,
+    139
+   ],
+   "label": [
+    897,
+    445
+   ],
+   "slots": [
+    [
+     863,
+     347
+    ],
+    [
+     930,
+     347
+    ],
+    [
+     863,
+     387
+    ],
+    [
+     930,
+     387
+    ]
+   ],
+   "tokenWidth": 60,
+   "summary": "*Same* species: 2 · 6 · 11 · 17"
+  },
+  {
+   "zone": 1,
+   "bounds": [
+    501,
+    233,
+    176,
+    134
+   ],
+   "label": [
+    590,
+    398
+   ],
+   "slots": [
+    [
+     558,
+     290
+    ],
+    [
+     620,
+     290
+    ],
+    [
+     558,
+     325
+    ],
+    [
+     620,
+     325
+    ]
+   ],
+   "tokenWidth": 60,
+   "summary": "3 per species · all 4 *different* +2"
+  },
+  {
+   "zone": 2,
+   "bounds": [
+    181,
+    378,
+    179,
+    99
+   ],
+   "label": [
+    270,
+    515
+   ],
+   "slots": [
+    [
+     238,
+     435
+    ],
+    [
+     303,
+     435
+    ]
+   ],
+   "tokenWidth": 60,
+   "summary": "*Pair* 8 · single 1"
+  },
+  {
+   "zone": 3,
+   "bounds": [
+    783,
+    548,
+    284,
+    164
+   ],
+   "label": [
+    925,
+    722
+   ],
+   "slots": [
+    [
+     840,
+     670
+    ],
+    [
+     940,
+     652
+    ],
+    [
+     1010,
+     605
+    ]
+   ],
+   "tokenWidth": 60,
+   "summary": "2 each · different *neighbours* +3"
+  },
+  {
+   "zone": 4,
+   "bounds": [
+    1163,
+    408,
+    161,
+    294
+   ],
+   "label": [
+    1250,
+    715
+   ],
+   "slots": [
+    [
+     1220,
+     465
+    ],
+    [
+     1267,
+     560
+    ],
+    [
+     1267,
+     660
+    ]
+   ],
+   "tokenWidth": 60,
+   "summary": "4 per species also placed *elsewhere*"
+  },
+  {
+   "zone": 6,
+   "bounds": [
+    1268,
+    228,
+    114,
+    99
+   ],
+   "label": [
+    1325,
+    365
+   ],
+   "slots": [
+    [
+     1325,
+     285
+    ]
+   ],
+   "tokenWidth": 60,
+   "summary": "2 per *other* area with its species"
+  }
+ ],
+ "release": [
+  876,
+  522
+ ],
+ "animation": {
+  "water": {
+   "polygon": [
+    [
+     250,
+     600
+    ],
+    [
+     300,
+     575
+    ],
+    [
+     370,
+     585
+    ],
+    [
+     420,
+     620
+    ],
+    [
+     415,
+     675
+    ],
+    [
+     365,
+     705
+    ],
+    [
+     290,
+     700
+    ],
+    [
+     245,
+     660
+    ]
+   ]
+  },
+  "foliage": [
+   {
+    "polygon": [
+     [
+      190,
+      840
+     ],
+     [
+      250,
+      810
+     ],
+     [
+      315,
+      835
+     ],
+     [
+      330,
+      895
+     ],
+     [
+      295,
+      945
+     ],
+     [
+      225,
+      950
+     ],
+     [
+      185,
+      905
+     ]
+    ],
+    "pivot": [
+     255,
+     955
+    ]
+   },
+   {
+    "polygon": [
+     [
+      1290,
+      790
+     ],
+     [
+      1350,
+      760
+     ],
+     [
+      1415,
+      785
+     ],
+     [
+      1430,
+      845
+     ],
+     [
+      1395,
+      895
+     ],
+     [
+      1325,
+      900
+     ],
+     [
+      1285,
+      855
+     ]
+    ],
+    "pivot": [
+     1355,
+     905
+    ]
+   }
+  ]
+ },
+ "overview": {
+  "left": 60,
+  "top": 70,
+  "width": 1400,
+  "height": 700
+ },
+ "overviewImage": "/art/optimized/mora-paper-world-landscape-v5-a-overview.webp"
+}

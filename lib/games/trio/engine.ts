@@ -1,4 +1,14 @@
 /** Platform-independent base rules. Content/scoring live here so expansions can compose them later. */
+export type ContentSet = 'beginner' | 'intermediate';
+export type GameOptions = {
+  contentSet?: ContentSet;
+  roamEnabled?: boolean;
+  turningTide?: boolean;
+  marketSeasons?: boolean;
+  migration?: boolean;
+  salvage?: boolean;
+  specialtyStalls?: boolean;
+};
 export type GameId = 'undertow' | 'wildgrove' | 'midnight';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Card = { id: number; kind: number; rank: number };
@@ -8,21 +18,25 @@ export type Move =
       card: number;
       zone?: number;
       ward?: boolean;
-      tack?: boolean;
       order?: number;
       stall?: boolean;
+      roam?: boolean;
+      migration?: { card: number; from: number; to: number };
     }
   | { type: 'pass'; cards: number[] }
+  | { type: 'salvage'; claim: boolean }
   | { type: 'roll' };
 export type Event = {
   id: number;
-  type: 'deal' | 'pass' | 'roll' | 'play' | 'trick' | 'finish';
+  type: 'deal' | 'pass' | 'roll' | 'play' | 'trick' | 'finish' | 'salvage';
   player: number;
   text: string;
   kind?: number;
   points?: number;
   trick?: Game['trick'];
   hazard?: number;
+  scoreChanges?: number[];
+  salvageChanges?: number[];
 };
 export type Player = {
   name: string;
@@ -30,14 +44,21 @@ export type Player = {
   zones: Card[][];
   score: number;
   wards: number;
-  tacks?: number;
+  salvageClaims?: number;
+  roams?: number;
+  migrations?: number;
+  seasonPoints?: number;
   packet: number;
   festival?: { orders: number[]; stalls: { kind: number; from: number }[] };
 };
-export type Game = {
-  version: 3;
-  starter?: boolean;
-  nightMarket?: boolean;
+export type Game = GameOptions & {
+  seasonForecast?: number[];
+  version: 4;
+  shields?: boolean;
+  customerOrders?: boolean;
+  sanctuaryGoalsEnabled?: boolean;
+  sanctuaryGoals?: number[];
+  firstPlayer?: number;
   festivalOffers?: number[][];
   fastMode?: boolean;
   id: GameId;
@@ -46,7 +67,9 @@ export type Game = {
   reserve: Card[];
   players: Player[];
   active: number;
-  phase: 'pass' | 'roll' | 'play' | 'over';
+  phase: 'pass' | 'roll' | 'play' | 'salvage' | 'over';
+  trickLeader?: number;
+  salvageClaimants?: number[];
   round: number;
   pick: number;
   roller: number;
@@ -56,8 +79,8 @@ export type Game = {
   passCards?: number;
   pending?: (Move | null)[];
   ready?: boolean[];
-  trick: { player: number; card: Card; ward: boolean; tack?: boolean }[];
-  lastTrick: { player: number; card: Card; ward: boolean; tack?: boolean }[];
+  trick: { player: number; card: Card; ward: boolean }[];
+  lastTrick: { player: number; card: Card; ward: boolean }[];
   seen: Card[];
   voids: number[][];
   memory: Record<number, Card[]>[];
@@ -74,125 +97,133 @@ export type Observation = PublicGame & {
   reserveCount: number;
   knownPackets: Record<number, Card[]>;
 };
-export const names = ['You', 'Miso', 'Clover', 'Nova', 'Atlas', 'Pip'];
+export const names = ['You', 'Rook', 'Static', 'Moth', 'Echo', 'Patch'];
 export const suits = ['♠', '♥', '♣', '♦', 'ϟ'];
 export const suitNames = ['Spades', 'Hearts', 'Clubs', 'Diamonds', 'Storm'];
 export const creatures = [
-  'Mossling',
-  'Cloudwing',
-  'Emberfox',
-  'Pebbleback',
-  'Moonhare',
-  'Dewfin',
+  'Rust Fox',
+  'Dish Owl',
+  'Moss Beetle',
+  'Night Marten',
+  'Glass Frog',
+  'Antenna Hare',
 ];
 export const foods = [
   {
-    name: 'Moon bun',
+    name: 'Char Dumplings',
     formula: '2 → 7',
-    rule: 'Each pair of buns earns 7 points. A bun left without a partner earns 0.',
-    example: 'Five buns = two pairs = 14 points.',
+    rule: 'Each pair of portions earns 7 points. A portion left without a partner earns 0.',
+    example: 'Five portions = two pairs = 14 points.',
   },
   {
-    name: 'Berry fizz',
+    name: 'Midnight Noodles',
     formula: '1 · 4 · 8 · 13 · 19',
-    rule: 'Your total is 1, 4, 8, 13 or 19 points for one, two, three, four or five fizz. Each fizz after the fifth adds 2 points.',
-    example: 'Four fizz earn 13. Six earn 21.',
+    rule: 'Your total is 1, 4, 8, 13 or 19 points for one, two, three, four or five portions. Each portion after the fifth adds 2 points.',
+    example: 'Four portions earn 13. Six earn 21.',
   },
   {
-    name: 'Cloud cake',
+    name: 'Skewer Stack',
     formula: '4 + 4 + 1…',
-    rule: 'Your first two cakes earn 4 points each. Each additional cake earns 1 point.',
-    example: 'Four cakes earn 4 + 4 + 1 + 1 = 10.',
+    rule: 'Your first two portions earn 4 points each. Each additional portion earns 1 point.',
+    example: 'Four portions earn 4 + 4 + 1 + 1 = 10.',
   },
   {
-    name: 'Dumpling',
+    name: 'Pickle Crunch',
     formula: '1 + variety · max 5',
-    rule: 'Each dumpling earns 1 plus your number of different dish types, up to 5 points per dumpling.',
-    example: 'Two dumplings with three dish types earn 2 × 4 = 8.',
+    rule: 'Each portion earns 1 plus your number of different dish types, up to 5 points per portion.',
+    example: 'Two portions with three dish types earn 2 × 4 = 8.',
   },
   {
-    name: 'Lantern tea',
+    name: 'Black Sesame Bun',
     formula: '2 each · most +6',
-    rule: 'Each tea earns 2 points. The player with the most tea earns 6 bonus points. If players tie for the most, each earns 3 bonus points. You need at least one tea to earn a bonus.',
+    rule: 'Each portion earns 2 points. The player with the most portions earns 6 bonus points. If players tie for the most, each earns 3 bonus points. You need at least one portion to earn a bonus.',
     example:
-      'Three tea earn 6 points, plus 6 if you have more tea than every other player: 12 points.',
+      'Three portions earn 6 points, plus 6 if you have more portions than every other player: 12 points.',
   },
   {
-    name: 'Star skewer',
+    name: 'Moon Pudding',
     formula: '3 → 12 · extra 1',
-    rule: 'Each group of three skewers earns 12 points. Leftover skewers earn 1 point each.',
-    example: 'Five skewers earn 12 + 2 = 14.',
+    rule: 'Each group of three portions earns 12 points. Leftover portions earn 1 point each.',
+    example: 'Five portions earn 12 + 2 = 14.',
   },
 ];
 export const habitats = [
   {
-    name: 'Herd',
+    name: 'Courtyard',
     cap: 4,
-    formula: 'Largest same-species group: 1 → 2 pts; 2 → 6 pts; 3 → 11 pts; 4 → 17 pts',
+    maxScore: 17,
+    formula:
+      'Largest same-species group: 1 → 2 pts; 2 → 6 pts; 3 → 11 pts; 4 → 17 pts',
     rule: 'Only your largest group of matching creatures scores. One earns 2 points, two earn 6, three earn 11, and four earn 17. Other species here add no points.',
   },
   {
-    name: 'Variety',
+    name: 'Roof garden',
     cap: 4,
+    maxScore: 14,
     formula: '+3 points per different species; +2 bonus for all 4',
     rule: 'Each different species earns 3 points. Repeated species add nothing. Four different species earn 2 bonus points, for 14 points in total.',
   },
   {
-    name: 'Pairs',
+    name: 'Root hollows',
     cap: 2,
+    maxScore: 8,
     formula: 'Matching pair: 8 points; a single: 1 point',
     rule: 'The two root hollows hold one creature each. Two matching creatures earn 8 points. A single creature earns 1 point; two different creatures earn 2 points.',
   },
   {
-    name: 'Trail',
+    name: 'Glasshouse trail',
     cap: 3,
+    maxScore: 12,
     formula: '2 per creature + 3 per different neighbour',
     rule: 'Fill the numbered spaces in order. Each creature earns 2 points. Each neighbouring pair of spaces earns 3 extra points if their species differ. A–B–A and A–B–C both earn 12 points; A–A–A earns 6.',
   },
   {
-    name: 'Shared',
+    name: 'Dry channel',
     cap: 3,
+    maxScore: 12,
     formula: '+4 points per different species also found in another area',
-    rule: 'Each different species earns 4 points if it also lives in another scoring area. Repeats here add nothing. Species found only here and trashed creatures never count.',
+    rule: 'Each different species earns 4 points if it also lives in another scoring area. Repeats here add nothing. Species found only here and released creatures never count.',
   },
   {
-    name: 'Trash',
+    name: 'Release',
     cap: 12,
-    formula: 'Trash creature · 0 points',
+    maxScore: 0,
+    formula: 'Release creature · 0 points',
     rule: 'Remove a creature from your hand instead of placing it. It earns no points, never counts in any area, and uses your turn. Always available, regardless of the die.',
   },
   {
-    name: 'Lookout',
+    name: 'Watchpost',
     cap: 1,
+    maxScore: 10,
     formula: '2 points per other habitat with this species',
-    rule: 'Your lookout creature earns 2 points for each other scoring habitat containing its own species, up to 10 points. Several matches in one habitat still count only once. For example, a Mossling watching Mosslings in Herd and Trail earns 4 points. The Lookout itself and trash do not count.',
+    rule: 'Your watchpost creature earns 2 points for each other scoring habitat containing its own species, up to 10 points. Several matches in one habitat still count only once. For example, a Rust Fox watching Rust Foxes in Courtyard and Glasshouse trail earns 4 points. The Watchpost itself and released creatures do not count.',
   },
 ];
 export const habitatOrder = [0, 1, 2, 3, 4, 6, 5];
 export const dice = [
   {
-    name: 'Top row',
-    symbol: '↑',
+    name: 'Square spaces',
+    symbol: '□',
     zones: [0, 1, 2],
-    rule: 'Place in any of the three habitats in the top row.',
+    rule: 'Place in a habitat with square placement spaces.',
   },
   {
-    name: 'Bottom row',
-    symbol: '↓',
+    name: 'Round spaces',
+    symbol: '●',
     zones: [3, 4, 6],
-    rule: 'Place in any of the three habitats in the bottom row.',
+    rule: 'Place in a habitat with round placement spaces.',
   },
   {
-    name: 'Left two columns',
-    symbol: '←',
+    name: 'Stone paving',
+    symbol: '☀',
     zones: [0, 1, 3, 4],
-    rule: 'Place in either of the two leftmost columns.',
+    rule: 'Place in a habitat with stone paving: Courtyard, Roof garden, Glasshouse trail or Dry channel.',
   },
   {
-    name: 'Right two columns',
-    symbol: '→',
+    name: 'Timber & logs',
+    symbol: '⌂',
     zones: [1, 2, 4, 6],
-    rule: 'Place in either of the two rightmost columns.',
+    rule: 'Place in a habitat with timber or logs: Roof garden, Root hollows, Dry channel or Watchpost.',
   },
   {
     name: 'Empty',
@@ -210,24 +241,24 @@ export const dice = [
 export const catalog = [
   {
     id: 'undertow' as GameId,
-    name: 'Tide',
+    name: 'Nox',
     genre: 'Trick taking',
     color: '#38baca',
-    cover: '/art/tide-cover-v8.webp',
+    cover: '/art/blackwake-cover-v1.png',
   },
   {
     id: 'wildgrove' as GameId,
     name: 'Mora',
     genre: 'Draft & place',
     color: '#75b965',
-    cover: '/art/mora-cover-v8.webp',
+    cover: '/art/elsewild-cover-v1.png',
   },
   {
     id: 'midnight' as GameId,
-    name: 'Yatai',
+    name: 'Yata',
     genre: 'Set collection',
     color: '#df84bb',
-    cover: '/art/yatai-cover-v6.webp',
+    cover: '/art/nightshift-cover-v1.png',
   },
 ];
 export function rng(seed: number) {
@@ -251,10 +282,10 @@ function random(g: Game) {
 }
 export function tideRanks(g: Pick<Game, 'fastMode'>) {
   // Existing saves finish with their original deck and penalty rank.
-  return g.fastMode === undefined ? 12 : g.fastMode ? 5 : 10;
+  return g.fastMode ? 5 : 10;
 }
 export function tidePenaltyRank(g: Pick<Game, 'fastMode'>) {
-  return g.fastMode === undefined ? 9 : g.fastMode ? 4 : 8;
+  return g.fastMode ? 4 : 8;
 }
 export function tidePenaltyValue(g: Pick<Game, 'fastMode'>) {
   return g.fastMode === true ? 8 : 40;
@@ -274,12 +305,16 @@ export function handSize(g: Pick<Game, 'id' | 'players' | 'fastMode'>) {
     ? Math.floor((5 * tideRanks(g)) / g.players.length)
     : 6;
 }
-export function cardName(id: GameId, c: Card) {
+export function cardName(
+  id: GameId,
+  c: Card,
+  contentSet: ContentSet = 'beginner',
+) {
   return id === 'undertow'
     ? `${suitNames[c.kind]} ${c.rank}`
     : id === 'wildgrove'
-      ? creatures[c.kind]
-      : foods[c.kind].name;
+      ? creaturesFor(contentSet)[c.kind]
+      : foodsFor(contentSet)[c.kind].name;
 }
 function emit(
   g: Game,
@@ -314,8 +349,8 @@ function deal(g: Game) {
     p.hand = g.reserve
       .splice(0, n)
       .sort((a, b) => a.kind - b.kind || a.rank - b.rank);
-    p.wards = g.id === 'undertow' && g.starter !== false ? 2 : 0;
-    p.tacks = g.id === 'undertow' && g.starter === true ? 1 : 0;
+    p.wards = g.id === 'undertow' && g.shields === true ? 2 : 0;
+    p.salvageClaims = g.id === 'undertow' && g.salvage ? 1 : 0;
     p.packet = (g.round - 1) * g.players.length + i;
   });
   g.passes = g.players.map(() => []);
@@ -327,11 +362,13 @@ function deal(g: Game) {
     g.trick = [];
     g.lastTrick = [];
     g.hazard = -1;
+    g.salvageClaimants = [];
+    delete g.trickLeader;
   }
   remember(g);
   g.phase =
     g.id === 'undertow' ? 'pass' : g.id === 'wildgrove' ? 'roll' : 'play';
-  g.active = g.phase === 'roll' ? g.roller : 0;
+  g.active = g.phase === 'roll' ? g.roller : (g.firstPlayer ?? 0);
   emit(
     g,
     'deal',
@@ -345,16 +382,27 @@ export function createGame(
   seed = 1,
   tutorial = false,
   playerCount = 3,
-  starter = false,
+  shields = false,
   fastMode = false,
-  nightMarket = false,
+  customerOrders = false,
+  sanctuaryGoalsEnabled = false,
+  options: GameOptions = {},
 ): Game {
   if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 6)
     throw new Error('Choose 2–6 players');
   const g: Game = {
-    version: 3,
-    starter: id === 'undertow' && starter,
-    nightMarket: id === 'midnight' && nightMarket,
+    version: 4,
+    contentSet:
+      id === 'undertow' ? 'beginner' : (options.contentSet ?? 'beginner'),
+    roamEnabled: id === 'wildgrove' && options.roamEnabled === true,
+    migration: id === 'wildgrove' && options.migration === true,
+    salvage: id === 'undertow' && options.salvage === true,
+    specialtyStalls: id === 'midnight' && options.specialtyStalls === true,
+    turningTide: id === 'undertow' && options.turningTide === true,
+    marketSeasons: id === 'midnight' && options.marketSeasons === true,
+    shields: id === 'undertow' && shields,
+    customerOrders: id === 'midnight' && customerOrders,
+    sanctuaryGoalsEnabled: id === 'wildgrove' && sanctuaryGoalsEnabled,
     fastMode: id === 'undertow' && fastMode,
     id,
     difficulty,
@@ -366,8 +414,19 @@ export function createGame(
       zones: Array.from({ length: id === 'wildgrove' ? 7 : 6 }, () => []),
       score: 0,
       wards: 2,
+      ...(id === 'wildgrove'
+        ? {
+            roams: options.roamEnabled ? 2 : 0,
+            migrations: options.migration ? 1 : 0,
+          }
+        : {}),
+      ...(id === 'midnight' && options.marketSeasons
+        ? { seasonPoints: 0 }
+        : {}),
       packet: 0,
-      ...(id === 'midnight' && nightMarket ? { festival: { orders: [], stalls: [] } } : {}),
+      ...(id === 'midnight' && (customerOrders || options.specialtyStalls)
+        ? { festival: { orders: [], stalls: [] } }
+        : {}),
     })),
     active: 0,
     phase: 'play',
@@ -387,11 +446,25 @@ export function createGame(
     tutorial,
     lesson: 0,
   };
-  if (g.nightMarket) {
-    const menus = shuffled(festivalOrders.map((_, i) => i), () => random(g));
+  if (g.marketSeasons)
+    g.seasonForecast = [0, 1].flatMap(() =>
+      shuffled([0, 1, 2, 3, 4, 5], () => random(g)),
+    );
+  if (g.customerOrders) {
+    const menus = shuffled(
+      festivalOrders.map((_, i) => i),
+      () => random(g),
+    );
     g.festivalOffers = [menus.slice(0, 3), menus.slice(3, 6)];
   }
+  if (g.sanctuaryGoalsEnabled)
+    g.sanctuaryGoals = shuffled(
+      sanctuaryGoals.map((_, i) => i),
+      () => random(g),
+    ).slice(0, 3);
   if (id !== 'undertow') g.reserve = shuffled(deck(id), () => random(g));
+  g.firstPlayer = Math.floor(random(g) * playerCount);
+  g.roller = g.firstPlayer;
   deal(g);
   return g;
 }
@@ -401,25 +474,105 @@ export function counts(cards: Card[]) {
     (_, k) => cards.filter((c) => c.kind === k).length,
   );
 }
-export function zoneScore(zones: Card[][], zone: number) {
+export function zoneScore(
+  zones: Card[][],
+  zone: number,
+  contentSet: ContentSet = 'beginner',
+) {
   const cards = zones[zone] ?? [],
     c = counts(cards),
     unique = c.filter(Boolean).length;
+  if (contentSet === 'intermediate') {
+    if (zone === 0) return c.filter((n) => n === 2).length * 9;
+    if (zone === 1)
+      return unique * 2 + (cards.length === 4 && unique === 4 ? 7 : 0);
+    if (zone === 2)
+      return cards.length === 2 ? (unique === 2 ? 9 : 3) : cards.length;
+    if (zone === 3)
+      return (
+        cards.length * 2 +
+        (cards.length === 3 &&
+        cards[0].kind === cards[2].kind &&
+        cards[0].kind !== cards[1].kind
+          ? 8
+          : 0)
+      );
+    if (zone === 4)
+      return (
+        c.filter(
+          (n, kind) =>
+            n > 0 &&
+            !zones.some(
+              (area, i) =>
+                i !== 4 && i !== 5 && area.some((card) => card.kind === kind),
+            ),
+        ).length * 5
+      );
+    if (zone === 6)
+      return cards.length
+        ? 3 *
+            zones.filter(
+              (area, i) =>
+                i !== 5 &&
+                i !== 6 &&
+                area.length &&
+                !area.some((card) => card.kind === cards[0].kind),
+            ).length
+        : 0;
+    return 0;
+  }
   if (zone === 0) return [0, 2, 6, 11, 17][Math.max(...c)] ?? 0;
   if (zone === 1) return unique * 3 + (unique === 4 ? 2 : 0);
   if (zone === 2)
     return c.reduce((s, n) => s + (n === 2 ? 8 : n === 1 ? 1 : 0), 0);
-  const elsewhere = (kind: number) => zones.some(
-    (area, i) => i !== zone && i !== 5 && area.some((card) => card.kind === kind),
-  );
-  if (zone === 3) return cards.length * 2 + cards.slice(1).reduce((sum, card, i) => sum + (card.kind !== cards[i].kind ? 3 : 0), 0);
-  if (zone === 4) return c.filter((n, kind) => n > 0 && elsewhere(kind)).length * 4;
-  if (zone === 6) return cards.length ? 2 * zones.filter((area, i) => i !== 5 && i !== 6 && area.some((creature) => creature.kind === cards[0].kind)).length : 0;
+  const elsewhere = (kind: number) =>
+    zones.some(
+      (area, i) =>
+        i !== zone && i !== 5 && area.some((card) => card.kind === kind),
+    );
+  if (zone === 3)
+    return (
+      cards.length * 2 +
+      cards
+        .slice(1)
+        .reduce(
+          (sum, card, i) => sum + (card.kind !== cards[i].kind ? 3 : 0),
+          0,
+        )
+    );
+  if (zone === 4)
+    return c.filter((n, kind) => n > 0 && elsewhere(kind)).length * 4;
+  if (zone === 6)
+    return cards.length
+      ? 2 *
+          zones.filter(
+            (area, i) =>
+              i !== 5 &&
+              i !== 6 &&
+              area.some((creature) => creature.kind === cards[0].kind),
+          ).length
+      : 0;
   return 0;
 }
-export function foodBreakdown(cards: Card[], opponents: Card[][]): number[] {
+export function foodBreakdown(
+  cards: Card[],
+  opponents: Card[][],
+  contentSet: ContentSet = 'beginner',
+): number[] {
   const c = counts(cards),
     max = Math.max(0, ...opponents.map((p) => counts(p)[4]));
+  if (contentSet === 'intermediate')
+    return [
+      Math.floor(c[0] / 2) * 8 - (c[0] % 2),
+      c[1] * 2 +
+        (c[1] > 0 && c[1] < Math.min(...opponents.map((p) => counts(p)[1]))
+          ? 7
+          : 0),
+      [0, 6, 10, 6][Math.min(3, c[2])] - Math.max(0, c[2] - 3) * 2,
+      Math.min(c[3], c[0] + c[5]) * 5,
+      c[4] * 2 + (c.filter(Boolean).length >= 5 ? c[4] * 2 : 0),
+      Math.floor(c[5] / 3) * 15,
+    ];
   return [
     Math.floor(c[0] / 2) * 7,
     [0, 1, 4, 8, 13, 19][Math.min(5, c[1])] + Math.max(0, c[1] - 5) * 2,
@@ -429,70 +582,336 @@ export function foodBreakdown(cards: Card[], opponents: Card[][]): number[] {
     Math.floor(c[5] / 3) * 12 + (c[5] % 3),
   ];
 }
-export function foodScore(cards: Card[], opponents: Card[][]) {
-  return foodBreakdown(cards, opponents).reduce((a, b) => a + b, 0);
+export function foodScore(
+  cards: Card[],
+  opponents: Card[][],
+  contentSet: ContentSet = 'beginner',
+) {
+  return foodBreakdown(cards, opponents, contentSet).reduce((a, b) => a + b, 0);
 }
 /** Orders use only the six dishes drafted during their own round. */
 export const festivalOrders = [
-  { name: 'Tea for two', needs: [2, 0, 0, 0, 1, 0], points: 7 },
-  { name: 'Sweet escape', needs: [0, 2, 1, 0, 0, 0], points: 7 },
-  { name: 'Street feast', needs: [0, 0, 0, 1, 0, 2], points: 7 },
-  { name: 'Midnight picnic', needs: [1, 0, 0, 2, 0, 0], points: 7 },
-  { name: 'Lantern date', needs: [0, 0, 1, 0, 2, 0], points: 7 },
-  { name: 'Festival flight', needs: [0, 1, 0, 0, 0, 2], points: 7 },
-  { name: 'Moonlit sampler', needs: [1, 1, 1, 0, 0, 0], points: 7 },
-  { name: 'Market stroll', needs: [1, 1, 0, 1, 0, 0], points: 7 },
-  { name: 'Evening treats', needs: [1, 1, 0, 0, 1, 0], points: 7 },
-  { name: 'Paper lanterns', needs: [1, 1, 0, 0, 0, 1], points: 7 },
-  { name: 'Festival garden', needs: [1, 0, 1, 1, 0, 0], points: 7 },
-  { name: 'Riverside bites', needs: [1, 0, 1, 0, 1, 0], points: 7 },
-  { name: 'Starlight trio', needs: [1, 0, 1, 0, 0, 1], points: 7 },
-  { name: 'Night owl', needs: [1, 0, 0, 1, 1, 0], points: 7 },
-  { name: 'Golden hour', needs: [1, 0, 0, 1, 0, 1], points: 7 },
-  { name: 'Firefly picnic', needs: [1, 0, 0, 0, 1, 1], points: 7 },
-  { name: 'Lantern lane', needs: [0, 1, 1, 1, 0, 0], points: 7 },
-  { name: 'Twilight tasting', needs: [0, 1, 1, 0, 1, 0], points: 7 },
-  { name: 'Festival friends', needs: [0, 1, 1, 0, 0, 1], points: 7 },
+  { name: 'Two tickets', needs: [2, 0, 0, 0, 1, 0], points: 7 },
+  { name: 'Soundcheck', needs: [0, 2, 1, 0, 0, 0], points: 7 },
+  { name: 'Backstage supper', needs: [0, 0, 0, 1, 0, 2], points: 7 },
+  { name: 'Last bus', needs: [1, 0, 0, 2, 0, 0], points: 7 },
+  { name: 'Split bill', needs: [0, 0, 1, 0, 2, 0], points: 7 },
+  { name: 'B-side special', needs: [0, 1, 0, 0, 0, 2], points: 7 },
+  { name: 'Opening act', needs: [1, 1, 1, 0, 0, 0], points: 7 },
+  { name: 'Flyer run', needs: [1, 1, 0, 1, 0, 0], points: 7 },
+  { name: 'Late arrival', needs: [1, 1, 0, 0, 1, 0], points: 7 },
+  { name: 'Paper cuts', needs: [1, 1, 0, 0, 0, 1], points: 7 },
+  { name: 'Roof session', needs: [1, 0, 1, 1, 0, 0], points: 7 },
+  { name: 'Loading dock', needs: [1, 0, 1, 0, 1, 0], points: 7 },
+  { name: 'Three encores', needs: [1, 0, 1, 0, 0, 1], points: 7 },
+  { name: 'Night courier', needs: [1, 0, 0, 1, 1, 0], points: 7 },
+  { name: 'Cassette swap', needs: [1, 0, 0, 1, 0, 1], points: 7 },
+  { name: 'Afterparty', needs: [1, 0, 0, 0, 1, 1], points: 7 },
+  { name: 'Alley speakers', needs: [0, 1, 1, 1, 0, 0], points: 7 },
+  { name: 'Closing set', needs: [0, 1, 1, 0, 1, 0], points: 7 },
+  { name: 'Crew meal', needs: [0, 1, 1, 0, 0, 1], points: 7 },
   { name: 'Rooftop supper', needs: [0, 1, 0, 1, 1, 0], points: 7 },
-  { name: 'Summer lights', needs: [0, 1, 0, 1, 0, 1], points: 7 },
+  { name: 'Wired lights', needs: [0, 1, 0, 1, 0, 1], points: 7 },
   { name: 'Afterglow', needs: [0, 1, 0, 0, 1, 1], points: 7 },
-  { name: 'Night parade', needs: [0, 0, 1, 1, 1, 0], points: 7 },
+  { name: 'Street parade', needs: [0, 0, 1, 1, 1, 0], points: 7 },
   { name: 'Moonrise menu', needs: [0, 0, 1, 1, 0, 1], points: 7 },
-  { name: 'Street delights', needs: [0, 0, 1, 0, 1, 1], points: 7 },
+  { name: 'Wall of sound', needs: [0, 0, 1, 0, 1, 1], points: 7 },
   { name: 'Closing feast', needs: [0, 0, 0, 1, 1, 1], points: 7 },
 ];
-export function availableOrders(round: number, g?: Pick<PublicGame, 'festivalOffers'>) {
-  return g?.festivalOffers?.[round - 1] ?? (round === 1 ? [0, 1, 2] : [3, 4, 5]);
+export function availableOrders(
+  round: number,
+  g?: Pick<PublicGame, 'festivalOffers'>,
+) {
+  return (
+    g?.festivalOffers?.[round - 1] ?? (round === 1 ? [0, 1, 2] : [3, 4, 5])
+  );
 }
 export function orderProgress(cards: Card[], order: number) {
   const recipe = festivalOrders[order];
   const have = counts(cards);
-  return recipe.needs.reduce((sum, need, kind) => sum + Math.min(need, have[kind]), 0);
+  return recipe.needs.reduce(
+    (sum, need, kind) => sum + Math.min(need, have[kind]),
+    0,
+  );
 }
 export function festivalBreakdown(p: Player) {
   const orders = (p.festival?.orders ?? []).map((order, round) => ({
     order,
     progress: orderProgress(p.zones[0].slice(round * 6, round * 6 + 6), order),
-    points: orderProgress(p.zones[0].slice(round * 6, round * 6 + 6), order) === 3
-      ? festivalOrders[order].points : 0,
+    points:
+      orderProgress(p.zones[0].slice(round * 6, round * 6 + 6), order) === 3
+        ? festivalOrders[order].points
+        : 0,
   }));
   const stalls = (p.festival?.stalls ?? []).map((stall) => ({
     ...stall,
-    points: Math.min(6, p.zones[0].slice(stall.from).filter((c) => c.kind === stall.kind).length * 2),
+    points: Math.min(
+      6,
+      p.zones[0].slice(stall.from).filter((c) => c.kind === stall.kind).length *
+        2,
+    ),
   }));
-  return { orders, stalls, total: [...orders, ...stalls].reduce((sum, item) => sum + item.points, 0) };
+  return {
+    orders,
+    stalls,
+    total: [...orders, ...stalls].reduce((sum, item) => sum + item.points, 0),
+  };
 }
-export function scores(g: Pick<Game, 'id' | 'players' | 'nightMarket'>) {
+/** Only sheltered creatures count; duplicates in one habitat do not extend a trail. */
+export function wildTrailsBreakdown(zones: Card[][]) {
+  const habitatsBySpecies = creatures.map(
+    (_, kind) =>
+      zones.filter(
+        (cards, zone) => zone !== 5 && cards.some((card) => card.kind === kind),
+      ).length,
+  );
+  const trails = habitatsBySpecies.map((count) => (count >= 3 ? 3 : 0));
+  const diversity = habitatsBySpecies.every((count) => count > 0) ? 5 : 0;
+  return {
+    habitatsBySpecies,
+    trails,
+    diversity,
+    total: trails.reduce<number>((sum, points) => sum + points, 0) + diversity,
+  };
+}
+export type SanctuaryGoal = {
+  name: string;
+  rule: string;
+  points: number;
+  target: number;
+  kind?: number;
+  zone?: number;
+  type:
+    | 'full'
+    | 'squares'
+    | 'rounds'
+    | 'mirror'
+    | 'family'
+    | 'diversity'
+    | 'habitats'
+    | 'pairs'
+    | 'variety'
+    | 'trail'
+    | 'lookout';
+};
+export const sanctuaryGoals: SanctuaryGoal[] = [
+  // Goals reward how you build, never which species you happened to draw.
+  {
+    name: 'Full houses',
+    type: 'full',
+    target: 2,
+    points: 5,
+    rule: 'Fill two habitats completely, every space taken.',
+  },
+  {
+    name: 'Square country',
+    type: 'squares',
+    target: 6,
+    points: 4,
+    rule: 'Shelter six creatures on square spaces: Courtyard, Roof garden and Root hollows together.',
+  },
+  {
+    name: 'Round country',
+    type: 'rounds',
+    target: 5,
+    points: 4,
+    rule: 'Shelter five creatures on round spaces: Glasshouse trail, Dry channel and Watchpost together.',
+  },
+  {
+    name: 'Mirror terraces',
+    type: 'mirror',
+    target: 2,
+    points: 5,
+    rule: 'Two species each living in both Courtyard and Roof garden.',
+  },
+  {
+    name: 'Channel colours',
+    type: 'variety',
+    zone: 4,
+    target: 3,
+    points: 4,
+    rule: 'Place three different species in Dry channel.',
+  },
+  {
+    name: 'Big family',
+    type: 'family',
+    target: 4,
+    points: 5,
+    rule: 'Shelter four creatures of one species anywhere in your sanctuary.',
+  },
+  {
+    name: 'Every species',
+    type: 'diversity',
+    target: 6,
+    points: 5,
+    rule: 'Shelter all six species anywhere in your sanctuary.',
+  },
+  {
+    name: 'Lively sanctuary',
+    type: 'habitats',
+    target: 6,
+    points: 4,
+    rule: 'Place at least one creature in each of the six scoring habitats.',
+  },
+  {
+    name: 'Three families',
+    type: 'pairs',
+    target: 3,
+    points: 5,
+    rule: 'Shelter at least two creatures of each of three different species, anywhere on your board.',
+  },
+  {
+    name: 'Rooftop mosaic',
+    type: 'variety',
+    zone: 1,
+    target: 4,
+    points: 4,
+    rule: 'Place four different species in Roof garden.',
+  },
+  {
+    name: 'Colourful walk',
+    type: 'trail',
+    zone: 3,
+    target: 3,
+    points: 4,
+    rule: 'Place three different species in the three Glasshouse trail spaces.',
+  },
+  {
+    name: 'Watchpost friends',
+    type: 'lookout',
+    zone: 6,
+    target: 3,
+    points: 5,
+    rule: 'Place a creature in Watchpost and shelter its species in three other habitats.',
+  },
+];
+export function sanctuaryGoalProgress(
+  zones: Card[][],
+  id: number,
+  contentSet: ContentSet = 'beginner',
+) {
+  const goal = sanctuaryGoalsFor(contentSet)[id];
+  const sheltered = zones.filter((_, zone) => zone !== 5);
+  const kinds = counts(sheltered.flat());
+  let progress = 0;
+  switch (goal.type) {
+    case 'full':
+      progress = zones.filter((cards, zone) => zone !== 5 && cards.length >= habitats[zone].cap).length;
+      break;
+    case 'squares':
+      progress = [0, 1, 2].reduce((n, zone) => n + (zones[zone]?.length ?? 0), 0);
+      break;
+    case 'rounds':
+      progress = [3, 4, 6].reduce((n, zone) => n + (zones[zone]?.length ?? 0), 0);
+      break;
+    case 'mirror': {
+      const roof = new Set((zones[1] ?? []).map((card) => card.kind));
+      progress = new Set((zones[0] ?? []).filter((card) => roof.has(card.kind)).map((card) => card.kind)).size;
+      break;
+    }
+    case 'family':
+      progress = Math.max(0, ...kinds);
+      break;
+    case 'diversity':
+      progress = kinds.filter(Boolean).length;
+      break;
+    case 'habitats':
+      progress = sheltered.filter((cards) => cards.length > 0).length;
+      break;
+    case 'pairs':
+      progress = kinds.filter((count) => count >= 2).length;
+      break;
+    case 'variety':
+      progress = new Set((zones[goal.zone!] ?? []).map((card) => card.kind))
+        .size;
+      break;
+    case 'trail': {
+      const path = zones[3] ?? [];
+      progress =
+        contentSet === 'intermediate'
+          ? (path.length >= 1 ? 1 : 0) +
+            (path.length >= 2 && path[0].kind !== path[1].kind ? 1 : 0) +
+            (path.length === 3 &&
+            path[0].kind === path[2].kind &&
+            path[0].kind !== path[1].kind
+              ? 1
+              : 0)
+          : new Set(path.map((c) => c.kind)).size;
+      break;
+    }
+    case 'lookout': {
+      const watcher = zones[6]?.[0];
+      progress = watcher
+        ? zones.filter(
+            (cards, zone) =>
+              zone !== 5 &&
+              zone !== 6 &&
+              (contentSet === 'intermediate'
+                ? cards.length > 0 &&
+                  !cards.some((card) => card.kind === watcher.kind)
+                : cards.some((card) => card.kind === watcher.kind)),
+          ).length
+        : 0;
+      break;
+    }
+  }
+  return {
+    progress: Math.min(progress, goal.target),
+    complete: progress >= goal.target,
+    points: progress >= goal.target ? goal.points : 0,
+  };
+}
+export function sanctuaryBonus(
+  zones: Card[][],
+  goals?: number[],
+  contentSet: ContentSet = 'beginner',
+) {
+  return goals
+    ? goals.reduce(
+        (total, id) =>
+          total + sanctuaryGoalProgress(zones, id, contentSet).points,
+        0,
+      )
+    : 0;
+}
+export function scores(
+  g: Pick<
+    Game,
+    | 'id'
+    | 'players'
+    | 'customerOrders'
+    | 'sanctuaryGoalsEnabled'
+    | 'sanctuaryGoals'
+    | 'contentSet'
+    | 'roamEnabled'
+    | 'marketSeasons'
+    | 'specialtyStalls'
+  >,
+) {
   return g.players.map((p, i) =>
     g.id === 'undertow'
       ? p.score
       : g.id === 'wildgrove'
-        ? p.zones.reduce((s, _, j) => s + zoneScore(p.zones, j), 0)
+        ? p.zones.reduce(
+            (s, _, j) => s + zoneScore(p.zones, j, g.contentSet),
+            0,
+          ) +
+          (g.sanctuaryGoalsEnabled
+            ? sanctuaryBonus(p.zones, g.sanctuaryGoals, g.contentSet)
+            : 0)
         : foodScore(
             p.zones[0],
             g.players.filter((_, j) => i !== j).map((p) => p.zones[0]),
-          ) + (g.nightMarket ? festivalBreakdown(p).total : 0),
+            g.contentSet,
+          ) +
+          (g.marketSeasons ? (p.seasonPoints ?? 0) : 0) +
+          (g.customerOrders || g.specialtyStalls
+            ? festivalBreakdown(p).total
+            : 0),
   );
+}
+export function lowTide(g: Pick<Game, 'turningTide' | 'pick'>) {
+  return g.turningTide === true && g.pick % 2 === 0;
 }
 export function penalty(c: Card, hazard: number, rank = 8, value = 40) {
   return c.kind === 4
@@ -519,13 +938,22 @@ export function allowedZone(
       : !region.some((x) => x.kind === c.kind);
 }
 export function simultaneous(g: Pick<PublicGame, 'phase' | 'id'>) {
-  return g.phase === 'pass' || (g.phase === 'play' && g.id !== 'undertow');
+  return (
+    g.phase === 'salvage' ||
+    g.phase === 'pass' ||
+    (g.phase === 'play' && g.id !== 'undertow')
+  );
 }
 export function decisionKey(g: PublicGame) {
   return `${g.round}:${g.pick}:${g.phase}`;
 }
 export function readySeats(g: PublicGame): boolean[] {
-  return g.ready ?? g.players.map((_, i) => simultaneous(g) && i < g.active);
+  return (
+    g.ready ??
+    g.players.map(
+      (_, i) => g.firstPlayer === undefined && simultaneous(g) && i < g.active,
+    )
+  );
 }
 export function canAct(g: PublicGame, actor: number) {
   return (
@@ -535,10 +963,22 @@ export function canAct(g: PublicGame, actor: number) {
     (simultaneous(g) ? !readySeats(g)[actor] : actor === g.active)
   );
 }
+/** Local drafts survive other seats locking, but never survive a new decision/hand. */
+export function preparationKey(g: PublicGame, viewer: number) {
+  const player = g.players[viewer];
+  return `${g.id}:${decisionKey(g)}:${viewer}:${player.packet}:${canAct(g, viewer)}:${player.hand.map((card) => card.id).join(',')}`;
+}
 export function legalMoves(g: PublicGame): Move[] {
   if (g.phase === 'over') return [];
   if (g.phase === 'roll') return [{ type: 'roll' }];
   if (g.phase === 'pass') return [];
+  if (g.phase === 'salvage')
+    return canAct(g, g.active)
+      ? [
+          { type: 'salvage', claim: false },
+          { type: 'salvage', claim: true },
+        ]
+      : [];
   const p = g.players[g.active];
   let hand = p.hand;
   if (g.id === 'undertow') {
@@ -548,36 +988,109 @@ export function legalMoves(g: PublicGame): Move[] {
     }
     const moves = hand.flatMap<Move>((c) => [
       { type: 'play', card: c.id },
-      ...(g.starter !== false && p.wards
+      ...(g.shields === true && p.wards
         ? [{ type: 'play' as const, card: c.id, ward: true }]
         : []),
     ]);
-    // Tack only spends a token when it actually breaks the follow-suit rule.
-    if (g.starter && p.tacks && hand.length < p.hand.length)
-      moves.push(...p.hand.filter((c) => !hand.includes(c)).map((c) => ({
-        type: 'play' as const, card: c.id, tack: true,
-      })));
     return moves;
   }
   if (g.id === 'midnight') {
-    if (!g.nightMarket) return hand.map((c) => ({ type: 'play', card: c.id }));
-    const orders = p.festival!.orders.length < g.round ? availableOrders(g.round, g) : [undefined];
-    return hand.flatMap((c) => orders.flatMap((order) => {
-      const move: Move = { type: 'play', card: c.id, ...(order === undefined ? {} : { order }) };
-      const canBuild = p.festival!.stalls.length < 2 &&
-        !p.festival!.stalls.some((stall) => stall.kind === c.kind);
-      return canBuild ? [move, { ...move, stall: true }] : [move];
-    }));
+    if (!g.customerOrders && !g.specialtyStalls)
+      return hand.map((c) => ({ type: 'play', card: c.id }));
+    const orders =
+      g.customerOrders && p.festival!.orders.length < g.round
+        ? availableOrders(g.round, g)
+        : [undefined];
+    return hand.flatMap((c) =>
+      orders.flatMap((order) => {
+        const move: Move = {
+          type: 'play',
+          card: c.id,
+          ...(order === undefined ? {} : { order }),
+        };
+        const canBuild =
+          g.specialtyStalls &&
+          p.festival!.stalls.length < 2 &&
+          !p.festival!.stalls.some((stall) => stall.kind === c.kind);
+        return canBuild ? [move, { ...move, stall: true }] : [move];
+      }),
+    );
   }
-  const moves = hand.flatMap((c) =>
-    habitats.flatMap((_, z) =>
-      allowedZone(g, g.active, c, z)
-        ? [{ type: 'play' as const, card: c.id, zone: z }]
-        : [],
-    ),
-  );
+  const moves: Move[] = [];
+  const variants: {
+    zones: Card[][];
+    migration?: { card: number; from: number; to: number };
+  }[] = [{ zones: p.zones }];
+  if (g.migration && (p.migrations ?? 0) > 0) {
+    p.zones.forEach((cards, from) => {
+      if (from === 5) return;
+      for (const resident of cards)
+        for (const to of habitatOrder) {
+          if (to === 5 || to === from || p.zones[to].length >= habitats[to].cap)
+            continue;
+          const migration = { card: resident.id, from, to };
+          variants.push({
+            zones: migratedZones(p.zones, migration),
+            migration,
+          });
+        }
+    });
+  }
+  for (const variant of variants) {
+    const view = {
+      ...g,
+      players: g.players.map((player, i) =>
+        i === g.active ? { ...player, zones: variant.zones } : player,
+      ),
+    };
+    for (const c of hand)
+      for (const z of habitatOrder) {
+        const move: Move = {
+          type: 'play',
+          card: c.id,
+          zone: z,
+          ...(variant.migration ? { migration: variant.migration } : {}),
+        };
+        if (allowedZone(view, g.active, c, z)) moves.push(move);
+        else if (
+          g.roamEnabled &&
+          (p.roams ?? 0) > 0 &&
+          z !== 5 &&
+          variant.zones[z].length < habitats[z].cap
+        )
+          moves.push({ ...move, roam: true });
+      }
+  }
   return moves;
 }
+export function migratedZones(
+  zones: Card[][],
+  migration: { card: number; from: number; to: number },
+): Card[][] {
+  const next = zones.map((area) => [...area]);
+  const index =
+    next[migration.from]?.findIndex((card) => card.id === migration.card) ?? -1;
+  if (index >= 0 && next[migration.to])
+    next[migration.to].push(next[migration.from].splice(index, 1)[0]);
+  return next;
+}
+function beginTrick(g: Game) {
+  g.salvageClaimants = [];
+  g.trickLeader = g.active;
+  if (!g.salvage || g.players[0].hand.length <= 1) return;
+  const eligible = g.players.map(
+    (p, i) => i !== g.trickLeader && (p.salvageClaims ?? 0) > 0,
+  );
+  if (!eligible.some(Boolean)) return;
+  g.phase = 'salvage';
+  g.ready = eligible.map((value) => !value);
+  g.pending = g.players.map(() => null);
+  g.active = Array.from(
+    { length: g.players.length },
+    (_, offset) => ((g.firstPlayer ?? 0) + offset) % g.players.length,
+  ).find((i) => eligible[i])!;
+}
+
 /** Papayoo: 3–4 seats pass 5, 5 seats pass 4, 6 seats pass 3.
  * Nami extends the five-card exchange to its two-player variant.
  * https://www.gigamic.com/index.php?controller=attachment&id_attachment=77
@@ -597,7 +1110,38 @@ export function passCount(
   return g.players.length <= 4 ? 5 : g.players.length === 5 ? 4 : 3;
 }
 export function validMove(state: PublicGame, m: Move, actor = state.active) {
+  if (
+    !m ||
+    typeof m !== 'object' ||
+    !['play', 'roll', 'pass', 'salvage'].includes(m.type)
+  )
+    return false;
+  const fields =
+    m.type === 'play'
+      ? ['type', 'card', 'zone', 'ward', 'order', 'stall', 'roam', 'migration']
+      : m.type === 'pass'
+        ? ['type', 'cards']
+        : m.type === 'salvage'
+          ? ['type', 'claim']
+          : ['type'];
+  if (Object.keys(m).some((key) => !fields.includes(key))) return false;
+  if (
+    m.type === 'play' &&
+    m.migration !== undefined &&
+    (!m.migration ||
+      !['card', 'from', 'to'].every((key) =>
+        Number.isInteger(m.migration![key as keyof typeof m.migration]),
+      ))
+  )
+    return false;
   if (!canAct(state, actor)) return false;
+  if (state.phase === 'salvage')
+    return (
+      m.type === 'salvage' &&
+      typeof m.claim === 'boolean' &&
+      actor !== state.trickLeader &&
+      (state.players[actor].salvageClaims ?? 0) > 0
+    );
   const g = { ...state, active: actor };
   if (g.phase === 'pass')
     return (
@@ -614,9 +1158,12 @@ export function validMove(state: PublicGame, m: Move, actor = state.active) {
         x.card === m.card &&
         x.zone === m.zone &&
         !!x.ward === !!m.ward &&
-        !!x.tack === !!m.tack &&
         x.order === m.order &&
-        !!x.stall === !!m.stall),
+        !!x.stall === !!m.stall &&
+        !!x.roam === !!m.roam &&
+        x.migration?.card === m.migration?.card &&
+        x.migration?.from === m.migration?.from &&
+        x.migration?.to === m.migration?.to),
   );
 }
 function finishRound(g: Game) {
@@ -626,7 +1173,7 @@ function finishRound(g: Game) {
   } else {
     g.round++;
     g.pick = 1;
-    g.roller = (g.round - 1) % g.players.length;
+    g.roller = ((g.firstPlayer ?? 0) + g.round - 1) % g.players.length;
     deal(g);
   }
 }
@@ -640,7 +1187,29 @@ export function play(state: Game, m: Move, actor = state.active): Game {
   g.ready[actor] = true;
   g.revision++;
   if (g.ready.some((ready) => !ready)) {
-    g.active = g.ready.findIndex((ready) => !ready);
+    g.active = Array.from(
+      { length: g.players.length },
+      (_, offset) => ((g.firstPlayer ?? 0) + offset) % g.players.length,
+    ).find((seat) => !g.ready![seat])!;
+    return g;
+  }
+  if (g.phase === 'salvage') {
+    g.salvageClaimants = g.pending.flatMap((move, seat) =>
+      move?.type === 'salvage' && move.claim ? [seat] : [],
+    );
+    for (const seat of g.salvageClaimants) g.players[seat].salvageClaims!--;
+    emit(
+      g,
+      'salvage',
+      -1,
+      g.salvageClaimants.length
+        ? `Salvage: ${g.salvageClaimants.map((i) => g.players[i].name).join(', ')} committed.`
+        : 'No salvage claims.',
+    );
+    delete g.pending;
+    delete g.ready;
+    g.phase = 'play';
+    g.active = g.trickLeader!;
     return g;
   }
   // Reveal and resolve the complete batch only when every seat has locked a choice.
@@ -651,6 +1220,9 @@ export function play(state: Game, m: Move, actor = state.active): Game {
     if (!pending[i]) continue; // A legacy saved round may already have resolved early seats.
     g.active = i;
     g = applyMove(g, pending[i]!, false);
+  }
+  if (g.firstPlayer !== undefined && simultaneous(g)) {
+    g.active = g.firstPlayer;
   }
   return g;
 }
@@ -681,7 +1253,7 @@ function applyMove(state: Game, m: Move, increment = true): Game {
       emit(g, 'pass', -1, 'Cards move to the next seat.');
       g.passes = g.players.map(() => []);
       g.phase = 'roll';
-      g.roller = (g.round - 1) % n;
+      g.roller = ((g.firstPlayer ?? 0) + g.round - 1) % n;
       g.active = g.roller;
       remember(g);
     }
@@ -706,8 +1278,14 @@ function applyMove(state: Game, m: Move, increment = true): Game {
       );
     }
     g.phase = 'play';
-    g.active = g.id === 'undertow' ? g.roller : 0;
+    g.active = g.id === 'undertow' ? g.roller : (g.firstPlayer ?? 0);
+    if (g.id === 'undertow') beginTrick(g);
     return g;
+  }
+  if (m.type !== 'play') return state;
+  if (m.migration) {
+    p.zones = migratedZones(p.zones, m.migration);
+    p.migrations!--;
   }
   const card = p.hand.splice(
     p.hand.findIndex((c) => c.id === m.card),
@@ -718,39 +1296,50 @@ function applyMove(state: Game, m: Move, increment = true): Game {
     g,
     'play',
     actor,
-    `${p.name}: ${cardName(g.id, card)}${m.zone !== undefined ? ` → ${habitats[m.zone].name}` : ''}${m.ward ? ' + shield' : ''}${m.tack ? ' + Tack' : ''}${m.order !== undefined ? ` · order: ${festivalOrders[m.order].name}` : ''}${m.stall ? ` · opens ${foods[card.kind].name} stall` : ''}`,
+    `${p.name}: ${cardName(g.id, card, g.contentSet)}${m.zone !== undefined ? ` → ${habitatsFor(g.contentSet)[m.zone].name}` : ''}${m.ward ? ' + shield' : ''}${m.order !== undefined ? ` · order: ${festivalOrders[m.order].name}` : ''}${m.stall ? ` · opens ${foodsFor(g.contentSet)[card.kind].name} stall` : ''}${m.roam ? ' · Roam' : ''}${m.migration ? ' · Migration' : ''}`,
     card.kind,
   );
   if (g.id === 'undertow') {
     if (m.ward) p.wards--;
-    if (m.tack) p.tacks = (p.tacks ?? 0) - 1;
     if (
-      !m.tack &&
       g.trick.length &&
       card.kind !== g.trick[0].card.kind &&
       !g.voids[actor].includes(g.trick[0].card.kind)
     )
       g.voids[actor].push(g.trick[0].card.kind);
-    g.trick.push({ player: actor, card, ward: !!m.ward, tack: !!m.tack });
+    g.trick.push({ player: actor, card, ward: !!m.ward });
     if (g.trick.length < n) {
       g.active = (actor + 1) % n;
       return g;
     }
     const win = g.trick
       .filter((t) => t.card.kind === g.trick[0].card.kind)
-      .sort((a, b) => b.card.rank - a.card.rank)[0];
+      .sort((a, b) =>
+        lowTide(g) ? a.card.rank - b.card.rank : b.card.rank - a.card.rank,
+      )[0];
     let cost = g.trick.reduce(
       (s, t) =>
         s + penalty(t.card, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g)),
       0,
     );
     if (win.ward) cost = Math.ceil(cost / 2);
-    g.players[win.player].score += cost;
+    const scoreChanges = g.players.map(
+      (_, seat) =>
+        (seat === win.player ? cost : 0) +
+        ((g.salvageClaimants ?? []).includes(seat)
+          ? seat === win.player
+            ? -6
+            : 3
+          : 0),
+    );
+    g.players.forEach((player, seat) => {
+      player.score += scoreChanges[seat];
+    });
     emit(
       g,
       'trick',
       win.player,
-      `${g.players[win.player].name} takes ${cost} penalty points.`,
+      `${g.players[win.player].name} takes ${cost} penalty points.${(g.salvageClaimants ?? []).length ? ' Salvage: ' + g.salvageClaimants!.map((seat) => `${g.players[seat].name} ${seat === win.player ? '−6' : '+3'}`).join(', ') + '.' : ''}`,
       undefined,
       cost,
     );
@@ -759,18 +1348,36 @@ function applyMove(state: Game, m: Move, increment = true): Game {
     Object.assign(g.events[g.events.length - 1], {
       trick: g.trick,
       hazard: g.hazard,
+      scoreChanges,
+      salvageChanges: g.players.map((_, seat) =>
+        (g.salvageClaimants ?? []).includes(seat)
+          ? seat === win.player
+            ? -6
+            : 3
+          : 0,
+      ),
     });
     g.lastTrick = g.trick;
     g.trick = [];
     g.pick++;
     if (!g.players[0].hand.length) finishRound(g);
+    else beginTrick(g);
   } else {
-    if (g.id === 'midnight' && g.nightMarket) {
+    if (m.roam) p.roams!--;
+    if (
+      g.marketSeasons &&
+      card.kind === g.seasonForecast?.[(g.round - 1) * 6 + g.pick - 1]
+    )
+      p.seasonPoints = (p.seasonPoints ?? 0) + 2;
+    if (g.id === 'midnight' && (g.customerOrders || g.specialtyStalls)) {
       if (m.order !== undefined) {
         p.festival!.orders.push(m.order);
       }
       if (m.stall) {
-        p.festival!.stalls.push({ kind: card.kind, from: p.zones[0].length + 1 });
+        p.festival!.stalls.push({
+          kind: card.kind,
+          from: p.zones[0].length + 1,
+        });
       }
     }
     if (g.id !== 'wildgrove' || m.zone !== 5) p.zones[m.zone ?? 0].push(card);
@@ -830,18 +1437,123 @@ export function isSavedGame(x: unknown): x is Game {
     if (!x || typeof x !== 'object') return false;
     const g = x as Game;
     if (
-      g.version !== 3 ||
-      (g.starter !== undefined && typeof g.starter !== 'boolean') ||
+      g.version !== 4 ||
+      (g.shields !== undefined && typeof g.shields !== 'boolean') ||
       (g.fastMode !== undefined && typeof g.fastMode !== 'boolean') ||
-      (g.nightMarket !== undefined && typeof g.nightMarket !== 'boolean') ||
-      (g.nightMarket === true && g.id !== 'midnight') ||
+      (g.customerOrders !== undefined &&
+        typeof g.customerOrders !== 'boolean') ||
+      (g.customerOrders === true && g.id !== 'midnight') ||
+      (g.sanctuaryGoalsEnabled !== undefined &&
+        typeof g.sanctuaryGoalsEnabled !== 'boolean') ||
+      (g.sanctuaryGoalsEnabled === true && g.id !== 'wildgrove') ||
       (g.passCards !== undefined && ![3, 4, 5].includes(g.passCards)) ||
       !catalog.some((c) => c.id === g.id) ||
       !['easy', 'medium', 'hard'].includes(g.difficulty) ||
-      !['pass', 'roll', 'play', 'over'].includes(g.phase)
+      !['pass', 'roll', 'play', 'salvage', 'over'].includes(g.phase)
+    )
+      return false;
+    if (
+      g.contentSet !== undefined &&
+      !['beginner', 'intermediate'].includes(g.contentSet)
+    )
+      return false;
+    if (g.id === 'undertow' && g.contentSet === 'intermediate') return false;
+    for (const [key, id] of [
+      ['migration', 'wildgrove'],
+      ['salvage', 'undertow'],
+      ['specialtyStalls', 'midnight'],
+      ['roamEnabled', 'wildgrove'],
+      ['turningTide', 'undertow'],
+      ['marketSeasons', 'midnight'],
+    ] as const) {
+      if (
+        (g[key] !== undefined && typeof g[key] !== 'boolean') ||
+        (g[key] && g.id !== id)
+      )
+        return false;
+    }
+    if (
+      g.marketSeasons &&
+      (!Array.isArray(g.seasonForecast) ||
+        g.seasonForecast.length !== 12 ||
+        !g.seasonForecast.every(
+          (k) => Number.isInteger(k) && k >= 0 && k < 6,
+        ) ||
+        [0, 6].some(
+          (start) =>
+            new Set(g.seasonForecast!.slice(start, start + 6)).size !== 6,
+        ))
+    )
+      return false;
+    if (
+      g.id === 'wildgrove' &&
+      !g.players.every(
+        (p) =>
+          Number.isInteger(p.roams) &&
+          p.roams! >= 0 &&
+          p.roams! <= (g.roamEnabled ? 2 : 0) &&
+          Number.isInteger(p.migrations) &&
+          p.migrations! >= 0 &&
+          p.migrations! <= (g.migration ? 1 : 0),
+      )
+    )
+      return false;
+    if (
+      g.marketSeasons &&
+      !g.players.every(
+        (p) =>
+          p.seasonPoints ===
+          p.zones[0].reduce(
+            (sum, card, index) =>
+              sum + (card.kind === g.seasonForecast![index] ? 2 : 0),
+            0,
+          ),
+      )
     )
       return false;
     const n = g.players.length;
+    if (
+      g.salvageClaimants !== undefined &&
+      (!Array.isArray(g.salvageClaimants) ||
+        new Set(g.salvageClaimants).size !== g.salvageClaimants.length ||
+        g.salvageClaimants.some(
+          (seat) => !Number.isInteger(seat) || seat < 0 || seat >= n,
+        ))
+    )
+      return false;
+    if (
+      g.phase === 'salvage' &&
+      (!g.salvage ||
+        !Number.isInteger(g.trickLeader) ||
+        g.trickLeader! < 0 ||
+        g.trickLeader! >= n ||
+        g.trick.length ||
+        g.players[0].hand.length <= 1 ||
+        !g.pending ||
+        !g.ready ||
+        (g.salvageClaimants?.length ?? 0) > 0)
+    )
+      return false;
+    if (
+      g.firstPlayer !== undefined &&
+      (!Number.isInteger(g.firstPlayer) ||
+        g.firstPlayer < 0 ||
+        g.firstPlayer >= n)
+    )
+      return false;
+    if (g.sanctuaryGoalsEnabled && !g.sanctuaryGoals) return false;
+    if (g.customerOrders && !g.festivalOffers) return false;
+    if (
+      g.sanctuaryGoals !== undefined &&
+      (!g.sanctuaryGoalsEnabled ||
+        !Array.isArray(g.sanctuaryGoals) ||
+        g.sanctuaryGoals.length !== 3 ||
+        new Set(g.sanctuaryGoals).size !== 3 ||
+        g.sanctuaryGoals.some(
+          (id) => !Number.isInteger(id) || !sanctuaryGoals[id],
+        ))
+    )
+      return false;
     if (
       n < 2 ||
       n > 6 ||
@@ -886,35 +1598,64 @@ export function isSavedGame(x: unknown): x is Game {
           Number.isInteger(p.wards) &&
           p.wards >= 0 &&
           p.wards <= 2 &&
-          (p.tacks === undefined ||
-            (Number.isInteger(p.tacks) && p.tacks >= 0 && p.tacks <= 1)) &&
+          (p.salvageClaims === undefined ||
+            (Number.isInteger(p.salvageClaims) &&
+              p.salvageClaims >= 0 &&
+              p.salvageClaims <= 1)) &&
           Number.isInteger(p.packet) &&
           p.hand.every(card) &&
-          (p.zones.length === 6 ||
-            (g.id === 'wildgrove' && p.zones.length === 7)) &&
+          p.zones.length === (g.id === 'wildgrove' ? 7 : 6) &&
           p.zones.every(
             (z, i) =>
               z.every(card) &&
-              // Older maps allowed larger habitats. Preserve those saved creatures;
-              // allowedZone enforces the sanctuary limits for every new placement.
-              (g.id !== 'wildgrove' || z.length <= [4, 4, 4, 3, 4, 12, 3][i]),
+              (g.id !== 'wildgrove' || z.length <= habitats[i].cap),
           ),
       )
     )
       return false;
-    if (g.nightMarket) {
-      if (g.festivalOffers !== undefined && (!Array.isArray(g.festivalOffers) || g.festivalOffers.length !== 2 ||
-          !g.festivalOffers.every((offer) => Array.isArray(offer) && offer.length === 3 && new Set(offer).size === 3 &&
-            offer.every((id) => Number.isInteger(id) && id >= 0 && id < festivalOrders.length)))) return false;
+    if (g.customerOrders || g.specialtyStalls) {
+      if (
+        g.festivalOffers !== undefined &&
+        (!Array.isArray(g.festivalOffers) ||
+          g.festivalOffers.length !== 2 ||
+          !g.festivalOffers.every(
+            (offer) =>
+              Array.isArray(offer) &&
+              offer.length === 3 &&
+              new Set(offer).size === 3 &&
+              offer.every(
+                (id) =>
+                  Number.isInteger(id) && id >= 0 && id < festivalOrders.length,
+              ),
+          ))
+      )
+        return false;
       for (const p of g.players) {
         const f = p.festival;
-        if (!f || !Array.isArray(f.orders) || !Array.isArray(f.stalls) ||
-            f.orders.length !== Math.ceil(p.zones[0].length / 6) ||
-            !f.orders.every((order, round) => availableOrders(round + 1, g).includes(order)) ||
-            f.stalls.length > 2 || new Set(f.stalls.map((stall) => stall.kind)).size !== f.stalls.length ||
-            !f.stalls.every((stall) => Number.isInteger(stall.kind) && stall.kind >= 0 && stall.kind < 6 &&
-              Number.isInteger(stall.from) && stall.from >= 1 && stall.from <= p.zones[0].length &&
-              p.zones[0][stall.from - 1].kind === stall.kind)) return false;
+        if (
+          !f ||
+          !Array.isArray(f.orders) ||
+          !Array.isArray(f.stalls) ||
+          f.orders.length !==
+            (g.customerOrders ? Math.ceil(p.zones[0].length / 6) : 0) ||
+          !f.orders.every((order, round) =>
+            availableOrders(round + 1, g).includes(order),
+          ) ||
+          f.stalls.length > (g.specialtyStalls ? 2 : 0) ||
+          new Set(f.stalls.map((stall) => stall.kind)).size !==
+            f.stalls.length ||
+          !f.stalls.every(
+            (stall) =>
+              Number.isInteger(stall.kind) &&
+              stall.kind >= 0 &&
+              stall.kind < 6 &&
+              Number.isInteger(stall.from) &&
+              stall.from >= 1 &&
+              stall.from <= p.zones[0].length &&
+              p.zones[0][stall.from - 1].kind === stall.kind,
+          )
+        )
+          return false;
       }
     }
     if (g.pending !== undefined || g.ready !== undefined) {
@@ -926,7 +1667,11 @@ export function isSavedGame(x: unknown): x is Game {
         g.ready.length !== n ||
         !g.ready.every((v) => typeof v === 'boolean') ||
         g.ready.every(Boolean) ||
-        g.active !== g.ready.findIndex((v) => !v)
+        g.active !==
+          Array.from(
+            { length: n },
+            (_, offset) => ((g.firstPlayer ?? 0) + offset) % n,
+          ).find((seat) => !g.ready![seat])
       )
         return false;
       const validation = { ...g, ready: g.players.map(() => false) };
@@ -938,7 +1683,15 @@ export function isSavedGame(x: unknown): x is Game {
         )
           return false;
         // Null ready entries are allowed for already-resolved seats in legacy saves.
-        if (move === null && g.ready[seat] && seat > g.active) return false;
+        if (
+          move === null &&
+          g.ready[seat] &&
+          !(
+            g.phase === 'salvage' &&
+            (seat === g.trickLeader || !g.players[seat].salvageClaims)
+          )
+        )
+          return false;
       }
     }
     const all = [
@@ -974,4 +1727,148 @@ export function isSavedGame(x: unknown): x is Game {
   } catch {
     return false;
   }
+}
+
+/** Content identity is independent of extensions; kind indices are local to a set. */
+export const coastalCreatures = [
+  'Signal Crab',
+  'Reef Gecko',
+  'Mangrove Rail',
+  'Lagoon Turtle',
+  'Relay Bat',
+  'Coral Moth',
+];
+export const intermediateFoods = [
+  {
+    name: 'Ember Bao',
+    formula: 'Pair 8 · leftover −1',
+    rule: 'Each pair earns 8 points. An unpaired portion loses 1 point.',
+    example: 'Three portions earn 8 − 1 = 7.',
+  },
+  {
+    name: 'Radio Roti',
+    formula: '2 each · sole least +7',
+    rule: 'Each portion earns 2. Earn 7 extra if you have at least one and strictly fewer portions than every other player. A player with zero prevents this bonus.',
+    example:
+      'Your one portion against two and three earns 9. Against zero and three it earns 2.',
+  },
+  {
+    name: 'Chilli Crunch',
+    formula: '6 · 10 · 6 · 4 · 2…',
+    rule: 'One portion earns 6, two earn 10, three earn 6. Each portion beyond three removes another 2 points.',
+    example: 'Four portions earn 4. Seven earn −2.',
+  },
+  {
+    name: 'Lime Rice',
+    formula: 'Bao or ice pairing: 5',
+    rule: 'Each portion earns 5 if paired with one Ember Bao or Coconut Ice. Each Bao or Ice supports only one Lime Rice; both paired dishes still score normally.',
+    example:
+      'Three Lime Rice with one Ember Bao and one Coconut Ice earn 10 for the rice.',
+  },
+  {
+    name: 'Night Market Corn',
+    formula: '2 each · 5 types: 4 each',
+    rule: 'Each portion earns 2, or 4 if your collection contains at least five different dish types.',
+    example: 'Three portions with five dish types earn 12.',
+  },
+  {
+    name: 'Coconut Ice',
+    formula: '3 → 15 · leftovers 0',
+    rule: 'Each complete group of three earns 15. Leftovers earn nothing.',
+    example: 'Five portions earn 15; six earn 30.',
+  },
+];
+const coastalRules = [
+  [
+    'Shell cradles',
+    'Each species present exactly twice earns 9. Singles, triples and quadruples earn nothing.',
+    'Exact pair 9',
+  ],
+  [
+    'Coral garden',
+    'Each different species earns 2. Fill all four spaces with different species for 7 extra points.',
+    '2 per species · four +7',
+  ],
+  [
+    'Twin pools',
+    'Two different species earn 9. A matching pair earns 3. A single earns 1.',
+    'Different pair 9 · alike 3',
+  ],
+  [
+    'Tidal path',
+    'Each creature earns 2. Fill in order: matching ends and a different middle earn 8 extra points.',
+    '2 each · A–B–A +8',
+  ],
+  [
+    'Driftwood refuge',
+    'Each different species found here and nowhere else on your board earns 5. Repeats here add nothing. Release does not count.',
+    'Exclusive species ×5',
+  ],
+  [
+    'Release',
+    'Release a creature for zero points. It leaves your board.',
+    '0 points',
+  ],
+  [
+    'Beacon',
+    'Place one creature here. Earn 3 for each other occupied habitat that does not contain its species. Release never counts.',
+    'Other occupied homes without this species ×3',
+  ],
+];
+export const intermediateHabitats = habitats.map((h, i) => ({
+  ...h,
+  name: coastalRules[i][0],
+  rule: coastalRules[i][1],
+  formula: coastalRules[i][2],
+  maxScore: [18, 15, 9, 14, 15, 0, 15][i],
+}));
+export const creaturesFor = (set?: ContentSet) =>
+  set === 'intermediate' ? coastalCreatures : creatures;
+export const foodsFor = (set?: ContentSet) =>
+  set === 'intermediate' ? intermediateFoods : foods;
+export const habitatsFor = (set?: ContentSet) =>
+  set === 'intermediate' ? intermediateHabitats : habitats;
+/** Name the actual destinations; habitat labels no longer carry die-group glyphs. */
+export function placementDieRule(face: number, set?: ContentSet) {
+  const die = dice[face];
+  return die.zones.length
+    ? `Place in ${die.zones.map((zone) => habitatsFor(set)[zone].name).join(', ')}.`
+    : die.rule;
+}
+export function tokenImage(kind: number, food = false, set?: ContentSet) {
+  const version = !food && set !== 'intermediate' ? 2 : 1;
+  return `/art/optimized/${food ? (set === 'intermediate' ? 'nightshift-alley' : 'nightshift-lane') : set === 'intermediate' ? 'mora-paper-coast' : 'mora-paper-inland'}-${kind}-v${version}.webp`;
+}
+export function sanctuaryGoalsFor(set?: ContentSet) {
+  if (set !== 'intermediate') return sanctuaryGoals;
+  const names = (...zones: number[]) => zones.map((zone) => habitatsFor(set)[zone].name);
+  return sanctuaryGoals.map((goal, i) =>
+    i === 1
+      ? { ...goal, rule: `Shelter six creatures on square spaces: ${names(0, 1, 2).join(', ')} together.` }
+      : i === 2
+        ? { ...goal, rule: `Shelter five creatures on round spaces: ${names(3, 4, 6).join(', ')} together.` }
+        : i === 3
+          ? { ...goal, rule: `Two species each living in both ${names(0, 1).join(' and ')}.` }
+          : i === 4
+            ? { ...goal, rule: `Place three different species in ${names(4)[0]}.` }
+      : i === 9
+        ? {
+            ...goal,
+            name: 'Coral mosaic',
+            rule: 'Place four different species in Coral garden.',
+          }
+        : i === 10
+          ? {
+              ...goal,
+              name: 'Coastal walk',
+              rule: 'Complete Tidal path with matching ends and a different middle: A–B–A.',
+            }
+          : i === 11
+            ? {
+                ...goal,
+                name: 'Beacon strangers',
+                rule: 'Place a creature in Beacon and fill three other habitats without its species.',
+              }
+            : goal,
+  );
 }

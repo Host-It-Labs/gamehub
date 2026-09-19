@@ -1,0 +1,534 @@
+/* Full-table worlds for the two card games: Nox in the captain's cabin,
+   Yata at the night-market counter. One environment plate covers the table;
+   the controls float over it in the same order as the Observatory (islands
+   top, fixed hand dock bottom, confirm beside the hand), each in its own
+   material. Sections: shared stage · cabin · market · phones. */
+
+/* ===== 1. Shared stage: header hidden, floating islands, fixed dock ===== */
+.app:has(.world-table:is([data-environment='cabin'], [data-environment='market'])) .app-header { display: none; }
+.at-table .table-layout.world-table:is([data-environment='cabin'], [data-environment='market']) {
+  --world-hand-height: 200px;
+  --world-hand-width: min(640px, calc(100% - 520px));
+  --world-bottom-gap: max(18px, env(safe-area-inset-bottom));
+  --world-top: max(58px, env(safe-area-inset-top) + 50px);
+  max-width: none; padding: 0; position: relative; isolation: isolate; overflow: hidden;
+}
+.world-table:is([data-environment='cabin'], [data-environment='market']) .table-columns { display: flex; flex: 1; min-height: 0; gap: 0; }
+.world-table:is([data-environment='cabin'], [data-environment='market']) .activity-sidebar { display: none; }
+.world-table:is([data-environment='cabin'], [data-environment='market']) .play-area {
+  position: relative; flex: 1; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+.world-table:is([data-environment='cabin'], [data-environment='market']) .board-frame {
+  position: absolute; inset: var(--world-top) 0 calc(var(--world-hand-height) + var(--world-bottom-gap) + 10px);
+  border-radius: 0; overflow: visible;
+}
+.world-table:is([data-environment='cabin'], [data-environment='market']) .board-frame > .board-viewport {
+  overflow: visible; padding: 0; border-radius: 0; touch-action: auto; align-items: flex-start; justify-content: flex-start;
+  width: 100%; height: 100%; position: relative;
+}
+.world-table:is([data-environment='cabin'], [data-environment='market']) .board-pan-cue,
+.world-table:is([data-environment='cabin'], [data-environment='market']) .scroll-fade { display: none; }
+/* The staged board is positioned by the stage; its wrapper holds no material of its own. */
+.nox-board, .market-world { pointer-events: none; }
+.nox-board > *, .market-world > * { pointer-events: auto; }
+.nox-board > .observatory-world, .market-world > .observatory-world { pointer-events: none; }
+
+/* Floating navigation islands. */
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .table-toolbar {
+  position: absolute; inset: max(8px, env(safe-area-inset-top)) 10px auto; z-index: 10;
+  margin: 0; padding: 0; border: 0; min-height: 0; gap: 8px; background: transparent; box-shadow: none; pointer-events: none; flex-wrap: nowrap;
+}
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .table-toolbar > * { pointer-events: auto; }
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .table-toolbar-actions { position: absolute; right: 0; top: 0; }
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .table-toolbar > .table-progress.table-round {
+  display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 10px; min-height: 36px; box-sizing: border-box;
+}
+
+/* The dock: one absolute row (actions left, passing and sort right) around a fixed, centred hand tray. */
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-frame {
+  position: absolute; left: 50%; bottom: var(--world-bottom-gap); transform: translateX(-50%);
+  width: var(--world-hand-width); height: var(--world-hand-height); min-height: var(--world-hand-height); max-height: var(--world-hand-height);
+  margin: 0; padding: 0; flex: none; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; z-index: 3;
+}
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-frame > .hand {
+  height: 100%; width: 100%; box-sizing: border-box; overflow: visible; margin: 0;
+  display: flex; flex-wrap: wrap; align-content: center; justify-content: center; align-items: flex-start;
+}
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls {
+  position: absolute; inset-inline: 14px; bottom: var(--world-bottom-gap); height: var(--world-hand-height);
+  margin: 0; padding: 0; border: 0; background: none; box-shadow: none; border-radius: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; pointer-events: none;
+}
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > * { pointer-events: auto; }
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > span:empty { display: none; }
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-abilities {
+  flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 6px; padding: 0; max-height: 100%; overflow: visible; flex-shrink: 0;
+  background: none; border: 0; box-shadow: none;
+}
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > .passing-control { margin-left: auto; }
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > .sort-button,
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > span:not(:empty) { margin-left: 10px; }
+.at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation {
+  position: absolute; left: 50%; bottom: calc(var(--world-hand-height) + var(--world-bottom-gap) + 12px); transform: translateX(-50%);
+  width: max-content; max-width: calc(100% - 32px); padding: 0; z-index: 4; justify-content: center;
+}
+@media (max-width: 1100px) {
+  .at-table .table-layout.world-table:is([data-environment='cabin'], [data-environment='market']) { --world-hand-width: min(520px, calc(100% - 400px)); }
+  .at-table .table-layout.world-table[data-environment='cabin'] { --shelf-max: min(520px, 100cqw - 400px); }
+}
+/* Wide screens: the confirm plate stands beside the hand, level with it, so nothing covers the viewer's seat. */
+@media (orientation: landscape) and (min-width: 1100px) and (min-height: 501px) {
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation {
+    left: calc(50% + var(--world-hand-width) / 2 + 14px); bottom: calc(var(--world-bottom-gap) + var(--world-hand-height) / 2);
+    transform: translateY(50%); max-width: 230px; flex-direction: column; align-items: stretch; gap: 8px;
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation .confirm-action { min-width: 0; width: 100%; }
+}
+
+/* ===== 2. The captain's cabin (Nox): iron, brass, rope and ink on dark planks ===== */
+.at-table .table-layout.world-table[data-environment='cabin'] {
+  --world-hand-height: 196px;
+  --game-ink: #e9dcb8; --game-paper: #2a3033;
+  background: #0d1216; color: #e9dcb8;
+}
+/* The painted chart table is the board. The DOM table only anchors seats and played cards. */
+.nox-board .blackwake-table {
+  position: absolute; aspect-ratio: auto; min-height: 0; max-height: none; width: auto; height: auto; overflow: visible;
+}
+.nox-board .blackwake-table .blackwake-surface { inset: 0; background: none; border: 0; box-shadow: none; }
+.nox-board .blackwake-centre { color: #dfd2ad; font: 700 clamp(11px, 1.9cqw, 15px)/1.2 Georgia, serif; letter-spacing: .12em; text-shadow: 0 1px 0 #00000088; }
+.nox-board .table-direction { opacity: 0; }
+.nox-board .blackwake-centre > svg { color: #d9b46a; }
+.nox-board .blackwake-played-card { width: clamp(46px, 13cqw, 92px); }
+.nox-board .blackwake-played-card .static-face { box-shadow: 0 3px 0 #0b0f12, 0 8px 12px #000c; }
+.nox-board .played-order { background: #2a3033; color: #e9dcb8; border-color: #8a7a52; }
+/* Seat tags: tin name plates hung at each stool, with the score punched in rust. */
+.nox-board .table-seat {
+  max-width: 34%; gap: 6px; padding: 5px 9px 5px 6px; z-index: 4;
+  background: linear-gradient(180deg, #3c4346, #23292c); color: #efe5c8; border: 1px solid #8a7a52; border-radius: 3px;
+  box-shadow: 0 2px 0 #0b0f12, 0 5px 8px #000a, inset 0 1px 0 #ffffff22; font: 700 12px/1.1 Georgia, serif; cursor: pointer;
+}
+.nox-board .table-seat:focus-visible { outline: 3px solid #e2b96a; outline-offset: 3px; }
+.nox-board .table-seat .avatar { width: 22px; height: 22px; font-size: 12px; border-radius: 3px; }
+.nox-board .table-seat .seat-score {
+  padding: 1px 7px; border-radius: 10px; background: #a8552d; color: #fff3dc; font-size: 12px; font-variant-numeric: tabular-nums;
+}
+.nox-board .table-seat small { bottom: -14px; background: #d9b46a; color: #1f1c14; border-radius: 2px; font-weight: 800; letter-spacing: .08em; }
+.nox-board .table-seat.active { outline: 2px solid #e2b96a; outline-offset: 2px; box-shadow: 0 0 0 5px #e2b96a33, 0 0 18px #ffcc7080, 0 2px 0 #0b0f12; }
+.nox-board .table-seat .player-status-icons { margin-left: 2px; }
+.nox-board .table-seat > svg { color: #d9b46a; }
+.nox-board .capture-score { background: #e9dcb8; color: #4a2a20; border: 1px solid #8a7a52; }
+.nox-board .capture-score.reward { background: #d9b46a; color: #1f1c14; }
+/* The shared top row keeps only the spoken turn status and connection warning; the crew are tagged at their seats. */
+.world-table[data-environment='cabin'] .table-players {
+  position: absolute; inset: var(--world-top) 0 auto; z-index: 5; padding: 0; background: none; box-shadow: none; pointer-events: none;
+}
+.world-table[data-environment='cabin'] .table-players .player-button,
+.world-table[data-environment='cabin'] .table-players .table-second-line { display: none; }
+.world-table[data-environment='cabin'] .table-players .players { padding: 0; }
+.world-table[data-environment='cabin'] .player-turn-status.connection-warning {
+  pointer-events: auto; margin: 0 auto; width: max-content; padding: 6px 12px; border-radius: 4px;
+  background: #2a3033f0; color: #ffd9a8; border: 1px solid #a8552d;
+}
+/* Toolbar islands: iron plates with brass edges. */
+.at-table .world-table[data-environment='cabin'] :is(.table-back, .table-progress.table-round, .table-menu-trigger, .game-fullscreen) {
+  background: #1d2224ee; color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px; padding: 6px 10px;
+  box-shadow: 0 2px 0 #0b0f12, 0 4px 8px #000a; font-family: Georgia, serif;
+}
+/* The round note sits top centre like Mora's paper label, struck in iron and brass here. */
+.at-table .world-table[data-environment='cabin'] .table-toolbar > .table-progress.table-round {
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%); flex-direction: row; align-items: center; gap: 7px; height: 36px; padding: 0 5px 0 12px;
+  border-radius: 2px 9px 2px 6px; font: 600 12px/1 Georgia, serif; letter-spacing: .02em;
+}
+.at-table .world-table[data-environment='cabin'] .table-progress.table-round span { color: #b6a98a; }
+.at-table .world-table[data-environment='cabin'] .table-progress.table-round b {
+  display: inline-flex; align-items: baseline; padding: .18em .55em; border-radius: 1em; background: #e9dcb8; color: #1d2224;
+  border: 1px solid #d9b46a; font: 700 13px/1.1 Georgia, serif;
+}
+.at-table .world-table[data-environment='cabin'] .table-progress.table-round b small { font-size: .78em; font-weight: 600; opacity: .75; }
+/* Direction ring: brass arrows chased into the table rim. */
+.nox-board .table-direction-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; color: #d9b46a; opacity: .78; }
+.nox-board .table-direction-ring path { fill: none; stroke: currentColor; stroke-width: 9; stroke-linecap: round; }
+.nox-board .table-direction-ring polygon { fill: currentColor; }
+/* The hand: a plank shelf exactly as long as the cards on it. The shelf shrinks
+   and grows with the hand and stays centred; the cards overlap by a step
+   computed from their count, so a full hand still fits the shelf's maximum
+   length (--shelf-max, set per layout below) in one row. On phones the shelf
+   folds into two or three overlapping rows and the step is computed per row.
+   The play area is the size reference (100cqw) for every shelf measure. */
+.world-table[data-environment='cabin'] .play-area { container-type: inline-size; z-index: 1; }
+.at-table .table-layout.world-table[data-environment='cabin'] { --shelf-max: min(640px, 100cqw - 520px); }
+.at-table .world-table[data-environment='cabin'] .hand-frame {
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center; pointer-events: none;
+}
+.at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand {
+  --hand-card-width: 88px; --hand-card-height: 122px; --shelf-pad-x: 18px; --shelf-pad-y: 16px; --row-overlap: 0px; --shelf-rows: var(--count, 1);
+  --hand-step: clamp(20px, (var(--shelf-max) - 2 * var(--shelf-pad-x) - var(--hand-card-width) - 3px) / max(1, var(--shelf-rows) - 1), 44px);
+  width: fit-content; max-width: 100%; height: auto; min-height: 0; max-height: none; flex: 0 0 auto; pointer-events: auto;
+  padding: var(--shelf-pad-y) var(--shelf-pad-x); gap: 0; row-gap: 0; align-content: flex-end; justify-content: center;
+  /* Each slot is one step wide and the card overhangs it to the right, so the
+     wrap breaks rows exactly; the shelf reserves the last card's overhang. */
+  padding-right: calc(var(--shelf-pad-x) + var(--hand-card-width) - var(--hand-step));
+  background: linear-gradient(180deg, #3d2f22, #281e16 70%, #1e1610); border: 1px solid #6b4f34; border-top-color: #8a6a44; border-radius: 6px;
+  box-shadow: inset 0 2px 0 #5a4531, inset 0 -6px 12px #0006, 0 8px 0 #12100c, 0 14px 20px #000c;
+  scroll-padding-inline: 0; touch-action: auto;
+}
+.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap {
+  flex: 0 0 var(--hand-step); width: var(--hand-step); height: var(--hand-card-height);
+  margin-right: 0; margin-bottom: calc(-1 * var(--row-overlap));
+}
+.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap > .piece { width: var(--hand-card-width); height: var(--hand-card-height); }
+/* When the shelf wraps, the second row tucks under the first like a fanned hand. */
+.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap:nth-child(n + 2) { margin-top: 0; }
+.at-table .world-table[data-environment='cabin'] .tide-hand { row-gap: 0; }
+.at-table .world-table[data-environment='cabin'] .tide-hand .piece { border-radius: 8px; box-shadow: 0 2px 0 #0b0f12, 0 6px 10px #000a; }
+/* Selection: cards overlap, so nothing may change their stacking order (a card pulled to the front hides its neighbour)
+   and nothing may sit on the covered right edge. The chosen card is pulled up out of the fan in place, its whole face
+   takes a brass wash, and the tick sits on the top-left corner, which stays visible for every card. */
+.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap { transition: transform .18s ease; }
+.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap:has(.selected) { transform: translateY(-12px); }
+.at-table .world-table[data-environment='cabin'] .tide-hand .piece.selected {
+  outline: 2px solid #e2b96a; outline-offset: -2px;
+  box-shadow: inset 0 0 0 200px #d9b46a3d, 0 2px 0 #0b0f12, 0 10px 14px #000d;
+}
+.at-table .world-table[data-environment='cabin'] .tide-hand .piece.selected .tide-face { background: #e9dcb0; }
+.at-table .world-table[data-environment='cabin'] .card-hand > .piece-wrap:has(.selected)::after {
+  background: #a8552d; border-color: #e9dcb8; top: -8px; right: auto; left: -6px; z-index: 6;
+}
+.at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand { overflow: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap { transition: none; }
+}
+.at-table .world-table[data-environment='cabin'] .tide-face { background: #efe6d1; border-color: #c9bb9a; }
+/* Lightning: the only black cards on the shelf, so the penalty suit reads at a glance. */
+.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 { background: #14161a; color: #f3e8c6; border-color: #45403a; }
+.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 .tide-suit,
+.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 .tide-pips,
+.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 .tide-bottom span { color: #e2b96a; }
+.at-table .world-table[data-environment='cabin'] .tide-hand .piece.selected .tide-face.suit-4 { background: #262119; }
+/* Actions: a bone die, a hung shield and an anchor, the tide arrow chalked on slate. */
+.at-table .world-table[data-environment='cabin'] .dice-token {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 84px; height: 96px; min-height: 0; box-sizing: border-box;
+  background: linear-gradient(180deg, #2a3033, #1d2224); color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px; padding: 10px 6px 6px;
+  box-shadow: 0 2px 0 #0b0f12, 0 5px 8px #000a;
+}
+/* The dock column wraps into a second column when the die and three hung objects outgrow the shelf height. */
+.at-table .world-table[data-environment='cabin'] .hand-abilities { flex-wrap: wrap; align-content: flex-start; height: 100%; column-gap: 8px; }
+.at-table .world-table[data-environment='cabin'] .hand-abilities > * { flex-shrink: 0; }
+/* The shared cube (die.css), its faces cut with playing-card suits. */
+.at-table .world-table[data-environment='cabin'] .die-cube-scene { --die-ink: #2b2f33; --die-shadow: #000000aa; }
+.at-table .world-table[data-environment='cabin'] .die-face .suit-1, .at-table .world-table[data-environment='cabin'] .die-face .suit-3 { color: #a8352d; }
+.at-table .world-table[data-environment='cabin'] .extension-action,
+.at-table .world-table[data-environment='cabin'] .forecast-tide {
+  width: 58px; height: 58px; flex-basis: 58px; color: #e9dcb8;
+  background: radial-gradient(circle at 35% 30%, #4b5254, #23282a 70%); border: 1px solid #8a7a52; border-radius: 50% 50% 46% 46% / 40% 40% 60% 60%;
+  box-shadow: 0 3px 0 #0b0f12, 0 6px 10px #000a, inset 0 1px 0 #ffffff22;
+}
+.at-table .world-table[data-environment='cabin'] .extension-action-shield { border-radius: 42% 42% 50% 50% / 30% 30% 70% 70%; }
+.at-table .world-table[data-environment='cabin'] .extension-action.selected,
+.at-table .world-table[data-environment='cabin'] .extension-action[aria-pressed='true'] {
+  background: radial-gradient(circle at 35% 30%, #7a6a3f, #4b3f22 70%); outline: 2px solid #e2b96a; outline-offset: 3px; transform: none;
+}
+.at-table .world-table[data-environment='cabin'] .extension-count { background: #a8552d; color: #fff3dc; border-color: #e9dcb8; }
+.at-table .world-table[data-environment='cabin'] .forecast-tide { color: #cfe3ea; }
+/* Passing and sort: chalk on a slate. */
+.at-table .world-table[data-environment='cabin'] .passing-control,
+.at-table .world-table[data-environment='cabin'] .sort-button,
+.at-table .world-table[data-environment='cabin'] .hand-controls > span:not(:empty) {
+  background: #23282ae6; color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px; padding: 6px 10px; font-family: Georgia, serif;
+  box-shadow: 0 2px 0 #0b0f12;
+}
+.at-table .world-table[data-environment='cabin'] .passing-control { flex-direction: column; text-align: center; gap: 6px; width: 124px; }
+.at-table .world-table[data-environment='cabin'] .passing-control .seating-trigger { background: #3c4346; color: #e9dcb8; border-color: #6d5a3a; }
+/* Confirm: a brass plate screwed to the shelf. */
+.at-table .world-table[data-environment='cabin'] .hand-confirmation .confirm-action,
+.at-table .world-table[data-environment='cabin'] .hand-confirmation .primary {
+  background: linear-gradient(180deg, #2f4a4a, #1f3535); color: #efe5c8; border: 2px solid #b08d4b; border-radius: 4px;
+  box-shadow: 0 3px 0 #6b552c, 0 6px 10px #000c, inset 0 1px 0 #ffffff22; font: 800 15px/1 Georgia, serif; letter-spacing: .08em; text-transform: uppercase;
+}
+.at-table .world-table[data-environment='cabin'] .hand-confirmation .secondary {
+  background: #23282ae6; color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px;
+}
+.at-table .world-table[data-environment='cabin'] .hand-confirmation .secondary:disabled { opacity: .55; }
+.at-table .world-table[data-environment='cabin'] .fullscreen-message { background: #1d2224; color: #e9dcb8; }
+
+/* Wide screens: the dock is one centred row. The die column and the confirm plate
+   take fixed side columns, so the shelf stays centred whatever the hand holds and
+   the plate never jumps when a choice appears; everything is level with the shelf,
+   and the die stands exactly as tall as it. */
+@media (orientation: landscape) and (min-width: 1100px) and (min-height: 501px) {
+  .at-table .table-layout.world-table[data-environment='cabin'] {
+    --world-hand-height: 154px; --dock-side: 176px; --dock-gap: 14px;
+    --shelf-max: min(640px, 100cqw - 2 * (var(--dock-side) + var(--dock-gap)) - 24px);
+  }
+  .world-table[data-environment='cabin'] .play-area {
+    display: grid; grid-template-columns: minmax(0, 1fr) var(--dock-side) auto var(--dock-side) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) var(--world-hand-height); align-items: end; column-gap: var(--dock-gap);
+    padding: 0 0 var(--world-bottom-gap); box-sizing: border-box;
+  }
+  .world-table[data-environment='cabin'] .play-area > :not(.hand-controls, .hand-frame, .hand-confirmation, .table-players, .board-frame) {
+    grid-area: 1 / 1 / 2 / -1; place-self: center; z-index: 6;
+  }
+  .at-table .world-table[data-environment='cabin'] .hand-controls {
+    grid-area: 2 / 2; position: static; inset: auto; height: 100%; width: auto; justify-content: flex-end; align-items: flex-end;
+  }
+  .at-table .world-table[data-environment='cabin'] .hand-frame {
+    grid-area: 2 / 3; position: static; transform: none; width: auto; max-width: var(--shelf-max); height: 100%; min-height: 0; max-height: none;
+  }
+  .at-table .world-table[data-environment='cabin'] .hand-confirmation {
+    grid-area: 2 / 4; position: static; transform: none; height: 100%; width: auto; max-width: none;
+    flex-direction: column; flex-wrap: nowrap; justify-content: center; align-items: stretch; gap: 8px;
+  }
+  .at-table .world-table[data-environment='cabin'] .hand-confirmation .confirm-action { min-width: 0; width: 100%; min-height: 52px; }
+  .at-table .world-table[data-environment='cabin'] .hand-abilities { height: 100%; column-gap: 8px; row-gap: 6px; }
+  .at-table .world-table[data-environment='cabin'] .dice-token { height: 100%; width: 92px; padding: 12px 6px 8px; justify-content: center; }
+  .at-table .world-table[data-environment='cabin'] .die-cube-scene { --die-size: 44px; }
+  .at-table .world-table[data-environment='cabin'] .dice-token .die-display:has(.die-cube-scene) .die-caption { margin-top: 18px; font-size: 11px; }
+  .at-table .world-table[data-environment='cabin'] .extension-action,
+  .at-table .world-table[data-environment='cabin'] .forecast-tide { width: 46px; height: 46px; min-height: 46px; flex-basis: 46px; padding: 4px; }
+  /* Two-player hands (more than twenty cards) fold into two tucked rows of
+     smaller cards rather than a fan too tight to read; the shelf grows upward. */
+  .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand.deep-hand {
+    --hand-card-width: 72px; --hand-card-height: 100px; --row-overlap: 36px; --shelf-rows: var(--count-2, 1);
+    padding-bottom: calc(var(--shelf-pad-y) + var(--row-overlap));
+  }
+}
+
+/* ===== 3. The night market (Yata): enamel, thick outlines, lantern light ===== */
+.at-table .table-layout.world-table[data-environment='market'] {
+  --world-hand-height: 176px;
+  --game-ink: #1d1a1f; --game-paper: #fff6e2;
+  background: #0e1230; color: #fff6e2;
+}
+/* The collection board stands on the painted counter: six toon plates, no board of its own. */
+.market-world .market-board.counter-board {
+  position: absolute; margin: 0; min-height: 0; aspect-ratio: auto; max-width: none; width: auto; height: auto; box-sizing: border-box;
+  padding: 2% 3% 3%; gap: 5% 3%; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr));
+  background: none; border: 0; box-shadow: none; border-radius: 0; container-type: size;
+}
+.market-world .counter-board .serving-dish {
+  min-height: 0; border: 3px solid #1d1a1f; border-bottom-width: 3px; border-radius: 50% / 46%;
+  background: radial-gradient(ellipse at 50% 40%, #fffaf0 55%, #efe3cc 56%, #f8f0de 64%, #e8dcc3 65%);
+  box-shadow: 0 0 0 5px #d8342a, 0 7px 0 5px #1d1a1f, 0 12px 14px #0009;
+}
+.market-world .counter-board .serving-dish:nth-child(2n) { box-shadow: 0 0 0 5px #2554c7, 0 7px 0 5px #1d1a1f, 0 12px 14px #0009; }
+.market-world .counter-board .serving-dish:nth-child(3n) { box-shadow: 0 0 0 5px #e0a52a, 0 7px 0 5px #1d1a1f, 0 12px 14px #0009; }
+.market-world .counter-board .serving-dish > .piece-wrap > .piece,
+.market-world .counter-board .serving-dish > div:not(.piece-wrap) { padding: 6% 8% 9%; gap: 0; }
+.market-world .counter-board .serving-dish .dish-stack { height: 100%; min-height: 0; }
+.market-world .counter-board .stack-layer { width: min(72px, 22cqw); height: min(66px, 20cqw); }
+.market-world .counter-board .stack-layer .token-art { filter: drop-shadow(0 3px 0 #1d1a1f); }
+.market-world .counter-board .serving-dish strong { color: #1d1a1f; font: 900 clamp(10px, 2.4cqw, 13px)/1.1 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .02em; }
+.market-world .counter-board .serving-dish .collection-score {
+  display: inline-block; margin-top: 2px; padding: 1px 8px; border-radius: 10px; background: #2554c7; color: #fff6e2;
+  border: 2px solid #1d1a1f; font: 900 clamp(10px, 2.3cqw, 12px)/1.3 system-ui, sans-serif;
+}
+.market-world .counter-board .quantity { background: #1d1a1f; color: #fff6e2; border: 2px solid #fff6e2; border-radius: 10px; font-weight: 900; }
+.market-world .counter-board .dish-permit { background: #e0a52a; color: #1d1a1f; border: 2px solid #1d1a1f; box-shadow: 0 2px 0 #1d1a1f; }
+.market-world .counter-board .dish-stack:not(.has-dish) { opacity: .28; filter: saturate(0); }
+/* Hand: angular tickets on the wooden ledge (the ledge is painted, the tray is invisible). */
+.at-table .world-table[data-environment='market'] .hand-frame > .hand.card-hand {
+  --hand-card-width: 96px; --hand-card-height: 130px; gap: 10px; padding: 10px 8px; background: none; border-radius: 0;
+}
+.at-table .world-table[data-environment='market'] .card-hand .food-card {
+  background: #fff6e2; border: 3px solid #1d1a1f; border-radius: 8px;
+  box-shadow: 0 4px 0 #1d1a1f, 0 8px 12px #0009;
+  clip-path: polygon(0 0, 100% 0, 100% 38%, 96% 42%, 100% 46%, 100% 100%, 0 100%, 0 46%, 4% 42%, 0 38%);
+}
+.at-table .world-table[data-environment='market'] .card-hand .food-card.selected { outline: 3px solid #7cff3f; outline-offset: 2px; box-shadow: 0 0 0 6px #7cff3f55, 0 4px 0 #1d1a1f; }
+.at-table .world-table[data-environment='market'] .card-hand > .piece-wrap:has(.selected)::after { background: #7cff3f; color: #1d1a1f; border-color: #1d1a1f; }
+.at-table .world-table[data-environment='market'] .food-card .dish-name { color: #1d1a1f; font: 900 12px/1.1 system-ui, sans-serif; text-transform: uppercase; }
+.at-table .world-table[data-environment='market'] .food-card .dish-formula { border: 2px solid #1d1a1f; border-radius: 5px; box-shadow: none; color: #fff6e2; }
+.at-table .world-table[data-environment='market'] .food-card .token-art { filter: drop-shadow(0 2px 0 #1d1a1f); }
+.at-table .world-table[data-environment='market'] .food-card { --dish-color: #d8342a; }
+.at-table .world-table[data-environment='market'] .food-kind-1 { --dish-color: #2554c7; }
+.at-table .world-table[data-environment='market'] .food-kind-2 { --dish-color: #e0a52a; }
+.at-table .world-table[data-environment='market'] .food-kind-3 { --dish-color: #3c9b45; }
+.at-table .world-table[data-environment='market'] .food-kind-4 { --dish-color: #35303a; }
+.at-table .world-table[data-environment='market'] .food-kind-5 { --dish-color: #c96a2a; }
+.at-table .world-table[data-environment='market'] .food-card.not-playable { filter: saturate(.5) brightness(.8); }
+/* Player tags: outlined pennants hanging from the lantern string. */
+.world-table[data-environment='market'] .table-players {
+  position: absolute; inset: var(--world-top) 0 auto; z-index: 5; padding: 0; background: none; box-shadow: none; pointer-events: none;
+}
+.world-table[data-environment='market'] .table-players .players { pointer-events: auto; padding: 0 8px; justify-content: center; }
+.at-table .world-table[data-environment='market'] .player-button {
+  background: #fff6e2; color: #1d1a1f; border: 3px solid #1d1a1f; border-radius: 4px 4px 14px 14px; min-height: 44px; padding: 5px 10px 8px;
+  box-shadow: 0 4px 0 #1d1a1f; font: 800 13px/1.1 system-ui, sans-serif;
+}
+.at-table .world-table[data-environment='market'] .player-button.active { background: #ffe9a3; box-shadow: 0 4px 0 #1d1a1f, 0 0 0 4px #7cff3f88; }
+.at-table .world-table[data-environment='market'] .player-button b { color: #d8342a; font-size: 16px; }
+.at-table .world-table[data-environment='market'] .player-button .avatar { border: 2px solid #1d1a1f; border-radius: 50%; }
+.at-table .world-table[data-environment='market'] .table-board-button { background: none; border: 0; box-shadow: none; padding: 0; }
+.at-table .world-table[data-environment='market'] .table-board-chip,
+.at-table .world-table[data-environment='market'] .table-second-line .table-progress {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #1d1a1fe6; color: #fff6e2; border: 2px solid #fff6e2; border-radius: 14px; font-weight: 800; font-size: 12px;
+}
+.world-table[data-environment='market'] .table-second-line { display: flex; justify-content: center; gap: 8px; margin-top: 6px; flex-basis: 100%; }
+/* Toolbar islands: enamel chips. */
+.at-table .world-table[data-environment='market'] :is(.table-back, .table-menu-trigger, .game-fullscreen) {
+  background: #fff6e2; color: #1d1a1f; border: 3px solid #1d1a1f; border-radius: 12px; padding: 5px 10px; box-shadow: 0 3px 0 #1d1a1f; font-weight: 800;
+}
+/* Actions: chosen menus and the stall permit hang on the left signboards; passing on the right. */
+.at-table .world-table[data-environment='market'] .festival-controls { flex-direction: column; align-items: stretch; gap: 8px; padding: 0; }
+.at-table .world-table[data-environment='market'] .festival-orders { flex-direction: column; gap: 6px; }
+.at-table .world-table[data-environment='market'] .festival-controls .festival-order {
+  background: #fff6e2; color: #1d1a1f; border: 3px solid #1d1a1f; border-radius: 4px; box-shadow: 0 4px 0 #1d1a1f; width: 122px; height: 60px; min-height: 60px;
+}
+.at-table .world-table[data-environment='market'] .festival-controls .festival-order.selected { outline: 3px solid #7cff3f; box-shadow: 0 4px 0 #1d1a1f, 0 0 0 6px #7cff3f55; }
+.at-table .world-table[data-environment='market'] .festival-controls .festival-order.settled { background: #dfe7d4; }
+.at-table .world-table[data-environment='market'] .festival-controls > .piece-wrap:has(.extension-action-stall) { margin-left: 0; }
+.at-table .world-table[data-environment='market'] .festival-controls > .piece-wrap:has(.extension-action-stall)::before { content: none; }
+.at-table .world-table[data-environment='market'] .extension-action,
+.at-table .world-table[data-environment='market'] .season-forecast {
+  background: #e0a52a; color: #1d1a1f; border: 3px solid #1d1a1f; border-radius: 10px; box-shadow: 0 4px 0 #1d1a1f;
+}
+.at-table .world-table[data-environment='market'] .extension-action.selected,
+.at-table .world-table[data-environment='market'] .extension-action[aria-pressed='true'] { background: #7cff3f; outline: 3px solid #1d1a1f; outline-offset: 2px; transform: none; }
+.at-table .world-table[data-environment='market'] .extension-count { background: #1d1a1f; color: #fff6e2; border-color: #fff6e2; }
+.at-table .world-table[data-environment='market'] .passing-control,
+.at-table .world-table[data-environment='market'] .sort-button,
+.at-table .world-table[data-environment='market'] .hand-controls > span:not(:empty) {
+  background: #fff6e2; color: #1d1a1f; border: 3px solid #1d1a1f; border-radius: 10px; padding: 6px 10px; font-weight: 800; box-shadow: 0 3px 0 #1d1a1f;
+}
+.at-table .world-table[data-environment='market'] .passing-control { flex-direction: column; text-align: center; gap: 6px; width: 124px; }
+.at-table .world-table[data-environment='market'] .passing-control .seating-trigger { background: #2554c7; color: #fff6e2; border: 2px solid #1d1a1f; }
+/* Confirm: the big red arcade button. */
+.at-table .world-table[data-environment='market'] .hand-confirmation .confirm-action,
+.at-table .world-table[data-environment='market'] .hand-confirmation .primary {
+  background: #d8342a; color: #fff6e2; border: 3px solid #1d1a1f; border-radius: 10px; box-shadow: 0 5px 0 #1d1a1f, 0 10px 14px #0009;
+  font: 900 16px/1 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase;
+}
+.at-table .world-table[data-environment='market'] .hand-confirmation .confirm-action:disabled { background: #8d5a56; }
+.at-table .world-table[data-environment='market'] .hand-confirmation .secondary { background: #fff6e2; color: #1d1a1f; border: 3px solid #1d1a1f; border-radius: 10px; }
+.at-table .world-table[data-environment='market'] .fullscreen-message { background: #fff6e2; color: #1d1a1f; border: 3px solid #1d1a1f; }
+/* On wide screens the menus and permit hang on the painted left signboards and passing on the right ones,
+   pinned by the plate's source coordinates the scene publishes. */
+@media (orientation: landscape) and (min-width: 1100px) and (min-height: 640px) {
+  /* The dock row spreads over the whole play area so its children can be pinned to the plate. */
+  .at-table .world-table[data-environment='market'] .hand-controls { inset: 0; height: auto; display: block; }
+  .at-table .world-table[data-environment='market'] .hand-controls > .hand-abilities {
+    position: absolute; left: calc(var(--world-x, 0px) + 46px * var(--world-scale, 1)); top: calc(var(--world-y, 0px) + 136px * var(--world-scale, 1));
+    width: calc(194px * var(--world-scale, 1)); max-height: none; justify-content: flex-start; align-items: stretch;
+  }
+  .at-table .world-table[data-environment='market'] .festival-controls .festival-order { width: 100%; }
+  .at-table .world-table[data-environment='market'] .festival-controls > .piece-wrap,
+  .at-table .world-table[data-environment='market'] .festival-orders > .piece-wrap { width: 100%; }
+  .at-table .world-table[data-environment='market'] .season-forecast {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; width: 100%; box-sizing: border-box; padding: 6px;
+  }
+  .at-table .world-table[data-environment='market'] .hand-controls > .passing-control {
+    position: absolute; left: calc(var(--world-x, 0px) + 1300px * var(--world-scale, 1)); top: calc(var(--world-y, 0px) + 150px * var(--world-scale, 1));
+    width: calc(194px * var(--world-scale, 1)); box-sizing: border-box; margin: 0;
+  }
+  .at-table .world-table[data-environment='market'] .hand-controls > .sort-button,
+  .at-table .world-table[data-environment='market'] .hand-controls > span:not(:empty) {
+    position: absolute; right: 14px; bottom: calc(var(--world-bottom-gap) + 6px); margin: 0;
+  }
+  .at-table .table-layout.world-table[data-environment='market'] { --world-hand-width: min(720px, calc(100% - 460px)); }
+}
+
+/* ===== 4. Phones and tablets ===== */
+@media (orientation: portrait) {
+  .at-table .table-layout.world-table[data-environment='cabin'] { --world-hand-height: 212px; --world-top: max(56px, env(safe-area-inset-top) + 48px); }
+  .at-table .table-layout.world-table[data-environment='market'] { --world-hand-height: 292px; --world-top: max(104px, env(safe-area-inset-top) + 96px); }
+  .at-table .table-layout.world-table:is([data-environment='cabin'], [data-environment='market']) { --world-hand-width: calc(100% - 16px); }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls {
+    bottom: calc(var(--world-hand-height) + var(--world-bottom-gap) + 8px); height: 64px; inset-inline: 8px;
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls {
+    height: auto; min-height: 64px; flex-wrap: wrap; justify-content: center; gap: 6px 10px; align-items: center;
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-abilities { flex-direction: row; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > .passing-control { margin-left: 0; }
+  .at-table .world-table[data-environment='market'] .season-forecast { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100%; box-sizing: border-box; padding: 4px 6px; }
+  .at-table .world-table[data-environment='market'] .season-forecast img { width: 26px; height: 26px; }
+  /* The dock row can wrap to two lines on phones; the stage and the confirm plate stay clear of it. */
+  .world-table:is([data-environment='cabin'], [data-environment='market']) .board-frame {
+    inset: var(--world-top) 0 calc(var(--world-hand-height) + var(--world-bottom-gap) + 164px);
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation {
+    bottom: calc(var(--world-hand-height) + var(--world-bottom-gap) + 172px);
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .dice-token { padding: 4px 8px; min-height: 0; }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .die-caption { max-width: 72px; white-space: normal; font-size: 10px; }
+  /* Nox: the shelf folds the hand into two overlapping rows only when one row would overflow. */
+  .at-table .table-layout.world-table[data-environment='cabin'] { --shelf-max: calc(100cqw - 16px); }
+  .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand {
+    --hand-card-width: 74px; --hand-card-height: 104px; --shelf-pad-x: 12px; --shelf-pad-y: 12px; --row-overlap: 30px; --shelf-rows: var(--count-2, 1);
+    --hand-step: clamp(18px, (var(--shelf-max) - 2 * var(--shelf-pad-x) - var(--hand-card-width) - 3px) / max(1, var(--shelf-rows) - 1), 36px);
+    padding-bottom: calc(var(--shelf-pad-y) + var(--row-overlap)); align-content: flex-start;
+  }
+  .at-table .world-table[data-environment='cabin'] .tide-hand .tide-pips { display: none; }
+  .nox-board .table-seat { max-width: 46%; }
+  /* The viewer sits on the lower-left stool; the confirm plate takes the lower right. */
+  .at-table .world-table[data-environment='cabin'] .hand-confirmation { left: auto; right: 8px; transform: none; max-width: 60%; }
+  /* Yata: two rows of three tickets. */
+  .at-table .world-table[data-environment='market'] .hand-frame > .hand.card-hand { --hand-card-width: min(104px, calc((100% - 44px) / 3)); --hand-card-height: 128px; gap: 10px; padding: 8px; }
+  .world-table[data-environment='market'] .table-players { inset: max(52px, env(safe-area-inset-top) + 44px) 0 auto; }
+  .at-table .world-table[data-environment='market'] .player-button { min-height: 38px; padding: 3px 8px 6px; font-size: 12px; }
+  .at-table .world-table[data-environment='market'] .festival-controls { flex-direction: row; }
+  .at-table .world-table[data-environment='market'] .festival-orders { flex-direction: row; }
+}
+/* Short portrait phones: smaller tickets and a tighter dock so the stage keeps real height. */
+@media (orientation: portrait) and (max-height: 700px) {
+  .at-table .table-layout.world-table[data-environment='cabin'] { --world-hand-height: 184px; --world-top: max(52px, env(safe-area-inset-top) + 44px); }
+  .at-table .table-layout.world-table[data-environment='market'] { --world-hand-height: 236px; --world-top: max(96px, env(safe-area-inset-top) + 88px); }
+  .world-table:is([data-environment='cabin'], [data-environment='market']) .board-frame {
+    inset: var(--world-top) 0 calc(var(--world-hand-height) + var(--world-bottom-gap) + 128px);
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation {
+    bottom: calc(var(--world-hand-height) + var(--world-bottom-gap) + 134px);
+  }
+  .at-table .world-table[data-environment='market'] .hand-frame > .hand.card-hand { --hand-card-height: 104px; gap: 8px; padding: 6px; }
+  .at-table .world-table[data-environment='market'] .card-hand .token-art { height: 40px; }
+  .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand { --hand-card-width: 66px; --hand-card-height: 92px; --row-overlap: 28px; }
+}
+@media (max-width: 719px) {
+  .at-table .world-table[data-environment='market'] .table-toolbar > .table-progress.table-round { display: none; }
+  .at-table .world-table[data-environment='cabin'] .table-toolbar > .table-progress.table-round { height: 30px; font-size: 11px; }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .passing-control { width: auto; font-size: 11px; }
+  .at-table .world-table[data-environment='market'] .festival-controls .festival-order { width: 104px; height: 54px; min-height: 54px; }
+  .at-table .world-table[data-environment='market'] .player-button > span:nth-child(2) { display: none; }
+}
+/* Short landscape phones: the table keeps the middle; actions left, a compact two-row hand right. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .at-table .table-layout.world-table:is([data-environment='cabin'], [data-environment='market']) {
+    --world-hand-height: calc(100% - 96px); --world-bottom-gap: max(8px, env(safe-area-inset-bottom)); --world-top: 8px;
+  }
+  .world-table:is([data-environment='cabin'], [data-environment='market']) .board-frame { inset: 8px 232px 8px 104px; }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-frame {
+    left: auto; right: 8px; transform: none; width: 216px; bottom: 44px; height: calc(100% - 96px); min-height: 0; max-height: none;
+  }
+  .at-table .table-layout.world-table:is([data-environment='cabin'], [data-environment='market']) { --world-hand-width: 216px; }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls {
+    inset: 48px auto 8px 8px; width: 92px; height: auto; flex-direction: column; justify-content: flex-start; gap: 6px;
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > .passing-control,
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > .sort-button,
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-controls > span:not(:empty) { margin: 0; width: 100%; box-sizing: border-box; }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation {
+    left: auto; right: 8px; transform: none; bottom: 6px; width: 216px; max-width: none;
+  }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation .confirm-action { min-width: 0; width: 100%; min-height: 34px; font-size: 12px; }
+  .at-table .table-layout.world-table[data-environment='cabin'] { --shelf-max: 216px; }
+  .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand {
+    --hand-card-width: 62px; --hand-card-height: 86px; --shelf-pad-x: 8px; --shelf-pad-y: 8px; --row-overlap: 28px; --shelf-rows: var(--count-3, 1);
+    --hand-step: clamp(16px, (var(--shelf-max) - 2 * var(--shelf-pad-x) - var(--hand-card-width) - 3px) / max(1, var(--shelf-rows) - 1), 32px);
+    padding-bottom: calc(var(--shelf-pad-y) + var(--row-overlap)); align-content: flex-start;
+  }
+  .at-table .world-table[data-environment='cabin'] .tide-hand .tide-pips { display: none; }
+  .at-table .world-table[data-environment='market'] .hand-frame > .hand.card-hand { --hand-card-width: 92px; --hand-card-height: 118px; gap: 8px; padding: 6px; }
+  .world-table[data-environment='market'] .table-players { inset: 8px 240px auto 112px; }
+  .world-table[data-environment='cabin'] .table-players { inset: 8px 240px auto 112px; }
+  .at-table .world-table[data-environment='market'] .player-button { min-height: 34px; padding: 2px 7px 5px; font-size: 11px; }
+  .at-table .world-table[data-environment='market'] .player-button > span:nth-child(2) { display: none; }
+  .at-table .world-table[data-environment='market'] .table-second-line { display: none; }
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .extension-action,
+  .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .forecast-tide { width: 48px; height: 48px; flex-basis: 48px; }
+  .at-table .world-table[data-environment='market'] .festival-controls .festival-order { width: 92px; height: 50px; min-height: 50px; padding: 4px 6px 10px; }
+  .at-table .world-table[data-environment='cabin'] .table-toolbar > .table-progress.table-round { height: 30px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nox-board .capture-score, .nox-board .blackwake-played-card.captured { animation: none; }
+}

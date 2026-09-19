@@ -11,6 +11,7 @@ export function cue(kind: string, volume = 0.5, variant = 0) {
     if (voices > 18 || (kind === 'pickup' && now - last < 0.08)) return;
     last = now;
     const pitches: Record<string, number[]> = {
+      turn: [330, 495, 660],
       pickup: [392, 523],
       drop: [392, 587],
       shuffle: [392, 494, 587],

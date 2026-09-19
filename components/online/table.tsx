@@ -1,6 +1,9 @@
 'use client';
+import {
+  GameExtensionChoices,
+  ContentChoice,
+} from '@/components/game/expansions';
 import { decisionKey } from '@/lib/games/trio/engine';
-import { ExpansionChoice, FestivalExpansionChoice } from '../game/expansions';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import {
   api,
@@ -467,6 +470,17 @@ export function SharedTable({ invite }: { invite: string }) {
           {table.game && table.viewerSeat !== null ? (
             <OnlineMatch
               key={table.matchId}
+              connectionStatus={
+                fatal
+                  ? 'Connection unavailable'
+                  : !connected
+                    ? 'Reconnecting…'
+                    : retry
+                      ? 'Move unconfirmed · retry to check'
+                      : busy
+                        ? 'Saving your move…'
+                        : undefined
+              }
               g={table.game}
               viewer={table.viewerSeat}
               disabled={disabled}
@@ -518,7 +532,7 @@ function LobbySettings({
           onChange={(e) =>
             void dispatch({
               type: 'configure',
-              starter: table.starter ?? false,
+              shields: table.shields ?? false,
               fastMode: table.fastMode ?? false,
               gameId: table.gameId,
               difficulty: table.difficulty,
@@ -541,7 +555,7 @@ function LobbySettings({
           onChange={(e) =>
             void dispatch({
               type: 'configure',
-              starter: table.starter ?? false,
+              shields: table.shields ?? false,
               fastMode: table.fastMode ?? false,
               gameId: table.gameId,
               difficulty: e.target.value as Difficulty,
@@ -569,7 +583,7 @@ function LobbySettings({
                   gameId: table.gameId,
                   difficulty: table.difficulty,
                   capacity: table.capacity,
-                  starter: table.starter ?? false,
+                  shields: table.shields ?? false,
                   fastMode: e.target.checked,
                 })
               }
@@ -579,27 +593,55 @@ function LobbySettings({
               <small>Cards 1–5 · the 4 matching the die is +8</small>
             </span>
           </label>
-          <ExpansionChoice
-            enabled={table.starter ?? false}
-            fastMode={table.fastMode ?? false}
-            disabled={disabled}
-            onChange={(starter) =>
-              void dispatch({
-                type: 'configure',
-                gameId: table.gameId,
-                difficulty: table.difficulty,
-                capacity: table.capacity,
-                starter,
-                fastMode: table.fastMode ?? false,
-              })
-            }
-          />
         </>
       )}
-      {table.gameId === 'midnight' && <FestivalExpansionChoice
-        enabled={table.nightMarket ?? false} disabled={disabled}
-        onChange={(nightMarket) => void dispatch({ type: 'configure', gameId: table.gameId,
-          difficulty: table.difficulty, capacity: table.capacity, nightMarket })} />}
+      <ContentChoice
+        id={table.gameId}
+        options={{
+          contentSet: table.contentSet,
+          roamEnabled: table.roamEnabled,
+          turningTide: table.turningTide,
+          migration: table.migration,
+          salvage: table.salvage,
+          specialtyStalls: table.specialtyStalls,
+          marketSeasons: table.marketSeasons,
+        }}
+        disabled={disabled}
+        onChange={(options) =>
+          void dispatch({
+            type: 'configure',
+            gameId: table.gameId,
+            difficulty: table.difficulty,
+            capacity: table.capacity,
+            ...options,
+          })
+        }
+      />
+      <GameExtensionChoices
+        id={table.gameId}
+        options={{
+          contentSet: table.contentSet,
+          roamEnabled: table.roamEnabled,
+          turningTide: table.turningTide,
+          migration: table.migration,
+          salvage: table.salvage,
+          specialtyStalls: table.specialtyStalls,
+          marketSeasons: table.marketSeasons,
+        }}
+        shields={table.shields ?? false}
+        customerOrders={table.customerOrders ?? false}
+        sanctuaryGoalsEnabled={table.sanctuaryGoalsEnabled ?? false}
+        disabled={disabled}
+        onChange={(options) =>
+          void dispatch({
+            type: 'configure',
+            gameId: table.gameId,
+            difficulty: table.difficulty,
+            capacity: table.capacity,
+            ...options,
+          })
+        }
+      />
       <label
         className="lobby-learning-choice"
         aria-label="Learn together first"

@@ -21,7 +21,12 @@ import {
   type Identity,
 } from './auth.ts';
 import { Tables } from './tables.ts';
-import { observe, canAct, type Move } from '../lib/games/trio/engine.ts';
+import {
+  observe,
+  canAct,
+  preparationKey,
+  type Move,
+} from '../lib/games/trio/engine.ts';
 import type { Command } from '../lib/online/types.ts';
 
 type Client = {
@@ -46,10 +51,13 @@ export async function makeServer(
     options.database ?? process.env.DATABASE_PATH ?? '.data/gamehub.sqlite',
   );
   const clients = new Set<Client>();
-  const jobs = new Map<
-    string,
-    { timer: ReturnType<typeof setTimeout>; worker?: Worker }
-  >();
+  type BotJob = {
+    decision: string;
+    timer: ReturnType<typeof setTimeout>;
+    worker?: Worker;
+  };
+  // One job per thinking seat, so simultaneous phases resolve in parallel.
+  const jobs = new Map<string, Map<number, BotJob>>();
   const limits = new Map<string, { count: number; until: number }>();
   const tables = new Tables(db, (invite, id) =>
     [...clients].some((c) => c.invite === invite && c.who.id === id),
@@ -125,48 +133,65 @@ export async function makeServer(
     schedule(invite);
   }
   function schedule(invite: string) {
-    if (stopping || options.bots === false || jobs.has(invite)) return;
+    if (stopping || options.bots === false) return;
     const t = tables.get(invite);
-    const actor = t.game
-      ? t.seats.findIndex((seat, i) => seat.bot && canAct(t.game!, i))
-      : -1;
-    if (t.status !== 'playing' || !t.game || actor < 0) return;
-    const job: { timer: ReturnType<typeof setTimeout>; worker?: Worker } = {
-      timer: setTimeout(() => {
-        const latest = tables.get(invite);
-        if (latest.revision !== t.revision) {
-          jobs.delete(invite);
-          schedule(invite);
-          return;
-        }
-        let done = false;
-        const finish = (move: Move | null) => {
-          if (done) return;
-          done = true;
-          clearTimeout(job.timer);
-          void job.worker?.terminate();
-          jobs.delete(invite);
-          if (stopping) return;
-          tables.botMove(invite, t.revision, move, actor);
-          publish(invite);
-        };
-        try {
-          job.worker = new Worker(new URL('./bot-worker.ts', import.meta.url), {
-            workerData: { ...observe(latest.game!, actor), active: actor },
-            execArgv: ['--experimental-strip-types'],
-          });
-          job.worker.once('message', (move: Move) => finish(move));
-          job.worker.once('error', () => finish(null));
-          job.worker.once('exit', () => {
-            if (!done) finish(null);
-          });
-          job.timer = setTimeout(() => finish(null), 10000);
-        } catch {
-          finish(null);
-        }
-      }, 350),
-    };
-    jobs.set(invite, job);
+    const seats = jobs.get(invite) ?? new Map<number, BotJob>();
+    // Drop thoughts about decisions that no longer exist.
+    for (const [seat, job] of seats)
+      if (
+        !t.game ||
+        !canAct(t.game, seat) ||
+        preparationKey(t.game, seat) !== job.decision
+      ) {
+        clearTimeout(job.timer);
+        void job.worker?.terminate();
+        seats.delete(seat);
+      }
+    if (t.status !== 'playing' || !t.game) {
+      jobs.delete(invite);
+      return;
+    }
+    const game = t.game;
+    t.seats.forEach((who, seat) => {
+      if (!who.bot || !canAct(game, seat) || seats.has(seat)) return;
+      const decision = preparationKey(game, seat);
+      let done = false;
+      const finish = (move: Move | null) => {
+        if (done) return;
+        done = true;
+        clearTimeout(job.timer);
+        void job.worker?.terminate();
+        if (jobs.get(invite)?.get(seat) === job) jobs.get(invite)!.delete(seat);
+        if (stopping) return;
+        tables.botMove(invite, decision, move, seat);
+        publish(invite);
+      };
+      const job: BotJob = {
+        decision,
+        timer: setTimeout(() => {
+          try {
+            job.worker = new Worker(
+              new URL('./bot-worker.ts', import.meta.url),
+              {
+                workerData: { ...observe(game, seat), active: seat },
+                execArgv: ['--experimental-strip-types'],
+              },
+            );
+            job.worker.once('message', (move: Move) => finish(move));
+            job.worker.once('error', () => finish(null));
+            job.worker.once('exit', () => {
+              if (!done) finish(null);
+            });
+            job.timer = setTimeout(() => finish(null), 10000);
+          } catch {
+            finish(null);
+          }
+        }, 120),
+      };
+      seats.set(seat, job);
+    });
+    if (seats.size) jobs.set(invite, seats);
+    else jobs.delete(invite);
   }
   const server = createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -186,7 +211,8 @@ export async function makeServer(
       }
       if (req.method !== 'GET')
         check(
-          (process.env.NODE_ENV === 'development' || req.headers.origin === origin),
+          process.env.NODE_ENV === 'development' ||
+            req.headers.origin === origin,
           403,
           'Request origin is not allowed.',
         );
@@ -357,7 +383,9 @@ export async function makeServer(
       }
       if (action === 'events' && req.method === 'GET') {
         check(
-          !req.headers.origin || (process.env.NODE_ENV === 'development' || req.headers.origin === origin),
+          !req.headers.origin ||
+            process.env.NODE_ENV === 'development' ||
+            req.headers.origin === origin,
           403,
           'Request origin is not allowed.',
         );
@@ -453,7 +481,11 @@ export async function makeServer(
       'Content-Type': mime[extname(file)] ?? 'application/octet-stream',
       'Content-Length': size,
       'Cache-Control':
-        extname(file) === '.html' ? 'no-cache' : 'public, max-age=3600',
+        extname(file) === '.html'
+          ? 'no-cache'
+          : /^\/art\/(?:optimized\/)?[a-z0-9-]+-v\d+(?:-\d+)?\.webp$/.test(path)
+            ? 'public, max-age=31536000, immutable'
+            : 'public, max-age=3600',
     });
     if (req.method === 'HEAD') res.end();
     else
@@ -477,10 +509,11 @@ export async function makeServer(
   async function close() {
     stopping = true;
     clearInterval(heartbeat);
-    for (const j of jobs.values()) {
-      clearTimeout(j.timer);
-      await j.worker?.terminate();
-    }
+    for (const seats of jobs.values())
+      for (const j of seats.values()) {
+        clearTimeout(j.timer);
+        await j.worker?.terminate();
+      }
     jobs.clear();
     for (const c of clients) c.res.end();
     clients.clear();

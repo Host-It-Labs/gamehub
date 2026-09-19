@@ -1,0 +1,306 @@
+{
+  "seedCount": 25,
+  "note": "Paired seeds, focal seat rotates; other seats use medium public-information bots. Lower score is better. This is an automated policy comparison, not human balance acceptance.",
+  "results": [
+    {
+      "players": 2,
+      "fastMode": false,
+      "turningTide": false,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 81.68,
+          "meanClaims": 2,
+          "winsIncludingTies": 15
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 81.68,
+          "meanClaims": 2,
+          "winsIncludingTies": 15
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 87.4,
+          "meanClaims": 0,
+          "winsIncludingTies": 15
+        }
+      }
+    },
+    {
+      "players": 2,
+      "fastMode": false,
+      "turningTide": true,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 92.72,
+          "meanClaims": 2,
+          "winsIncludingTies": 13
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 92.72,
+          "meanClaims": 2,
+          "winsIncludingTies": 13
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 88.96,
+          "meanClaims": 0,
+          "winsIncludingTies": 12
+        }
+      }
+    },
+    {
+      "players": 2,
+      "fastMode": true,
+      "turningTide": false,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 24.44,
+          "meanClaims": 1.96,
+          "winsIncludingTies": 12
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 24.44,
+          "meanClaims": 1.96,
+          "winsIncludingTies": 12
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 22.2,
+          "meanClaims": 0,
+          "winsIncludingTies": 12
+        }
+      }
+    },
+    {
+      "players": 2,
+      "fastMode": true,
+      "turningTide": true,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 24.72,
+          "meanClaims": 1.96,
+          "winsIncludingTies": 15
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 24.72,
+          "meanClaims": 1.96,
+          "winsIncludingTies": 15
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 22.96,
+          "meanClaims": 0,
+          "winsIncludingTies": 12
+        }
+      }
+    },
+    {
+      "players": 3,
+      "fastMode": false,
+      "turningTide": false,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 80.48,
+          "meanClaims": 3,
+          "winsIncludingTies": 10
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 80.48,
+          "meanClaims": 3,
+          "winsIncludingTies": 10
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 74.2,
+          "meanClaims": 0,
+          "winsIncludingTies": 11
+        }
+      }
+    },
+    {
+      "players": 3,
+      "fastMode": false,
+      "turningTide": true,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 85.6,
+          "meanClaims": 3,
+          "winsIncludingTies": 10
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 85.6,
+          "meanClaims": 3,
+          "winsIncludingTies": 10
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 77.56,
+          "meanClaims": 0,
+          "winsIncludingTies": 10
+        }
+      }
+    },
+    {
+      "players": 3,
+      "fastMode": true,
+      "turningTide": false,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 24.68,
+          "meanClaims": 2,
+          "winsIncludingTies": 12
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 27.52,
+          "meanClaims": 2.92,
+          "winsIncludingTies": 7
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 21.4,
+          "meanClaims": 0,
+          "winsIncludingTies": 10
+        }
+      }
+    },
+    {
+      "players": 3,
+      "fastMode": true,
+      "turningTide": true,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 28.24,
+          "meanClaims": 2.48,
+          "winsIncludingTies": 9
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 28.36,
+          "meanClaims": 3,
+          "winsIncludingTies": 7
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 24.2,
+          "meanClaims": 0,
+          "winsIncludingTies": 8
+        }
+      }
+    },
+    {
+      "players": 6,
+      "fastMode": false,
+      "turningTide": false,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 61.04,
+          "meanClaims": 1.36,
+          "winsIncludingTies": 7
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 71.16,
+          "meanClaims": 6,
+          "winsIncludingTies": 5
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 62.48,
+          "meanClaims": 0,
+          "winsIncludingTies": 9
+        }
+      }
+    },
+    {
+      "players": 6,
+      "fastMode": false,
+      "turningTide": true,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 73.92,
+          "meanClaims": 1.8,
+          "winsIncludingTies": 5
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 88.8,
+          "meanClaims": 6,
+          "winsIncludingTies": 3
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 77.32,
+          "meanClaims": 0,
+          "winsIncludingTies": 5
+        }
+      }
+    },
+    {
+      "players": 6,
+      "fastMode": true,
+      "turningTide": false,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 15.44,
+          "meanClaims": 0.8,
+          "winsIncludingTies": 6
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 28.4,
+          "meanClaims": 5.96,
+          "winsIncludingTies": 0
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 15,
+          "meanClaims": 0,
+          "winsIncludingTies": 6
+        }
+      }
+    },
+    {
+      "players": 6,
+      "fastMode": true,
+      "turningTide": true,
+      "policies": {
+        "strategic": {
+          "games": 25,
+          "meanPenalty": 14.56,
+          "meanClaims": 1.2,
+          "winsIncludingTies": 7
+        },
+        "always": {
+          "games": 25,
+          "meanPenalty": 28.44,
+          "meanClaims": 5.84,
+          "winsIncludingTies": 1
+        },
+        "never": {
+          "games": 25,
+          "meanPenalty": 14.6,
+          "meanClaims": 0,
+          "winsIncludingTies": 7
+        }
+      }
+    }
+  ]
+}

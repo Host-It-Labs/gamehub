@@ -1,4 +1,7 @@
 'use client';
+import type { CSSProperties } from 'react';
+import { PlayerStatus } from './player-status';
+import { MoraDieSymbol, moraDieLabels } from './mora-symbols';
 import {
   Popover,
   PopoverTrigger,
@@ -6,11 +9,10 @@ import {
   PopoverTitle,
 } from '@/components/ui/popover';
 import {
-  dice,
+  placementDieRule,
   tidePenaltyRank,
   tidePenaltyValue,
   suits,
-  habitatOrder,
   type PublicGame,
 } from '@/lib/games/trio/engine';
 /** A single solid face avoids intersecting textures during a roll. */
@@ -25,7 +27,37 @@ export function Die({ g }: { g: PublicGame }) {
       ? 'Rolling…'
       : g.id === 'undertow'
         ? `${suits[face] ?? '—'} ${tidePenaltyRank(g)} = ${tidePenaltyValue(g)}`
-        : dice[face].name;
+        : moraDieLabels[face];
+  if (g.id === 'wildgrove' || g.id === 'undertow') {
+    const nox = g.id === 'undertow';
+    // Face i sits on a real cube; the cube turns so the rolled face comes to the front.
+    const rest = [[0, 0], [0, -90], [0, 180], [0, 90], [-90, 0], [90, 0]][face] ?? [0, 0];
+    return (
+      <span className="die-display">
+        <span className="die-cube-scene" aria-hidden="true">
+          <span
+            key={roll?.id ?? 'ready'}
+            className={`die-cube ${roll && !ready && !pending ? 'die-rolling' : ''}`}
+            style={{ '--rx': `${rest[0]}deg`, '--ry': `${rest[1]}deg` } as CSSProperties}
+          >
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <span key={i} className={`die-face die-face-${i}`}>
+                {ready || pending ? (
+                  '?'
+                ) : nox ? (
+                  // Four suits on six faces: the last two repeat spades and hearts.
+                  <span className={`die-suit suit-${i % 4}`}>{suits[i % 4]}</span>
+                ) : (
+                  <MoraDieSymbol face={i} />
+                )}
+              </span>
+            ))}
+          </span>
+        </span>
+        <span className="die-caption">{label}</span>
+      </span>
+    );
+  }
   return (
     <span className="die-display">
       <span
@@ -33,24 +65,7 @@ export function Die({ g }: { g: PublicGame }) {
         className={`die-solid ${roll && !pending && !ready ? 'die-bounce' : ''}`}
         aria-hidden="true"
       >
-        {ready || pending ? (
-          '?'
-        ) : g.id === 'undertow' ? (
-          suits[face]
-        ) : face < 4 ? (
-          <span className="die-map">
-            {Array.from({ length: 6 }, (_, i) => (
-              <i
-                key={i}
-                className={
-                  dice[face].zones.includes(habitatOrder[i]) ? 'lit' : ''
-                }
-              />
-            ))}
-          </span>
-        ) : (
-          dice[face].symbol
-        )}
+        {ready || pending ? '?' : <MoraDieSymbol face={face} />}
       </span>
       <span className="die-caption">{label}</span>
     </span>
@@ -71,7 +86,7 @@ export function DieControl({ g, viewer }: { g: PublicGame; viewer?: number }) {
         }
       >
         <Die g={g} />
-        {exempt && <span className="roller-badge">ROLLER</span>}
+        {exempt && <PlayerStatus state={g.phase === 'roll' ? 'deciding' : 'ready'} roller />}
       </PopoverTrigger>
       <PopoverContent className="die-help" side="top" align="end">
         <PopoverTitle>
@@ -93,7 +108,7 @@ export function DieControl({ g, viewer }: { g: PublicGame; viewer?: number }) {
         ) : (
           <>
             <p>
-              <b>{dice[g.die].name}:</b> {dice[g.die].rule}
+              <b>{moraDieLabels[g.die]}:</b> {placementDieRule(g.die, g.contentSet)}
             </p>
             <p>
               {g.players[g.roller].name} can use any habitat with space.

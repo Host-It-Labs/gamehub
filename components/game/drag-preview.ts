@@ -1,3 +1,23 @@
+/** The board target whose ring the dragged piece overlaps most; touching counts.
+ *  A box the size of the piece is centred on the pointer and compared with every
+ *  allowed target's ring area (its box grown by the ring's outset). */
+export function dropTargetNear(x: number, y: number, size = 64): HTMLElement | null {
+  const half = size / 2;
+  let best: HTMLElement | null = null, bestArea = 0;
+  for (const el of document.querySelectorAll<HTMLElement>('[data-drop]')) {
+    if (el.dataset.drop === 'hand' || el.dataset.dropAllowed === 'false') continue;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    const gx = r.width * 0.08, gy = r.height * 0.05;
+    const w = Math.min(x + half, r.right + gx) - Math.max(x - half, r.left - gx);
+    const h = Math.min(y + half, r.bottom + gy) - Math.max(y - half, r.top - gy);
+    if (w <= 0 || h <= 0) continue;
+    const area = w * h;
+    if (area > bestArea) { bestArea = area; best = el; }
+  }
+  return best;
+}
+
 /** Transient drag decoration; it never changes the game or the saved hand order. */
 export function beginDragPreview(source: HTMLElement) {
   const hand = source.closest<HTMLElement>('[data-drop="hand"]');
@@ -61,11 +81,7 @@ export function beginDragPreview(source: HTMLElement) {
         if (insertion < 0) hand.classList.add('insertion-at-end');
         else cards[insertion].classList.add('insertion-before');
       } else {
-        target =
-          document
-            .elementsFromPoint(x, y)
-            .map((el) => el.closest<HTMLElement>('[data-drop]'))
-            .find((el) => el && el.dataset.drop !== 'hand' && el.dataset.dropAllowed !== 'false') ?? null;
+        target = dropTargetNear(x, y, Math.max(bounds[from]?.width ?? 0, source.getBoundingClientRect().width, 48));
         target?.classList.add('drag-target');
       }
     },
