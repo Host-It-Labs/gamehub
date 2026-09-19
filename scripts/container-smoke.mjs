@@ -20,6 +20,21 @@ async function request(path, input) {
   assert.ok(r.ok, `${path}: ${r.status}`);
   return r.json();
 }
+/** Bot seats think server-side after a command, so a command's reply is already
+ *  stale. Wait for the revision to stop moving before snapshotting, otherwise a
+ *  restart races the bots and persistence looks broken. */
+async function settle(path) {
+  let last = -1,
+    quiet = 0;
+  for (let i = 0; i < 80; i++) {
+    const current = await request(path);
+    quiet = current.revision === last ? quiet + 1 : 0;
+    last = current.revision;
+    if (quiet >= 4) return current;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error('Match did not settle');
+}
 try {
   docker('volume', 'create', volume);
   docker(
@@ -56,12 +71,13 @@ try {
   const t = await request('/api/tables', {});
   const path = `/api/tables/${t.token}`;
   let state = await request(path);
-  state = await request(path + '/commands', {
+  await request(path + '/commands', {
     requestId: crypto.randomUUID(),
     revision: state.revision,
     matchId: state.matchId,
     action: { type: 'start' },
   });
+  state = await settle(path);
   docker('restart', name);
   base = `http://${docker('port', name, '8080/tcp').split('\n')[0]}`;
   await ready();
