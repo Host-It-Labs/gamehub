@@ -50,6 +50,78 @@
   box-shadow: none;
   padding: 20px 22px;
 }
+
+/* During a match, table administration floats over the scene instead of
+   reserving a row above it. The native details control keeps keyboard and
+   screen-reader behavior while the open content behaves like a popover. */
+.at-table .table-session.playing-session {
+  position: fixed;
+  z-index: 60;
+  top: max(58px, calc(env(safe-area-inset-top) + 58px));
+  right: max(8px, env(safe-area-inset-right));
+  width: auto;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.at-table .table-session.playing-session[open] {
+  width: min(380px, calc(100vw - 16px));
+}
+.at-table .table-session.playing-session > summary {
+  width: max-content;
+  min-height: 40px;
+  margin-left: auto;
+  padding: 8px 11px;
+  border: 1px solid #817967;
+  border-radius: 10px;
+  background: #f8f2e5f2;
+  box-shadow: 0 2px 6px #202a2838;
+  color: #303b35;
+}
+.at-table .table-session.playing-session > summary > span:first-child::before {
+  content: none;
+}
+.playing-session-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.table-connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a87835;
+}
+.table-connection-dot.is-connected {
+  background: #52764d;
+}
+.at-table .table-session.playing-session > .table-lobby {
+  max-height: calc(100dvh - 112px);
+  margin-top: 7px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #817967;
+  border-radius: 12px;
+  background: #f8f4e9;
+  box-shadow: 0 10px 30px #202a2850;
+  padding: 16px;
+}
+.at-table .playing-session .member-list {
+  grid-template-columns: 1fr;
+}
+.at-table .playing-session .lobby-utilities {
+  flex-direction: column;
+}
+.at-table .playing-session .lobby-utilities .online-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
 .lobby-eyebrow {
   color: #687b62;
   font-size: 11px;

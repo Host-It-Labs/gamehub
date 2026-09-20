@@ -803,3 +803,20 @@
   .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-3.prepared-region::after,
   .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat-3.drag-target::after { inset: 4% -6% -10%; }
 }
+
+/* Floodline rings follow its own printed pads, never Observatory's garden outlines. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board[data-world='floodline'] .mora-habitat:is(.legal-region,.prepared-region,.drag-target)::after {
+  inset: -5%; border-radius: 50%;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board[data-world='floodline'] .mora-habitat:is(.mora-habitat-0,.mora-habitat-1,.mora-habitat-2):is(.legal-region,.prepared-region,.drag-target)::after {
+  border-radius: 15%;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board[data-world='floodline'] .mora-habitat:is(.mora-habitat-3,.mora-habitat-4):is(.legal-region,.prepared-region,.drag-target)::after {
+  border-radius: 999px;
+}
+@media (orientation: landscape) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board[data-world='floodline'] .mora-habitat-3:is(.legal-region,.prepared-region,.drag-target)::after {
+    inset: auto; left: 50%; top: 50%; width: 110%; height: 70%;
+    transform: translate(-50%, -50%) rotate(-24deg);
+  }
+}

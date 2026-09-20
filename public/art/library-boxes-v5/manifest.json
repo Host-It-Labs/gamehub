@@ -1,0 +1,56 @@
+[
+  {
+    "id": "orin",
+    "source": "public/art/library-boxes-v5/orin-source.png",
+    "front": "public/art/optimized/box-orin-v5-front.webp",
+    "spine": "public/art/optimized/box-orin-v5-spine.webp",
+    "frontCrop": [
+      0,
+      0,
+      1208,
+      1024
+    ],
+    "spineCrop": [
+      1222,
+      0,
+      314,
+      1024
+    ]
+  },
+  {
+    "id": "vela",
+    "source": "public/art/library-boxes-v5/vela-source.png",
+    "front": "public/art/optimized/box-vela-v5-front.webp",
+    "spine": "public/art/optimized/box-vela-v5-spine.webp",
+    "frontCrop": [
+      0,
+      0,
+      1250,
+      1024
+    ],
+    "spineCrop": [
+      1265,
+      0,
+      271,
+      1024
+    ]
+  },
+  {
+    "id": "miro",
+    "source": "public/art/library-boxes-v5/miro-source.png",
+    "front": "public/art/optimized/box-miro-v5-front.webp",
+    "spine": "public/art/optimized/box-miro-v5-spine.webp",
+    "frontCrop": [
+      0,
+      0,
+      1298,
+      1024
+    ],
+    "spineCrop": [
+      1312,
+      0,
+      224,
+      1024
+    ]
+  }
+]

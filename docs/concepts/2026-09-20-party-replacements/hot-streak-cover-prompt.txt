@@ -1,0 +1,14 @@
+Use case: stylized-concept
+Asset type: original portrait game box front cover illustration, 1024x1536 PNG.
+Primary request: Energetic original coral-red comet runner with tiny legs, sunny yellow lemon runner with leaf crest, sky-blue eccentric cloud runner and violet disco star runner racing RIGHT together on a vivid orange racing track. All have expressive faces, chunky sneaker feet and bold ink outlines. Celebratory pennants, midnight violet ground, buttery floodlights, exaggerated printmaking and gouache texture. Exciting speed and race-day anticipation. Original characters unrelated to existing commercial mascots.
+Composition: portrait 2:3 image with complete central composition. Keep every important complete silhouette, character and meaningful prop within the central 80 percent of both image width and image height, leaving expendable scenery or plain background at outer margins. Cohesive professional art, rich tactile materials, readable miniature silhouettes.
+Constraints: absolutely NO text, NO title, NO letters, NO numbers, NO logos, NO watermark, NO interface, NO box mockup or perspective packaging. Full-bleed flat cover illustration; app will overlay its own title. No reference images.
+
+
+Generation provenance
+Tool: built-in image_gen. Text-only fresh generation, no references.
+Native source: /Users/williamguinaudie/.codex/generated_images/01a0bfb4-6920-73e2-97f6-aceef05136a0/exec-e4b1e17c-8f9b-4fde-b4e9-fc02b885bb27.png
+Output PNG: public/art/party-hot-streak-cover-v1.png
+Output WebP: public/art/party-hot-streak-cover-v1.webp (sharp quality 90, no resizing)
+Verified native dimensions: 1024x1536
+Visual review: Four recognizable original runners with complete heads, faces and feet; no text. Exciting orange track, pennants and floodlights present. Central-80-percent requirement FAILED: star left arm and lemon right arm extend beyond central width margins. Extra stylized city architecture added.

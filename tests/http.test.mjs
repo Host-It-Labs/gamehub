@@ -314,3 +314,68 @@ await test('development permits alternate local origins while production rejects
     else process.env.NODE_ENV = previous;
   }
 });
+
+await test('party HTTP and SSE views stay private, practice resets, and geography reveals the same task only after all human locks', async () => {
+  const {app,client}=await fixture(false);
+  try{
+    const {standaloneGames,decisionKey}=await import('../lib/games/standalone/registry.ts');
+    const {host,path}=await hostTable(client);
+    const guest=client();
+    let t=(await host.request(path)).data;
+    async function command(who,action){
+      const snapshot=(await who.request(path)).data;
+      const response=await act(who,path,snapshot,action);
+      assert.equal(response.status,200,JSON.stringify(response.data));
+      t=(await host.request(path)).data;
+      return response.data;
+    }
+    t=await command(host,{type:'configure',gameId:'orin',capacity:2,difficulty:'medium'});
+    assert.equal((await guest.request(path+'/join',{name:'Guest'})).status,200);
+    for(const gameId of ['orin','vela','miro']){
+      await command(host,{type:'configure',gameId,capacity:2,difficulty:'medium'});
+      await command(host,{type:'start',learning:true});
+      assert.equal(t.adventure.tutorial,true);
+      const practiceId=t.matchId;
+      await command(host,{type:'advance-practice'});
+      await command(host,{type:'begin-match'});
+      assert.notEqual(t.matchId,practiceId);
+      assert.equal(t.adventure.revision,0);
+      const controller=new AbortController();
+      const stream=await guest.events(path+'/events',controller.signal);
+      assert.equal(stream.status,200);
+      const reader=stream.body.getReader();
+      const {value}=await reader.read();
+      const payload=new TextDecoder().decode(value).split('data: ')[1].split('\n')[0];
+      const view=JSON.parse(payload);
+      assert.equal(view.adventure.rngState,0);
+      assert.deepEqual(view.adventure.deck,[]);
+      if(gameId==='miro')assert.deepEqual(view.adventure.cityIds,[]);
+      else assert.deepEqual(view.adventure.offers[0],[]);
+      controller.abort();
+      const move=gameId==='miro'?{type:'arrange',order:[4,3,2,1,0]}:standaloneGames[gameId].legalMoves(t.adventure,0)[0];
+      await command(host,{type:'adventure-move',move,key:decisionKey(t.adventure)});
+      if(gameId!=='miro'){
+        const v=(await guest.request(path)).data;
+        assert.deepEqual(v.adventure.ballots[0].order,[]);
+        assert.equal(v.adventure.ballots[0].topic,-1);
+      }else{
+        const hidden=(await guest.request(path)).data.adventure;
+        assert.deepEqual(hidden.cities,t.adventure.cities);
+        assert.deepEqual(hidden.guesses[0].order,[]);
+        assert.equal(hidden.result,null);
+        await command(host,{type:'adventure-move',move:{type:'lock'},key:decisionKey(t.adventure)});
+        assert.equal(t.adventure.phase,'guess');
+        await command(guest,{type:'adventure-move',move:{type:'arrange',order:[4,3,2,1,0]},key:decisionKey(t.adventure)});
+        await command(guest,{type:'adventure-move',move:{type:'lock'},key:decisionKey(t.adventure)});
+        assert.equal(t.adventure.phase,'reveal');
+        assert.equal(t.adventure.result.gains[0],t.adventure.result.gains[1]);
+        const reconnected=(await guest.request(path)).data;
+        assert.deepEqual(reconnected.adventure.result,t.adventure.result);
+        assert.deepEqual(reconnected.adventure.cityIds,[]);
+        assert.deepEqual(reconnected.adventure.deck,[]);
+      }
+      await command(host,{type:'abandon'});
+      assert.equal(t.adventure,null);
+    }
+  }finally{await app.close();}
+});

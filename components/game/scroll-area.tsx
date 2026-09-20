@@ -1,6 +1,6 @@
 'use client';
 /* oxlint-disable jsx-a11y/no-noninteractive-tabindex -- Overflow regions must be focusable for native keyboard scrolling. */
-import { paperWorldFor, paperWorldFrame } from '@/lib/games/mora-world';
+import { paperWorldFor, paperWorldFrame, type PaperWorldId } from '@/lib/games/mora-world';
 import {
   isTableWorldGame,
   tableWorldFor,
@@ -86,7 +86,11 @@ export function ScrollArea({
           const layout =
             world && isTableWorldGame(world)
               ? tableWorldFrame(tableWorldFor(world, tall), size, stage)
-              : paperWorldFrame(paperWorldFor(tall), size, stage);
+              : paperWorldFrame(
+                  paperWorldFor(tall, undefined, (world as PaperWorldId | undefined) ?? 'observatory'),
+                  size,
+                  stage,
+                );
           board.style.width = `${layout.width}px`;
           board.style.height = `${layout.height}px`;
           board.style.position = 'absolute';
@@ -97,23 +101,6 @@ export function ScrollArea({
           el.scrollLeft = 0;
           el.scrollTop = 0;
           keepLabelsOnStage(board, r, watch);
-        } else if (board.classList.contains('mora-board')) {
-          // Existing coastal geography retains its independent layout.
-          const scale = illustratedBoardScale(
-            660,
-            el.clientWidth,
-            el.clientHeight,
-            portrait.matches,
-          );
-          const width = 660 * scale;
-          board.style.width = `${width}px`;
-          board.style.height = `${width / 1.5}px`;
-          board.style.zoom = '1';
-          board.style.setProperty('--board-scale', '1');
-          board.style.setProperty(
-            '--goals-left',
-            `${Math.min(width / 2, el.clientWidth / 2 + el.scrollLeft)}px`,
-          );
         } else if (fitBoard === 'undertow') {
           const width = Math.max(
             280,

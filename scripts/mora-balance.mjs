@@ -1,15 +1,17 @@
-import { createGame, play, observe, zoneScore, scores } from '../lib/games/trio/engine.ts';
+import { createGame, play, observe, zoneScore, scores, habitatsFor } from '../lib/games/trio/engine.ts';
 import { chooseMove } from '../lib/games/trio/bot.ts';
 
 // Fixed seeds and equal seat counts make before/after tuning reproducible.
+// Usage: node --experimental-strip-types scripts/mora-balance.mjs [gamesPerSize] [beginner|intermediate]
 const gamesPerSize = Number(process.argv[2] ?? 40);
+const contentSet = process.argv[3] === 'intermediate' ? 'intermediate' : 'beginner';
 const totals = Array.from({ length: 7 }, () => ({ creatures: 0, points: 0, occupied: 0, full: 0 }));
 let boards = 0;
 let total = 0;
 let releases = 0;
 for (let seats = 2; seats <= 6; seats++) {
   for (let seed = 1; seed <= gamesPerSize; seed++) {
-    let g = createGame('wildgrove', 'medium', seed, false, seats);
+    let g = createGame('wildgrove', 'medium', seed, false, seats, false, false, false, false, { contentSet });
     while (g.phase !== 'over') {
       const move = chooseMove(observe(g), 'medium');
       if (move.type === 'play' && move.zone === 5) releases++;
@@ -21,14 +23,15 @@ for (let seats = 2; seats <= 6; seats++) {
       for (let z = 0; z < 7; z++) {
         const n = p.zones[z].length;
         totals[z].creatures += n;
-        totals[z].points += zoneScore(p.zones, z);
+        totals[z].points += zoneScore(p.zones, z, g.contentSet);
         totals[z].occupied += Number(n > 0);
-        totals[z].full += Number(n === (z === 3 || z === 6 ? 3 : 4));
+        totals[z].full += Number(n === habitatsFor(contentSet)[z].cap);
       }
     }
   }
 }
 console.log(JSON.stringify({
+  contentSet,
   games: gamesPerSize * 5,
   boards,
   averageScore: +(total / boards).toFixed(2),

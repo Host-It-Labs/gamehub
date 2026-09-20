@@ -4,9 +4,13 @@ import fs from 'node:fs';
 const read = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
 const moraVariants = read('lib/games/observatory-variants.json');
 const tableVariants = read('lib/games/table-world-variants.json');
+const paperVariants = (world) => (art) =>
+  moraVariants.filter((v) => (v.world ?? 'observatory') === world && v.orientation === (art.height > art.width ? 'portrait' : 'landscape'));
 const worlds = [
-  ['lib/games/observatory-art.json', (art) => moraVariants.filter((v) => v.orientation === (art.height > art.width ? 'portrait' : 'landscape'))],
-  ['lib/games/observatory-portrait-art.json', (art) => moraVariants.filter((v) => v.orientation === (art.height > art.width ? 'portrait' : 'landscape'))],
+  ['lib/games/observatory-art.json', paperVariants('observatory')],
+  ['lib/games/observatory-portrait-art.json', paperVariants('observatory')],
+  ['lib/games/floodline-art.json', paperVariants('floodline')],
+  ['lib/games/floodline-portrait-art.json', paperVariants('floodline')],
   ...['nox-world-landscape', 'nox-world-portrait', 'yata-world-landscape', 'yata-world-portrait'].map((name) => [
     `lib/games/${name}.json`,
     (art) => tableVariants.filter((v) => v.game === art.game && v.orientation === (art.height > art.width ? 'portrait' : 'landscape')),

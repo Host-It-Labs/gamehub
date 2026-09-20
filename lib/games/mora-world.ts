@@ -1,28 +1,39 @@
 import landscape from './observatory-art.json' with { type: 'json' };
 import portrait from './observatory-portrait-art.json' with { type: 'json' };
+import floodlineLandscape from './floodline-art.json' with { type: 'json' };
+import floodlinePortrait from './floodline-portrait-art.json' with { type: 'json' };
 import registry from './observatory-variants.json' with { type: 'json' };
 export type PaperWorld = typeof landscape;
+/** Mora's two paper worlds: the beginner Observatory and the intermediate Floodline Station. */
+export type PaperWorldId = 'observatory' | 'floodline';
+export const paperWorldIdFor = (set?: 'beginner' | 'intermediate'): PaperWorldId =>
+  set === 'intermediate' ? 'floodline' : 'observatory';
 export type PaperWorldVariant = {
-  id: string; orientation: 'landscape' | 'portrait'; label: string;
+  id: string; orientation: 'landscape' | 'portrait'; world?: PaperWorldId; label: string;
   source: string; image: string; boardImage: string; overviewImage: string;
 };
 const variants = registry as PaperWorldVariant[];
+const worlds: Record<PaperWorldId, { landscape: PaperWorld; portrait: PaperWorld }> = {
+  observatory: { landscape, portrait },
+  floodline: { landscape: floodlineLandscape as PaperWorld, portrait: floodlinePortrait as PaperWorld },
+};
 /** Alternative renderings of the same measured geometry (candidate generations). */
-export const paperWorldVariants = (tall = false): PaperWorldVariant[] =>
-  variants.filter((v) => v.orientation === (tall ? 'portrait' : 'landscape'));
+export const paperWorldVariants = (tall = false, world: PaperWorldId = 'observatory'): PaperWorldVariant[] =>
+  variants.filter((v) => (v.world ?? 'observatory') === world && v.orientation === (tall ? 'portrait' : 'landscape'));
 const variantWorlds = new Map<string, PaperWorld>();
-/** Stable object identity per (orientation, variant), so scene effects keyed on it do not rerun. */
-export function paperWorldFor(tall = false, variant?: string | null): PaperWorld {
-  const base = tall ? portrait : landscape;
-  const v = variant ? paperWorldVariants(tall).find((x) => x.id === variant) : undefined;
+/** Stable object identity per (world, orientation, variant), so scene effects keyed on it do not rerun. */
+export function paperWorldFor(tall = false, variant?: string | null, world: PaperWorldId = 'observatory'): PaperWorld {
+  const base = tall ? worlds[world].portrait : worlds[world].landscape;
+  const accepted = world === 'floodline' ? null : variant;
+  const v = accepted ? paperWorldVariants(tall, world).find((x) => x.id === accepted) : undefined;
   if (!v) return base;
-  const key = `${tall ? 'p' : 'l'}:${v.id}`;
-  let world = variantWorlds.get(key);
-  if (!world) {
-    world = { ...base, source: v.source, image: v.image, boardImage: v.boardImage, overviewImage: v.overviewImage };
-    variantWorlds.set(key, world);
+  const key = `${world}:${tall ? 'p' : 'l'}:${v.id}`;
+  let cached = variantWorlds.get(key);
+  if (!cached) {
+    cached = { ...base, source: v.source, image: v.image, boardImage: v.boardImage, overviewImage: v.overviewImage };
+    variantWorlds.set(key, cached);
   }
-  return world;
+  return cached;
 }
 
 export type Box = { x: number; y: number; width: number; height: number };

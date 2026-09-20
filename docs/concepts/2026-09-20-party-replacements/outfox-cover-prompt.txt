@@ -1,0 +1,14 @@
+Use case: stylized-concept
+Asset type: original portrait game box front cover illustration, 1024x1536 PNG.
+Primary request: Sly friendly rust-red fox peeking behind exactly six cream playing cards fanned on a moss-green felt cloth. One face-down card distinguished through its plain ochre back; other cards carry simple abstract botanical illustrations with no letters, numbers or suit markings. Botanical woodcut and gouache material, warm ochre details, dramatic diagonal composition.
+Composition: portrait 2:3 image with complete central composition. Keep every important complete silhouette, character and meaningful prop within the central 80 percent of both image width and image height, leaving expendable scenery or plain background at outer margins. Cohesive professional art, rich tactile materials, readable miniature silhouettes.
+Constraints: absolutely NO text, NO title, NO letters, NO numbers, NO logos, NO watermark, NO interface, NO box mockup or perspective packaging. Full-bleed flat cover illustration; app will overlay its own title. No reference images.
+
+
+Generation provenance
+Tool: built-in image_gen. Text-only fresh generation, no references.
+Native source: /Users/williamguinaudie/.codex/generated_images/01a0bfb4-6920-73e2-97f6-aceef05136a0/exec-7c465970-4d26-4337-9586-6adb362eb561.png
+Output PNG: public/art/party-outfox-cover-v1.png
+Output WebP: public/art/party-outfox-cover-v1.webp (sharp quality 90, no resizing)
+Verified native dimensions: 1024x1536
+Visual review: Six cards present including one plain ochre back; no letters, numbers or suit marks. Fox face complete, but central-80-percent requirement FAILED: ear approaches top edge and body extends past right edge. Card fan extends beyond central width margins. Extra candle, book, nuts and feather added.

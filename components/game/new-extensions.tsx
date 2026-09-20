@@ -23,7 +23,7 @@ export function NewExtensionRules({ kind }: { kind: ExtensionKind }) {
     return (
       <RuleExplanation
         outcome="Place in a habitat blocked by the die."
-        note="Two uses per match. Capacity still applies. Never needed for Release."
+        note="Once per match. Capacity still applies. Never needed for Release."
       >
         <p>
           <b>Prepare.</b> Select the footprints, then place a creature in a

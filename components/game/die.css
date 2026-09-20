@@ -20,8 +20,8 @@
 }
 .dice-token .die-cube.die-rolling { animation: die-tumble 900ms cubic-bezier(.2, .8, .3, 1); }
 .dice-token .die-face {
-  position: absolute; inset: 0; display: grid; place-items: center; backface-visibility: hidden;
-  border: 0; border-radius: 1.5px; background: var(--die-face); color: var(--die-ink);
+  position: absolute; inset: -.35px; display: grid; place-items: center; backface-visibility: hidden;
+  border: 0; border-radius: 1px; background: var(--die-face); color: var(--die-ink);
   font: 700 calc(var(--die-size) * .53) / 1 Georgia, serif;
   box-shadow: inset 0 0 0 1.5px var(--die-edge), inset 0 0 calc(var(--die-size) * .18) var(--die-shade);
 }

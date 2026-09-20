@@ -1,7 +1,7 @@
 import { dice } from '@/lib/games/trio/engine';
 
 /** Die engravings show the restriction itself, so they read on any board:
- *  a square pad, a round pad, paving stones, a log, an empty pad, a newcomer. */
+ *  a square pad, a round pad, three pads, an occupied pad, an empty pad, a newcomer. */
 export function MoraDieSymbol({ face }: { face: number }) {
   const common = { viewBox: '0 0 48 48', 'aria-hidden': true as const, className: 'mora-die-symbol' };
   switch (face) {
@@ -20,19 +20,24 @@ export function MoraDieSymbol({ face }: { face: number }) {
         </svg>
       );
     case 2:
+      // Big homes: a habitat with three or more pads.
       return (
         <svg {...common}>
-          <path className="ink-fill" d="M7 12h16v10H7zM25 12h16v10H25zM7 24h11v12H7zM20 24h14v12H20zM36 24h5v12h-5z" />
-          <path className="paper-fill" d="M9 14h12v6H9zM27 14h12v6H27zM9 26h7v8H9zM22 26h10v8H22z" />
+          <rect x="6" y="8" width="16" height="14" rx="3" className="ink-fill" />
+          <rect x="9" y="11" width="10" height="8" rx="2" className="paper-fill" />
+          <rect x="26" y="8" width="16" height="14" rx="3" className="ink-fill" />
+          <rect x="29" y="11" width="10" height="8" rx="2" className="paper-fill" />
+          <rect x="16" y="26" width="16" height="14" rx="3" className="ink-fill" />
+          <rect x="19" y="29" width="10" height="8" rx="2" className="paper-fill" />
         </svg>
       );
     case 3:
+      // Company: a pad that already holds a creature.
       return (
         <svg {...common}>
-          <rect x="6" y="17" width="34" height="14" rx="7" className="ink-fill" />
-          <ellipse cx="38" cy="24" rx="6" ry="7" className="paper-fill" />
-          <ellipse cx="38" cy="24" rx="2.5" ry="3" className="ink-fill" />
-          <path d="M11 21h18M11 27h14" className="ink-line" />
+          <rect x="9" y="11" width="30" height="26" rx="4" className="ink-fill" />
+          <rect x="13" y="15" width="22" height="18" rx="3" className="paper-fill" />
+          <circle cx="24" cy="24" r="6" className="ink-fill" />
         </svg>
       );
     case 4:

@@ -1,27 +1,43 @@
 'use client';
 import { dropTargetNear } from './drag-preview';
 import { FullscreenControl, useFullscreen } from './fullscreen-control';
-import { ArtVariantSwitcher } from './art-variant-switcher';
 import {
   ExtensionControls,
   useNatureChoice,
 } from '@/components/game/new-extensions';
 import { useAdvancedView } from '@/components/game/advanced-view';
 import { readSetup, saveSetup } from './setup-preferences';
+import {
+  readAmbienceLevel,
+  saveAmbienceLevel,
+  useAmbience,
+} from './use-ambience';
 import { ExtensionAction } from './extension-action';
 import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
 import { TableHeading, TableProgress, gameName } from '../game/table-heading';
 import {
   useAutoRoll,
   MoveConfirmation,
+  UndoChoice,
   useMoveConfirmation,
 } from './confirmation';
 import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from './artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { SanctuaryBadges } from '@/components/game/mora-extension';
-import { Passing } from '../game/passing';
-import { GameExtensionChoices, ContentChoice } from '../game/expansions';
+import { SetupBox, PlaceholderBox, StandaloneSetupBox } from '../game/setup-box';
+import { StandaloneTable } from './standalone-table';
+import {
+  standaloneGames,
+  standaloneIds,
+  type AnyGame,
+} from '@/lib/games/standalone/registry';
+import type { StandaloneId } from '@/lib/games/standalone/types';
+import {
+  realGames,
+  standaloneLibraryGames,
+  type LibraryGame,
+} from '@/lib/games/library-fixtures';
 import { useEffect, useRef, useState } from 'react';
 
 const isBotSeat = (seat: number) => seat > 0;
@@ -38,13 +54,12 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Library } from '@/components/game/library';
 import { Board, Hand, Players } from '@/components/game/boards';
 import { type Inspection } from '@/components/game/interactions';
-import { Tutorial, lessons } from '@/components/game/tutorial';
+import { Tutorial } from '@/components/game/tutorial';
 import { DieControl } from '@/components/game/die';
 import { Help } from '@/components/game/help';
 import {
@@ -63,15 +78,21 @@ import {
   type Difficulty,
 } from '@/lib/games/trio/engine';
 import { cue, eventCue } from '@/lib/games/trio/sound';
+import { fallbackMove } from '@/lib/games/trio/bot';
+import { practice } from '@/lib/games/adventures/lessons';
 import { useBotTurns } from './bot-turns';
 const SAVE = 'gamehub.tables.v3';
+/** Games outside the trio engine save separately, so one save shape per engine. */
+const OWN_SAVE = 'gamehub.standalone.v1';
 function seed() {
   return crypto.getRandomValues(new Uint32Array(1))[0];
 }
 export default function SoloGame() {
+  const [ownPractice,setOwnPractice]=useState<AnyGame|null>(null);
   const [g, setG] = useState<Game | null>(null),
     [saves, setSaves] = useState<Partial<Record<GameId, Game>>>({}),
     [setup, setSetup] = useState<GameId | null>(null),
+    [preview, setPreview] = useState<LibraryGame | null>(null),
     [shields, setShields] = useState(false),
     [customerOrders, setCustomerOrders] = useState(false),
     [sanctuaryGoalsEnabled, setSanctuaryGoalsEnabled] = useState(false),
@@ -82,6 +103,7 @@ export default function SoloGame() {
     [difficulty, setDifficulty] = useState<Difficulty>('medium'),
     [players, setPlayers] = useState(3),
     [volume, setVolume] = useState(0.5),
+    [ambience, setAmbience] = useState(0.6),
     [panelOpen, setPanelOpen] = useState(false),
     [panel, rememberPanel] = useState<
       'rules' | 'reference' | 'log' | 'leave' | 'sound' | null
@@ -97,13 +119,19 @@ export default function SoloGame() {
     [botError, setBotError] = useState(false),
     [retry, setRetry] = useState(0),
     [showResults, setShowResults] = useState(false),
-    [capturesSettled, setCapturesSettled] = useState(-1);
+    [capturesSettled, setCapturesSettled] = useState(-1),
+    [own, setOwn] = useState<Partial<Record<StandaloneId, AnyGame>>>({}),
+    [openOwn, setOpenOwn] = useState<StandaloneId | null>(null),
+    [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
+    [ownSeats, setOwnSeats] = useState(3);
+  const [ownMode, setOwnMode] = useState<'teams' | 'individual'>('individual');
   const festival = useFestivalChoice(g, 0);
   function setPanel(value: typeof panel) {
     if (value) rememberPanel(value);
     setPanelOpen(!!value);
   }
   const current = useRef<Game | null>(null),
+    ownRef = useRef<Partial<Record<StandaloneId, AnyGame>>>({}),
     saveRef = useRef<Partial<Record<GameId, Game>>>({}),
     origin = useRef<HTMLElement | null>(null),
     vol = useRef(volume);
@@ -121,13 +149,26 @@ export default function SoloGame() {
       >;
       const restored: Partial<Record<GameId, Game>> = {};
       for (const c of catalog)
-        if (isSavedGame(raw[c.id]) && (raw[c.id] as Game).id === c.id)
+        if (isSavedGame(raw[c.id]) && !(raw[c.id] as Game).tutorial && (raw[c.id] as Game).id === c.id)
           restored[c.id] = raw[c.id] as Game;
       localStorage.setItem(SAVE, JSON.stringify(restored));
       saveRef.current = restored;
       setSaves(restored);
+      const rawOwn = JSON.parse(
+        localStorage.getItem(OWN_SAVE) || '{}',
+      ) as Record<string, unknown>;
+      const ownRestored: Partial<Record<StandaloneId, AnyGame>> = {};
+      for (const id of standaloneIds) {
+        const saved = rawOwn[id];
+        if (standaloneGames[id].isSavedGame(saved) && !saved.tutorial && saved.kind === id)
+          ownRestored[id] = saved;
+      }
+      localStorage.setItem(OWN_SAVE, JSON.stringify(ownRestored));
+      ownRef.current = ownRestored;
+      setOwn(ownRestored);
       const v = Number(localStorage.getItem('gamehub.volume.v3') ?? '.5');
       setVolume(Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5);
+      setAmbience(readAmbienceLevel());
       if (catalog.some((game) => raw[game.id] && !restored[game.id]))
         setNotice(
           'The rules have changed. Start a new match; your settings are still saved.',
@@ -142,6 +183,7 @@ export default function SoloGame() {
   function store(next: Game) {
     current.current = next;
     setG(next);
+    if(next.tutorial)return;
     saveRef.current = { ...saveRef.current, [next.id]: next };
     setSaves(saveRef.current);
     try {
@@ -152,16 +194,50 @@ export default function SoloGame() {
       );
     }
   }
-  function progress(action: string, next: Game) {
-    const lesson = lessons[next.id][next.lesson];
-    if (next.tutorial && lesson?.action === action)
-      return { ...next, lesson: next.lesson + 1 };
-    return next;
+  function storeOwn(next: AnyGame) {
+    if(next.tutorial){setOwnPractice(next);return;}
+    setOwnPractice(null);
+    ownRef.current = { ...ownRef.current, [next.kind]: next };
+    setOwn(ownRef.current);
+    try {
+      localStorage.setItem(OWN_SAVE, JSON.stringify(ownRef.current));
+    } catch {
+      setNotice(
+        'Local saving is unavailable. Keep this tab open to keep your match.',
+      );
+    }
+  }
+  function openOwnSetup(id: StandaloneId) {
+    const entry = standaloneGames[id];
+    const saved = own[id];
+    setOwnSeats(
+      saved && entry.seatChoices.includes(saved.seats.length)
+        ? saved.seats.length
+        : entry.defaultSeats,
+    );
+    setOwnMode(saved ? saved.mode : 'individual');
+    if (saved) setDifficulty(saved.difficulty);
+    setOwnSetup(id);
+  }
+  function startOwn(id: StandaloneId, learning=false) {
+    storeOwn(learning?practice(id,ownSeats,difficulty,0,ownMode):standaloneGames[id].create(ownSeats, seed(), difficulty, ownMode));
+    setOwnSetup(null);
+    setOpenOwn(id);
+    cue('shuffle', volume);
+  }
+
+  function progress(_action: string, next: Game) { return next; }
+  function advanceTutorial() {
+    const game=current.current;if(!game?.tutorial||game.phase==='over')return;
+    const actor=game.players.findIndex((_,i)=>i!==0&&canAct(game,i));
+    if(actor>=0)commit(fallbackMove(game,actor),actor);
+    else if(canAct(game,0)&&game.phase==='roll')commit({type:'roll'});
   }
   const nature = useNatureChoice(g, 0);
   const [advanced, setAdvanced] = useAdvancedView(g?.id);
   const fullscreen = useFullscreen();
-  const observatory = g?.id === 'wildgrove' && g.contentSet !== 'intermediate';
+  // Both Mora worlds (Observatory and Floodline Station) share the paper-table environment.
+  const observatory = g?.id === 'wildgrove';
   // Full-table worlds float their controls over one environment plate.
   const environment = observatory
     ? 'observatory'
@@ -171,6 +247,8 @@ export default function SoloGame() {
         ? 'market'
         : undefined;
   const world = environment !== undefined;
+  // The world's soundscape runs while a table is open, and stops on the shelf.
+  useAmbience(openOwn ?? (g && !showResults ? g.id : null), volume, ambience, g?.contentSet);
   const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g?.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
@@ -313,21 +391,21 @@ export default function SoloGame() {
     setBotError(false);
   }
   useEffect(() => {
-    if (g?.phase !== 'over') return;
+    if (g?.phase !== 'over' || g.tutorial) return;
     // The last capture must finish even when several trick events were queued.
     if (g.id === 'undertow' && capturesSettled < (g.events.at(-1)?.id ?? -1))
       return;
     const timer = setTimeout(() => setShowResults(true), 120);
     return () => clearTimeout(timer);
-  }, [g?.phase, g?.id, g?.events, capturesSettled]);
+  }, [g?.phase, g?.id, g?.events, g?.tutorial, capturesSettled]);
   useBotTurns({
     game: g,
-    active: !(panelOpen && panel === 'leave') && !inspectorOpen,
+    active: !g?.tutorial && !(panelOpen && panel === 'leave') && !inspectorOpen,
     isBot: isBotSeat,
     commit: (move, seat) => commitRef.current(move, seat),
     nonce: retry,
   });
-  useAutoRoll(!!g && g.phase === 'roll' && canAct(g, 0), () => {
+  useAutoRoll(!!g && !g.tutorial && g.phase === 'roll' && canAct(g, 0), () => {
     commit({ type: 'roll' });
   });
   function tap(c: Card) {
@@ -457,6 +535,11 @@ export default function SoloGame() {
       });
     else cue('drop', volume);
   }
+  function ambienceChange(v: number | readonly number[]) {
+    const value = Array.isArray(v) ? v[0] : (v as number);
+    setAmbience(value);
+    saveAmbienceLevel(value);
+  }
   function volumeChange(v: number | readonly number[]) {
     const value = Array.isArray(v) ? v[0] : (v as number);
     setVolume(value);
@@ -467,36 +550,100 @@ export default function SoloGame() {
     }
   }
   const meta = catalog.find((c) => c.id === g?.id),
-    setupMeta = catalog.find((c) => c.id === setup),
     sc = g ? scores(g) : [],
     bestScore = g?.id === 'undertow' ? Math.min(...sc) : Math.max(...sc),
     winners = g?.players.filter((_, i) => sc[i] === bestScore) ?? [];
+  const ownGame = openOwn ? (ownPractice?.kind===openOwn?ownPractice:own[openOwn]) : undefined;
+  if (openOwn && ownGame)
+    return (
+      <div className={`app at-table ${openOwn}`}>
+        <StandaloneTable
+          g={ownGame}
+          volume={volume}
+          onChange={storeOwn}
+          onHome={() => {setOpenOwn(null);setOwnPractice(null);}}
+          onNew={() => startOwn(openOwn)}
+          onSound={() => setPanel('sound')}
+        />
+        <Dialog
+          open={panelOpen && panel === 'sound'}
+          onOpenChange={(open) => {
+            if (!open) setPanel(null);
+          }}
+        >
+          <DialogContent className="modal help-modal">
+            <DialogTitle>Sound</DialogTitle>
+            <DialogDescription>
+              Volume applies to all games. Ambience is the world around the
+              table.
+            </DialogDescription>
+            <div className="sound-settings">
+              <Slider
+                value={[volume]}
+                onValueChange={volumeChange}
+                min={0}
+                max={1}
+                step={0.05}
+                aria-label="Sound volume"
+              />
+              <div className="ambience-setting">
+                <span>Ambience</span>
+                <Slider
+                  value={[ambience]}
+                  onValueChange={ambienceChange}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  aria-label="Ambience level"
+                />
+              </div>
+              <button
+                className="secondary"
+                onClick={() => volumeChange(volume ? 0 : 0.5)}
+              >
+                {volume ? 'Mute' : 'Unmute'}
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
   return (
     <div className={`app ${g ? 'at-table' : ''} ${g?.id ?? ''}`}>
-      <header className="app-header">
-        <button
-          className="brand"
-          onClick={() => (g ? setPanel('leave') : undefined)}
-          aria-label="Gamehub home"
-        >
-          <span className="brand-icon">g</span>gamehub
-        </button>
-        {!g && (
-          <a className="secondary" href="/tables">
-            Play with friends
-          </a>
-        )}
-        {g && <span className="game-title">{meta?.name}</span>}
-        <button
-          className="icon-button"
-          onClick={() => setPanel('sound')}
-          aria-label="Sound settings"
-        >
-          {volume ? <Volume2 size={20} /> : <VolumeX size={20} />}
-        </button>
-      </header>
+      {g && (
+        <header className="app-header">
+          <button
+            className="brand"
+            onClick={() => (g ? setPanel('leave') : undefined)}
+            aria-label="Gamehub home"
+          >
+            <span className="brand-icon">g</span>gamehub
+          </button>
+          {!g && (
+            <a className="secondary" href="/tables">
+              Play with friends
+            </a>
+          )}
+          {g && <span className="game-title">{meta?.name}</span>}
+          <button
+            className="icon-button"
+            onClick={() => setPanel('sound')}
+            aria-label="Sound settings"
+          >
+            {volume ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
+        </header>
+      )}
       {!g ? (
-        <Library saves={saves} onSetup={openSetup} onResume={resume} />
+        <Library
+          saves={saves}
+          own={own}
+          volume={volume}
+          onSetup={openSetup}
+          onStandalone={openOwnSetup}
+          onOpenPlaceholder={setPreview}
+          onSound={() => setPanel('sound')}
+        />
       ) : (
         <main
           className={`table-layout ${world ? 'world-table' : ''}`}
@@ -508,7 +655,6 @@ export default function SoloGame() {
             game={g.id}
             contentSet={g.contentSet}
           />
-          {world && <ArtVariantSwitcher game={g.id} />}
           <div className="table-toolbar">
             <button
               className="table-back"
@@ -521,6 +667,7 @@ export default function SoloGame() {
             {!world && <TableHeading g={g} />}
             {g.id === 'undertow' && <TableProgress g={g} roundOnly />}
             <div className="table-toolbar-actions">
+              <div className="table-others-slot" />
               {!world && <FullscreenControl />}
               <TableMenu
                 fullscreen={world ? fullscreen : undefined}
@@ -546,25 +693,21 @@ export default function SoloGame() {
                   volume={volume}
                   inspect={inspect}
                   advanced={advanced}
-                  boardButton={observatory || g.id === 'midnight'}
+                  boardButton
                   progress={<TableProgress g={g} roundOnly />}
                 />
               </div>
-              {g.id === 'wildgrove' &&
-                g.contentSet !== 'intermediate' &&
-                g.sanctuaryGoalsEnabled && (
-                  <div className="observatory-achievements">
-                    <span className="achievements-heading">
-                      Sanctuary goals
-                    </span>
-                    <SanctuaryBadges
-                      zones={g.players[0].zones}
-                      goals={g.sanctuaryGoals}
-                      contentSet={g.contentSet}
-                      inspect={inspect}
-                    />
-                  </div>
-                )}
+              {g.id === 'wildgrove' && g.sanctuaryGoalsEnabled && (
+                <div className="observatory-achievements">
+                  <span className="achievements-heading">Sanctuary goals</span>
+                  <SanctuaryBadges
+                    zones={g.players[0].zones}
+                    goals={g.sanctuaryGoals}
+                    contentSet={g.contentSet}
+                    inspect={inspect}
+                  />
+                </div>
+              )}
               <ScrollArea className="board-viewport" fitBoard={g.id}>
                 <Board
                   onCapturesSettled={setCapturesSettled}
@@ -622,10 +765,7 @@ export default function SoloGame() {
                     </div>
                   )}
                 </div>
-                {g.id !== 'undertow' &&
-                  (g.id !== 'wildgrove' || g.contentSet === 'intermediate') && (
-                    <Passing g={g} />
-                  )}
+
                 {g.id === 'undertow' ? (
                   <span />
                 ) : g.phase === 'pass' ? (
@@ -649,6 +789,11 @@ export default function SoloGame() {
                   <span />
                 )}
               </div>
+          <UndoChoice g={g} viewer={0}
+            drafted={selected !== null || passed.length > 0 || !!nature.choice.migration || !!nature.choice.roam || !!ward}
+
+            onUndo={() => { commit({ type: 'undo' }); nature.setChoice({}); }}
+            onClear={() => { setSelected(null); setPreparedZone(null); setPassed([]); setWard(false); nature.setChoice({}); }} />
               <MoveConfirmation
                 g={g}
                 viewer={0}
@@ -717,7 +862,9 @@ export default function SoloGame() {
             <Tutorial
               id={g.id}
               step={g.lesson}
-              onSkip={() => store({ ...g, tutorial: false })}
+              onSkip={() => start(g.id, false)}
+              onStep={(step) => store({...g,lesson:step})}
+              onAdvance={advanceTutorial}
               onRestart={() => start(g.id, true)}
             />
           )}
@@ -730,78 +877,49 @@ export default function SoloGame() {
         </output>
       )}
       <Dialog
-        open={!!setup}
+        open={!!setup || !!preview || !!ownSetup}
         onOpenChange={(open) => {
-          if (!open) setSetup(null);
+          if (!open) {
+            setSetup(null);
+            setPreview(null);
+            setOwnSetup(null);
+          }
         }}
       >
         <DialogContent className="modal setup-modal">
-          <div className="setup-heading">
-            <DialogTitle>{setupMeta?.name}</DialogTitle>
-            <button
-              className="secondary setup-learn"
-              onClick={() => setup && start(setup, true)}
-            >
-              Learn
-            </button>
-          </div>
-          <DialogDescription>Choose your table.</DialogDescription>
-          <fieldset>
-            <legend>Players, including you</legend>
-            <RadioGroup
-              className="choices player-choices"
-              value={String(players)}
-              onValueChange={(v) => setPlayers(Number(v))}
-            >
-              {[2, 3, 4, 5, 6].map((n) => (
-                <label key={n}>
-                  <RadioGroupItem value={String(n)} />
-                  <b>{n}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
-          <fieldset>
-            <legend>Bot difficulty</legend>
-            <RadioGroup
-              className="choices"
-              value={difficulty}
-              onValueChange={(v) => setDifficulty(v as Difficulty)}
-            >
-              {(['easy', 'medium', 'hard'] as const).map((l) => (
-                <label key={l}>
-                  <RadioGroupItem value={l} />
-                  <b>{l}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
-          {setup === 'undertow' && (
-            <>
-              <label className="tide-fast-mode" aria-label="Fast mode">
-                <input
-                  type="checkbox"
-                  checked={fastMode}
-                  onChange={(e) => setFastMode(e.target.checked)}
-                />
-                <span>
-                  <b>Fast mode</b>
-                  <small>Cards 1–5 · the 4 matching the die is +8</small>
-                </span>
-              </label>
-            </>
-          )}
-          {setup && (
-            <ContentChoice id={setup} options={options} onChange={setOptions} />
-          )}
-          {setup && (
-            <GameExtensionChoices
-              id={setup}
+          {ownSetup ? (
+            <StandaloneSetupBox
+              game={standaloneLibraryGames[ownSetup]}
+              save={own[ownSetup]}
+              seats={ownSeats}
+              difficulty={difficulty}
+              mode={ownMode}
+              onMode={setOwnMode}
+              onSeats={n => { setOwnSeats(n); if (![4,6].includes(n)) setOwnMode('individual'); }}
+              onDifficulty={setDifficulty}
+              onPlay={() => startOwn(ownSetup)}
+              onLearn={() => startOwn(ownSetup,true)}
+              onResume={(match) => {
+                setOwnSetup(null);
+                setOpenOwn(match.kind);
+              }}
+            />
+          ) : setup ? (
+            <SetupBox
+              game={realGames[setup]}
+              save={saves[setup]}
+              players={players}
+              difficulty={difficulty}
+              fastMode={fastMode}
               options={options}
               shields={shields}
               customerOrders={customerOrders}
               sanctuaryGoalsEnabled={sanctuaryGoalsEnabled}
-              onChange={(value) => {
+              onPlayers={setPlayers}
+              onDifficulty={setDifficulty}
+              onFastMode={setFastMode}
+              onOptions={setOptions}
+              onExtensions={(value) => {
                 if (value.shields !== undefined) setShields(value.shields);
                 if (value.customerOrders !== undefined)
                   setCustomerOrders(value.customerOrders);
@@ -809,11 +927,13 @@ export default function SoloGame() {
                   setSanctuaryGoalsEnabled(value.sanctuaryGoalsEnabled);
                 setOptions((previous) => ({ ...previous, ...value }));
               }}
+              onLearn={() => start(setup, true)}
+              onPlay={() => start(setup)}
+              onResume={resume}
             />
-          )}
-          <button className="primary" onClick={() => setup && start(setup)}>
-            Play
-          </button>
+          ) : preview ? (
+            <PlaceholderBox game={preview} />
+          ) : null}
         </DialogContent>
       </Dialog>
       <Dialog
@@ -836,7 +956,7 @@ export default function SoloGame() {
           </DialogTitle>
           <DialogDescription>
             {panel === 'sound'
-              ? 'Volume applies to all games.'
+              ? 'Volume applies to all games. Ambience is the world around the table.'
               : panel === 'leave'
                 ? 'Your match is saved on this device.'
                 : meta?.name}
@@ -851,6 +971,17 @@ export default function SoloGame() {
                 step={0.05}
                 aria-label="Sound volume"
               />
+              <div className="ambience-setting">
+                <span>Ambience</span>
+                <Slider
+                  value={[ambience]}
+                  onValueChange={ambienceChange}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  aria-label="Ambience level"
+                />
+              </div>
               <div>
                 <button
                   className="secondary"

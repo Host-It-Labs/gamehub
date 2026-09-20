@@ -1,0 +1,18 @@
+Use case: stylized-concept
+Asset type: transparent racing character atlas for an original browser party game.
+Generate exactly one 1536x1024 PNG with a genuinely transparent alpha background. Arrange a strict 2x2 grid of four equal 768x512 cells, with no visible grid lines. Each cell contains exactly one complete isolated illustrated racing mascot. Top-left: coral-red adventurous comet with tiny running legs. Top-right: sunny yellow lemon sprinter with leaf crest. Bottom-left: sky-blue eccentric cloud runner. Bottom-right: violet disco star sprinter. All four are in side profile facing RIGHT. Thick expressive ink outlines, screenprinted gouache texture, playful exaggerated faces, chunky sneaker feet, confident energetic shapes readable at small sizes. Original characters with no resemblance to existing CMYK racing characters. One light source upper-left. Every full silhouette and every detail must remain inside the middle 70 percent of its own cell, leaving wide genuinely transparent padding. No silhouette overlaps, no clipping, no ground shadows crossing cells. Four separate flat character pieces intended for code animation on a separate stadium track; do not paint any track or scene. NO text, NO labels, NO letters, NO UI, NO borders, NO watermark, NO solid background, NO checkerboard background.
+
+Generation provenance
+Tool: built-in image_gen, text-only generation; no references.
+Native output: /Users/williamguinaudie/.codex/generated_images/01a0bfb4-6920-73e2-97f6-aceef05136a0/exec-30c23c15-04e2-42d8-87cc-74e32accc7e3.png
+Saved native PNG: public/art/hot-streak-racers-v1.png
+WebP: public/art/hot-streak-racers-v1.webp (sharp quality 92, alphaQuality 100; no resize)
+Both files: 1536x1024, four channels, hasAlpha true.
+PNG alpha range: 0..254. Alpha mean 75.9173.
+Visual review: four complete distinct mascots, facing right, thick outlines and textured colour, no text, no overlapping silhouettes.
+Deviation: requested middle-70-percent cell padding is NOT satisfied. Occupied alpha >127 bounds relative to each 768x512 cell are:
+Top-left: x117..698 y61..481
+Top-right: x213..615 y50..482
+Bottom-left: x113..698 y29..470
+Bottom-right: x187..615 y11..459
+Rendering should leave additional padding around cropped cells. Soft coloured edge glow is visible in preview; no actual flat backdrop.

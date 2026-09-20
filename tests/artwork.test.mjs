@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import observatoryArt from '../lib/games/observatory-art.json' with { type: 'json' };
 import { catalog, tokenImage, habitatsFor } from '../lib/games/trio/engine.ts';
-import { moraMap, coastalMap } from '../lib/games/trio/mora-map.ts';
+import { moraMap, floodlineMap } from '../lib/games/trio/mora-map.ts';
+const coastalMap = floodlineMap();
 
 await test('production artwork resolves, responsive covers decode, and all tokens retain alpha', async () => {
   const previews = JSON.parse(
@@ -22,7 +23,7 @@ await test('production artwork resolves, responsive covers decode, and all token
     }
   }
   for (const game of catalog) {
-    const box = `/art/box-${game.id}-v2.png`;
+    const box = `/art/box-${game.id}-v3.png`;
     assert.ok((await metadata(box)).width >= 320);
     for (const variant of previews[box].srcSet.split(', ')) {
       const [path, width] = variant.split(' ');
@@ -37,11 +38,9 @@ await test('production artwork resolves, responsive covers decode, and all token
         assert.equal(result.width, 512);
         assert.equal(result.height, 512);
       }
-  {
-    const result = await metadata(coastalMap.image);
-    assert.equal(result.width / result.height, 1.5);
-    const observatory = await metadata(moraMap.image);
-    assert.ok(observatory.width > 0 && observatory.height > 0);
+  for (const map of [coastalMap, moraMap]) {
+    const result = await metadata(map.image);
+    assert.ok(result.width > result.height, 'landscape gameplay crop');
   }
   const css = await readFile(
     new URL('../app/globals.css', import.meta.url),
@@ -50,7 +49,7 @@ await test('production artwork resolves, responsive covers decode, and all token
   for (const match of css.matchAll(/url\(['"]?(\/art\/[^'")]+)['"]?\)/g))
     await metadata(match[1]);
 });
-await test('independent Elsewild geography preserves every capacity and accessible target', () => {
+await test('independent Mora world geography preserves every capacity and accessible target', () => {
   assert.notDeepEqual(
     moraMap.habitats.map((h) => h.slots),
     coastalMap.habitats.map((h) => h.slots),
@@ -69,9 +68,8 @@ await test('independent Elsewild geography preserves every capacity and accessib
       // Main habitat silhouettes may extend outside the logical camera crop.
       // Their bounds are fitted with the full landmark contract in paperWorldFrame.
       assert.ok(w > 0 && height > 0);
-      if (set === 'intermediate') assert.ok(x >= 0 && y >= 0 && x + w <= 100 && y + height <= 100);
-      // Observatory cards hang below their pad group, outside the ring box.
-      for (const [cx, cy] of set === 'intermediate' ? [...h.slots, h.label] : h.slots)
+      // Cards hang below their pad group, outside the pad box.
+      for (const [cx, cy] of h.slots)
         assert.ok(cx >= x && cx <= x + w && cy >= y && cy <= y + height);
     }
   }

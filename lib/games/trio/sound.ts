@@ -2,11 +2,16 @@ import type { Event, GameId } from './engine';
 let context: AudioContext | undefined,
   voices = 0,
   last = 0;
+/** One AudioContext serves cues and ambience; browsers cap how many a page may open. */
+export function audioContext() {
+  context ??= new AudioContext();
+  void context.resume();
+  return context;
+}
 export function cue(kind: string, volume = 0.5, variant = 0) {
   if (!volume || typeof window === 'undefined') return;
   try {
-    context ??= new AudioContext();
-    void context.resume();
+    context = audioContext();
     const now = context.currentTime;
     if (voices > 18 || (kind === 'pickup' && now - last < 0.08)) return;
     last = now;
@@ -25,9 +30,12 @@ export function cue(kind: string, volume = 0.5, variant = 0) {
       tap: [420],
     };
     const notes = pitches[kind] ?? pitches.tap;
+    const color = 0.975 + Math.random() * 0.05;
+    const decay = 0.28 + Math.random() * 0.1;
+    const spacing = 0.055 + Math.random() * 0.025;
     notes.forEach((frequency, i) => {
       if (!context) return;
-      const t = now + i * (kind === 'roll' ? 0.065 : 0.06),
+      const t = now + i * spacing,
         osc = context.createOscillator(),
         gain = context.createGain();
       voices++;
@@ -36,19 +44,19 @@ export function cue(kind: string, volume = 0.5, variant = 0) {
         : kind === 'creature'
           ? 'sine'
           : 'sine';
-      const f = frequency * (1 + variant * 0.065);
+      const f = frequency * (1 + variant * 0.065) * color;
       osc.frequency.setValueAtTime(f, t);
       osc.frequency.exponentialRampToValueAtTime(
         f * (kind === 'creature' ? 1.06 : 1.015),
         t + 0.12,
       );
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.exponentialRampToValueAtTime(0.075 * volume, t + 0.018);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      gain.gain.exponentialRampToValueAtTime(0.105 * volume, t + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
       osc.connect(gain);
       gain.connect(context.destination);
       osc.start(t);
-      osc.stop(t + 0.24);
+      osc.stop(t + decay + 0.02);
       osc.onended = () => {
         voices--;
         osc.disconnect();

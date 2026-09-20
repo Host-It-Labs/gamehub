@@ -1,18 +1,23 @@
 // Keep generated PNG sources; publish responsive WebP derivatives with alpha intact.
 import sharp from 'sharp';
-import portraitArt from '../lib/games/observatory-portrait-art.json' with { type: 'json' };
-import observatoryArt from '../lib/games/observatory-art.json' with { type: 'json' };
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
+// Superseded PNG sources live in the artwork archive outside the repo; skip what is not here.
+const archived = async (source) => {
+  try {
+    await access(source);
+    return false;
+  } catch {
+    console.warn(`skip ${source} (archived source)`);
+    return true;
+  }
+};
 const covers = [
   'blackwake-cover-v1',
   'elsewild-cover-v1',
   'nightshift-cover-v1',
-  'box-undertow-v1',
-  'box-wildgrove-v1',
-  'box-midnight-v1',
-  'box-undertow-v2',
-  'box-wildgrove-v2',
-  'box-midnight-v2',
+  'box-undertow-v3',
+  'box-wildgrove-v3',
+  'box-midnight-v3',
 ];
 await mkdir('public/art/optimized', { recursive: true });
 const manifest = {};
@@ -51,23 +56,27 @@ for (const name of [
   'elsewild-lagoon-v3',
   'floodline-paper-v1',
 ]) {
+  if (await archived(`public/art/${name}.png`)) continue;
   await sharp(`public/art/${name}.png`)
     .resize({ width: 1560, withoutEnlargement: true })
     .webp({ quality: 88 })
     .toFile(`public/art/optimized/${name}.webp`);
 }
-// Preserve native scene resolution; the gameplay crop shares the geometry manifest.
-for (const art of [observatoryArt, portraitArt]) {
-  await sharp(`public${art.source}`).webp({ quality: 94 }).toFile(`public${art.image}`);
-  await sharp(`public${art.source}`).extract(art.crop).webp({ quality: 94 }).toFile(`public${art.boardImage}`);
-  await sharp(`public${art.source}`).extract(art.overview).webp({ quality: 94 }).toFile(`public${art.overviewImage}`);
+// Illustrated world scenes and their crops belong to optimize-paper-worlds.mjs,
+// which also knows about the variants and encodes the full scene one step
+// lighter. Running both would quietly re-encode the same files two ways.
+if (!(await archived('public/art/mora-paper-fibers-v1.png'))) {
+  await sharp('public/art/mora-paper-fibers-v1.png')
+    .webp({ quality: 85 })
+    .toFile('public/art/optimized/mora-paper-fibers-v1.webp');
 }
-await sharp('public/art/mora-paper-fibers-v1.png').webp({quality:85}).toFile('public/art/optimized/mora-paper-fibers-v1.webp');
 
 // Observatory's full-screen scenery stays static and compact.
-await sharp('public/art/observatory-surroundings-v1.png')
-  .webp({ quality: 76, effort: 6 })
-  .toFile('public/art/optimized/observatory-surroundings-v1.webp');
+if (!(await archived('public/art/observatory-surroundings-v1.png'))) {
+  await sharp('public/art/observatory-surroundings-v1.png')
+    .webp({ quality: 76, effort: 6 })
+    .toFile('public/art/optimized/observatory-surroundings-v1.webp');
+}
 
 for (const set of [
   'elsewild-inland',
@@ -77,6 +86,7 @@ for (const set of [
 ]) {
   for (let kind = 0; kind < 6; kind++) {
     const name = `${set}-${kind}-v1`;
+    if (await archived(`public/art/${name}.png`)) continue;
     await sharp(`public/art/${name}.png`)
       .resize(512, 512, {
         fit: 'contain',

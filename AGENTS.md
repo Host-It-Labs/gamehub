@@ -31,3 +31,5 @@ Before creating or changing a game's illustrated board, responsive scene framing
 
 - Illustrated-board framing must be checked after browser zoom crosses responsive breakpoints. Derive minimum source-cover scale and maximum full-landmark fit from actual available dimensions, permitting modest closer framing where spare room exists. Test iPad-size and fractional browser-zoom viewports; do not regenerate artwork to conceal a camera-sizing bug.
 - For any full-bleed illustrated board, follow [docs/illustrated-worlds.md](docs/illustrated-worlds.md): it names the data contract, runtime pieces, tooling and the two artwork skills.
+
+- Shared game navigation: Others always sits directly beneath Menu, and player badges share the top navigation baseline in every world and viewport. Remove redundant Table and passing-direction controls; passing order remains available inside Others. Accepted artwork is fixed; do not leave A/B review selectors in playing scenes.

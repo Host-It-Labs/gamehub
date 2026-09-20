@@ -31,6 +31,14 @@ The observatory uses lazily loaded Three.js with an orthographic camera and simp
 | Nox | `undertow` | Improvised boats, pirate radio, nocturnal harbour, communal salvage | One deck; normal and Fast rules |
 | Mora | `wildgrove` | Strange wildlife reclaiming human infrastructure | The Observatory; Floodline Station |
 | Yata | `midnight` | Underground street food and night culture | After Hours; Side B |
+| Orin | `orin` | A fogged lighthouse coast kept by a service that never speaks | One night |
+| Vela | `vela` | A spring meadow where two teams race kites along a silk ribbon | One meadow |
+| Miro | `miro` | A glassworks canal city where one trader wants the cargo to spoil | One night |
+
+Nox, Mora and Yata share one rules module (`lib/games/trio/engine.ts`) because they
+share a deck, a die and a trick. Orin, Vela and Miro do not share any of that, so
+each owns its rules (`lib/games/<id>/engine.ts`), its table component and its
+stylesheet, behind the small contract in `lib/games/standalone/registry.ts`.
 
 Internal IDs remain stable for routes, account preferences and records. Subject kind indices remain stable within each content set; changing a picture or name must never silently alter its scoring identity.
 
@@ -302,3 +310,144 @@ The plates are the closest of the generated candidates (`production-README.md` i
 The captain's cabin plates are replaced by the **Gilt Hold**: the treasure hold below the waterline, drawn as a straight-down plan so the flat cards lie on a flat surface (see the "Flat pieces on a painted world" section of the game-world-layout skill). The playing surface is the black oilcloth lid of an iron-banded chest with a riveted rim; loot, a skull in a tricorn, a rat and an open grating over black water fill the room around it. Chosen plates: `nox-gilthold-landscape-v2-a.png` and `nox-gilthold-portrait-v2-a.png`, the two that passed the band measurements (`docs/concepts/2026-09-19-nox-cabins/README.md`). The Poison Lantern direction was not selected.
 
 Geometry in `lib/games/nox-world-{landscape,portrait}.json`: `table` is the rim's outer edge, `seatRing` a small margin around it, and the seat anchors sit on the rim band (viewer on the bottom rim, left of centre so the confirm plate stays clear; the others clockwise on the left rim, top corners, top centre and right rim; portrait pulls the side seats one tag inside the rim so phones do not clip them). The direction ring became four arrowed strokes along the inside of the rim. Animation: the lantern pool breathes, the water under the grating shifts, and marked coins glint (`animation.glints`, drawn by `world-scene.tsx`); all still under reduced motion. The variant registry is empty again. Card shadows fall downward to match the lantern above the far edge.
+
+## Yata: the counter from above (19 September 2026, night)
+
+The night-market plates are replaced by **the counter from above**: the same toon night market, now drawn as a straight-down plan so the flat plates and tickets lie on a flat surface (the "Flat pieces on a painted world" rule). The serving counter is a red enamel rounded rectangle with a cream rim; the customers' plank ledge runs along the bottom for the hand, the cook's side with steamer, wok, bottles and the one big lantern sits above, and two blank cream menu boards lie flat on the cobbles beside the counter for the chosen menus, the stall permit and the seasons forecast (left) and passing (right). Light comes from the lantern above the far edge, so every drawn shadow falls straight down. The approved toon style paragraph, the enamel chips, the angular tickets, the outlined pennants and the red arcade confirm are unchanged.
+
+Candidates `yata-counter-{landscape,portrait}-v2-{a,b}.png` all came back in true plan view and passed the side and bottom bands; both portraits carry a deeper cook's band above the counter than briefed (kept, since it is expendable scenery). `lib/games/yata-world-{landscape,portrait}.json` describe the `-a` plates with the counter box set to the intersection of both candidates so the plate grid lines up on either; both candidates are registered in `lib/games/table-world-variants.json` for the floating switcher until one is chosen. The menu-board pins in `table-worlds.css` read the board source coordinates from custom properties; plates carry per-dish rings (no red ring on the red enamel). Portrait tightens the ticket hand and reserves `--world-dock-reserve` for the wrapping dock rows so they no longer climb onto the counter; phone plates drop the dish names. Measurements and prompts: [yata counter concepts](concepts/2026-09-19-yata-counter/README.md). The superseded night-market plates moved to the art archive.
+
+## Night library and open-box setup (19 September 2026)
+
+The user chose Direction D from the library concepts (`concepts/2026-09-19-library-directions`, queue 04 landscape and queue 13 portrait; the images live in the art archive). `components/game/library.tsx` is now a magazine front page: a slim icon rail, a search-and-filter bar, a "Tonight" hero with stat chips, six friend avatars and the only Play button, a live column (open tables, weekly leaders) and four horizontal shelves. Boxes no longer carry Play or Resume; each shows player count and play time and opens the setup modal. Phones stack the hero and live column and show shelves as two-column tiles under section dividers.
+
+`components/game/game-box.tsx` draws every box from three CSS faces at one shared angle with a deep visible side; sizes travel as `--gw/--gh/--gd` so stylesheets can resize per breakpoint. The three real covers are crops of the live board plates (`public/art/box-*-v3.png`: the Nox cabin, the Mora observatory, the Yata canal market). Twenty-two placeholder games in `lib/games/library-fixtures.ts` fill the shelves with material, palette and motif only; friends, open tables and the leaderboard there are fixtures too, and no navigation item beyond Play with friends and Settings leads anywhere yet.
+
+Setup follows the Direction M open-box concept in `components/game/setup-box.tsx`: the lid carries the cover, title and stat chips; the kraft tray holds a Learn leaflet, seat tokens for players, three pawns for bot difficulty, folded boards for content sets (Nox shows its Fast mode deck instead), printed extension tiles with emblem, check and info mark, and one cream Play plate. A saved match appears as a continue strip at the top of the tray, which replaces the library's Resume button.
+
+## Orin, Vela and Miro (20 September 2026)
+
+Three of the pitched games from `concepts/2026-09-19-new-game-pitches` are now
+playable. They do not run on the trio engine: each has its own rules module, its
+own table and its own stylesheet, and the shared host
+(`components/game/standalone-table.tsx`) supplies only the bar, the bot clock, the
+saved match, the log and the results. Saves live under `gamehub.standalone.v1`,
+separate from the trio's, so one engine's rule change never invalidates the other's
+matches. The three are real entries in the library rather than placeholders; they
+carry no box artwork yet, so their covers still print a material and a motif.
+
+**Orin** — cooperative, one to four keepers, the **v1-a enamelled tin** direction.
+Cream enamel fields on cobalt with embossed outlines, rust at the rivets, and
+exactly one warm colour on the plate: the lamps still burning. Seven lighthouses
+stand on a rock band drawn through their stations in true plan view, with open
+water above and below; a fog bank rolls in from the west and takes one more
+lighthouse at the end of every watch. Keepers spend tools, and the only thing they
+may say is one bell each. A watch is four keeper turns however many keepers are on
+duty, so a solo coast is the same coast a full crew faces; the hand size scales the
+other way (`handSize`), so every table size holds at roughly the same tension.
+
+**Vela** — teams, two/four/six fliers, the **v1-a dyed silk and split bamboo**
+direction. Translucent washes, bamboo spars as warm lines, ink-brush wind, generous
+white air. The ribbon is drawn from one formula (`pointAt`) so the segments, the
+spars, the gusts and the kites all sit on the same curve; the spars are a dashed
+copy of the ribbon rather than separate lines, because the meadow's viewBox is
+deliberately non-uniform and would shear anything drawn at an angle. Every flier
+commits one card face down and they all turn over together. Teams are always even,
+so an odd table is trimmed rather than handing one kite a second pair of hands.
+
+**Miro** — hidden traitor, three to five traders. **Neither pitched variant was
+used.** Both `miro-landscape-v1-a` and `-b` came back as dim painted fresco, which
+is close to the register the rest of the library already occupies, so Miro was
+rebuilt in **leaded and stained glass** — the trade a canal city is actually known
+for. Flat saturated cells held in dark came and lit from behind; light is the
+mechanic as well as the material, so a clean hold glows and a rotten one goes out.
+The whole world is CSS and SVG, with the canal drawn as a deterministic scatter of
+glass cells so it never reshuffles between renders. One trader is secretly the
+smuggler and it can be you; the pilot is always aboard their own run, or the quay
+would simply stop sending whoever it suspects.
+
+Balance was measured rather than guessed, and the figures are asserted in
+`tests/{orin,vela,miro}.test.mjs`: a skilled Orin watch holds the coast between 78
+and 89 per cent of the time and a careless one between 19 and 34; Vela is within a
+few points of even between the two colours at every table size, with a level meadow
+under four per cent; Miro's merchants take between half and four fifths of the
+nights. Bot difficulty in a co-op is bot *skill*, so weaker keepers make Orin harder
+rather than easier, and the setup box says so.
+
+Still open: none of the three has box or board artwork, so their covers print a
+motif; none is available in online tables, which still run only the trio engine; and
+Orin's bell is the only communication channel, which wants a playtest with people
+rather than bots.
+
+### Shared table navigation
+
+Across every game, align the top player badges with the floating navigation controls. Put Others directly below Menu, retaining the public-information inspection and focus return. Do not add separate Table or pass-to-player controls. Artwork candidate switches belong to development review, never the accepted playing scene. Keep these placements consistent through landscape, portrait and narrow layouts.
+
+### September 20: requested rule and library refinements
+
+The library opens with the six implemented IDs on one shelf and concept games below. Developed games have dedicated illustrated fronts and spines, varied compact proportions and a complete bottom face. Setup keeps its cover and tag strip, uses a quiet plain insert and places equally prominent Play and Continue actions together.
+
+Nox uses a centered table-plane arrow, larger seat labels and played cards, and a centered near-side seat at two or three players. Both decks exchange 4/3/2 cards at 2/3/4+ players. New duels retain five ranks per suit in normal mode and three in fast mode, including the penalty rank. Already-started exchanges and older full decks finish with their saved configuration.
+
+Glasshouse now scores 2 per creature plus 4 for a full matching pair and a different guest, maximum 10. New matches receive one Roam. Floodline uses landscape A with its own measured geometry; both orientations have a two-slot cave. Mangrove rewards matching pairs (9; different 0; single 1), the cave rewards different pairs (7; matching 2; single 1), and Lighthouse scores 5 only for a species sheltered nowhere else. Matching goals and explanations follow these rules, superseding earlier tuning notes above.
+
+Undo has a permanent themed position beside the hand. It clears preparation, including migration, and can withdraw an unrevealed simultaneous choice while another player is still choosing. It never rewinds information already revealed to another player.
+
+## Roka, Talo and Soma
+
+Roka replaces Orin as a freely communicating cooperative volcanic-island rescue. Talo replaces Vela as a four-player team expedition through a shifting sandstone temple. Soma replaces Miro as a storm-stranded airship repair game with one hidden saboteur. Internal IDs remain `orin`, `vela`, and `miro`; the new rules use save marker `rules: 2`. These games launch without extensions.
+
+All games use isolated interactive practice: players can experiment, advance the clock manually, and begin a freshly seeded real match afterward. Roka, Talo and Soma have separate illustrated environments, material cues and original ambient soundscapes. Their source art, rules, privacy boundaries and validation are recorded in `docs/concepts/2026-09-20-roka-talo-soma/IMPLEMENTATION.md`.
+
+## September 20: party-game replacements (supersedes Roka, Talo and Soma)
+
+The three adventure additions are retired. Their stable IDs now host **Top Tier**, **Outfox the Fox**, and **Hot Streak**, with save marker `rules: 3`. Their predecessor implementations are removed from live code.
+
+Top Tier and Outfox use a 116-topic original catalog, three choices per player, no written answers, concurrent private ranking, alternating Sun/Moon teams and team-private guesses. Top Tier puts exactly one item in each S/A/B/C/D tier. Outfox adds a sixth-answer decoy and confidence scoring. Every player is guessed once per round, across two rounds. These are personal-preference adaptations; do not present Outfox lists as measured surveys or factual rankings.
+
+Top Tier is tactile cream/plum stationery and coloured tier strips. Outfox is moss-green cloth, cream cards and rust-red fox illustration. Hot Streak is a bright night stadium with original racing mascots, ticket drafting, secret deck manipulation, a timed automatic race, collisions and payout over three races. Preserve reduced motion and mute. New original covers and sprites have exact prompt/provenance records in `docs/concepts/2026-09-20-party-replacements/`.
+
+### Party rules refinement (20 September 2026; supersedes the party rules above)
+
+All three party games support individual play at 2–6 players, including 3 and 5.
+Team mode always means **exactly two equal teams**, available at 4 and 6 players
+(2 vs 2 or 3 vs 3). The user's final clarification supersedes the brief mention
+of pairs. Setup and online lobbies expose the same mode choice; changing to an
+odd player count selects individual play. Internal IDs remain unchanged; the
+new rules marker is `rules: 5`, rejecting incompatible prior party-game saves.
+
+Top Tier keeps simultaneous private preparation. Each player's list gets a turn
+in the spotlight. Only the opposing team guesses in team mode; in individual
+mode everyone except the owner guesses separately. Score one per exact tier
+plus two for a perfect five. Two rounds; highest score wins, ties share victory.
+
+Outfox has 339 factual cards from 30 World Bank indicators, fixed to 2023 data.
+Each player chooses one of two lists and writes a distinct sixth-answer decoy.
+The five factual answers have a fixed source-defined order; the author does not
+rank them. The six entries are shuffled before guessing. Score one per correct
+factual position, three for catching the decoy, and award the author two bluff
+points per opponent fooled. No confidence betting. Reveal the measurement,
+year, scope and source link. Cards explicitly rank reporting economies rather
+than silently treating missing observations as zero; territories may be included.
+Reproduction and evidence: `scripts/build-outfox-catalog.py` and `scripts/data/`.
+
+**Atlas** replaces Hot Streak completely in live code, using stable ID `miro`.
+It is a shared geography route challenge with a navy survey-chart identity,
+cream route cards, amber paths and a native SVG cover. Every player/team gets
+identical cities and instructions in every round. Six rounds cycle through
+west-to-east, north-to-south, and nearest-to-farthest from one shared capital.
+Answers stay private until everyone locks; there is no speed bonus. Score one
+per correct position plus two for a perfect five. Near-ties are excluded.
+The globe reveals city locations and the ordered route, with an optional spin
+and zoom interaction, keyboard controls, reduced-motion support and a flat-map
+fallback when WebGL is unavailable. City coordinates come from the World Bank;
+map geometry comes from Natural Earth. The cover is code-native cartography,
+not generated bitmap artwork. Attribution lives in `public/maps/README.md`.
+
+Setup keeps one Learn control at the top and only Play/Continue in its footer.
+All list games use drag handles with pointer capture and keyboard arrow support.
+Correct/wrong reveal rows animate with reduced-motion overrides. Sound respects
+mute. Teammates share drafts; only the rotating captain locks. Every player
+acknowledges each reveal, including in practice and online play.
+
+Verification: `docs/verification/2026-09-20-party-refinements.md`.

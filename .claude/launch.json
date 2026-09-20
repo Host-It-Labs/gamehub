@@ -1,6 +1,14 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "gamehub", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 3017 }
+    {
+      "name": "gamehub",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3017
+    }
   ]
 }

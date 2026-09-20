@@ -20,7 +20,7 @@ const zones = (...areas) =>
     (areas[i] ?? []).map((k, j) => card(k, i * 20 + j)),
   );
 
-await test('coastal habitats reward exact pairs, mirrored paths and exclusivity', () => {
+await test('Floodline habitats reward exact pairs, an all-different beach, the Pier echo and exclusivity', () => {
   const z = zones(
     [0, 0, 1, 1],
     [0, 1, 2, 3],
@@ -32,14 +32,37 @@ await test('coastal habitats reward exact pairs, mirrored paths and exclusivity'
   );
   assert.deepEqual(
     [0, 1, 2, 3, 4, 6].map((i) => zoneScore(z, i, 'intermediate')),
-    [18, 15, 9, 14, 0, 9],
+    [18, 16, 0, 14, 2, 0],
   );
+  // One repeat collapses the Nesting beach to a point per creature.
+  z[1] = [card(0), card(1), card(2), card(2)];
+  assert.equal(zoneScore(z, 1, 'intermediate'), 4);
+  z[1] = [card(0), card(1), card(2)];
+  assert.equal(zoneScore(z, 1, 'intermediate'), 12);
   z[4] = [card(5)];
   z[3] = [];
-  assert.equal(zoneScore(z, 4, 'intermediate'), 5);
+  assert.equal(zoneScore(z, 4, 'intermediate'), 1);
   z[0] = [card(0), card(0), card(0), card(1)];
   assert.equal(zoneScore(z, 0, 'intermediate'), 0);
   assert.equal(zoneScore(z, 0), 11);
+});
+await test('Observatory habitats ask one plain question each', () => {
+  const z = zones([], [0, 0, 1, 1], [], [2, 2, 2], [3, 4, 5], [], []);
+  assert.equal(zoneScore(z, 1), 16);
+  z[1] = [card(0), card(0), card(1), card(2)];
+  assert.equal(zoneScore(z, 1), 7);
+  z[1] = [card(0), card(0), card(0), card(0)];
+  assert.equal(zoneScore(z, 1), 16);
+  assert.equal(zoneScore(z, 3), 6);
+  z[3] = [card(2), card(2), card(3)];
+  assert.equal(zoneScore(z, 3), 10);
+  assert.equal(zoneScore(z, 4), 10);
+  z[4] = [card(3), card(3), card(4)];
+  assert.equal(zoneScore(z, 4), 4);
+  z[2] = [card(0), card(0)];
+  assert.equal(zoneScore(z, 2), 9);
+  z[2] = [card(0), card(1)];
+  assert.equal(zoneScore(z, 2), 3);
 });
 await test('intermediate dishes have independent scoring and explicit downside', () => {
   const cards = [0, 0, 0, 1, 2, 2, 2, 2, 3, 3, 3, 4, 5].map((k, i) =>
@@ -54,6 +77,7 @@ await test('intermediate dishes have independent scoring and explicit downside',
   // Goals never name a species; habitat-specific ones use the coastal habitat names.
   assert.ok(sanctuaryGoalsFor('intermediate').every((goal) => goal.kind === undefined));
   assert.doesNotMatch(sanctuaryGoalsFor('intermediate')[3].rule, /Courtyard|Roof garden/);
+  assert.match(sanctuaryGoalsFor('intermediate')[11].rule, /Lighthouse/);
 });
 await test('Roam enforces die, capacity and private locking', () => {
   let g = createGame(
@@ -81,12 +105,12 @@ await test('Roam enforces die, capacity and private locking', () => {
   g = play(g, roam, 0);
   assert.equal(
     g.players[0].roams,
-    2,
+    1,
     'not spent or revealed until all players lock',
   );
   assert.equal('pending' in observe(g, 1), false);
   g = play(g, legalMoves(g)[0]);
-  assert.equal(g.players[0].roams, 1);
+  assert.equal(g.players[0].roams, 0);
   g.phase = 'play';
   g.active = 0;
   g.roller = 0;
@@ -296,4 +320,17 @@ await test('strategic bots finish intermediate games with both extensions', () =
     assert.ok(isSavedGame(g));
     assert.ok(scores(g).every(Number.isFinite));
   }
+});
+
+await test('Floodline cave, mangrove and lighthouse offer distinct risks', () => {
+  const z = zones([], [], [0, 0], [], [1, 2], [], [3]);
+  assert.equal(zoneScore(z, 2, 'intermediate'), 9);
+  assert.equal(zoneScore(z, 4, 'intermediate'), 7);
+  assert.equal(zoneScore(z, 6, 'intermediate'), 5);
+  z[2][1] = card(1);
+  z[4][1] = card(1);
+  z[0] = [card(3)];
+  assert.equal(zoneScore(z, 2, 'intermediate'), 0);
+  assert.equal(zoneScore(z, 4, 'intermediate'), 2);
+  assert.equal(zoneScore(z, 6, 'intermediate'), 0);
 });

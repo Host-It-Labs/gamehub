@@ -4,13 +4,16 @@ import { readFileSync } from 'node:fs';
 import { dice } from '../lib/games/trio/engine.ts';
 const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-await test('Mora shape language retains all four original die memberships', () => {
-  assert.deepEqual(dice.slice(0, 4).map((face) => face.zones), [[0, 1, 2], [3, 4, 6], [0, 1, 3, 4], [1, 2, 4, 6]]);
+await test('Mora die faces never name a board: shapes, capacities and occupancy only', () => {
+  // Square and round pads are painted on every world; Big homes counts spaces, the rest read occupancy.
+  assert.deepEqual(dice.map((face) => face.kind), ['zones', 'zones', 'zones', 'company', 'empty', 'new']);
+  assert.deepEqual(dice.slice(0, 3).map((face) => face.zones), [[0, 1, 2], [3, 4, 6], [0, 1, 3, 4]]);
+  for (const face of dice) assert.doesNotMatch(face.rule, /paving|timber|log|Courtyard|Roof garden|Glasshouse|channel|Watchpost|Rock pools|Pier|Lighthouse/);
   assert.equal(dice[0].symbol, '□');
   // Die captions come from the engine; static faces engrave a map of square and round pads.
   const symbols = source('components/game/mora-symbols.tsx');
   assert.match(symbols, /moraDieLabels = dice\.map\(\(d\) => d\.name\)/);
-  // Faces depict the restriction itself: square pad, round pad, paving, log, empty pad, newcomer.
+  // Faces depict the restriction itself: square pad, round pad, three pads, occupied pad, empty pad, newcomer.
   for (const face of [0, 1, 2, 3, 4]) assert.match(symbols, new RegExp(`case ${face}:`));
   assert.match(symbols, /ink-dash/);
   assert.doesNotMatch(source('components/game/boards.tsx'), /MoraHabitatMarks|mora-relationship/);

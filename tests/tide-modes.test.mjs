@@ -27,11 +27,11 @@ await test('both Tide modes deal equal hands and complete at every seat count wi
           expansion,
           fast,
         );
-        const total = fast ? 25 : 50;
+        const total = seats === 2 ? (fast ? 15 : 25) : fast ? 25 : 50;
         assert.equal(tideRanks(g), fast ? 5 : 10);
         assert.equal(
           passCount(g),
-          fast ? 3 : seats <= 4 ? 5 : seats === 5 ? 4 : 3,
+          seats === 2 ? 4 : seats === 3 ? 3 : 2,
         );
         assert.equal(g.reserve.length, total % seats);
         assert.ok(

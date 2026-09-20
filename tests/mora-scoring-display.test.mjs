@@ -54,7 +54,7 @@ for (const set of ['beginner', 'intermediate']) {
           (pair.slots[0][0] + pair.slots[1][0]) / 2,
           (pair.slots[0][1] + pair.slots[1][1]) / 2,
         ],
-        symbol: set === 'beginner' ? '=' : '≠',
+        symbol: '=',
       },
     ]);
   });

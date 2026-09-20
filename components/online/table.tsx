@@ -1,10 +1,14 @@
 'use client';
+import { AdventureMatch } from './adventure-match';
+import { onlineCatalog } from '@/lib/online/catalog';
+import { isStandaloneId, standaloneGames } from '@/lib/games/standalone/registry';
 import {
   GameExtensionChoices,
   ContentChoice,
 } from '@/components/game/expansions';
 import { decisionKey } from '@/lib/games/trio/engine';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { Settings2 } from 'lucide-react';
 import {
   api,
   ApiError,
@@ -18,7 +22,7 @@ import {
   type Table,
   type TableCommand,
 } from '@/lib/online/types';
-import { catalog, type Difficulty } from '@/lib/games/trio/engine';
+import { type Difficulty } from '@/lib/games/trio/engine';
 import { OnlineHeader } from './account';
 import { OnlineMatch } from './match';
 import { LobbyGames, SharedLesson } from './lobby-games';
@@ -176,7 +180,7 @@ export function SharedTable({ invite }: { invite: string }) {
   }
   const disabled = busy || retry || !connected || fatal;
   return (
-    <div className={`app ${table?.game ? `at-table ${table.gameId}` : ''}`}>
+    <div className={`app ${(table?.game || table?.adventure) ? `at-table ${table.gameId}` : ''}`}>
       <OnlineHeader />
       {error && (
         <div className="online-notice" role="alert">
@@ -241,29 +245,36 @@ export function SharedTable({ invite }: { invite: string }) {
       ) : (
         <>
           <details
-            className={`online-session table-session ${table.isHost ? 'host-session' : 'guest-session'}`}
+            className={`online-session table-session ${table.status === 'lobby' ? 'lobby-session' : 'playing-session'} ${table.isHost ? 'host-session' : 'guest-session'}`}
             key={`${table.status}-${table.isHost}`}
             open={table.status === 'lobby' && table.isHost}
           >
             <summary>
-              <span>
-                {table.status === 'lobby'
-                  ? `${catalog.find((c) => c.id === table.gameId)?.name} · Up next`
-                  : 'Table menu'}
-                <small>
-                  {table.members.length} players ·{' '}
-                  {table.isHost
-                    ? 'You’re hosting'
-                    : table.status === 'lobby'
-                      ? 'Waiting for the host'
-                      : 'Table details'}
-                </small>
-              </span>
-              <span
-                className={`lobby-connection ${connected ? 'is-connected' : ''}`}
-              >
-                {connected ? 'Connected' : 'Reconnecting…'}
-              </span>
+              {table.status === 'lobby' ? (
+                <>
+                  <span>
+                    {`${onlineCatalog.find((c) => c.id === table.gameId)?.name} · Up next`}
+                    <small>
+                      {table.members.length} players ·{' '}
+                      {table.isHost ? 'You’re hosting' : 'Waiting for the host'}
+                    </small>
+                  </span>
+                  <span
+                    className={`lobby-connection ${connected ? 'is-connected' : ''}`}
+                  >
+                    {connected ? 'Connected' : 'Reconnecting…'}
+                  </span>
+                </>
+              ) : (
+                <span className="playing-session-trigger">
+                  <Settings2 size={16} aria-hidden="true" />
+                  Table
+                  <span
+                    className={`table-connection-dot ${connected ? 'is-connected' : ''}`}
+                    aria-label={connected ? 'Connected' : 'Reconnecting'}
+                  />
+                </span>
+              )}
             </summary>
             <section className="online-card table-lobby">
               <div className="online-row">
@@ -276,7 +287,7 @@ export function SharedTable({ invite }: { invite: string }) {
                   <h1>
                     {table.status === 'lobby'
                       ? 'Around the table'
-                      : catalog.find((c) => c.id === table.gameId)?.name}
+                      : onlineCatalog.find((c) => c.id === table.gameId)?.name}
                   </h1>
                 </div>
                 <button className="secondary" onClick={copy}>
@@ -467,6 +478,7 @@ export function SharedTable({ invite }: { invite: string }) {
               dispatch={dispatch}
             />
           )}
+          {table.adventure && table.viewerSeat !== null && <AdventureMatch key={table.matchId} table={table} disabled={disabled} dispatch={dispatch} onHome={() => { window.location.href='/'; }} />}
           {table.game && table.viewerSeat !== null ? (
             <OnlineMatch
               key={table.matchId}
@@ -493,7 +505,7 @@ export function SharedTable({ invite }: { invite: string }) {
               }
             />
           ) : (
-            table.status !== 'lobby' && (
+            !table.adventure && table.status !== 'lobby' && (
               <div className="online-card">
                 <h2>Waiting for the next match</h2>
                 <p>
@@ -522,7 +534,7 @@ function LobbySettings({
     <div className="lobby-settings">
       <div className="lobby-settings-title">
         <span className="lobby-eyebrow">Ready to play</span>
-        <h2>{catalog.find((game) => game.id === table.gameId)?.name}</h2>
+        <h2>{onlineCatalog.find((game) => game.id === table.gameId)?.name}</h2>
       </div>
       <label>
         Total seats
@@ -540,13 +552,19 @@ function LobbySettings({
             })
           }
         >
-          {[2, 3, 4, 5, 6].map((n) => (
+          {(isStandaloneId(table.gameId)?standaloneGames[table.gameId].seatChoices:[2, 3, 4, 5, 6]).map((n) => (
             <option key={n} value={n} disabled={n < table.members.length}>
               {n}
             </option>
           ))}
         </select>
       </label>
+      {isStandaloneId(table.gameId) && <label>Play mode
+        <select value={table.partyMode ?? 'individual'} disabled={disabled} onChange={event => void dispatch({type: 'configure', gameId: table.gameId, difficulty: table.difficulty, capacity: table.capacity, partyMode: event.target.value as 'teams' | 'individual'})}>
+          <option value="individual">Everyone for themselves</option>
+          <option value="teams" disabled={![4,6].includes(table.capacity)}>Two teams (4 or 6 players)</option>
+        </select>
+      </label>}
       <label>
         Bot difficulty
         <select
@@ -595,7 +613,7 @@ function LobbySettings({
           </label>
         </>
       )}
-      <ContentChoice
+      {!isStandaloneId(table.gameId) && <ContentChoice
         id={table.gameId}
         options={{
           contentSet: table.contentSet,
@@ -616,8 +634,8 @@ function LobbySettings({
             ...options,
           })
         }
-      />
-      <GameExtensionChoices
+      />}
+      {!isStandaloneId(table.gameId) && <GameExtensionChoices
         id={table.gameId}
         options={{
           contentSet: table.contentSet,
@@ -641,7 +659,7 @@ function LobbySettings({
             ...options,
           })
         }
-      />
+      />}
       <label
         className="lobby-learning-choice"
         aria-label="Learn together first"

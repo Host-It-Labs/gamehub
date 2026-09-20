@@ -48,7 +48,6 @@ export function BlackwakeTable({
   seatTags = false,
   onSeat,
   style,
-  aspect = 1.6,
 }: {
   g: PublicGame;
   viewer: number;
@@ -103,13 +102,9 @@ export function BlackwakeTable({
       style={style}
     >
       <div className="blackwake-surface" />
-      {seatTags && g.phase !== 'over' && (
-        <DirectionRing clockwise={g.round % 2 === 1} aspect={aspect} />
-      )}
+      {seatTags && g.phase !== 'over' && <DirectionRing clockwise={g.phase !== 'pass' || g.round % 2 === 1} passing={g.phase === 'pass'} />}
       <div className="blackwake-centre" aria-live="polite">
-        <span className="table-direction" aria-label="Play proceeds clockwise">
-          ↻
-        </span>
+        {!seatTags && <span className="table-direction" aria-label={g.round % 2 ? "Clockwise" : "Counterclockwise"}>{g.round % 2 ? "↻" : "↺"}</span>}
         {g.salvage && <Anchor aria-label="Salvage" />}
         <span>
           {reveal
@@ -118,7 +113,7 @@ export function BlackwakeTable({
               ? `${suits[trick[0].card.kind]} ${suitNames[trick[0].card.kind]}`
               : g.phase === 'salvage'
                 ? 'Secret claims'
-                : 'NOX'}
+                : ''}
         </span>
       </div>
       {g.players.map((player, seat) => {
@@ -212,40 +207,13 @@ export function BlackwakeTable({
   );
 }
 
-/** Four arrowed strokes just inside the rim of the rectangular playing surface
- *  show which way this round travels: cards pass and play proceeds clockwise
- *  on odd rounds and the other way on even rounds. It changes once per round,
- *  never per trick. */
-function DirectionRing({ clockwise, aspect }: { clockwise: boolean; aspect: number }) {
-  const w = 1000, h = w / aspect, inset = 52, gap = 110, size = 30;
-  const x0 = inset, x1 = w - inset, y0 = inset, y1 = h - inset;
-  // Each side as [from, to] in clockwise travel; reversed for counterclockwise.
-  const sides: [number, number, number, number][] = [
-    [x0 + gap, y0, x1 - gap, y0],
-    [x1, y0 + gap, x1, y1 - gap],
-    [x1 - gap, y1, x0 + gap, y1],
-    [x0, y1 - gap, x0, y0 + gap],
-  ];
-  const strokes = sides.map(([ax, ay, bx, by]) => {
-    const [fx, fy, tx, ty] = clockwise ? [ax, ay, bx, by] : [bx, by, ax, ay];
-    const len = Math.hypot(tx - fx, ty - fy), ux = (tx - fx) / len, uy = (ty - fy) / len, nx = -uy, ny = ux;
-    const head = `${tx},${ty} ${tx - ux * size + nx * size * 0.55},${ty - uy * size + ny * size * 0.55} ${tx - ux * size - nx * size * 0.55},${ty - uy * size - ny * size * 0.55}`;
-    return { d: `M ${fx} ${fy} L ${tx - ux * size * 0.6} ${ty - uy * size * 0.6}`, head };
-  });
-  return (
-    <svg
-      className="table-direction-ring"
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <title>{`This round goes ${clockwise ? 'clockwise' : 'counterclockwise'}`}</title>
-      {strokes.map((stroke, i) => (
-        <g key={i}>
-          <path d={stroke.d} />
-          <polygon points={stroke.head} />
-        </g>
-      ))}
-    </svg>
-  );
+/** One circular chalk arrow at the centre, reversing with the passing round. */
+function DirectionRing({ clockwise, passing }: { clockwise: boolean; passing: boolean }) {
+  return <svg className="table-direction-ring" viewBox="0 0 100 100"
+    aria-label={`${passing ? 'Cards pass' : 'Tricks proceed'} ${clockwise ? 'clockwise' : 'counterclockwise'}`}>
+    <g transform={clockwise ? undefined : 'translate(100 0) scale(-1 1)'}>
+      <path d="M 79 64 A 33 33 0 1 1 78 31" />
+      <polygon points="67,29 83,24 80,41" />
+    </g>
+  </svg>;
 }

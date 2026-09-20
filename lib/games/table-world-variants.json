@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "yata-counter-a",
+    "game": "midnight",
+    "orientation": "landscape",
+    "label": "Counter A",
+    "source": "/art/yata-counter-landscape-v2-a.png",
+    "image": "/art/optimized/yata-counter-landscape-v2-a.webp",
+    "overviewImage": "/art/optimized/yata-counter-landscape-v2-a-overview.webp"
+  },
+  {
+    "id": "yata-counter-b",
+    "game": "midnight",
+    "orientation": "landscape",
+    "label": "Counter B",
+    "source": "/art/yata-counter-landscape-v2-b.png",
+    "image": "/art/optimized/yata-counter-landscape-v2-b.webp",
+    "overviewImage": "/art/optimized/yata-counter-landscape-v2-b-overview.webp"
+  },
+  {
+    "id": "yata-counter-a",
+    "game": "midnight",
+    "orientation": "portrait",
+    "label": "Counter A",
+    "source": "/art/yata-counter-portrait-v2-a.png",
+    "image": "/art/optimized/yata-counter-portrait-v2-a.webp",
+    "overviewImage": "/art/optimized/yata-counter-portrait-v2-a-overview.webp"
+  },
+  {
+    "id": "yata-counter-b",
+    "game": "midnight",
+    "orientation": "portrait",
+    "label": "Counter B",
+    "source": "/art/yata-counter-portrait-v2-b.png",
+    "image": "/art/optimized/yata-counter-portrait-v2-b.webp",
+    "overviewImage": "/art/optimized/yata-counter-portrait-v2-b-overview.webp"
+  }
+]

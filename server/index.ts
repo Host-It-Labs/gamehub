@@ -1,3 +1,4 @@
+import {standaloneGames, decisionKey as adventureKey} from '../lib/games/standalone/registry.ts';
 import {
   createServer,
   type IncomingMessage,
@@ -133,9 +134,17 @@ export async function makeServer(
     schedule(invite);
   }
   function schedule(invite: string) {
-    if (stopping || options.bots === false) return;
+    if (stopping) return;
     const t = tables.get(invite);
     const seats = jobs.get(invite) ?? new Map<number, BotJob>();
+    if(t.adventure){
+      const g=t.adventure,key=adventureKey(g);
+      for(const [seat,job]of seats)if(job.decision!==key||(seat!==-1&&!standaloneGames[g.kind].actingSeats(g).includes(seat))){clearTimeout(job.timer);void job.worker?.terminate();seats.delete(seat);}
+      if(t.status!=='playing'||g.tutorial){for(const job of seats.values())clearTimeout(job.timer);jobs.delete(invite);return;}
+      for(const seat of standaloneGames[g.kind].actingSeats(g)){if(options.bots===false||!t.seats[seat]?.bot||seats.has(seat))continue;const job:BotJob={decision:key,timer:setTimeout(()=>{seats.delete(seat);if(stopping)return;tables.adventureBot(invite,key,seat);publish(invite);},650)};seats.set(seat,job);}
+      jobs.set(invite,seats);return;
+    }
+    if(options.bots===false)return;
     // Drop thoughts about decisions that no longer exist.
     for (const [seat, job] of seats)
       if (
@@ -147,7 +156,7 @@ export async function makeServer(
         void job.worker?.terminate();
         seats.delete(seat);
       }
-    if (t.status !== 'playing' || !t.game) {
+    if (t.status !== 'playing' || !t.game || t.game.tutorial) {
       jobs.delete(invite);
       return;
     }

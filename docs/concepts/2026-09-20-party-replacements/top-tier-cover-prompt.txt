@@ -1,0 +1,14 @@
+Use case: stylized-concept
+Asset type: original portrait game box front cover illustration, 1024x1536 PNG.
+Primary request: Tactile playful editorial cut-paper sculpture of exactly five chunky ascending shelves or tier platforms, coloured coral, apricot, yellow, sage and teal. Whimsical everyday objects on the platforms: a book, fruit, a plant, a tiny bicycle, a teacup. Warm cream ground, plum shadows, premium graphic stationery feel. Strong distinct silhouette, playful coherent sculpture.
+Composition: portrait 2:3 image with complete central composition. Keep every important complete silhouette, character and meaningful prop within the central 80 percent of both image width and image height, leaving expendable scenery or plain background at outer margins. Cohesive professional art, rich tactile materials, readable miniature silhouettes.
+Constraints: absolutely NO text, NO title, NO letters, NO numbers, NO logos, NO watermark, NO interface, NO box mockup or perspective packaging. Full-bleed flat cover illustration; app will overlay its own title. No reference images.
+
+
+Generation provenance
+Tool: built-in image_gen. Text-only fresh generation, no references.
+Native source: /Users/williamguinaudie/.codex/generated_images/01a0bfb4-6920-73e2-97f6-aceef05136a0/exec-7b234d4f-d91b-4830-9c2f-4fcb0e7aa1c8.png
+Output PNG: public/art/party-top-tier-cover-v1.png
+Output WebP: public/art/party-top-tier-cover-v1.webp (sharp quality 90, no resizing)
+Verified native dimensions: 1024x1536
+Visual review: Five coloured platforms and all specified object types present, no text. Extra house, bird, cat and foliage added by generation. Central-80-percent requirement FAILED: platform base and peripheral foliage reach beyond margins; all major everyday objects remain complete.

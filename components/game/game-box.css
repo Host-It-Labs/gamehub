@@ -1,0 +1,322 @@
+/* Shaped game boxes: three CSS faces posed at the library's shared angle. */
+.gbox {
+  --w: var(--gw, 190px);
+  --h: var(--gh, 128px);
+  --d: var(--gd, 76px);
+  --tilt: -26deg;
+  --lift: 7deg;
+  --box-deep: #3a3630;
+  --box-mid: #8a7a5a;
+  --box-light: #f3ecdc;
+  position: relative;
+  display: block;
+  /* Projected footprint of the posed cuboid; keeps neighbours from overlapping. */
+  width: calc(var(--w) * 0.9 + var(--d) * 0.66);
+  height: calc(var(--h) + var(--d) * 0.12 + 18px);
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+  flex: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--box-light);
+}
+.gbox-solid {
+  position: absolute;
+  /* The front face sits half the depth ahead of the hinge, so it swings this far left. */
+  left: calc(var(--d) * 0.22);
+  top: calc(var(--d) * 0.1);
+  width: var(--w);
+  height: var(--h);
+  transform-style: preserve-3d;
+  transform-origin: 0 50%;
+  transform: rotateX(var(--lift)) rotateY(var(--tilt));
+  transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.gbox-face {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--w);
+  height: var(--h);
+  backface-visibility: hidden;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.gbox-front {
+  transform: translateZ(calc(var(--d) / 2));
+  background: var(--box-deep);
+  box-shadow:
+    inset 0 0 0 1px #ffffff2a,
+    inset 0 -2px 0 #0000003a;
+}
+.gbox-side {
+  width: var(--d);
+  transform: rotateY(90deg) translateZ(calc(var(--w) - var(--d) / 2));
+  background:
+    linear-gradient(90deg, #00000055, #00000010 40%, #0000001c), var(--box-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 6px;
+  box-shadow: inset 0 0 0 1px #ffffff1c;
+}
+.gbox-top {
+  height: var(--d);
+  transform: rotateX(90deg) translateZ(calc(var(--d) / 2));
+  background: linear-gradient(180deg, #ffffff30, #ffffff08), var(--box-mid);
+  box-shadow: inset 0 0 0 1px #ffffff26;
+}
+.gbox-shadow {
+  position: absolute;
+  left: 6%;
+  right: -2%;
+  bottom: 0;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    #2a221566 0%,
+    #2a221520 55%,
+    transparent 75%
+  );
+  filter: blur(3px);
+  transform: skewX(-18deg);
+}
+.gbox-front .artwork-frame,
+.gbox-front img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gbox-front .artwork-frame {
+  background-size: cover;
+  background-position: center;
+}
+.gbox-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 7%;
+  text-align: center;
+  font-weight: 700;
+  font-size: calc(var(--w) * 0.16);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--box-light);
+  text-shadow:
+    0 1px 0 #00000080,
+    0 2px 10px #00000090;
+  pointer-events: none;
+}
+.gbox-side-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: calc(var(--d) * 0.19);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  white-space: nowrap;
+  max-height: 70%;
+  overflow: hidden;
+}
+.gbox-side-motif {
+  width: calc(var(--d) * 0.28);
+  height: calc(var(--d) * 0.28);
+  opacity: 0.65;
+}
+/* Placeholder covers: material, motif and title stand in for artwork. */
+.gbox-illustration {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse at 70% 110%, var(--box-mid) 0%, transparent 60%),
+    linear-gradient(
+      160deg,
+      var(--box-deep) 10%,
+      color-mix(in srgb, var(--box-deep), var(--box-mid) 55%) 100%
+    );
+}
+.gbox-motif {
+  width: calc(var(--w) * 0.34);
+  height: calc(var(--w) * 0.34);
+  margin-top: calc(var(--h) * 0.16);
+  color: var(--box-light);
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 4px #0006);
+}
+.gbox.kraft .gbox-illustration::after,
+.gbox.kraft .gbox-side::after,
+.gbox.woven .gbox-illustration::after,
+.gbox.cloth .gbox-illustration::after,
+.gbox.tin .gbox-illustration::after,
+.gbox.wood .gbox-illustration::after,
+.gbox.embossed .gbox-illustration::after,
+.gbox.board .gbox-illustration::after,
+.gbox.card .gbox-illustration::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.gbox.kraft .gbox-illustration::after,
+.gbox.kraft .gbox-side::after {
+  background: repeating-linear-gradient(
+    115deg,
+    #ffffff10 0 2px,
+    transparent 2px 7px
+  );
+  mix-blend-mode: soft-light;
+}
+.gbox.cloth .gbox-illustration::after {
+  background:
+    repeating-linear-gradient(0deg, #ffffff12 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, #ffffff12 0 1px, transparent 1px 3px);
+}
+.gbox.woven .gbox-illustration::after {
+  background:
+    repeating-linear-gradient(45deg, #ffffff14 0 3px, transparent 3px 9px),
+    repeating-linear-gradient(-45deg, #00000018 0 3px, transparent 3px 9px);
+}
+.gbox.tin .gbox-illustration::after {
+  background: linear-gradient(
+    100deg,
+    #ffffff00 20%,
+    #ffffff3a 45%,
+    #ffffff00 60%
+  );
+}
+.gbox.wood .gbox-illustration::after {
+  background: repeating-linear-gradient(
+    88deg,
+    #00000022 0 1px,
+    transparent 1px 11px
+  );
+}
+.gbox.embossed .gbox-illustration::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    #ffffff10 0 20%,
+    transparent 21%
+  );
+  background-size: 22px 22px;
+}
+.gbox.board .gbox-illustration::after {
+  background: repeating-linear-gradient(
+    0deg,
+    #00000010 0 2px,
+    transparent 2px 6px
+  );
+}
+.gbox.card .gbox-illustration::after {
+  background: linear-gradient(180deg, #ffffff18, transparent 30%);
+}
+.gbox.board .gbox-title,
+.gbox.pelo .gbox-title {
+  color: var(--box-deep);
+  text-shadow: 0 1px 0 #ffffff80;
+}
+.gbox.board .gbox-motif {
+  color: var(--box-deep);
+}
+/* Real games: cover artwork with a printed title band. */
+.gbox.undertow .gbox-title {
+  font-size: calc(var(--w) * 0.19);
+  color: #f1d58a;
+  letter-spacing: 0.06em;
+  text-shadow:
+    0 0 14px #ffcf6a70,
+    0 2px 0 #000000c0;
+}
+.gbox.wildgrove .gbox-title {
+  color: #fffbef;
+  text-shadow:
+    0 1px 0 #3a4a2a,
+    0 2px 8px #1f2a1a;
+}
+.gbox.midnight .gbox-title {
+  color: #ffe6a6;
+  font-style: italic;
+  text-shadow:
+    0 0 12px #ff8a5a99,
+    0 2px 0 #1b1440;
+}
+.gbox.wildgrove .gbox-front::after,
+.gbox.undertow .gbox-front::after,
+.gbox.midnight .gbox-front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, #00000066, transparent 38%);
+}
+.gbox-ribbon {
+  position: absolute;
+  top: -2px;
+  right: 8%;
+  width: 14px;
+  height: 34px;
+  background: linear-gradient(180deg, #d8a84b, #b8862e);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  box-shadow: 0 2px 3px #0005;
+}
+/* Interaction: buttons wrapping a box lift it and turn it toward the viewer. */
+.gbox-button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 4px 4px;
+  border-radius: 10px;
+  color: inherit;
+  text-align: left;
+}
+.gbox-button:hover .gbox-solid,
+.gbox-button:focus-visible .gbox-solid {
+  transform: translateY(-6px) rotateX(calc(var(--lift) - 2deg))
+    rotateY(calc(var(--tilt) + 10deg));
+}
+.gbox-button:hover .gbox-shadow,
+.gbox-button:focus-visible .gbox-shadow {
+  opacity: 0.8;
+  transform: skewX(-14deg) scaleX(1.05);
+}
+.gbox-button:active:not(:disabled) {
+  transform: none;
+}
+.gbox-button:focus-visible {
+  outline: 3px solid #b8924a;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gbox-solid,
+  .gbox-shadow {
+    transition: none;
+  }
+  .gbox-button:hover .gbox-solid,
+  .gbox-button:focus-visible .gbox-solid {
+    transform: rotateX(var(--lift)) rotateY(var(--tilt));
+  }
+}
+
+/* Complete printed boxes: the lower face closes the cuboid, with an inset lid seam. */
+.gbox-face { outline: 1px solid transparent; }
+.gbox-bottom { height: var(--d); transform: translateY(calc(var(--h) - var(--d) / 2)) rotateX(-90deg); background: var(--box-deep); box-shadow: inset 0 0 0 1px #ffffff28; }
+.gbox-front::after { content: ''; position: absolute; inset: 0; border: 1px solid #ffffff35; border-bottom: 4px solid #0005; border-radius: inherit; pointer-events: none; }
+.gbox-spine-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.gbox-side-title, .gbox-side-motif { position: relative; z-index: 1; opacity: 1; text-shadow: 0 1px 4px #000; }
+.gbox-side-title { font-size: max(9px, calc(var(--d) * .3)); }
+.gbox-front .gbox-title { top: 7%; letter-spacing: .015em; text-shadow: 0 2px 7px #000c; }
+.gbox.orin .gbox-face { border-radius: 9px; }
+.gbox.vela .gbox-title { color: #fff5dd; }
+.gbox.miro .gbox-title { font-family: Georgia, serif; letter-spacing: .08em; }
+
+/* Keep the complete portrait compositions of the replacement games. */
+.gbox.orin .gbox-front img,.gbox.vela .gbox-front img,.gbox.miro .gbox-front img{object-fit:contain}
+.gbox.orin .gbox-title{color:#382c47;text-shadow:0 1px 4px #fff8de;font-family:Arial,sans-serif;font-weight:900}
+.gbox.vela .gbox-title{font-style:italic;font-size:calc(var(--w)*.16)}
+.gbox.miro .gbox-title{font-family:Arial,sans-serif;font-style:italic;text-transform:uppercase;font-weight:900;letter-spacing:-.02em;color:#ffe29b}

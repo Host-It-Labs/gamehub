@@ -1,0 +1,1458 @@
+[
+  {
+    "name": "Oranjestad",
+    "country": "Aruba",
+    "lat": 12.5167,
+    "lng": -70.0167,
+    "source": "https://api.worldbank.org/v2/country/ABW?format=json"
+  },
+  {
+    "name": "Kabul",
+    "country": "Afghanistan",
+    "lat": 34.5228,
+    "lng": 69.1761,
+    "source": "https://api.worldbank.org/v2/country/AFG?format=json"
+  },
+  {
+    "name": "Luanda",
+    "country": "Angola",
+    "lat": -8.81155,
+    "lng": 13.242,
+    "source": "https://api.worldbank.org/v2/country/AGO?format=json"
+  },
+  {
+    "name": "Tirane",
+    "country": "Albania",
+    "lat": 41.3317,
+    "lng": 19.8172,
+    "source": "https://api.worldbank.org/v2/country/ALB?format=json"
+  },
+  {
+    "name": "Andorra la Vella",
+    "country": "Andorra",
+    "lat": 42.5075,
+    "lng": 1.5218,
+    "source": "https://api.worldbank.org/v2/country/AND?format=json"
+  },
+  {
+    "name": "Abu Dhabi",
+    "country": "United Arab Emirates",
+    "lat": 24.4764,
+    "lng": 54.3705,
+    "source": "https://api.worldbank.org/v2/country/ARE?format=json"
+  },
+  {
+    "name": "Buenos Aires",
+    "country": "Argentina",
+    "lat": -34.6118,
+    "lng": -58.4173,
+    "source": "https://api.worldbank.org/v2/country/ARG?format=json"
+  },
+  {
+    "name": "Yerevan",
+    "country": "Armenia",
+    "lat": 40.1596,
+    "lng": 44.509,
+    "source": "https://api.worldbank.org/v2/country/ARM?format=json"
+  },
+  {
+    "name": "Pago Pago",
+    "country": "American Samoa",
+    "lat": -14.2846,
+    "lng": -170.691,
+    "source": "https://api.worldbank.org/v2/country/ASM?format=json"
+  },
+  {
+    "name": "Saint John's",
+    "country": "Antigua and Barbuda",
+    "lat": 17.1175,
+    "lng": -61.8456,
+    "source": "https://api.worldbank.org/v2/country/ATG?format=json"
+  },
+  {
+    "name": "Canberra",
+    "country": "Australia",
+    "lat": -35.282,
+    "lng": 149.129,
+    "source": "https://api.worldbank.org/v2/country/AUS?format=json"
+  },
+  {
+    "name": "Vienna",
+    "country": "Austria",
+    "lat": 48.2201,
+    "lng": 16.3798,
+    "source": "https://api.worldbank.org/v2/country/AUT?format=json"
+  },
+  {
+    "name": "Baku",
+    "country": "Azerbaijan",
+    "lat": 40.3834,
+    "lng": 49.8932,
+    "source": "https://api.worldbank.org/v2/country/AZE?format=json"
+  },
+  {
+    "name": "Bujumbura",
+    "country": "Burundi",
+    "lat": -3.3784,
+    "lng": 29.3639,
+    "source": "https://api.worldbank.org/v2/country/BDI?format=json"
+  },
+  {
+    "name": "Brussels",
+    "country": "Belgium",
+    "lat": 50.8371,
+    "lng": 4.36761,
+    "source": "https://api.worldbank.org/v2/country/BEL?format=json"
+  },
+  {
+    "name": "Porto-Novo",
+    "country": "Benin",
+    "lat": 6.4779,
+    "lng": 2.6323,
+    "source": "https://api.worldbank.org/v2/country/BEN?format=json"
+  },
+  {
+    "name": "Ouagadougou",
+    "country": "Burkina Faso",
+    "lat": 12.3605,
+    "lng": -1.53395,
+    "source": "https://api.worldbank.org/v2/country/BFA?format=json"
+  },
+  {
+    "name": "Dhaka",
+    "country": "Bangladesh",
+    "lat": 23.7055,
+    "lng": 90.4113,
+    "source": "https://api.worldbank.org/v2/country/BGD?format=json"
+  },
+  {
+    "name": "Sofia",
+    "country": "Bulgaria",
+    "lat": 42.7105,
+    "lng": 23.3238,
+    "source": "https://api.worldbank.org/v2/country/BGR?format=json"
+  },
+  {
+    "name": "Manama",
+    "country": "Bahrain",
+    "lat": 26.1921,
+    "lng": 50.5354,
+    "source": "https://api.worldbank.org/v2/country/BHR?format=json"
+  },
+  {
+    "name": "Nassau",
+    "country": "Bahamas, The",
+    "lat": 25.0661,
+    "lng": -77.339,
+    "source": "https://api.worldbank.org/v2/country/BHS?format=json"
+  },
+  {
+    "name": "Sarajevo",
+    "country": "Bosnia and Herzegovina",
+    "lat": 43.8607,
+    "lng": 18.4214,
+    "source": "https://api.worldbank.org/v2/country/BIH?format=json"
+  },
+  {
+    "name": "Minsk",
+    "country": "Belarus",
+    "lat": 53.9678,
+    "lng": 27.5766,
+    "source": "https://api.worldbank.org/v2/country/BLR?format=json"
+  },
+  {
+    "name": "Belmopan",
+    "country": "Belize",
+    "lat": 17.2534,
+    "lng": -88.7713,
+    "source": "https://api.worldbank.org/v2/country/BLZ?format=json"
+  },
+  {
+    "name": "Hamilton",
+    "country": "Bermuda",
+    "lat": 32.3293,
+    "lng": -64.706,
+    "source": "https://api.worldbank.org/v2/country/BMU?format=json"
+  },
+  {
+    "name": "La Paz",
+    "country": "Bolivia",
+    "lat": -13.9908,
+    "lng": -66.1936,
+    "source": "https://api.worldbank.org/v2/country/BOL?format=json"
+  },
+  {
+    "name": "Brasilia",
+    "country": "Brazil",
+    "lat": -15.7801,
+    "lng": -47.9292,
+    "source": "https://api.worldbank.org/v2/country/BRA?format=json"
+  },
+  {
+    "name": "Bridgetown",
+    "country": "Barbados",
+    "lat": 13.0935,
+    "lng": -59.6105,
+    "source": "https://api.worldbank.org/v2/country/BRB?format=json"
+  },
+  {
+    "name": "Bandar Seri Begawan",
+    "country": "Brunei Darussalam",
+    "lat": 4.94199,
+    "lng": 114.946,
+    "source": "https://api.worldbank.org/v2/country/BRN?format=json"
+  },
+  {
+    "name": "Thimphu",
+    "country": "Bhutan",
+    "lat": 27.5768,
+    "lng": 89.6177,
+    "source": "https://api.worldbank.org/v2/country/BTN?format=json"
+  },
+  {
+    "name": "Gaborone",
+    "country": "Botswana",
+    "lat": -24.6544,
+    "lng": 25.9201,
+    "source": "https://api.worldbank.org/v2/country/BWA?format=json"
+  },
+  {
+    "name": "Bangui",
+    "country": "Central African Republic",
+    "lat": 5.63056,
+    "lng": 21.6407,
+    "source": "https://api.worldbank.org/v2/country/CAF?format=json"
+  },
+  {
+    "name": "Ottawa",
+    "country": "Canada",
+    "lat": 45.4215,
+    "lng": -75.6919,
+    "source": "https://api.worldbank.org/v2/country/CAN?format=json"
+  },
+  {
+    "name": "Bern",
+    "country": "Switzerland",
+    "lat": 46.948,
+    "lng": 7.44821,
+    "source": "https://api.worldbank.org/v2/country/CHE?format=json"
+  },
+  {
+    "name": "Santiago",
+    "country": "Chile",
+    "lat": -33.475,
+    "lng": -70.6475,
+    "source": "https://api.worldbank.org/v2/country/CHL?format=json"
+  },
+  {
+    "name": "Beijing",
+    "country": "China",
+    "lat": 40.0495,
+    "lng": 116.286,
+    "source": "https://api.worldbank.org/v2/country/CHN?format=json"
+  },
+  {
+    "name": "Yamoussoukro",
+    "country": "Cote d'Ivoire",
+    "lat": 5.332,
+    "lng": -4.0305,
+    "source": "https://api.worldbank.org/v2/country/CIV?format=json"
+  },
+  {
+    "name": "Yaounde",
+    "country": "Cameroon",
+    "lat": 3.8721,
+    "lng": 11.5174,
+    "source": "https://api.worldbank.org/v2/country/CMR?format=json"
+  },
+  {
+    "name": "Kinshasa",
+    "country": "Congo, Dem. Rep.",
+    "lat": -4.325,
+    "lng": 15.3222,
+    "source": "https://api.worldbank.org/v2/country/COD?format=json"
+  },
+  {
+    "name": "Brazzaville",
+    "country": "Congo, Rep.",
+    "lat": -4.2767,
+    "lng": 15.2662,
+    "source": "https://api.worldbank.org/v2/country/COG?format=json"
+  },
+  {
+    "name": "Bogota",
+    "country": "Colombia",
+    "lat": 4.60987,
+    "lng": -74.082,
+    "source": "https://api.worldbank.org/v2/country/COL?format=json"
+  },
+  {
+    "name": "Moroni",
+    "country": "Comoros",
+    "lat": -11.6986,
+    "lng": 43.2418,
+    "source": "https://api.worldbank.org/v2/country/COM?format=json"
+  },
+  {
+    "name": "Praia",
+    "country": "Cabo Verde",
+    "lat": 14.9218,
+    "lng": -23.5087,
+    "source": "https://api.worldbank.org/v2/country/CPV?format=json"
+  },
+  {
+    "name": "San Jose",
+    "country": "Costa Rica",
+    "lat": 9.63701,
+    "lng": -84.0089,
+    "source": "https://api.worldbank.org/v2/country/CRI?format=json"
+  },
+  {
+    "name": "Havana",
+    "country": "Cuba",
+    "lat": 23.1333,
+    "lng": -82.3667,
+    "source": "https://api.worldbank.org/v2/country/CUB?format=json"
+  },
+  {
+    "name": "George Town",
+    "country": "Cayman Islands",
+    "lat": 19.3022,
+    "lng": -81.3857,
+    "source": "https://api.worldbank.org/v2/country/CYM?format=json"
+  },
+  {
+    "name": "Nicosia",
+    "country": "Cyprus",
+    "lat": 35.1676,
+    "lng": 33.3736,
+    "source": "https://api.worldbank.org/v2/country/CYP?format=json"
+  },
+  {
+    "name": "Prague",
+    "country": "Czechia",
+    "lat": 50.0878,
+    "lng": 14.4205,
+    "source": "https://api.worldbank.org/v2/country/CZE?format=json"
+  },
+  {
+    "name": "Berlin",
+    "country": "Germany",
+    "lat": 52.5235,
+    "lng": 13.4115,
+    "source": "https://api.worldbank.org/v2/country/DEU?format=json"
+  },
+  {
+    "name": "Djibouti",
+    "country": "Djibouti",
+    "lat": 11.5806,
+    "lng": 43.1425,
+    "source": "https://api.worldbank.org/v2/country/DJI?format=json"
+  },
+  {
+    "name": "Roseau",
+    "country": "Dominica",
+    "lat": 15.2976,
+    "lng": -61.39,
+    "source": "https://api.worldbank.org/v2/country/DMA?format=json"
+  },
+  {
+    "name": "Copenhagen",
+    "country": "Denmark",
+    "lat": 55.6763,
+    "lng": 12.5681,
+    "source": "https://api.worldbank.org/v2/country/DNK?format=json"
+  },
+  {
+    "name": "Santo Domingo",
+    "country": "Dominican Republic",
+    "lat": 18.479,
+    "lng": -69.8908,
+    "source": "https://api.worldbank.org/v2/country/DOM?format=json"
+  },
+  {
+    "name": "Algiers",
+    "country": "Algeria",
+    "lat": 36.7397,
+    "lng": 3.05097,
+    "source": "https://api.worldbank.org/v2/country/DZA?format=json"
+  },
+  {
+    "name": "Quito",
+    "country": "Ecuador",
+    "lat": -0.229498,
+    "lng": -78.5243,
+    "source": "https://api.worldbank.org/v2/country/ECU?format=json"
+  },
+  {
+    "name": "Cairo",
+    "country": "Egypt, Arab Rep.",
+    "lat": 30.0982,
+    "lng": 31.2461,
+    "source": "https://api.worldbank.org/v2/country/EGY?format=json"
+  },
+  {
+    "name": "Asmara",
+    "country": "Eritrea",
+    "lat": 15.3315,
+    "lng": 38.9183,
+    "source": "https://api.worldbank.org/v2/country/ERI?format=json"
+  },
+  {
+    "name": "Madrid",
+    "country": "Spain",
+    "lat": 40.4167,
+    "lng": -3.70327,
+    "source": "https://api.worldbank.org/v2/country/ESP?format=json"
+  },
+  {
+    "name": "Tallinn",
+    "country": "Estonia",
+    "lat": 59.4392,
+    "lng": 24.7586,
+    "source": "https://api.worldbank.org/v2/country/EST?format=json"
+  },
+  {
+    "name": "Addis Ababa",
+    "country": "Ethiopia",
+    "lat": 9.02274,
+    "lng": 38.7468,
+    "source": "https://api.worldbank.org/v2/country/ETH?format=json"
+  },
+  {
+    "name": "Helsinki",
+    "country": "Finland",
+    "lat": 60.1608,
+    "lng": 24.9525,
+    "source": "https://api.worldbank.org/v2/country/FIN?format=json"
+  },
+  {
+    "name": "Suva",
+    "country": "Fiji",
+    "lat": -18.1149,
+    "lng": 178.399,
+    "source": "https://api.worldbank.org/v2/country/FJI?format=json"
+  },
+  {
+    "name": "Paris",
+    "country": "France",
+    "lat": 48.8566,
+    "lng": 2.35097,
+    "source": "https://api.worldbank.org/v2/country/FRA?format=json"
+  },
+  {
+    "name": "Torshavn",
+    "country": "Faroe Islands",
+    "lat": 61.8926,
+    "lng": -6.91181,
+    "source": "https://api.worldbank.org/v2/country/FRO?format=json"
+  },
+  {
+    "name": "Palikir",
+    "country": "Micronesia, Fed. Sts.",
+    "lat": 6.91771,
+    "lng": 158.185,
+    "source": "https://api.worldbank.org/v2/country/FSM?format=json"
+  },
+  {
+    "name": "Libreville",
+    "country": "Gabon",
+    "lat": 0.38832,
+    "lng": 9.45162,
+    "source": "https://api.worldbank.org/v2/country/GAB?format=json"
+  },
+  {
+    "name": "London",
+    "country": "United Kingdom",
+    "lat": 51.5002,
+    "lng": -0.126236,
+    "source": "https://api.worldbank.org/v2/country/GBR?format=json"
+  },
+  {
+    "name": "Tbilisi",
+    "country": "Georgia",
+    "lat": 41.71,
+    "lng": 44.793,
+    "source": "https://api.worldbank.org/v2/country/GEO?format=json"
+  },
+  {
+    "name": "Accra",
+    "country": "Ghana",
+    "lat": 5.57045,
+    "lng": -0.20795,
+    "source": "https://api.worldbank.org/v2/country/GHA?format=json"
+  },
+  {
+    "name": "Conakry",
+    "country": "Guinea",
+    "lat": 9.51667,
+    "lng": -13.7,
+    "source": "https://api.worldbank.org/v2/country/GIN?format=json"
+  },
+  {
+    "name": "Banjul",
+    "country": "Gambia, The",
+    "lat": 13.4495,
+    "lng": -16.5885,
+    "source": "https://api.worldbank.org/v2/country/GMB?format=json"
+  },
+  {
+    "name": "Bissau",
+    "country": "Guinea-Bissau",
+    "lat": 11.8037,
+    "lng": -15.1804,
+    "source": "https://api.worldbank.org/v2/country/GNB?format=json"
+  },
+  {
+    "name": "Malabo",
+    "country": "Equatorial Guinea",
+    "lat": 3.7523,
+    "lng": 8.7741,
+    "source": "https://api.worldbank.org/v2/country/GNQ?format=json"
+  },
+  {
+    "name": "Athens",
+    "country": "Greece",
+    "lat": 37.9792,
+    "lng": 23.7166,
+    "source": "https://api.worldbank.org/v2/country/GRC?format=json"
+  },
+  {
+    "name": "Saint George's",
+    "country": "Grenada",
+    "lat": 12.0653,
+    "lng": -61.7449,
+    "source": "https://api.worldbank.org/v2/country/GRD?format=json"
+  },
+  {
+    "name": "Nuuk",
+    "country": "Greenland",
+    "lat": 64.1836,
+    "lng": -51.7214,
+    "source": "https://api.worldbank.org/v2/country/GRL?format=json"
+  },
+  {
+    "name": "Guatemala City",
+    "country": "Guatemala",
+    "lat": 14.6248,
+    "lng": -90.5328,
+    "source": "https://api.worldbank.org/v2/country/GTM?format=json"
+  },
+  {
+    "name": "Agana",
+    "country": "Guam",
+    "lat": 13.4443,
+    "lng": 144.794,
+    "source": "https://api.worldbank.org/v2/country/GUM?format=json"
+  },
+  {
+    "name": "Georgetown",
+    "country": "Guyana",
+    "lat": 6.80461,
+    "lng": -58.1548,
+    "source": "https://api.worldbank.org/v2/country/GUY?format=json"
+  },
+  {
+    "name": "Tegucigalpa",
+    "country": "Honduras",
+    "lat": 15.1333,
+    "lng": -87.4667,
+    "source": "https://api.worldbank.org/v2/country/HND?format=json"
+  },
+  {
+    "name": "Zagreb",
+    "country": "Croatia",
+    "lat": 45.8069,
+    "lng": 15.9614,
+    "source": "https://api.worldbank.org/v2/country/HRV?format=json"
+  },
+  {
+    "name": "Port-au-Prince",
+    "country": "Haiti",
+    "lat": 18.5392,
+    "lng": -72.3288,
+    "source": "https://api.worldbank.org/v2/country/HTI?format=json"
+  },
+  {
+    "name": "Budapest",
+    "country": "Hungary",
+    "lat": 47.4984,
+    "lng": 19.0408,
+    "source": "https://api.worldbank.org/v2/country/HUN?format=json"
+  },
+  {
+    "name": "Jakarta",
+    "country": "Indonesia",
+    "lat": -6.19752,
+    "lng": 106.83,
+    "source": "https://api.worldbank.org/v2/country/IDN?format=json"
+  },
+  {
+    "name": "Douglas",
+    "country": "Isle of Man",
+    "lat": 54.1509,
+    "lng": -4.47928,
+    "source": "https://api.worldbank.org/v2/country/IMN?format=json"
+  },
+  {
+    "name": "New Delhi",
+    "country": "India",
+    "lat": 28.6353,
+    "lng": 77.225,
+    "source": "https://api.worldbank.org/v2/country/IND?format=json"
+  },
+  {
+    "name": "Dublin",
+    "country": "Ireland",
+    "lat": 53.3441,
+    "lng": -6.26749,
+    "source": "https://api.worldbank.org/v2/country/IRL?format=json"
+  },
+  {
+    "name": "Tehran",
+    "country": "Iran, Islamic Rep.",
+    "lat": 35.6878,
+    "lng": 51.4447,
+    "source": "https://api.worldbank.org/v2/country/IRN?format=json"
+  },
+  {
+    "name": "Baghdad",
+    "country": "Iraq",
+    "lat": 33.3302,
+    "lng": 44.394,
+    "source": "https://api.worldbank.org/v2/country/IRQ?format=json"
+  },
+  {
+    "name": "Reykjavik",
+    "country": "Iceland",
+    "lat": 64.1353,
+    "lng": -21.8952,
+    "source": "https://api.worldbank.org/v2/country/ISL?format=json"
+  },
+  {
+    "name": "Rome",
+    "country": "Italy",
+    "lat": 41.8955,
+    "lng": 12.4823,
+    "source": "https://api.worldbank.org/v2/country/ITA?format=json"
+  },
+  {
+    "name": "Kingston",
+    "country": "Jamaica",
+    "lat": 17.9927,
+    "lng": -76.792,
+    "source": "https://api.worldbank.org/v2/country/JAM?format=json"
+  },
+  {
+    "name": "Amman",
+    "country": "Jordan",
+    "lat": 31.9497,
+    "lng": 35.9263,
+    "source": "https://api.worldbank.org/v2/country/JOR?format=json"
+  },
+  {
+    "name": "Tokyo",
+    "country": "Japan",
+    "lat": 35.67,
+    "lng": 139.77,
+    "source": "https://api.worldbank.org/v2/country/JPN?format=json"
+  },
+  {
+    "name": "Astana",
+    "country": "Kazakhstan",
+    "lat": 51.1879,
+    "lng": 71.4382,
+    "source": "https://api.worldbank.org/v2/country/KAZ?format=json"
+  },
+  {
+    "name": "Nairobi",
+    "country": "Kenya",
+    "lat": -1.27975,
+    "lng": 36.8126,
+    "source": "https://api.worldbank.org/v2/country/KEN?format=json"
+  },
+  {
+    "name": "Bishkek",
+    "country": "Kyrgyz Republic",
+    "lat": 42.8851,
+    "lng": 74.6057,
+    "source": "https://api.worldbank.org/v2/country/KGZ?format=json"
+  },
+  {
+    "name": "Phnom Penh",
+    "country": "Cambodia",
+    "lat": 11.5556,
+    "lng": 104.874,
+    "source": "https://api.worldbank.org/v2/country/KHM?format=json"
+  },
+  {
+    "name": "Tarawa",
+    "country": "Kiribati",
+    "lat": 1.32905,
+    "lng": 172.979,
+    "source": "https://api.worldbank.org/v2/country/KIR?format=json"
+  },
+  {
+    "name": "Basseterre",
+    "country": "St. Kitts and Nevis",
+    "lat": 17.3,
+    "lng": -62.7309,
+    "source": "https://api.worldbank.org/v2/country/KNA?format=json"
+  },
+  {
+    "name": "Seoul",
+    "country": "Korea, Rep.",
+    "lat": 37.5323,
+    "lng": 126.957,
+    "source": "https://api.worldbank.org/v2/country/KOR?format=json"
+  },
+  {
+    "name": "Kuwait City",
+    "country": "Kuwait",
+    "lat": 29.3721,
+    "lng": 47.9824,
+    "source": "https://api.worldbank.org/v2/country/KWT?format=json"
+  },
+  {
+    "name": "Vientiane",
+    "country": "Lao PDR",
+    "lat": 18.5826,
+    "lng": 102.177,
+    "source": "https://api.worldbank.org/v2/country/LAO?format=json"
+  },
+  {
+    "name": "Beirut",
+    "country": "Lebanon",
+    "lat": 33.8872,
+    "lng": 35.5134,
+    "source": "https://api.worldbank.org/v2/country/LBN?format=json"
+  },
+  {
+    "name": "Monrovia",
+    "country": "Liberia",
+    "lat": 6.30039,
+    "lng": -10.7957,
+    "source": "https://api.worldbank.org/v2/country/LBR?format=json"
+  },
+  {
+    "name": "Tripoli",
+    "country": "Libya",
+    "lat": 32.8578,
+    "lng": 13.1072,
+    "source": "https://api.worldbank.org/v2/country/LBY?format=json"
+  },
+  {
+    "name": "Castries",
+    "country": "St. Lucia",
+    "lat": 14.0,
+    "lng": -60.9832,
+    "source": "https://api.worldbank.org/v2/country/LCA?format=json"
+  },
+  {
+    "name": "Vaduz",
+    "country": "Liechtenstein",
+    "lat": 47.1411,
+    "lng": 9.52148,
+    "source": "https://api.worldbank.org/v2/country/LIE?format=json"
+  },
+  {
+    "name": "Colombo",
+    "country": "Sri Lanka",
+    "lat": 6.92148,
+    "lng": 79.8528,
+    "source": "https://api.worldbank.org/v2/country/LKA?format=json"
+  },
+  {
+    "name": "Maseru",
+    "country": "Lesotho",
+    "lat": -29.5208,
+    "lng": 27.7167,
+    "source": "https://api.worldbank.org/v2/country/LSO?format=json"
+  },
+  {
+    "name": "Vilnius",
+    "country": "Lithuania",
+    "lat": 54.6896,
+    "lng": 25.2799,
+    "source": "https://api.worldbank.org/v2/country/LTU?format=json"
+  },
+  {
+    "name": "Luxembourg",
+    "country": "Luxembourg",
+    "lat": 49.61,
+    "lng": 6.1296,
+    "source": "https://api.worldbank.org/v2/country/LUX?format=json"
+  },
+  {
+    "name": "Riga",
+    "country": "Latvia",
+    "lat": 56.9465,
+    "lng": 24.1048,
+    "source": "https://api.worldbank.org/v2/country/LVA?format=json"
+  },
+  {
+    "name": "Rabat",
+    "country": "Morocco",
+    "lat": 33.9905,
+    "lng": -6.8704,
+    "source": "https://api.worldbank.org/v2/country/MAR?format=json"
+  },
+  {
+    "name": "Monaco",
+    "country": "Monaco",
+    "lat": 43.7325,
+    "lng": 7.41891,
+    "source": "https://api.worldbank.org/v2/country/MCO?format=json"
+  },
+  {
+    "name": "Chisinau",
+    "country": "Moldova",
+    "lat": 47.0167,
+    "lng": 28.8497,
+    "source": "https://api.worldbank.org/v2/country/MDA?format=json"
+  },
+  {
+    "name": "Antananarivo",
+    "country": "Madagascar",
+    "lat": -20.4667,
+    "lng": 45.7167,
+    "source": "https://api.worldbank.org/v2/country/MDG?format=json"
+  },
+  {
+    "name": "Male",
+    "country": "Maldives",
+    "lat": 4.1742,
+    "lng": 73.5109,
+    "source": "https://api.worldbank.org/v2/country/MDV?format=json"
+  },
+  {
+    "name": "Mexico City",
+    "country": "Mexico",
+    "lat": 19.427,
+    "lng": -99.1276,
+    "source": "https://api.worldbank.org/v2/country/MEX?format=json"
+  },
+  {
+    "name": "Majuro",
+    "country": "Marshall Islands",
+    "lat": 7.11046,
+    "lng": 171.135,
+    "source": "https://api.worldbank.org/v2/country/MHL?format=json"
+  },
+  {
+    "name": "Skopje",
+    "country": "North Macedonia",
+    "lat": 42.0024,
+    "lng": 21.4361,
+    "source": "https://api.worldbank.org/v2/country/MKD?format=json"
+  },
+  {
+    "name": "Bamako",
+    "country": "Mali",
+    "lat": 13.5667,
+    "lng": -7.50034,
+    "source": "https://api.worldbank.org/v2/country/MLI?format=json"
+  },
+  {
+    "name": "Valletta",
+    "country": "Malta",
+    "lat": 35.9042,
+    "lng": 14.5189,
+    "source": "https://api.worldbank.org/v2/country/MLT?format=json"
+  },
+  {
+    "name": "Naypyidaw",
+    "country": "Myanmar",
+    "lat": 21.914,
+    "lng": 95.9562,
+    "source": "https://api.worldbank.org/v2/country/MMR?format=json"
+  },
+  {
+    "name": "Podgorica",
+    "country": "Montenegro",
+    "lat": 42.4602,
+    "lng": 19.2595,
+    "source": "https://api.worldbank.org/v2/country/MNE?format=json"
+  },
+  {
+    "name": "Ulaanbaatar",
+    "country": "Mongolia",
+    "lat": 47.9129,
+    "lng": 106.937,
+    "source": "https://api.worldbank.org/v2/country/MNG?format=json"
+  },
+  {
+    "name": "Saipan",
+    "country": "Northern Mariana Islands",
+    "lat": 15.1935,
+    "lng": 145.765,
+    "source": "https://api.worldbank.org/v2/country/MNP?format=json"
+  },
+  {
+    "name": "Maputo",
+    "country": "Mozambique",
+    "lat": -25.9664,
+    "lng": 32.5713,
+    "source": "https://api.worldbank.org/v2/country/MOZ?format=json"
+  },
+  {
+    "name": "Nouakchott",
+    "country": "Mauritania",
+    "lat": 18.2367,
+    "lng": -15.9824,
+    "source": "https://api.worldbank.org/v2/country/MRT?format=json"
+  },
+  {
+    "name": "Port Louis",
+    "country": "Mauritius",
+    "lat": -20.1605,
+    "lng": 57.4977,
+    "source": "https://api.worldbank.org/v2/country/MUS?format=json"
+  },
+  {
+    "name": "Lilongwe",
+    "country": "Malawi",
+    "lat": -13.9899,
+    "lng": 33.7703,
+    "source": "https://api.worldbank.org/v2/country/MWI?format=json"
+  },
+  {
+    "name": "Kuala Lumpur",
+    "country": "Malaysia",
+    "lat": 3.12433,
+    "lng": 101.684,
+    "source": "https://api.worldbank.org/v2/country/MYS?format=json"
+  },
+  {
+    "name": "Windhoek",
+    "country": "Namibia",
+    "lat": -22.5648,
+    "lng": 17.0931,
+    "source": "https://api.worldbank.org/v2/country/NAM?format=json"
+  },
+  {
+    "name": "Noum'ea",
+    "country": "New Caledonia",
+    "lat": -22.2677,
+    "lng": 166.464,
+    "source": "https://api.worldbank.org/v2/country/NCL?format=json"
+  },
+  {
+    "name": "Niamey",
+    "country": "Niger",
+    "lat": 13.514,
+    "lng": 2.1073,
+    "source": "https://api.worldbank.org/v2/country/NER?format=json"
+  },
+  {
+    "name": "Abuja",
+    "country": "Nigeria",
+    "lat": 9.05804,
+    "lng": 7.48906,
+    "source": "https://api.worldbank.org/v2/country/NGA?format=json"
+  },
+  {
+    "name": "Managua",
+    "country": "Nicaragua",
+    "lat": 12.1475,
+    "lng": -86.2734,
+    "source": "https://api.worldbank.org/v2/country/NIC?format=json"
+  },
+  {
+    "name": "Amsterdam",
+    "country": "Netherlands",
+    "lat": 52.3738,
+    "lng": 4.89095,
+    "source": "https://api.worldbank.org/v2/country/NLD?format=json"
+  },
+  {
+    "name": "Oslo",
+    "country": "Norway",
+    "lat": 59.9138,
+    "lng": 10.7387,
+    "source": "https://api.worldbank.org/v2/country/NOR?format=json"
+  },
+  {
+    "name": "Kathmandu",
+    "country": "Nepal",
+    "lat": 27.6939,
+    "lng": 85.3157,
+    "source": "https://api.worldbank.org/v2/country/NPL?format=json"
+  },
+  {
+    "name": "Yaren District",
+    "country": "Naoero",
+    "lat": -0.5477,
+    "lng": 166.920867,
+    "source": "https://api.worldbank.org/v2/country/NRU?format=json"
+  },
+  {
+    "name": "Wellington",
+    "country": "New Zealand",
+    "lat": -41.2865,
+    "lng": 174.776,
+    "source": "https://api.worldbank.org/v2/country/NZL?format=json"
+  },
+  {
+    "name": "Muscat",
+    "country": "Oman",
+    "lat": 23.6105,
+    "lng": 58.5874,
+    "source": "https://api.worldbank.org/v2/country/OMN?format=json"
+  },
+  {
+    "name": "Islamabad",
+    "country": "Pakistan",
+    "lat": 30.5167,
+    "lng": 72.8,
+    "source": "https://api.worldbank.org/v2/country/PAK?format=json"
+  },
+  {
+    "name": "Panama City",
+    "country": "Panama",
+    "lat": 8.99427,
+    "lng": -79.5188,
+    "source": "https://api.worldbank.org/v2/country/PAN?format=json"
+  },
+  {
+    "name": "Lima",
+    "country": "Peru",
+    "lat": -12.0931,
+    "lng": -77.0465,
+    "source": "https://api.worldbank.org/v2/country/PER?format=json"
+  },
+  {
+    "name": "Manila",
+    "country": "Philippines",
+    "lat": 14.5515,
+    "lng": 121.035,
+    "source": "https://api.worldbank.org/v2/country/PHL?format=json"
+  },
+  {
+    "name": "Koror",
+    "country": "Palau",
+    "lat": 7.34194,
+    "lng": 134.479,
+    "source": "https://api.worldbank.org/v2/country/PLW?format=json"
+  },
+  {
+    "name": "Port Moresby",
+    "country": "Papua New Guinea",
+    "lat": -9.47357,
+    "lng": 147.194,
+    "source": "https://api.worldbank.org/v2/country/PNG?format=json"
+  },
+  {
+    "name": "Warsaw",
+    "country": "Poland",
+    "lat": 52.26,
+    "lng": 21.02,
+    "source": "https://api.worldbank.org/v2/country/POL?format=json"
+  },
+  {
+    "name": "San Juan",
+    "country": "Puerto Rico (US)",
+    "lat": 18.23,
+    "lng": -66.0,
+    "source": "https://api.worldbank.org/v2/country/PRI?format=json"
+  },
+  {
+    "name": "Pyongyang",
+    "country": "Korea, Dem. People's Rep.",
+    "lat": 39.0319,
+    "lng": 125.754,
+    "source": "https://api.worldbank.org/v2/country/PRK?format=json"
+  },
+  {
+    "name": "Lisbon",
+    "country": "Portugal",
+    "lat": 38.7072,
+    "lng": -9.13552,
+    "source": "https://api.worldbank.org/v2/country/PRT?format=json"
+  },
+  {
+    "name": "Asuncion",
+    "country": "Paraguay",
+    "lat": -25.3005,
+    "lng": -57.6362,
+    "source": "https://api.worldbank.org/v2/country/PRY?format=json"
+  },
+  {
+    "name": "Papeete",
+    "country": "French Polynesia",
+    "lat": -17.535,
+    "lng": -149.57,
+    "source": "https://api.worldbank.org/v2/country/PYF?format=json"
+  },
+  {
+    "name": "Doha",
+    "country": "Qatar",
+    "lat": 25.2948,
+    "lng": 51.5082,
+    "source": "https://api.worldbank.org/v2/country/QAT?format=json"
+  },
+  {
+    "name": "Bucharest",
+    "country": "Romania",
+    "lat": 44.4479,
+    "lng": 26.0979,
+    "source": "https://api.worldbank.org/v2/country/ROU?format=json"
+  },
+  {
+    "name": "Moscow",
+    "country": "Russian Federation",
+    "lat": 55.7558,
+    "lng": 37.6176,
+    "source": "https://api.worldbank.org/v2/country/RUS?format=json"
+  },
+  {
+    "name": "Kigali",
+    "country": "Rwanda",
+    "lat": -1.95325,
+    "lng": 30.0587,
+    "source": "https://api.worldbank.org/v2/country/RWA?format=json"
+  },
+  {
+    "name": "Riyadh",
+    "country": "Saudi Arabia",
+    "lat": 24.6748,
+    "lng": 46.6977,
+    "source": "https://api.worldbank.org/v2/country/SAU?format=json"
+  },
+  {
+    "name": "Khartoum",
+    "country": "Sudan",
+    "lat": 15.5932,
+    "lng": 32.5363,
+    "source": "https://api.worldbank.org/v2/country/SDN?format=json"
+  },
+  {
+    "name": "Dakar",
+    "country": "Senegal",
+    "lat": 14.7247,
+    "lng": -17.4734,
+    "source": "https://api.worldbank.org/v2/country/SEN?format=json"
+  },
+  {
+    "name": "Singapore",
+    "country": "Singapore",
+    "lat": 1.28941,
+    "lng": 103.85,
+    "source": "https://api.worldbank.org/v2/country/SGP?format=json"
+  },
+  {
+    "name": "Honiara",
+    "country": "Solomon Islands",
+    "lat": -9.42676,
+    "lng": 159.949,
+    "source": "https://api.worldbank.org/v2/country/SLB?format=json"
+  },
+  {
+    "name": "Freetown",
+    "country": "Sierra Leone",
+    "lat": 8.4821,
+    "lng": -13.2134,
+    "source": "https://api.worldbank.org/v2/country/SLE?format=json"
+  },
+  {
+    "name": "San Salvador",
+    "country": "El Salvador",
+    "lat": 13.7034,
+    "lng": -89.2073,
+    "source": "https://api.worldbank.org/v2/country/SLV?format=json"
+  },
+  {
+    "name": "San Marino",
+    "country": "San Marino",
+    "lat": 43.9322,
+    "lng": 12.4486,
+    "source": "https://api.worldbank.org/v2/country/SMR?format=json"
+  },
+  {
+    "name": "Mogadishu",
+    "country": "Somalia, Fed. Rep.",
+    "lat": 2.07515,
+    "lng": 45.3254,
+    "source": "https://api.worldbank.org/v2/country/SOM?format=json"
+  },
+  {
+    "name": "Belgrade",
+    "country": "Serbia",
+    "lat": 44.8024,
+    "lng": 20.4656,
+    "source": "https://api.worldbank.org/v2/country/SRB?format=json"
+  },
+  {
+    "name": "Juba",
+    "country": "South Sudan",
+    "lat": 4.85,
+    "lng": 31.6,
+    "source": "https://api.worldbank.org/v2/country/SSD?format=json"
+  },
+  {
+    "name": "Sao Tome",
+    "country": "Sao Tome and Principe",
+    "lat": 0.20618,
+    "lng": 6.6071,
+    "source": "https://api.worldbank.org/v2/country/STP?format=json"
+  },
+  {
+    "name": "Paramaribo",
+    "country": "Suriname",
+    "lat": 5.8232,
+    "lng": -55.1679,
+    "source": "https://api.worldbank.org/v2/country/SUR?format=json"
+  },
+  {
+    "name": "Bratislava",
+    "country": "Slovak Republic",
+    "lat": 48.1484,
+    "lng": 17.1073,
+    "source": "https://api.worldbank.org/v2/country/SVK?format=json"
+  },
+  {
+    "name": "Ljubljana",
+    "country": "Slovenia",
+    "lat": 46.0546,
+    "lng": 14.5044,
+    "source": "https://api.worldbank.org/v2/country/SVN?format=json"
+  },
+  {
+    "name": "Stockholm",
+    "country": "Sweden",
+    "lat": 59.3327,
+    "lng": 18.0645,
+    "source": "https://api.worldbank.org/v2/country/SWE?format=json"
+  },
+  {
+    "name": "Mbabane",
+    "country": "Eswatini",
+    "lat": -26.5225,
+    "lng": 31.4659,
+    "source": "https://api.worldbank.org/v2/country/SWZ?format=json"
+  },
+  {
+    "name": "Victoria",
+    "country": "Seychelles",
+    "lat": -4.6309,
+    "lng": 55.4466,
+    "source": "https://api.worldbank.org/v2/country/SYC?format=json"
+  },
+  {
+    "name": "Damascus",
+    "country": "Syrian Arab Republic",
+    "lat": 33.5146,
+    "lng": 36.3119,
+    "source": "https://api.worldbank.org/v2/country/SYR?format=json"
+  },
+  {
+    "name": "Grand Turk",
+    "country": "Turks and Caicos Islands",
+    "lat": 21.4602778,
+    "lng": -71.141389,
+    "source": "https://api.worldbank.org/v2/country/TCA?format=json"
+  },
+  {
+    "name": "N'Djamena",
+    "country": "Chad",
+    "lat": 12.1048,
+    "lng": 15.0445,
+    "source": "https://api.worldbank.org/v2/country/TCD?format=json"
+  },
+  {
+    "name": "Lome",
+    "country": "Togo",
+    "lat": 6.1228,
+    "lng": 1.2255,
+    "source": "https://api.worldbank.org/v2/country/TGO?format=json"
+  },
+  {
+    "name": "Bangkok",
+    "country": "Thailand",
+    "lat": 13.7308,
+    "lng": 100.521,
+    "source": "https://api.worldbank.org/v2/country/THA?format=json"
+  },
+  {
+    "name": "Dushanbe",
+    "country": "Tajikistan",
+    "lat": 38.5878,
+    "lng": 68.7864,
+    "source": "https://api.worldbank.org/v2/country/TJK?format=json"
+  },
+  {
+    "name": "Ashgabat",
+    "country": "Turkmenistan",
+    "lat": 37.9509,
+    "lng": 58.3794,
+    "source": "https://api.worldbank.org/v2/country/TKM?format=json"
+  },
+  {
+    "name": "Dili",
+    "country": "Timor-Leste",
+    "lat": -8.56667,
+    "lng": 125.567,
+    "source": "https://api.worldbank.org/v2/country/TLS?format=json"
+  },
+  {
+    "name": "Nuku'alofa",
+    "country": "Tonga",
+    "lat": -21.136,
+    "lng": -175.216,
+    "source": "https://api.worldbank.org/v2/country/TON?format=json"
+  },
+  {
+    "name": "Port-of-Spain",
+    "country": "Trinidad and Tobago",
+    "lat": 10.6596,
+    "lng": -61.4789,
+    "source": "https://api.worldbank.org/v2/country/TTO?format=json"
+  },
+  {
+    "name": "Tunis",
+    "country": "Tunisia",
+    "lat": 36.7899,
+    "lng": 10.21,
+    "source": "https://api.worldbank.org/v2/country/TUN?format=json"
+  },
+  {
+    "name": "Ankara",
+    "country": "Turkiye",
+    "lat": 39.7153,
+    "lng": 32.3606,
+    "source": "https://api.worldbank.org/v2/country/TUR?format=json"
+  },
+  {
+    "name": "Funafuti",
+    "country": "Tuvalu",
+    "lat": -8.6314877,
+    "lng": 179.089567,
+    "source": "https://api.worldbank.org/v2/country/TUV?format=json"
+  },
+  {
+    "name": "Dodoma",
+    "country": "Tanzania",
+    "lat": -6.17486,
+    "lng": 35.7382,
+    "source": "https://api.worldbank.org/v2/country/TZA?format=json"
+  },
+  {
+    "name": "Kampala",
+    "country": "Uganda",
+    "lat": 0.314269,
+    "lng": 32.5729,
+    "source": "https://api.worldbank.org/v2/country/UGA?format=json"
+  },
+  {
+    "name": "Kiev",
+    "country": "Ukraine",
+    "lat": 50.4536,
+    "lng": 30.5038,
+    "source": "https://api.worldbank.org/v2/country/UKR?format=json"
+  },
+  {
+    "name": "Montevideo",
+    "country": "Uruguay",
+    "lat": -34.8941,
+    "lng": -56.0675,
+    "source": "https://api.worldbank.org/v2/country/URY?format=json"
+  },
+  {
+    "name": "Washington D.C.",
+    "country": "United States",
+    "lat": 38.8895,
+    "lng": -77.032,
+    "source": "https://api.worldbank.org/v2/country/USA?format=json"
+  },
+  {
+    "name": "Tashkent",
+    "country": "Uzbekistan",
+    "lat": 41.3052,
+    "lng": 69.269,
+    "source": "https://api.worldbank.org/v2/country/UZB?format=json"
+  },
+  {
+    "name": "Kingstown",
+    "country": "St. Vincent and the Grenadines",
+    "lat": 13.2035,
+    "lng": -61.2653,
+    "source": "https://api.worldbank.org/v2/country/VCT?format=json"
+  },
+  {
+    "name": "Caracas",
+    "country": "Venezuela, RB",
+    "lat": 9.08165,
+    "lng": -69.8371,
+    "source": "https://api.worldbank.org/v2/country/VEN?format=json"
+  },
+  {
+    "name": "Road Town",
+    "country": "British Virgin Islands",
+    "lat": 18.431389,
+    "lng": -64.623056,
+    "source": "https://api.worldbank.org/v2/country/VGB?format=json"
+  },
+  {
+    "name": "Charlotte Amalie",
+    "country": "Virgin Islands (U.S.)",
+    "lat": 18.3358,
+    "lng": -64.8963,
+    "source": "https://api.worldbank.org/v2/country/VIR?format=json"
+  },
+  {
+    "name": "Hanoi",
+    "country": "Viet Nam",
+    "lat": 21.0069,
+    "lng": 105.825,
+    "source": "https://api.worldbank.org/v2/country/VNM?format=json"
+  },
+  {
+    "name": "Port-Vila",
+    "country": "Vanuatu",
+    "lat": -17.7404,
+    "lng": 168.321,
+    "source": "https://api.worldbank.org/v2/country/VUT?format=json"
+  },
+  {
+    "name": "Apia",
+    "country": "Samoa",
+    "lat": -13.8314,
+    "lng": -171.752,
+    "source": "https://api.worldbank.org/v2/country/WSM?format=json"
+  },
+  {
+    "name": "Pristina",
+    "country": "Kosovo",
+    "lat": 42.565,
+    "lng": 20.926,
+    "source": "https://api.worldbank.org/v2/country/XKX?format=json"
+  },
+  {
+    "name": "Sana'a",
+    "country": "Yemen, Rep.",
+    "lat": 15.352,
+    "lng": 44.2075,
+    "source": "https://api.worldbank.org/v2/country/YEM?format=json"
+  },
+  {
+    "name": "Pretoria",
+    "country": "South Africa",
+    "lat": -25.746,
+    "lng": 28.1871,
+    "source": "https://api.worldbank.org/v2/country/ZAF?format=json"
+  },
+  {
+    "name": "Lusaka",
+    "country": "Zambia",
+    "lat": -15.3982,
+    "lng": 28.2937,
+    "source": "https://api.worldbank.org/v2/country/ZMB?format=json"
+  },
+  {
+    "name": "Harare",
+    "country": "Zimbabwe",
+    "lat": -17.8312,
+    "lng": 31.0672,
+    "source": "https://api.worldbank.org/v2/country/ZWE?format=json"
+  }
+]

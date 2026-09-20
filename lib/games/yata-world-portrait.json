@@ -1,33 +1,71 @@
 {
   "game": "midnight",
-  "source": "/art/yata-market-portrait-v1-fail-4.png",
-  "image": "/art/optimized/yata-market-portrait-v1.webp",
+  "source": "/art/yata-counter-portrait-v2-a.png",
+  "image": "/art/optimized/yata-counter-portrait-v2-a.webp",
   "width": 1024,
   "height": 1536,
-  "crop": { "left": 20, "top": 400, "width": 984, "height": 520 },
-  "table": { "left": 60, "top": 430, "width": 904, "height": 420 },
-  "signboards": [
-    { "left": 15, "top": 120, "width": 160, "height": 310 },
-    { "left": 850, "top": 120, "width": 160, "height": 310 }
-  ],
+  "crop": {
+    "left": 36,
+    "top": 295,
+    "width": 954,
+    "height": 535
+  },
+  "table": {
+    "left": 96,
+    "top": 355,
+    "width": 834,
+    "height": 411
+  },
+  "signboards": [],
   "landmarks": {
     "protectedBounds": [
-      { "name": "counter", "bounds": [0, 470, 1024, 430] },
-      { "name": "left signboards", "bounds": [15, 120, 160, 310] },
-      { "name": "right signboards", "bounds": [850, 120, 160, 310] }
+      {
+        "name": "counter",
+        "bounds": [
+          96,
+          355,
+          834,
+          411
+        ]
+      },
+      {
+        "name": "lantern",
+        "bounds": [
+          370,
+          0,
+          300,
+          190
+        ]
+      }
     ]
   },
   "animation": {
     "glows": [
-      { "x": 95, "y": 95, "radius": 110, "color": "255, 220, 150", "alpha": 0.16, "period": 2600 },
-      { "x": 930, "y": 95, "radius": 110, "color": "255, 220, 150", "alpha": 0.16, "period": 3100 },
-      { "x": 965, "y": 955, "radius": 150, "color": "255, 160, 80", "alpha": 0.15, "period": 3400 }
+      {
+        "x": 512,
+        "y": 80,
+        "radius": 330,
+        "color": "255, 150, 80",
+        "alpha": 0.14,
+        "period": 4100
+      },
+      {
+        "x": 950,
+        "y": 900,
+        "radius": 120,
+        "color": "255, 120, 60",
+        "alpha": 0.16,
+        "period": 3400
+      }
     ],
-    "water": [
-      { "polygon": [[200, 310], [860, 310], [860, 470], [200, 470]] }
-    ],
+    "water": [],
     "motes": false
   },
-  "overview": { "left": 20, "top": 400, "width": 984, "height": 520 },
-  "overviewImage": "/art/optimized/yata-market-portrait-v1-overview.webp"
+  "overview": {
+    "left": 36,
+    "top": 295,
+    "width": 954,
+    "height": 535
+  },
+  "overviewImage": "/art/optimized/yata-counter-portrait-v2-a-overview.webp"
 }

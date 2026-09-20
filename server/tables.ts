@@ -1,3 +1,6 @@
+import { standaloneGames, isStandaloneId, observe as observeAdventure, botMove as adventureBot, decisionKey as adventureKey, tick as tickAdventure, type AnyGame } from '../lib/games/standalone/registry.ts';
+import { practice, adventureLessons } from '../lib/games/adventures/lessons.ts';
+import type { OnlineGameId } from '../lib/online/types.ts';
 import { lessons } from '../lib/games/trio/lessons.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { randomInt } from 'node:crypto';
@@ -9,13 +12,13 @@ import {
   play,
   validMove,
   canAct,
+  canUndo,
   simultaneous,
   decisionKey,
   catalog,
   type Game,
   type Move,
   type Difficulty,
-  type GameId,
   preparationKey,
 } from '../lib/games/trio/engine.ts';
 import type { Command, GameView, Table } from '../lib/online/types.ts';
@@ -27,7 +30,7 @@ type Seat = Participant & { bot: boolean };
 export type StoredTable = {
   token: string;
   owner: string;
-  gameId: GameId;
+  gameId: OnlineGameId;
   difficulty: Difficulty;
   shields?: boolean;
   customerOrders?: boolean;
@@ -47,8 +50,10 @@ export type StoredTable = {
   seats: Seat[];
   matchId: string | null;
   game: Game | null;
+  adventure?: AnyGame | null;
+  partyMode?: 'teams' | 'individual';
   botError: boolean;
-  votes?: Partial<Record<GameId, string[]>>;
+  votes?: Partial<Record<OnlineGameId, string[]>>;
 };
 export function parseMove(value: unknown): Move {
   check(value && typeof value === 'object', 400, 'Invalid move.');
@@ -63,14 +68,15 @@ export function parseMove(value: unknown): Move {
     return { type: 'salvage', claim: m.claim };
   }
   if (m.type === 'roll') return { type: 'roll' };
+  if (m.type === 'undo') return { type: 'undo' };
   if (m.type === 'pass') {
     check(
       Array.isArray(m.cards) &&
-        m.cards.length >= 3 &&
+        m.cards.length >= 2 &&
         m.cards.length <= 5 &&
         m.cards.every(Number.isInteger),
       400,
-      'Choose three to five cards.',
+      'Choose the required two to five cards.',
     );
     return { type: 'pass', cards: m.cards as number[] };
   }
@@ -150,6 +156,8 @@ export class Tables {
         table.botError = false;
         changed = true;
       }
+      if(isStandaloneId(table.gameId)&&!standaloneGames[table.gameId].seatChoices.includes(table.capacity)){table.capacity=standaloneGames[table.gameId].defaultSeats;changed=true;}
+      if(table.adventure && !standaloneGames[table.adventure.kind]?.isSavedGame(table.adventure)){table.adventure=null;table.game=null;table.status='lobby';table.matchId=null;table.seats=[];changed=true;}
       if (changed) {
         table.revision++;
         this.save(table);
@@ -256,6 +264,7 @@ export class Tables {
       specialtyStalls: t.specialtyStalls,
       marketSeasons: t.marketSeasons ?? false,
       fastMode: t.fastMode ?? false,
+      partyMode: t.partyMode ?? 'individual',
       capacity: t.capacity,
       revision: t.revision,
       status: t.status,
@@ -264,6 +273,7 @@ export class Tables {
       viewerSeat: index < 0 ? null : index,
       matchId: t.matchId,
       game,
+      adventure: t.adventure ? observeAdventure(t.adventure, index) : null,
       botError: t.botError,
       votes: t.votes ?? {},
       members: [
@@ -322,6 +332,7 @@ export class Tables {
       check(
         command.matchId === t.matchId &&
           (command.revision === t.revision ||
+            (command.action.type === 'adventure-move' && t.adventure && command.action.key === adventureKey(t.adventure)) ||
             (command.action.type === 'move' &&
               t.game &&
               simultaneous(t.game) &&
@@ -330,13 +341,27 @@ export class Tables {
         'The table changed. Try again.',
       );
       const a = command.action;
-      if (!['move', 'rename', 'leave', 'vote'].includes(a.type))
+      if (!['move', 'adventure-move', 'rename', 'leave', 'vote'].includes(a.type))
         check(who.userId === t.owner, 403, 'Only the host can do that.');
       switch (a.type) {
+        case 'adventure-move': {
+          const game=t.adventure;check(t.status==='playing'&&game&&!game.over,409,'No adventure in progress.');
+          const seat=t.seats.findIndex(s=>s.id===who.id&&!s.bot);check(seat>=0,403,'No player seat.');
+          check(a.key===adventureKey(game),409,'The round has advanced.');
+          check(standaloneGames[game.kind].validMove(game,a.move,seat),409,'That action is unavailable.');
+          t.adventure=standaloneGames[game.kind].play(game,a.move,seat);check(t.adventure!==game,409,'Action could not be applied.');
+          if(t.adventure.over&&!t.adventure.tutorial)t.status='finished';break;
+        }
+        case 'advance-practice': {
+          if(t.adventure){const game=t.adventure;check(game.tutorial,409,'No practice in progress.');let next=game;
+          for(let i=0;i<24;i++){const seat=standaloneGames[next.kind].actingSeats(next).find(s=>t.seats[s]?.bot);if(seat===undefined)break;const move=adventureBot(next,seat);if(!move)break;const played=standaloneGames[next.kind].play(next,move,seat);if(played===next)break;next=played;if(next.round!==game.round||next.over)break;}t.adventure=next;
+          }else{check(t.game?.tutorial,409,'No practice in progress.');const seat=t.seats.findIndex((s,i)=>s.bot&&canAct(t.game!,i));if(seat>=0)t.game=play(t.game,fallbackMove(t.game,seat),seat);else if(t.game.phase==='roll'){const roller=t.game.players.findIndex((_,i)=>canAct(t.game!,i));if(roller>=0)t.game=play(t.game,{type:'roll'},roller);}}
+          break;
+        }
         case 'vote': {
           check(t.status === 'lobby', 409, 'Voting is open in the lobby.');
           check(
-            catalog.some((c) => c.id === a.gameId),
+            (catalog.some((c) => c.id === a.gameId) || (typeof a.gameId === 'string' && isStandaloneId(a.gameId))),
             400,
             'Unknown game.',
           );
@@ -348,11 +373,12 @@ export class Tables {
           break;
         }
         case 'lesson':
+          if(t.adventure){check(t.adventure.tutorial,409,'No practice in progress.');check(Number.isInteger(a.step)&&a.step>=0&&a.step<adventureLessons[t.adventure.kind].length,400,'Invalid step.');t.adventure=practice(t.adventure.kind,t.capacity,t.difficulty,a.step,t.partyMode);t.adventure.seats=t.seats.map(s=>s.name);break;}
           check(t.game?.tutorial, 409, 'No lesson is in progress.');
           check(
             Number.isInteger(a.step) &&
               a.step >= 0 &&
-              a.step < lessons[t.gameId].length,
+              a.step < lessons[t.game!.id].length,
             400,
             'Unknown lesson step.',
           );
@@ -361,7 +387,7 @@ export class Tables {
         case 'configure':
           check(t.status === 'lobby', 409, 'Return to the lobby first.');
           check(
-            catalog.some((c) => c.id === a.gameId) &&
+            (catalog.some((c) => c.id === a.gameId) || (typeof a.gameId === 'string' && isStandaloneId(a.gameId))) &&
               ['easy', 'medium', 'hard'].includes(a.difficulty) &&
               Number.isInteger(a.capacity) &&
               a.capacity >= 2 &&
@@ -438,13 +464,17 @@ export class Tables {
             (a.shields ?? (t.gameId === a.gameId && t.shields) ?? false);
           t.gameId = a.gameId;
           t.difficulty = a.difficulty;
-          t.capacity = a.capacity;
+          const allowed=isStandaloneId(a.gameId)?standaloneGames[a.gameId].seatChoices:[2,3,4,5,6];
+          check(allowed.some(n=>n>=t.members.length),409,'Too many players for this game.');
+          t.capacity = allowed.includes(a.capacity)?a.capacity:allowed.find(n=>n>=t.members.length)!;
+          check(a.partyMode === undefined || ['teams','individual'].includes(a.partyMode),400,'Invalid party mode.');
+          t.partyMode = [4,6].includes(t.capacity) ? (a.partyMode ?? t.partyMode ?? 'individual') : 'individual';
           break;
         case 'begin-match':
         case 'start': {
           check(
             a.type === 'begin-match'
-              ? !!t.game?.tutorial
+              ? !!(t.game?.tutorial||t.adventure?.tutorial)
               : t.status === 'lobby',
             409,
             'Return to the lobby or finish learning first.',
@@ -469,6 +499,11 @@ export class Tables {
               name: `Bot ${t.seats.length + 1}`,
               bot: true,
             });
+          if(isStandaloneId(t.gameId)){
+            t.game=null;t.adventure=a.type==='start'&&a.learning?practice(t.gameId,t.capacity,t.difficulty,0,t.partyMode):standaloneGames[t.gameId].create(t.capacity,randomInt(4294967296),t.difficulty,t.partyMode);
+            t.adventure.seats=t.seats.map(s=>s.name);t.matchId=token();t.status='playing';t.botError=false;break;
+          }
+          t.adventure=null;
           t.game = createGame(
             t.gameId,
             t.difficulty,
@@ -506,12 +541,12 @@ export class Tables {
           const actor = t.seats.findIndex(
             (seat) => seat.id === who.id && !seat.bot,
           );
+          const move = parseMove(a.move);
           check(
-            canAct(t.game, actor),
+            move.type === 'undo' ? canUndo(t.game, actor) : canAct(t.game, actor),
             403,
             'Your choice is already locked or it is not your turn.',
           );
-          const move = parseMove(a.move);
           check(
             validMove(t.game, move, actor),
             400,
@@ -541,7 +576,7 @@ export class Tables {
             'Guests can only be removed in the lobby.',
           );
           t.members = t.members.filter((m) => m.id !== a.memberId);
-          for (const id of Object.keys(t.votes ?? {}) as GameId[])
+          for (const id of Object.keys(t.votes ?? {}) as OnlineGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== a.memberId);
           break;
         case 'leave':
@@ -551,7 +586,7 @@ export class Tables {
             'Your seat is reserved until this match ends.',
           );
           t.members = t.members.filter((m) => m.id !== who.id);
-          for (const id of Object.keys(t.votes ?? {}) as GameId[])
+          for (const id of Object.keys(t.votes ?? {}) as OnlineGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== who.id);
           break;
         case 'rename': {
@@ -560,7 +595,8 @@ export class Tables {
           const seat = t.seats.find((s) => s.id === who.id && !s.bot);
           if (seat) {
             seat.name = name;
-            t.game!.players[t.seats.indexOf(seat)].name = name;
+            if(t.game)t.game.players[t.seats.indexOf(seat)].name=name;
+            if(t.adventure)t.adventure.seats[t.seats.indexOf(seat)]=name;
           }
           this.db
             .prepare(
@@ -574,6 +610,7 @@ export class Tables {
         case 'abandon':
           t.status = 'lobby';
           t.game = null;
+          t.adventure = null;
           t.matchId = null;
           t.seats = [];
           t.botError = false;
@@ -581,6 +618,7 @@ export class Tables {
         case 'close':
           t.status = 'closed';
           t.game = null;
+          t.adventure = null;
           t.seats = [];
           break;
         case 'retry-bot':
@@ -600,6 +638,17 @@ export class Tables {
       this.db.exec('ROLLBACK');
       throw error;
     }
+  }
+  adventureTick(invite: string, key: string) {
+    const t=this.get(invite),g=t.adventure;
+    if(t.status!=='playing'||!g||g.tutorial||adventureKey(g)!==key)return;
+    const next=tickAdventure(g);if(next===g)return;
+    t.adventure=next;t.revision++;this.save(t);
+  }
+  adventureBot(invite:string, key:string,seat:number) {
+    const t=this.get(invite),g=t.adventure;
+    if(t.status!=='playing'||!g||g.tutorial||!t.seats[seat]?.bot||adventureKey(g)!==key)return;
+    const move=adventureBot(g,seat);if(!move)return;const next=standaloneGames[g.kind].play(g,move,seat);if(next===g)return;t.adventure=next;if(next.over)t.status='finished';t.revision++;this.save(t);
   }
   /** Applies a bot's reply while that seat still faces the decision it was
    *  asked about; other seats committing meanwhile do not discard it. */

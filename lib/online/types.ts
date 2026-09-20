@@ -1,3 +1,6 @@
+import type { StandaloneId } from '../games/standalone/types.ts';
+import type { AnyGame, AnyMove } from '../games/standalone/registry.ts';
+export type OnlineGameId = GameId | StandaloneId;
 import type {
   Difficulty,
   GameOptions,
@@ -18,12 +21,13 @@ export type Member = {
 };
 export type Table = GameOptions & {
   token: string;
-  gameId: GameId;
+  gameId: OnlineGameId;
   difficulty: Difficulty;
   shields?: boolean;
   customerOrders?: boolean;
   sanctuaryGoalsEnabled?: boolean;
   fastMode?: boolean;
+  partyMode?: 'teams' | 'individual';
   capacity: number;
   revision: number;
   status: 'lobby' | 'playing' | 'finished' | 'closed';
@@ -33,8 +37,9 @@ export type Table = GameOptions & {
   viewerSeat: number | null;
   matchId: string | null;
   game: GameView | null;
+  adventure?: AnyGame | null;
   botError: boolean;
-  votes?: Partial<Record<GameId, string[]>>;
+  votes?: Partial<Record<OnlineGameId, string[]>>;
 };
 export type TableCommand =
   | {
@@ -46,15 +51,18 @@ export type TableCommand =
       migration?: boolean;
       salvage?: boolean;
       specialtyStalls?: boolean;
-      gameId: GameId;
+      gameId: OnlineGameId;
       difficulty: Difficulty;
       shields?: boolean;
       customerOrders?: boolean;
       sanctuaryGoalsEnabled?: boolean;
       fastMode?: boolean;
-      capacity: number;
+      partyMode?: 'teams' | 'individual';
+  capacity: number;
     }
-  | { type: 'vote'; gameId: GameId }
+  | { type: 'adventure-move'; move: AnyMove; key: string }
+  | { type: 'advance-practice' }
+  | { type: 'vote'; gameId: OnlineGameId }
   | { type: 'lesson'; step: number }
   | { type: 'start'; learning?: boolean }
   | { type: 'begin-match' }

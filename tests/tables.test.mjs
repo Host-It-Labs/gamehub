@@ -226,7 +226,7 @@ await test('persistent match and deduplication survive reopening SQLite', () => 
   }
 });
 
-await test('host expansion choice reaches shared game and five-card exchange is accepted', () => {
+await test('host expansion choice reaches shared game and four-card exchange is accepted', () => {
   const { db, tables, host } = setup();
   try {
     let t = tables.create(host);
@@ -248,7 +248,7 @@ await test('host expansion choice reaches shared game and five-card exchange is 
       type: 'move',
       move: {
         type: 'pass',
-        cards: t.game.players[0].hand.slice(0, 5).map((c) => c.id),
+        cards: t.game.players[0].hand.slice(0, 4).map((c) => c.id),
       },
     });
     assert.equal(t.game.active, 1);
@@ -424,4 +424,25 @@ await test('Tide Fast mode survives settings, shared practice, and match start',
   } finally {
     db.close();
   }
+});
+
+await test('online players can withdraw their hidden commitment but never undo a revealed pick', () => {
+  const { db, tables, host } = setup();
+  const guest = actor('undo-guest');
+  try {
+    let t = tables.create(host);
+    t = command(tables, t, host, { type: 'configure', gameId: 'midnight', capacity: 2, difficulty: 'medium' });
+    t = tables.join(t.token, guest);
+    t = command(tables, t, host, { type: 'start' });
+    const hand = structuredClone(t.game.players[0].hand);
+    const move = { type: 'play', card: hand[0].id };
+    t = command(tables, t, host, { type: 'move', move });
+    assert.equal(t.game.ready[0], true);
+    t = command(tables, t, host, { type: 'move', move: { type: 'undo' } });
+    assert.equal(t.game.ready[0], false);
+    assert.deepEqual(t.game.players[0].hand, hand);
+    t = command(tables, t, host, { type: 'move', move });
+    t = command(tables, t, guest, { type: 'move', move: { type: 'play', card: t.game.players[1].hand[0].id } });
+    assert.throws(() => command(tables, t, host, { type: 'move', move: { type: 'undo' } }));
+  } finally { db.close(); }
 });

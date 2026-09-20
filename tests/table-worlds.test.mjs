@@ -22,10 +22,11 @@ const stageFor = (game, w, h) => {
   const tall = h > w, phone = !tall && h <= 500;
   if (phone) return { x: 104, y: 8, width: w - 336, height: h - 16 };
   const short = tall && h <= 700;
-  const hand = tall ? (game === 'undertow' ? (short ? 184 : 212) : short ? 236 : 292) : game === 'undertow' ? 196 : 176;
+  const hand = tall ? (game === 'undertow' ? (short ? 184 : 212) : short ? 216 : 250) : game === 'undertow' ? 196 : 176;
   const top = tall ? (game === 'undertow' ? (short ? 52 : 56) : short ? 96 : 104) : 58;
-  // Portrait also reserves the two-line dock row between the stage and the hand.
-  return { x: 0, y: top, width: w, height: h - top - hand - 18 - (tall ? (short ? 128 : 164) : 10) };
+  // Portrait also reserves the wrapping dock rows between the stage and the hand (--world-dock-reserve).
+  const reserve = tall ? (game === 'undertow' ? (short ? 128 : 164) : short ? 150 : 186) : 10;
+  return { x: 0, y: top, width: w, height: h - top - hand - 18 - reserve };
 };
 
 for (const game of ['undertow', 'midnight']) {
@@ -104,4 +105,12 @@ await test('the Observatory framing is unchanged by the shared scene framing', (
   const art = paperWorldFor(false);
   const f = paperWorldFrame(art, { width: 1440, height: 900 }, { x: 0, y: 144, width: 1440, height: 638 });
   assert.ok(f.covers && Number.isFinite(f.scale) && f.scale > 0);
+});
+
+await test('accepted Counter B and Floodline A override old candidate selections without changing geometry', () => {
+  for (const tall of [false, true]) {
+    const counter = tableWorldFor('midnight', tall, 'yata-counter-a');
+    assert.match(counter.image, /v2-b\.webp$/);
+  }
+  assert.match(paperWorldFor(false, 'floodline-landscape-v2-b', 'floodline').image, /v3-a-two-pads/);
 });

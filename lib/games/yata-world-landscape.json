@@ -1,33 +1,118 @@
 {
   "game": "midnight",
-  "source": "/art/yata-market-landscape-v1-fail-4.png",
-  "image": "/art/optimized/yata-market-landscape-v1.webp",
+  "source": "/art/yata-counter-landscape-v2-a.png",
+  "image": "/art/optimized/yata-counter-landscape-v2-a.webp",
   "width": 1536,
   "height": 1024,
-  "crop": { "left": 230, "top": 300, "width": 1080, "height": 470 },
-  "table": { "left": 300, "top": 330, "width": 940, "height": 340 },
+  "crop": {
+    "left": 202,
+    "top": 134,
+    "width": 1132,
+    "height": 616
+  },
+  "table": {
+    "left": 302,
+    "top": 234,
+    "width": 932,
+    "height": 416
+  },
   "signboards": [
-    { "left": 40, "top": 130, "width": 205, "height": 300 },
-    { "left": 1295, "top": 130, "width": 205, "height": 300 }
+    {
+      "left": 144,
+      "top": 348,
+      "width": 108,
+      "height": 242
+    },
+    {
+      "left": 1292,
+      "top": 348,
+      "width": 98,
+      "height": 242
+    }
   ],
   "landmarks": {
     "protectedBounds": [
-      { "name": "counter", "bounds": [250, 430, 1040, 340] },
-      { "name": "left signboards", "bounds": [40, 130, 205, 300] },
-      { "name": "right signboards", "bounds": [1295, 130, 205, 300] }
+      {
+        "name": "counter",
+        "bounds": [
+          302,
+          234,
+          932,
+          416
+        ]
+      },
+      {
+        "name": "left menu board",
+        "bounds": [
+          72,
+          300,
+          240,
+          370
+        ]
+      },
+      {
+        "name": "right menu board",
+        "bounds": [
+          1238,
+          300,
+          290,
+          370
+        ]
+      },
+      {
+        "name": "lantern",
+        "bounds": [
+          630,
+          0,
+          270,
+          110
+        ]
+      }
     ]
   },
   "animation": {
     "glows": [
-      { "x": 178, "y": 128, "radius": 120, "color": "255, 220, 150", "alpha": 0.16, "period": 2600 },
-      { "x": 1352, "y": 128, "radius": 120, "color": "255, 220, 150", "alpha": 0.16, "period": 3100 },
-      { "x": 1465, "y": 720, "radius": 170, "color": "255, 140, 70", "alpha": 0.15, "period": 3400 }
+      {
+        "x": 768,
+        "y": 40,
+        "radius": 320,
+        "color": "255, 150, 80",
+        "alpha": 0.14,
+        "period": 4100
+      },
+      {
+        "x": 1450,
+        "y": 830,
+        "radius": 130,
+        "color": "255, 120, 60",
+        "alpha": 0.16,
+        "period": 3400
+      },
+      {
+        "x": 230,
+        "y": 280,
+        "radius": 90,
+        "color": "255, 120, 90",
+        "alpha": 0.12,
+        "period": 2900
+      },
+      {
+        "x": 1310,
+        "y": 220,
+        "radius": 90,
+        "color": "90, 140, 255",
+        "alpha": 0.1,
+        "period": 3300
+      }
     ],
-    "water": [
-      { "polygon": [[560, 265], [1010, 265], [1010, 420], [560, 420]] }
-    ],
+    "water": [],
     "motes": false
   },
-  "overview": { "left": 230, "top": 300, "width": 1080, "height": 470 },
-  "overviewImage": "/art/optimized/yata-market-landscape-v1-overview.webp"
+  "overview": {
+    "left": 202,
+    "top": 134,
+    "width": 1132,
+    "height": 616
+  },
+  "overviewImage": "/art/optimized/yata-counter-landscape-v2-a-overview.webp"
 }

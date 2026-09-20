@@ -1,11 +1,10 @@
 'use client';
 import { BlackwakeTable, type TableGeometry } from './blackwake-table';
-import { paperWorldFor } from '@/lib/games/mora-world';
+import { paperWorldFor, paperWorldIdFor } from '@/lib/games/mora-world';
 import { cropPercent, tableWorldFor } from '@/lib/games/table-world';
 import { WorldScene } from './world-scene';
 import { useArtVariant } from '@/lib/games/art-variant';
 import { ObservatoryScene } from './observatory-scene';
-import { LagoonWater } from './lagoon-water';
 import { cue } from '@/lib/games/trio/sound';
 import {
   decisionKey,
@@ -14,6 +13,7 @@ import {
   migratedZones,
 } from '@/lib/games/trio/engine';
 import { Fragment, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { OpponentBoards, PlayerResources } from './opponent-boards';
 import { PlayerStatus } from './player-status';
 import {
@@ -22,9 +22,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { SanctuaryBadges } from './mora-extension';
 import { festivalBreakdown } from '@/lib/games/trio/engine';
-import { moraMapFor, observatoryMap } from '@/lib/games/trio/mora-map';
+import { moraMapFor } from '@/lib/games/trio/mora-map';
 import { MoraTrash } from './mora-trash';
 import { Store, UsersRound } from 'lucide-react';
 import { ScrollArea } from './scroll-area';
@@ -294,31 +293,30 @@ export function Board({
     from: number;
   } | null>(null);
   useEffect(() => {
-    // Every full-table world has its own portrait plate; Floodline keeps one map.
-    if (mini || (g.id === 'wildgrove' && g.contentSet === 'intermediate'))
-      return;
+    // Every full-table world has its own portrait plate.
+    if (mini) return;
     const query = window.matchMedia('(orientation: portrait)');
     const update = () => setPortrait(query.matches);
     update();
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
-  }, [mini, g.id, g.contentSet]);
-  const [variant] = useArtVariant(g.id === 'wildgrove' ? undefined : g.id);
-  const world = paperWorldFor(portrait, variant);
-  const baseMap =
-    mini && g.contentSet !== 'intermediate'
-      ? observatoryMap(false, true)
-      : moraMapFor(g.contentSet, portrait);
+  }, [mini]);
+  // Mora's two worlds keep separate candidate picks; the Observatory uses the legacy key.
+  const worldId = paperWorldIdFor(g.contentSet);
+  const [variant] = useArtVariant(
+    g.id === 'wildgrove' ? (worldId === 'floodline' ? 'floodline' : undefined) : g.id,
+  );
+  const world = paperWorldFor(portrait, variant, worldId);
+  const baseMap = mini
+    ? moraMapFor(g.contentSet, false, true)
+    : moraMapFor(g.contentSet, portrait);
   // Candidate artwork shares the measured geometry; only the image differs.
-  const map =
-    g.contentSet !== 'intermediate'
-      ? {
-          ...baseMap,
-          image: mini
-            ? paperWorldFor(false, variant).overviewImage
-            : world.boardImage,
-        }
-      : baseMap;
+  const map = {
+    ...baseMap,
+    image: mini
+      ? paperWorldFor(false, variant, worldId).overviewImage
+      : world.boardImage,
+  };
   const p =
     natureChoice.migration && player === viewer
       ? {
@@ -407,47 +405,29 @@ export function Board({
   if (g.id === 'wildgrove')
     return (
       <div
-        className={`mora-board ${g.contentSet !== 'intermediate' ? 'observatory-board' : ''} ${mini ? 'mini-board' : ''} ${g.sanctuaryGoalsEnabled && !mini ? 'has-sanctuary-goals' : ''} ${player !== viewer ? 'opponent-board' : ''}`}
+        className={`mora-board observatory-board ${mini ? 'mini-board' : ''} ${g.sanctuaryGoalsEnabled && !mini ? 'has-sanctuary-goals' : ''} ${player !== viewer ? 'opponent-board' : ''}`}
         data-coach="board"
         style={
-          mini && g.contentSet !== 'intermediate'
+          mini
             ? {
                 aspectRatio: `${world.overview.width} / ${world.overview.height}`,
               }
             : undefined
         }
-        data-paper-world={
-          g.contentSet !== 'intermediate'
-            ? portrait
-              ? 'portrait'
-              : 'landscape'
-            : undefined
-        }
+        data-paper-world={portrait ? 'portrait' : 'landscape'}
+        data-world={worldId}
       >
-        {g.sanctuaryGoalsEnabled &&
-          !mini &&
-          g.contentSet === 'intermediate' && (
-            <SanctuaryBadges
-              zones={p.zones}
-              goals={g.sanctuaryGoals}
-              contentSet={g.contentSet}
-              inspect={inspect}
-            />
-          )}
         <img
           className="mora-landscape"
           src={map.image}
           alt={
-            g.contentSet === 'intermediate'
-              ? 'Floodline Station: wildlife reclaiming a tropical research station.'
+            worldId === 'floodline'
+              ? 'Floodline Station: shore wildlife reclaiming an abandoned coastal field station.'
               : 'The Observatory: wildlife reclaiming an abandoned inland observatory.'
           }
           draggable={false}
         />
-        {!mini && g.contentSet !== 'intermediate' && (
-          <ObservatoryScene art={world} />
-        )}
-        {!mini && g.contentSet === 'intermediate' && <LagoonWater />}
+        {!mini && <ObservatoryScene art={world} />}
         {map.habitats.map((art) => {
           const z = art.zone;
           const h = habitatsFor(g.contentSet)[z];
@@ -532,7 +512,8 @@ export function Board({
                       width: `${(art.tokenWidth / width) * 100}%`,
                     }}
                   >
-                    {z === 3 && (
+                    {/* Only the Pier is filled in order; the Glasshouse trail no longer is. */}
+                    {z === 3 && g.contentSet === 'intermediate' && (
                       <span className="mora-trail-step">{i + 1}</span>
                     )}
                     {creature && !mini && player === viewer && !!onMigrate ? (
@@ -706,14 +687,10 @@ export function Board({
         })}
         {!mini && player === viewer && onPlace && (
           <MoraTrash
-            style={
-              g.contentSet !== 'intermediate'
-                ? {
-                    left: `${((world.release[0] - world.crop.left) / world.crop.width) * 100}%`,
-                    top: `${((world.release[1] - world.crop.top) / world.crop.height) * 100}%`,
-                  }
-                : undefined
-            }
+            style={{
+              left: `${((world.release[0] - world.crop.left) / world.crop.width) * 100}%`,
+              top: `${((world.release[1] - world.crop.top) / world.crop.height) * 100}%`,
+            }}
             g={g}
             viewer={viewer}
             selected={selected ?? null}
@@ -850,6 +827,11 @@ export function Players({
   /** Round and pick progress, shown centred on the same line as the Boards control. */
   progress?: ReactNode;
 }) {
+  const playersRoot = useRef<HTMLDivElement>(null);
+  const [othersSlot, setOthersSlot] = useState<Element | null>(null);
+  useEffect(() => {
+    setOthersSlot(playersRoot.current?.closest('.table-layout')?.querySelector('.table-others-slot') ?? null);
+  }, []);
   const boardTrigger = useRef<HTMLButtonElement | null>(null);
   const [boardSeat, setBoardSeat] = useState<number | null>(null);
   const actionable = canAct(g, viewer) && !disabled;
@@ -886,6 +868,7 @@ export function Players({
   const sc = scores(g);
   return (
     <div
+      ref={playersRoot}
       className={`players ${actionable ? 'your-turn' : ''} count-${g.players.length}`}
       data-coach="players"
     >
@@ -982,6 +965,7 @@ export function Players({
       {boardButton && (
         <div className="table-second-line">
           {progress}
+          {othersSlot && createPortal(
           <button
             type="button"
             className="table-board-button"
@@ -994,7 +978,7 @@ export function Players({
               <UsersRound size={16} aria-hidden="true" />
               <span>Others</span>
             </span>
-          </button>
+          </button>, othersSlot)}
         </div>
       )}
     </div>

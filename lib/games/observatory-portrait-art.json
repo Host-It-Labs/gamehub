@@ -101,7 +101,7 @@
     ]
    ],
    "tokenWidth": 66,
-   "summary": "*Same* species: 2 \u00b7 6 \u00b7 11 \u00b7 17"
+   "summary": "*Same* species: 2 · 6 · 11 · 17"
   },
   {
    "zone": 1,
@@ -134,7 +134,7 @@
     ]
    ],
    "tokenWidth": 66,
-   "summary": "3 per species \u00b7 all 4 *different* +2"
+   "summary": "*Pair* 7 · two pairs 16"
   },
   {
    "zone": 2,
@@ -159,7 +159,7 @@
     ]
    ],
    "tokenWidth": 66,
-   "summary": "*Pair* 8 \u00b7 single 1"
+   "summary": "*Pair* 9 · single 1"
   },
   {
    "zone": 3,
@@ -188,7 +188,7 @@
     ]
    ],
    "tokenWidth": 66,
-   "summary": "2 each \u00b7 different *neighbours* +3"
+   "summary": "*Same* species: 2 · 6 · 12"
   },
   {
    "zone": 4,
@@ -217,7 +217,7 @@
     ]
    ],
    "tokenWidth": 66,
-   "summary": "4 per species also placed *elsewhere*"
+   "summary": "*Different* species: 1 · 4 · 10"
   },
   {
    "zone": 6,

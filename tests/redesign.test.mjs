@@ -146,7 +146,7 @@ await test('Migration and Roam combine atomically and preserve creature order', 
   assert.deepEqual(g.players[0].zones, before.players[0].zones);
   g = play(g, fallbackMove(g));
   assert.equal(g.players[0].migrations, 0);
-  assert.equal(g.players[0].roams, 1);
+  assert.equal(g.players[0].roams, 0);
   assert.deepEqual(
     g.players[0].zones[0].map((c) => c.id),
     [resident.id, card],

@@ -23,10 +23,13 @@ const zones = (cards, at = 0) =>
 
 await test('current habitat and food scoring matches the published rules', () => {
   assert.equal(zoneScore(zones([c(0), c(0)]), 0), 6);
-  assert.equal(zoneScore(zones([c(0), c(1), c(2), c(3)], 1), 1), 14);
-  assert.equal(zoneScore(zones([c(0), c(0), c(0)], 2), 2), 0);
-  assert.equal(zoneScore(zones([c(0), c(0), c(1), c(1)], 2), 2), 16);
-  assert.equal(zoneScore(zones([c(0), c(1), c(2)], 3), 3), 12);
+  assert.equal(zoneScore(zones([c(0), c(1), c(2), c(3)], 1), 1), 0);
+  assert.equal(zoneScore(zones([c(0), c(0), c(1), c(1)], 1), 1), 16);
+  assert.equal(zoneScore(zones([c(0), c(0), c(1)], 1), 1), 7);
+  // Root hollows hold two creatures; legacy overflow scores as two singles at most.
+  assert.equal(zoneScore(zones([c(0), c(0), c(0)], 2), 2), 3);
+  assert.equal(zoneScore(zones([c(0), c(0)], 2), 2), 9);
+  assert.equal(zoneScore(zones([c(0), c(0), c(0)], 3), 3), 6);
   assert.equal(foodScore([c(0), c(0)], []), 7);
   assert.equal(foodScore([c(1), c(1), c(1), c(1)], []), 13);
   assert.equal(foodScore([c(2), c(2), c(2)], []), 9);
@@ -61,7 +64,7 @@ await test('seeded matches terminate legally with conserved cards at every playe
                       ),
                   ).length
                 : 0);
-          assert.equal(count, id === 'undertow' ? 50 : 72);
+          assert.equal(count, id === 'undertow' ? (n === 2 ? 25 : 50) : 72);
           const move = chooseMove(observe(g), 'medium');
           assert.ok(validMove(g, move));
           const previous = JSON.stringify(g);
@@ -128,13 +131,13 @@ await test('pass validation and invalid actions leave the original game intact',
   assert.equal(g.active, 0);
 });
 
-await test('Papayoo-sized exchanges preserve each hand and move the chosen cards to the neighbour', () => {
+await test('Four-card exchanges preserve each hand and move the chosen cards to the neighbour', () => {
   for (const [seats, amount] of [
-    [2, 5],
-    [3, 5],
-    [4, 5],
-    [5, 4],
-    [6, 3],
+    [2, 4],
+    [3, 3],
+    [4, 2],
+    [5, 2],
+    [6, 2],
   ]) {
     let g = createGame('undertow', 'medium', 719, false, seats);
     assert.equal(passCount(g), amount);
@@ -384,16 +387,16 @@ await test('Mora herd retains its scoring and legacy trash cannot block discardi
   assert.ok(allowedZone(g, 0, c(0), 5));
 });
 
-await test('Mora trail scores neighbouring differences in placement order', () => {
+await test('Mora Glasshouse trail rewards a matching pair and a different guest', () => {
   for (const [kinds, expected] of [
     [[], 0],
     [[0], 2],
     [[0, 0], 4],
-    [[0, 1], 7],
+    [[0, 1], 4],
     [[0, 0, 0], 6],
-    [[0, 0, 1], 9],
-    [[0, 1, 0], 12],
-    [[0, 1, 2], 12],
+    [[0, 0, 1], 10],
+    [[0, 1, 0], 10],
+    [[0, 1, 2], 6],
   ]) {
     assert.equal(
       zoneScore(
@@ -408,14 +411,18 @@ await test('Mora trail scores neighbouring differences in placement order', () =
   }
 });
 
-await test('Mora shared counts each species once and ignores trash', () => {
+await test('Mora Dry channel counts different species here, nothing elsewhere', () => {
   const board = Array.from({ length: 7 }, () => []);
   board[3] = [c(0), c(1)];
   board[4] = [c(0), c(0), c(2)];
   board[5] = [c(2)];
   assert.equal(zoneScore(board, 4), 4);
   board[0] = [c(2)];
-  assert.equal(zoneScore(board, 4), 8);
+  assert.equal(zoneScore(board, 4), 4);
+  board[4] = [c(0), c(1), c(2)];
+  assert.equal(zoneScore(board, 4), 10);
+  board[4] = [c(0)];
+  assert.equal(zoneScore(board, 4), 1);
 });
 
 await test('Mora lookout counts habitats with its resident species, excluding trash and itself', () => {
@@ -456,7 +463,8 @@ await test('Mora bot values trail completion and avoids breaking a scoring pair 
   g.players[0].zones[3] = [c(1, 103), c(0, 104)];
   g.players[0].hand = [c(1, 105)];
   const complete = { type: 'play', card: 105, zone: 3 };
-  assert.equal(heuristic(g, complete), 5);
+  // A second matching creature lifts the trail from 4 to 10 points.
+  assert.equal(heuristic(g, complete), 6);
   assert.deepEqual(chooseMove(observe(g), 'medium'), complete);
   g.players[0].hand = [c(0, 105)];
   assert.equal(validMove(g, { type: 'play', card: 105, zone: 2 }), false);

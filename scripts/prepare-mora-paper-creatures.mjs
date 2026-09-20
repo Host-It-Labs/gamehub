@@ -20,15 +20,16 @@ const sets = {
     ],
   },
   coast: {
-    version: 1,
-    padding: 2,
+    // Floodline Station v2 atlas (19 September 2026): crab, turtle, seal, octopus, tern, seahorse.
+    version: 2,
+    padding: 6,
     bounds: [
-      [26, 49, 492, 461],
-      [548, 74, 979, 477],
-      [1085, 65, 1512, 484],
-      [24, 576, 486, 968],
-      [525, 571, 1011, 922],
-      [1043, 577, 1518, 926],
+      [56, 98, 464, 448],
+      [532, 127, 986, 447],
+      [1036, 120, 1493, 417],
+      [47, 561, 477, 926],
+      [532, 562, 1010, 910],
+      [1147, 528, 1387, 942],
     ],
   },
 };
@@ -37,8 +38,15 @@ await fs.mkdir(path.join(root, 'public/art/optimized'), { recursive: true });
 for (const [set, { version, padding, bounds }] of Object.entries(sets)) {
   const source = path.join(
     root,
-    `public/art/mora-paper-${set}-atlas-v${version}.png`,
+    `public/art/mora-paper-${set}-atlas-v${version}${set === 'coast' ? '-a' : ''}.png`,
   );
+  try {
+    await fs.access(source);
+  } catch {
+    // Retired atlases live outside the repo; their sprites are already delivered.
+    console.warn(`skipping ${set}: ${path.relative(root, source)} is not in the repo`);
+    continue;
+  }
   for (const [kind, [x0, y0, x1, y1]] of bounds.entries()) {
     // Preserve the original generated alpha; no color key or masking is used.
     const sprite = await sharp(source)
@@ -70,4 +78,4 @@ for (const [set, { version, padding, bounds }] of Object.entries(sets)) {
       );
   }
 }
-console.log('Prepared 12 Mora paper creature sprites from source atlases.');
+console.log('Prepared Mora paper creature sprites from the atlases present in public/art.');

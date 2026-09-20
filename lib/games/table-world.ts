@@ -19,7 +19,8 @@ export type TableWorldVariant = {
 const variants = registry as TableWorldVariant[];
 const bases: Record<TableWorldGame, { landscape: TableWorld; portrait: TableWorld }> = {
   undertow: { landscape: noxLandscape as TableWorld, portrait: noxPortrait as TableWorld },
-  midnight: { landscape: yataLandscape as TableWorld, portrait: yataPortrait as TableWorld },
+  // Yata has no seat ring or seats: its players hang in the pennant row, not on the counter rim.
+  midnight: { landscape: yataLandscape as unknown as TableWorld, portrait: yataPortrait as unknown as TableWorld },
 };
 export const isTableWorldGame = (id: string): id is TableWorldGame => id === 'undertow' || id === 'midnight';
 
@@ -31,7 +32,8 @@ const cache = new Map<string, TableWorld>();
 /** Stable object identity per (game, orientation, variant), so scene effects keyed on it do not rerun. */
 export function tableWorldFor(game: TableWorldGame, tall = false, variant?: string | null): TableWorld {
   const base = bases[game][tall ? 'portrait' : 'landscape'];
-  const v = variant ? tableWorldVariants(game, tall).find((x) => x.id === variant) : undefined;
+  const accepted = game === 'midnight' ? 'yata-counter-b' : variant;
+  const v = accepted ? tableWorldVariants(game, tall).find((x) => x.id === accepted) : undefined;
   if (!v) return base;
   const key = `${game}:${tall ? 'p' : 'l'}:${v.id}`;
   let world = cache.get(key);

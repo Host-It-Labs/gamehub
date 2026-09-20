@@ -3,7 +3,6 @@ import {
   migratedZones,
   passCount,
   shuffled,
-  deck,
   legalMoves,
   play,
   scores,
@@ -11,6 +10,7 @@ import {
   tidePenaltyRank,
   tidePenaltyValue,
   tideRanks,
+  tideDeck,
   zoneScore,
   lowTide,
   sanctuaryBonus,
@@ -272,7 +272,7 @@ export function determinize(o: Observation, r: () => number): Game {
     g.players[i].hand.forEach((c) => knownIds.add(c.id));
   }
   const pool = shuffled(
-    deck(o.id, o.round, tideRanks(o)).filter((c) => !knownIds.has(c.id)),
+    tideDeck(o).filter((c) => !knownIds.has(c.id)),
     r,
   );
   const slots = players

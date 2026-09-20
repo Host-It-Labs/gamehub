@@ -25,7 +25,8 @@ export type Move =
     }
   | { type: 'pass'; cards: number[] }
   | { type: 'salvage'; claim: boolean }
-  | { type: 'roll' };
+  | { type: 'roll' }
+  | { type: 'undo' };
 export type Event = {
   id: number;
   type: 'deal' | 'pass' | 'roll' | 'play' | 'trick' | 'finish' | 'salvage';
@@ -61,6 +62,7 @@ export type Game = GameOptions & {
   firstPlayer?: number;
   festivalOffers?: number[][];
   fastMode?: boolean;
+  duelDeck?: boolean;
   id: GameId;
   difficulty: Difficulty;
   rngState: number;
@@ -159,30 +161,30 @@ export const habitats = [
   {
     name: 'Roof garden',
     cap: 4,
-    maxScore: 14,
-    formula: '+3 points per different species; +2 bonus for all 4',
-    rule: 'Each different species earns 3 points. Repeated species add nothing. Four different species earn 2 bonus points, for 14 points in total.',
+    maxScore: 16,
+    formula: 'Matching pair: 7 points; two pairs: 16 points',
+    rule: 'Every two matching creatures form a pair worth 7 points. Two pairs earn 16 points in total. A creature without a partner adds nothing.',
   },
   {
     name: 'Root hollows',
     cap: 2,
-    maxScore: 8,
-    formula: 'Matching pair: 8 points; a single: 1 point',
-    rule: 'The two root hollows hold one creature each. Two matching creatures earn 8 points. A single creature earns 1 point; two different creatures earn 2 points.',
+    maxScore: 9,
+    formula: 'Matching pair: 9 points; a single: 1 point',
+    rule: 'The two root hollows hold one creature each. Two matching creatures earn 9 points. A single creature earns 1 point; two different creatures earn 3 points.',
   },
   {
     name: 'Glasshouse trail',
     cap: 3,
-    maxScore: 12,
-    formula: '2 per creature + 3 per different neighbour',
-    rule: 'Fill the numbered spaces in order. Each creature earns 2 points. Each neighbouring pair of spaces earns 3 extra points if their species differ. A–B–A and A–B–C both earn 12 points; A–A–A earns 6.',
+    maxScore: 10,
+    formula: '2 points per creature; a matching pair and one different guest earn 4 extra',
+    rule: 'Each creature earns 2 points. Fill all three spaces with a matching pair and one different creature to earn 4 extra points, for 10 total. Three alike or three different earn 6.',
   },
   {
     name: 'Dry channel',
     cap: 3,
-    maxScore: 12,
-    formula: '+4 points per different species also found in another area',
-    rule: 'Each different species earns 4 points if it also lives in another scoring area. Repeats here add nothing. Species found only here and released creatures never count.',
+    maxScore: 10,
+    formula: 'Different species: 1 → 1 pt; 2 → 4 pts; 3 → 10 pts',
+    rule: 'Count the different species here. One species earns 1 point, two earn 4, and three different species earn 10. Repeats add nothing.',
   },
   {
     name: 'Release',
@@ -200,40 +202,54 @@ export const habitats = [
   },
 ];
 export const habitatOrder = [0, 1, 2, 3, 4, 6, 5];
-export const dice = [
+/** Die faces never name a board: shapes, capacities and occupancy exist on every Mora world. */
+export type DieFace = {
+  name: string;
+  symbol: string;
+  kind: 'zones' | 'company' | 'empty' | 'new';
+  zones: number[];
+  rule: string;
+};
+export const dice: DieFace[] = [
   {
     name: 'Square spaces',
     symbol: '□',
+    kind: 'zones',
     zones: [0, 1, 2],
     rule: 'Place in a habitat with square placement spaces.',
   },
   {
     name: 'Round spaces',
     symbol: '●',
+    kind: 'zones',
     zones: [3, 4, 6],
     rule: 'Place in a habitat with round placement spaces.',
   },
   {
-    name: 'Stone paving',
-    symbol: '☀',
+    name: 'Big homes',
+    symbol: '⁝',
+    kind: 'zones',
     zones: [0, 1, 3, 4],
-    rule: 'Place in a habitat with stone paving: Courtyard, Roof garden, Glasshouse trail or Dry channel.',
+    rule: 'Place in a habitat with three or more spaces.',
   },
   {
-    name: 'Timber & logs',
-    symbol: '⌂',
-    zones: [1, 2, 4, 6],
-    rule: 'Place in a habitat with timber or logs: Roof garden, Root hollows, Dry channel or Watchpost.',
+    name: 'Company',
+    symbol: '◉',
+    kind: 'company',
+    zones: [],
+    rule: 'Place in a habitat that already holds a creature. While every habitat of yours is still empty, place anywhere.',
   },
   {
     name: 'Empty',
     symbol: '○',
+    kind: 'empty',
     zones: [],
     rule: 'Place in a habitat that has no creatures yet.',
   },
   {
     name: 'New species',
     symbol: '✦',
+    kind: 'new',
     zones: [],
     rule: 'Place in a habitat that does not already contain this species.',
   },
@@ -297,12 +313,16 @@ export function deck(id: GameId, round = 1, ranks = 10): Card[] {
     rank: id === 'undertow' ? (i % ranks) + 1 : 0,
   }));
 }
+export function tideDeck(g: Pick<Game, 'round' | 'fastMode' | 'duelDeck'>) {
+  return deck('undertow', g.round, tideRanks(g)).filter((card) =>
+    !g.duelDeck || (g.fastMode ? [1, 4, 5] : [1, 3, 5, 8, 10]).includes(card.rank));
+}
 export function totalRounds(g: Pick<Game, 'id' | 'players'>) {
   return g.id === 'undertow' ? g.players.length : 2;
 }
-export function handSize(g: Pick<Game, 'id' | 'players' | 'fastMode'>) {
+export function handSize(g: Pick<Game, 'id' | 'players' | 'fastMode' | 'duelDeck'>) {
   return g.id === 'undertow'
-    ? Math.floor((5 * tideRanks(g)) / g.players.length)
+    ? Math.floor((5 * (g.duelDeck ? (g.fastMode ? 3 : 5) : tideRanks(g))) / g.players.length)
     : 6;
 }
 export function cardName(
@@ -344,7 +364,7 @@ function remember(g: Game) {
 function deal(g: Game) {
   const n = handSize(g);
   if (g.id === 'undertow')
-    g.reserve = shuffled(deck(g.id, g.round, tideRanks(g)), () => random(g));
+    g.reserve = shuffled(tideDeck(g), () => random(g));
   g.players.forEach((p, i) => {
     p.hand = g.reserve
       .splice(0, n)
@@ -404,6 +424,7 @@ export function createGame(
     customerOrders: id === 'midnight' && customerOrders,
     sanctuaryGoalsEnabled: id === 'wildgrove' && sanctuaryGoalsEnabled,
     fastMode: id === 'undertow' && fastMode,
+    duelDeck: id === 'undertow' && playerCount === 2,
     id,
     difficulty,
     rngState: seed >>> 0,
@@ -416,7 +437,7 @@ export function createGame(
       wards: 2,
       ...(id === 'wildgrove'
         ? {
-            roams: options.roamEnabled ? 2 : 0,
+            roams: options.roamEnabled ? 1 : 0,
             migrations: options.migration ? 1 : 0,
           }
         : {}),
@@ -484,10 +505,10 @@ export function zoneScore(
     unique = c.filter(Boolean).length;
   if (contentSet === 'intermediate') {
     if (zone === 0) return c.filter((n) => n === 2).length * 9;
-    if (zone === 1)
-      return unique * 2 + (cards.length === 4 && unique === 4 ? 7 : 0);
+    // Nesting beach: the whole beach is worth 4 per creature only while no species repeats.
+    if (zone === 1) return cards.length * (unique === cards.length ? 4 : 1);
     if (zone === 2)
-      return cards.length === 2 ? (unique === 2 ? 9 : 3) : cards.length;
+      return cards.length === 2 ? (unique === 1 ? 9 : 0) : cards.length;
     if (zone === 3)
       return (
         cards.length * 2 +
@@ -497,51 +518,20 @@ export function zoneScore(
           ? 8
           : 0)
       );
-    if (zone === 4)
-      return (
-        c.filter(
-          (n, kind) =>
-            n > 0 &&
-            !zones.some(
-              (area, i) =>
-                i !== 4 && i !== 5 && area.some((card) => card.kind === kind),
-            ),
-        ).length * 5
-      );
-    if (zone === 6)
-      return cards.length
-        ? 3 *
-            zones.filter(
-              (area, i) =>
-                i !== 5 &&
-                i !== 6 &&
-                area.length &&
-                !area.some((card) => card.kind === cards[0].kind),
-            ).length
-        : 0;
+    if (zone === 4) return cards.length >= 2 ? (new Set(cards.slice(0, 2).map((card) => card.kind)).size === 2 ? 7 : 2) : cards.length;
+    if (zone === 6) return cards.length && !zones.some((area, i) =>
+      i !== 5 && i !== 6 && area.some((card) => card.kind === cards[0].kind)) ? 5 : 0;
     return 0;
   }
   if (zone === 0) return [0, 2, 6, 11, 17][Math.max(...c)] ?? 0;
-  if (zone === 1) return unique * 3 + (unique === 4 ? 2 : 0);
+  if (zone === 1) {
+    const pairs = c.reduce((s, n) => s + Math.floor(n / 2), 0);
+    return pairs >= 2 ? 16 : pairs * 7;
+  }
   if (zone === 2)
-    return c.reduce((s, n) => s + (n === 2 ? 8 : n === 1 ? 1 : 0), 0);
-  const elsewhere = (kind: number) =>
-    zones.some(
-      (area, i) =>
-        i !== zone && i !== 5 && area.some((card) => card.kind === kind),
-    );
-  if (zone === 3)
-    return (
-      cards.length * 2 +
-      cards
-        .slice(1)
-        .reduce(
-          (sum, card, i) => sum + (card.kind !== cards[i].kind ? 3 : 0),
-          0,
-        )
-    );
-  if (zone === 4)
-    return c.filter((n, kind) => n > 0 && elsewhere(kind)).length * 4;
+    return cards.length === 2 ? (unique === 1 ? 9 : 3) : cards.length;
+  if (zone === 3) return cards.length * 2 + (cards.length === 3 && unique === 2 ? 4 : 0);
+  if (zone === 4) return [0, 1, 4, 10][unique] ?? 0;
   if (zone === 6)
     return cards.length
       ? 2 *
@@ -691,6 +681,8 @@ export type SanctuaryGoal = {
     | 'habitats'
     | 'pairs'
     | 'variety'
+    | 'twins'
+    | 'group'
     | 'trail'
     | 'lookout';
 };
@@ -761,20 +753,20 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     rule: 'Shelter at least two creatures of each of three different species, anywhere on your board.',
   },
   {
-    name: 'Rooftop mosaic',
-    type: 'variety',
+    name: 'Rooftop pairs',
+    type: 'twins',
     zone: 1,
-    target: 4,
+    target: 2,
     points: 4,
-    rule: 'Place four different species in Roof garden.',
+    rule: 'Fill Roof garden with two matching pairs.',
   },
   {
-    name: 'Colourful walk',
-    type: 'trail',
+    name: 'Glasshouse guests',
+    type: 'group',
     zone: 3,
     target: 3,
     points: 4,
-    rule: 'Place three different species in the three Glasshouse trail spaces.',
+    rule: 'Fill Glasshouse trail with a matching pair and one different guest.',
   },
   {
     name: 'Watchpost friends',
@@ -825,18 +817,29 @@ export function sanctuaryGoalProgress(
       progress = new Set((zones[goal.zone!] ?? []).map((card) => card.kind))
         .size;
       break;
+    case 'twins':
+      progress = counts(zones[goal.zone!] ?? []).reduce(
+        (pairs, n) => pairs + Math.floor(n / 2),
+        0,
+      );
+      break;
+    case 'group': {
+      const cards = zones[goal.zone!] ?? [];
+      const kinds = counts(cards);
+      progress = cards.length === 3 && kinds.filter(Boolean).length === 2 ? 3 : Math.min(2, cards.length);
+      break;
+    }
     case 'trail': {
+      // The Pier: matching ends around a different middle, filled in order.
       const path = zones[3] ?? [];
       progress =
-        contentSet === 'intermediate'
-          ? (path.length >= 1 ? 1 : 0) +
-            (path.length >= 2 && path[0].kind !== path[1].kind ? 1 : 0) +
-            (path.length === 3 &&
-            path[0].kind === path[2].kind &&
-            path[0].kind !== path[1].kind
-              ? 1
-              : 0)
-          : new Set(path.map((c) => c.kind)).size;
+        (path.length >= 1 ? 1 : 0) +
+        (path.length >= 2 && path[0].kind !== path[1].kind ? 1 : 0) +
+        (path.length === 3 &&
+        path[0].kind === path[2].kind &&
+        path[0].kind !== path[1].kind
+          ? 1
+          : 0);
       break;
     }
     case 'lookout': {
@@ -852,6 +855,7 @@ export function sanctuaryGoalProgress(
                 : cards.some((card) => card.kind === watcher.kind)),
           ).length
         : 0;
+      if (contentSet === 'intermediate' && watcher && zones.some((cards, zone) => zone !== 5 && zone !== 6 && cards.some((card) => card.kind === watcher.kind))) progress = 0;
       break;
     }
   }
@@ -931,11 +935,21 @@ export function allowedZone(
     return false;
   if (p === g.roller) return true;
   const region = g.players[p].zones[z] ?? [];
-  return g.die < 4
-    ? dice[g.die].zones.includes(z)
-    : g.die === 4
-      ? !region.length
-      : !region.some((x) => x.kind === c.kind);
+  const die = dice[g.die];
+  switch (die.kind) {
+    case 'zones':
+      return die.zones.includes(z);
+    case 'company':
+      // Before the first creature is sheltered, Company cannot be met and imposes nothing.
+      return (
+        region.length > 0 ||
+        !g.players[p].zones.some((area, i) => i !== 5 && area.length > 0)
+      );
+    case 'empty':
+      return !region.length;
+    default:
+      return !region.some((x) => x.kind === c.kind);
+  }
 }
 export function simultaneous(g: Pick<PublicGame, 'phase' | 'id'>) {
   return (
@@ -1091,10 +1105,7 @@ function beginTrick(g: Game) {
   ).find((i) => eligible[i])!;
 }
 
-/** Papayoo: 3–4 seats pass 5, 5 seats pass 4, 6 seats pass 3.
- * Nami extends the five-card exchange to its two-player variant.
- * https://www.gigamic.com/index.php?controller=attachment&id_attachment=77
- */
+/** Table-size exchanges: 4 with two players, 3 with three, 2 with four or more. */
 export function passCount(
   g: Pick<PublicGame, 'players' | 'passCards' | 'fastMode'> & {
     passes?: number[][];
@@ -1104,16 +1115,13 @@ export function passCount(
   const started = g.passes?.find((cards) => cards.length)?.length;
   if (g.passCards !== undefined) return g.passCards;
   if (started) return started;
-  // Fast Tide has only 5 ranks per suit, so a three-card exchange keeps the
-  // opening pass meaningful without consuming most of a hand.
-  if (g.fastMode === true) return 3;
-  return g.players.length <= 4 ? 5 : g.players.length === 5 ? 4 : 3;
+  return g.players.length === 2 ? 4 : g.players.length === 3 ? 3 : 2;
 }
 export function validMove(state: PublicGame, m: Move, actor = state.active) {
   if (
     !m ||
     typeof m !== 'object' ||
-    !['play', 'roll', 'pass', 'salvage'].includes(m.type)
+    !['play', 'roll', 'pass', 'salvage', 'undo'].includes(m.type)
   )
     return false;
   const fields =
@@ -1134,6 +1142,7 @@ export function validMove(state: PublicGame, m: Move, actor = state.active) {
       ))
   )
     return false;
+  if (m.type === 'undo') return canUndo(state, actor);
   if (!canAct(state, actor)) return false;
   if (state.phase === 'salvage')
     return (
@@ -1177,8 +1186,22 @@ function finishRound(g: Game) {
     deal(g);
   }
 }
+/** Only a still-secret simultaneous commitment can be withdrawn. */
+export function canUndo(state: PublicGame, actor: number) {
+  return Number.isInteger(actor) && actor >= 0 && actor < state.players.length &&
+    simultaneous(state) && state.ready?.[actor] === true && state.ready.some((ready) => !ready);
+}
 export function play(state: Game, m: Move, actor = state.active): Game {
   if (!validMove(state, m, actor)) return state;
+  if (m.type === 'undo') {
+    if (!state.pending?.[actor]) return state;
+    const g = structuredClone(state);
+    g.pending![actor] = null;
+    g.ready![actor] = false;
+    g.active = actor;
+    g.revision++;
+    return g;
+  }
   if (!simultaneous(state)) return applyMove(state, m);
   let g = structuredClone(state);
   g.ready = readySeats(g);
@@ -1440,13 +1463,14 @@ export function isSavedGame(x: unknown): x is Game {
       g.version !== 4 ||
       (g.shields !== undefined && typeof g.shields !== 'boolean') ||
       (g.fastMode !== undefined && typeof g.fastMode !== 'boolean') ||
+      (g.duelDeck !== undefined && typeof g.duelDeck !== 'boolean') ||
       (g.customerOrders !== undefined &&
         typeof g.customerOrders !== 'boolean') ||
       (g.customerOrders === true && g.id !== 'midnight') ||
       (g.sanctuaryGoalsEnabled !== undefined &&
         typeof g.sanctuaryGoalsEnabled !== 'boolean') ||
       (g.sanctuaryGoalsEnabled === true && g.id !== 'wildgrove') ||
-      (g.passCards !== undefined && ![3, 4, 5].includes(g.passCards)) ||
+      (g.passCards !== undefined && ![2, 3, 4, 5].includes(g.passCards)) ||
       !catalog.some((c) => c.id === g.id) ||
       !['easy', 'medium', 'hard'].includes(g.difficulty) ||
       !['pass', 'roll', 'play', 'salvage', 'over'].includes(g.phase)
@@ -1732,11 +1756,11 @@ export function isSavedGame(x: unknown): x is Game {
 /** Content identity is independent of extensions; kind indices are local to a set. */
 export const coastalCreatures = [
   'Signal Crab',
-  'Reef Gecko',
-  'Mangrove Rail',
   'Lagoon Turtle',
-  'Relay Bat',
-  'Coral Moth',
+  'Harbour Seal',
+  'Reef Octopus',
+  'Storm Tern',
+  'Kelp Seahorse',
 ];
 export const intermediateFoods = [
   {
@@ -1778,31 +1802,32 @@ export const intermediateFoods = [
     example: 'Five portions earn 15; six earn 30.',
   },
 ];
+/** Floodline Station: the same six capacities and pad shapes, sharper questions. */
 const coastalRules = [
   [
-    'Shell cradles',
-    'Each species present exactly twice earns 9. Singles, triples and quadruples earn nothing.',
-    'Exact pair 9',
+    'Rock pools',
+    'Each species present exactly twice earns 9 points. A species with one, three or four creatures here earns nothing.',
+    'Exact pair: 9 points each',
   ],
   [
-    'Coral garden',
-    'Each different species earns 2. Fill all four spaces with different species for 7 extra points.',
-    '2 per species · four +7',
+    'Nesting beach',
+    'Each creature earns 4 points while every species on the beach is different. As soon as one species repeats, the whole beach earns only 1 point per creature.',
+    'All different: 4 each · any repeat: 1 each',
   ],
   [
-    'Twin pools',
-    'Two different species earn 9. A matching pair earns 3. A single earns 1.',
-    'Different pair 9 · alike 3',
+    'Mangrove roots',
+    'A matching pair earns 9 points. Two different species earn nothing. A single creature earns 1 point.',
+    'Matching pair 9 · different 0 · single 1',
   ],
   [
-    'Tidal path',
-    'Each creature earns 2. Fill in order: matching ends and a different middle earn 8 extra points.',
+    'Pier',
+    'Fill the numbered spaces in order. Each creature earns 2 points. Matching ends around a different middle, A–B–A, earn 8 extra points.',
     '2 each · A–B–A +8',
   ],
   [
-    'Driftwood refuge',
-    'Each different species found here and nowhere else on your board earns 5. Repeats here add nothing. Release does not count.',
-    'Exclusive species ×5',
+    'Sea cave',
+    'The cave holds two creatures. Two different species earn 7 points. A matching pair earns 2. A single creature earns 1 point.',
+    'Different pair 7 · alike 2 · single 1',
   ],
   [
     'Release',
@@ -1810,9 +1835,9 @@ const coastalRules = [
     '0 points',
   ],
   [
-    'Beacon',
-    'Place one creature here. Earn 3 for each other occupied habitat that does not contain its species. Release never counts.',
-    'Other occupied homes without this species ×3',
+    'Lighthouse',
+    'Place one creature here. It earns 5 points only if its species lives nowhere else on your board. Released creatures do not count.',
+    'Species living only here: 5',
   ],
 ];
 export const intermediateHabitats = habitats.map((h, i) => ({
@@ -1820,8 +1845,31 @@ export const intermediateHabitats = habitats.map((h, i) => ({
   name: coastalRules[i][0],
   rule: coastalRules[i][1],
   formula: coastalRules[i][2],
-  maxScore: [18, 15, 9, 14, 15, 0, 15][i],
+  cap: i === 4 ? 2 : h.cap,
+  maxScore: [18, 16, 9, 14, 7, 0, 5][i],
 }));
+/** Same ids and types as the Observatory goals, so saved matches keep their draw. */
+export const coastalGoals: SanctuaryGoal[] = sanctuaryGoals.map((goal, i) => {
+  const names = (...zones: number[]) => zones.map((zone) => coastalRules[zone][0]);
+  switch (i) {
+    case 1:
+      return { ...goal, rule: `Shelter six creatures on square spaces: ${names(0, 1, 2).join(', ')} together.` };
+    case 2:
+      return { ...goal, rule: `Shelter five creatures on round spaces: ${names(3, 4, 6).join(', ')} together.` };
+    case 3:
+      return { ...goal, name: 'Mirror shores', rule: `Two species each living in both ${names(0, 1).join(' and ')}.` };
+    case 4:
+      return { ...goal, name: 'Cave companions', target: 2, points: 3, rule: `Fill ${names(4)[0]} with two different species.` };
+    case 9:
+      return { ...goal, name: 'Beach parade', type: 'variety', zone: 1, target: 4, rule: `Place four different species in ${names(1)[0]}.` };
+    case 10:
+      return { ...goal, name: 'Pier echo', type: 'trail', zone: 3, target: 3, rule: `Complete the ${names(3)[0]} with matching ends and a different middle: A–B–A.` };
+    case 11:
+      return { ...goal, name: 'Lighthouse solitude', rule: `Keep the ${names(6)[0]} species only there, with at least three other occupied habitats.` };
+    default:
+      return goal;
+  }
+});
 export const creaturesFor = (set?: ContentSet) =>
   set === 'intermediate' ? coastalCreatures : creatures;
 export const foodsFor = (set?: ContentSet) =>
@@ -1831,44 +1879,14 @@ export const habitatsFor = (set?: ContentSet) =>
 /** Name the actual destinations; habitat labels no longer carry die-group glyphs. */
 export function placementDieRule(face: number, set?: ContentSet) {
   const die = dice[face];
-  return die.zones.length
+  return die.kind === 'zones'
     ? `Place in ${die.zones.map((zone) => habitatsFor(set)[zone].name).join(', ')}.`
     : die.rule;
 }
 export function tokenImage(kind: number, food = false, set?: ContentSet) {
-  const version = !food && set !== 'intermediate' ? 2 : 1;
-  return `/art/optimized/${food ? (set === 'intermediate' ? 'nightshift-alley' : 'nightshift-lane') : set === 'intermediate' ? 'mora-paper-coast' : 'mora-paper-inland'}-${kind}-v${version}.webp`;
+  const version = 2;
+  return `/art/optimized/${food ? (set === 'intermediate' ? 'yata-counter-alley' : 'yata-counter-lane') : set === 'intermediate' ? 'mora-paper-coast' : 'mora-paper-inland'}-${kind}-v${version}.webp`;
 }
 export function sanctuaryGoalsFor(set?: ContentSet) {
-  if (set !== 'intermediate') return sanctuaryGoals;
-  const names = (...zones: number[]) => zones.map((zone) => habitatsFor(set)[zone].name);
-  return sanctuaryGoals.map((goal, i) =>
-    i === 1
-      ? { ...goal, rule: `Shelter six creatures on square spaces: ${names(0, 1, 2).join(', ')} together.` }
-      : i === 2
-        ? { ...goal, rule: `Shelter five creatures on round spaces: ${names(3, 4, 6).join(', ')} together.` }
-        : i === 3
-          ? { ...goal, rule: `Two species each living in both ${names(0, 1).join(' and ')}.` }
-          : i === 4
-            ? { ...goal, rule: `Place three different species in ${names(4)[0]}.` }
-      : i === 9
-        ? {
-            ...goal,
-            name: 'Coral mosaic',
-            rule: 'Place four different species in Coral garden.',
-          }
-        : i === 10
-          ? {
-              ...goal,
-              name: 'Coastal walk',
-              rule: 'Complete Tidal path with matching ends and a different middle: A–B–A.',
-            }
-          : i === 11
-            ? {
-                ...goal,
-                name: 'Beacon strangers',
-                rule: 'Place a creature in Beacon and fill three other habitats without its species.',
-              }
-            : goal,
-  );
+  return set === 'intermediate' ? coastalGoals : sanctuaryGoals;
 }

@@ -27,7 +27,8 @@ export function Help({
   const tide = g.id === 'undertow',
     grove = g.id === 'wildgrove';
   const tideUsed = handSize(g) * g.players.length;
-  const tideTotal = 5 * tideRanks(g);
+  const ranksInDeck = g.duelDeck ? (g.fastMode ? 3 : 5) : tideRanks(g);
+  const tideTotal = 5 * ranksInDeck;
   const used = g.players.length * 12,
     omitted = 72 - used;
   if (reference) {
@@ -52,7 +53,7 @@ export function Help({
           <dt>{grove ? 'Full creature supply' : 'Full deck'}</dt>
           <dd>
             {tide
-              ? `${tideTotal} cards · 5 suits × ${tideRanks(g)} ranks`
+              ? `${tideTotal} cards · 5 suits × ${ranksInDeck} ranks`
               : `72 ${grove ? 'creatures' : 'cards'} · 6 types × 12`}
           </dd>
           <dt>Used in this game</dt>
@@ -129,7 +130,7 @@ export function Help({
         {tide ? (
           <>
             <li>
-              <b>Pass {passCount(g)} cards.</b> Everyone chooses at the same
+              <b>Pass {passCount(g)} cards.</b> {g.duelDeck && <>Two-player games use a shorter deck while keeping the penalty rank. </>} Everyone chooses at the same
               time. Select your cards, then confirm. Cards are exchanged once
               everyone is ready. Everyone exchanges left in odd rounds and right
               in even rounds.

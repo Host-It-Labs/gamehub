@@ -1,8 +1,7 @@
 'use client';
 import { useEffect, useState, type ImgHTMLAttributes } from 'react';
-import { paperWorldFor } from '@/lib/games/mora-world';
+import { paperWorldFor, paperWorldIdFor } from '@/lib/games/mora-world';
 import { tableWorldFor } from '@/lib/games/table-world';
-import { moraMapFor } from '@/lib/games/trio/mora-map';
 import previews from '@/lib/artwork-previews.json';
 import {
   catalog,
@@ -100,9 +99,11 @@ export function ArtworkLoading({
         ? catalog.map((c) => `/art/optimized/box-${c.id}-v2-320.webp`)
         : game === 'wildgrove'
           ? [
-              moraMapFor(contentSet).image,
               '/art/optimized/mora-paper-fibers-v1.webp',
-              ...(contentSet !== 'intermediate' ? [paperWorldFor(false).image, paperWorldFor(true).image, paperWorldFor(true).boardImage, paperWorldFor(false).overviewImage] : []),
+              ...[false, true].flatMap((tall) => {
+                const world = paperWorldFor(tall, undefined, paperWorldIdFor(contentSet));
+                return [world.image, world.boardImage, world.overviewImage];
+              }),
               ...Array.from({ length: 6 }, (_, i) =>
                 tokenImage(i, false, contentSet),
               ),

@@ -1,6 +1,7 @@
 'use client';
 import { BookOpen, Check, ThumbsUp } from 'lucide-react';
-import { catalog } from '@/lib/games/trio/engine';
+import { onlineCatalog as catalog } from '@/lib/online/catalog';
+import { isStandaloneId } from '@/lib/games/standalone/registry';
 import { lessons } from '@/lib/games/trio/lessons';
 import type { Table, TableCommand } from '@/lib/online/types';
 import { ArtworkImage } from '../game/artwork';
@@ -104,6 +105,7 @@ export function LobbyGames({ table, disabled, dispatch }: Props) {
   );
 }
 export function SharedLesson({ table, disabled, dispatch }: Props) {
+  if(isStandaloneId(table.gameId))return null;
   const step = table.game?.lesson ?? 0;
   const course = lessons[table.gameId];
   const lesson = course[step];
@@ -145,6 +147,7 @@ export function SharedLesson({ table, disabled, dispatch }: Props) {
               Next lesson
             </button>
           )}
+          <button className="secondary" disabled={disabled} onClick={()=>void dispatch({type:'advance-practice'})}>Advance time</button>
           <button
             className={step === course.length - 1 ? 'primary' : 'secondary'}
             disabled={disabled}

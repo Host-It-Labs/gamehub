@@ -27,7 +27,7 @@ export function PlayerResources({ g, player, inspect, compact = false }: { g: Pu
     </dl>}
     {g.id === 'wildgrove' && <>
       {(g.roamEnabled || g.migration) && <dl className="nature-reserves">
-        {g.roamEnabled && <div><dt><Footprints size={18} aria-hidden="true" />Roam</dt><dd>{p.roams ?? 0} / 2 left</dd></div>}
+        {g.roamEnabled && <div><dt><Footprints size={18} aria-hidden="true" />Roam</dt><dd>{p.roams ?? 0} left</dd></div>}
         {g.migration && <div><dt><MoveRight size={18} aria-hidden="true" />Migration</dt><dd>{p.migrations ?? 0} / 1 left</dd></div>}
       </dl>}
       {g.sanctuaryGoalsEnabled && <SanctuaryBadges zones={p.zones} goals={g.sanctuaryGoals} contentSet={g.contentSet} inspect={inspect} />}

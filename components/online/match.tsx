@@ -1,7 +1,6 @@
 'use client';
 import { dropTargetNear } from '../game/drag-preview';
 import { FullscreenControl, useFullscreen } from '../game/fullscreen-control';
-import { ArtVariantSwitcher } from '../game/art-variant-switcher';
 import {
   ExtensionControls,
   useNatureChoice,
@@ -13,13 +12,13 @@ import { TableHeading, TableProgress, gameName } from '../game/table-heading';
 import {
   useAutoRoll,
   MoveConfirmation,
+  UndoChoice,
   useMoveConfirmation,
 } from '../game/confirmation';
 import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from '../game/artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { SanctuaryBadges } from '@/components/game/mora-extension';
-import { Passing } from '../game/passing';
 import { ExtensionAction } from '../game/extension-action';
 import { useEffect, useRef, useState } from 'react';
 import { Board, Hand, Players } from '@/components/game/boards';
@@ -43,6 +42,7 @@ import {
 } from '@/lib/games/trio/engine';
 import type { GameView } from '@/lib/online/types';
 import { cue, eventCue } from '@/lib/games/trio/sound';
+import { readAmbienceLevel, useAmbience } from '@/components/game/use-ambience';
 
 export function OnlineMatch({
   g,
@@ -109,7 +109,8 @@ export function OnlineMatch({
   const nature = useNatureChoice(g, viewer);
   const [advanced, setAdvanced] = useAdvancedView(g.id);
   const fullscreen = useFullscreen();
-  const observatory = g.id === 'wildgrove' && g.contentSet !== 'intermediate';
+  // Both Mora worlds (Observatory and Floodline Station) share the paper-table environment.
+  const observatory = g.id === 'wildgrove';
   // Full-table worlds float their controls over one environment plate.
   const environment = observatory
     ? 'observatory'
@@ -119,6 +120,8 @@ export function OnlineMatch({
         ? 'market'
         : undefined;
   const world = environment !== undefined;
+  const [ambience] = useState(readAmbienceLevel);
+  useAmbience(g.phase === 'over' ? null : g.id, volume, ambience, g.contentSet);
   const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
@@ -132,7 +135,7 @@ export function OnlineMatch({
   }
   async function commit(move: Move) {
     move = nature.withChoice(festival.withChoice(move));
-    if (!mine || !validMove(g, festival.withChoice(move), viewer)) return;
+    if (disabled || (move.type !== 'undo' && !mine) || !validMove(g, festival.withChoice(move), viewer)) return;
 
     if ((await send(move)) && move.type !== 'roll') {
       setSelected(null);
@@ -267,7 +270,6 @@ export function OnlineMatch({
       data-game={g.id}
       data-environment={environment}
     >
-      {world && <ArtVariantSwitcher game={g.id} />}
       <ArtworkLoading
         key={`${g.id}:${g.contentSet}`}
         game={g.id}
@@ -281,6 +283,7 @@ export function OnlineMatch({
         {!world && <TableHeading g={g} />}
         {g.id === 'undertow' && <TableProgress g={g} roundOnly />}
         <div className="table-toolbar-actions">
+              <div className="table-others-slot" />
               {!world && <FullscreenControl />}
             <TableMenu
               fullscreen={world ? fullscreen : undefined}
@@ -313,13 +316,12 @@ export function OnlineMatch({
               volume={volume}
               inspect={inspect}
               disabled={disabled}
-              boardButton={observatory || g.id === 'midnight'} progress={<TableProgress g={g} roundOnly />}
+              boardButton progress={<TableProgress g={g} roundOnly />}
               connectionStatus={connectionStatus}
               advanced={advanced}
             />
           </div>
           {g.id === 'wildgrove' &&
-            g.contentSet !== 'intermediate' &&
             g.sanctuaryGoalsEnabled && (
               <div className="observatory-achievements">
                 <span className="achievements-heading">Sanctuary goals</span>
@@ -388,7 +390,7 @@ export function OnlineMatch({
                 />
               )}
             </div>
-            {g.id !== 'undertow' && (g.id !== 'wildgrove' || g.contentSet === 'intermediate') && <Passing g={g} viewer={viewer} />}
+
             {g.id === 'undertow' ? (
               <span />
             ) : g.phase === 'pass' ? (
@@ -410,6 +412,11 @@ export function OnlineMatch({
               </button>
             )}
           </div>
+          <UndoChoice g={g} viewer={viewer}
+            drafted={selected !== null || passed.length > 0 || !!nature.choice.migration || !!nature.choice.roam || !!ward}
+            disabled={disabled}
+            onUndo={() => { void commit({ type: 'undo' }); nature.setChoice({}); }}
+            onClear={() => { setSelected(null); setPreparedZone(null); setPassed([]); setWard(false); nature.setChoice({}); }} />
           <MoveConfirmation
             g={g}
             viewer={viewer}

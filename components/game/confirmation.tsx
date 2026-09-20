@@ -4,7 +4,9 @@ import {
   useEffect,
   useEffectEvent,
   useState,
+  useRef,
 } from 'react';
+import { createPortal } from 'react-dom';
 import type { GameId } from '@/lib/games/trio/engine';
 function subscribe(listener: () => void) {
   window.addEventListener('storage', listener);
@@ -123,6 +125,7 @@ export function ConfirmMoves({
 import {
   canAct,
   validMove,
+  canUndo,
   passCount,
   type PublicGame,
   type Move,
@@ -182,6 +185,7 @@ export function MoveConfirmation({
   } | null>(null);
   const key = `${g.round}:${g.pick}:${g.phase}`;
   const salvageChoice = salvageDraft?.key === key ? salvageDraft.claim : null;
+
   if (g.phase === 'salvage')
     return canAct(g, viewer) ? (
       <div
@@ -245,4 +249,20 @@ export function MoveConfirmation({
       </button>
     </div>
   );
+}
+
+/** Stable hand-dock control for local preparation and unrevealed commitments. */
+export function UndoChoice({ g, viewer, drafted, disabled = false, onUndo, onClear }: {
+  g: PublicGame; viewer: number; drafted: boolean; disabled?: boolean;
+  onUndo: () => void; onClear: () => void;
+}) {
+  const marker = useRef<HTMLSpanElement>(null);
+  const [dock, setDock] = useState<Element | null>(null);
+  useEffect(() => { setDock(marker.current?.closest('.play-area')?.querySelector('.hand-frame') ?? null); }, [g.id]);
+  const committed = canUndo(g, viewer);
+  return <><span ref={marker} hidden />{dock && createPortal(<button className="undo-choice" disabled={disabled || (!committed && !drafted)}
+    onClick={committed ? onUndo : onClear}
+    title={committed ? 'Withdraw your choice before everyone finishes' : 'Clear your prepared move, including a migration'}>
+    <span aria-hidden="true">↶</span> Undo
+  </button>, dock)}</>;
 }

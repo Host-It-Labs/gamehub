@@ -1,0 +1,65 @@
+{
+  "contentSet": "intermediate",
+  "games": 40,
+  "boards": 160,
+  "averageScore": 43.33,
+  "releasesPerBoard": 0.36,
+  "zones": [
+    {
+      "zone": 0,
+      "creaturesPerBoard": 3.23,
+      "pointsPerBoard": 12.04,
+      "pointsPerCreature": 3.73,
+      "occupiedPercent": 100,
+      "fullPercent": 41.3
+    },
+    {
+      "zone": 1,
+      "creaturesPerBoard": 2.86,
+      "pointsPerBoard": 11.45,
+      "pointsPerCreature": 4,
+      "occupiedPercent": 100,
+      "fullPercent": 20.6
+    },
+    {
+      "zone": 2,
+      "creaturesPerBoard": 0.88,
+      "pointsPerBoard": 1.62,
+      "pointsPerCreature": 1.85,
+      "occupiedPercent": 76.9,
+      "fullPercent": 10.6
+    },
+    {
+      "zone": 3,
+      "creaturesPerBoard": 2.85,
+      "pointsPerBoard": 11.55,
+      "pointsPerCreature": 4.05,
+      "occupiedPercent": 100,
+      "fullPercent": 85.6
+    },
+    {
+      "zone": 4,
+      "creaturesPerBoard": 1.01,
+      "pointsPerBoard": 2.83,
+      "pointsPerCreature": 2.79,
+      "occupiedPercent": 60.6,
+      "fullPercent": 34.4
+    },
+    {
+      "zone": 5,
+      "creaturesPerBoard": 0,
+      "pointsPerBoard": 0,
+      "pointsPerCreature": 0,
+      "occupiedPercent": 0,
+      "fullPercent": 0
+    },
+    {
+      "zone": 6,
+      "creaturesPerBoard": 0.82,
+      "pointsPerBoard": 3.84,
+      "pointsPerCreature": 4.69,
+      "occupiedPercent": 81.9,
+      "fullPercent": 81.9
+    }
+  ]
+}

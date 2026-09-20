@@ -16,7 +16,9 @@ export function ArtVariantSwitcher({ game = 'wildgrove' }: { game?: string }) {
     update(); q.addEventListener('change', update);
     return () => q.removeEventListener('change', update);
   }, []);
-  const options = isTableWorldGame(game) ? tableWorldVariants(game, portrait) : paperWorldVariants(portrait);
+  const options = isTableWorldGame(game)
+    ? tableWorldVariants(game, portrait)
+    : paperWorldVariants(portrait, game === 'floodline' ? 'floodline' : 'observatory');
   if (options.length < 2) return null;
   const current = options.some((o) => o.id === variant) ? variant : options[0].id;
   return (

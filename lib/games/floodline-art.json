@@ -1,0 +1,359 @@
+{
+  "source": "/art/mora-floodline-landscape-v3-a-two-pads.png",
+  "image": "/art/optimized/mora-floodline-landscape-v3-a-two-pads.webp",
+  "boardImage": "/art/optimized/mora-floodline-landscape-v3-a-two-pads-board.webp",
+  "width": 1536,
+  "height": 1024,
+  "crop": {
+    "left": 15,
+    "top": 30,
+    "width": 1440,
+    "height": 700
+  },
+  "landmarks": {
+    "roofTop": 40,
+    "protectedBounds": [
+      {
+        "name": "lighthouse",
+        "bounds": [
+          215,
+          40,
+          165,
+          280
+        ]
+      },
+      {
+        "name": "sea cave",
+        "bounds": [
+          175,
+          330,
+          300,
+          190
+        ]
+      },
+      {
+        "name": "field station hut",
+        "bounds": [
+          560,
+          80,
+          300,
+          240
+        ]
+      },
+      {
+        "name": "pier",
+        "bounds": [
+          990,
+          110,
+          420,
+          210
+        ]
+      },
+      {
+        "name": "mangroves",
+        "bounds": [
+          1080,
+          340,
+          420,
+          360
+        ]
+      },
+      {
+        "name": "rock pools",
+        "bounds": [
+          520,
+          440,
+          420,
+          260
+        ]
+      }
+    ]
+  },
+  "habitats": [
+    {
+      "zone": 0,
+      "bounds": [
+        677,
+        496,
+        146,
+        102
+      ],
+      "label": [
+        751,
+        626
+      ],
+      "slots": [
+        [
+          720,
+          523
+        ],
+        [
+          786,
+          523
+        ],
+        [
+          721,
+          574
+        ],
+        [
+          788,
+          574
+        ]
+      ],
+      "tokenWidth": 55,
+      "summary": "*Exact* pair 9"
+    },
+    {
+      "zone": 1,
+      "bounds": [
+        672,
+        279,
+        149,
+        99
+      ],
+      "label": [
+        751,
+        403
+      ],
+      "slots": [
+        [
+          710,
+          305
+        ],
+        [
+          788,
+          305
+        ],
+        [
+          705,
+          353
+        ],
+        [
+          786,
+          353
+        ]
+      ],
+      "tokenWidth": 55,
+      "summary": "All *different* 4 each \u00b7 repeat 1 each"
+    },
+    {
+      "zone": 2,
+      "bounds": [
+        1238,
+        466,
+        109,
+        51
+      ],
+      "label": [
+        1293,
+        549
+      ],
+      "slots": [
+        [
+          1265,
+          490
+        ],
+        [
+          1320,
+          490
+        ]
+      ],
+      "tokenWidth": 51,
+      "summary": "*Matching* pair 9 \u00b7 different 0 \u00b7 single 1"
+    },
+    {
+      "zone": 3,
+      "bounds": [
+        1140,
+        176,
+        210,
+        108
+      ],
+      "label": [
+        1236,
+        315
+      ],
+      "slots": [
+        [
+          1171,
+          264
+        ],
+        [
+          1251,
+          227
+        ],
+        [
+          1324,
+          195
+        ]
+      ],
+      "tokenWidth": 52,
+      "summary": "2 each \u00b7 *A\u2013B\u2013A* +8"
+    },
+    {
+      "zone": 4,
+      "bounds": [
+        250,
+        470,
+        135,
+        50
+      ],
+      "label": [
+        317.5,
+        540
+      ],
+      "slots": [
+        [
+          285,
+          495
+        ],
+        [
+          350,
+          495
+        ]
+      ],
+      "tokenWidth": 52,
+      "summary": "*Different* pair 7 \u00b7 matching 2 \u00b7 single 1"
+    },
+    {
+      "zone": 6,
+      "bounds": [
+        260,
+        270,
+        68,
+        48
+      ],
+      "label": [
+        294,
+        337
+      ],
+      "slots": [
+        [
+          293,
+          293
+        ]
+      ],
+      "tokenWidth": 52,
+      "summary": "5 if its species lives *only* here"
+    }
+  ],
+  "release": [
+    1040,
+    510
+  ],
+  "animation": {
+    "water": {
+      "polygon": [
+        [
+          880,
+          420
+        ],
+        [
+          1060,
+          400
+        ],
+        [
+          1130,
+          470
+        ],
+        [
+          1090,
+          560
+        ],
+        [
+          980,
+          610
+        ],
+        [
+          880,
+          560
+        ],
+        [
+          850,
+          480
+        ]
+      ]
+    },
+    "foliage": [
+      {
+        "polygon": [
+          [
+            20,
+            690
+          ],
+          [
+            120,
+            660
+          ],
+          [
+            190,
+            700
+          ],
+          [
+            200,
+            790
+          ],
+          [
+            140,
+            850
+          ],
+          [
+            50,
+            850
+          ],
+          [
+            10,
+            780
+          ]
+        ],
+        "pivot": [
+          100,
+          860
+        ]
+      },
+      {
+        "polygon": [
+          [
+            1180,
+            350
+          ],
+          [
+            1300,
+            330
+          ],
+          [
+            1400,
+            380
+          ],
+          [
+            1420,
+            450
+          ],
+          [
+            1340,
+            480
+          ],
+          [
+            1220,
+            470
+          ],
+          [
+            1160,
+            410
+          ]
+        ],
+        "pivot": [
+          1290,
+          500
+        ]
+      }
+    ]
+  },
+  "overview": {
+    "left": 0,
+    "top": 10,
+    "width": 1480,
+    "height": 740
+  },
+  "overviewImage": "/art/optimized/mora-floodline-landscape-v3-a-two-pads-overview.webp"
+}
