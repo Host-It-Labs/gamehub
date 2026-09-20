@@ -11,8 +11,8 @@ WORKDIR /app
 RUN mkdir /data && chown node:node /data
 COPY --from=build --chown=node:node /app/dist/client ./dist/client
 COPY --chown=node:node server ./server
-COPY --chown=node:node lib/games/trio ./lib/games/trio
-COPY --chown=node:node lib/online/types.ts ./lib/online/types.ts
+COPY --chown=node:node lib/games ./lib/games
+COPY --chown=node:node lib/online ./lib/online
 COPY --chown=node:node scripts/reset-password.ts scripts/backup.ts ./scripts/
 COPY --chown=node:node package.json LICENSE ./
 USER node
