@@ -13,3 +13,23 @@ coverage
 **/.DS_Store
 .codex
 .openai
+.agents
+.claude
+.github
+docs
+tests
+tmp
+work
+
+# The production client uses optimized artwork. Keep generation sources,
+# candidates, contact sheets, and intermediate edits out of the build context.
+public/art/*
+!public/art/optimized/
+!public/art/optimized/**
+!public/art/atlas-cover.svg
+!public/art/blackwake-cover-v1.png
+!public/art/elsewild-cover-v1.png
+!public/art/nightshift-cover-v1.png
+!public/art/party-hot-streak-cover-v1.webp
+!public/art/party-outfox-cover-v1.webp
+!public/art/party-top-tier-cover-v1.webp

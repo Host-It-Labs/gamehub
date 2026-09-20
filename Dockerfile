@@ -5,7 +5,7 @@ RUN npm ci --no-audit --no-fund
 COPY . .
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:24-alpine AS runtime
 ENV NODE_ENV=production PORT=8080 DATABASE_PATH=/data/gamehub.sqlite
 WORKDIR /app
 RUN mkdir /data && chown node:node /data
