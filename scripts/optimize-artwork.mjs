@@ -103,3 +103,6 @@ await writeFile(
 
 // Rebuild new Mora sprites from their preserved alpha atlases.
 await import('./prepare-mora-paper-creatures.mjs');
+
+// Preserve the shared generated-title cover derivatives and responsive entries.
+await import('./optimize-box-covers.mjs');

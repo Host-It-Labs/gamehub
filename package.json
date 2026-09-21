@@ -1,6 +1,6 @@
 {
   "name": "gamehub",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "private": true,
   "engines": {
     "node": ">=22.22.0"
@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "vinext build",
+    "check:assets": "node scripts/production-assets.mjs --check",
     "start": "node --experimental-strip-types server/index.ts",
     "lint": "oxlint app components/game components/online lib server scripts tests next.config.ts vite.config.ts",
     "format": "oxfmt",

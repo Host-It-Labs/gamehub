@@ -156,8 +156,7 @@ await test('the shelf and the table agree about which games open', async () => {
     'their saves live under their own key',
   );
   const box = await source('components/game/game-box.tsx');
-  // Box artwork is keyed on the trio id, and these three have none yet; the
-  // cover must fall back to the printed motif rather than a missing file.
+  // Only retained trio and standalone games have playable covers.
   assert.match(box, /developed \? \(/);
   assert.match(box, /game\.gameId \?\? game\.standaloneId \?\? 'placeholder'/);
 });

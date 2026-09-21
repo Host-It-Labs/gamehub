@@ -1,0 +1,76 @@
+/* Shared positions; each game's button materials and colours are inherited. */
+.game-navigation {
+  position: absolute;
+  inset: max(8px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right)) auto
+    max(10px, env(safe-area-inset-left));
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  pointer-events: none;
+}
+.game-navigation > * {
+  pointer-events: auto;
+}
+.game-navigation .game-navigation-back {
+  min-height: 40px;
+  max-width: 150px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.game-navigation-actions {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 5px;
+}
+.game-navigation-actions button {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.game-navigation-menu {
+  grid-area: 1 / 2;
+}
+.game-navigation-others {
+  grid-area: 2 / 2;
+}
+.game-navigation-time {
+  grid-area: 1 / 1;
+}
+@media (max-width: 600px) {
+  .game-navigation .game-navigation-back {
+    max-width: 105px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .game-navigation-actions button {
+    width: 40px;
+    padding: 8px;
+  }
+  .game-navigation-actions span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+@media (max-width: 600px), (max-width: 950px) and (max-height: 500px) {
+  .game-navigation-actions {
+    display: flex;
+    align-items: center;
+  }
+  .game-navigation-actions button {
+    width: 40px;
+    padding: 8px;
+  }
+  .game-navigation-actions span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}

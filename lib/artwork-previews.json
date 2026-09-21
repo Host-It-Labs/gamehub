@@ -22,5 +22,25 @@
   "/art/box-midnight-v3.png": {
     "preview": "data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAACQBACdASoYABAAPwFqrU6rJiQiMAgBYCAJbACdMoR3IsBxf4CO3BtGuDDj+MAA/r5pWsLYYRMoFqIO711CUPnc0NZPOIA7p3xzWw0lceACiRbwCMW+Vd3oFhrVZ7375r0AdrcEZcJhyXUvM5XV1aOp6bS8UUoX89lgIiSBYktb/FKxNSZMF3W29xAh4hlLvbf/k4eK1mt3h8XKV7uRVUu1UHGSQKg870m//eiAAAA=",
     "srcSet": "/art/optimized/box-midnight-v3-320.webp 320w, /art/optimized/box-midnight-v3-640.webp 640w, /art/optimized/box-midnight-v3-960.webp 960w"
+  },
+  "/art/optimized/box-nox-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRvQAAABXRUJQVlA4IOgAAACQBQCdASoYABgAPwF2slOrJyQiqAgBYCAJQBgFMX/MIULf0/7mtqFn+UPMGFEjAiWsBqiIAAD+6aT8EFbBVzcMbSXamguMu8/Soc1kppH+39V8eUbZPL/cZtusULTpf1X2qqaOJctS9W1SKJYVn6fdRFtR/JyPmpl+kixUcDXvh52joJfI0p+y4oYW7y0jNLSeH3v1VkkwSt4BsMbhjwfYdIjbZDHs/CYEypa50YmjqYJTW1ferAmJwBM+0OKe1vhyb0II5YIN6mqCA21dM7L5V34HlWs1WjSWrkq3hOHG8g1Y94YrUVgA",
+    "srcSet": "/art/optimized/box-nox-blind-v1-320.webp 320w, /art/optimized/box-nox-blind-v1-640.webp 640w, /art/optimized/box-nox-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-mora-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRgIBAABXRUJQVlA4IPYAAAAQBgCdASoYABgAPwF0sVOrJqQiqAgBYCAJQBOggQOy4MCkPS8wk9Kbq9dGgBZXniN+umjfqy/C+DgA/jdBT3OwOoPcXTJqPooq7pUEdkT2qMc6f8BteFVknCo2fg/U6WBQffmd2J7dwCjjSDeTisYtNZx7tR71pjN2imY3xBevh3CBgS4zdATRZi2hx/rZPBl9iVnt2d6Rz04NfSXx528+jL4NQaCRO69KCa2ImfATYx8qGmM/ehM+Yl+8J08WBHaL+MRiRym4ssEQwiAe+z/TO6aFTMhCkoqo42cRmW5Qf3PyQ+qIyVVPXo8ueMVswY4eHODAAAA=",
+    "srcSet": "/art/optimized/box-mora-blind-v1-320.webp 320w, /art/optimized/box-mora-blind-v1-640.webp 640w, /art/optimized/box-mora-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-yata-blind-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRiYBAABXRUJQVlA4IBoBAADQBQCdASoYABgAPwFwrFGrJiQiqA1RYCAJbACdMoPKDjheRkmTNgJjJJsRi+4lB6Vhz+Oocs4MAP7MSy7x9qlZRTdV7Bu4N+pKKeLw/X59/KAIk7+3jJ75yE6jIYjTvvDt8cE5f4Bu2Nu4tajafxpcrmLFSekK8JAS5n6k359j6PDmTN8azlQDJaukmQr3wsZmw8KYtqVhyXvsKM7YRGk3a+c9YWBHT+wZKwtEwJ7EV7qQu7gKgmGoJq36NIKgET6IIwVQlGpogvFJs3LEP9VKbbIhmxcAk3ZpO4H09SGRMDynVfhLA2KTOr154fgn9QHOneSAxcktoEpO0N5Rli2+LvLzwoAbLJnYQKp5Vjm17tytx5G7/B5PgAA=",
+    "srcSet": "/art/optimized/box-yata-blind-v2-320.webp 320w, /art/optimized/box-yata-blind-v2-640.webp 640w, /art/optimized/box-yata-blind-v2.webp 1024w"
+  },
+  "/art/optimized/box-my-top-five-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRjwBAABXRUJQVlA4IDABAABwBgCdASoYABgAPwFyrlKrJqQiqAqpYCAJbACdMoKNIcQIoCV2tsY93BeiWQrg2vnWZvVWoNqj8dNMvAAA/oXNPueIoTlsF2iHebEKoVQxToKWOm20n0HX/3kJzxwwg+JqmJDBzQ0HUPdzFjfpQTxwGwNKarEymgMalcY52e+WgnY+Xu6D7DoAHElMfYQmWyaRPuZCt562BlqAK8PbINd+DCQfhDwSLnCnDdhYxtyQfU4PpS69/7cYiiQfFJpz3SWFRYWWmIHwygXgCE2MEVJ4AWpmH0Gb7U6Uzvv7A8MTLZuWyBtB9WF1t+xwSNxzfYCH4wFuVbyLtT6p6dZIO1AK9gDx/MH4QvjOM1NBFnYCsMEfsil1GHs50QL4nlmVst51wUyWgUt+juTabTF7gAAA",
+    "srcSet": "/art/optimized/box-my-top-five-blind-v1-320.webp 320w, /art/optimized/box-my-top-five-blind-v1-640.webp 640w, /art/optimized/box-my-top-five-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-atlas-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRiABAABXRUJQVlA4IBQBAACwBgCdASoYABgAPwF4tFQrJySjKAgBYCAJZgCdKIFj/xMw8F5QMO4zCFiRoFYPboUe6aHkyaxuk8/SvnZSQAD+XWrWL3mefmLbg0usxjfy49MVVzbaOXEOqhXKcfm9zaXjRXoN9XNNwx+//tsfe99NAY+NKYuybDn8KvXdRP80mXrJtaAr1oEXi1jlVI7eJXgEiXn/pWHfeIz06J+Rwmay3o0PoSmIKw26s0su0issnTPaEuJOcaxvlGlX4ZmVOCMK0TCNYHbj6lVl0Cb67uz5M6/cy+OBwDA5b9t5OAc3PyakrYkRbkiczSPeBEfwQTQ0SPgCv3cqJANStO+6Hjr4kRKaistPtXEFxF5ob7ElaJ0gAAA=",
+    "srcSet": "/art/optimized/box-atlas-blind-v1-320.webp 320w, /art/optimized/box-atlas-blind-v1-640.webp 640w, /art/optimized/box-atlas-blind-v1.webp 1024w"
   }
 }

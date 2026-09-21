@@ -1,37 +1,34 @@
 import { topics } from './catalog.ts';
-import { facts } from './facts.ts';
 import { groups, assertSeats, groupName } from './groups.ts';
 export { groupName, teamNames } from './groups.ts';
 import {
   shuffle,
   roll,
-  rng,
   note,
   type Difficulty,
   type StandaloneBase,
 } from '../standalone/types.ts';
 export type RankingMove =
   | { type: 'topic'; target: number }
-  | { type: 'decoy'; text: string }
   | { type: 'arrange'; order: number[] }
-  | { type: 'lock' | 'unlock' | 'ready' };
+  | { type: 'lock' | 'unlock' | 'ready' | 'refresh' };
 type Ballot = {
   topic: number;
   order: number[];
   locked: boolean;
-  answers?: string[];
-  decoy?: string;
 };
 type Guess = { order: number[]; locked: boolean };
 export type RankingGame = StandaloneBase & {
-  kind: 'orin' | 'vela';
-  rules: 5;
+  kind: 'orin';
+  rules: 6;
   mode: 'teams' | 'individual';
   round: number;
   tutorial: boolean;
   lesson: number;
   phase: 'rank' | 'guess' | 'reveal';
   offers: number[][];
+  refreshes?: number[];
+  topicOrders?: Record<number, number[]>[];
   ballots: (Ballot | null)[];
   target: number;
   guesses: (Guess | null)[];
@@ -44,25 +41,27 @@ export type RankingGame = StandaloneBase & {
     order: number[];
     guesses: (Guess | null)[];
     gains: number[];
-    bluff: number[];
   };
 };
-export const tiers = ['S', 'A', 'B', 'C', 'D'];
-export function count(g: RankingGame) {
-  return g.kind === 'vela' ? 6 : 5;
+export const tiers = ['1st', '2nd', '3rd', '4th', '5th'];
+export function count(_g?: RankingGame) {
+  return 5;
 }
 export function createGame(
-  kind: 'orin' | 'vela',
+  kind: 'orin',
   n: number,
   seed: number,
   difficulty: Difficulty = 'medium',
   mode: 'teams' | 'individual' = 'individual',
+  _seen: ReadonlySet<string> = new Set(),
+  teams?: number[],
 ): RankingGame {
+  if (kind !== 'orin') throw new Error('Unknown ranking game.');
   assertSeats(n, mode);
   const g: RankingGame = {
     kind,
     version: 1,
-    rules: 5,
+    rules: 6,
     rngState: seed >>> 0,
     difficulty,
     seats: Array.from({ length: n }, (_, i) => (i ? `Player ${i + 1}` : 'You')),
@@ -77,18 +76,19 @@ export function createGame(
     offers: [],
     ballots: [],
     target: 0,
-    guesses: Array.from({ length: mode === 'teams' ? 2 : n }, () => null),
+    guesses: Array.from({ length: mode === 'teams' ? n + 2 : n }, () => null),
     scores: Array(mode === 'teams' ? 2 : n).fill(0),
     ready: [],
     deck: [],
-    teams: groups(n, mode),
+    teams: groups(n, mode, teams),
     lastAction: '',
     result: null,
   };
   g.deck = shuffle(
-    (kind === 'vela' ? facts : topics).map((t) => t.id),
+    topics.map((t) => t.id),
     () => roll(g),
   );
+
   deal(g);
   return g;
 }
@@ -96,23 +96,53 @@ function deal(g: RankingGame) {
   g.phase = 'rank';
   g.target = 0;
   g.result = null;
-  g.guesses = g.scores.map(() => null);
+  g.guesses = Array.from({ length: guessCount(g) }, () => null);
   g.ready = g.seats.map(() => false);
-  g.offers = g.seats.map(() => g.deck.splice(0, g.kind === 'vela' ? 2 : 3));
+  g.offers = g.seats.map(() => g.deck.splice(0, 3));
   g.ballots = g.seats.map(() => null);
-  note(
-    g,
-    `Round ${g.round}: everyone prepares a private ${g.kind === 'vela' ? 'factual list and decoy' : 'ranking'} at once.`,
-  );
+  g.refreshes = g.seats.map(() => 0);
+  g.topicOrders = g.seats.map(() => ({}));
+  note(g, `Round ${g.round}: everyone prepares a private ranking at once.`);
+}
+export function guessCount(g: RankingGame) {
+  return g.mode === 'teams' ? g.seats.length + 2 : g.scores.length;
+}
+export function guessSlot(g: RankingGame, seat: number) {
+  return g.mode === 'teams' && g.teams[seat] === g.teams[g.target]
+    ? seat + 2
+    : g.teams[seat];
+}
+export function guessTeam(g: RankingGame, slot: number) {
+  return slot >= 2 && g.mode === 'teams' ? g.teams[slot - 2] : slot;
+}
+export function guessName(g: RankingGame, slot: number) {
+  return slot >= 2 && g.mode === 'teams'
+    ? g.seats[slot - 2]
+    : groupName(g, slot);
 }
 export function guessingTeams(g: RankingGame) {
-  return g.scores.flatMap((_, t) => (t !== g.teams[g.target] ? [t] : []));
+  return [
+    ...new Set(
+      g.seats.flatMap((_, seat) =>
+        seat !== g.target ? [guessSlot(g, seat)] : [],
+      ),
+    ),
+  ];
 }
 export function captain(g: RankingGame, team: number) {
+  if (g.mode === 'teams' && team >= 2) return team - 2;
   const seats = g.teams.flatMap((t, s) =>
     t === team && s !== g.target ? [s] : [],
   );
   return seats[(g.target + g.round - 1) % seats.length];
+}
+export function guessPoints(
+  order: number[],
+  answer: number[],
+  _kind?: RankingGame['kind'],
+) {
+  const hits = order.slice(0, 5).filter((v, i) => v === answer[i]).length;
+  return hits + (hits === 5 ? 2 : 0);
 }
 export function actingSeats(g: RankingGame): number[] {
   if (g.over) return [];
@@ -148,38 +178,20 @@ export function validMove(
   )
     return false;
   const m = move as RankingMove;
-  if (
-    Object.keys(m).some((k) => !['type', 'target', 'order', 'text'].includes(k))
-  )
+  if (Object.keys(m).some((k) => !['type', 'target', 'order'].includes(k)))
     return false;
   if (g.phase === 'reveal') return m.type === 'ready' && !g.ready[seat];
   if (g.phase === 'rank') {
     const b = g.ballots[seat];
     if (m.type === 'unlock') return !!b?.locked;
     if (b?.locked) return false;
+    if (m.type === 'refresh') return (g.refreshes?.[seat] ?? 0) < 2;
     if (m.type === 'topic')
       return Number.isInteger(m.target) && g.offers[seat].includes(m.target);
-    if (m.type === 'decoy')
-      return (
-        g.kind === 'vela' &&
-        !!b &&
-        typeof m.text === 'string' &&
-        m.text.trim().length > 0 &&
-        m.text.length <= 80 &&
-        !facts[b.topic].answers.some(
-          (a) => a.toLocaleLowerCase() === m.text.trim().toLocaleLowerCase(),
-        )
-      );
-    if (m.type === 'arrange')
-      return g.kind === 'orin' && !!b && permutation(m.order, count(g));
-    return (
-      m.type === 'lock' &&
-      !!b &&
-      permutation(b.order, count(g)) &&
-      (g.kind === 'orin' || !!b.decoy)
-    );
+    if (m.type === 'arrange') return !!b && permutation(m.order, count(g));
+    return m.type === 'lock' && !!b && permutation(b.order, count(g));
   }
-  const t = g.teams[seat];
+  const t = guessSlot(g, seat);
   if (seat === g.target || !guessingTeams(g).includes(t)) return false;
   const b = g.guesses[t];
   if (m.type === 'unlock') return !!b?.locked && captain(g, t) === seat;
@@ -193,30 +205,32 @@ export function play(g: RankingGame, m: RankingMove, s: number): RankingGame {
   n.revision++;
   n.lastAction = m.type;
   if (n.phase === 'rank') {
-    if (m.type === 'topic')
+    if (m.type === 'topic' || m.type === 'refresh') {
+      n.topicOrders ??= n.seats.map(() => ({}));
+      const previous = n.ballots[s];
+      if (previous) n.topicOrders[s][previous.topic] = [...previous.order];
+    }
+    if (m.type === 'refresh') {
+      n.refreshes ??= n.seats.map(() => 0);
+      n.refreshes[s]++;
+      n.offers[s] = n.deck.splice(0, 3);
+      n.ballots[s] = n.ballots[s]
+        ? { topic: n.offers[s][0], order: [0, 1, 2, 3, 4], locked: false }
+        : null;
+    }
+    if (m.type === 'topic') {
       n.ballots[s] = {
         topic: m.target,
-        order: Array.from({ length: count(n) }, (_, i) => i),
+        order: n.topicOrders?.[s]?.[m.target]
+          ? [...n.topicOrders[s][m.target]]
+          : Array.from({ length: count(n) }, (_, i) => i),
         locked: false,
       };
-    if (m.type === 'decoy') {
-      n.ballots[s]!.decoy = m.text.trim();
-      delete n.ballots[s]!.answers;
-      n.ballots[s]!.order = [0, 1, 2, 3, 4, 5];
     }
     if (m.type === 'arrange') n.ballots[s]!.order = [...m.order];
     if (m.type === 'lock') {
       const ballot = n.ballots[s]!;
-      if (n.kind === 'vela') {
-        const trueAnswers = [...facts[ballot.topic].answers, ballot.decoy!];
-        ballot.answers = shuffle(
-          trueAnswers,
-          rng((n.rngState ^ Math.imul(s + 1, 7919) ^ ballot.topic) >>> 0),
-        );
-        ballot.order = trueAnswers.map((answer) =>
-          ballot.answers!.indexOf(answer),
-        );
-      }
+
       ballot.locked = true;
     }
     if (m.type === 'unlock') n.ballots[s]!.locked = false;
@@ -224,11 +238,11 @@ export function play(g: RankingGame, m: RankingMove, s: number): RankingGame {
       n.phase = 'guess';
       note(
         n,
-        `Read ${n.seats[n.target]}'s list. ${n.mode === 'teams' ? 'The opposing team shares one guess.' : 'Everyone else guesses privately.'}`,
+        `Read ${n.seats[n.target]}'s list. ${n.mode === 'teams' ? 'Opponents share a guess. The author’s teammates guess silently on their own; their scores are averaged.' : 'Everyone else guesses privately.'}`,
       );
     }
   } else if (n.phase === 'guess') {
-    const t = n.teams[s];
+    const t = guessSlot(n, s);
     if (m.type === 'arrange')
       n.guesses[t] = {
         order: [...m.order],
@@ -244,37 +258,27 @@ export function play(g: RankingGame, m: RankingMove, s: number): RankingGame {
     if (m.type === 'unlock') n.guesses[t]!.locked = false;
     if (guessingTeams(n).every((t) => n.guesses[t]?.locked)) {
       const answer = n.ballots[n.target]!.order,
-        gains = n.scores.map(() => 0),
-        bluff = n.scores.map(() => 0);
+        gains = n.scores.map(() => 0);
       for (const team of guessingTeams(n)) {
         const guess = n.guesses[team]!;
-        const hits = guess.order
-          .slice(0, 5)
-          .filter((v, i) => v === answer[i]).length;
-        gains[team] =
-          hits +
-          (n.kind === 'orin'
-            ? hits === 5
-              ? 2
-              : 0
-            : guess.order[5] === answer[5]
-              ? 3
-              : 0);
-        if (n.kind === 'vela' && guess.order[5] !== answer[5])
-          bluff[n.teams[n.target]] += 2;
+        const scoringTeam = guessTeam(n, team);
+        const divisor = guessingTeams(n).filter(
+          (slot) => guessTeam(n, slot) === scoringTeam,
+        ).length;
+        gains[scoringTeam] +=
+          guessPoints(guess.order, answer, n.kind) / divisor;
       }
-      n.scores = n.scores.map((v, i) => v + gains[i] + bluff[i]);
+      n.scores = n.scores.map((v, i) => v + gains[i]);
       n.result = {
         order: [...answer],
         guesses: structuredClone(n.guesses),
         gains,
-        bluff,
       };
       n.phase = 'reveal';
       n.ready = n.seats.map(() => false);
       note(
         n,
-        `${n.seats[n.target]}'s list revealed. ${n.scores.map((_, i) => `${groupName(n, i)} +${gains[i] + bluff[i]}`).join(', ')}.`,
+        `${n.seats[n.target]}'s list revealed. ${n.scores.map((_, i) => `${groupName(n, i)} +${gains[i]}`).join(', ')}.`,
       );
     }
   } else if (m.type === 'ready') {
@@ -287,7 +291,7 @@ export function play(g: RankingGame, m: RankingMove, s: number): RankingGame {
       }
       n.target++;
       n.result = null;
-      n.guesses = n.scores.map(() => null);
+      n.guesses = Array.from({ length: guessCount(n) }, () => null);
       n.ready = n.seats.map(() => false);
       if (n.target < n.seats.length) n.phase = 'guess';
       else {
@@ -302,6 +306,9 @@ export function observe(g: RankingGame, viewer: number): RankingGame {
   const n = structuredClone(g);
   n.rngState = 0;
   n.deck = [];
+  n.topicOrders = n.topicOrders?.map((orders, s) =>
+    s === viewer ? orders : {},
+  );
   n.lastAction = n.phase;
   n.offers = n.offers.map((v, s) => (s === viewer ? v : []));
   n.ballots = n.ballots.map((b, s) =>
@@ -312,11 +319,6 @@ export function observe(g: RankingGame, viewer: number): RankingGame {
               ? b.topic
               : -1,
           locked: b.locked,
-          ...(b.answers &&
-          (s === viewer || (n.phase !== 'rank' && s === n.target))
-            ? { answers: [...b.answers] }
-            : {}),
-          ...(b.decoy && s === viewer ? { decoy: b.decoy } : {}),
           order:
             s === viewer || (s === n.target && n.phase === 'reveal')
               ? [...b.order]
@@ -330,7 +332,7 @@ export function observe(g: RankingGame, viewer: number): RankingGame {
           ...b,
           order:
             n.phase === 'reveal' ||
-            (viewer !== n.target && n.teams[viewer] === t)
+            (viewer !== n.target && guessSlot(n, viewer) === t)
               ? [...b.order]
               : [],
         }
@@ -348,10 +350,7 @@ export function botMove(g: RankingGame, s: number): RankingMove | null {
         type: 'topic',
         target: g.offers[s][(s + g.round) % g.offers[s].length],
       };
-    if (g.kind === 'vela')
-      return b.decoy
-        ? { type: 'lock' }
-        : { type: 'decoy', text: facts[b.topic].botDecoy };
+
     // A stable per-seat permutation, based only on this player's visible topic.
     const order = Array.from({ length: count(g) }, (_, i) => i).sort(
       (a, b) =>
@@ -361,8 +360,8 @@ export function botMove(g: RankingGame, s: number): RankingMove | null {
     if (b.order.join() !== order.join()) return { type: 'arrange', order };
     return { type: 'lock' };
   }
-  const t = g.teams[s];
-  if (g.guesses[t]) return { type: 'lock' };
+  const t = guessSlot(g, s);
+  if (permutation(g.guesses[t]?.order, count(g))) return { type: 'lock' };
   // Bots never see a target's hidden preference and never pretend to infer it.
   let seed = (g.target + 1) * 31337 + (t + 1) * 7717 + g.round * 131;
   const order = shuffle(

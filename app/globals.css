@@ -8767,3 +8767,10 @@ button.primary {
 
 /* Practice is a separate, manually advanced sandbox in every game. */
 .sandbox-coach{position:fixed!important;left:12px!important;top:110px!important;bottom:auto!important;width:min(285px,calc(100vw - 24px));max-height:calc(100dvh - 240px);overflow:auto;z-index:60;pointer-events:auto}.sandbox-coach small{display:block;font-size:11px;line-height:1.4}.sandbox-controls{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.sandbox-controls button{padding:6px;border:1px solid currentColor;border-radius:6px;font-size:11px}@media(max-height:500px){.sandbox-coach{top:60px!important;max-height:calc(100dvh - 150px);width:230px}}
+
+/* Practice uses the same right-side time-control position as live game navigation. */
+.practice-advance-time { position: fixed; z-index: 61; top: max(8px, env(safe-area-inset-top)); right: 150px; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 10px; border: 1px solid #6d6352; border-radius: 10px; background: #fff8e8; color: #352c24; font-size: 12px; cursor: pointer; }
+@media (max-width: 700px) {
+  .practice-advance-time { right: 105px; top: max(52px, env(safe-area-inset-top) + 44px); width: 40px; padding: 8px; }
+  .practice-advance-time span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}

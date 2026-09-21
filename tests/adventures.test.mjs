@@ -9,7 +9,7 @@ import {
 } from '../lib/games/standalone/registry.ts';
 import { topics } from '../lib/games/party/catalog.ts';
 import * as ranking from '../lib/games/party/ranking.ts';
-import { facts } from '../lib/games/party/facts.ts';
+
 import { practice, advancePractice } from '../lib/games/adventures/lessons.ts';
 const permutations = (n) =>
   n === 0
@@ -41,12 +41,7 @@ function ranked(id = 'orin', n = 4) {
       },
       s,
     );
-    if (id === 'vela')
-      g = ranking.play(
-        g,
-        { type: 'decoy', text: facts[g.ballots[s].topic].botDecoy },
-        s,
-      );
+
     g = ranking.play(g, { type: 'lock' }, s);
   }
   return g;
@@ -60,10 +55,10 @@ await test('116 original topics have six distinct answers and fresh three-topic 
     assert.equal(new Set(t.answers).size, 6);
     assert.ok(t.answers.every((a) => a.length > 0));
   }
-  for (const id of ['orin', 'vela']) {
+  for (const id of ['orin']) {
     const g = standaloneGames[id].create(6, 5, 'medium');
-    assert.equal(new Set(g.offers.flat()).size, id === 'vela' ? 12 : 18);
-    assert.ok(g.offers.every((a) => a.length === (id === 'vela' ? 2 : 3)));
+    assert.equal(new Set(g.offers.flat()).size, 18);
+    assert.ok(g.offers.every((a) => a.length === (3)));
   }
 });
 await test('every seat count completes reproducibly, preserves inputs and saves at every phase', () => {
@@ -96,7 +91,7 @@ await test('every seat count completes reproducibly, preserves inputs and saves 
       }
 });
 await test('ranking drafts, offers, future lists, team guesses and seeds stay private', () => {
-  for (const id of ['orin', 'vela']) {
+  for (const id of ['orin']) {
     let g = ranked(id);
     const answer = g.ballots[0].order;
     const team = 1,
@@ -121,7 +116,7 @@ await test('ranking drafts, offers, future lists, team guesses and seeds stay pr
   }
 });
 await test('all permutations are accepted; duplicate, incomplete, outsider and hostile moves are rejected', () => {
-  for (const id of ['orin', 'vela']) {
+  for (const id of ['orin']) {
     const e = standaloneGames[id];
     let g = e.create(4, 1, 'easy');
     g = e.play(g, { type: 'topic', target: g.offers[0][0] }, 0);
@@ -149,17 +144,11 @@ await test('all permutations are accepted; duplicate, incomplete, outsider and h
   }
 });
 await test('simultaneous ranking locks are atomic and independent of submission order', () => {
-  for (const id of ['orin', 'vela']) {
+  for (const id of ['orin']) {
     let g = standaloneGames[id].create(4, 8, 'medium');
     for (let s = 0; s < 4; s++)
       g = ranking.play(g, { type: 'topic', target: g.offers[s][0] }, s);
-    if (id === 'vela')
-      for (let s = 0; s < 4; s++)
-        g = ranking.play(
-          g,
-          { type: 'decoy', text: facts[g.ballots[s].topic].botDecoy },
-          s,
-        );
+
     let a = g,
       b = g;
     for (const s of [0, 1, 2]) a = ranking.play(a, { type: 'lock' }, s);
@@ -172,7 +161,7 @@ await test('simultaneous ranking locks are atomic and independent of submission 
   }
 });
 await test('captains lock shared drafts, owner cannot guess, reveal waits for all teams and scores exact ranks', () => {
-  for (const id of ['orin', 'vela']) {
+  for (const id of ['orin']) {
     let g = ranked(id, 6);
     assert.equal(ranking.validMove(g, { type: 'lock' }, g.target), false);
     const answer = g.ballots[g.target].order;
@@ -189,22 +178,11 @@ await test('captains lock shared drafts, owner cannot guess, reveal waits for al
       g = ranking.play(g, { type: 'lock' }, cap);
     }
     assert.equal(g.phase, 'reveal');
-    assert.deepEqual(g.scores, id === 'orin' ? [0, 7] : [0, 8]);
+    assert.deepEqual(g.scores, id === 'orin' ? [7, 7] : [0, 8]);
     assert.deepEqual(observe(g, -1).result.order, answer);
   }
 });
-await test('Outfox scores factual positions, a caught fox, and two points for fooling opponents', () => {
-  let g = ranked('vela');
-  const actual = g.ballots[0].order,
-    wrong = [...actual];
-  [wrong[0], wrong[5]] = [wrong[5], wrong[0]];
-  const s = ranking.captain(g, 1);
-  g = ranking.play(g, { type: 'arrange', order: wrong }, s);
-  g = ranking.play(g, { type: 'lock' }, s);
-  assert.deepEqual(g.result.gains, [0, 4]);
-  assert.deepEqual(g.result.bluff, [2, 0]);
-  assert.deepEqual(g.scores, [2, 4]);
-});
+
 await test('withdraw before final lock; ready acknowledgements do not skip someone’s reveal', () => {
   let g = standaloneGames.orin.create(2, 33, 'medium');
   g = ranking.play(g, { type: 'topic', target: g.offers[0][0] }, 0);

@@ -1,0 +1,9 @@
+# Atlas — blind cover
+
+Built-in image_gen; text-only generation, no input references or previous artwork inspected. Source 1254×1254 PNG: `public/art/box-atlas-blind-v1.png`. Optimized 1024×1024 WebP: `public/art/optimized/box-atlas-blind-v1.webp` via Sharp resize, quality90. Cache: `/Users/williamguinaudie/.codex/generated_images/01a0c373-a986-7a11-ab0e-5a645c0f3176/exec-388028ff-f149-4b7e-bd75-612a8e955b86.png`.
+
+Visual review: exact title large and centered entirely within central84% safe bounds; full-bleed travel illustration with distinct mountains, coastline, terraces, desert architecture and harbour, exploratory route pins and people sharing a map. No screenshot, UI, counters, external padding or box mockup. No additional text visible. A separately resized 160×160 thumbnail was visually checked: title remains readable. No browser/touch check performed.
+
+## Exact prompt
+
+Use case: illustration-story. Create a fresh full-bleed square 2D illustrated board-game cover. Text verbatim: "Atlas", no other text or numbers. Shared journeys and geography discovery, six destinations found through conversation and pins. Striking original travel-poster/cartographic lithographic illustration: a single sweeping ribbon of landscape journeys from towering snowy peaks through teal coastlines and terraced hills into warm desert architecture and a distant harbour, with delicate exploratory route curves connecting diverse places. Deep navy, teal, amber and creamy paper light; assured lithographic shapes and print texture. A handsome monumental custom explorer title "Atlas" is integrated across the composition, large and effortlessly readable at 160px, entirely within central84% safe bounds (8% margins minimum). Landscape imagery reaches all four edges. No empty header reserved for DOM text. No world-map gameplay screen, UI, counters, border, external mat, gray padding, box mockup, or additional text. Fresh cover composition based on these words alone.

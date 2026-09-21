@@ -142,6 +142,10 @@ export async function makeServer(
       for(const [seat,job]of seats)if(job.decision!==key||(seat!==-1&&!standaloneGames[g.kind].actingSeats(g).includes(seat))){clearTimeout(job.timer);void job.worker?.terminate();seats.delete(seat);}
       if(t.status!=='playing'||g.tutorial){for(const job of seats.values())clearTimeout(job.timer);jobs.delete(invite);return;}
       for(const seat of standaloneGames[g.kind].actingSeats(g)){if(options.bots===false||!t.seats[seat]?.bot||seats.has(seat))continue;const job:BotJob={decision:key,timer:setTimeout(()=>{seats.delete(seat);if(stopping)return;tables.adventureBot(invite,key,seat);publish(invite);},650)};seats.set(seat,job);}
+      if(g.kind==='miro'&&g.phase==='discuss'&&g.discussionEndsAt!==null&&!seats.has(-1)){
+        const job:BotJob={decision:key,timer:setTimeout(()=>{seats.delete(-1);if(stopping)return;tables.adventureTick(invite,key);publish(invite);},Math.max(0,g.discussionEndsAt-Date.now())+25)};
+        seats.set(-1,job);
+      }
       jobs.set(invite,seats);return;
     }
     if(options.bots===false)return;

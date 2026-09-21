@@ -1,3 +1,4 @@
+import { printedBoxArt } from './box-covers.ts';
 import type { GameId } from './trio/engine';
 import { standaloneGames } from './standalone/registry.ts';
 import type { StandaloneId } from './standalone/types.ts';
@@ -32,6 +33,8 @@ export type LibraryGame = {
   standaloneId?: StandaloneId;
   name: string;
   cover?: string;
+  /** The cover image contains its own generated, styled game title. */
+  coverIncludesTitle?: boolean;
   spine?: string;
   world: string;
   minutes: number;
@@ -68,7 +71,7 @@ const real = (
   gameId: GameId,
   name: string,
   rest: Omit<LibraryGame, 'id' | 'gameId' | 'name'>,
-): LibraryGame => ({ id: gameId, gameId, name, ...rest });
+): LibraryGame => ({ id: gameId, gameId, name, ...rest, ...printedBoxArt(gameId) });
 
 export const realGames: Record<GameId, LibraryGame> = {
   undertow: real('undertow', 'Nox', {
@@ -123,8 +126,7 @@ const own = (
   id: standaloneId,
   standaloneId,
   name: standaloneGames[standaloneId].name,
-  cover: standaloneId === 'miro' ? '/art/atlas-cover.svg' : `/art/party-${standaloneId === 'orin' ? 'top-tier' : 'outfox'}-cover-v1.webp`,
-  spine: standaloneId === 'miro' ? '/art/atlas-cover.svg' : `/art/party-${standaloneId === 'orin' ? 'top-tier' : 'outfox'}-cover-v1.webp`,
+  ...printedBoxArt(standaloneId),
   ...rest,
 });
 
@@ -146,24 +148,12 @@ export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
     motif: 'grid',
     playing: [],
   }),
-  vela: own('vela', {
-    world: 'Five sourced facts, one sly decoy: find the fox and rank the truth',
-    minutes: 25,
-    players: [2, 6],
-    mode: 'Teams',
-    weight: 1,
-    genre: 'Ranking & bluffing',
-    material: 'cloth',
-    palette: ['#34472f', '#8ca174', '#f5e8c9'],
-    motif: 'leaf',
-    playing: [],
-  }),
   miro: own('miro', {
     world:
-      'One shared world: arrange the cities, lock your route, reveal together',
-    minutes: 20,
+      'Six destinations: place your pins, hear your team, find your world',
+    minutes: 8,
     players: [2, 6],
-    mode: 'Competitive',
+    mode: 'Teams',
     weight: 1,
     genre: 'Geography & shared challenges',
     material: 'tin',
@@ -477,7 +467,9 @@ export const libraryGames: LibraryGame[] = [
   ...placeholderGames,
 ];
 export const playableGame = (id: string) =>
-  libraryGames.find((g) => g.id === id && (g.gameId || g.standaloneId));
+  libraryGames.find(
+    (g) => g.id === id && (g.gameId || g.standaloneId),
+  );
 export const gameByLibraryId = (id: string) =>
   libraryGames.find((g) => g.id === id);
 
@@ -491,7 +483,13 @@ export const shelves: {
     id: 'playable',
     title: 'Ready to play',
     icon: 'sparkles',
-    games: ['undertow', 'wildgrove', 'midnight', 'orin', 'vela', 'miro'],
+    games: [
+      'undertow',
+      'wildgrove',
+      'midnight',
+      'orin',
+      'miro',
+    ],
   },
   {
     id: 'new',

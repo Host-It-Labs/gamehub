@@ -14,7 +14,7 @@ export const lessons: Record<
       target: 'die',
       action: 'roll',
       title: 'Reveal the hazard',
-      text: 'The die rolls automatically. The 8 of the suit shown (4 in Fast mode) is worth 40 points, or 8 points in Fast mode.',
+      text: 'The die rolls automatically. The 8 of the suit shown (4 in Fast mode) is worth 40 points, or 10 points in Fast mode.',
     },
     {
       target: 'hand',

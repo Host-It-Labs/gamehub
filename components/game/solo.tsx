@@ -1,4 +1,8 @@
 'use client';
+import { GameProgress } from './game-progress';
+import { totalRounds } from '@/lib/games/trio/engine';
+import { requiresHumanPlayers } from '@/lib/games/player-policy';
+import { useBoardLeave } from './use-board-leave';
 import { dropTargetNear } from './drag-preview';
 import { FullscreenControl, useFullscreen } from './fullscreen-control';
 import {
@@ -14,7 +18,7 @@ import {
 } from './use-ambience';
 import { ExtensionAction } from './extension-action';
 import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
-import { TableHeading, TableProgress, gameName } from '../game/table-heading';
+import { TableHeading, gameName } from '../game/table-heading';
 import {
   useAutoRoll,
   MoveConfirmation,
@@ -25,7 +29,11 @@ import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from './artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { SanctuaryBadges } from '@/components/game/mora-extension';
-import { SetupBox, PlaceholderBox, StandaloneSetupBox } from '../game/setup-box';
+import {
+  SetupBox,
+  PlaceholderBox,
+  StandaloneSetupBox,
+} from '../game/setup-box';
 import { StandaloneTable } from './standalone-table';
 import {
   standaloneGames,
@@ -124,7 +132,14 @@ export default function SoloGame() {
     [openOwn, setOpenOwn] = useState<StandaloneId | null>(null),
     [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
     [ownSeats, setOwnSeats] = useState(3);
+  const [ownTeams, setOwnTeams] = useState<number[] | undefined>();
   const [ownMode, setOwnMode] = useState<'teams' | 'individual'>('individual');
+  function leaveOwn() {
+    if (window.confirm('Leave the board? Your game is saved so you can return later.')) { setOpenOwn(null); setOwnPractice(null); }
+  }
+  useBoardLeave(!!(g || openOwn), () => {
+    if (openOwn) leaveOwn(); else { rememberPanel('leave'); setPanelOpen(true); }
+  });
   const festival = useFestivalChoice(g, 0);
   function setPanel(value: typeof panel) {
     if (value) rememberPanel(value);
@@ -210,17 +225,19 @@ export default function SoloGame() {
   function openOwnSetup(id: StandaloneId) {
     const entry = standaloneGames[id];
     const saved = own[id];
+    setOwnTeams(saved?.mode === 'teams' ? saved.teams : undefined);
     setOwnSeats(
       saved && entry.seatChoices.includes(saved.seats.length)
         ? saved.seats.length
         : entry.defaultSeats,
     );
-    setOwnMode(saved ? saved.mode : 'individual');
+    setOwnMode(saved ? saved.mode : id === 'miro' ? 'teams' : 'individual');
     if (saved) setDifficulty(saved.difficulty);
     setOwnSetup(id);
   }
   function startOwn(id: StandaloneId, learning=false) {
-    storeOwn(learning?practice(id,ownSeats,difficulty,0,ownMode):standaloneGames[id].create(ownSeats, seed(), difficulty, ownMode));
+    if (requiresHumanPlayers(id)) return;
+    storeOwn(learning?practice(id,ownSeats,difficulty,0,ownMode,ownTeams):standaloneGames[id].create(ownSeats, seed(), difficulty, ownMode, undefined, ownTeams));
     setOwnSetup(null);
     setOpenOwn(id);
     cue('shuffle', volume);
@@ -554,14 +571,14 @@ export default function SoloGame() {
     bestScore = g?.id === 'undertow' ? Math.min(...sc) : Math.max(...sc),
     winners = g?.players.filter((_, i) => sc[i] === bestScore) ?? [];
   const ownGame = openOwn ? (ownPractice?.kind===openOwn?ownPractice:own[openOwn]) : undefined;
-  if (openOwn && ownGame)
+  if (openOwn && ownGame && !requiresHumanPlayers(openOwn))
     return (
       <div className={`app at-table ${openOwn}`}>
         <StandaloneTable
           g={ownGame}
           volume={volume}
           onChange={storeOwn}
-          onHome={() => {setOpenOwn(null);setOwnPractice(null);}}
+          onHome={leaveOwn}
           onNew={() => startOwn(openOwn)}
           onSound={() => setPanel('sound')}
         />
@@ -665,7 +682,7 @@ export default function SoloGame() {
               <span>{world ? gameName(g) : 'Games'}</span>
             </button>
             {!world && <TableHeading g={g} />}
-            {g.id === 'undertow' && <TableProgress g={g} roundOnly />}
+            <GameProgress label={`Round ${g.round} / ${totalRounds(g)}`} />
             <div className="table-toolbar-actions">
               <div className="table-others-slot" />
               {!world && <FullscreenControl />}
@@ -694,7 +711,7 @@ export default function SoloGame() {
                   inspect={inspect}
                   advanced={advanced}
                   boardButton
-                  progress={<TableProgress g={g} roundOnly />}
+
                 />
               </div>
               {g.id === 'wildgrove' && g.sanctuaryGoalsEnabled && (
@@ -772,22 +789,7 @@ export default function SoloGame() {
                   <span>
                     {passed.length}/{passCount(g)} selected
                   </span>
-                ) : g.id !== 'wildgrove' ? (
-                  <button
-                    className="sort-button"
-                    onClick={() =>
-                      setOrder(
-                        [...g.players[0].hand]
-                          .sort((a, b) => a.kind - b.kind || a.rank - b.rank)
-                          .map((c) => c.id),
-                      )
-                    }
-                  >
-                    Sort
-                  </button>
-                ) : (
-                  <span />
-                )}
+                ) : null}
               </div>
           <UndoChoice g={g} viewer={0}
             drafted={selected !== null || passed.length > 0 || !!nature.choice.migration || !!nature.choice.roam || !!ward}
@@ -895,7 +897,8 @@ export default function SoloGame() {
               difficulty={difficulty}
               mode={ownMode}
               onMode={setOwnMode}
-              onSeats={n => { setOwnSeats(n); if (![4,6].includes(n)) setOwnMode('individual'); }}
+              teams={ownTeams} onTeams={setOwnTeams}
+              onSeats={n => { setOwnSeats(n); setOwnTeams(undefined); }}
               onDifficulty={setDifficulty}
               onPlay={() => startOwn(ownSetup)}
               onLearn={() => startOwn(ownSetup,true)}

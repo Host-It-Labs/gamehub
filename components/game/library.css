@@ -668,8 +668,6 @@
 }
 .view-list .shelf-box .gbox {
   --w: 118px;
-  --h: 80px;
-  --d: 47px;
 }
 .view-list .shelf-item-details {
   flex: 1;
@@ -776,8 +774,8 @@
   }
   .hero-box .gbox {
     --w: 212px;
-    --h: 144px;
-    --d: 84px;
+    --h: var(--w);
+    --d: calc(var(--w) * .24);
   }
   .hero-copy h1 {
     font-size: 40px;
@@ -795,8 +793,8 @@
   }
   .open-table .gbox {
     --w: 52px;
-    --h: 35px;
-    --d: 21px;
+    --h: var(--w);
+    --d: calc(var(--w) * .24);
     transform: none;
   }
   .shelf-row,
@@ -830,8 +828,6 @@
   .shelf-box .gbox,
   .view-list .shelf-box .gbox {
     --w: 112px;
-    --h: 76px;
-    --d: 44px;
     --tilt: -24deg;
     align-self: center;
   }
@@ -860,8 +856,6 @@
   .shelf-box .gbox,
   .view-list .shelf-box .gbox {
     --w: 100px;
-    --h: 68px;
-    --d: 40px;
   }
   .chip {
     height: 32px;
@@ -887,16 +881,33 @@
   }
 }
 
-/* Small games get small, varied boxes; the six playable games share the first shelf. */
+/* Equal square boxes use the available shelf cell, including their projected spine. */
 .library-top .hero { min-height: 340px; }
 .hero-box { align-self: center; }
-.shelf-row { align-items: end; gap: 22px; }
-.shelf-item { flex: 0 0 145px; width: 145px; }
-.shelf-box { width: 100%; align-items: center; }
-.shelf-box .gbox { margin-inline: auto; }
+.shelf-row { align-items: start; gap: 22px; }
+.shelf-item { width: 100%; min-width: 0; }
+.shelf-box { width: 100%; align-items: center; container-type: inline-size; }
+.shelf-box .gbox { --w: calc(94cqw / 1.0584); --h: var(--w); --d: calc(var(--w) * .24); margin-inline: auto; }
 .shelf-item-details { width: 100%; min-height: 45px; }
 .shelf-item .stat-strip { flex-wrap: wrap; gap: 4px; }
-@media (min-width: 1100px) {
-  .shelf:has(#shelf-playable) .shelf-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; }
-  .shelf:has(#shelf-playable) .shelf-item { width: 100%; }
+/* Shared tracks keep covers equally sized across every shelf. */
+@media (min-width: 701px) {
+  .shelf-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 18px;
+    margin: 0;
+    padding: 8px 0;
+    overflow: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .view-list .shelf-row { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+}
+
+@media (min-width: 701px) {
+  .view-list .shelf-box .gbox { --w: 118px; --h: var(--w); --d: calc(var(--w) * .24); }
+}
+@media (max-width: 700px) {
+  .view-list .shelf-box .gbox { --w: calc(94cqw / 1.0584); --h: var(--w); --d: calc(var(--w) * .24); }
 }

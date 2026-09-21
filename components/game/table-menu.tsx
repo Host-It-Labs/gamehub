@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Ellipsis, BookOpen, List, Trophy, Volume2, Maximize, Minimize } from 'lucide-react';
+import { EllipsisVertical, BookOpen, List, Trophy, Volume2, Maximize, Minimize } from 'lucide-react';
 import {
   Popover,
   PopoverTrigger,
@@ -41,7 +41,7 @@ export function TableMenu({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className="table-menu-trigger" aria-label="Game menu">
-        <Ellipsis size={22} />
+        <EllipsisVertical size={22} />
         <span>Menu</span>
       </PopoverTrigger>
       <PopoverContent className="table-menu" align="end">

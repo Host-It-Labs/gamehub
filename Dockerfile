@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build
+RUN npm run check:assets -- --strict && npm run build
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production PORT=8080 DATABASE_PATH=/data/gamehub.sqlite

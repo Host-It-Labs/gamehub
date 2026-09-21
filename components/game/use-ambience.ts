@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { GameId as TrioGameId } from '@/lib/games/trio/engine';
-type GameId = TrioGameId | 'orin' | 'vela' | 'miro';
+type GameId = TrioGameId | 'orin' | 'miro';
 import { pauseAmbienceWhenHidden, startAmbience, stopAmbience } from '@/lib/games/ambience-player';
 
 export const AMBIENCE_KEY = 'gamehub.ambience.v1';

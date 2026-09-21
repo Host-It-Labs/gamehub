@@ -900,7 +900,7 @@ export function Players({
       >
         {status}
       </output>
-      {g.players.map((p, i) => {
+      {(g.id === 'undertow' && boardButton ? [] : g.players).map((p, i) => {
         const trigger = (
           <button
             title={p.name}
@@ -965,10 +965,11 @@ export function Players({
       {boardButton && (
         <div className="table-second-line">
           {progress}
-          {othersSlot && createPortal(
+          {g.id !== 'undertow' && othersSlot && createPortal(
           <button
             type="button"
             className="table-board-button"
+            aria-label="Others"
             onClick={(event) => {
               boardTrigger.current = event.currentTarget;
               setBoardSeat(viewer);

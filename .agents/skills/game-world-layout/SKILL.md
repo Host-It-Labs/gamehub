@@ -1,11 +1,21 @@
 ---
 name: game-world-layout
-description: Plan, generate and integrate full-screen illustrated game worlds in Gamehub, with aligned gameplay targets, stable floating hands, and landscape/portrait framing. Use for new illustrated boards or changes to their artwork, camera or responsive layout.
+description: Plan, generate and integrate full-screen illustrated game worlds in Gamehub, with aligned gameplay targets, stable floating hands, and landscape/portrait framing. Use for every new Gamehub game and changes to game navigation or responsive layout, as well as illustrated boards, artwork and cameras.
 ---
 
 # Illustrated game worlds
 
 Read `docs/DESIGN.md`. Preserve each game's identity and scoring rules; Observatory supplies layout lessons, not a universal art style. Use the imagegen skill and delegate image generation as required by AGENTS.md. Use the original user-approved style reference for fresh artwork, not only a progressively regenerated derivative. Built-in generation is the authorized workflow; do not request API credentials.
+
+## All games: navigation and one-screen play
+
+Apply this contract to every Gamehub game, including non-illustrated party games, solo/online, practice and live play. Read the global navigation and viewport rule at the top of `docs/DESIGN.md` before changing layout.
+
+- Left: back/return and game name only. Right: Menu, Others directly underneath, time/advance-time and fullscreen controls. Keep these positions in all orientations; side rails do not reverse navigation. Reuse `components/game/game-navigation.tsx` for party/world screens and the shared trio toolbar for Nox/Mora/Yata. Keep player badges clear of both islands.
+- Strongly avoid whole-page scrolling during gameplay. Fit choices, board, hand and confirmation in the available viewport using responsive columns/side rails, compact spacing and removal of duplicated headings. Keep text legible and controls usable. Do not use overflow clipping to hide a failed fit.
+- Long rules, history, comparisons and optional inspections belong in explicit overlays with internal scrolling and restored focus. Local scrolling is an accessibility/extreme-size fallback, not proof of a normal viewport fit.
+- Preserve prepared choices across option switches. Refreshing choices from an active view stays in that view.
+- Check long content, maximum players, selection/refresh/lock/reveal states, portrait, short landscape, tablet and browser zoom. Report static/layout reasoning separately from actual browser and touch checks.
 
 ## Measure before writing the image brief
 
@@ -110,11 +120,11 @@ The camera and stage must not depend on hand count, selected pieces, confirmatio
 - **Desktop:** retain approved framing, leaving important lower labels clear of the actual hand dock. Artwork briefs must protect upper landmarks under this offset too.
 - **Tablet:** use measured source coverage and full-landmark fit together. A modest closer view is appropriate when spare room exists; do not force every sub-1280px viewport into a small contain fit. Browser zoom can move a desktop into these same CSS dimensions.
 - **Portrait:** design a dedicated tall composition, not a crop of the landscape board. The band above the play surface must be thin (under about 14% of the height) because the floating navigation covers it and a tall far wall reads as wasted space; put the play surface high and the hand dock band below it. Give it its own measured source, habitat coordinates, labels and complete-landmark bounds while preserving all rule identities and capacities. Every playable area, creature and Release must fit one screen without horizontal or vertical board scrolling. Reserve fixed header/dock clearances before generation; never shrink a wide board into illegible targets.
-- **Short landscape phone:** leave the center full height for the board. Use side rails: navigation, players and actions left; goals, fixed two-column hand and passing right. This is the exception to the bottom-hand layout. Verify all targets and source-edge coverage without board scrolling. Compact visual controls must remain usable; check rail overlaps with goals, confirmation and all extension actions.
+- **Short landscape phone:** leave the center full height for the board. Use side rails: back/name left; Menu, Others and time controls right. Place players, goals, hand and game actions in the remaining side-rail space without moving navigation. This is the exception to the bottom-hand layout. Verify all targets and source-edge coverage without board scrolling. Compact visual controls must remain usable; check rail overlaps with goals, confirmation and all extension actions.
 
 Normal desktop/tablet/portrait hand is a rounded floating bottom tray with a safe-area gap. Die and extension actions sit beside the tray; allow sufficient horizontal width instead of a vertical scrollbar; passing/table controls sit right. Confirmation stays near the hand without resizing the scene. Phone side trays likewise keep fixed geometry independent of count. Respect keyboard focus, reduced motion and mute. Paper standees sit directly on painted spaces without extra oval bases.
 
-Navigation floats in separate compact islands: Games/back and content-sized title/rounds left, fullscreen and menu in one right-anchored group. Reserve separate navigation and score areas on narrow screens so they cannot overlap. Use one shared nonverbal animated player-status component across games: distinguish deciding, committed and waiting by shape as well as motion, with an additional die-roller indicator. Keep accessible names and a reduced-motion static state. Ensure score ink contrasts with its actual tag background. Goals are distinct from player badges. Do not restore a full-width toolbar strip or bottom status bar.
+Navigation floats in separate compact islands: back and game name left, time/advance-time, fullscreen and Menu/Others in a right-anchored group. Reserve separate navigation and score areas on narrow screens so they cannot overlap. Use one shared nonverbal animated player-status component across games: distinguish deciding, committed and waiting by shape as well as motion, with an additional die-roller indicator. Keep accessible names and a reduced-motion static state. Ensure score ink contrasts with its actual tag background. Goals are distinct from player badges. Do not restore a full-width toolbar strip or bottom status bar.
 
 Fullscreen needs a user gesture; orientation lock may be rejected. Keep a visible action, explain unsupported fullscreen honestly, preserve portrait fallback, and never force re-entry or fake orientation with CSS rotation.
 

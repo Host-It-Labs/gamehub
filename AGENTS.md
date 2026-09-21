@@ -1,3 +1,13 @@
+# Global game navigation and viewport contract
+
+Applies to every game, every game family, solo and online, practice and live play:
+
+- Top left contains only the back/return control and game name. Menu, Others, time/advance-time and fullscreen controls belong at the top right. Others sits directly below Menu. Keep this arrangement in portrait and short landscape too; no game-specific reversal.
+- Treat the playing screen as one viewport. Strongly avoid whole-page scrolling to reach the board, choices, hand, confirmation or navigation. Reflow into columns or side rails, reduce decorative spacing and duplicate headings, and fit the active board before reducing readable text or touch targets. Never hide essential controls with overflow clipping to claim a fit.
+- Keep long rules, history, comparisons and optional inspections in explicit overlays with internal scrolling and restored focus. Extreme zoom/accessibility fallbacks may scroll locally; report them honestly rather than calling them viewport acceptance.
+- Preserve in-progress choices when switching between options. Refreshing options within an active view must keep that view open.
+- Read [game-world-layout](.agents/skills/game-world-layout/SKILL.md) for any new game or navigation/responsive layout change, including games without illustrated boards. Reuse `GameNavigation` for party/world screens and the shared trio toolbar for Nox/Mora/Yata. Verify portrait, short landscape, tablet, desktop, long labels and maximum player counts; report browser/touch checks separately.
+
 # Extension explanation UI
 
 Required for every new or changed extension explanation:
@@ -33,3 +43,24 @@ Before creating or changing a game's illustrated board, responsive scene framing
 - For any full-bleed illustrated board, follow [docs/illustrated-worlds.md](docs/illustrated-worlds.md): it names the data contract, runtime pieces, tooling and the two artwork skills.
 
 - Shared game navigation: Others always sits directly beneath Menu, and player badges share the top navigation baseline in every world and viewport. Remove redundant Table and passing-direction controls; passing order remains available inside Others. Accepted artwork is fixed; do not leave A/B review selectors in playing scenes.
+
+
+# Library cover artwork
+
+- Use dedicated full-bleed square illustrations, equally sized across the library.
+- Generate the exact current game title inside the image, with legible custom
+  typography integrated into the composition. Never overlay visible DOM titles
+  or add duplicate titles to cover art. Keep accessible control and dialog names.
+- Regenerate from written game/theme/style briefs without previous images as
+  references unless the user explicitly requests a reference-based edit.
+- Represent the game's world and meaningful elements in its own visual style;
+  never use a gameplay screenshot, interface replica, box mockup or gray mat.
+- Review title spelling, thumbnail legibility, edge coverage and square framing
+  before integration. Preserve sources, versioned outputs and exact prompts.
+- `lib/games/box-covers.ts` is the shared library/online cover source. Update the
+  game registry, covers and public UI together when changing public names; keep
+  stable internal IDs and saves intact.
+
+## Shared game progress
+
+Every game shows round/progress directly beneath the top-left back/name control on every device, using `GameProgress` from `components/game/game-progress.tsx`. Do not put round counts in the center navigation line or in a bottom action panel. Atlas does not show a medium/hard badge. My Top Five and Atlas require human players in every seat; no solo bot matches, bot-filled online seats, or bot replacements.

@@ -885,5 +885,140 @@
 }
 .setup-box .tray-row-top:not(:has(.leaflet)) { grid-template-columns: 1fr 1fr; }
 
-.lid.orin .lid-art,.lid.vela .lid-art,.lid.miro .lid-art{background:var(--box-deep)}
-.lid.orin .lid-art img,.lid.vela .lid-art img,.lid.miro .lid-art img{object-fit:contain}
+.lid.orin .lid-art,.lid.miro .lid-art{background:var(--box-deep)}
+.lid.orin .lid-art img,.lid.miro .lid-art img{object-fit:contain}
+
+/* The introduction and its separate, compact practice button. */
+.setup-intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.setup-intro .tray-note {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.setup-learn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #bba788;
+  border-radius: 9px;
+  background: #fffcf6;
+  box-shadow: 0 2px 0 #d2c2a5;
+  color: #493a28;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.setup-learn svg { width: 18px; height: 18px; }
+.setup-learn:hover { background: #fff3d9; border-color: #90734b; }
+.setup-learn:active { background: #f2e3c6; box-shadow: none; }
+.modal.setup-modal .play-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.play-mode-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid #d4c6af;
+  border-radius: 9px;
+  background: #faf5eb;
+  color: #514737;
+  box-shadow: 0 2px 0 #e3d8c5;
+  cursor: pointer;
+}
+.play-mode-icon { flex: none; width: 26px; height: 26px; }
+.play-mode-copy { flex: 1; min-width: 0; }
+.play-mode-copy strong { display: block; font-size: 15px; line-height: 1.3; }
+.play-mode-copy small { display: block; margin-top: 4px; font-size: 12px; line-height: 1.4; }
+.play-mode-check {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #ae9a7a;
+  border-radius: 50%;
+  background: #fffcf6;
+}
+.play-mode-option:hover:not(:has([data-disabled])) { border-color: #8a7353; background: #f1e8d7; }
+.play-mode-option:has([data-checked]) {
+  background: #e6ecdf;
+  border-color: #526848;
+  box-shadow: inset 0 0 0 1px #526848, 0 2px 0 #cad3bf;
+  color: #2e4228;
+}
+.play-mode-option:has([data-checked]) .play-mode-check {
+  background: #526848;
+  border-color: #526848;
+  box-shadow: inset 0 0 0 4px #fffcf6;
+}
+.play-mode-option:has(:focus-visible) { outline: 3px solid #9471ab; outline-offset: 3px; }
+.play-mode-option:has([data-disabled]) {
+  background: #f1eee7;
+  border-style: dashed;
+  color: #756e62;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+@media (max-width: 480px) {
+  .setup-box .tray { padding: 14px 12px; }
+  .setup-intro { gap: 10px; }
+  .setup-intro .tray-note { font-size: 14px; }
+  .setup-learn { padding: 10px; gap: 6px; }
+  .modal.setup-modal .play-mode-options { grid-template-columns: 1fr; }
+  .play-mode-option { min-height: 68px; }
+  .setup-box .tray-row-top:not(:has(.leaflet)) { grid-template-columns: 1fr; }
+}
+
+/* Show the whole printed cover, including its title, in the opened lid. */
+.lid.printed-cover .lid-art {
+  aspect-ratio: auto;
+  height: clamp(180px, 34dvh, 280px);
+  min-height: 0;
+  background: radial-gradient(ellipse at center, var(--box-mid), var(--box-deep));
+}
+.lid.printed-cover .lid-art .artwork-frame {
+  inset: 0 auto 0 50%;
+  width: auto;
+  height: 100%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+}
+.lid.printed-cover .lid-art img { object-fit: cover; object-position: center; }
+.lid.printed-cover .lid-art::after { display: none; }
+@media (max-height: 560px) and (orientation: landscape) {
+  .lid.printed-cover .lid-art { height: 110px; }
+}
+
+.team-picker { margin-top: 12px; }
+.team-picker > p, .team-picker > small { font-size: 12px; line-height: 1.4; }
+.team-picker-players { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-block: 10px; }
+.team-picker-players label { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.team-picker-players label > span { overflow-wrap: anywhere; }
+.team-picker-players select { min-height: 40px; padding: 6px; border: 1px solid #aaa18e; border-radius: 7px; background: #fffaf0; color: #362e25; }
+
+.team-picker-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 10px 0; }
+.team-picker-side { --team-accent: #42677b; border: 1px solid color-mix(in srgb,var(--team-accent) 35%,transparent); border-radius: 16px; padding: 12px; background: color-mix(in srgb,var(--team-accent) 8%,#fffcf5); min-width: 0; }
+.team-picker-side.team-1 { --team-accent: #9b5067; }
+.team-picker-side header { display: flex; align-items: center; gap: 7px; color: var(--team-accent); margin-bottom: 10px; }
+.team-picker-side header > span { margin-left: auto; font-variant-numeric: tabular-nums; }
+.team-picker-side > div { display: grid; gap: 7px; }
+.team-picker-side button { display: flex; align-items: center; gap: 8px; min-height: 46px; width: 100%; padding: 7px; border: 1px solid #ded7cb; border-radius: 10px; background: #fffdf8; text-align: left; color: #362e25; box-shadow: 0 2px 0 #362e2510; }
+.team-picker-side button b { flex: 1; overflow-wrap: anywhere; min-width: 0; }
+.team-picker-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--team-accent); color: white; flex-shrink: 0; }
+.team-picker-side button:focus-visible { outline: 3px solid var(--team-accent); outline-offset: 2px; }
+@media(max-width: 400px) { .team-picker-columns { gap: 6px; } .team-picker-side { padding: 7px; } .team-picker-avatar { display: none; } }

@@ -1,8 +1,7 @@
 import { standaloneGames, botMove } from '../lib/games/standalone/registry.ts';
-for (const id of ['orin', 'vela', 'miro'])
+for (const id of ['orin', 'miro'])
   for (const n of standaloneGames[id].seatChoices) {
     let wins = 0,
-      blue = 0,
       stalls = 0,
       rounds = 0;
     for (let s = 0; s < 250; s++) {
@@ -22,9 +21,8 @@ for (const id of ['orin', 'vela', 'miro'])
           (id === 'miro' && o.winners.length > 1)
         )
           wins++;
-        if (id === 'vela' && o.winners.includes(0)) blue++;
       }
       rounds += g.round;
     }
-    console.log(id, n, { wins, blue, stalls, rounds: rounds / 250 });
+    console.log(id, n, { wins, stalls, rounds: rounds / 250 });
   }

@@ -1,3 +1,4 @@
+import { boxCover } from '../games/box-covers.ts';
 import { catalog } from '../games/trio/engine';
 import { standaloneIds, standaloneGames } from '../games/standalone/registry';
 export const onlineCatalog = [
@@ -5,12 +6,10 @@ export const onlineCatalog = [
   ...standaloneIds.map((id) => ({
     id,
     name: standaloneGames[id].name,
-    cover: id === 'miro' ? '/art/atlas-cover.svg' : `/art/party-${id === 'orin' ? 'top-tier' : 'outfox'}-cover-v1.webp`,
+    cover: boxCover(id)!,
     genre:
       id === 'orin'
         ? 'Personal rankings'
-        : id === 'vela'
-          ? 'Ranking & bluffing'
-          : 'Geography & shared challenges',
+        : 'Geography & shared challenges',
   })),
 ];

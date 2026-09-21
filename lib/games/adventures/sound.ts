@@ -10,15 +10,13 @@ export function adventureCue(id: StandaloneId, kind: string, volume: number) {
     const palette =
       id === 'orin'
         ? [330, 440, 660]
-        : id === 'vela'
-          ? [260, 390, 520]
-          : [220, 440, 880];
+        : [220, 440, 880];
     const success = ['lock', 'ready', 'win'].includes(kind);
     const count = kind === 'win' ? 5 : success ? 3 : 1;
     for (let i = 0; i < count; i++) {
       const o = c.createOscillator(),
         g = c.createGain();
-      o.type = id === 'vela' ? 'triangle' : 'sine';
+      o.type = 'sine';
       const f = palette[i % 3] * (kind === 'win' ? 1.5 : 1);
       o.frequency.setValueAtTime(f, t + i * 0.09);
       o.frequency.exponentialRampToValueAtTime(
@@ -49,8 +47,8 @@ export function adventureCue(id: StandaloneId, kind: string, volume: number) {
       gain = c.createGain();
     src.buffer = buf;
     filter.type =
-      id === 'orin' ? 'lowpass' : id === 'vela' ? 'bandpass' : 'highpass';
-    filter.frequency.value = id === 'orin' ? 700 : id === 'vela' ? 1100 : 2200;
+      id === 'orin' ? 'lowpass' : 'highpass';
+    filter.frequency.value = id === 'orin' ? 700 : 2200;
     filter.Q.value = 1.5;
     gain.gain.value = volume * 0.09;
     src.connect(filter);

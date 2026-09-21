@@ -26,8 +26,10 @@ export type Table = GameOptions & {
   shields?: boolean;
   customerOrders?: boolean;
   sanctuaryGoalsEnabled?: boolean;
+  ambienceEnabled?: boolean;
   fastMode?: boolean;
   partyMode?: 'teams' | 'individual';
+  teams?: number[];
   capacity: number;
   revision: number;
   status: 'lobby' | 'playing' | 'finished' | 'closed';
@@ -39,11 +41,13 @@ export type Table = GameOptions & {
   game: GameView | null;
   adventure?: AnyGame | null;
   botError: boolean;
+  setupOpen?: boolean;
   votes?: Partial<Record<OnlineGameId, string[]>>;
 };
 export type TableCommand =
   | {
       type: 'configure';
+      openSetup?: boolean;
       contentSet?: GameOptions['contentSet'];
       roamEnabled?: boolean;
       turningTide?: boolean;
@@ -58,10 +62,13 @@ export type TableCommand =
       sanctuaryGoalsEnabled?: boolean;
       fastMode?: boolean;
       partyMode?: 'teams' | 'individual';
-  capacity: number;
+      teams?: number[];
+      capacity: number;
     }
   | { type: 'adventure-move'; move: AnyMove; key: string }
+  | { type: 'ambience'; enabled: boolean }
   | { type: 'advance-practice' }
+  | { type: 'setup'; open: boolean }
   | { type: 'vote'; gameId: OnlineGameId }
   | { type: 'lesson'; step: number }
   | { type: 'start'; learning?: boolean }

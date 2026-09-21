@@ -79,8 +79,8 @@ const rows: [string, string, string][] = [
   ],
   [
     'Everyday',
-    'Things that deserve a bigger button',
-    'Undo|Mute|Pause|Find my keys|Skip the queue|Start again',
+    'Little luxuries you would love every day',
+    'Fresh sheets|Breakfast in bed|A hot bath|A foot massage|Freshly baked bread|Someone else doing the dishes',
   ],
   [
     'Everyday',
@@ -260,7 +260,7 @@ const rows: [string, string, string][] = [
   ],
   [
     'Travel',
-    'The most useful travel companion item',
+    'The most useful thing to pack',
     'Map|Water bottle|Notebook|Camera|Raincoat|Comfortable shoes',
   ],
   [
@@ -381,7 +381,7 @@ const rows: [string, string, string][] = [
   [
     'Imagination',
     'The best imaginary sport',
-    'Cloud jumping|Dragon racing|Bubble tennis|Moon football|Flying swimming|Invisible hide-and-seek',
+    'Cloud jumping|Dragon racing|Bubble tennis|Moon football|Zero-gravity swimming|Invisible hide-and-seek',
   ],
   [
     'Imagination',
