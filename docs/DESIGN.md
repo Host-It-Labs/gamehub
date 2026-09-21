@@ -451,3 +451,81 @@ mute. Teammates share drafts; only the rotating captain locks. Every player
 acknowledges each reveal, including in practice and online play.
 
 Verification: `docs/verification/2026-09-20-party-refinements.md`.
+
+## September 21: Orin, Vela and Miro rebuilt as the three worlds
+
+The 20 September section above describes a build of Orin, Vela and Miro that no
+longer exists. Those three were replaced by Roka/Talo/Soma, then by the party
+games, and their code was removed; the stable IDs `orin`, `vela` and `miro` now
+host **Top Tier**, **Outfox the Fox** and **Atlas**, and the balance figures that
+section quotes were asserted in `tests/{orin,vela,miro}.test.mjs`, which no
+longer exist. The empty `lib/games/{orin,vela,miro}` directories were leftovers
+of that removal.
+
+The three pitched worlds are now built again, from
+`concepts/2026-09-19-new-game-pitches`, **without disturbing the party games**.
+The public names are Orin, Vela and Miro as pitched; the stable storage IDs are
+`coast`, `meadow` and `canal`, because the obvious ones are spent. Saves live
+under `gamehub.worlds.v1` with marker `rules: 1`, separate from both the trio's
+and the party games' keys, so a rule change in one family never invalidates
+another family's matches. Rules live in `lib/games/worlds/`, and the shared host
+`components/game/world-table.tsx` supplies only the navigation, the player row,
+the bot clock, the log, the rules panel and the results plate. Each world brings
+its own board component and its own stylesheet, and the host remounts the board
+on every new decision so a selection can never be carried into the next turn.
+
+**Orin** — cooperative, one to four keepers, the **v1-a enamelled tin** direction.
+Cream enamel on cobalt with embossed outlines, rivets that bloom rust once a lamp
+goes out, and exactly one warm colour on the plate: the lamps still burning.
+Seven lighthouses stand on a rock band in true plan view with open water above
+and below. A watch is four keeper turns however many keepers are on duty, so a
+solo coast is the same coast a full crew faces. At every watch end the gale takes
+the two westernmost unshuttered lamps and the fog comes one station further in,
+taking everything it holds; four of seven must still burn, for five watches.
+Wicks relight outside the fog, lamps reach into it, shutters carry one lamp
+through the night, and a rope pulls one station out of the fog for good. Hands
+are private and the only thing a keeper may say all night is one bell.
+
+**Vela** — teams, two/four/six fliers, the **v1-a dyed silk and split bamboo**
+direction. Translucent washes, bamboo spars as warm lines, ink-brush wind,
+generous white air. The ribbon comes from one formula (`pointAt`) so the
+segments, the spars, the gusts and the kites all sit on the same curve; the spars
+are a dashed copy of the ribbon rather than separate lines, because the meadow's
+viewBox is deliberately non-uniform and would shear anything drawn at an angle.
+Every flier commits one card face down, teammates included, and they all turn
+over together. A team moves by its own total divided by the number of fliers on
+it, so a pair and a trio race at the same pace. Scissors take the other team's
+strongest gust before the total is shared out. Teams are always even, so an odd
+table is trimmed rather than handing one kite a second pair of hands.
+
+**Miro** — hidden traitor, three to five traders. **Neither pitched variant was
+used**, as recorded on 20 September: both came back as dim painted fresco, close
+to the register the rest of the library already occupies. Miro is built in
+**leaded and stained glass** — the trade a canal city is actually known for.
+Flat saturated cells held in dark came and lit from behind, so light is the
+mechanic as well as the material: a clean hold glows and a rotten one goes out.
+The canal is a deterministic scatter of glass cells computed once from a fixed
+seed, so the window never reshuffles between renders. The pilot picks the crew
+and is always aboard it; the quay then shows hands and may turn two crews away
+per run, with the third sailing regardless, so refusing is a check and not a way
+to stall. One rotten hold spoils a run. Three clean runs are not enough on their
+own: the quay must then name the smuggler, and a quay that cannot agree names
+nobody.
+
+Balance was measured rather than guessed, and the bands are asserted in
+`tests/worlds.test.mjs` across every table size each world offers. A skilled Orin
+watch holds the coast 81–92 per cent of the time and a careless one 21–35, with
+skill worth at least 25 points at every crew size; in a cooperative game bot
+difficulty is bot _skill_, so a careless crew makes Orin harder rather than
+easier, and the setup box says so. Vela's two colours finish within a few points
+of each other at every table size and a level meadow is under four per cent,
+which took a tiebreak chain — reach, then pull, then the longer chase, then the
+raw wind, then the team that reached for the scissors less often. Miro's
+merchants take 55–73 per cent of seasons; at three traders the smuggler is aboard
+almost every run, so their bar there is four spoiled runs rather than three,
+measured rather than shared.
+
+Still open: none of the three has box or board artwork, so their covers print a
+material and a motif; none is available in online tables, which still run only
+the trio engine; and Orin's bell is the only communication channel, which wants a
+playtest with people rather than bots.

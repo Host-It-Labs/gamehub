@@ -1,6 +1,8 @@
 import type { GameId } from './trio/engine';
 import { standaloneGames } from './standalone/registry.ts';
 import type { StandaloneId } from './standalone/types.ts';
+import { worldGames } from './worlds/registry.ts';
+import type { WorldId } from './worlds/types.ts';
 
 /**
  * Library presentation data. The three real games carry their catalog ids; every
@@ -30,6 +32,8 @@ export type LibraryGame = {
   gameId?: GameId;
   /** Set for games with their own rules module and their own table. */
   standaloneId?: StandaloneId;
+  /** Set for the three illustrated worlds, which have their own table each. */
+  worldId?: WorldId;
   name: string;
   cover?: string;
   spine?: string;
@@ -168,6 +172,65 @@ export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
     genre: 'Geography & shared challenges',
     material: 'tin',
     palette: ['#153748', '#ffcc70', '#eee6c9'],
+    motif: 'flame',
+    playing: [],
+  }),
+};
+
+const world = (
+  worldId: WorldId,
+  rest: Omit<LibraryGame, 'id' | 'worldId' | 'name'>,
+): LibraryGame => ({
+  id: worldId,
+  worldId,
+  name: worldGames[worldId].name,
+  ...rest,
+});
+
+/**
+ * The three worlds pitched in `concepts/2026-09-19-new-game-pitches`. Their
+ * boards are drawn in CSS and SVG rather than from generated plates, because
+ * they are geometric and fully interactive — seven lighthouse stations,
+ * twenty-four ribbon segments, five barge compartments — and a raster plate
+ * would have to be overlaid with the same shapes anyway. Box artwork is still
+ * open, so their covers print a material and a motif.
+ */
+export const worldLibraryGames: Record<WorldId, LibraryGame> = {
+  coast: world('coast', {
+    world:
+      'Seven lamps, one fog bank rolling in from the west, and one bell each',
+    minutes: 20,
+    players: [1, 4],
+    mode: 'Co-op',
+    weight: 2,
+    genre: 'Cooperative, hidden hands',
+    material: 'tin',
+    palette: ['#123a5c', '#f2ead8', '#f0a23c'],
+    motif: 'lantern',
+    playing: [],
+  }),
+  meadow: world('meadow', {
+    world: 'Two kites, one silk ribbon, and a pair of scissors in every hand',
+    minutes: 15,
+    players: [2, 6],
+    mode: 'Teams',
+    weight: 1,
+    genre: 'Simultaneous racing',
+    material: 'cloth',
+    palette: ['#eaf2f6', '#d8452f', '#f0ab2a'],
+    motif: 'leaf',
+    playing: [],
+  }),
+  canal: world('canal', {
+    world:
+      'Five runs down a glassworks canal, and one trader wants them to spoil',
+    minutes: 25,
+    players: [3, 5],
+    mode: 'Competitive',
+    weight: 2,
+    genre: 'Hidden traitor',
+    material: 'glass',
+    palette: ['#10222e', '#1f7a6a', '#e3a13a'],
     motif: 'flame',
     playing: [],
   }),
@@ -474,10 +537,13 @@ export const placeholderGames: LibraryGame[] = [
 export const libraryGames: LibraryGame[] = [
   ...Object.values(realGames),
   ...Object.values(standaloneLibraryGames),
+  ...Object.values(worldLibraryGames),
   ...placeholderGames,
 ];
 export const playableGame = (id: string) =>
-  libraryGames.find((g) => g.id === id && (g.gameId || g.standaloneId));
+  libraryGames.find(
+    (g) => g.id === id && (g.gameId || g.standaloneId || g.worldId),
+  );
 export const gameByLibraryId = (id: string) =>
   libraryGames.find((g) => g.id === id);
 
@@ -491,7 +557,17 @@ export const shelves: {
     id: 'playable',
     title: 'Ready to play',
     icon: 'sparkles',
-    games: ['undertow', 'wildgrove', 'midnight', 'orin', 'vela', 'miro'],
+    games: [
+      'undertow',
+      'wildgrove',
+      'midnight',
+      'orin',
+      'vela',
+      'miro',
+      'coast',
+      'meadow',
+      'canal',
+    ],
   },
   {
     id: 'new',

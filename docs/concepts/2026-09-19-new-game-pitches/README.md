@@ -2,18 +2,29 @@
 
 Desktop-only ui-mockup concepts for the six pitched games: Orin and Lumo (co-op), Kiri and Vela (teams on one call), Tolu and Miro (imposter). One landscape 1536x1024 screen per game, two fresh variants (-a, -b) each, generated in parallel from identical prompt text with no reference images. Any text in the images other than the title and CONFIRM is illustrative only.
 
-## What was chosen (20 September 2026)
+## What was chosen
 
-Three of the six are now built and playable. See the Orin, Vela and Miro section of [docs/DESIGN.md](../../DESIGN.md).
+Three of the six are built and playable. See the 21 September section of
+[docs/DESIGN.md](../../DESIGN.md).
 
-| Game | Direction built | Note |
-| --- | --- | --- |
-| Orin | `orin-landscape-v1-a` | Enamelled tin, cobalt and cream, one warm lamp per lit lighthouse. Built as CSS and SVG. |
-| Vela | `vela-landscape-v1-a` | Dyed silk and split bamboo, ink-brush wind, generous white air. Built as CSS and SVG. |
-| Miro | **neither** | Both variants came back as dim painted fresco, too close to the register the rest of the library already occupies. Rebuilt in leaded and stained glass: flat saturated cells in dark came, lit from behind, so light is the mechanic as well as the material. |
-| Lumo, Kiri, Tolu | not built | Still concepts. |
+| Game             | Direction built       | Note                                                                                                                                                                                                                                                          |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Orin             | `orin-landscape-v1-a` | Enamelled tin, cobalt and cream, one warm lamp per lit lighthouse. Built as CSS and SVG.                                                                                                                                                                      |
+| Vela             | `vela-landscape-v1-a` | Dyed silk and split bamboo, ink-brush wind, generous white air. Built as CSS and SVG.                                                                                                                                                                         |
+| Miro             | **neither**           | Both variants came back as dim painted fresco, too close to the register the rest of the library already occupies. Rebuilt in leaded and stained glass: flat saturated cells in dark came, lit from behind, so light is the mechanic as well as the material. |
+| Lumo, Kiri, Tolu | not built             | Still concepts.                                                                                                                                                                                                                                               |
 
-The three built worlds are drawn in CSS and SVG rather than from generated plates, because their boards are geometric and fully interactive — seven lighthouse stations, twenty-four ribbon segments, five barge compartments — and a raster plate would have to be overlaid with the same shapes anyway. Box and board artwork for them is still open.
+They are drawn in CSS and SVG rather than from generated plates, because their
+boards are geometric and fully interactive — seven lighthouse stations,
+twenty-four ribbon segments, five barge compartments — and a raster plate would
+have to be overlaid with the same shapes anyway. Box and board artwork is still
+open.
+
+**On the IDs.** A first build of these three on 20 September was replaced twice
+over and removed, and their stable IDs `orin`, `vela` and `miro` now belong to
+the party games Top Tier, Outfox the Fox and Atlas. The worlds were therefore
+rebuilt on their own IDs — `coast`, `meadow` and `canal` — and their own save
+key. The public names are still Orin, Vela and Miro.
 
 ## Concept art
 

@@ -25,8 +25,20 @@ import { TableMenu } from '../game/table-menu';
 import { ArtworkLoading } from './artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { SanctuaryBadges } from '@/components/game/mora-extension';
-import { SetupBox, PlaceholderBox, StandaloneSetupBox } from '../game/setup-box';
+import {
+  SetupBox,
+  PlaceholderBox,
+  StandaloneSetupBox,
+  WorldSetupBox,
+} from '../game/setup-box';
 import { StandaloneTable } from './standalone-table';
+import { WorldTable } from './world-table';
+import {
+  worldGames,
+  worldIds,
+  type WorldGame,
+} from '@/lib/games/worlds/registry';
+import type { WorldId } from '@/lib/games/worlds/types';
 import {
   standaloneGames,
   standaloneIds,
@@ -36,6 +48,7 @@ import type { StandaloneId } from '@/lib/games/standalone/types';
 import {
   realGames,
   standaloneLibraryGames,
+  worldLibraryGames,
   type LibraryGame,
 } from '@/lib/games/library-fixtures';
 import { useEffect, useRef, useState } from 'react';
@@ -84,6 +97,9 @@ import { useBotTurns } from './bot-turns';
 const SAVE = 'gamehub.tables.v3';
 /** Games outside the trio engine save separately, so one save shape per engine. */
 const OWN_SAVE = 'gamehub.standalone.v1';
+/** The illustrated worlds save separately again: one save shape per engine, so
+ * a rule change in one family never invalidates another family's matches. */
+const WORLD_SAVE = 'gamehub.worlds.v1';
 function seed() {
   return crypto.getRandomValues(new Uint32Array(1))[0];
 }
@@ -123,7 +139,11 @@ export default function SoloGame() {
     [own, setOwn] = useState<Partial<Record<StandaloneId, AnyGame>>>({}),
     [openOwn, setOpenOwn] = useState<StandaloneId | null>(null),
     [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
-    [ownSeats, setOwnSeats] = useState(3);
+    [ownSeats, setOwnSeats] = useState(3),
+    [worlds, setWorlds] = useState<Partial<Record<WorldId, WorldGame>>>({}),
+    [openWorld, setOpenWorld] = useState<WorldId | null>(null),
+    [worldSetup, setWorldSetup] = useState<WorldId | null>(null),
+    [worldSeats, setWorldSeats] = useState(2);
   const [ownMode, setOwnMode] = useState<'teams' | 'individual'>('individual');
   const festival = useFestivalChoice(g, 0);
   function setPanel(value: typeof panel) {
@@ -132,6 +152,7 @@ export default function SoloGame() {
   }
   const current = useRef<Game | null>(null),
     ownRef = useRef<Partial<Record<StandaloneId, AnyGame>>>({}),
+    worldRef = useRef<Partial<Record<WorldId, WorldGame>>>({}),
     saveRef = useRef<Partial<Record<GameId, Game>>>({}),
     origin = useRef<HTMLElement | null>(null),
     vol = useRef(volume);
@@ -166,6 +187,18 @@ export default function SoloGame() {
       localStorage.setItem(OWN_SAVE, JSON.stringify(ownRestored));
       ownRef.current = ownRestored;
       setOwn(ownRestored);
+      const rawWorlds = JSON.parse(
+        localStorage.getItem(WORLD_SAVE) || '{}',
+      ) as Record<string, unknown>;
+      const worldRestored: Partial<Record<WorldId, WorldGame>> = {};
+      for (const id of worldIds) {
+        const saved = rawWorlds[id];
+        if (worldGames[id].isSavedGame(saved) && saved.kind === id)
+          worldRestored[id] = saved;
+      }
+      localStorage.setItem(WORLD_SAVE, JSON.stringify(worldRestored));
+      worldRef.current = worldRestored;
+      setWorlds(worldRestored);
       const v = Number(localStorage.getItem('gamehub.volume.v3') ?? '.5');
       setVolume(Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5);
       setAmbience(readAmbienceLevel());
@@ -206,6 +239,34 @@ export default function SoloGame() {
         'Local saving is unavailable. Keep this tab open to keep your match.',
       );
     }
+  }
+  function storeWorld(next: WorldGame) {
+    worldRef.current = { ...worldRef.current, [next.kind]: next };
+    setWorlds(worldRef.current);
+    try {
+      localStorage.setItem(WORLD_SAVE, JSON.stringify(worldRef.current));
+    } catch {
+      setNotice(
+        'Local saving is unavailable. Keep this tab open to keep your match.',
+      );
+    }
+  }
+  function openWorldSetup(id: WorldId) {
+    const entry = worldGames[id];
+    const saved = worlds[id];
+    setWorldSeats(
+      saved && entry.seatChoices.includes(saved.seats.length)
+        ? saved.seats.length
+        : entry.defaultSeats,
+    );
+    if (saved) setDifficulty(saved.difficulty);
+    setWorldSetup(id);
+  }
+  function startWorld(id: WorldId) {
+    storeWorld(worldGames[id].create(worldSeats, seed(), difficulty));
+    setWorldSetup(null);
+    setOpenWorld(id);
+    cue('shuffle', volume);
   }
   function openOwnSetup(id: StandaloneId) {
     const entry = standaloneGames[id];
@@ -553,6 +614,44 @@ export default function SoloGame() {
     sc = g ? scores(g) : [],
     bestScore = g?.id === 'undertow' ? Math.min(...sc) : Math.max(...sc),
     winners = g?.players.filter((_, i) => sc[i] === bestScore) ?? [];
+  const worldGame = openWorld ? worlds[openWorld] : undefined;
+  if (openWorld && worldGame)
+    return (
+      <div className={`app at-table ${openWorld}`}>
+        <WorldTable
+          g={worldGame}
+          volume={volume}
+          onChange={storeWorld}
+          onHome={() => setOpenWorld(null)}
+          onNew={() => startWorld(openWorld)}
+          onSound={() => setPanel('sound')}
+        />
+        <Dialog
+          open={panelOpen && panel === 'sound'}
+          onOpenChange={(open) => {
+            if (!open) setPanel(null);
+          }}
+        >
+          <DialogContent className="modal help-modal">
+            <DialogTitle>Sound</DialogTitle>
+            <DialogDescription>
+              Volume applies to all games. Ambience is the world around the
+              table.
+            </DialogDescription>
+            <div className="sound-settings">
+              <Slider
+                value={[volume]}
+                onValueChange={volumeChange}
+                min={0}
+                max={1}
+                step={0.05}
+                aria-label="Sound volume"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
   const ownGame = openOwn ? (ownPractice?.kind===openOwn?ownPractice:own[openOwn]) : undefined;
   if (openOwn && ownGame)
     return (
@@ -640,7 +739,9 @@ export default function SoloGame() {
           own={own}
           volume={volume}
           onSetup={openSetup}
+          worlds={worlds}
           onStandalone={openOwnSetup}
+          onWorld={openWorldSetup}
           onOpenPlaceholder={setPreview}
           onSound={() => setPanel('sound')}
         />
@@ -877,17 +978,32 @@ export default function SoloGame() {
         </output>
       )}
       <Dialog
-        open={!!setup || !!preview || !!ownSetup}
+        open={!!setup || !!preview || !!ownSetup || !!worldSetup}
         onOpenChange={(open) => {
           if (!open) {
             setSetup(null);
             setPreview(null);
             setOwnSetup(null);
+            setWorldSetup(null);
           }
         }}
       >
         <DialogContent className="modal setup-modal">
-          {ownSetup ? (
+          {worldSetup ? (
+            <WorldSetupBox
+              game={worldLibraryGames[worldSetup]}
+              save={worlds[worldSetup]}
+              seats={worldSeats}
+              difficulty={difficulty}
+              onSeats={setWorldSeats}
+              onDifficulty={setDifficulty}
+              onPlay={() => startWorld(worldSetup)}
+              onResume={(match) => {
+                setWorldSetup(null);
+                setOpenWorld(match.kind);
+              }}
+            />
+          ) : ownSetup ? (
             <StandaloneSetupBox
               game={standaloneLibraryGames[ownSetup]}
               save={own[ownSetup]}

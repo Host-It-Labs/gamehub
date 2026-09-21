@@ -48,6 +48,9 @@ import {
   type AnyGame,
 } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
+import { worldGames, type WorldGame } from '@/lib/games/worlds/registry';
+import { worldLessons } from '@/lib/games/worlds/lessons';
+import type { WorldId } from '@/lib/games/worlds/types';
 import './setup-box.css';
 
 const motifs: Record<string, LucideIcon> = {
@@ -88,7 +91,7 @@ function Lid({ game }: { game: LibraryGame }) {
   const developed = game.gameId ?? game.standaloneId;
   return (
     <div
-      className={`lid ${game.gameId ?? game.standaloneId ?? 'placeholder'}`}
+      className={`lid ${game.gameId ?? game.standaloneId ?? game.worldId ?? 'placeholder'}`}
       style={boxStyle(game, 300)}
     >
       <div className="lid-art">
@@ -412,6 +415,134 @@ export function SetupBox({
             </span>
           </button>
         )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Setup for the three illustrated worlds. It is the same open box as the rest
+ * of the library — lid, tray, seats, bot pawns, a leaflet at the top and Play
+ * and Continue together in the footer — but it has no play-mode compartment,
+ * because each of these worlds has exactly one shape: Orin is always
+ * cooperative, Vela is always two even teams, and Miro is always one hidden
+ * smuggler against the quay.
+ */
+export function WorldSetupBox({
+  game,
+  save,
+  seats,
+  difficulty,
+  onSeats,
+  onDifficulty,
+  onPlay,
+  onResume,
+}: {
+  game: LibraryGame;
+  save?: WorldGame;
+  seats: number;
+  difficulty: Difficulty;
+  onSeats: (n: number) => void;
+  onDifficulty: (d: Difficulty) => void;
+  onPlay: () => void;
+  onResume: (game: WorldGame) => void;
+}) {
+  const id = game.worldId as WorldId;
+  const entry = worldGames[id];
+  const resumable = save && !save.over;
+  const progress = resumable ? entry.progress(save) : null;
+  const lessons = worldLessons[id];
+  return (
+    <div className="setup-box">
+      <Lid game={game} />
+      <div className="tray">
+        <DialogDescription className="tray-note">
+          {game.world}.
+        </DialogDescription>
+        <div className="leaflet" role="note">
+          <BookOpen aria-hidden="true" />
+          <strong>{lessons[0].title}</strong>
+          <span>{lessons[0].text}</span>
+        </div>
+        <div className="tray-row tray-row-top">
+          <fieldset className="compartment seats">
+            <legend>
+              {id === 'coast'
+                ? 'Keepers, including you'
+                : 'Players, including you'}
+            </legend>
+            <RadioGroup
+              className="seat-row"
+              value={String(seats)}
+              onValueChange={(v) => onSeats(Number(v))}
+            >
+              {entry.seatChoices.map((n) => (
+                <label key={n} className="seat">
+                  <RadioGroupItem value={String(n)} className="sr-only" />
+                  <span className="chair" aria-hidden="true">
+                    <i />
+                  </span>
+                  <b>{n}</b>
+                </label>
+              ))}
+            </RadioGroup>
+          </fieldset>
+          <fieldset className="compartment bots">
+            <legend>
+              <Bot aria-hidden="true" />
+              Bot difficulty
+            </legend>
+            <RadioGroup
+              className="pawn-row"
+              value={difficulty}
+              onValueChange={(v) => onDifficulty(v as Difficulty)}
+            >
+              {(['easy', 'medium', 'hard'] as const).map((level) => (
+                <label key={level} className={`pawn-choice ${level}`}>
+                  <RadioGroupItem value={level} className="sr-only" />
+                  <span className="pawn" aria-hidden="true">
+                    <i />
+                  </span>
+                  <b>{level}</b>
+                </label>
+              ))}
+            </RadioGroup>
+          </fieldset>
+        </div>
+        <p className="tray-soon">
+          {id === 'coast'
+            ? 'Orin is cooperative: the coast holds or it does not, for all of you at once. Bot difficulty here is bot skill, so a careless crew makes the night harder, not easier.'
+            : id === 'meadow'
+              ? 'Vela is always two even teams, so an odd table is trimmed rather than handing one kite a spare pair of hands. Everyone commits at once and turns over together.'
+              : 'Miro deals one hidden smuggler, and it can be you. Talk on your call; the app only ever shows what the quay can actually see.'}
+        </p>
+        <div className="setup-actions">
+          <button type="button" className="play-plate" onClick={onPlay}>
+            <Play aria-hidden="true" />
+            Play
+          </button>
+          {resumable && progress && (
+            <button
+              type="button"
+              className="resume-strip"
+              onClick={() => onResume(save)}
+              aria-label={`Continue your ${game.name} match, ${progress.label}`}
+            >
+              <span className="resume-thumb" aria-hidden="true">
+                <span className="resume-thumb-board" />
+              </span>
+              <span className="resume-copy">
+                <strong>Continue your match</strong>
+                <small>
+                  {progress.label} · {progress.detail}
+                </small>
+              </span>
+              <span className="resume-go" aria-hidden="true">
+                <ArrowRight />
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </div>
