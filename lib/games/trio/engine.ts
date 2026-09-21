@@ -1,3 +1,4 @@
+import { boxCover } from '../box-covers.ts';
 /** Platform-independent base rules. Content/scoring live here so expansions can compose them later. */
 export type ContentSet = 'beginner' | 'intermediate';
 export type GameOptions = {
@@ -9,6 +10,14 @@ export type GameOptions = {
   salvage?: boolean;
   specialtyStalls?: boolean;
 };
+/** Seat order shared by the rules and the table's direction indicator. */
+export function passingStep(g: { round: number }): 1 | -1 {
+  return g.round % 2 ? 1 : -1;
+}
+export function tableOrderStep(g: { phase: string; round: number }): 1 | -1 {
+  return g.phase === 'pass' ? passingStep(g) : 1;
+}
+
 export type GameId = 'undertow' | 'wildgrove' | 'midnight';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Card = { id: number; kind: number; rank: number };
@@ -260,21 +269,21 @@ export const catalog = [
     name: 'Nox',
     genre: 'Trick taking',
     color: '#38baca',
-    cover: '/art/blackwake-cover-v1.png',
+    cover: boxCover('undertow')!,
   },
   {
     id: 'wildgrove' as GameId,
     name: 'Mora',
     genre: 'Draft & place',
     color: '#75b965',
-    cover: '/art/elsewild-cover-v1.png',
+    cover: boxCover('wildgrove')!,
   },
   {
     id: 'midnight' as GameId,
     name: 'Yata',
     genre: 'Set collection',
     color: '#df84bb',
-    cover: '/art/nightshift-cover-v1.png',
+    cover: boxCover('midnight')!,
   },
 ];
 export function rng(seed: number) {
@@ -304,7 +313,7 @@ export function tidePenaltyRank(g: Pick<Game, 'fastMode'>) {
   return g.fastMode ? 4 : 8;
 }
 export function tidePenaltyValue(g: Pick<Game, 'fastMode'>) {
-  return g.fastMode === true ? 8 : 40;
+  return g.fastMode === true ? 10 : 40;
 }
 export function deck(id: GameId, round = 1, ranks = 10): Card[] {
   return Array.from({ length: id === 'undertow' ? 5 * ranks : 72 }, (_, i) => ({
@@ -374,7 +383,7 @@ function deal(g: Game) {
     p.packet = (g.round - 1) * g.players.length + i;
   });
   g.passes = g.players.map(() => []);
-  g.passCards = passCount({ players: g.players, fastMode: g.fastMode });
+  g.passCards = passCount({ players: g.players, fastMode: g.fastMode, duelDeck: g.duelDeck });
   g.voids = g.players.map(() => []);
   g.memory = g.players.map(() => ({}));
   if (g.id === 'undertow') {
@@ -1105,17 +1114,20 @@ function beginTrick(g: Game) {
   ).find((i) => eligible[i])!;
 }
 
-/** Table-size exchanges: 4 with two players, 3 with three, 2 with four or more. */
+/** Fast exchanges stay small; normal exchanges use about a quarter of the hand. */
 export function passCount(
   g: Pick<PublicGame, 'players' | 'passCards' | 'fastMode'> & {
     passes?: number[][];
+    duelDeck?: boolean;
   },
 ) {
   // Finish an exchange already started by a pre-update save at its original size.
   const started = g.passes?.find((cards) => cards.length)?.length;
   if (g.passCards !== undefined) return g.passCards;
   if (started) return started;
-  return g.players.length === 2 ? 4 : g.players.length === 3 ? 3 : 2;
+  if (g.fastMode) return g.players.length <= 3 ? 3 : 2;
+  const cards = Math.floor((g.duelDeck ? 25 : 50) / g.players.length);
+  return Math.max(2, Math.min(4, Math.ceil(cards / 4)));
 }
 export function validMove(state: PublicGame, m: Move, actor = state.active) {
   if (
@@ -1270,7 +1282,7 @@ function applyMove(state: Game, m: Move, increment = true): Game {
       );
       g.players.forEach((p, i) => {
         p.hand = p.hand.filter((c) => !g.passes[i].includes(c.id));
-        p.hand.push(...gifts[(i + (g.round % 2 ? n - 1 : 1)) % n]);
+        p.hand.push(...gifts[(i - passingStep(g) + n) % n]);
         p.hand.sort((a, b) => a.kind - b.kind || a.rank - b.rank);
       });
       emit(g, 'pass', -1, 'Cards move to the next seat.');
@@ -1332,7 +1344,7 @@ function applyMove(state: Game, m: Move, increment = true): Game {
       g.voids[actor].push(g.trick[0].card.kind);
     g.trick.push({ player: actor, card, ward: !!m.ward });
     if (g.trick.length < n) {
-      g.active = (actor + 1) % n;
+      g.active = (actor + tableOrderStep(g) + n) % n;
       return g;
     }
     const win = g.trick

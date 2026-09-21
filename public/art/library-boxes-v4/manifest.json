@@ -52,59 +52,5 @@
       282,
       1024
     ]
-  },
-  {
-    "id": "orin",
-    "source": "public/art/library-boxes-v4/orin-source.png",
-    "front": "public/art/optimized/box-orin-v4-front.webp",
-    "spine": "public/art/optimized/box-orin-v4-spine.webp",
-    "frontCrop": [
-      0,
-      0,
-      1252,
-      1024
-    ],
-    "spineCrop": [
-      1268,
-      0,
-      268,
-      1024
-    ]
-  },
-  {
-    "id": "vela",
-    "source": "public/art/library-boxes-v4/vela-source.png",
-    "front": "public/art/optimized/box-vela-v4-front.webp",
-    "spine": "public/art/optimized/box-vela-v4-spine.webp",
-    "frontCrop": [
-      0,
-      0,
-      1261,
-      1024
-    ],
-    "spineCrop": [
-      1271,
-      0,
-      265,
-      1024
-    ]
-  },
-  {
-    "id": "miro",
-    "source": "public/art/library-boxes-v4/miro-source.png",
-    "front": "public/art/optimized/box-miro-v4-front.webp",
-    "spine": "public/art/optimized/box-miro-v4-spine.webp",
-    "frontCrop": [
-      0,
-      0,
-      1266,
-      1024
-    ],
-    "spineCrop": [
-      1288,
-      0,
-      248,
-      1024
-    ]
   }
 ]

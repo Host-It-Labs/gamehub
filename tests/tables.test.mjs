@@ -25,6 +25,13 @@ function setup(path = ':memory:') {
   );
   const online = new Set();
   const tables = new Tables(db, (_, id) => online.has(id));
+  // A successful join in these unit fixtures represents an active SSE client.
+  const joinTable = tables.join.bind(tables);
+  tables.join = (invite, who) => {
+    const result = joinTable(invite, who);
+    online.add(who.id);
+    return result;
+  };
   return { db, tables, online, host: actor('host', true) };
 }
 function command(tables, t, who, action, requestId = randomUUID()) {
@@ -226,7 +233,7 @@ await test('persistent match and deduplication survive reopening SQLite', () => 
   }
 });
 
-await test('host expansion choice reaches shared game and four-card exchange is accepted', () => {
+await test('host expansion choice reaches shared game and the shortened duel exchange is accepted', () => {
   const { db, tables, host } = setup();
   try {
     let t = tables.create(host);
@@ -248,7 +255,7 @@ await test('host expansion choice reaches shared game and four-card exchange is 
       type: 'move',
       move: {
         type: 'pass',
-        cards: t.game.players[0].hand.slice(0, 4).map((c) => c.id),
+        cards: t.game.players[0].hand.slice(0, 3).map((c) => c.id),
       },
     });
     assert.equal(t.game.active, 1);
@@ -444,5 +451,40 @@ await test('online players can withdraw their hidden commitment but never undo a
     t = command(tables, t, host, { type: 'move', move });
     t = command(tables, t, guest, { type: 'move', move: { type: 'play', card: t.game.players[1].hand[0].id } });
     assert.throws(() => command(tables, t, host, { type: 'move', move: { type: 'undo' } }));
+  } finally { db.close(); }
+});
+
+await test('shared lobby setup persists, follows the host, and rejects guest changes', () => {
+  const { db, tables, host } = setup();
+  try {
+    let t = tables.create(host);
+    const guest = actor('setup-guest');
+    t = tables.join(t.token, guest);
+    assert.equal(tables.view(t, guest).setupOpen, false);
+    t = command(tables, t, host, { type: 'configure', gameId: 'wildgrove', difficulty: 'medium', capacity: 4, openSetup: true });
+    let view = tables.view(tables.get(t.token), guest);
+    assert.equal(view.setupOpen, true);
+    assert.equal(view.gameId, 'wildgrove');
+    for (const action of [
+      { type: 'setup', open: false },
+      { type: 'configure', gameId: 'midnight', difficulty: 'hard', capacity: 4 },
+      { type: 'start' },
+    ]) assert.throws(() => command(tables, t, guest, action), /Only the host/);
+    t = command(tables, t, host, { type: 'configure', gameId: 'wildgrove', difficulty: 'hard', capacity: 4, contentSet: 'intermediate', migration: true });
+    view = tables.view(tables.get(t.token), guest);
+    assert.equal(view.setupOpen, true);
+    assert.equal(view.difficulty, 'hard');
+    assert.equal(view.migration, true);
+    t = tables.join(t.token, actor('late-setup-guest'));
+    assert.equal(tables.view(t, actor('late-setup-guest')).setupOpen, true);
+    t = command(tables, t, host, { type: 'setup', open: false });
+    assert.equal(tables.view(t, guest).setupOpen, false);
+    t = command(tables, t, host, { type: 'setup', open: true });
+    t = command(tables, t, host, { type: 'start', learning: true });
+    assert.equal(tables.view(t, guest).setupOpen, false);
+    assert.equal(tables.view(t, guest).game.tutorial, true);
+    assert.throws(() => command(tables, t, host, { type: 'setup', open: true }), /Return to the lobby/);
+    t = command(tables, t, host, { type: 'abandon' });
+    assert.equal(tables.view(t, guest).setupOpen, false);
   } finally { db.close(); }
 });

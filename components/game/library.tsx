@@ -28,8 +28,6 @@ import { GameBox } from './game-box';
 import type { Game, GameId } from '@/lib/games/trio/engine';
 import type { AnyGame } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
-import type { WorldGame } from '@/lib/games/worlds/registry';
-import type { WorldId } from '@/lib/games/worlds/types';
 import {
   filters,
   friendById,
@@ -165,7 +163,6 @@ function inProgress(
   game: LibraryGame,
   saves: Partial<Record<GameId, Game>>,
   own: Partial<Record<StandaloneId, AnyGame>>,
-  worlds: Partial<Record<WorldId, WorldGame>> = {},
 ) {
   if (game.gameId) {
     const save = saves[game.gameId];
@@ -175,10 +172,6 @@ function inProgress(
     const save = own[game.standaloneId];
     return !!save && !save.over;
   }
-  if (game.worldId) {
-    const save = worlds[game.worldId];
-    return !!save && !save.over;
-  }
   return !!game.bookmark;
 }
 
@@ -186,16 +179,14 @@ function ShelfTile({
   game,
   saves,
   own,
-  worlds,
   onOpen,
 }: {
   game: LibraryGame;
   saves: Partial<Record<GameId, Game>>;
   own: Partial<Record<StandaloneId, AnyGame>>;
-  worlds: Partial<Record<WorldId, WorldGame>>;
   onOpen: (game: LibraryGame) => void;
 }) {
-  const marked = inProgress(game, saves, own, worlds);
+  const marked = inProgress(game, saves, own);
   return (
     <li className="shelf-item">
       <button
@@ -343,22 +334,17 @@ export function Library({
   saves,
   own,
   volume,
-  worlds = {},
   onSetup,
   onStandalone,
-  onWorld,
   onOpenPlaceholder,
   onSound,
 }: {
   saves: Partial<Record<GameId, Game>>;
   /** Saved matches for the games that run on their own rules module. */
   own: Partial<Record<StandaloneId, AnyGame>>;
-  /** Saved matches for the three illustrated worlds. */
-  worlds?: Partial<Record<WorldId, WorldGame>>;
   volume: number;
   onSetup: (id: GameId) => void;
   onStandalone: (id: StandaloneId) => void;
-  onWorld: (id: WorldId) => void;
   onOpenPlaceholder: (game: LibraryGame) => void;
   onSound: () => void;
 }) {
@@ -371,7 +357,6 @@ export function Library({
   function open(game: LibraryGame) {
     if (game.gameId) onSetup(game.gameId);
     else if (game.standaloneId) onStandalone(game.standaloneId);
-    else if (game.worldId) onWorld(game.worldId);
     else onOpenPlaceholder(game);
   }
   function matches(game: LibraryGame) {
@@ -567,7 +552,6 @@ export function Library({
                       game={game}
                       saves={saves}
                       own={own}
-                      worlds={worlds}
                       onOpen={open}
                     />
                   ))}

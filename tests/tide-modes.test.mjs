@@ -31,7 +31,7 @@ await test('both Tide modes deal equal hands and complete at every seat count wi
         assert.equal(tideRanks(g), fast ? 5 : 10);
         assert.equal(
           passCount(g),
-          seats === 2 ? 4 : seats === 3 ? 3 : 2,
+          fast ? (seats <= 3 ? 3 : 2) : [3, 4, 3, 3, 2][seats - 2],
         );
         assert.equal(g.reserve.length, total % seats);
         assert.ok(
@@ -67,7 +67,7 @@ await test('only the matching 8 or fast 4 costs its mode bonus; Storm remains ra
   for (const fast of [false, true]) {
     const g = createGame('undertow', 'easy', 1, false, 3, false, fast);
     for (let rank = 1; rank <= tideRanks(g); rank++) {
-      assert.equal(tidePenaltyValue(g), fast ? 8 : 40);
+      assert.equal(tidePenaltyValue(g), fast ? 10 : 40);
       assert.equal(
         penalty(
           { id: rank, kind: 1, rank },
@@ -75,7 +75,7 @@ await test('only the matching 8 or fast 4 costs its mode bonus; Storm remains ra
           tidePenaltyRank(g),
           tidePenaltyValue(g),
         ),
-        rank === (fast ? 4 : 8) ? (fast ? 8 : 40) : 0,
+        rank === (fast ? 4 : 8) ? (fast ? 10 : 40) : 0,
       );
       assert.equal(
         penalty({ id: rank, kind: 4, rank }, 1, tidePenaltyRank(g)),
@@ -103,6 +103,6 @@ await test('Tide AI uses Fast mode card bounds, exchange size, and hazard value'
 
     const playState = play(g, move);
     assert.ok(playState.players.every((p) => p.hand.every((c) => c.rank <= 5)));
-    assert.equal(tidePenaltyValue(playState), 8);
+    assert.equal(tidePenaltyValue(playState), 10);
   }
 });

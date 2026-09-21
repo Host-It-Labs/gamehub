@@ -9,8 +9,21 @@ https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne
 
 License: https://www.naturalearthdata.com/about/terms-of-use/
 
-The capital-location catalog in `lib/games/party/places.json` comes from World
-Bank country metadata; each record contains its original API source. These are
-approximate city coordinates, not exact landmark locations.
+The location catalog in `lib/games/party/geo-places.json` contains curated medium
+and hard town/city destinations, approximate centre coordinates, and three clues.
+Real location photographs are stored locally in `public/geography`; each catalog
+record includes the original Wikimedia Commons file, author and licence.
+Full acquisition metadata is in `docs/geography/photo-provenance.json`.
 
 `public/art/atlas-cover.svg` is an original code-native cover composed from the same public-domain polygons, native typography, route strokes and circles.
+
+## Atlas satellite globe
+
+`earth-satellite.jpg` is the NASA Blue Marble Earth composite distributed by
+Three.js as `examples/textures/planets/earth_atmos_2048.jpg`:
+https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg
+Downloaded 2026-09-21. NASA imagery: https://visibleearth.nasa.gov/collection/1484/blue-marble
+NASA media usage: https://www.nasa.gov/nasa-brand-center/images-and-media/
+The 2048×1024 texture is bundled locally, with no country boundary, label or
+political overlay. It is a global satellite composite, not live or street-level
+imagery. Atlas no longer renders the Natural Earth country geometry.

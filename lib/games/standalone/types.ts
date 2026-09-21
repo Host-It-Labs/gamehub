@@ -1,7 +1,7 @@
 /** Stable storage IDs for the three independent party games. Public names live
  * in the registry. The rules marker rejects saves from their retired predecessors. */
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type StandaloneId = 'orin' | 'vela' | 'miro';
+export type StandaloneId = 'orin' | 'miro';
 
 export type LogEntry = { id: number; seat?: number; text: string };
 

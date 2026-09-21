@@ -1,5 +1,27 @@
 # Gamehub design direction
 
+## Shared progress and human-only party games (21 September 2026)
+
+Progress always sits directly below the top-left back/name control, in the shared
+`GameProgress` component, on desktop and mobile. This supersedes previous centered
+round counters. Atlas omits the difficulty badge. My Top Five and Atlas require
+human players in every seat, including learning sessions; online starts cannot fill
+empty seats with bots, and disconnected humans cannot be replaced by bots.
+
+
+## Mobile navigation refinement (21 September 2026)
+
+On phones (including short landscape), back/name and icon-only Menu (vertical dots) and Others share the first row. Player badges occupy a horizontally scrollable second row. Desktop keeps the existing stacked Menu/Others layout. Nox is the exception: only its table-rim player badges are rendered, with no Others control. Online Table administration is host-only during play and sits below the navigation and player rows. Nox's centered arrow shows alternating exchange direction during passing and clockwise order during tricks, using the engine's seat-order calculation.
+
+## Global navigation and viewport rule (21 September 2026)
+
+This rule supersedes conflicting layout exceptions below and applies to all games, including party games, practice and online play. Top left holds only back/return and the game name. Menu and Others stay on the right, with Others directly below Menu on desktop and beside Menu on phones, as detailed above; time/advance-time and fullscreen controls also belong on the right. Mobile player badges use a separate horizontally scrollable second row. Nox uses only its table-rim badges and has no Others control.
+
+A playing screen should fit one viewport. Players must not have to scroll the whole page between choices, board, hand and confirmation. Reflow the active game, remove duplicate headings and reduce decorative spacing first. Preserve legible labels and usable touch targets. Put long rules, history, guess comparisons and optional inspections in overlays with internal scrolling; never conceal inaccessible gameplay using overflow clipping. Test portrait, short landscape, tablet and browser zoom; report any remaining accessibility/extreme-size scrolling fallback explicitly.
+
+Top Tier retains a private order for every visited topic until the next round. Switching restores that order. Refreshing from an active ranking selects the first fresh topic and stays in the ranking view; refreshing from the initial chooser stays there. Two refreshes per player per round. Compact topic cards keep their title and answer chips, without a category heading.
+
+
 This is the visual and interaction contract for future work. Mechanics are the stable core; names, fiction, characters, scenery and cultural references may evolve within these worlds. Do not reconstruct the previous Tide/Mora/Yatai presentation from old assets or memory.
 
 ## Mora cleanup and future-game requirements
@@ -31,14 +53,12 @@ The observatory uses lazily loaded Three.js with an orthographic camera and simp
 | Nox | `undertow` | Improvised boats, pirate radio, nocturnal harbour, communal salvage | One deck; normal and Fast rules |
 | Mora | `wildgrove` | Strange wildlife reclaiming human infrastructure | The Observatory; Floodline Station |
 | Yata | `midnight` | Underground street food and night culture | After Hours; Side B |
-| Orin | `orin` | A fogged lighthouse coast kept by a service that never speaks | One night |
-| Vela | `vela` | A spring meadow where two teams race kites along a silk ribbon | One meadow |
-| Miro | `miro` | A glassworks canal city where one trader wants the cargo to spoil | One night |
+| My Top Five | `orin` | Personal rankings and shared guesses | Two rounds |
+| Atlas | `miro` | Satellite globe and shared destinations | Places; Photos; Three facts |
 
 Nox, Mora and Yata share one rules module (`lib/games/trio/engine.ts`) because they
-share a deck, a die and a trick. Orin, Vela and Miro do not share any of that, so
-each owns its rules (`lib/games/<id>/engine.ts`), its table component and its
-stylesheet, behind the small contract in `lib/games/standalone/registry.ts`.
+share a deck, a die and a trick. My Top Five and Atlas use their own party
+engines behind `lib/games/standalone/registry.ts`.
 
 Internal IDs remain stable for routes, account preferences and records. Subject kind indices remain stable within each content set; changing a picture or name must never silently alter its scoring identity.
 
@@ -52,7 +72,7 @@ Generate fresh illustrations through the imagegen skill and a delegated image-ge
 
 Map composition and interaction geometry are one design. Paint habitat spaces as actual places with enough room for their full capacity; set hit targets and slots against the final image. Each environment owns independent coordinates. Environment scale must make sense around the existing readable creature size. Do not shrink creatures to repair a miniature-looking map. Die groups use recognizable placement shapes and physical ground materials. Never add cryptic glyph rows or arbitrary habitat emblems; group memberships and placement rules remain unchanged.
 
-Render numbers, names, suit symbols, formulas and explanatory text as crisp accessible DOM content. Keep responsive covers, loading manifests and optimized images synchronized. Preserve alpha on tokens.
+Render gameplay numbers, names, suit symbols, formulas and explanatory text as crisp accessible DOM content. Box-cover titles are the exception: generate their lettering inside the artwork, with accessible names on the surrounding controls. Keep responsive covers, loading manifests and optimized images synchronized. Preserve alpha on tokens.
 
 ## Extension contract
 
@@ -325,60 +345,6 @@ The user chose Direction D from the library concepts (`concepts/2026-09-19-libra
 
 Setup follows the Direction M open-box concept in `components/game/setup-box.tsx`: the lid carries the cover, title and stat chips; the kraft tray holds a Learn leaflet, seat tokens for players, three pawns for bot difficulty, folded boards for content sets (Nox shows its Fast mode deck instead), printed extension tiles with emblem, check and info mark, and one cream Play plate. A saved match appears as a continue strip at the top of the tray, which replaces the library's Resume button.
 
-## Orin, Vela and Miro (20 September 2026)
-
-Three of the pitched games from `concepts/2026-09-19-new-game-pitches` are now
-playable. They do not run on the trio engine: each has its own rules module, its
-own table and its own stylesheet, and the shared host
-(`components/game/standalone-table.tsx`) supplies only the bar, the bot clock, the
-saved match, the log and the results. Saves live under `gamehub.standalone.v1`,
-separate from the trio's, so one engine's rule change never invalidates the other's
-matches. The three are real entries in the library rather than placeholders; they
-carry no box artwork yet, so their covers still print a material and a motif.
-
-**Orin** — cooperative, one to four keepers, the **v1-a enamelled tin** direction.
-Cream enamel fields on cobalt with embossed outlines, rust at the rivets, and
-exactly one warm colour on the plate: the lamps still burning. Seven lighthouses
-stand on a rock band drawn through their stations in true plan view, with open
-water above and below; a fog bank rolls in from the west and takes one more
-lighthouse at the end of every watch. Keepers spend tools, and the only thing they
-may say is one bell each. A watch is four keeper turns however many keepers are on
-duty, so a solo coast is the same coast a full crew faces; the hand size scales the
-other way (`handSize`), so every table size holds at roughly the same tension.
-
-**Vela** — teams, two/four/six fliers, the **v1-a dyed silk and split bamboo**
-direction. Translucent washes, bamboo spars as warm lines, ink-brush wind, generous
-white air. The ribbon is drawn from one formula (`pointAt`) so the segments, the
-spars, the gusts and the kites all sit on the same curve; the spars are a dashed
-copy of the ribbon rather than separate lines, because the meadow's viewBox is
-deliberately non-uniform and would shear anything drawn at an angle. Every flier
-commits one card face down and they all turn over together. Teams are always even,
-so an odd table is trimmed rather than handing one kite a second pair of hands.
-
-**Miro** — hidden traitor, three to five traders. **Neither pitched variant was
-used.** Both `miro-landscape-v1-a` and `-b` came back as dim painted fresco, which
-is close to the register the rest of the library already occupies, so Miro was
-rebuilt in **leaded and stained glass** — the trade a canal city is actually known
-for. Flat saturated cells held in dark came and lit from behind; light is the
-mechanic as well as the material, so a clean hold glows and a rotten one goes out.
-The whole world is CSS and SVG, with the canal drawn as a deterministic scatter of
-glass cells so it never reshuffles between renders. One trader is secretly the
-smuggler and it can be you; the pilot is always aboard their own run, or the quay
-would simply stop sending whoever it suspects.
-
-Balance was measured rather than guessed, and the figures are asserted in
-`tests/{orin,vela,miro}.test.mjs`: a skilled Orin watch holds the coast between 78
-and 89 per cent of the time and a careless one between 19 and 34; Vela is within a
-few points of even between the two colours at every table size, with a level meadow
-under four per cent; Miro's merchants take between half and four fifths of the
-nights. Bot difficulty in a co-op is bot *skill*, so weaker keepers make Orin harder
-rather than easier, and the setup box says so.
-
-Still open: none of the three has box or board artwork, so their covers print a
-motif; none is available in online tables, which still run only the trio engine; and
-Orin's bell is the only communication channel, which wants a playtest with people
-rather than bots.
-
 ### Shared table navigation
 
 Across every game, align the top player badges with the floating navigation controls. Put Others directly below Menu, retaining the public-information inspection and focus return. Do not add separate Table or pass-to-player controls. Artwork candidate switches belong to development review, never the accepted playing scene. Keep these placements consistent through landscape, portrait and narrow layouts.
@@ -387,7 +353,7 @@ Across every game, align the top player badges with the floating navigation cont
 
 The library opens with the six implemented IDs on one shelf and concept games below. Developed games have dedicated illustrated fronts and spines, varied compact proportions and a complete bottom face. Setup keeps its cover and tag strip, uses a quiet plain insert and places equally prominent Play and Continue actions together.
 
-Nox uses a centered table-plane arrow, larger seat labels and played cards, and a centered near-side seat at two or three players. Both decks exchange 4/3/2 cards at 2/3/4+ players. New duels retain five ranks per suit in normal mode and three in fast mode, including the penalty rank. Already-started exchanges and older full decks finish with their saved configuration.
+Nox uses a centered table-plane arrow, larger seat labels and played cards, and a centered near-side seat at two or three players. Fast exchanges 3 cards at 2–3 players and 2 at 4–6. Normal exchanges about a quarter of the dealt hand, bounded to 2–4 cards: 3/4/3/3/2 at 2/3/4/5/6 players. Fast’s marked 4 costs 10 penalty points; normal’s marked 8 remains 40. New duels retain five ranks per suit in normal mode and three in fast mode, including the penalty rank. Already-started exchanges and older full decks finish with their saved configuration.
 
 Glasshouse now scores 2 per creature plus 4 for a full matching pair and a different guest, maximum 10. New matches receive one Roam. Floodline uses landscape A with its own measured geometry; both orientations have a two-slot cave. Mangrove rewards matching pairs (9; different 0; single 1), the cave rewards different pairs (7; matching 2; single 1), and Lighthouse scores 5 only for a species sheltered nowhere else. Matching goals and explanations follow these rules, superseding earlier tuning notes above.
 
@@ -421,15 +387,6 @@ in the spotlight. Only the opposing team guesses in team mode; in individual
 mode everyone except the owner guesses separately. Score one per exact tier
 plus two for a perfect five. Two rounds; highest score wins, ties share victory.
 
-Outfox has 339 factual cards from 30 World Bank indicators, fixed to 2023 data.
-Each player chooses one of two lists and writes a distinct sixth-answer decoy.
-The five factual answers have a fixed source-defined order; the author does not
-rank them. The six entries are shuffled before guessing. Score one per correct
-factual position, three for catching the decoy, and award the author two bluff
-points per opponent fooled. No confidence betting. Reveal the measurement,
-year, scope and source link. Cards explicitly rank reporting economies rather
-than silently treating missing observations as zero; territories may be included.
-Reproduction and evidence: `scripts/build-outfox-catalog.py` and `scripts/data/`.
 
 **Atlas** replaces Hot Streak completely in live code, using stable ID `miro`.
 It is a shared geography route challenge with a navy survey-chart identity,
@@ -452,80 +409,132 @@ acknowledges each reveal, including in practice and online play.
 
 Verification: `docs/verification/2026-09-20-party-refinements.md`.
 
-## September 21: Orin, Vela and Miro rebuilt as the three worlds
+## Library cover contract (21 September 2026)
 
-The 20 September section above describes a build of Orin, Vela and Miro that no
-longer exists. Those three were replaced by Roka/Talo/Soma, then by the party
-games, and their code was removed; the stable IDs `orin`, `vela` and `miro` now
-host **Top Tier**, **Outfox the Fox** and **Atlas**, and the balance figures that
-section quotes were asserted in `tests/{orin,vela,miro}.test.mjs`, which no
-longer exist. The empty `lib/games/{orin,vela,miro}` directories were leftovers
-of that removal.
+All shelf boxes share Mora's square face proportions and the same depth ratio
+(24% of face width). Size the whole box to its shelf cell, allowing only the
+small clearance needed by the projected spine and hover movement. Do not size
+boxes by game identity, title length, or cover aspect ratio.
 
-The three pitched worlds are now built again, from
-`concepts/2026-09-19-new-game-pitches`, **without disturbing the party games**.
-The public names are Orin, Vela and Miro as pitched; the stable storage IDs are
-`coast`, `meadow` and `canal`, because the obvious ones are spent. Saves live
-under `gamehub.worlds.v1` with marker `rules: 1`, separate from both the trio's
-and the party games' keys, so a rule change in one family never invalidates
-another family's matches. Rules live in `lib/games/worlds/`, and the shared host
-`components/game/world-table.tsx` supplies only the navigation, the player row,
-the bot clock, the log, the rules panel and the results plate. Each world brings
-its own board component and its own stylesheet, and the host remounts the board
-on every new decision so a selection can never be carried into the next turn.
+Covers are dedicated thematic illustrations in the game's own visual language:
+show its world, materials and meaningful motifs, never a screenshot or replica
+of the gameplay interface. Compose new covers as full-bleed squares without
+external mats, gray padding, baked-in box mockups, UI or duplicate titles.
+Generate the exact current game title inside the image itself, with expressive
+typography and placement designed as part of the composition. Never layer a
+visible DOM/CSS title over a finished cover. Keep the title safely inside the
+face and readable at shelf-thumbnail size; retain accessible names on controls
+and screen-reader dialog headings. Show the complete square in setup too. Fill the face with artwork rather than
+using contain/letterboxing; recompose art when cropping would lose its subject.
+Existing approved art directions remain distinct across games.
 
-**Orin** — cooperative, one to four keepers, the **v1-a enamelled tin** direction.
-Cream enamel on cobalt with embossed outlines, rivets that bloom rust once a lamp
-goes out, and exactly one warm colour on the plate: the lamps still burning.
-Seven lighthouses stand on a rock band in true plan view with open water above
-and below. A watch is four keeper turns however many keepers are on duty, so a
-solo coast is the same coast a full crew faces. At every watch end the gale takes
-the two westernmost unshuttered lamps and the fog comes one station further in,
-taking everything it holds; four of seven must still burn, for five watches.
-Wicks relight outside the fog, lamps reach into it, shutters carry one lamp
-through the night, and a rope pulls one station out of the fog for good. Hands
-are private and the only thing a keeper may say all night is one bell.
 
-**Vela** — teams, two/four/six fliers, the **v1-a dyed silk and split bamboo**
-direction. Translucent washes, bamboo spars as warm lines, ink-brush wind,
-generous white air. The ribbon comes from one formula (`pointAt`) so the
-segments, the spars, the gusts and the kites all sit on the same curve; the spars
-are a dashed copy of the ribbon rather than separate lines, because the meadow's
-viewBox is deliberately non-uniform and would shear anything drawn at an angle.
-Every flier commits one card face down, teammates included, and they all turn
-over together. A team moves by its own total divided by the number of fliers on
-it, so a pair and a trio race at the same pace. Scissors take the other team's
-strongest gust before the total is shared out. Teams are always even, so an odd
-table is trimmed rather than handing one kite a second pair of hands.
+### Fresh cover generation and party names (21 September 2026)
 
-**Miro** — hidden traitor, three to five traders. **Neither pitched variant was
-used**, as recorded on 20 September: both came back as dim painted fresco, close
-to the register the rest of the library already occupies. Miro is built in
-**leaded and stained glass** — the trade a canal city is actually known for.
-Flat saturated cells held in dark came and lit from behind, so light is the
-mechanic as well as the material: a clean hold glows and a rotten one goes out.
-The canal is a deterministic scatter of glass cells computed once from a fixed
-seed, so the window never reshuffles between renders. The pilot picks the crew
-and is always aboard it; the quay then shows hands and may turn two crews away
-per run, with the third sailing regardless, so refusing is a check and not a way
-to stall. One rotten hold spoils a run. Three clean runs are not enough on their
-own: the quay must then name the smuggler, and a quay that cannot agree names
-nobody.
+This contract supersedes the historical DOM-title and cover-proportion notes
+above. Cover regeneration is blind by default: use written game identity,
+mechanics and art-direction briefs only; do not inspect or supply previous cover
+images as references. Review newly generated results for title accuracy,
+thumbnail readability, complete square composition and thematic identity before
+integration. Preserve versioned source files, exact prompts and provenance.
 
-Balance was measured rather than guessed, and the bands are asserted in
-`tests/worlds.test.mjs` across every table size each world offers. A skilled Orin
-watch holds the coast 81–92 per cent of the time and a careless one 21–35, with
-skill worth at least 25 points at every crew size; in a cooperative game bot
-difficulty is bot _skill_, so a careless crew makes Orin harder rather than
-easier, and the setup box says so. Vela's two colours finish within a few points
-of each other at every table size and a level meadow is under four per cent,
-which took a tiebreak chain — reach, then pull, then the longer chase, then the
-raw wind, then the team that reached for the scissors less often. Miro's
-merchants take 55–73 per cent of seasons; at three traders the smuggler is aboard
-almost every run, so their bar there is four spoiled runs rather than three,
-measured rather than shared.
+Current party names are **My Top Five** (internal `orin`, formerly Top Tier),
+**Find the Lie** (internal `vela`, formerly Outfox the Fox), and **Atlas**
+(internal `miro`). These games use straightforward descriptive names. My Top
+Five ranks five personal favourites for others to guess; Find the Lie mixes
+five factual answers with one invented decoy. Stable IDs, save formats and
+rules remain unchanged by this naming update. Public names on covers, setup,
+help, solo games and online tables must agree.
 
-Still open: none of the three has box or board artwork, so their covers print a
-material and a motif; none is available in online tables, which still run only
-the trio engine; and Orin's bell is the only communication channel, which wants a
-playtest with people rather than bots.
+### Atlas two-round format (21 September 2026)
+
+Atlas now uses two rounds: medium then hard. Both run Places → Photos → Three
+facts, with one shared destination per category and six distinct destinations
+in total. Everybody independently prepares all three private pins at the start of each
+round, in any order, then locks all three together. Once everyone has locked,
+each team gets its 20-second turn to select a frozen teammate pin for Places,
+then Photos, then Three facts. All three pins stay frozen throughout the round. Starting teams alternate each category,
+so both teams start each category exactly once. Captains rotate per category.
+Each reveal waits for everybody to continue. Individual play skips discussion.
+Closest-pin and 100 km bonus scoring are unchanged. Rules marker 8 rejects
+incompatible earlier Atlas saves. The map is a borderless satellite 3D globe
+with gesture controls and only a World reset button.
+
+
+### September 21: custom and uneven teams, lobby presence
+
+This supersedes the equal-team restrictions above. My Top Five and Atlas accept 2–6 players in two non-empty, customizable teams; an odd
+player count keeps every player (five defaults to three versus two). Setup
+shows each player’s team, including bots. The host controls multiplayer teams;
+guests see the assignments live. Moving the last player out of a team swaps
+them with the first player on the other team so both teams remain playable.
+Assignments persist through practice, match start and saves. Removing a lobby
+member preserves the remaining players’ assignments.
+
+Disconnected guests are named inside shared setup with a host Remove button.
+Play and Learn remain disabled until they reconnect or are removed; the server
+also checks presence when starting, covering a disconnect after the last update.
+Empty seats continue to be filled by bots.
+
+Mora hand artwork is anchored directly to its circle, with a 1.06 image scale
+and a small visible margin. This avoids nested button percentage-height sizing
+while retaining the current circles, tray, board artwork and camera.
+
+### September 21: shared opponents and silent teammates
+
+My Top Five now uses rules marker 6. During each author's list, the opposing
+team edits one shared ranking and its captain locks it. Each of the author's
+teammates guesses independently and silently, and the author also stays silent.
+Average those eligible teammates' raw guessing points for their team's gain on
+that list; compare that with the opposing team's shared score. The author is
+excluded from the average. A singleton author's team earns zero on its own list.
+Individual mode remains private guesses by everyone except the author. Old
+My Top Five saves need a fresh match because the guess structure has changed.
+
+The author sees their locked order during guessing. All guesses appear inline
+on reveal, with an internally scrolling comparison area. Shared ranking changes
+are sent as ordered draft moves during dragging, visible only to that guess's
+teammates; silent guesses remain private. Player badges show pending/completed
+actions in My Top Five and Atlas. Team names are Team A and Team B, and setup uses two compact columns with player transfer buttons.
+
+Find the Lie is removed from the library, online catalog, engines, data and assets.
+Yata no longer shows Sort in solo or online play. Board navigation asks before
+leaving, including same-document browser/device Back; reload and document exits
+use the browser's native beforeunload warning where the browser supports it.
+Browser and touch acceptance are separate from automated checks.
+
+## Removal and multiplayer ambience (21 September 2026)
+
+The remaining playable games are Nox, Mora, Yata, My Top Five and Atlas.
+The separate lighthouse, kite-racing and canal games (storage IDs `coast`,
+`meadow`, `canal`) and Find the Lie/Outfox (`vela`) are removed, including
+their engines, UI, dedicated artwork, data and game-specific tooling.
+My Top Five keeps `orin` and Atlas keeps `miro`, preserving their saves.
+Legacy tables with an unsupported game reopen as Nox lobbies, preserving
+the table and its members without loading retired rules.
+
+Multiplayer background ambience defaults off, including tables saved before
+this setting existed. The table host controls a persisted `ambienceEnabled`
+setting from Table settings; changes reach every player via the existing
+SSE stream. Hosts can change it during a match without resetting play.
+Device mute and volume still apply; the host cannot force a muted device
+to play audio. Solo ambience preferences are unchanged.
+
+Docker includes only the explicit production asset allowlist maintained by
+`node scripts/production-assets.mjs --write`. The Docker build checks this
+list before compiling. Source art, unused candidates, old covers, unused
+audio and development data are excluded from the build context.
+
+## Atlas complete team turns (21 September 2026)
+
+This supersedes the category-by-category discussions above. Each team now
+chooses all three frozen pins during one 60-second turn, using the same
+captain throughout the round. The captain may select different teammates for
+each destination, switch tabs without losing choices, and confirm only when
+all three have a choice. The other team then chooses its complete set. Missing
+choices at timeout use the captain's frozen pins. The first team is random
+in round one and the other team starts round two; full captain rotation is
+not required. After both teams lock, reveal the three categories in sequence.
+Rules marker 9 rejects the earlier one-choice team state; affected Atlas
+tables return to the lobby, preserving their participants. My Top Five is
+unchanged. Browser, touch and audible playback acceptance remain separate.

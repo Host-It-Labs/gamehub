@@ -185,6 +185,10 @@ await test('SSE sends only viewer state, tracks presence and reconnects; moves d
         capacity: 2,
       })
     ).data;
+    // Keep the guest present in the lobby before the host starts.
+    const lobbyStream = await guest.events(path + '/events', controller.signal);
+    await lobbyStream.body.getReader().read();
+    t = (await host.request(path)).data;
     t = (await act(host, path, t, { type: 'start' })).data;
     const res = await guest.events(path + '/events', controller.signal);
     assert.equal(res.status, 200);
@@ -317,6 +321,7 @@ await test('development permits alternate local origins while production rejects
 
 await test('party HTTP and SSE views stay private, practice resets, and geography reveals the same task only after all human locks', async () => {
   const {app,client}=await fixture(false);
+  const presenceController = new AbortController();
   try{
     const {standaloneGames,decisionKey}=await import('../lib/games/standalone/registry.ts');
     const {host,path}=await hostTable(client);
@@ -331,7 +336,9 @@ await test('party HTTP and SSE views stay private, practice resets, and geograph
     }
     t=await command(host,{type:'configure',gameId:'orin',capacity:2,difficulty:'medium'});
     assert.equal((await guest.request(path+'/join',{name:'Guest'})).status,200);
-    for(const gameId of ['orin','vela','miro']){
+    const presenceStream = await guest.events(path+'/events', presenceController.signal);
+    await presenceStream.body.getReader().read();
+    for(const gameId of ['orin','miro']){
       await command(host,{type:'configure',gameId,capacity:2,difficulty:'medium'});
       await command(host,{type:'start',learning:true});
       assert.equal(t.adventure.tutorial,true);
@@ -352,7 +359,7 @@ await test('party HTTP and SSE views stay private, practice resets, and geograph
       if(gameId==='miro')assert.deepEqual(view.adventure.cityIds,[]);
       else assert.deepEqual(view.adventure.offers[0],[]);
       controller.abort();
-      const move=gameId==='miro'?{type:'arrange',order:[4,3,2,1,0]}:standaloneGames[gameId].legalMoves(t.adventure,0)[0];
+      const move=gameId==='miro'?{type:'pin',prompt:0,lat:10,lng:20}:standaloneGames[gameId].legalMoves(t.adventure,0)[0];
       await command(host,{type:'adventure-move',move,key:decisionKey(t.adventure)});
       if(gameId!=='miro'){
         const v=(await guest.request(path)).data;
@@ -360,12 +367,13 @@ await test('party HTTP and SSE views stay private, practice resets, and geograph
         assert.equal(v.adventure.ballots[0].topic,-1);
       }else{
         const hidden=(await guest.request(path)).data.adventure;
-        assert.deepEqual(hidden.cities,t.adventure.cities);
-        assert.deepEqual(hidden.guesses[0].order,[]);
+        assert.deepEqual(hidden.prompts,t.adventure.prompts);
+        assert.deepEqual(hidden.guesses[0].pins,[null,null,null]);
         assert.equal(hidden.result,null);
+        for (const prompt of [1,2]) await command(host,{type:'adventure-move',move:{type:'pin',prompt,lat:10,lng:20},key:decisionKey(t.adventure)});
         await command(host,{type:'adventure-move',move:{type:'lock'},key:decisionKey(t.adventure)});
         assert.equal(t.adventure.phase,'guess');
-        await command(guest,{type:'adventure-move',move:{type:'arrange',order:[4,3,2,1,0]},key:decisionKey(t.adventure)});
+        for (const [prompt,lat,lng] of [[0,10,20],[1,10,20],[2,10,20]]) await command(guest,{type:'adventure-move',move:{type:'pin',prompt,lat,lng},key:decisionKey(t.adventure)});
         await command(guest,{type:'adventure-move',move:{type:'lock'},key:decisionKey(t.adventure)});
         assert.equal(t.adventure.phase,'reveal');
         assert.equal(t.adventure.result.gains[0],t.adventure.result.gains[1]);
@@ -377,5 +385,36 @@ await test('party HTTP and SSE views stay private, practice resets, and geograph
       await command(host,{type:'abandon'});
       assert.equal(t.adventure,null);
     }
-  }finally{await app.close();}
+  }finally{presenceController.abort();await app.close();}
+});
+
+await test('host ambience changes reach guests over SSE and guests cannot override them', async () => {
+  const { app, client } = await fixture();
+  const controller = new AbortController();
+  let reader;
+  try {
+    const { host, path } = await hostTable(client);
+    const guest = client();
+    const joined = await guest.request(path + '/join', { name: 'Listener' });
+    assert.equal(joined.data.ambienceEnabled, false);
+    const events = await guest.events(path + '/events', controller.signal);
+    reader = events.body.getReader();
+    assert.match(new TextDecoder().decode((await reader.read()).value), /"ambienceEnabled":false/);
+    let t = (await host.request(path)).data;
+    const rejected = await act(guest, path, t, { type: 'ambience', enabled: true });
+    assert.equal(rejected.status, 403);
+    for (const enabled of [true, false]) {
+      const changed = await act(host, path, t, { type: 'ambience', enabled });
+      assert.equal(changed.status, 200);
+      t = changed.data;
+      assert.equal(t.ambienceEnabled, enabled);
+      const update = new TextDecoder().decode((await reader.read()).value);
+      assert.match(update, new RegExp(`"ambienceEnabled":${enabled}`));
+      assert.equal((await guest.request(path)).data.ambienceEnabled, enabled);
+    }
+  } finally {
+    controller.abort();
+    await reader?.cancel().catch(() => {});
+    await app.close();
+  }
 });

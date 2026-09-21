@@ -12,7 +12,7 @@ export function openDatabase(path: string) {
   const version = (
     db.prepare('PRAGMA user_version').get() as { user_version: number }
   ).user_version;
-  if (version > 2)
+  if (version > 3)
     throw new Error(
       'Database is newer than this application; restore a compatible backup before downgrading.',
     );
@@ -37,5 +37,17 @@ export function openDatabase(path: string) {
     PRAGMA user_version=2;
     COMMIT;
   `);
+  if (version < 3)
+    db.exec(`
+      BEGIN IMMEDIATE;
+      CREATE TABLE user_content_history (
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        game_id TEXT NOT NULL,
+        content_key TEXT NOT NULL,
+        PRIMARY KEY(user_id, game_id, content_key)
+      );
+      PRAGMA user_version=3;
+      COMMIT;
+    `);
   return db;
 }

@@ -95,6 +95,6 @@ await test('recent events are excluded, with a safe fallback for small pools', (
 });
 
 await test('retired adventure ambience never plays in the replacement party games', () => {
-  for (const id of ['orin', 'vela', 'miro'])
+  for (const id of ['orin', 'miro'])
     assert.equal(ambienceFor(id), undefined);
 });

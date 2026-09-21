@@ -1,11 +1,9 @@
 'use client';
+import { requiresHumanPlayers } from '@/lib/games/player-policy';
+import { useBoardLeave } from '../game/use-board-leave';
+import { TableAmbienceControl } from './table-ambience-control';
 import { AdventureMatch } from './adventure-match';
 import { onlineCatalog } from '@/lib/online/catalog';
-import { isStandaloneId, standaloneGames } from '@/lib/games/standalone/registry';
-import {
-  GameExtensionChoices,
-  ContentChoice,
-} from '@/components/game/expansions';
 import { decisionKey } from '@/lib/games/trio/engine';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { Settings2 } from 'lucide-react';
@@ -22,12 +20,18 @@ import {
   type Table,
   type TableCommand,
 } from '@/lib/online/types';
-import { type Difficulty } from '@/lib/games/trio/engine';
 import { OnlineHeader } from './account';
 import { OnlineMatch } from './match';
 import { LobbyGames, SharedLesson } from './lobby-games';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export function SharedTable({ invite }: { invite: string }) {
+  const [leaving, setLeaving] = useState(false);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  function requestLeave() {
+    returnFocus.current = document.activeElement as HTMLElement | null;
+    setLeaving(true);
+  }
   const [table, setTable] = useState<Table | null>(null),
     [needsName, setNeedsName] = useState(false),
     [name, setName] = useState(rememberedName),
@@ -37,6 +41,7 @@ export function SharedTable({ invite }: { invite: string }) {
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(false),
     [copied, setCopied] = useState(false);
+  const allowLeave = useBoardLeave(!!(table?.game || table?.adventure), requestLeave);
   const pending = useRef<Command | null>(null),
     current = useRef<Table | null>(null),
     sending = useRef(false);
@@ -123,7 +128,8 @@ export function SharedTable({ invite }: { invite: string }) {
     if (sending.current || !current.current || (!action && !pending.current))
       return false;
     sending.current = true;
-    setBusy(true);
+    const drafting = action?.type === 'adventure-move' && action.move.type === 'arrange';
+    if (!drafting) setBusy(true);
     setError('');
     if (!pending.current && action)
       pending.current = {
@@ -244,7 +250,7 @@ export function SharedTable({ invite }: { invite: string }) {
         </main>
       ) : (
         <>
-          <details
+          {(table.status === 'lobby' || table.isHost) && <details
             className={`online-session table-session ${table.status === 'lobby' ? 'lobby-session' : 'playing-session'} ${table.isHost ? 'host-session' : 'guest-session'}`}
             key={`${table.status}-${table.isHost}`}
             open={table.status === 'lobby' && table.isHost}
@@ -303,6 +309,7 @@ export function SharedTable({ invite }: { invite: string }) {
                     : 'Table connected'
                   : 'Reconnecting… Your seat is saved.'}
               </output>
+              <TableAmbienceControl table={table} disabled={disabled} dispatch={dispatch} />
               <ul className="member-list">
                 {table.members.map((m) => (
                   <li key={`${m.id}-${m.bot}`}>
@@ -317,11 +324,11 @@ export function SharedTable({ invite }: { invite: string }) {
                           ? 'Host'
                           : m.bot
                             ? 'Bot'
-                            : m.seat === null
-                              ? 'Waiting for next match'
-                              : m.connected
-                                ? 'Connected'
-                                : 'Disconnected'}
+                            : !m.connected
+                              ? 'Disconnected'
+                              : m.seat === null && table.status !== 'lobby'
+                                ? 'Waiting for next match'
+                                : 'Connected'}
                       </small>
                     </span>
                     {table.isHost &&
@@ -343,7 +350,7 @@ export function SharedTable({ invite }: { invite: string }) {
                       !m.bot &&
                       !m.connected &&
                       m.seat !== null &&
-                      table.status === 'playing' && (
+                      table.status === 'playing' && !requiresHumanPlayers(table.gameId) && (
                         <button
                           className="secondary"
                           disabled={disabled}
@@ -370,16 +377,10 @@ export function SharedTable({ invite }: { invite: string }) {
                   <p className="lobby-seat-note">
                     {table.members.length} of {table.capacity} seats taken
                     {table.capacity > table.members.length
-                      ? ` · ${table.capacity - table.members.length} bots will fill the remaining seats`
-                      : ' · Everyone is here'}
+                      ? requiresHumanPlayers(table.gameId) ? ` · Waiting for ${table.capacity - table.members.length} human players` : ` · ${table.capacity - table.members.length} bots will fill the remaining seats`
+                      : table.members.some(m => !m.connected && !m.bot) ? ' · Some players are disconnected' : ' · Everyone is here'}
                   </p>
-                  {table.isHost && (
-                    <LobbySettings
-                      table={table}
-                      disabled={disabled}
-                      dispatch={dispatch}
-                    />
-                  )}
+
                 </>
               )}
               <div className="lobby-utilities">
@@ -467,9 +468,9 @@ export function SharedTable({ invite }: { invite: string }) {
                 </p>
               )}
             </section>
-          </details>
+          </details>}
           {table.status === 'lobby' && (
-            <LobbyGames table={table} disabled={disabled} dispatch={dispatch} />
+            <LobbyGames error={error} table={table} disabled={disabled} dispatch={dispatch} />
           )}
           {table.game?.tutorial && (
             <SharedLesson
@@ -478,9 +479,10 @@ export function SharedTable({ invite }: { invite: string }) {
               dispatch={dispatch}
             />
           )}
-          {table.adventure && table.viewerSeat !== null && <AdventureMatch key={table.matchId} table={table} disabled={disabled} dispatch={dispatch} onHome={() => { window.location.href='/'; }} />}
+          {table.adventure && table.viewerSeat !== null && <AdventureMatch key={table.matchId} table={table} disabled={disabled} dispatch={dispatch} onHome={requestLeave} />}
           {table.game && table.viewerSeat !== null ? (
             <OnlineMatch
+              onHome={requestLeave}
               key={table.matchId}
               connectionStatus={
                 fatal
@@ -493,6 +495,7 @@ export function SharedTable({ invite }: { invite: string }) {
                         ? 'Saving your move…'
                         : undefined
               }
+              ambienceEnabled={table.ambienceEnabled}
               g={table.game}
               viewer={table.viewerSeat}
               disabled={disabled}
@@ -517,171 +520,17 @@ export function SharedTable({ invite }: { invite: string }) {
           )}
         </>
       )}
-    </div>
-  );
-}
-function LobbySettings({
-  table,
-  disabled,
-  dispatch,
-}: {
-  table: Table;
-  disabled: boolean;
-  dispatch: (action: TableCommand) => Promise<boolean>;
-}) {
-  const [learning, setLearning] = useState(false);
-  return (
-    <div className="lobby-settings">
-      <div className="lobby-settings-title">
-        <span className="lobby-eyebrow">Ready to play</span>
-        <h2>{onlineCatalog.find((game) => game.id === table.gameId)?.name}</h2>
-      </div>
-      <label>
-        Total seats
-        <select
-          value={table.capacity}
-          disabled={disabled}
-          onChange={(e) =>
-            void dispatch({
-              type: 'configure',
-              shields: table.shields ?? false,
-              fastMode: table.fastMode ?? false,
-              gameId: table.gameId,
-              difficulty: table.difficulty,
-              capacity: Number(e.target.value),
-            })
-          }
-        >
-          {(isStandaloneId(table.gameId)?standaloneGames[table.gameId].seatChoices:[2, 3, 4, 5, 6]).map((n) => (
-            <option key={n} value={n} disabled={n < table.members.length}>
-              {n}
-            </option>
-          ))}
-        </select>
-      </label>
-      {isStandaloneId(table.gameId) && <label>Play mode
-        <select value={table.partyMode ?? 'individual'} disabled={disabled} onChange={event => void dispatch({type: 'configure', gameId: table.gameId, difficulty: table.difficulty, capacity: table.capacity, partyMode: event.target.value as 'teams' | 'individual'})}>
-          <option value="individual">Everyone for themselves</option>
-          <option value="teams" disabled={![4,6].includes(table.capacity)}>Two teams (4 or 6 players)</option>
-        </select>
-      </label>}
-      <label>
-        Bot difficulty
-        <select
-          value={table.difficulty}
-          disabled={disabled}
-          onChange={(e) =>
-            void dispatch({
-              type: 'configure',
-              shields: table.shields ?? false,
-              fastMode: table.fastMode ?? false,
-              gameId: table.gameId,
-              difficulty: e.target.value as Difficulty,
-              capacity: table.capacity,
-            })
-          }
-        >
-          {['easy', 'medium', 'hard'].map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </label>
-      {table.gameId === 'undertow' && (
-        <>
-          <label className="tide-fast-mode" aria-label="Fast mode">
-            <input
-              type="checkbox"
-              checked={table.fastMode ?? false}
-              disabled={disabled}
-              onChange={(e) =>
-                void dispatch({
-                  type: 'configure',
-                  gameId: table.gameId,
-                  difficulty: table.difficulty,
-                  capacity: table.capacity,
-                  shields: table.shields ?? false,
-                  fastMode: e.target.checked,
-                })
-              }
-            />
-            <span>
-              <b>Fast mode</b>
-              <small>Cards 1–5 · the 4 matching the die is +8</small>
-            </span>
-          </label>
-        </>
-      )}
-      {!isStandaloneId(table.gameId) && <ContentChoice
-        id={table.gameId}
-        options={{
-          contentSet: table.contentSet,
-          roamEnabled: table.roamEnabled,
-          turningTide: table.turningTide,
-          migration: table.migration,
-          salvage: table.salvage,
-          specialtyStalls: table.specialtyStalls,
-          marketSeasons: table.marketSeasons,
-        }}
-        disabled={disabled}
-        onChange={(options) =>
-          void dispatch({
-            type: 'configure',
-            gameId: table.gameId,
-            difficulty: table.difficulty,
-            capacity: table.capacity,
-            ...options,
-          })
-        }
-      />}
-      {!isStandaloneId(table.gameId) && <GameExtensionChoices
-        id={table.gameId}
-        options={{
-          contentSet: table.contentSet,
-          roamEnabled: table.roamEnabled,
-          turningTide: table.turningTide,
-          migration: table.migration,
-          salvage: table.salvage,
-          specialtyStalls: table.specialtyStalls,
-          marketSeasons: table.marketSeasons,
-        }}
-        shields={table.shields ?? false}
-        customerOrders={table.customerOrders ?? false}
-        sanctuaryGoalsEnabled={table.sanctuaryGoalsEnabled ?? false}
-        disabled={disabled}
-        onChange={(options) =>
-          void dispatch({
-            type: 'configure',
-            gameId: table.gameId,
-            difficulty: table.difficulty,
-            capacity: table.capacity,
-            ...options,
-          })
-        }
-      />}
-      <label
-        className="lobby-learning-choice"
-        aria-label="Learn together first"
-      >
-        <input
-          type="checkbox"
-          checked={learning}
-          disabled={disabled}
-          onChange={(event) => setLearning(event.target.checked)}
-        />
-        <span>
-          <b>Learn together first</b>
-          <small>Interactive practice, with lessons led by you.</small>
-        </span>
-      </label>
-      <button
-        className="primary lobby-start"
-        disabled={disabled || table.members.length > table.capacity}
-        onClick={() => void dispatch({ type: 'start', learning })}
-      >
-        {learning ? 'Start learning together' : 'Start match'}
-      </button>
+      <Dialog open={leaving} onOpenChange={setLeaving}>
+        <DialogContent className="modal help-modal" finalFocus={returnFocus}>
+          <DialogTitle>Leave the table?</DialogTitle>
+          <DialogDescription>
+            The match will keep going, and the other players may be waiting for you.
+            Your seat stays reserved. You can return from My tables.
+          </DialogDescription>
+          <button className="primary" onClick={() => setLeaving(false)}>Keep playing</button>
+          <button className="secondary" onClick={() => { allowLeave(); window.location.href = '/tables'; }}>Leave table</button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

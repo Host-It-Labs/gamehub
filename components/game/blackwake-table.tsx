@@ -10,6 +10,7 @@ import { Anchor, Shield } from 'lucide-react';
 import { PlayerStatus } from './player-status';
 import {
   canAct,
+  tableOrderStep,
   readySeats,
   scores,
   simultaneous,
@@ -102,9 +103,9 @@ export function BlackwakeTable({
       style={style}
     >
       <div className="blackwake-surface" />
-      {seatTags && g.phase !== 'over' && <DirectionRing clockwise={g.phase !== 'pass' || g.round % 2 === 1} passing={g.phase === 'pass'} />}
+      {seatTags && g.phase !== 'over' && <DirectionRing clockwise={tableOrderStep(g) === 1} passing={g.phase === 'pass'} />}
       <div className="blackwake-centre" aria-live="polite">
-        {!seatTags && <span className="table-direction" aria-label={g.round % 2 ? "Clockwise" : "Counterclockwise"}>{g.round % 2 ? "↻" : "↺"}</span>}
+        {!seatTags && <span className="table-direction" aria-label={tableOrderStep(g) === 1 ? "Clockwise" : "Counterclockwise"}>{tableOrderStep(g) === 1 ? "↻" : "↺"}</span>}
         {g.salvage && <Anchor aria-label="Salvage" />}
         <span>
           {reveal
@@ -118,6 +119,9 @@ export function BlackwakeTable({
       </div>
       {g.players.map((player, seat) => {
         const position = seatAt(seat);
+        const edge = Math.abs(position.x - 50) > Math.abs(position.y - 50)
+          ? position.x < 50 ? 'left' : 'right'
+          : position.y < 50 ? 'top' : 'bottom';
         const delta =
           reveal?.scoreChanges?.[seat] ??
           (reveal?.player === seat ? reveal.points : undefined);
@@ -126,7 +130,11 @@ export function BlackwakeTable({
           <Tag
             className={`table-seat ${canAct(g, seat) ? 'active' : ''} ${seat === viewer ? 'viewer' : ''}`}
             key={seat}
-            style={{ left: `${position.x}%`, top: `${position.y}%` }}
+            data-seat-edge={edge}
+            style={{
+              left: `calc(${position.x}% + var(--seat-offset-x, 0px))`,
+              top: `calc(${position.y}% + var(--seat-offset-y, 0px))`,
+            }}
             {...(onSeat
               ? { type: 'button' as const, onClick: () => onSeat(seat), title: player.name,
                   'aria-label': `${player.name}${totals ? `, ${totals[seat]} penalty points` : ''}` }
@@ -212,8 +220,8 @@ function DirectionRing({ clockwise, passing }: { clockwise: boolean; passing: bo
   return <svg className="table-direction-ring" viewBox="0 0 100 100"
     aria-label={`${passing ? 'Cards pass' : 'Tricks proceed'} ${clockwise ? 'clockwise' : 'counterclockwise'}`}>
     <g transform={clockwise ? undefined : 'translate(100 0) scale(-1 1)'}>
-      <path d="M 79 64 A 33 33 0 1 1 78 31" />
-      <polygon points="67,29 83,24 80,41" />
+      <path d="M 50 83 A 33 33 0 1 1 83 50" />
+      <polygon points="75,45 83,58 91,45" />
     </g>
   </svg>;
 }

@@ -1,0 +1,9 @@
+# My Top Five — blind cover
+
+Built-in image_gen; text-only generation, no input references or previous artwork inspected. Source 1254×1254 PNG: `public/art/box-my-top-five-blind-v1.png`. Optimized 1024×1024 WebP: `public/art/optimized/box-my-top-five-blind-v1.webp` via Sharp resize, quality90. Cache: `/Users/williamguinaudie/.codex/generated_images/01a0c373-a986-7a11-ab0e-5a645c0f3176/exec-a5104141-9271-4ae6-aa15-0f76596c071b.png`.
+
+Visual review: exact readable title, plum cut-paper letters within central84% safe bounds; full-bleed collage of favourite food, music, travel and leisure; no UI, border, external padding or box mockup. Large title occupies central composition. A separately resized 160×160 thumbnail was visually checked: title remains readable. No browser/touch check performed. Supersedes the preserved Top Tier generation after the user changed the name.
+
+## Exact prompt
+
+Use case: illustration-story. Create a fresh full-bleed square 2D illustrated board-game cover. Text verbatim: "My Top Five", no other text or numbers. A sociable game of ranking exactly five personal favourites and guessing friends: exuberant tactile cut-paper stationery collage of music records and headphones, delicious food, a travel suitcase and leisure passions, arranged in a playful rising rhythm with warm confident graphic energy. Cream, plum, coral and mustard paper, visible torn/cut edges, sophisticated editorial shapes. Make the title a large expressive plum hand-cut typographic centrepiece integrated among the collage, deliberate two-line composition if useful, readable at 160px. All title letters completely within central 84% of canvas (8% margins minimum). Cover art fills every edge. Do not reserve empty header for an overlay. No UI, no game screenshot, no counters, no border, no external mat or gray padding, no physical box mockup, no additional lettering. Original composition from this description alone.

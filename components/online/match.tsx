@@ -1,4 +1,6 @@
 'use client';
+import { GameProgress } from '../game/game-progress';
+import { totalRounds } from '@/lib/games/trio/engine';
 import { dropTargetNear } from '../game/drag-preview';
 import { FullscreenControl, useFullscreen } from '../game/fullscreen-control';
 import {
@@ -8,7 +10,7 @@ import {
 import { useAdvancedView } from '@/components/game/advanced-view';
 import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
 import { ArrowLeft } from 'lucide-react';
-import { TableHeading, TableProgress, gameName } from '../game/table-heading';
+import { TableHeading, gameName } from '../game/table-heading';
 import {
   useAutoRoll,
   MoveConfirmation,
@@ -49,13 +51,17 @@ export function OnlineMatch({
   viewer,
   disabled,
   connectionStatus,
+  ambienceEnabled = false,
   send,
+  onHome,
 }: {
   g: GameView;
   viewer: number;
   disabled: boolean;
   connectionStatus?: string;
+  ambienceEnabled?: boolean;
   send: (move: Move) => Promise<boolean>;
+  onHome: () => void;
 }) {
   const [selected, setSelected] = useState<number | null>(null),
     [preparedZone, setPreparedZone] = useState<number | null>(null),
@@ -121,7 +127,7 @@ export function OnlineMatch({
         : undefined;
   const world = environment !== undefined;
   const [ambience] = useState(readAmbienceLevel);
-  useAmbience(g.phase === 'over' ? null : g.id, volume, ambience, g.contentSet);
+  useAmbience(g.phase === 'over' ? null : g.id, volume, ambienceEnabled ? ambience : 0, g.contentSet);
   const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
@@ -276,12 +282,12 @@ export function OnlineMatch({
         contentSet={g.contentSet}
       />
       <div className="table-toolbar">
-        <a className="table-back" href="/tables" aria-label="Back to my tables">
+        <button className="table-back" onClick={onHome} aria-label="Back to my tables">
           <ArrowLeft size={17} />
           <span>{world ? gameName(g) : 'My tables'}</span>
-        </a>
+        </button>
         {!world && <TableHeading g={g} />}
-        {g.id === 'undertow' && <TableProgress g={g} roundOnly />}
+            <GameProgress label={`Round ${g.round} / ${totalRounds(g)}`} />
         <div className="table-toolbar-actions">
               <div className="table-others-slot" />
               {!world && <FullscreenControl />}
@@ -316,7 +322,7 @@ export function OnlineMatch({
               volume={volume}
               inspect={inspect}
               disabled={disabled}
-              boardButton progress={<TableProgress g={g} roundOnly />}
+              boardButton
               connectionStatus={connectionStatus}
               advanced={advanced}
             />
@@ -397,20 +403,7 @@ export function OnlineMatch({
               <span>
                 {passed.length}/{passCount(g)} selected
               </span>
-            ) : (
-              <button
-                className="sort-button"
-                onClick={() =>
-                  setOrder(
-                    [...g.players[viewer].hand]
-                      .sort((a, b) => a.kind - b.kind || a.rank - b.rank)
-                      .map((c) => c.id),
-                  )
-                }
-              >
-                Sort
-              </button>
-            )}
+            ) : null}
           </div>
           <UndoChoice g={g} viewer={viewer}
             drafted={selected !== null || passed.length > 0 || !!nature.choice.migration || !!nature.choice.roam || !!ward}

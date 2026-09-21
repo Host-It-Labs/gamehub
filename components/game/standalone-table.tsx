@@ -1,9 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Menu,
-  Users,
   LockKeyhole,
+  LoaderCircle,
   Check,
   Sparkles,
   Volume2,
@@ -13,15 +12,19 @@ import {
 import {
   standaloneGames,
   botMove,
+  tick,
   observe,
   type AnyGame,
   type AnyMove,
 } from '@/lib/games/standalone/registry';
+import { GameNavigation } from './game-navigation';
 import { SortableRanking } from './ranking-handle';
 import { topics } from '@/lib/games/party/catalog';
-import { facts } from '@/lib/games/party/facts';
 import {
   tiers,
+  guessSlot,
+  guessName,
+  guessPoints,
   captain,
   guessingTeams,
   count,
@@ -61,6 +64,20 @@ type Props = {
   canTeach?: boolean;
 };
 const seed = () => crypto.getRandomValues(new Uint32Array(1))[0];
+function awaitingAction(g: AnyGame, seat: number) {
+  if (g.over) return false;
+  if (g.phase === 'reveal') return !g.ready[seat];
+  if (g.kind === 'miro')
+    return g.phase === 'guess'
+      ? !g.guesses[seat].locked
+      : !g.choices[g.teams[seat]].locked;
+  if (g.phase === 'rank') return !g.ballots[seat]?.locked;
+  return (
+    seat !== g.target &&
+    guessingTeams(g).includes(guessSlot(g, seat)) &&
+    !g.guesses[guessSlot(g, seat)]?.locked
+  );
+}
 export function StandaloneTable({
   g,
   onChange,
@@ -104,33 +121,70 @@ export function StandaloneTable({
     }, 800);
     return () => clearTimeout(timer);
   }, [g, online, panel, entry, viewerSeat, onChange]);
+  useEffect(() => {
+    if (
+      online ||
+      g.tutorial ||
+      g.over ||
+      g.kind !== 'miro' ||
+      g.discussionEndsAt === null
+    )
+      return;
+    const timer = setTimeout(
+      () => {
+        const next = tick(g);
+        if (next !== g) onChange?.(next);
+      },
+      Math.max(0, g.discussionEndsAt - Date.now()) + 25,
+    );
+    return () => clearTimeout(timer);
+  }, [g, online, onChange]);
   const result = g.over ? entry.outcome(g) : null;
   function begin() {
     if (online) onBegin?.();
-    else onChange?.(entry.create(g.seats.length, seed(), g.difficulty, g.mode));
+    else
+      onChange?.(
+        entry.create(
+          g.seats.length,
+          seed(),
+          g.difficulty,
+          g.mode,
+          undefined,
+          g.teams,
+        ),
+      );
   }
   function lesson(step: number) {
     if (online) onLesson?.(step);
     else
-      onChange?.(practice(g.kind, g.seats.length, g.difficulty, step, g.mode));
+      onChange?.(
+        practice(g.kind, g.seats.length, g.difficulty, step, g.mode, g.teams),
+      );
   }
   return (
-    <div className={`party-table party-${g.kind}`}>
-      <nav className="party-nav" aria-label="Game navigation">
-        <button onClick={() => setPanel('menu')}>
-          <Menu size={18} />
-          <span>Menu</span>
-        </button>
-        <button onClick={() => setPanel('others')}>
-          <Users size={18} />
-          <span>Others</span>
-        </button>
-      </nav>
+    <div
+      className={`party-table party-${g.kind} ${g.tutorial ? 'is-practice' : ''} ${view.kind !== 'miro' && (view.phase !== 'rank' || view.ballots[viewerSeat]) ? 'has-list' : ''}`}
+    >
+      <GameNavigation
+        name={entry.name}
+        round={{ current: g.round, total: 2 }}
+        onBack={onHome}
+        onMenu={() => setPanel('menu')}
+        onOthers={() => setPanel('others')}
+        onAdvance={
+          g.tutorial && canTeach
+            ? () =>
+                online
+                  ? onAdvance?.()
+                  : onChange?.(advancePractice(g, viewerSeat))
+            : undefined
+        }
+      />
       <header className="party-players">
         {g.seats.map((name, s) => (
           <div
             key={s}
-            className={`party-player ${s === viewerSeat ? 'is-you' : ''} ${entry.actingSeats(view).includes(s) ? 'is-active' : ''}`}
+            className={`party-player ${s === viewerSeat ? 'is-you' : ''} ${awaitingAction(view, s) ? 'is-active' : ''}`}
           >
             <span className={`party-avatar team-${g.teams[s]}`}>
               {name.slice(0, 1)}
@@ -141,24 +195,28 @@ export function StandaloneTable({
                 {s === viewerSeat ? ' · you' : ''}
               </b>
               <small>
-                {`${groupName(g, g.teams[s])} · ${g.scores[g.teams[s]]} pts`}
+                {`${groupName(g, g.teams[s])} · ${Number(g.scores[g.teams[s]].toFixed(2))} pts`}
               </small>
             </span>
-            {!entry.actingSeats(view).includes(s) && g.phase === 'rank' && (
-              <LockKeyhole size={12} />
-            )}
+            <output
+              className="party-action-status"
+              aria-label={awaitingAction(view, s) ? 'Choosing' : 'Ready'}
+            >
+              {awaitingAction(view, s) ? (
+                <LoaderCircle className="party-action-spinner" size={16} />
+              ) : (
+                <Check size={16} />
+              )}
+            </output>
           </div>
         ))}
       </header>
       <main className="party-main">
         <div className="party-title">
           <p>
-            {entry.progress(g).label} <span>•</span>{' '}
             {g.kind === 'miro'
-              ? 'ONE WORLD · THE SAME CHALLENGE FOR EVERYONE'
-              : g.kind === 'vela'
-                ? 'ONE OF THESE IS A FOX'
-                : 'HOW WELL DO YOU KNOW THEM?'}
+              ? 'SIX DESTINATIONS · TRUST YOUR TEAM'
+              : 'HOW WELL DO YOU KNOW THEM?'}
           </p>
           <h1>{entry.name}</h1>
         </div>
@@ -210,15 +268,6 @@ export function StandaloneTable({
                 onClick={() => lesson(g.lesson - 1)}
               >
                 Back
-              </button>
-              <button
-                onClick={() =>
-                  online
-                    ? onAdvance?.()
-                    : onChange?.(advancePractice(g, viewerSeat))
-                }
-              >
-                Advance time
               </button>
               {g.lesson < 3 && (
                 <button onClick={() => lesson(g.lesson + 1)}>Next</button>
@@ -277,7 +326,7 @@ export function StandaloneTable({
               outcome={adventureLessons[g.kind][0].title}
               note={
                 g.kind === 'miro'
-                  ? 'Everyone receives the same cities and instructions. Every guess locks before the globe reveals the route.'
+                  ? 'Everyone freezes all three private pins before discussion. Each team chooses all three in one turn before switching teams. Both teams confirm before any destination is revealed.'
                   : 'Discuss with your team outside the app. The list owner must stay silent while teams guess.'
               }
             >
@@ -295,9 +344,7 @@ export function StandaloneTable({
                 {g.seats.map((name, s) => (
                   <p key={s}>
                     <b>{name}</b> · {groupName(g, g.teams[s])} ·{' '}
-                    {entry.actingSeats(view).includes(s)
-                      ? 'Choosing'
-                      : 'Waiting'}
+                    {awaitingAction(view, s) ? 'Choosing' : 'Waiting'}
                   </p>
                 ))}
               </div>
@@ -324,28 +371,23 @@ function RankingTable({
   disabled: boolean;
   commit: (m: AnyMove) => void;
 }) {
-  const [decoyText, setDecoyText] = useState('');
-  const catalog = g.kind === 'vela' ? facts : topics;
+  const catalog = topics;
   const owner = g.phase === 'rank' ? viewer : g.target,
     ballot = g.ballots[owner],
     card = ballot ? catalog[ballot.topic] : null;
   const topic = card
     ? {
         ...card,
-        answers:
-          g.kind === 'vela'
-            ? (ballot?.answers ?? [
-                ...card.answers,
-                ballot?.decoy ?? 'Your decoy',
-              ])
-            : card.answers,
+        answers: card.answers,
       }
     : null;
   const team = g.teams[viewer],
     isOwner = g.target === viewer,
     canGuess =
-      g.phase === 'guess' && !isOwner && guessingTeams(g).includes(team);
-  const guess = g.guesses[team];
+      g.phase === 'guess' &&
+      !isOwner &&
+      guessingTeams(g).includes(guessSlot(g, viewer));
+  const guess = g.guesses[guessSlot(g, viewer)];
   const locked = g.phase === 'rank' ? !!ballot?.locked : !!guess?.locked;
   const order =
     g.phase === 'rank'
@@ -356,15 +398,19 @@ function RankingTable({
           ? guess?.order.length
             ? guess.order
             : Array.from({ length: count(g) }, (_, i) => i)
-          : [];
+          : isOwner
+            ? ballot?.order
+            : [];
   const editable =
     !disabled &&
     !locked &&
     ((g.phase === 'rank' && g.kind === 'orin') || canGuess);
-  const labels = g.kind === 'vela' ? ['1', '2', '3', '4', '5', 'Fox'] : tiers;
-  const cap = canGuess ? captain(g, team) : -1;
+  const labels = tiers;
+  const cap = canGuess ? captain(g, guessSlot(g, viewer)) : -1;
   return (
-    <section className="ranking-stage">
+    <section
+      className={`ranking-stage ${topic ? 'has-topic' : ''} phase-${g.phase}`}
+    >
       {g.phase === 'rank' && (
         <>
           <div className="ranking-intro">
@@ -373,17 +419,13 @@ function RankingTable({
             </span>
             <h2>
               {topic
-                ? g.kind === 'vela'
-                  ? 'Plant a convincing fox.'
-                  : 'Make it your order.'
-                : g.kind === 'vela'
-                  ? 'Pick one of two factual lists.'
-                  : 'Pick your conversation starter.'}
+                ? 'Make it your order.'
+                : 'Pick your conversation starter.'}
             </h2>
             <p>
-              {g.kind === 'vela'
-                ? 'Choose a factual top five, then type one plausible answer that does not belong. Everyone prepares at once.'
-                : 'One answer per tier. Your favourite at the top, your least favourite at the bottom.'}
+              {
+                'Rank from 1st to 5th. Your favourite at the top, your least favourite at the bottom.'
+              }
             </p>
           </div>
           <div className={`topic-choices ${topic ? 'compact' : ''}`}>
@@ -392,67 +434,39 @@ function RankingTable({
                 key={id}
                 className={`topic-card ${topic?.id === id ? 'chosen' : ''}`}
                 disabled={disabled || locked}
+                aria-pressed={topic?.id === id}
                 onClick={() => {
-                  setDecoyText('');
                   commit({ type: 'topic', target: id });
                 }}
               >
-                <span>{catalog[id].category}</span>
+                {!topic && <span>{catalog[id].category}</span>}
                 <strong>{catalog[id].title}</strong>
-                {!topic && (
-                  <small>
-                    {catalog[id].answers.slice(0, count(g)).join(' · ')}
-                  </small>
-                )}
-                <b>{topic?.id === id ? '✓ Chosen' : 'Choose this list ↗'}</b>
+                <span className="topic-answer-chips">
+                  {catalog[id].answers.slice(0, 5).map((answer) => (
+                    <span key={answer}>{answer}</span>
+                  ))}
+                </span>
+                {!topic && <b>Choose this list ↗</b>}
               </button>
             ))}
           </div>
+          {g.kind === 'orin' && (
+            <button
+              className="topic-refresh"
+              disabled={disabled || locked || (g.refreshes?.[viewer] ?? 0) >= 2}
+              onClick={() => commit({ type: 'refresh' })}
+            >
+              Refresh choices · {2 - (g.refreshes?.[viewer] ?? 0)} left
+            </button>
+          )}
           {!topic && (
             <p className="catalog-note">
-              {catalog.length}{' '}
-              {g.kind === 'vela'
-                ? 'sourced factual lists · choose one of two'
-                : 'original topics · fresh choices every round'}
+              {catalog.length} {'original topics · fresh choices every round'}
             </p>
           )}
         </>
       )}
-      {g.kind === 'vela' && g.phase === 'rank' && topic && (
-        <div className="fox-decoy-editor">
-          <label htmlFor="fox-decoy">Your sixth, incorrect answer</label>
-          <input
-            id="fox-decoy"
-            key={`${g.round}-${topic.id}`}
-            maxLength={80}
-            disabled={disabled || locked}
-            value={decoyText}
-            onChange={(event) => setDecoyText(event.target.value)}
-            placeholder="A plausible answer outside this top five"
-          />
-          <button
-            disabled={
-              disabled ||
-              locked ||
-              !decoyText.trim() ||
-              facts[ballot!.topic].answers
-                .some(
-                  (a) =>
-                    a.toLocaleLowerCase() ===
-                    decoyText.trim().toLocaleLowerCase(),
-                )
-            }
-            onClick={() => commit({ type: 'decoy', text: decoyText })}
-          >
-            Use this decoy
-          </button>
-          {ballot?.decoy && (
-            <p>
-              Saved decoy: <strong>{ballot.decoy}</strong>
-            </p>
-          )}
-        </div>
-      )}
+
       {g.phase !== 'rank' && (
         <div className="ranking-intro">
           <span className="party-eyebrow">
@@ -462,14 +476,10 @@ function RankingTable({
           </span>
           <h2>
             {g.phase === 'reveal'
-              ? g.kind === 'vela'
-                ? 'The facts — and the fox!'
-                : `${g.seats[g.target]}'s real ranking`
+              ? `${g.seats[g.target]}'s real ranking`
               : isOwner
                 ? 'Keep your poker face.'
-                : g.kind === 'vela'
-                  ? 'Find the fox. Put the facts in order.'
-                  : `Think like ${g.seats[g.target]}.`}
+                : `Think like ${g.seats[g.target]}.`}
           </h2>
           <p>
             {g.phase === 'reveal'
@@ -478,9 +488,9 @@ function RankingTable({
                 ? 'Your ranking is locked. Let the other players discuss it without hints.'
                 : !canGuess
                   ? 'Your opponents are guessing this list.'
-                  : g.mode === 'teams'
+                  : g.mode === 'teams' && guessSlot(g, viewer) < 2
                     ? `Your ${groupName(g, team)} shares this guess. ${g.seats[cap]} is the captain.`
-                    : 'Make your own private guess. Everyone locks before the reveal.'}
+                    : 'Guess silently on your own. The author must stay silent too. Everyone locks before the reveal.'}
           </p>
         </div>
       )}
@@ -495,15 +505,24 @@ function RankingTable({
                 : g.phase === 'reveal'
                   ? 'True order'
                   : canGuess
-                    ? `${groupName(g, team)}’s guess`
-                    : 'The possible answers'}
+                    ? `${guessName(g, guessSlot(g, viewer))}’s guess`
+                    : isOwner
+                      ? 'Your locked order'
+                      : 'The possible answers'}
             </span>
           </div>
+
           {order && order.length > 0 ? (
             <SortableRanking
+              key={`${g.round}-${g.phase}-${owner}-${topic.id}`}
               order={order}
               disabled={!editable}
               label={(id) => topic.answers[id]}
+              onPreview={
+                canGuess && g.mode === 'teams' && guessSlot(g, viewer) < 2
+                  ? (next) => commit({ type: 'arrange', order: next })
+                  : undefined
+              }
               onReorder={(next) => commit({ type: 'arrange', order: next })}
               render={(answer, i) => (
                 <>
@@ -519,68 +538,65 @@ function RankingTable({
               ))}
             </div>
           )}
-          {g.kind === 'vela' &&
-            (g.phase === 'rank' || g.phase === 'reveal') &&
-            ballot && (
-              <aside className="fact-source">
-                <p>{facts[ballot.topic].scope}</p>
-                <p>
-                  Values ({facts[ballot.topic].unit}):{' '}
-                  {facts[ballot.topic].values
-                    .map((v) =>
-                      v.toLocaleString('en', { maximumFractionDigits: 6 }),
-                    )
-                    .join(' · ')}
-                </p>
-                <a
-                  href={facts[ballot.topic].source}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source: World Bank · {facts[ballot.topic].year}
-                </a>
-              </aside>
-            )}
-          {g.phase === 'reveal' &&
-            g.result &&
-            g.kind === 'vela' &&
-            g.result.bluff.some(Boolean) && (
-              <p className="bluff-reward">
-                The Fox fooled an opponent: {groupName(g, g.teams[g.target])}{' '}
-                earns {g.result.bluff[g.teams[g.target]]} bluff points.
-              </p>
-            )}
+
           {g.phase === 'reveal' && g.result && (
-            <div className="guess-comparison">
-              {guessingTeams(g).map((t) => (
-                <div key={t}>
-                  <h4>
-                    {groupName(g, t)}{' '}
-                    <b>+{g.result!.gains[t] + g.result!.bluff[t]}</b>
-                  </h4>
-                  <ol>
-                    {g.result!.guesses[t]!.order.map((v, i) => (
-                      <li
-                        key={i}
-                        className={
-                          v === g.result!.order[i] ? 'correct' : 'incorrect'
-                        }
-                      >
-                        <span>{labels[i]}</span>
-                        {topic.answers[v]}{' '}
-                        {v === g.result!.order[i] ? '✓' : '×'}
-                      </li>
-                    ))}
-                  </ol>
-                  <small>
-                    {g.result!.gains[t]} guessing points
-                    {g.result!.bluff[t]
-                      ? ` + ${g.result!.bluff[t]} bluff points`
-                      : ''}
-                  </small>
+            <>
+              <section
+                className="revealed-guesses"
+                aria-label="Everyone’s guesses"
+              >
+                <h3>Everyone’s guesses</h3>
+                {g.mode === 'teams' && g.kind === 'orin' && (
+                  <p className="guess-team-summary">
+                    {g.result.gains
+                      .map(
+                        (gain, team) =>
+                          `${groupName(g, team)} +${Number(gain.toFixed(2))}${team === g.teams[g.target] ? ' (silent guesses averaged)' : ' (shared guess)'}`,
+                      )
+                      .join(' · ')}
+                  </p>
+                )}
+                <div className="guess-comparison">
+                  {guessingTeams(g).map((t) => (
+                    <div key={t}>
+                      <h4>
+                        {guessName(g, t)}{' '}
+                        <b>
+                          +
+                          {guessPoints(
+                            g.result!.guesses[t]!.order,
+                            g.result!.order,
+                            g.kind,
+                          )}
+                        </b>
+                      </h4>
+                      <ol>
+                        {g.result!.guesses[t]!.order.map((v, i) => (
+                          <li
+                            key={i}
+                            className={
+                              v === g.result!.order[i] ? 'correct' : 'incorrect'
+                            }
+                          >
+                            <span>{labels[i]}</span>
+                            {topic.answers[v]}{' '}
+                            {v === g.result!.order[i] ? '✓' : '×'}
+                          </li>
+                        ))}
+                      </ol>
+                      <small>
+                        {guessPoints(
+                          g.result!.guesses[t]!.order,
+                          g.result!.order,
+                          g.kind,
+                        )}{' '}
+                        guessing points
+                      </small>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </section>
+            </>
           )}
         </div>
       )}
@@ -597,21 +613,19 @@ function RankingTable({
                   disabled={disabled}
                   onClick={() => commit({ type: 'unlock' })}
                 >
-                  Change my ranking
+                  {'Change my ranking'}
                 </button>
               </>
             ) : (
               <>
-                <span>Only you can see this order.</span>
+                <span>{'Only you can see this order.'}</span>
                 <button
                   className="party-primary"
-                  disabled={disabled || (g.kind === 'vela' && !ballot.decoy)}
+                  disabled={disabled}
                   onClick={() => commit({ type: 'lock' })}
                 >
                   <LockKeyhole size={17} />
-                  {g.kind === 'vela'
-                    ? 'Lock my list and decoy'
-                    : 'Lock my ranking'}
+                  {'Lock my ranking'}
                 </button>
               </>
             )}
@@ -634,7 +648,7 @@ function RankingTable({
             <>
               <span>
                 {cap === viewer
-                  ? g.mode === 'teams'
+                  ? g.mode === 'teams' && guessSlot(g, viewer) < 2
                     ? 'Discuss it, then lock your team’s guess.'
                     : 'Lock your private guess when ready.'
                   : `${g.seats[cap]} locks your shared guess.`}

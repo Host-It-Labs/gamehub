@@ -52,21 +52,8 @@
   outline: 3px solid #8c55e6;
   outline-offset: 3px;
 }
-.party-nav {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  display: grid;
-  gap: 6px;
-  z-index: 5;
-}
-.party-nav button {
-  padding: 9px 11px;
-  font-size: 12px;
-  border-radius: 11px;
-  background: #fffcf2dd;
-  box-shadow: 0 3px 0 #332c3715;
-}
+
+
 .party-players {
   position: absolute;
   top: 16px;
@@ -451,47 +438,6 @@
 .guess-comparison small {
   font-size: 11px;
 }
-.party-vela {
-  --ink: #352837;
-  --paper: #fff9e9;
-  --accent: #91513b;
-  background: #cbd6c0;
-}
-.party-vela:before {
-  background:
-    radial-gradient(ellipse at 80% 0, #ffe8a580, transparent 60%),
-    repeating-linear-gradient(88deg, #576d4a08 0 3px, transparent 3px 9px);
-}
-.party-vela .party-title h1 {
-  font-family: Georgia, serif;
-  font-style: italic;
-  letter-spacing: -2px;
-}
-.party-vela .tier-paper {
-  border-radius: 3px;
-  box-shadow:
-    5px 6px 0 #a7b19d,
-    0 20px 40px #31422c20;
-  border: 2px solid #e5d8bd;
-}
-.party-vela .tier-row {
-  background: #f2ead9;
-  border-radius: 3px;
-}
-.party-vela .tier-label {
-  font-family: Georgia, serif;
-  background: #e4c28d;
-}
-.party-vela .tier-5 .tier-label {
-  background: #8a4b37;
-}
-.party-vela .topic-card {
-  background: #fff9e9;
-}
-.party-vela .party-dock {
-  border: 1px solid #697d5255;
-  background: #f9f4df;
-}
 .party-finale {
   max-width: 620px;
   padding: 48px 30px;
@@ -609,16 +555,8 @@
   .party-table {
     padding: 128px 12px 25px;
   }
-  .party-nav {
-    left: 10px;
-    top: 12px;
-    gap: 5px;
-  }
-  .party-nav button {
-    font-size: 10px;
-    min-height: 38px;
-    padding: 8px;
-  }
+
+
   .party-players {
     left: 98px;
     top: 12px;
@@ -811,15 +749,6 @@
   }
 }
 
-.bluff-reward {
-  margin: 18px 0 0;
-  padding: 12px;
-  background: #f5dfbf;
-  border-radius: 7px;
-  font-size: 13px;
-  color: #69452e;
-}
-
 .ranking-handle { touch-action: none; cursor: grab; min-width: 44px; min-height: 44px; display: grid; place-items: center; flex-shrink: 0; }
 .ranking-handle:active { cursor: grabbing; }
 .tier-row.is-dragging { box-shadow: 0 8px 20px #29183444; outline: 2px solid currentColor; z-index: 2; }
@@ -833,17 +762,8 @@
 @keyframes party-hit { 0% { opacity: 0; transform: translateY(12px) scale(.92); } 70% { transform: scale(1.035); } 100% { opacity: 1; transform: none; } }
 @keyframes party-miss { 0% { opacity: 0; transform: translateX(-8px); } 40% { transform: translateX(5px); } 70% { transform: translateX(-3px); } 100% { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .guess-comparison .correct, .guess-comparison .incorrect { animation: none; } }
-.fox-decoy-editor { display: grid; gap: .7rem; padding: 1rem; background: #f8efd9; border-radius: 16px; color: #263823; }
-.fox-decoy-editor input { padding: .85rem; border: 2px solid #56704a; border-radius: 8px; min-width: 0; background: white; color: #263823; font-size: 1rem; }
 .fact-source { padding: 1rem; font-size: .85rem; border-top: 1px dashed currentColor; }
 .fact-source a { text-decoration: underline; }
-.geo-globe { width: 100%; height: clamp(260px, 55svh, 650px); }
-.geo-globe canvas { display: block; touch-action: none; }
-.geo-flat-map-button { display: block; width: 100%; padding: 0; border: 0; background: none; line-height: 0; }
-.geo-flat-map { width: 100%; height: auto; }
-.geo-keyboard { margin: .8rem 0; }
-.geo-keyboard label { display: inline-flex; flex-direction: column; margin: .5rem; }
-.geo-keyboard input { width: 8rem; padding: .5rem; }
 
 /* Keep the held card under the pointer; its neighbours slide into the opening. */
 .tier-list.is-sorting { isolation: isolate; }
@@ -852,3 +772,155 @@
 .party-table .ranking-handle { width: 52px; align-self: stretch; min-height: 48px; padding: 8px; touch-action: none; user-select: none; -webkit-user-select: none; }
 .party-table .ranking-handle:not(:disabled):hover { transform: none; }
 @media (prefers-reduced-motion: reduce) { .tier-list.is-sorting .tier-row { transition: none; } }
+
+/* My Top Five's ordinal badges stay within its warm stationery palette. */
+.party-orin .tier-label { font-size: 20px; }
+.party-orin .tier-0 .tier-label {
+  background: linear-gradient(135deg, #f4dc94, #d8b25d);
+  color: #493717;
+  box-shadow: inset 0 0 0 2px #a7823540;
+}
+.party-table .topic-refresh {
+  display: block;
+  margin: 12px auto;
+  padding: 10px 16px;
+  border: 1px solid #806c8560;
+  border-radius: 12px;
+  background: #f6eee6;
+  color: #573d61;
+  font-weight: 700;
+}
+.party-table .topic-refresh:disabled { opacity: .5; cursor: default; }
+
+/* A game is a viewport, not a document. Keep the active ranking and lock together. */
+.party-table {
+  box-sizing: border-box;
+  height: 100dvh;
+  min-height: 0;
+  padding: 88px 16px max(10px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.party-table .party-players {
+  top: max(8px, env(safe-area-inset-top));
+  left: 165px;
+  right: 185px;
+  gap: 6px;
+}
+.party-main { width: 100%; min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.party-title { flex: none; margin-bottom: 12px; }
+.party-title h1 { font-size: clamp(28px, 4vw, 48px); }
+.party-table.has-list .party-title { display: none; }
+.ranking-stage { width: 100%; min-height: 0; margin: auto; }
+.ranking-stage.has-topic { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.ranking-stage.has-topic .ranking-intro { margin: 0; }
+.ranking-stage.has-topic.phase-rank .ranking-intro { display: none; }
+.ranking-stage.has-topic .ranking-intro h2 { font-size: 22px; margin: 0; }
+.ranking-stage.has-topic .ranking-intro p { font-size: 12px; }
+.ranking-stage .topic-choices { margin: 12px 0; }
+.ranking-stage .topic-choices.compact { margin: 0; gap: 8px; flex: none; }
+.party-table .compact .topic-card { min-height: 0; padding: 10px; gap: 7px; justify-content: flex-start; }
+.compact .topic-card strong { margin: 0; font-size: 13px; }
+.topic-card .topic-answer-chips { display: flex; flex-wrap: wrap; gap: 4px; opacity: 1; letter-spacing: 0; text-transform: none; }
+.topic-card .topic-answer-chips > span { padding: 3px 6px; border-radius: 8px; background: #6550780c; border: 1px solid #65507820; font-size: 11px; line-height: 1.2; letter-spacing: 0; text-transform: none; opacity: 1; }
+.compact .topic-card .topic-answer-chips > span { font-size: 10px; padding: 2px 5px; }
+.party-table .topic-refresh { margin: 0 auto; padding: 6px 12px; min-height: 36px; font-size: 12px; flex: none; }
+.ranking-stage .tier-paper { width: 100%; min-height: 0; margin: auto; padding: 12px; }
+.ranking-stage.has-topic .tier-paper { flex: 1; display: flex; flex-direction: column; }
+.ranking-stage .tier-paper-heading { margin-bottom: 8px; gap: 2px; }
+.ranking-stage .tier-paper-heading h3 { font-size: 19px; }
+.ranking-stage .tier-list { flex: 1; grid-auto-rows: minmax(44px, 1fr); gap: 5px; }
+.ranking-stage .tier-row { min-height: 44px; }
+.ranking-stage .tier-row > strong { font-size: 15px; padding: 5px 10px; }
+.ranking-stage .party-dock { flex: none; margin: 0 auto; padding: 8px 12px; gap: 8px; }
+.ranking-stage .party-dock:empty { display: none; }
+.ranking-stage .catalog-note { margin: 10px 0; }
+.party-table .comparison-open { align-self: center; margin-top: 8px; min-height: 36px; padding: 6px 12px; font-size: 12px; }
+.party-table .party-practice { flex: none; margin: 8px auto 0; padding: 8px; }
+.party-practice details[open] { max-height: 20dvh; overflow-y: auto; }
+@media (max-width: 700px) {
+  .party-table { padding: 92px 10px max(8px, env(safe-area-inset-bottom)); }
+  .party-table .party-players { left: 118px; right: 58px; gap: 4px; }
+  .party-player { min-height: 30px; padding: 3px; gap: 3px; }
+  .party-player > span:nth-child(2) { max-width: 64px; }
+  .party-player b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .party-player small { font-size: 8px; }
+  .party-avatar { width: 23px; height: 23px; font-size: 10px; }
+  .ranking-stage .topic-choices:not(.compact) { grid-template-columns: 1fr; gap: 8px; }
+  .party-table .topic-card { min-height: 0; padding: 12px; gap: 7px; }
+  .topic-card strong { font-size: 17px; margin: 0; }
+  .ranking-intro { margin-bottom: 8px; }
+  .ranking-intro h2 { font-size: 21px; }
+  .ranking-intro p { font-size: 12px; }
+  .ranking-stage .topic-choices.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .party-table .compact .topic-card { padding: 7px; gap: 5px; }
+  .compact .topic-card strong { font-size: 11px; }
+  .compact .topic-card .topic-answer-chips { gap: 2px; }
+  .compact .topic-card .topic-answer-chips > span { font-size: 9px; padding: 2px 3px; }
+  .ranking-stage .tier-paper { padding: 8px; }
+  .ranking-stage .tier-paper-heading h3 { font-size: 16px; }
+  .ranking-stage .tier-row > strong { font-size: 13px; }
+  .ranking-stage .party-dock { padding: 5px 8px; }
+  .ranking-stage .party-dock > span { display: none; }
+}
+/* Short landscape screens put choices alongside the list, keeping five touch rows. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .party-table { padding-top: 58px; padding-inline: 12px 62px; }
+  .party-table .party-players { flex-wrap: nowrap; right: 100px; }
+  .party-player > span:nth-child(2) { display: none; }
+  .ranking-stage.has-topic { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(260px, 1.6fr); grid-template-rows: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .ranking-stage.has-topic .topic-choices.compact { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; gap: 5px; }
+  .party-table .compact .topic-card { flex: 1; padding: 6px 8px; }
+  .ranking-stage.has-topic .topic-refresh { grid-area: 2 / 1; }
+  .ranking-stage.has-topic .tier-paper { grid-area: 1 / 2; height: 100%; }
+  .ranking-stage.has-topic .party-dock { grid-area: 2 / 2; }
+  .ranking-stage.has-topic .ranking-intro { grid-area: 1 / 1; align-self: center; }
+  .ranking-stage .tier-paper-heading > span { display: none; }
+  .ranking-stage .tier-paper-heading h3 { font-size: 14px; }
+  .ranking-stage .tier-list { gap: 3px; grid-auto-rows: minmax(36px, 1fr); }
+  .ranking-stage .tier-row { min-height: 36px; }
+  .ranking-stage .ranking-handle { min-height: 36px; }
+  .ranking-stage .tier-row > strong { font-size: 12px; }
+  .ranking-stage .party-dock button { min-height: 36px; padding: 6px 10px; }
+  .party-title { display: none; }
+  .ranking-intro h2 { margin: 4px 0; }
+  .party-table .topic-card { min-height: 0; padding: 10px; }
+  .topic-card strong { font-size: 16px; margin: 0; }
+  .topic-choices { gap: 8px; }
+}
+.ranking-stage .fact-source { flex: none; padding: 6px; font-size: 11px; }
+.fact-source summary { cursor: pointer; font-weight: 650; }
+.fact-source[open] { max-height: 18dvh; overflow-y: auto; }
+@media (orientation: landscape) and (max-height: 600px) {
+}
+@media (orientation: landscape) and (max-height: 380px) {
+  .party-table { padding-top: 48px; padding-bottom: 6px; }
+  .ranking-stage.phase-rank .tier-paper-heading { display: none; }
+  .ranking-stage .tier-paper { padding: 6px; }
+  .ranking-stage .party-dock { padding: 0; }
+  .ranking-stage .topic-card .topic-answer-chips > span { font-size: 9px; padding: 1px 3px; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+}
+@media (orientation: landscape) and (max-height: 600px) {
+}
+
+@media (max-width: 600px), (max-width: 950px) and (max-height: 500px) {
+.party-table .party-players { top: calc(max(8px, env(safe-area-inset-top)) + 46px); left: 8px; right: 8px; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overscroll-behavior-x: contain; padding: 3px; gap: 6px; }
+.party-table .party-players > * { flex: 0 0 auto; }
+.party-table { padding-top: calc(max(8px, env(safe-area-inset-top)) + 88px); }
+.party-table .party-player > span:nth-child(2) { display: block; max-width: none; }
+}
+
+.party-action-status { display: grid; place-items: center; margin-left: auto; color: #327653; flex-shrink: 0; }
+.party-action-spinner { color: #8762a2; animation: party-action-spin 1.2s linear infinite; }
+@keyframes party-action-spin { to { transform: rotate(360deg); } }
+@media(prefers-reduced-motion: reduce) { .party-action-spinner { animation: none; } }
+.ranking-stage.phase-reveal .tier-paper { overflow-y: auto; overscroll-behavior: contain; }
+.ranking-stage.phase-reveal .tier-list { flex: none; }
+.revealed-guesses { margin-top: 16px; border-top: 1px solid #77618b30; padding-top: 12px; }
+.revealed-guesses > h3 { font-size: 16px; margin: 0 0 10px; }
+.revealed-guesses .guess-comparison { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(210px,100%),1fr)); gap: 10px; }
+.revealed-guesses .guess-comparison > div { border: 1px solid #77618b30; border-radius: 12px; padding: 10px; background: #fffaf5; }
+.revealed-guesses h4 { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 8px; }

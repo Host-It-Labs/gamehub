@@ -56,9 +56,9 @@
    screen-reader behavior while the open content behaves like a popover. */
 .at-table .table-session.playing-session {
   position: fixed;
-  z-index: 60;
-  top: max(58px, calc(env(safe-area-inset-top) + 58px));
-  right: max(8px, env(safe-area-inset-right));
+  z-index: 40;
+  top: calc(max(8px, env(safe-area-inset-top)) + 48px);
+  left: max(10px, env(safe-area-inset-left));
   width: auto;
   max-width: calc(100vw - 16px);
   margin: 0;
@@ -74,7 +74,7 @@
 .at-table .table-session.playing-session > summary {
   width: max-content;
   min-height: 40px;
-  margin-left: auto;
+  margin-left: 0;
   padding: 8px 11px;
   border: 1px solid #817967;
   border-radius: 10px;
@@ -102,7 +102,7 @@
   background: #52764d;
 }
 .at-table .table-session.playing-session > .table-lobby {
-  max-height: calc(100dvh - 112px);
+  max-height: calc(100dvh - 158px);
   margin-top: 7px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -530,3 +530,35 @@
   min-width: 0;
   width: 100%;
 }
+
+/* Reuse the home library's square, dimensional boxes and open-box setup. */
+.lobby-library {
+  --lib-panel: #f8f4ea;
+  --lib-line: #ddd3c1;
+  --lib-ink-2: #6b6255;
+  --lib-ink-3: #948a7a;
+}
+.lobby-boxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 32px 18px;
+  padding: 24px 0;
+}
+.lobby-box { min-width: 0; }
+.lobby-box-actions { display: grid; gap: 8px; padding: 12px 6px; }
+.lobby-box-actions button, .lobby-box-choice { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; }
+.lobby-box-choice, .lobby-box .lobby-voters { font-size: 12px; color: #52664b; text-align: center; overflow-wrap: anywhere; }
+.lobby-shared-setup { border: 0; padding: 0; margin: 0; min-width: 0; }
+.lobby-setup-status { margin: 0; padding: 12px 44px 12px 18px; color: #52664b; background: #fffdf8; font-size: 13px; }
+@media (max-width: 700px) {
+  .lobby-boxes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
+}
+
+.lobby-offline-warning { padding: 14px; margin-bottom: 12px; border: 1px solid #ae7234; border-radius: 10px; background: #fff0d4; color: #623b1e; }
+.lobby-offline-warning ul { list-style: none; padding: 0; margin-top: 8px; }
+.lobby-offline-warning li { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+
+.table-ambience-control { margin-block: 12px; }
+.table-ambience-control label { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.table-ambience-control input { width: 18px; height: 18px; accent-color: var(--primary); }
+.table-ambience-control p { margin: 0; font-size: .85rem; opacity: .75; }

@@ -11,55 +11,37 @@ export const adventureLessons: Record<
   orin: [
     {
       title: 'Everyone ranks at once',
-      text: 'Choose one of three prepared topics. Put its five answers in S, A, B, C and D, exactly one per tier. S is your favourite; D is your least favourite. Your order stays private. Lock when ready; you can unlock until everyone has locked.',
+      text: 'Choose one of three prepared topics. You can refresh all three choices twice per round; refreshing an open list selects the first fresh topic. Switching topics restores your previous order. Rank the five answers from 1st (your favourite) to 5th (your least favourite). Your order stays private. Lock when ready; you can unlock until everyone has locked.',
     },
     {
       title: 'Read the player',
-      text: 'Play individually with 2–6 players, or in two teams with 4 or 6. Everyone prepares a private list at once. Each list then takes a turn in the spotlight. In teams, only the opposing team guesses; discuss over your call and let the named captain lock the shared guess. In individual mode, everyone except the owner makes a separate private guess.',
+      text: 'Play individually with 2–6 players, or in two customizable teams with 2–6 players, including uneven teams. Everyone prepares a private list at once. Each list then takes a turn in the spotlight. In teams, opponents discuss one shared guess and the captain locks it. The author’s teammates each guess privately and silently; the author stays silent throughout. In individual mode, everyone except the owner makes a separate private guess.',
     },
     {
       title: 'Reveal together',
-      text: 'All eligible guesses lock before any answer is revealed. Earn one point per exact tier and two extra for a perfect five. Nobody sees the other team’s draft. Every player presses Continue to move on.',
+      text: 'All eligible guesses lock before any answer is revealed. Earn one point per exact position and two extra for a perfect five. The author’s teammates earn the average of their individual scores for that list; the opposing team earns its shared guess score. Nobody sees another private guess before reveal. Shared teammates see ranking changes while dragging. Every player presses Continue to move on.',
     },
     {
       title: 'Two rounds, fresh topics',
       text: 'Every player is guessed once per round. After two rounds the player or team with most points wins; equal scores tie. Solo bots provide practice guesses, not a model of your personal tastes. In practice, Advance time plays bots; Start real game begins a fresh match.',
     },
   ],
-  vela: [
-    {
-      title: 'Two lists, one fox',
-      text: 'Choose one of two factual top-five cards. Its order is fixed by a cited source, year and measurement. Type one plausible sixth answer outside that list. Everyone prepares privately at the same time. Duplicate answers are rejected; avoid alternate spellings of a real entry.',
-    },
-    {
-      title: 'Find the fake and rank the facts',
-      text: 'The six answers are shuffled. Drag the five real entries into factual order and put the decoy in the Fox row. In individual mode everyone except the author guesses privately. In team mode only the opposing team guesses; everyone may edit its shared draft, but only the rotating captain locks it.',
-    },
-    {
-      title: 'Facts score, foxes bite',
-      text: 'Score one point for each factual answer in its exact position, plus three for putting the decoy in Fox: eight points for a perfect guess. The author or their team earns two bluff points for each opposing player or team that misses the decoy. No confidence bets. All guesses lock before the reveal.',
-    },
-    {
-      title: 'Check the source',
-      text: 'The reveal shows the answer, measured values, year, scope and source link. Cards rank reporting economies: territories may be included and missing data is excluded. Every player authors one list per round, for two rounds. Highest score wins; ties share victory. Continue advances only when everyone is ready.',
-    },
-  ],
   miro: [
     {
-      title: 'One shared world',
-      text: 'Atlas gives everyone the exact same five capital cities and the exact same task each round. Play individually with 2–6 people, or in exactly two equal teams with 4 or 6. Every team has the same number of guesses and scoring opportunities. There is no speed bonus or time pressure.',
+      title: 'Two rounds, six places',
+      text: 'Round one uses medium destinations; round two uses hard destinations. Each round runs Places (town and country), Photos, then Three facts, with one shared destination per category. Play individually or choose two teams with 2–6 players. Five players can split three against two.',
     },
     {
-      title: 'Build your route',
-      text: 'Drag the cities west-to-east, north-to-south, or nearest-to-farthest from the named shared city. Directional rounds use signed longitude or latitude; distance rounds use great-circle distance. Spin and zoom the unlabelled globe to think it through. The capital markers appear only at the reveal.',
+      title: 'Prepare all three private pins',
+      text: 'At the start of each round, complete Places, Photos and Three facts independently, in any order. Switch tabs freely: your pins are preserved. Rotate and zoom the globe to refine each guess, then lock all three together. Even teammates cannot see your pins until everyone locks all three. Only then does each team discuss all three categories in a single turn; all pins stay frozen for the entire round.',
     },
     {
-      title: 'Talk, lock, reveal',
-      text: 'Everyone can stay on the same call. Keep your answer private, or discuss with your teammates and move the shared draft. One rotating captain locks each team’s answer. You may unlock until the final team locks. The globe reveals all correct locations only after every answer is locked.',
+      title: 'One team speaks at a time',
+      text: 'All stay on the same call. The first round’s starting team is chosen at random; the other team starts round two. Each team has 60 seconds to discuss all three destinations. One captain chooses a frozen teammate pin for each category and confirms all three together before the other team takes its turn. Captains stay the same throughout a round; not everyone needs to be captain. At the deadline, unchosen answers use the captain’s frozen pins. The other team listens, then takes its turn. Practice has no timer. After both teams confirm, reveal the three destinations one at a time. Individual mode starts revealing immediately after all private guesses lock.',
     },
     {
-      title: 'Six fair rounds',
-      text: 'Earn one point for each city in its exact position and two bonus points for a perfect five. Everyone presses Continue before the next shared challenge. After six rounds the highest score wins; ties share victory. Coordinates are approximate World Bank capital locations; reveal links let you check them. Practice bots make illustrative guesses, not expert geography predictions.',
+      title: 'Closest wins',
+      text: 'Reveal the destination after both teams choose. Each destination awards one point for the closest pin and one bonus point to every team within 100 km. Equally close pins share the closest point. After two rounds, most points wins; lowest total distance breaks a points tie. Exact distance ties share victory. Photo credits and location references are available at reveal. Practice bots are illustrative opponents, not geography experts.',
     },
   ],
 };
@@ -69,8 +51,9 @@ export function practice(
   difficulty: AnyGame['difficulty'],
   step = 0,
   mode: 'teams' | 'individual' = 'individual',
+  teams?: number[],
 ): AnyGame {
-  const g = standaloneGames[kind].create(seats, 4817, difficulty, mode);
+  const g = standaloneGames[kind].create(seats, 4817, difficulty, mode, undefined, teams);
   g.tutorial = true;
   g.lesson = step;
   return g;

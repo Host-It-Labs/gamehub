@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { GripVertical } from 'lucide-react';
 type Drag = {
   id: number;
@@ -27,25 +27,43 @@ export function SortableRanking({
   label,
   render,
   onReorder,
+  onPreview,
 }: {
   order: number[];
   disabled: boolean;
   label: (id: number) => string;
   render: (id: number, index: number) => ReactNode;
   onReorder: (order: number[]) => void;
+  onPreview?: (order: number[]) => void;
 }) {
   const list = useRef<HTMLOListElement>(null),
     drag = useRef<Drag | null>(null);
-  const latest = useRef({ order, disabled, onReorder });
+  const positions = useRef(new Map<number, number>());
+  useLayoutEffect(() => {
+    if (!list.current || drag.current) return;
+    const next = new Map<number, number>();
+    Array.from(list.current.children).forEach((child, index) => {
+      const row = child as HTMLElement, id = order[index], top = row.getBoundingClientRect().top;
+      const previous = positions.current.get(id);
+      next.set(id, top);
+      if (previous !== undefined && previous !== top && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        row.getAnimations().forEach(animation => animation.cancel());
+        row.animate([{ transform: `translateY(${previous - top}px)` }, { transform: 'translateY(0)' }], { duration: 160, easing: 'ease-out' });
+      }
+    });
+    positions.current = next;
+  }, [order]);
+  const latest = useRef({ order, disabled, onReorder, onPreview });
   const [held, setHeld] = useState<{ id: number; base: number[] } | null>(null);
   const [pending, setPending] = useState<{
     base: number[];
     next: number[];
   } | null>(null);
+  const [preview, setPreview] = useState<number[] | null>(null);
   const [announcement, setAnnouncement] = useState('');
   useEffect(() => {
-    latest.current = { order, disabled, onReorder };
-  }, [order, disabled, onReorder]);
+    latest.current = { order, disabled, onReorder, onPreview };
+  }, [order, disabled, onReorder, onPreview]);
   useEffect(
     () => () => {
       if (drag.current) cancelAnimationFrame(drag.current.frame);
@@ -65,12 +83,14 @@ export function SortableRanking({
     list.current?.classList.remove('is-sorting');
     if (list.current?.hasPointerCapture(active.pointer))
       list.current.releasePointerCapture(active.pointer);
+    if (!commit) latest.current.onPreview?.(active.base);
     setHeld(null);
+    setPreview(null);
     if (
       commit &&
       !latest.current.disabled &&
-      latest.current.order.join() === active.base.join() &&
-      active.next.join() !== active.base.join()
+      (latest.current.onPreview || latest.current.order.join() === active.base.join()) &&
+      (latest.current.onPreview || active.next.join() !== active.base.join())
     ) {
       setPending({ base: latest.current.order, next: active.next });
       setAnnouncement(
@@ -112,11 +132,17 @@ export function SortableRanking({
       first.top,
       Math.min(last.top + last.height - row.height, localTop),
     );
-    const centre = y + row.height / 2;
+    // Use the unclamped centre so the final slot is reachable even for tall rows.
+    const centre = localTop + row.height / 2;
     const destination = active.rows.filter(
-      (r) => r.id !== active.id && centre > r.top + r.height / 2,
+      (r) => r.id !== active.id && centre >= r.top + r.height / 2,
     ).length;
-    active.next = move(active.base, active.id, destination);
+    const next = move(active.base, active.id, destination);
+    if (next.join() !== active.next.join()) {
+      setPreview(next);
+      latest.current.onPreview?.(next);
+    }
+    active.next = next;
     let slot = first.top;
     for (const id of active.next) {
       const current = active.rows.find((r) => r.id === id)!;
@@ -149,9 +175,9 @@ export function SortableRanking({
         {shown.map((id, index) => (
           <li
             key={id}
-            className={`tier-row tier-${index} ${held?.id === id ? 'is-dragging' : ''}`}
+            className={`tier-row tier-${preview ? preview.indexOf(id) : index} ${held?.id === id ? 'is-dragging' : ''}`}
           >
-            {render(id, index)}
+            {render(id, preview ? preview.indexOf(id) : index)}
             {!disabled && (
               <button
                 type="button"
@@ -194,6 +220,8 @@ export function SortableRanking({
                     return;
                   event.preventDefault();
                   event.currentTarget.focus({ preventScroll: true });
+                  positions.current.clear();
+                  Array.from(list.current.children).forEach(node => node.getAnimations().forEach(animation => animation.cancel()));
                   const nodes = Array.from(
                     list.current.children,
                   ) as HTMLElement[];

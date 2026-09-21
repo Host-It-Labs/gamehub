@@ -7,9 +7,6 @@ const sheets = [
   ['undertow', 1236, 1254],
   ['wildgrove', 1268, 1288],
   ['midnight', 1244, 1254],
-  ['orin', 1252, 1268],
-  ['vela', 1261, 1271],
-  ['miro', 1266, 1288],
 ];
 const root = 'public/art/library-boxes-v4';
 const tiles = [];

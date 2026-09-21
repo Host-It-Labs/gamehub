@@ -131,12 +131,12 @@ await test('pass validation and invalid actions leave the original game intact',
   assert.equal(g.active, 0);
 });
 
-await test('Four-card exchanges preserve each hand and move the chosen cards to the neighbour', () => {
+await test('Deck-scaled exchanges preserve each hand and move the chosen cards to the neighbour', () => {
   for (const [seats, amount] of [
-    [2, 4],
-    [3, 3],
-    [4, 2],
-    [5, 2],
+    [2, 3],
+    [3, 4],
+    [4, 3],
+    [5, 3],
     [6, 2],
   ]) {
     let g = createGame('undertow', 'medium', 719, false, seats);

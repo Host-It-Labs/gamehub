@@ -1,4 +1,8 @@
 'use client';
+import { printedBoxArt } from '@/lib/games/box-covers';
+import { requiresHumanPlayers } from '@/lib/games/player-policy';
+import { useId } from 'react';
+import { TeamPicker } from './team-picker';
 import {
   Amphora,
   ArrowRight,
@@ -25,6 +29,8 @@ import {
   Sparkles,
   Tent,
   TrainFront,
+  UserRound,
+  UsersRound,
   Waves,
   Wind,
   type LucideIcon,
@@ -48,9 +54,6 @@ import {
   type AnyGame,
 } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
-import { worldGames, type WorldGame } from '@/lib/games/worlds/registry';
-import { worldLessons } from '@/lib/games/worlds/lessons';
-import type { WorldId } from '@/lib/games/worlds/types';
 import './setup-box.css';
 
 const motifs: Record<string, LucideIcon> = {
@@ -91,15 +94,15 @@ function Lid({ game }: { game: LibraryGame }) {
   const developed = game.gameId ?? game.standaloneId;
   return (
     <div
-      className={`lid ${game.gameId ?? game.standaloneId ?? game.worldId ?? 'placeholder'}`}
+      className={`lid ${game.gameId ?? game.standaloneId ?? 'placeholder'} ${game.coverIncludesTitle ? 'printed-cover' : ''}`}
       style={boxStyle(game, 300)}
     >
       <div className="lid-art">
         {developed ? (
           <ArtworkImage
-            src={game.cover ?? `/art/optimized/box-${developed}-v4-front.webp`}
+            src={game.cover ?? printedBoxArt(developed!).cover}
             width={1024}
-            height={game.standaloneId ? 1536 : 683}
+            height={game.coverIncludesTitle ? 1024 : game.standaloneId ? 1536 : 683}
             sizes="(max-width: 760px) 100vw, 720px"
             alt=""
             draggable={false}
@@ -109,11 +112,23 @@ function Lid({ game }: { game: LibraryGame }) {
             <Motif strokeWidth={1.3} />
           </span>
         )}
-        <DialogTitle className="lid-title">{game.name}</DialogTitle>
+        <DialogTitle className={game.coverIncludesTitle ? "sr-only" : "lid-title"}>{game.name}</DialogTitle>
       </div>
       <div className="lid-edge">
         <StatStrip game={game} full />
       </div>
+    </div>
+  );
+}
+
+function SetupIntro({ game, onLearn, disabled = false }: { game: LibraryGame; onLearn: () => void; disabled?: boolean }) {
+  return (
+    <div className="setup-intro">
+      <DialogDescription className="tray-note">{game.world}.</DialogDescription>
+      <button type="button" className="setup-learn" disabled={disabled} onClick={onLearn}>
+        <BookOpen aria-hidden="true" />
+        <span>Learn</span>
+      </button>
     </div>
   );
 }
@@ -153,10 +168,17 @@ export function PlaceholderBox({ game }: { game: LibraryGame }) {
  */
 export function StandaloneSetupBox({
   game,
+  minPlayers = 2,
+  online = false,
+  disabled = false,
+  startDisabled = false,
   save,
   seats,
   difficulty,
   onSeats,
+  teams,
+  onTeams,
+  playerNames,
   mode,
   onMode,
   onDifficulty,
@@ -165,38 +187,48 @@ export function StandaloneSetupBox({
   onResume,
 }: {
   game: LibraryGame;
+  minPlayers?: number;
+  online?: boolean;
+  disabled?: boolean;
+  startDisabled?: boolean;
   save?: AnyGame;
   seats: number;
   mode: 'teams' | 'individual';
   onMode: (mode: 'teams' | 'individual') => void;
   difficulty: Difficulty;
   onSeats: (n: number) => void;
+  teams?: number[];
+  onTeams?: (teams: number[]) => void;
+  playerNames?: string[];
   onDifficulty: (d: Difficulty) => void;
   onPlay: () => void;
   onLearn: () => void;
   onResume: (game: AnyGame) => void;
 }) {
+  const modeId = useId();
   const entry = standaloneGames[game.standaloneId as StandaloneId];
-  const resumable = save && !save.over;
+  const humanOnly = requiresHumanPlayers(game.standaloneId);
+  const unavailable = humanOnly && !online;
+  const resumable = !unavailable && save && !save.over;
   const progress = resumable ? entry.progress(save) : null;
   return (
     <div className="setup-box">
       <Lid game={game} />
       <div className="tray">
-        <DialogDescription className="tray-note">{game.world}.</DialogDescription>
-        <button type="button" className="leaflet" onClick={onLearn}><BookOpen aria-hidden="true" /><strong>Learn</strong><span>Try an interactive practice</span></button>
+        <SetupIntro game={game} onLearn={onLearn} disabled={disabled || startDisabled || unavailable} />
 
         <div className="tray-row tray-row-top">
           <fieldset className="compartment seats">
             <legend>Players, including you</legend>
             <RadioGroup
+              disabled={disabled}
               className="seat-row"
               value={String(seats)}
               onValueChange={(v) => onSeats(Number(v))}
             >
               {entry.seatChoices.map((n) => (
                 <label key={n} className="seat">
-                  <RadioGroupItem value={String(n)} className="sr-only" />
+                  <RadioGroupItem value={String(n)} className="sr-only" disabled={n < minPlayers} />
                   <span className="chair" aria-hidden="true">
                     <i />
                   </span>
@@ -205,12 +237,13 @@ export function StandaloneSetupBox({
               ))}
             </RadioGroup>
           </fieldset>
-          <fieldset className="compartment bots">
+          {!humanOnly && <fieldset className="compartment bots">
             <legend>
               <Bot aria-hidden="true" />
               Bot difficulty
             </legend>
             <RadioGroup
+              disabled={disabled}
               className="pawn-row"
               value={difficulty}
               onValueChange={(v) => onDifficulty(v as Difficulty)}
@@ -225,15 +258,42 @@ export function StandaloneSetupBox({
                 </label>
               ))}
             </RadioGroup>
-          </fieldset>
+          </fieldset>}
         </div>
-        <fieldset className="compartment"><legend>Play mode</legend>
-          <label><input type="radio" name="party-mode" checked={mode === 'individual'} onChange={() => onMode('individual')} /> Everyone for themselves</label>
-          <label><input type="radio" name="party-mode" checked={mode === 'teams'} disabled={![4,6].includes(seats)} onChange={() => onMode('teams')} /> Two teams {seats === 6 ? 'of three' : 'of two'} (4 or 6 players)</label>
+        <fieldset className="compartment play-mode">
+          <legend>Play mode</legend>
+          <RadioGroup
+              disabled={disabled}
+            className="play-mode-options"
+            aria-label="Play mode"
+            value={mode}
+            onValueChange={(value) => onMode(value as 'individual' | 'teams')}
+          >
+            <label className="play-mode-option" htmlFor={`${modeId}-individual`}>
+              <RadioGroupItem id={`${modeId}-individual`} className="sr-only" value="individual" />
+              <UserRound className="play-mode-icon" aria-hidden="true" />
+              <span className="play-mode-copy">
+                <strong>Individual</strong>
+                <small>Everyone for themselves</small>
+              </span>
+              <span className="play-mode-check" aria-hidden="true" />
+            </label>
+            <label className="play-mode-option" htmlFor={`${modeId}-teams`}>
+              <RadioGroupItem id={`${modeId}-teams`} className="sr-only" value="teams" />
+              <UsersRound className="play-mode-icon" aria-hidden="true" />
+              <span className="play-mode-copy">
+                <strong>Two teams</strong>
+                <small>Uneven teams welcome · Win together</small>
+              </span>
+              <span className="play-mode-check" aria-hidden="true" />
+            </label>
+          </RadioGroup>
         </fieldset>
-        <p className="tray-soon">{game.standaloneId === 'miro' ? 'Everyone gets the same cities and task. Two teams share one private answer each; individual players answer separately. Discuss on your call, lock, then reveal together.' : 'Everyone prepares at once. In team mode, only the opposing team guesses. In individual mode, everyone except the owner guesses.'} Solo bots are practice opponents.</p>
+        {mode === 'teams' && onTeams && <TeamPicker names={playerNames ?? Array.from({ length: seats }, (_, i) => i ? `Player ${i + 1}` : 'You')} teams={teams} onChange={onTeams} disabled={disabled} />}
+        <p className="tray-soon">{game.standaloneId === 'miro' ? 'Two rounds: medium, then hard. Everyone privately completes Places, Photos and Three facts in any order, then locks all three pins. Once everyone is ready, one team has 60 seconds to choose all three pins, then the other team takes its turn. One captain confirms the complete set. The other team starts round two.' : 'Everyone prepares at once. The opposing team shares a guess. The author’s teammates guess silently on their own; their average scores against the shared guess. The author stays silent. In individual mode, everyone except the author guesses.'} {humanOnly ? 'Human players only. Every seat must be filled before starting.' : 'Solo bots are practice opponents.'}</p>
+        {unavailable && <a className="play-plate" href="/tables">Play with friends at an online table</a>}
         <div className="setup-actions">
-        <button type="button" className="play-plate" onClick={onPlay}>
+        <button type="button" className="play-plate" disabled={disabled || startDisabled || unavailable} onClick={onPlay}>
           <Play aria-hidden="true" />
           Play
         </button>
@@ -266,6 +326,9 @@ export function StandaloneSetupBox({
 
 export function SetupBox({
   game,
+  minPlayers = 2,
+  disabled = false,
+  startDisabled = false,
   save,
   players,
   difficulty,
@@ -284,6 +347,9 @@ export function SetupBox({
   onResume,
 }: {
   game: LibraryGame;
+  minPlayers?: number;
+  disabled?: boolean;
+  startDisabled?: boolean;
   save?: Game;
   players: number;
   difficulty: Difficulty;
@@ -308,26 +374,20 @@ export function SetupBox({
     <div className="setup-box">
       <Lid game={game} />
       <div className="tray">
-        <DialogDescription className="sr-only">
-          Choose your table for {game.name}.
-        </DialogDescription>
+        <SetupIntro game={game} onLearn={onLearn} disabled={disabled || startDisabled} />
 
         <div className="tray-row tray-row-top">
-          <button type="button" className="leaflet" onClick={onLearn}>
-            <BookOpen aria-hidden="true" />
-            <strong>Learn</strong>
-            <small>Guided first match</small>
-          </button>
           <fieldset className="compartment seats">
             <legend>Players, including you</legend>
             <RadioGroup
+              disabled={disabled}
               className="seat-row"
               value={String(players)}
               onValueChange={(v) => onPlayers(Number(v))}
             >
               {[2, 3, 4, 5, 6].map((n) => (
                 <label key={n} className="seat">
-                  <RadioGroupItem value={String(n)} className="sr-only" />
+                  <RadioGroupItem value={String(n)} className="sr-only" disabled={n < minPlayers} />
                   <span className="chair" aria-hidden="true">
                     <i />
                   </span>
@@ -342,6 +402,7 @@ export function SetupBox({
               Bot difficulty
             </legend>
             <RadioGroup
+              disabled={disabled}
               className="pawn-row"
               value={difficulty}
               onValueChange={(v) => onDifficulty(v as Difficulty)}
@@ -362,7 +423,7 @@ export function SetupBox({
           {id === 'undertow' ? (
             <fieldset className="compartment fast-mode">
               <legend>Deck</legend>
-              <RadioGroup className="deck-choices" value={fastMode ? 'fast' : 'normal'} onValueChange={(value) => onFastMode(value === 'fast')}>
+              <RadioGroup disabled={disabled} className="deck-choices" value={fastMode ? 'fast' : 'normal'} onValueChange={(value) => onFastMode(value === 'fast')}>
                 {(['normal', 'fast'] as const).map((deck) => <label className="deck-choice" key={deck}>
                   <RadioGroupItem className="sr-only" value={deck} />
                   <span className="deck-glyph" aria-hidden="true">{deck === 'normal' ? '1–10' : '1–5'}</span>
@@ -372,11 +433,12 @@ export function SetupBox({
             </fieldset>
           ) : (
             <div className="compartment content">
-              <ContentChoice id={id} options={options} onChange={onOptions} />
+              <ContentChoice disabled={disabled} id={id} options={options} onChange={onOptions} />
             </div>
           )}
           <div className="compartment extensions">
             <GameExtensionChoices
+              disabled={disabled}
               id={id}
               options={options}
               shields={shields}
@@ -387,7 +449,7 @@ export function SetupBox({
           </div>
         </div>
         <div className="setup-actions">
-        <button type="button" className="play-plate" onClick={onPlay}>
+        <button type="button" className="play-plate" disabled={disabled || startDisabled} onClick={onPlay}>
           <Play aria-hidden="true" />
           Play
         </button>
@@ -415,134 +477,6 @@ export function SetupBox({
             </span>
           </button>
         )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Setup for the three illustrated worlds. It is the same open box as the rest
- * of the library — lid, tray, seats, bot pawns, a leaflet at the top and Play
- * and Continue together in the footer — but it has no play-mode compartment,
- * because each of these worlds has exactly one shape: Orin is always
- * cooperative, Vela is always two even teams, and Miro is always one hidden
- * smuggler against the quay.
- */
-export function WorldSetupBox({
-  game,
-  save,
-  seats,
-  difficulty,
-  onSeats,
-  onDifficulty,
-  onPlay,
-  onResume,
-}: {
-  game: LibraryGame;
-  save?: WorldGame;
-  seats: number;
-  difficulty: Difficulty;
-  onSeats: (n: number) => void;
-  onDifficulty: (d: Difficulty) => void;
-  onPlay: () => void;
-  onResume: (game: WorldGame) => void;
-}) {
-  const id = game.worldId as WorldId;
-  const entry = worldGames[id];
-  const resumable = save && !save.over;
-  const progress = resumable ? entry.progress(save) : null;
-  const lessons = worldLessons[id];
-  return (
-    <div className="setup-box">
-      <Lid game={game} />
-      <div className="tray">
-        <DialogDescription className="tray-note">
-          {game.world}.
-        </DialogDescription>
-        <div className="leaflet" role="note">
-          <BookOpen aria-hidden="true" />
-          <strong>{lessons[0].title}</strong>
-          <span>{lessons[0].text}</span>
-        </div>
-        <div className="tray-row tray-row-top">
-          <fieldset className="compartment seats">
-            <legend>
-              {id === 'coast'
-                ? 'Keepers, including you'
-                : 'Players, including you'}
-            </legend>
-            <RadioGroup
-              className="seat-row"
-              value={String(seats)}
-              onValueChange={(v) => onSeats(Number(v))}
-            >
-              {entry.seatChoices.map((n) => (
-                <label key={n} className="seat">
-                  <RadioGroupItem value={String(n)} className="sr-only" />
-                  <span className="chair" aria-hidden="true">
-                    <i />
-                  </span>
-                  <b>{n}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
-          <fieldset className="compartment bots">
-            <legend>
-              <Bot aria-hidden="true" />
-              Bot difficulty
-            </legend>
-            <RadioGroup
-              className="pawn-row"
-              value={difficulty}
-              onValueChange={(v) => onDifficulty(v as Difficulty)}
-            >
-              {(['easy', 'medium', 'hard'] as const).map((level) => (
-                <label key={level} className={`pawn-choice ${level}`}>
-                  <RadioGroupItem value={level} className="sr-only" />
-                  <span className="pawn" aria-hidden="true">
-                    <i />
-                  </span>
-                  <b>{level}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
-        </div>
-        <p className="tray-soon">
-          {id === 'coast'
-            ? 'Orin is cooperative: the coast holds or it does not, for all of you at once. Bot difficulty here is bot skill, so a careless crew makes the night harder, not easier.'
-            : id === 'meadow'
-              ? 'Vela is always two even teams, so an odd table is trimmed rather than handing one kite a spare pair of hands. Everyone commits at once and turns over together.'
-              : 'Miro deals one hidden smuggler, and it can be you. Talk on your call; the app only ever shows what the quay can actually see.'}
-        </p>
-        <div className="setup-actions">
-          <button type="button" className="play-plate" onClick={onPlay}>
-            <Play aria-hidden="true" />
-            Play
-          </button>
-          {resumable && progress && (
-            <button
-              type="button"
-              className="resume-strip"
-              onClick={() => onResume(save)}
-              aria-label={`Continue your ${game.name} match, ${progress.label}`}
-            >
-              <span className="resume-thumb" aria-hidden="true">
-                <span className="resume-thumb-board" />
-              </span>
-              <span className="resume-copy">
-                <strong>Continue your match</strong>
-                <small>
-                  {progress.label} · {progress.detail}
-                </small>
-              </span>
-              <span className="resume-go" aria-hidden="true">
-                <ArrowRight />
-              </span>
-            </button>
-          )}
         </div>
       </div>
     </div>

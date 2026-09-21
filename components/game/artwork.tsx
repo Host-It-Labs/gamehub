@@ -2,6 +2,7 @@
 import { useEffect, useState, type ImgHTMLAttributes } from 'react';
 import { paperWorldFor, paperWorldIdFor } from '@/lib/games/mora-world';
 import { tableWorldFor } from '@/lib/games/table-world';
+import { boxCover } from '@/lib/games/box-covers';
 import previews from '@/lib/artwork-previews.json';
 import {
   catalog,
@@ -96,7 +97,7 @@ export function ArtworkLoading({
     let active = true;
     const assets =
       game === 'library'
-        ? catalog.map((c) => `/art/optimized/box-${c.id}-v2-320.webp`)
+        ? ['undertow', 'wildgrove', 'midnight', 'orin', 'miro'].map(id => boxCover(id)!.replace('.webp', '-320.webp'))
         : game === 'wildgrove'
           ? [
               '/art/optimized/mora-paper-fibers-v1.webp',

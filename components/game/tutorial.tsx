@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { Clock3 } from 'lucide-react';
 import type { GameId } from '@/lib/games/trio/engine';
 import { lessons } from '@/lib/games/trio/lessons';
 export { lessons } from '@/lib/games/trio/lessons';
@@ -28,6 +29,8 @@ export function Tutorial({
     return () => target?.removeAttribute('data-tutorial-active');
   }, [lesson]);
   return (
+    <>
+    <button className="practice-advance-time" onClick={onAdvance} aria-label="Advance time"><Clock3 size={18} /><span>Advance time</span></button>
     <aside
       className="coach sandbox-coach"
       aria-label="Sandbox tutorial"
@@ -50,7 +53,6 @@ export function Tutorial({
           Back
         </button>
         <button onClick={onRestart}>Reset practice</button>
-        <button onClick={onAdvance}>Advance time</button>
         {step < lessons[id].length - 1 ? (
           <button onClick={() => onStep(step + 1)}>Next</button>
         ) : (
@@ -59,5 +61,6 @@ export function Tutorial({
         <button onClick={onSkip}>Skip to fresh game</button>
       </div>
     </aside>
+    </>
   );
 }

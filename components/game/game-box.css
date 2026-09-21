@@ -1,8 +1,8 @@
 /* Shaped game boxes: three CSS faces posed at the library's shared angle. */
 .gbox {
   --w: var(--gw, 190px);
-  --h: var(--gh, 128px);
-  --d: var(--gd, 76px);
+  --h: var(--w);
+  --d: calc(var(--w) * 0.24);
   --tilt: -26deg;
   --lift: 7deg;
   --box-deep: #3a3630;
@@ -312,11 +312,13 @@
 .gbox-side-title { font-size: max(9px, calc(var(--d) * .3)); }
 .gbox-front .gbox-title { top: 7%; letter-spacing: .015em; text-shadow: 0 2px 7px #000c; }
 .gbox.orin .gbox-face { border-radius: 9px; }
-.gbox.vela .gbox-title { color: #fff5dd; }
+
 .gbox.miro .gbox-title { font-family: Georgia, serif; letter-spacing: .08em; }
 
-/* Keep the complete portrait compositions of the replacement games. */
-.gbox.orin .gbox-front img,.gbox.vela .gbox-front img,.gbox.miro .gbox-front img{object-fit:contain}
+/* Every cover fills the same square face without letterboxing. */
 .gbox.orin .gbox-title{color:#382c47;text-shadow:0 1px 4px #fff8de;font-family:Arial,sans-serif;font-weight:900}
-.gbox.vela .gbox-title{font-style:italic;font-size:calc(var(--w)*.16)}
+
 .gbox.miro .gbox-title{font-family:Arial,sans-serif;font-style:italic;text-transform:uppercase;font-weight:900;letter-spacing:-.02em;color:#ffe29b}
+
+/* Printed title and contrast belong to the art; never tint or relabel it. */
+.gbox.printed-cover .gbox-front::after { background: none; }

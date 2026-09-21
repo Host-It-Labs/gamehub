@@ -548,7 +548,7 @@
   .at-table .table-layout[data-environment='observatory'] .player-button .player-status-icons { right: -6px; bottom: -6px; }
   .at-table .table-layout[data-environment='observatory'] .player-button .turn-state svg { width: 10px; height: 10px; }
   .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { padding: .8em .5cqw .25cqw; max-width: 36cqw; }
-  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { font-size: calc(clamp(9px, 2.9cqw, 12px) - 1px); line-height: 1.15; }
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { font-size: calc(clamp(9px, 2.9cqw, 12px) - 2px); line-height: 1.15; }
   /* Phrases break between scoring segments, never mid-phrase; short cards stay on one line. */
   .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { max-width: 30cqw; }
   .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong > b { font-size: clamp(10px, 3.2cqw, 13px); }
@@ -819,4 +819,38 @@
     inset: auto; left: 50%; top: 50%; width: 110%; height: 70%;
     transform: translate(-50%, -50%) rotate(-24deg);
   }
+}
+
+/* Fill more of each existing placement space without resizing its hit target. */
+.mora-board .mora-nest .token-art img {
+  transform: scale(1.13);
+}
+
+@media (orientation: portrait) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label {
+    translate: 0 4px;
+  }
+}
+
+/* Anchor hand art to the actual button rather than resolving nested percentage
+   heights through the button's anonymous content box (notably on Safari).
+   The 512px sources have ~32px transparent margins: 1.06 leaves a little breathing room in the circle
+   without enlarging the token, tray or drag target. */
+.at-table .table-layout[data-environment='observatory'] .creature-piece .token-art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  margin: 0;
+}
+.at-table .table-layout[data-environment='observatory'] .creature-piece .token-art > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  transform: scale(1.06);
 }

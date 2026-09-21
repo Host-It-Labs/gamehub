@@ -2,9 +2,9 @@ import type { Difficulty, Outcome, StandaloneId } from './types.ts';
 import * as ranking from '../party/ranking.ts';
 import * as geography from '../party/geography.ts';
 import { topics } from '../party/catalog.ts';
-import { facts } from '../party/facts.ts';
 import {
   groups,
+  validTeams,
   groupName,
   partySeats,
   type PartyMode,
@@ -16,7 +16,14 @@ export type StandaloneEntry = {
   name: string;
   seatChoices: number[];
   defaultSeats: number;
-  create: (n: number, seed: number, d: Difficulty, mode?: PartyMode) => AnyGame;
+  create: (
+    n: number,
+    seed: number,
+    d: Difficulty,
+    mode?: PartyMode,
+    seen?: ReadonlySet<string>,
+    teams?: number[],
+  ) => AnyGame;
   play: typeof play;
   botMove: typeof botMove;
   actingSeats: typeof actingSeats;
@@ -49,11 +56,11 @@ export function botMove(g: AnyGame, s: number): AnyMove | null {
   return v.kind === 'miro' ? geography.botMove(v, s) : ranking.botMove(v, s);
 }
 export function decisionKey(g: AnyGame) {
-  return `${g.kind}:${g.rules}:${g.round}:${g.phase}:${g.kind === 'miro' ? 'all' : g.target}`;
+  return `${g.kind}:${g.rules}:${g.round}:${g.phase}:${g.kind === 'miro' ? `${g.challenge}:${g.turn}` : g.target}`;
 }
-/** No timed game state transitions: all humans explicitly lock and continue. */
+/** Atlas team discussions have a server-owned deadline; private guesses remain untimed. */
 export function tick(g: AnyGame): AnyGame {
-  return g;
+  return g.kind === 'miro' ? geography.tick(g) : g;
 }
 function legalMoves(g: AnyGame, s: number): AnyMove[] {
   const moves: AnyMove[] = [
@@ -74,24 +81,30 @@ function legalMoves(g: AnyGame, s: number): AnyMove[] {
 }
 function outcome(g: AnyGame): Outcome {
   const high = Math.max(...g.scores),
-    winners = g.seats.flatMap((_, s) =>
-      g.scores[g.teams[s]] === high ? [s] : [],
-    );
-  const names = g.scores.flatMap((score, i) =>
-    score === high ? [groupName(g, i)] : [],
-  );
+    bestDistance =
+      g.kind === 'miro'
+        ? Math.min(
+            ...g.totalDistance
+              .filter((_, t) => Math.abs(g.scores[t] - high) < 1e-9)
+              .map((d) => Math.round(d * 1000)),
+          )
+        : 0,
+    wins = (t: number) =>
+      Math.abs(g.scores[t] - high) < 1e-9 &&
+      (g.kind !== 'miro' ||
+        Math.round(g.totalDistance[t] * 1000) === bestDistance),
+    winners = g.seats.flatMap((_, s) => (wins(g.teams[s]) ? [s] : []));
+  const names = g.scores.flatMap((_, i) => (wins(i) ? [groupName(g, i)] : []));
   return {
     title: `${names.join(' & ')} ${names.length > 1 ? 'tie' : 'wins'}`,
     detail:
       g.kind === 'miro'
-        ? 'Six shared geography challenges.'
-        : g.kind === 'vela'
-          ? 'Two rounds of facts and foxes.'
-          : 'Two rounds of reading each other.',
+        ? 'Two rounds, six destinations. Points first; shortest total distance breaks a tie.'
+        : 'Two rounds of reading each other.',
     winners,
     rows: g.scores.map((score, i) => ({
       name: groupName(g, i),
-      value: `${score} points`,
+      value: `${Number(score.toFixed(2))} points${g.kind === 'miro' ? ` · ${Math.round(g.totalDistance[i]).toLocaleString()} km total` : ''}`,
     })),
   };
 }
@@ -111,7 +124,7 @@ function saved(id: StandaloneId, value: unknown): value is AnyGame {
     if (
       g.kind !== id ||
       g.version !== 1 ||
-      g.rules !== 5 ||
+      g.rules !== (id === 'miro' ? 9 : 6) ||
       !Array.isArray(g.seats) ||
       !g.seats.every((s) => typeof s === 'string') ||
       !Number.isInteger(g.revision) ||
@@ -121,7 +134,7 @@ function saved(id: StandaloneId, value: unknown): value is AnyGame {
       g.rngState > 4294967295 ||
       !Number.isInteger(g.round) ||
       g.round < 1 ||
-      g.round > (id === 'miro' ? 6 : 2) ||
+      g.round > 2 ||
       typeof g.over !== 'boolean' ||
       typeof g.tutorial !== 'boolean' ||
       !Number.isInteger(g.lesson) ||
@@ -139,20 +152,26 @@ function saved(id: StandaloneId, value: unknown): value is AnyGame {
       size = g.mode === 'teams' ? 2 : g.seats.length;
     if (
       !ints(g.teams, g.seats.length, 0, size - 1) ||
-      !g.teams.every((t, s) => t === expected[s]) ||
-      !ints(g.scores, size, 0, 1000)
+      !(g.mode === 'teams'
+        ? validTeams(g.teams, g.seats.length)
+        : g.teams.every((t, s) => t === expected[s])) ||
+      !(
+        Array.isArray(g.scores) &&
+        g.scores.length === size &&
+        g.scores.every((v) => Number.isFinite(v) && v >= 0 && v <= 1000)
+      )
     )
       return false;
     if (g.kind === 'miro') return !!geography.validState(g);
     const n = g.seats.length,
       c = ranking.count(g),
-      catalog = g.kind === 'vela' ? facts : topics,
-      offers = g.kind === 'vela' ? 2 : 3;
+      catalog = topics,
+      offers = 3;
     const guess = (b: unknown) => {
       if (b === null) return true;
       if (!b || typeof b !== 'object') return false;
       const v = b as { order: unknown; locked: unknown };
-      return ranking.permutation(v.order, c) && typeof v.locked === 'boolean';
+      return typeof v.locked === 'boolean' && ranking.permutation(v.order, c);
     };
     return (
       ['rank', 'guess', 'reveal'].includes(g.phase) &&
@@ -172,37 +191,19 @@ function saved(id: StandaloneId, value: unknown): value is AnyGame {
           b === null ||
           (g.offers[s].includes(b.topic) &&
             ranking.permutation(b.order, c) &&
-            typeof b.locked === 'boolean' &&
-            (g.kind !== 'vela' ||
-              ((b.decoy === undefined ||
-                (typeof b.decoy === 'string' &&
-                  b.decoy.trim().length > 0 &&
-                  b.decoy.length <= 80 &&
-                  !facts[b.topic].answers.some(
-                    (a) => a.toLowerCase() === b.decoy!.toLowerCase(),
-                  ))) &&
-                (!b.locked ||
-                  (!!b.decoy &&
-                    Array.isArray(b.answers) &&
-                    b.answers.length === 6 &&
-                    new Set(b.answers).size === 6 &&
-                    b.order.every(
-                      (id, i) =>
-                        b.answers![id] ===
-                        [...facts[b.topic].answers, b.decoy][i],
-                    )))))),
+            typeof b.locked === 'boolean'),
       ) &&
       (g.phase === 'rank' || g.ballots.every((b) => b?.locked)) &&
-      g.guesses.length === size &&
+      g.guesses.length === ranking.guessCount(g) &&
       g.guesses.every(guess) &&
       (g.phase !== 'reveal' ||
         ranking.guessingTeams(g).every((t) => g.guesses[t]?.locked)) &&
       (g.phase === 'reveal'
         ? !!g.result &&
           ranking.permutation(g.result.order, c) &&
-          ints(g.result.gains, size, 0, 8) &&
-          ints(g.result.bluff, size, 0, 10) &&
-          g.result.guesses.length === size &&
+          g.result.gains.length === size &&
+          g.result.gains.every((v) => Number.isFinite(v) && v >= 0 && v <= 8) &&
+          g.result.guesses.length === ranking.guessCount(g) &&
           g.result.guesses.every(guess)
         : g.result === null)
     );
@@ -211,12 +212,11 @@ function saved(id: StandaloneId, value: unknown): value is AnyGame {
   }
 }
 export const standaloneGames = Object.fromEntries(
-  (['orin', 'vela', 'miro'] as const).map((id) => [
+  (['orin', 'miro'] as const).map((id) => [
     id,
     {
       id,
-      name:
-        id === 'orin' ? 'Top Tier' : id === 'vela' ? 'Outfox the Fox' : 'Atlas',
+      name: id === 'orin' ? 'My Top Five' : 'Atlas',
       seatChoices: partySeats,
       defaultSeats: 4,
       create: (
@@ -224,10 +224,12 @@ export const standaloneGames = Object.fromEntries(
         seed: number,
         d: Difficulty,
         mode: PartyMode = 'individual',
+        seen?: ReadonlySet<string>,
+        teams?: number[],
       ) =>
         id === 'miro'
-          ? geography.createGame(n, seed, d, mode)
-          : ranking.createGame(id, n, seed, d, mode),
+          ? geography.createGame(n, seed, d, mode, seen, teams)
+          : ranking.createGame(id, n, seed, d, mode, seen, teams),
       play,
       botMove,
       actingSeats,
@@ -235,12 +237,14 @@ export const standaloneGames = Object.fromEntries(
       validMove,
       outcome,
       progress: (g: AnyGame) => ({
-        label: `Round ${g.round} / ${g.kind === 'miro' ? 6 : 2}`,
+        label: `Round ${g.round} / 2`,
         detail:
           g.kind === 'miro'
-            ? g.phase === 'reveal'
-              ? 'The shared route revealed'
-              : geography.challengeLabels[g.challenge]
+            ? g.phase === 'guess'
+              ? 'Prepare all three private pins'
+              : g.phase === 'reveal'
+                ? 'Destination revealed'
+                : `${groupName(g, geography.activeTeam(g))}: choose all three team pins`
             : g.phase === 'rank'
               ? 'Prepare privately'
               : g.phase === 'guess'
@@ -251,6 +255,6 @@ export const standaloneGames = Object.fromEntries(
     },
   ]),
 ) as Record<StandaloneId, StandaloneEntry>;
-export const standaloneIds = Object.keys(standaloneGames) as StandaloneId[];
+export const standaloneIds = ['orin', 'miro'] as StandaloneId[];
 export const isStandaloneId = (id: string): id is StandaloneId =>
-  Object.hasOwn(standaloneGames, id);
+  standaloneIds.includes(id as StandaloneId);

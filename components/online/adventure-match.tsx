@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Table, TableCommand } from '@/lib/online/types';
 import { decisionKey } from '@/lib/games/standalone/registry';
+import { TableAmbienceControl } from './table-ambience-control';
 import { StandaloneTable } from '../game/standalone-table';
 import {
   readAmbienceLevel,
@@ -29,7 +30,10 @@ export function AdventureMatch({
     [ambient, setAmbient] = useState(readAmbienceLevel),
     [sound, setSound] = useState(false);
   const g = table.adventure!;
-  useAmbience(g.kind, volume, ambient);
+  const moveQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const latest = useRef({ dispatch, g });
+  useEffect(() => { latest.current = { dispatch, g }; }, [dispatch, g]);
+  useAmbience(g.over ? null : g.kind, volume, table.ambienceEnabled ? ambient : 0);
   return (
     <>
       <StandaloneTable
@@ -41,9 +45,13 @@ export function AdventureMatch({
         onHome={onHome}
         onNew={() => void dispatch({ type: 'abandon' })}
         onSound={() => setSound(true)}
-        onMove={(move) =>
-          void dispatch({ type: 'adventure-move', move, key: decisionKey(g) })
-        }
+        onMove={(move) => {
+          const key = decisionKey(g);
+          moveQueue.current = moveQueue.current.then(async () => {
+            if (decisionKey(latest.current.g) !== key) return;
+            await latest.current.dispatch({ type: 'adventure-move', move, key });
+          });
+        }}
         onLesson={(step) => void dispatch({ type: 'lesson', step })}
         onAdvance={() => void dispatch({ type: 'advance-practice' })}
         onBegin={() => void dispatch({ type: 'begin-match' })}
@@ -53,8 +61,9 @@ export function AdventureMatch({
         <DialogContent>
           <DialogTitle>Sound</DialogTitle>
           <DialogDescription>
-            Your sound settings only affect this device.
+            The host controls background sounds for the table. Volume sliders only affect this device.
           </DialogDescription>
+          <TableAmbienceControl table={table} disabled={disabled} dispatch={dispatch} />
           <label>
             Effects
             <input

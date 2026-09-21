@@ -1,106 +1,119 @@
 'use client';
+import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import { BookOpen, Check, ThumbsUp } from 'lucide-react';
 import { onlineCatalog as catalog } from '@/lib/online/catalog';
 import { isStandaloneId } from '@/lib/games/standalone/registry';
 import { lessons } from '@/lib/games/trio/lessons';
 import type { Table, TableCommand } from '@/lib/online/types';
-import { ArtworkImage } from '../game/artwork';
+import { GameBox } from '../game/game-box';
+import { StatStrip } from '../game/library';
+import { realGames, standaloneLibraryGames } from '@/lib/games/library-fixtures';
+import { SetupBox, StandaloneSetupBox } from '../game/setup-box';
+import { Dialog, DialogContent } from '../ui/dialog';
+import { useState } from 'react';
+import '../game/library.css';
 import './table-lobby.css';
 
 type Props = {
   table: Table;
   disabled: boolean;
+  error?: string;
   dispatch: (action: TableCommand) => Promise<boolean>;
 };
-export function LobbyGames({ table, disabled, dispatch }: Props) {
+export function LobbyGames({ table, disabled, dispatch, error }: Props) {
+  const [dismissed, setDismissed] = useState(false);
+  // Reset local guest dismissal when the host closes or changes the shared box.
+  const session = `${table.gameId}:${!!table.setupOpen}`;
+  const [lastSession, setLastSession] = useState(session);
+  if (session !== lastSession) {
+    setLastSession(session);
+    setDismissed(false);
+  }
+  const game = isStandaloneId(table.gameId)
+    ? standaloneLibraryGames[table.gameId] : realGames[table.gameId];
+  const configure = (changes: Partial<Extract<TableCommand, { type: 'configure' }>>) => {
+    if (!table.isHost || disabled) return;
+    void dispatch({ type: 'configure', gameId: table.gameId,
+      capacity: table.capacity, difficulty: table.difficulty, ...changes });
+  };
+  const offline = table.members.filter(m => !m.bot && !m.host && !m.connected);
+  const needsHumans = requiresHumanPlayers(table.gameId) && table.members.length !== table.capacity;
+  const start = (learning = false) => {
+    if (table.isHost && !disabled && !offline.length && !needsHumans) void dispatch({ type: 'start', learning });
+  };
   return (
     <section className="lobby-library" aria-labelledby="lobby-games-title">
       <div className="lobby-library-heading">
         <div>
           <span className="lobby-eyebrow">Choose together</span>
           <h2 id="lobby-games-title">What shall we play?</h2>
-          <p>
-            {table.isHost
-              ? 'See what everyone likes, choose a game, then start your table.'
-              : 'Vote for the games you’d like to play. Your host will start the match.'}
-          </p>
+          <p>{table.isHost ? 'Open a game box to set up the match for everyone.'
+            : 'Suggest games you’d like to play. The host chooses and sets up the match.'}</p>
         </div>
-        <span className="lobby-pill">Vote for more than one</span>
+        {table.setupOpen && dismissed && <button className="secondary" onClick={() => setDismissed(false)}>View setup</button>}
       </div>
-      <div className="lobby-games-grid">
-        {catalog.map((game) => {
-          const voters = table.votes?.[game.id] ?? [];
+      <div className="lobby-boxes">
+        {catalog.map((entry) => {
+          const box = isStandaloneId(entry.id) ? standaloneLibraryGames[entry.id] : realGames[entry.id];
+          const voters = table.votes?.[entry.id] ?? [];
           const voted = voters.includes(table.viewerId);
-          const selected = table.gameId === game.id;
-          const names = voters
-            .map((id) => table.members.find((m) => m.id === id)?.name)
-            .filter(Boolean);
-          return (
-            <article
-              className={`lobby-game ${game.id} ${selected ? 'is-selected' : ''}`}
-              key={game.id}
-            >
-              <div className="lobby-game-cover">
-                <ArtworkImage
-                  src={game.cover}
-                  width={960}
-                  height={640}
-                  alt={game.name}
-                  draggable={false}
-                />
-                {selected && (
-                  <span className="lobby-selection">
-                    <Check size={14} />
-                    Up next
-                  </span>
-                )}
-              </div>
-              <div className="lobby-game-details">
-                <h3>{game.name}</h3>
-                <span className="lobby-game-genre">{game.genre}</span>
-                <div className="lobby-game-actions">
-                  <button
-                    className={voted ? 'primary' : 'secondary'}
-                    aria-pressed={voted}
-                    aria-label={`${voted ? 'Remove vote for' : 'Vote for'} ${game.name}`}
-                    disabled={disabled}
-                    onClick={() =>
-                      void dispatch({ type: 'vote', gameId: game.id })
-                    }
-                  >
-                    <ThumbsUp size={15} />
-                    {voted ? 'Voted' : 'Suggest'} · {voters.length}
-                  </button>
-                  {table.isHost && (
-                    <button
-                      className="secondary"
-                      disabled={disabled || selected}
-                      onClick={() =>
-                        void dispatch({
-                          type: 'configure',
-                          gameId: game.id,
-                          capacity: table.capacity,
-                          difficulty: table.difficulty,
-                          shields:
-                            game.id === table.gameId &&
-                            (table.shields ?? false),
-                        })
-                      }
-                    >
-                      {selected ? 'Selected' : 'Choose game'}
-                    </button>
-                  )}
-                </div>
-                <p className="lobby-voters" aria-live="polite">
-                  {names.length
-                    ? names.join(', ')
-                    : 'Be the first to suggest this game'}
-                </p>
-              </div>
-            </article>
-          );
+          const selected = table.gameId === entry.id;
+          return <article className="shelf-item lobby-box" key={entry.id}>
+            <button type="button" className="gbox-button shelf-box" disabled={disabled}
+              aria-label={`${table.isHost ? 'Choose' : 'Suggest'} ${box.name}`}
+              onClick={() => table.isHost
+                ? configure({ gameId: entry.id, openSetup: true })
+                : void dispatch({ type: 'vote', gameId: entry.id })}>
+              <GameBox game={box} width={126} sizes="(max-width: 700px) 45vw, 360px" />
+              <span className="shelf-item-details"><StatStrip game={box} /></span>
+            </button>
+            <div className="lobby-box-actions">
+              {table.isHost ? <span className="lobby-box-choice">{selected ? <><Check size={14} /> Up next</> : 'Click to choose'}</span> :
+                <button className={voted ? 'primary' : 'secondary'} disabled={disabled} aria-pressed={voted}
+                  aria-label={`${voted ? 'Remove suggestion for' : 'Suggest'} ${box.name}`}
+                  onClick={() => void dispatch({ type: 'vote', gameId: entry.id })}>
+                  <ThumbsUp size={15} /> {voted ? 'Suggested' : 'Suggest'}
+                </button>}
+              <span className="lobby-voters" aria-live="polite">{voters.length} suggestions{voters.length > 0 && ` · ${voters.map(id => table.members.find(m => m.id === id)?.name).filter(Boolean).join(', ')}`}</span>
+            </div>
+          </article>;
         })}
       </div>
+      <Dialog open={!!table.setupOpen && !dismissed} onOpenChange={(open) => {
+        if (open) return;
+        if (table.isHost && !disabled) void dispatch({ type: 'setup', open: false });
+        else setDismissed(true);
+      }}>
+        <DialogContent className="modal setup-modal">
+          <output className="lobby-setup-status">{table.isHost ? 'Setting up for everyone' : 'The host is setting up your game · Settings update live'}</output>
+          <div className="lobby-shared-setup">
+            {offline.length > 0 && <section className="lobby-offline-warning" aria-live="polite">
+              <strong>Players disconnected</strong>
+              <p>Wait for them to reconnect or remove them before starting. {requiresHumanPlayers(table.gameId) ? 'Every seat needs a human player.' : 'Empty seats will be filled by bots.'}</p>
+              <ul>{offline.map(member => <li key={member.id}><span>{member.name}</span>{table.isHost && <button type="button" className="secondary" disabled={disabled} onClick={() => void dispatch({ type: 'remove', memberId: member.id })}>Remove {member.name}</button>}</li>)}</ul>
+            </section>}
+            {error && <p className="online-notice" role="alert">{error}</p>}
+            {isStandaloneId(table.gameId) ? <StandaloneSetupBox
+              online
+              disabled={disabled || !table.isHost} startDisabled={offline.length > 0 || needsHumans} game={game} seats={table.capacity} minPlayers={table.members.length}
+              difficulty={table.difficulty} mode={table.partyMode ?? 'individual'}
+              teams={table.teams} onTeams={teams => configure({ teams })}
+              playerNames={Array.from({ length: table.capacity }, (_, i) => table.members[i]?.name ?? (requiresHumanPlayers(table.gameId) ? `Waiting for player ${i + 1}` : `Bot ${i + 1}`))}
+              onSeats={capacity => configure({ capacity })} onDifficulty={difficulty => configure({ difficulty })}
+              onMode={partyMode => configure({ partyMode })} onPlay={() => start()} onLearn={() => start(true)} onResume={() => {}}
+            /> : <SetupBox disabled={disabled || !table.isHost} startDisabled={offline.length > 0} game={game} players={table.capacity} minPlayers={table.members.length}
+              difficulty={table.difficulty} fastMode={table.fastMode ?? false} options={{contentSet: table.contentSet, roamEnabled: table.roamEnabled,
+                turningTide: table.turningTide, marketSeasons: table.marketSeasons,
+                migration: table.migration, salvage: table.salvage, specialtyStalls: table.specialtyStalls}}
+              shields={table.shields ?? false} customerOrders={table.customerOrders ?? false}
+              sanctuaryGoalsEnabled={table.sanctuaryGoalsEnabled ?? false}
+              onPlayers={capacity => configure({ capacity })} onDifficulty={difficulty => configure({ difficulty })}
+              onFastMode={fastMode => configure({ fastMode })} onOptions={options => configure(options)}
+              onExtensions={extensions => configure(extensions)} onPlay={() => start()} onLearn={() => start(true)} onResume={() => {}}
+            />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

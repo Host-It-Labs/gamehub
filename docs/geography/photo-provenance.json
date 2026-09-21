@@ -1,0 +1,462 @@
+[
+  {
+    "name": "Valparaíso",
+    "country": "Chile",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": -33.04611111,
+    "lng": -71.61972222,
+    "facts": [
+      "A Pacific port built across steep hills.",
+      "Historic funiculars connect its upper and lower streets.",
+      "Chile’s national congress meets here."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Valpara%C3%ADso",
+    "photo": "/geography/082bf9733a55bfcc.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Historic_Quarter_of_the_Seaport_City_of_Valpara%C3%ADso_04.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Julia_Sumangil&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Julia Sumangil (page does not exist)\">Julia Sumangil</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "Historic Quarter of the Seaport City of Valparaíso, December 2022."
+  },
+  {
+    "name": "Dubrovnik",
+    "country": "Croatia",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 42.64027778,
+    "lng": 18.10833333,
+    "facts": [
+      "A walled city on the Adriatic Sea.",
+      "It was the centre of the Republic of Ragusa.",
+      "Its old town stood in for King’s Landing on television."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Dubrovnik",
+    "photo": "/geography/be5a7078b544aa9c.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:The_walls_of_the_fortress_and_View_of_the_old_city._panorama.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Zysko_serhii\" title=\"User:Zysko serhii\">Zysko serhii</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "This is a photo of a cultural heritage in Croatia with ID: N-1"
+  },
+  {
+    "name": "Chefchaouen",
+    "country": "Morocco",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": 35.17138889,
+    "lng": -5.26972222,
+    "facts": [
+      "A city in the Rif Mountains.",
+      "Its old town is famous for blue-painted walls.",
+      "It lies in northern Morocco, inland from the Mediterranean."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Chefchaouen",
+    "photo": "/geography/89cc7556d3467b54.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Chefchaouen-the-blue-city-of-morocco-with-palm-trees-and-the-mountain-view-in-the-backrgound.jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://mementomorocco.com\">Badr Rachadi</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "The view of the city of Chefchaouen medina from the top tower of the Kasbah de Chefchaouen showing the whole blue city with the palm trees and the big rif mountain behind of it."
+  },
+  {
+    "name": "Luang Prabang",
+    "country": "Laos",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 19.89,
+    "lng": 102.13472222,
+    "facts": [
+      "The Mekong and Nam Khan rivers meet here.",
+      "It was a royal capital of Laos.",
+      "Its historic town combines Buddhist temples and colonial architecture."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Luang_Prabang",
+    "photo": "/geography/7f15dae505065800.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Phou_si_Luang_Prabang_Laos_%E3%83%97%E3%83%BC%E3%82%B7%E3%83%BC%E3%81%AE%E4%B8%98_%E3%83%A9%E3%82%AA%E3%82%B9%E3%83%BB%E3%83%AB%E3%82%A2%E3%83%B3%E3%83%97%E3%83%A9%E3%83%90%E3%83%BC%E3%83%B3_DSCF6777.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:%E6%9D%BE%E5%B2%A1%E6%98%8E%E8%8A%B3\" title=\"User:松岡明芳\">松岡明芳</a>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "description": "Phou si Luang Prabang Laos \n<p>プーシーの丘 \n</p>\nラオス・ルアンプラバーン"
+  },
+  {
+    "name": "Quebec City",
+    "country": "Canada",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 46.81388889,
+    "lng": -71.20805556,
+    "facts": [
+      "A fortified city above the Saint Lawrence River.",
+      "French is the main language of its surrounding province.",
+      "The Château Frontenac dominates its skyline."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Quebec_City",
+    "photo": "/geography/32d4e7945e92c82b.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Quebec_City_skyline_from_L%C3%A9vis.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Quintin_Soloviev\" title=\"User:Quintin Soloviev\">Quintin Soloviev</a>",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "description": "Skyline of Quebec City viewed across the St. Lawrence River from Lévis, Quebec."
+  },
+  {
+    "name": "Hobart",
+    "country": "Australia",
+    "region": "Oceania",
+    "difficulty": "medium",
+    "lat": -42.88055556,
+    "lng": 147.325,
+    "facts": [
+      "A harbour city on the River Derwent.",
+      "Kunanyi / Mount Wellington rises behind it.",
+      "It is the capital of Tasmania."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Hobart",
+    "photo": "/geography/7c9ebe7d548cc3b5.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Franklin_Wharf_2015_b_%28cropped%29.jpg",
+    "artist": "<ul><li><a href=\"//commons.wikimedia.org/wiki/File:Franklin_Wharf_2015.jpg\" title=\"File:Franklin Wharf 2015.jpg\">File:Franklin Wharf 2015.jpg</a>: <a href=\"//commons.wikimedia.org/w/index.php?title=User:Michael_fromholtz&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Michael fromholtz (page does not exist)\">Michael fromholtz</a></li>\n<li>derivative work: <a href=\"//commons.wikimedia.org/wiki/User:Georgfotoart\" title=\"User:Georgfotoart\">Georgfotoart</a></li></ul>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "Franklin Wharf Hobart at sunrise 2015"
+  },
+  {
+    "name": "Cusco",
+    "country": "Peru",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": -13.5169,
+    "lng": -71.9786,
+    "facts": [
+      "An Andean city more than 3,000 metres above sea level.",
+      "It was the capital of the Inca Empire.",
+      "Many travellers start journeys to Machu Picchu here."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Cusco",
+    "photo": "/geography/07edd027d2d92bbb.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Vista_Calle_Suecia.jpg",
+    "artist": "tomscoffin",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "description": "Street in Cusco"
+  },
+  {
+    "name": "Bergen",
+    "country": "Norway",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 60.38944444,
+    "lng": 5.33,
+    "facts": [
+      "A rainy harbour city on Norway’s west coast.",
+      "Its Bryggen wharf was a Hanseatic trading centre.",
+      "A funicular climbs from the centre to Mount Fløyen."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Bergen",
+    "photo": "/geography/13ddba4f1878268a.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Bergen_panorama_at_night_-_panoramio_%281%29.jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://web.archive.org/web/20161028101106/http://www.panoramio.com/user/3773936?with_photo_id=94080874\">TomasEE</a>",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "description": "Bergen panorama at night"
+  },
+  {
+    "name": "Jaipur",
+    "country": "India",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 26.915,
+    "lng": 75.82,
+    "facts": [
+      "A planned city in Rajasthan.",
+      "Its historic centre is known as the Pink City.",
+      "The Hawa Mahal has a façade filled with small windows."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Jaipur",
+    "photo": "/geography/18c9b97eb1bf7c7e.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:East_facade_Hawa_Mahal_Jaipur_from_ground_level_%28July_2022%29_-_img_01.jpg",
+    "artist": "<b><a href=\"//commons.wikimedia.org/wiki/User:Chainwit.\" title=\"User:Chainwit.\">Chainwit.</a></b>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "East facade of Hawa Mahal, Jaipur, Rajasthan"
+  },
+  {
+    "name": "Zanzibar City",
+    "country": "Tanzania",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": -6.165,
+    "lng": 39.199,
+    "facts": [
+      "A city on the island of Unguja.",
+      "Its historic centre is called Stone Town.",
+      "It was a major Indian Ocean spice-trading port."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Zanzibar_City",
+    "photo": "/geography/c1c2fc14783a1ac4.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Malawi_Rd%2C_Zanzibar_Town%2C_Tanzania_-_panoramio.jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://web.archive.org/web/20161020204830/http://www.panoramio.com/user/6303862?with_photo_id=68708733\">Alex Petrenko</a>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "description": "Malawi Rd, Zanzibar Town, Tanzania"
+  },
+  {
+    "name": "Guanajuato (city)",
+    "country": "Mexico",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 21.01777778,
+    "lng": -101.25666667,
+    "facts": [
+      "A colourful city in Mexico’s central highlands.",
+      "Silver mining helped build its wealth.",
+      "Road tunnels run beneath its historic centre."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Guanajuato_(city)",
+    "photo": "/geography/09b4d370dfef8faa.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Vista_a%C3%A9rea_de_Guanajuato.jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/photos/carloszgz/\">Carlos ZGZ</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "description": "<p>As all the pictures in my gallery, this is a FREE picture. You can download it and do whatever you want with it: share it, adapt it and/or combine it with other material and distribute the resulting works.\n</p><p>I’d very much appreciate if you give photo credits to “Carlos ZGZ” when you use this picture. This would help me find it and add it to my photoset “Used elsewhere”.\n__\n</p><p>Como todas las imágenes de mi galería, esta es una imagen LIBRE. Puedes descargarla y hacer lo que quieras con ella: compartirla tal cual, modificarla y/o combinarla con otro material y distribuir el resultado.\n</p>\nPor favor, si utilizas esta imagen, dale el crédito a “Carlos ZGZ”. De esta manera podré encontrarla fácilmente y añadirla a mi álbum “Used elsewhere”."
+  },
+  {
+    "name": "Gjirokastër",
+    "country": "Albania",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 40.06666667,
+    "lng": 20.13333333,
+    "facts": [
+      "A stone-roofed hillside city in the Balkans.",
+      "A large fortress overlooks the Drino valley.",
+      "Its Ottoman-era houses form a UNESCO site in southern Albania."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Gjirokast%C3%ABr",
+    "photo": "/geography/592e55aa7ede7ca0.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Gjirokaster_2016-2017.jpg",
+    "artist": "<p>Name: Armin\n</p>\nFlickr: flickr.com/octopuzz/",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "description": "Gjirokaster"
+  },
+  {
+    "name": "Lüderitz",
+    "country": "Namibia",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": -26.64583333,
+    "lng": 15.15388889,
+    "facts": [
+      "An Atlantic port beside the Namib Desert.",
+      "German colonial buildings line its streets.",
+      "The abandoned diamond town of Kolmanskop is nearby."
+    ],
+    "source": "https://en.wikipedia.org/wiki/L%C3%BCderitz",
+    "photo": "/geography/270a733bafe489e6.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Lutheran_Church_Luderotz.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:SkyPixels\" title=\"User:SkyPixels\">SkyPixels</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "Felsenkirche, a Lutheran church built in 1912 in Lüderitz."
+  },
+  {
+    "name": "Khiva",
+    "country": "Uzbekistan",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 41.38138889,
+    "lng": 60.36111111,
+    "facts": [
+      "An oasis city in Central Asia.",
+      "Its walled inner town is called Itchan Kala.",
+      "The unfinished Kalta Minor minaret is covered in turquoise tiles."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Khiva",
+    "photo": "/geography/c2514e624ae011d1.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:View_from_the_city_walls%2C_Khiva_%284934484894%29.jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/78722206@N00\">Fulvio Spada</a> from Torino, Italy",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "description": "Panorama view of Khiva (Uzbekistan)"
+  },
+  {
+    "name": "Sucre",
+    "country": "Bolivia",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -19.0475,
+    "lng": -65.26,
+    "facts": [
+      "An Andean city known for white colonial buildings.",
+      "It is Bolivia’s constitutional capital.",
+      "The Casa de la Libertad hosted the declaration of independence."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Sucre",
+    "photo": "/geography/5be9f37ff108a5b1.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Sucre%2C_Capital_de_Bolivia.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Parallelepiped09&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Parallelepiped09 (page does not exist)\">Parallelepiped09</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "Sucre, Capital de Bolivia <span class=\"mw-valign-text-top noprint\" typeof=\"mw:File/Frameless\"><a href=\"//commons.wikimedia.org/wiki/File:Sucre,_Capital_de_Bolivia.jpg#ooui-php-4\" title=\"Edit this at Structured Data on Commons\"><img alt=\"Edit this at Structured Data on Commons\" src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail\" decoding=\"async\" loading=\"lazy\" width=\"10\" height=\"10\" class=\"mw-file-element\" data-file-width=\"20\" data-file-height=\"20\"></a></span>"
+  },
+  {
+    "name": "Ouro Preto",
+    "country": "Brazil",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -20.38527778,
+    "lng": -43.50361111,
+    "facts": [
+      "A steep city in the Brazilian state of Minas Gerais.",
+      "A gold rush financed its elaborate Baroque churches.",
+      "Its name translates as Black Gold."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Ouro_Preto",
+    "photo": "/geography/e9771ed6592d374a.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Conjunto_arquitet%C3%B4nico_e_urban%C3%ADstico_de_Ouro_Preto.JPG",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Raquel_Mendes_Silva&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Raquel Mendes Silva (page does not exist)\">Raquel Mendes Silva</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "This is a photo of a monument in Brazil identified by the ID"
+  },
+  {
+    "name": "Kotor",
+    "country": "Montenegro",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 42.43,
+    "lng": 18.77,
+    "facts": [
+      "A fortified town deep inside an Adriatic bay.",
+      "Its walls climb a steep mountain behind the old town.",
+      "It lies in Montenegro, beneath the Lovćen massif."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Kotor",
+    "photo": "/geography/090986ca427c07e4.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:20090719_Crkva_Gospa_od_Zdravlja_Kotor_Bay_Montenegro.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Ggia\" title=\"User:Ggia\">User:Ggia</a>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "description": "\"<i>Crkva Gospa od Zdravlja</i>\" (translated in English \"<i>Our Lady of Health</i>\") church, Kotor bay, Montenegro."
+  },
+  {
+    "name": "Ålesund",
+    "country": "Norway",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 62.47226,
+    "lng": 6.1549,
+    "facts": [
+      "A Norwegian coastal city spread over several islands.",
+      "It was rebuilt after a devastating fire in 1904.",
+      "Its centre is famous for Art Nouveau architecture."
+    ],
+    "source": "https://en.wikipedia.org/wiki/%C3%85lesund",
+    "photo": "/geography/3239607ca379cfcb.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:View_on_%C3%85lesund.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Ysgrimor&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Ysgrimor (page does not exist)\">Ysgrimor</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "View on Ålesund from Mt. Aksala"
+  },
+  {
+    "name": "Galle",
+    "country": "Sri Lanka",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 6.03277778,
+    "lng": 80.21555556,
+    "facts": [
+      "A fortified port on the Indian Ocean.",
+      "Portuguese and Dutch rule shaped its coastal fort.",
+      "It lies near Sri Lanka’s southwestern tip."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Galle",
+    "photo": "/geography/1c610ecf2610ab1c.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Galle_Fort.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Rovinovic&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Rovinovic (page does not exist)\">Rovin Shanila</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "description": "This is the Galle Fort"
+  },
+  {
+    "name": "Saint-Louis",
+    "country": "Senegal",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": 16.03333333,
+    "lng": -16.5,
+    "facts": [
+      "A city near the mouth of the Senegal River.",
+      "Its historic centre occupies a narrow river island.",
+      "The Faidherbe Bridge links the island to the mainland."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Saint-Louis%2C_Senegal",
+    "photo": "/geography/300c74a12f52e3ac.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Island_of_Saint-Louis-113799.jpg",
+    "artist": "Jim Williams",
+    "license": "CC BY-SA 3.0 igo",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/igo/deed.en",
+    "description": "Île de Saint-Louis (Sénégal)"
+  },
+  {
+    "name": "Ushuaia",
+    "country": "Argentina",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -54.80722222,
+    "lng": -68.30805556,
+    "facts": [
+      "A port on the Beagle Channel.",
+      "It lies on the Argentine side of Tierra del Fuego.",
+      "Many Antarctic cruises depart from here."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Ushuaia",
+    "photo": "/geography/70e539dae6bff548.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Ushuaia_aerial_panorama.jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/158619309@N03\">Deensel</a>",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "description": "Aerial view of the center of Ushuaia, Argentina."
+  },
+  {
+    "name": "Dunedin",
+    "country": "New Zealand",
+    "region": "Oceania",
+    "difficulty": "hard",
+    "lat": -45.87416667,
+    "lng": 170.50361111,
+    "facts": [
+      "A city at the head of Otago Harbour.",
+      "Its name comes from the Gaelic name for Edinburgh.",
+      "It is home to New Zealand’s University of Otago."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Dunedin",
+    "photo": "/geography/532d92aa07af022f.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Dunedin-Nueva_Zelanda01.JPG",
+    "artist": "<bdi><a href=\"https://www.wikidata.org/wiki/Q28147777\" class=\"extiw\" title=\"d:Q28147777\"><span title=\"Spanish photographer\">Diego Delso</span></a></bdi>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "description": "Dunedin Railway Station, Dunedin, New Zealand"
+  },
+  {
+    "name": "Antsirabe",
+    "country": "Madagascar",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": -19.86666667,
+    "lng": 47.03333333,
+    "facts": [
+      "A highland city on the island of Madagascar.",
+      "It is known for thermal springs and colourful rickshaws.",
+      "It lies south of Antananarivo, on the route toward Fianarantsoa."
+    ],
+    "source": "https://en.wikipedia.org/wiki/Antsirabe",
+    "photo": "/geography/f1784c2e001a3e72.jpg",
+    "photoSource": "https://commons.wikimedia.org/wiki/File:Antsirabe_-_rue_principale02.JPG",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Bgag\" title=\"User:Bgag\">Bernard Gagnon</a>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "description": "Hasina hotel on Jean Ralaimongo avenue, Antsirabe, Madagascar"
+  }
+]
