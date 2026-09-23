@@ -12,7 +12,7 @@ export function openDatabase(path: string) {
   const version = (
     db.prepare('PRAGMA user_version').get() as { user_version: number }
   ).user_version;
-  if (version > 3)
+  if (version > 5)
     throw new Error(
       'Database is newer than this application; restore a compatible backup before downgrading.',
     );
@@ -47,6 +47,42 @@ export function openDatabase(path: string) {
         PRIMARY KEY(user_id, game_id, content_key)
       );
       PRAGMA user_version=3;
+      COMMIT;
+    `);
+  if (version < 4)
+    db.exec(`
+      BEGIN IMMEDIATE;
+      CREATE TABLE expeditions (token TEXT PRIMARY KEY, state TEXT NOT NULL);
+      CREATE TABLE expedition_members (
+        expedition TEXT NOT NULL REFERENCES expeditions(token) ON DELETE CASCADE,
+        actor TEXT NOT NULL, name TEXT NOT NULL, joined_at INTEGER NOT NULL, seen_at INTEGER NOT NULL,
+        PRIMARY KEY(expedition, actor)
+      );
+      CREATE INDEX expedition_members_actor ON expedition_members(actor);
+      CREATE TABLE expedition_commands (
+        expedition TEXT NOT NULL REFERENCES expeditions(token) ON DELETE CASCADE,
+        actor TEXT NOT NULL, request_id TEXT NOT NULL, body TEXT NOT NULL, result TEXT NOT NULL,
+        PRIMARY KEY(expedition, actor, request_id)
+      );
+      PRAGMA user_version=4;
+      COMMIT;
+    `);
+  if (version < 5)
+    db.exec(`
+      BEGIN IMMEDIATE;
+      CREATE TABLE folio_runs (token TEXT PRIMARY KEY, state TEXT NOT NULL);
+      CREATE TABLE folio_members (
+        run TEXT NOT NULL REFERENCES folio_runs(token) ON DELETE CASCADE,
+        actor TEXT NOT NULL, name TEXT NOT NULL, joined_at INTEGER NOT NULL, seen_at INTEGER NOT NULL,
+        PRIMARY KEY(run, actor)
+      );
+      CREATE INDEX folio_members_actor ON folio_members(actor);
+      CREATE TABLE folio_commands (
+        run TEXT NOT NULL REFERENCES folio_runs(token) ON DELETE CASCADE,
+        actor TEXT NOT NULL, request_id TEXT NOT NULL, body TEXT NOT NULL,
+        PRIMARY KEY(run, actor, request_id)
+      );
+      PRAGMA user_version=5;
       COMMIT;
     `);
   return db;

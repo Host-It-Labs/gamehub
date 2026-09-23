@@ -1,0 +1,478 @@
+/* Nonogram: Nonogram.com's board in Folio's paper and cobalt ink. */
+.fk-nonogram {
+  gap: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.fk-nonogram-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 26px;
+}
+.fk-nonogram-hearts {
+  display: flex;
+  gap: 5px;
+}
+.fk-nonogram-heart {
+  width: 24px;
+  height: 22px;
+}
+.fk-nonogram-heart path {
+  fill: var(--folio-red);
+  stroke: var(--folio-red);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transition: fill 0.3s ease;
+}
+.fk-nonogram-heart.lost path {
+  fill: transparent;
+  stroke: #193d7955;
+}
+.fk-nonogram-heart.fresh {
+  animation: fk-nonogram-heartbreak 0.8s ease both;
+}
+@keyframes fk-nonogram-heartbreak {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.35) rotate(-8deg);
+  }
+  45% {
+    transform: scale(0.9) rotate(6deg);
+  }
+  70% {
+    transform: scale(1.05) rotate(-3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Board: column clues above, row clues to the left, all sized from --c. */
+.fk-nonogram-board {
+  display: grid;
+  grid-template-columns: auto calc(var(--n) * var(--c));
+  grid-template-rows: auto calc(var(--n) * var(--c));
+  font-family: var(--folio-serif);
+  color: var(--folio-ink);
+}
+.fk-nonogram-cols {
+  display: grid;
+  grid-template-columns: repeat(var(--n), var(--c));
+  align-items: end;
+}
+.fk-nonogram-rows {
+  display: grid;
+  grid-template-rows: repeat(var(--n), var(--c));
+  justify-items: end;
+}
+.fk-nonogram-clue {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: calc(var(--c) * 0.16);
+  font-family: var(--folio-digits);
+  font-size: calc(var(--c) * 0.54);
+  font-weight: 700;
+  line-height: 1;
+  transition: background 0.2s ease;
+}
+.fk-nonogram-clue.col {
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: calc(var(--c) * 0.12);
+  padding: 0 0 calc(var(--c) * 0.18);
+  height: 100%;
+  border-radius: 4px 4px 0 0;
+}
+.fk-nonogram-clue.row {
+  width: 100%;
+  padding: 0 calc(var(--c) * 0.22) 0 calc(var(--c) * 0.12);
+  border-radius: 4px 0 0 4px;
+}
+.fk-nonogram-clue span {
+  min-width: calc(var(--c) * 0.46);
+  text-align: center;
+  transition:
+    color 0.35s ease,
+    opacity 0.35s ease;
+}
+.fk-nonogram-clue span.done {
+  color: #193d7948;
+}
+.fk-nonogram-clue.hot {
+  background: #f3e2a4a8;
+}
+.fk-nonogram-clue.sweep span {
+  animation: fk-nonogram-clue-done 0.6s ease both;
+}
+@keyframes fk-nonogram-clue-done {
+  40% {
+    transform: scale(1.3);
+    color: var(--fk-hit);
+  }
+}
+
+.fk-nonogram-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--n), var(--c));
+  grid-template-rows: repeat(var(--n), var(--c));
+  border-right: 2px solid var(--folio-ink);
+  border-bottom: 2px solid var(--folio-ink);
+  background: var(--folio-card);
+  box-shadow: 0 6px 18px #193d7918;
+  touch-action: none;
+  cursor: pointer;
+}
+.fk-nonogram-grid.shake0 {
+  animation: fk-nonogram-shake0 0.45s ease;
+}
+.fk-nonogram-grid.shake1 {
+  animation: fk-nonogram-shake1 0.45s ease;
+}
+@keyframes fk-nonogram-shake0 {
+  15%,
+  55% {
+    transform: translateX(-5px);
+  }
+  35%,
+  75% {
+    transform: translateX(5px);
+  }
+}
+@keyframes fk-nonogram-shake1 {
+  15%,
+  55% {
+    transform: translateX(-5px);
+  }
+  35%,
+  75% {
+    transform: translateX(5px);
+  }
+}
+.folio-world .fk-nonogram-cell,
+.fk-nonogram-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--c);
+  height: var(--c);
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid #193d7938;
+  border-top: 1px solid #193d7938;
+  border-radius: 0;
+  background: transparent;
+  color: var(--folio-ink);
+  box-shadow: none;
+  cursor: inherit;
+  touch-action: none;
+  transition: background 0.12s ease;
+}
+.fk-nonogram-cell.l5 {
+  border-left: 2px solid var(--folio-ink);
+}
+.fk-nonogram-cell.t5 {
+  border-top: 2px solid var(--folio-ink);
+}
+.folio-world .fk-nonogram-cell:disabled,
+.fk-nonogram-cell:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.folio-world .fk-nonogram-cell:hover:not(:disabled),
+.folio-world .fk-nonogram-modes button:hover:not(:disabled) {
+  transform: none;
+}
+.folio-world .fk-nonogram-cell:focus-visible,
+.fk-nonogram-cell:focus-visible {
+  outline: 2px solid var(--folio-red);
+  outline-offset: -3px;
+  z-index: 2;
+}
+.fk-nonogram-cell.hot {
+  background: #f3e2a466;
+}
+.fk-nonogram-cell .ink {
+  position: absolute;
+  inset: 1px;
+  border-radius: 1px;
+  background: var(--folio-ink);
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+.fk-nonogram-cell.fill .ink {
+  opacity: 1;
+  transform: none;
+}
+.fk-nonogram-cell svg {
+  position: relative;
+  width: 78%;
+  height: 78%;
+}
+.fk-nonogram-cell svg path {
+  fill: none;
+  stroke: #193d79a8;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+/* Mistakes: a red cross where a fill was wrong, a red ring on a forced fill. */
+.fk-nonogram-cell.bad.cross svg path {
+  stroke: var(--folio-red);
+  stroke-width: 1.7;
+}
+.fk-nonogram-cell.bad.fill .ink {
+  box-shadow: inset 0 0 0 max(2px, calc(var(--c) * 0.1)) var(--folio-red);
+}
+/* A drag in progress previews the run it will mark. */
+.fk-nonogram-cell.pending.fill .ink {
+  opacity: 0.35;
+  transform: scale(0.8);
+}
+.fk-nonogram-cell.pending.cross {
+  background: #193d7914;
+}
+/* Ink stamp on a fresh fill, a pop on a fresh cross. */
+.fk-nonogram-cell.stamp.fill .ink {
+  animation: fk-nonogram-stamp 0.32s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(min(var(--k), 14) * 22ms);
+}
+@keyframes fk-nonogram-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.5) rotate(-6deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fk-nonogram-cell.stamp.cross svg {
+  animation: fk-nonogram-cross 0.28s ease both;
+  animation-delay: calc(min(var(--k), 14) * 22ms);
+}
+@keyframes fk-nonogram-cross {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-45deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fk-nonogram-cell.oops {
+  z-index: 1;
+  animation: fk-nonogram-oops 0.5s ease both;
+}
+@keyframes fk-nonogram-oops {
+  0% {
+    background: #c5472c00;
+  }
+  20% {
+    background: #c5472c55;
+    transform: translateX(-3px);
+  }
+  40% {
+    transform: translateX(3px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  100% {
+    background: #c5472c00;
+    transform: none;
+  }
+}
+/* A finished row or column: a pale light sweeps along it. */
+.fk-nonogram-cell.sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff7dacc;
+  opacity: 0;
+  pointer-events: none;
+  animation: fk-nonogram-sweep 0.5s ease both;
+  animation-delay: calc(var(--s) * 32ms + 120ms);
+}
+@keyframes fk-nonogram-sweep {
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Mode toggle, like Nonogram.com's fill / cross switch. */
+.fk-nonogram-modes {
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 99px;
+  background: #e7dcb8;
+  box-shadow: inset 0 -2px 0 #193d7920;
+}
+.folio-world .fk-nonogram-modes button,
+.fk-nonogram-modes button {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--folio-ink);
+  box-shadow: none;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+.fk-nonogram-modes button.on {
+  background: var(--folio-card);
+  box-shadow: 0 2px 6px #193d7930;
+}
+.fk-nonogram-modes button:active {
+  transform: scale(0.94);
+}
+.fk-nonogram-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--folio-ink);
+}
+.fk-nonogram-modes svg {
+  width: 28px;
+  height: 28px;
+}
+.fk-nonogram-modes svg path {
+  fill: none;
+  stroke: var(--folio-ink);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+/* End: the grid melts away to leave the picture, then its name. */
+.fk-nonogram.won .fk-nonogram-clue,
+.fk-nonogram.won .fk-nonogram-cell svg {
+  opacity: 0;
+  transition: opacity 0.7s ease 0.2s;
+}
+.fk-nonogram.won .fk-nonogram-grid {
+  border-color: transparent;
+  box-shadow: none;
+  background: transparent;
+  transition: all 0.8s ease 0.3s;
+}
+.fk-nonogram.won .fk-nonogram-cell {
+  border-color: transparent;
+  background: transparent;
+  transition:
+    border-color 0.8s ease 0.3s,
+    background 0.4s ease;
+}
+.fk-nonogram.won .fk-nonogram-cell.bad.fill .ink {
+  box-shadow: none;
+}
+.fk-nonogram.won .fk-nonogram-cell.fill .ink {
+  inset: -2px -1px -1px -2px;
+  border-radius: 0;
+  animation: fk-nonogram-picture 0.9s ease both;
+  animation-delay: calc(0.6s + var(--d) * 25ms);
+}
+@keyframes fk-nonogram-picture {
+  50% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: none;
+  }
+}
+.fk-nonogram.lost .fk-nonogram-cell.missed .ink {
+  opacity: 1;
+  transform: scale(0.62);
+  background: #193d7940;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+  transition-delay: calc(var(--d) * 20ms);
+}
+.fk-nonogram-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin: 0;
+  font: italic 700 1.35rem / 1.1 var(--folio-serif);
+  color: var(--folio-ink);
+  animation: fk-nonogram-name 0.8s ease both 0.3s;
+}
+.fk-nonogram-name.won {
+  font-size: 1.6rem;
+  animation-delay: 1.4s;
+}
+.fk-nonogram-name .orn {
+  color: var(--folio-red);
+  font-style: normal;
+  font-size: 1.1em;
+  animation: fk-nonogram-orn 0.9s ease both;
+  animation-delay: inherit;
+}
+.fk-nonogram-name .orn.flip {
+  transform: scaleX(-1);
+  animation-name: fk-nonogram-orn-flip;
+}
+@keyframes fk-nonogram-name {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+    letter-spacing: 0.2em;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    letter-spacing: 0.01em;
+  }
+}
+@keyframes fk-nonogram-orn {
+  0% {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fk-nonogram-orn-flip {
+  0% {
+    opacity: 0;
+    transform: scaleX(-1) rotate(-90deg) scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fk-nonogram *,
+  .fk-nonogram *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "generatedOn": "2026-09-22",
+  "tool": "built-in image_gen imagegen",
+  "generationMode": "independent fresh generations from written briefs; no image references",
+  "artDirection": "Hand-painted gouache and inky contours; antique mechanical arcade in an overgrown stone manor.",
+  "export": {
+    "library": "sharp",
+    "format": "WebP",
+    "quality": 90,
+    "effort": 6,
+    "resize": false,
+    "crop": false,
+    "paintOver": false
+  },
+  "validation": {
+    "generatedImagesVisuallyInspected": true,
+    "nativeDimensionsVerified": true,
+    "noBakedMechanismsOrText": true,
+    "browserOrTouchVerified": false,
+    "geometry": "Actual manually estimated bounds are recorded. Prompt target regions were not treated as achieved bounds."
+  },
+  "assets": [
+    {
+      "room": "darts",
+      "orientation": "landscape",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-darts-v1.png",
+      "runtime": "public/art/relic/arcade-darts-v1.webp",
+      "exactPrompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-darts-v1-framing.prompt.txt",
+      "originalGeneratedPath": "/Users/williamguinaudie/.codex/generated_images/01a0c9ca-1cf1-75a2-9f30-1475704fc93f/exec-0be8031c-8a1f-4438-aeba-378ff56bb992.png",
+      "width": 1536,
+      "height": 1024,
+      "runtimeBytes": 454446,
+      "sourceSha256": "6f64963ce8c56f5c039826bc85639e23f4e1a663f13f93be465ee11a67850d5d",
+      "runtimeSha256": "5abce093b8ba97241f36f9cda842b6cd374a9793e5f8ff0bfbb0d360ecbadffe",
+      "landmarkBounds": [
+        348,
+        150,
+        838,
+        672
+      ],
+      "quietBounds": [
+        472,
+        351,
+        592,
+        342
+      ],
+      "boundsFormat": "x,y,width,height in native source pixels",
+      "boundsMethod": "approximate manual visual inspection, not a detector or browser acceptance"
+    },
+    {
+      "room": "forge",
+      "orientation": "landscape",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-forge-v1.png",
+      "runtime": "public/art/relic/arcade-forge-v1.webp",
+      "exactPrompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-forge-v1-framing.prompt.txt",
+      "originalGeneratedPath": "/Users/williamguinaudie/.codex/generated_images/01a0c9ca-1cf1-75a2-9f30-1475704fc93f/exec-10addde0-7e26-4ef3-861d-05e2adeb4815.png",
+      "width": 1536,
+      "height": 1024,
+      "runtimeBytes": 448440,
+      "sourceSha256": "d059f301693ef8edeed1895ad603ce90f7a40bc25b24e7a4356dea65e8a0289d",
+      "runtimeSha256": "0ab9561a7f23fad7246a8b613b537a98cb8f80dd832bab2d1ca1add5cd5108d1",
+      "landmarkBounds": [
+        404,
+        132,
+        732,
+        642
+      ],
+      "quietBounds": [
+        490,
+        320,
+        556,
+        384
+      ],
+      "boundsFormat": "x,y,width,height in native source pixels",
+      "boundsMethod": "approximate manual visual inspection, not a detector or browser acceptance"
+    },
+    {
+      "room": "bells",
+      "orientation": "landscape",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-bells-v1.png",
+      "runtime": "public/art/relic/arcade-bells-v1.webp",
+      "exactPrompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-bells-v1-framing.prompt.txt",
+      "originalGeneratedPath": "/Users/williamguinaudie/.codex/generated_images/01a0c9ca-1cf1-75a2-9f30-1475704fc93f/exec-98ec788c-84aa-4126-a254-c06e2c3d18fa.png",
+      "width": 1536,
+      "height": 1024,
+      "runtimeBytes": 366742,
+      "sourceSha256": "5747b2121c3141b4ccd99216257a9a0baa68caf74ab549611997f6db9cc52aee",
+      "runtimeSha256": "534602a825a51115db935e192f16e95d3a759dd115a1dc965455ffde02da84f7",
+      "landmarkBounds": [
+        426,
+        91,
+        686,
+        752
+      ],
+      "quietBounds": [
+        505,
+        319,
+        538,
+        398
+      ],
+      "boundsFormat": "x,y,width,height in native source pixels",
+      "boundsMethod": "approximate manual visual inspection, not a detector or browser acceptance"
+    },
+    {
+      "room": "darts",
+      "orientation": "portrait",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-darts-portrait-v1.png",
+      "runtime": "public/art/relic/arcade-darts-portrait-v1.webp",
+      "exactPrompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-darts-portrait-v1.prompt.txt",
+      "originalGeneratedPath": "/Users/williamguinaudie/.codex/generated_images/01a0c9ca-1cf1-75a2-9f30-1475704fc93f/exec-ab9bcaa8-7323-4cbe-bf40-c349c5efc1a1.png",
+      "width": 1024,
+      "height": 1536,
+      "runtimeBytes": 430628,
+      "sourceSha256": "546fb0fb382aa52bdd7c6460dbfb48decfb3d386c2a9a73611157613cb9c7bf0",
+      "runtimeSha256": "0be67e96d375cc6507270a980c2d3857de786f6e5ba8d0b4e7c7a4ae83d5d7f7",
+      "landmarkBounds": [
+        142,
+        201,
+        740,
+        978
+      ],
+      "quietBounds": [
+        246,
+        490,
+        532,
+        507
+      ],
+      "boundsFormat": "x,y,width,height in native source pixels",
+      "boundsMethod": "approximate manual visual inspection, not a detector or browser acceptance"
+    },
+    {
+      "room": "forge",
+      "orientation": "portrait",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-forge-portrait-v1.png",
+      "runtime": "public/art/relic/arcade-forge-portrait-v1.webp",
+      "exactPrompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-forge-portrait-v1.prompt.txt",
+      "originalGeneratedPath": "/Users/williamguinaudie/.codex/generated_images/01a0c9ca-1cf1-75a2-9f30-1475704fc93f/exec-473c830b-7478-4919-ad64-9098acb47725.png",
+      "width": 1024,
+      "height": 1536,
+      "runtimeBytes": 437544,
+      "sourceSha256": "df71fce4abe448551dcb9378009ea5df67de8c228bdd068e4ee88638d47a84d0",
+      "runtimeSha256": "e28c07b0e29326dc0f4296d20b31113bd57e1fd7bc991a77f53ec9473618895d",
+      "landmarkBounds": [
+        144,
+        188,
+        733,
+        931
+      ],
+      "quietBounds": [
+        270,
+        447,
+        480,
+        503
+      ],
+      "boundsFormat": "x,y,width,height in native source pixels",
+      "boundsMethod": "approximate manual visual inspection, not a detector or browser acceptance"
+    },
+    {
+      "room": "bells",
+      "orientation": "portrait",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-bells-portrait-v1.png",
+      "runtime": "public/art/relic/arcade-bells-portrait-v1.webp",
+      "exactPrompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-bells-portrait-v1.prompt.txt",
+      "originalGeneratedPath": "/Users/williamguinaudie/.codex/generated_images/01a0c9ca-1cf1-75a2-9f30-1475704fc93f/exec-8929dd4f-cb40-4a4c-bf5d-990a192d3b36.png",
+      "width": 1024,
+      "height": 1536,
+      "runtimeBytes": 423456,
+      "sourceSha256": "e7a8d7edac1cfb2032ceeeee6ade17108d301bc446dd64d70587c97efa2d57c5",
+      "runtimeSha256": "23e6d96ed17c15922502aca0df7c6cf0c64993243610cc7b61afc480593fe05d",
+      "landmarkBounds": [
+        152,
+        148,
+        720,
+        1008
+      ],
+      "quietBounds": [
+        262,
+        491,
+        500,
+        540
+      ],
+      "boundsFormat": "x,y,width,height in native source pixels",
+      "boundsMethod": "approximate manual visual inspection, not a detector or browser acceptance",
+      "portraitBellsPeripheralBounds": [
+        72,
+        172,
+        882,
+        285
+      ]
+    }
+  ],
+  "rejectedInitialSources": [
+    {
+      "room": "darts",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-darts-initial.png",
+      "prompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-darts-v1.prompt.txt",
+      "reason": "Crown near top edge and full frame too large for proposed crop."
+    },
+    {
+      "room": "forge",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-forge-initial.png",
+      "prompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-forge-v1.prompt.txt",
+      "reason": "Crown near top edge and full frame too large for proposed crop."
+    },
+    {
+      "room": "bells",
+      "source": "docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-bells-initial.png",
+      "prompt": "docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-bells-v1.prompt.txt",
+      "reason": "Crown near top edge and full frame too large for proposed crop."
+    }
+  ]
+}

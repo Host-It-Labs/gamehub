@@ -138,8 +138,8 @@ export function StatStrip({
 }) {
   return (
     <span className={`stat-strip ${full ? 'full' : ''}`}>
-      <Stat icon={Clock} label={`${game.minutes} minutes`}>
-        {game.minutes} min
+      <Stat icon={Clock} label={game.durationLabel ?? `${game.minutes} minutes`}>
+        {game.durationLabel ?? `${game.minutes} min`}
       </Stat>
       <Stat icon={Users} label={`${playerRange(game.players)} players`}>
         {playerRange(game.players)}
@@ -193,7 +193,7 @@ function ShelfTile({
         type="button"
         className="gbox-button shelf-box"
         onClick={() => onOpen(game)}
-        aria-label={`${game.name}. ${game.minutes} minutes, ${playerRange(game.players)} players${marked ? ', match in progress' : ''}. Open`}
+        aria-label={`${game.name}. ${game.durationLabel ?? `${game.minutes} minutes`}, ${playerRange(game.players)} players${marked ? ', match in progress' : ''}. Open`}
       >
         <GameBox game={game} width={126} sizes="360px">
           {marked && <span className="gbox-ribbon" />}
@@ -355,7 +355,8 @@ export function Library({
   const needle = query.trim().toLowerCase();
 
   function open(game: LibraryGame) {
-    if (game.gameId) onSetup(game.gameId);
+    if (game.href) window.location.assign(game.href);
+    else if (game.gameId) onSetup(game.gameId);
     else if (game.standaloneId) onStandalone(game.standaloneId);
     else onOpenPlaceholder(game);
   }

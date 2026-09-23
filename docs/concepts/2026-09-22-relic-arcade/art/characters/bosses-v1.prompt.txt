@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: transparent 2D video-game character atlas, exactly 1536x1024 pixels.
+Primary request: Create exactly three original, distinct magical mechanical arcade boss characters, arranged in one horizontal row, isolated on a genuinely transparent background. This is a production atlas: each character must fit entirely within its own 512x1024-pixel third, with transparent padding between characters and full silhouettes visible. No part of any character may cross into the next third. Centers at x=256, x=768, x=1280. Character silhouettes should occupy the central 20%-80% of image height (approximately y=205 through y=819), centered vertically. Use equal visual weight.
+Subject, left third: an imposing expressive brass owl automaton boss, red velvet feathers, golden mechanical wings held slightly open, glowing ruby eyes, compact chunky silhouette, full feet, head and wings visible.
+Subject, middle third: an amethyst crystal tortoise boss, teal and amethyst crystal facets, a copper shell with inset facets, stout sturdy legs, bright determined eyes, full silhouette including head and feet.
+Subject, right third: a regal verdigris bell golem boss, large bronze bell body, green patina crown, clockwork arms, sturdy mechanical legs, expressive face in the bell, complete crown, arms and feet visible.
+Style/medium: genuinely hand-painted gouache illustration with confident inky contours, visible pigment texture, chunky readable shapes, assured mature storybook charm. Richly tactile brass, copper and velvet, distinct controlled color accents. Warm light from upper left.
+Scene/backdrop: genuine alpha transparency. No environment, no background color, no floor, no ground, no cast shadow on a ground plane. Do not paint a checkerboard.
+Text: none.
+Constraints: exactly three separate characters. Absolutely no labels, numbers, captions, title, UI, borders, additional characters, boxes, floating icons or decorative fillers. No glossy plastic, no photorealism, no 3D rendering, no pixel art. Full silhouettes and clean alpha edges. Preserve the strict equal-third atlas arrangement.

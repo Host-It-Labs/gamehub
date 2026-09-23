@@ -147,6 +147,10 @@ export function MyTables() {
       <OnlineHeader />
       <main className="online-card">
         <h1>Play with friends</h1>
+        <a className="relic-online-link" href="/relic">
+          <strong>Relic · Your shared arcades</strong>
+          <span>Skillful throws, growing machines, and a separate arcade for each group →</span>
+        </a>
         {loading ? (
           <output>Loading your tables…</output>
         ) : user ? (

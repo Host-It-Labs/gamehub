@@ -1,0 +1,493 @@
+/*
+ * Codebreaker (Mastermind): a printed paper board. Rows run bottom to top,
+ * key pegs sit in a small cluster beside each row, the hidden code waits at
+ * the top behind a hinged shield, and the colour tray stands on the right.
+ */
+.fk-code {
+  --bar: 46px;
+  gap: 10px;
+  height: 100cqh;
+  align-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.fk-code-wrap {
+  position: relative;
+  --rowh: min(46px, calc((100cqh - var(--bar) - 44px) / (var(--rows) + 1.45)));
+  --hole: min(
+    calc(var(--rowh) * 0.78),
+    calc((100cqw - 128px) / (var(--pegs) + 2.6))
+  );
+  --pick: min(
+    46px,
+    calc((100cqh - var(--bar) - 30px) / var(--colours) - 6px),
+    13cqw
+  );
+  display: flex;
+  align-items: stretch;
+  gap: clamp(8px, 3cqw, 22px);
+}
+.fk-code-board {
+  position: relative;
+  display: grid;
+  align-content: start;
+  padding: 6px 8px 8px;
+  border: 2px solid var(--folio-ink);
+  border-radius: 10px 10px 6px 6px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, #193d7905 3px 4px),
+    var(--folio-card);
+  box-shadow:
+    inset 0 0 0 3px var(--folio-card),
+    inset 0 0 0 4px #193d7955,
+    0 3px 0 #193d7922,
+    0 10px 24px #193d7914;
+}
+.fk-code-board.lost {
+  animation: fk-code-thud 0.5s ease 0.55s both;
+}
+.fk-code-rows {
+  display: flex;
+  flex-direction: column-reverse;
+}
+.fk-code-row,
+.fk-code-secret {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--hole) * 0.28);
+  height: var(--rowh);
+  padding: 0 4px;
+}
+.fk-code-row + .fk-code-row {
+  border-bottom: 1px dashed #193d7920;
+}
+.fk-code-row.active {
+  border-radius: 4px;
+  background: #f1c1372e;
+  box-shadow: inset 3px 0 0 var(--folio-red);
+}
+.fk-code-num {
+  width: 1.6em;
+  color: #193d7988;
+  font:
+    700 clamp(0.6rem, calc(var(--rowh) * 0.36), 0.85rem) / 1
+      var(--folio-serif, Georgia),
+    serif;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.fk-code-row.active .fk-code-num {
+  color: var(--folio-red);
+}
+.fk-code-holes {
+  display: flex;
+  gap: calc(var(--hole) * 0.28);
+}
+.folio-world .fk-code-hole,
+.fk-code-hole {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--hole);
+  height: var(--hole);
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+}
+.fk-code-hole::before {
+  content: '';
+  position: absolute;
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #0d1f4055, #193d7922 70%);
+  box-shadow: 0 1px 0 #ffffffb0;
+}
+button.fk-code-hole {
+  cursor: pointer;
+}
+/* Enlarge the touch target beyond the drawn hole without moving the layout. */
+button.fk-code-hole::after {
+  content: '';
+  position: absolute;
+  inset: -4px -3px;
+}
+.fk-code-row.active .fk-code-hole::before {
+  width: 42%;
+  height: 42%;
+  background: radial-gradient(circle at 50% 35%, #0d1f4070, #193d7930 70%);
+}
+.fk-code-hole.target::before {
+  width: 70%;
+  height: 70%;
+  background: #c5472c40;
+}
+.fk-code-hole:focus-visible {
+  outline: 2px solid var(--folio-red);
+  outline-offset: 1px;
+}
+.fk-code-peg {
+  z-index: 1;
+  position: absolute;
+  inset: 7%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, #ffffff8c 0 12%, #ffffff00 38%),
+    radial-gradient(circle at 60% 72%, #00000026, #00000000 60%), var(--peg);
+  box-shadow:
+    inset 0 -2px 0 #0000002e,
+    0 1.5px 0 #0d1f4055,
+    0 2px 4px #0d1f4030;
+}
+.fk-code-glyph {
+  position: absolute;
+  inset: 25%;
+  width: 50%;
+  height: 50%;
+  fill: #fffaf0e6;
+}
+.fk-code-peg[data-ink='dark'] .fk-code-glyph {
+  fill: #1d2a44b3;
+}
+.fk-code-row.active .fk-code-peg {
+  animation: fk-code-pop 0.26s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes fk-code-pop {
+  0% {
+    transform: scale(0.2) translateY(-30%);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.14);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Key pegs: a small 2×2 cluster (3 over 2 for five holes). */
+.fk-code-keys,
+.fk-code-keys-spacer {
+  display: grid;
+  grid-template-columns: repeat(2, calc(var(--hole) * 0.36));
+  gap: calc(var(--hole) * 0.08);
+  margin-left: calc(var(--hole) * 0.22);
+  padding: calc(var(--hole) * 0.06);
+}
+.fk-code-keys {
+  border-radius: 5px;
+  background: #193d790a;
+}
+.fk-code-keys.five {
+  grid-template-columns: repeat(3, calc(var(--hole) * 0.3));
+}
+.fk-code-keys.five .fk-code-khole:nth-child(n + 4) {
+  translate: calc(var(--hole) * 0.19) 0;
+}
+.fk-code-khole {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+}
+.fk-code-khole::before {
+  content: '';
+  width: 32%;
+  height: 32%;
+  border-radius: 50%;
+  background: #193d7938;
+}
+.fk-code-key {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+}
+.fk-code-key.black {
+  background: radial-gradient(circle at 35% 30%, #5b6275 0 10%, #1a1c24 55%);
+  box-shadow: 0 1px 1px #0d1f4055;
+}
+.fk-code-key.white {
+  background: radial-gradient(circle at 35% 30%, #ffffff 0 18%, #f2ecd9 70%);
+  box-shadow:
+    inset 0 0 0 1px #193d7955,
+    0 1px 1px #0d1f4040;
+}
+.fk-code-key.drop {
+  animation: fk-code-drop 0.32s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  animation-delay: calc(0.15s + var(--i) * 0.26s);
+}
+@keyframes fk-code-drop {
+  0% {
+    transform: translateY(-160%) scale(1.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(8%) scale(0.92);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* The hidden code and its hinged shield. */
+.fk-code-secret {
+  height: calc(var(--rowh) * 1.2);
+  margin-bottom: calc(var(--rowh) * 0.25);
+  border-radius: 5px;
+  background: #193d790d;
+  perspective: 500px;
+}
+.fk-code-secret .fk-code-keys-spacer {
+  visibility: hidden;
+}
+.fk-code-shield {
+  position: absolute;
+  z-index: 3;
+  inset: 0 -2px -3px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px 6px 3px 3px;
+  background:
+    repeating-linear-gradient(135deg, #ffffff10 0 6px, transparent 6px 12px),
+    var(--folio-ink);
+  color: var(--folio-paper);
+  font:
+    italic 700 clamp(0.7rem, calc(var(--rowh) * 0.42), 1rem) / 1
+      var(--folio-serif, Georgia),
+    serif;
+  letter-spacing: 0.08em;
+  box-shadow:
+    inset 0 0 0 2px var(--folio-ink),
+    inset 0 0 0 3px #fff7da55,
+    0 3px 0 #0d1f4040;
+  transform-origin: 50% 0;
+  backface-visibility: hidden;
+}
+.fk-code-shield::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -3px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--folio-red);
+}
+.fk-code-shield.open {
+  animation: fk-code-shield 0.7s cubic-bezier(0.5, 0, 0.6, 1.4) both;
+}
+@keyframes fk-code-shield {
+  0% {
+    transform: rotateX(0);
+  }
+  20% {
+    transform: rotateX(12deg);
+  }
+  100% {
+    transform: rotateX(-96deg);
+    visibility: hidden;
+  }
+}
+.fk-code-secret .fk-code-peg {
+  animation: fk-code-rise 0.4s ease both;
+  animation-delay: calc(0.35s + var(--i) * 0.06s);
+}
+@keyframes fk-code-rise {
+  0% {
+    transform: translateY(20%);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+.fk-code-board.won .fk-code-secret .fk-code-peg {
+  animation:
+    fk-code-rise 0.4s ease both,
+    fk-code-bounce 0.8s ease both;
+  animation-delay: calc(0.35s + var(--i) * 0.06s), calc(0.9s + var(--i) * 0.1s);
+}
+@keyframes fk-code-bounce {
+  0%,
+  20% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-38%) scale(1.08);
+  }
+  50% {
+    transform: translateY(5%);
+  }
+  60% {
+    transform: translateY(-16%);
+  }
+  80% {
+    transform: translateY(2%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.fk-code-board.lost .fk-code-secret {
+  box-shadow: inset 0 0 0 2px #c5472c80;
+}
+@keyframes fk-code-thud {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: rotate(-0.8deg) translateY(2px);
+  }
+  55% {
+    transform: rotate(0.6deg);
+  }
+  80% {
+    transform: rotate(-0.2deg);
+  }
+}
+
+.fk-code-row.shake {
+  animation: fk-shake 0.5s ease;
+}
+
+/* Colour tray. */
+.fk-code-tray {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1.5px solid var(--folio-line);
+  border-radius: 99px;
+  background: #e7dcb880;
+}
+.folio-world .fk-code-pick,
+.fk-code-pick {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--pick);
+  height: var(--pick);
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+.fk-code-pick .fk-code-peg {
+  inset: 6%;
+  transition: transform 0.12s ease;
+}
+.fk-code-pick:hover:not(:disabled) .fk-code-peg {
+  transform: translateY(-2px) scale(1.05);
+}
+.fk-code-pick:active:not(:disabled) .fk-code-peg {
+  transform: scale(0.92);
+}
+.fk-code-pick:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.fk-code-pick:focus-visible {
+  outline: 2px solid var(--folio-red);
+  outline-offset: 1px;
+}
+.fk-code-pick small {
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  z-index: 2;
+  min-width: 13px;
+  padding: 1px 2px;
+  border-radius: 4px;
+  background: var(--folio-paper);
+  color: #193d79aa;
+  font:
+    700 0.58rem/1 var(--font-sans),
+    Arial,
+    sans-serif;
+  text-align: center;
+}
+.fk-code-ghost {
+  position: absolute;
+  z-index: 50;
+  display: grid;
+  width: calc(var(--hole) * 1.15);
+  height: calc(var(--hole) * 1.15);
+  translate: -50% -60%;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 6px #0d1f4040);
+}
+.fk-code-ghost .fk-code-peg {
+  inset: 0;
+}
+
+.fk-code-bar {
+  display: grid;
+  place-items: center;
+  height: var(--bar);
+}
+.folio-world .fk-code-check,
+.fk-code-check {
+  min-width: 160px;
+  height: 42px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--folio-ink);
+  color: var(--folio-paper);
+  font:
+    800 0.8rem/1 var(--font-sans),
+    Arial,
+    sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 0 3px 0 #0d1f4050;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+.fk-code-check:disabled {
+  background: #193d7940;
+  box-shadow: none;
+  cursor: default;
+}
+.fk-code-check:not(:disabled):active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0d1f4050;
+}
+.fk-code-result {
+  font-family: var(--folio-serif, Georgia), serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fk-code-board.lost,
+  .fk-code-row.active .fk-code-peg,
+  .fk-code-key.drop,
+  .fk-code-secret .fk-code-peg,
+  .fk-code-board.won .fk-code-secret .fk-code-peg,
+  .fk-code-row.shake {
+    animation: none;
+  }
+  .fk-code-shield.open {
+    animation: none;
+    visibility: hidden;
+  }
+}

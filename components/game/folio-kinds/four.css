@@ -1,0 +1,182 @@
+/*
+ * Quordle: 2x2 boards over one split keyboard. Tile size is solved from the
+ * play area's container size so everything fits without scrolling.
+ */
+.fk-four {
+  --key: clamp(30px, 7.4cqh, 50px);
+  --kb: calc(3 * var(--key) + 10px);
+  --ans: 14px;
+  --bg: 8px;
+  height: 100cqh;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: stretch;
+  gap: 8px;
+}
+.fk-four .fk-keyboard {
+  gap: 5px;
+  align-self: end;
+}
+.folio-world .fk-four .fk-key,
+.fk-four .fk-key {
+  min-height: var(--key);
+  height: var(--key);
+}
+.fk-four-grid {
+  --t: min(
+    38px,
+    calc(((100cqw - var(--bg)) / 2 - 10px) / 5.48),
+    calc(
+      ((100cqh - var(--kb) - 8px - var(--bg) - 2 * var(--ans) - 8px) / 2 - 10px) /
+        (var(--rows) * 1.12 - 0.12)
+    )
+  );
+  --g: calc(var(--t) * 0.12);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: var(--bg);
+  align-self: center;
+  justify-content: center;
+}
+.fk-four-cell {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.fk-four-board {
+  position: relative;
+  display: grid;
+  gap: var(--g);
+  padding: 4px;
+  border: 1px solid var(--folio-line, #193d7926);
+  border-radius: 6px;
+  background: #fffdf5;
+  transition:
+    opacity 0.4s ease,
+    border-color 0.4s ease,
+    background 0.4s ease;
+  --fk-row-width: calc(5 * var(--t) + 4 * var(--g));
+  width: calc(var(--fk-row-width) + 10px);
+  box-sizing: border-box;
+}
+.fk-four-board .fk-row.small {
+  width: var(--fk-row-width);
+  gap: var(--g);
+}
+.fk-four-board .fk-row.small .fk-tile {
+  width: var(--t);
+  height: var(--t);
+  box-sizing: border-box;
+  border-width: 1px;
+  border-radius: 2px;
+  font-size: calc(var(--t) * 0.6);
+}
+.fk-four-board[data-state='solved'] {
+  border-color: var(--fk-hit);
+  background: color-mix(in srgb, var(--fk-hit) 8%, #fffdf5);
+}
+.fk-four-board[data-state='solved'] .fk-tile:not(.filled) {
+  opacity: 0.35;
+}
+.fk-four-board[data-state='locked'] {
+  opacity: 0.42;
+  background: repeating-linear-gradient(
+    -45deg,
+    #efe6c8,
+    #efe6c8 6px,
+    #f6efd8 6px,
+    #f6efd8 12px
+  );
+}
+.fk-four-board[data-state='lost'] {
+  border-color: var(--folio-red);
+  animation: fk-four-sink 0.7s ease 0.2s both;
+}
+.fk-four-lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--folio-ink);
+}
+.fk-four-board.pop {
+  animation: fk-four-pop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) 1.45s both;
+}
+@keyframes fk-four-pop {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  45% {
+    transform: scale(1.07);
+    box-shadow: 0 6px 18px #2c7a4b40;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes fk-four-sink {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-3px) rotate(-0.6deg);
+  }
+  40% {
+    transform: translateX(3px) rotate(0.6deg);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+}
+.fk-four-answer {
+  height: var(--ans);
+  margin: 0;
+  color: var(--folio-red);
+  font:
+    800 12px / var(--ans) var(--folio-serif, Georgia),
+    serif;
+  letter-spacing: 0.18em;
+  animation: fk-four-in 0.5s ease 0.8s both;
+}
+.fk-four-answer:empty {
+  animation: none;
+}
+@keyframes fk-four-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.fk-four.won .fk-four-board {
+  animation: fk-four-pop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(1.8s + var(--n, 0) * 0.12s);
+}
+.fk-four.won .fk-four-cell:nth-child(2) .fk-four-board {
+  --n: 1;
+}
+.fk-four.won .fk-four-cell:nth-child(3) .fk-four-board {
+  --n: 2;
+}
+.fk-four.won .fk-four-cell:nth-child(4) .fk-four-board {
+  --n: 3;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-four-board,
+  .fk-four-board.pop,
+  .fk-four.won .fk-four-board,
+  .fk-four-answer {
+    animation: none;
+    transition: none;
+  }
+}
+@container folio-play (max-width: 380px) {
+  .fk-four .fk-key.wide:first-child svg {
+    display: none;
+  }
+}

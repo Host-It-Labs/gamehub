@@ -31,6 +31,8 @@ export type LibraryGame = {
   gameId?: GameId;
   /** Set for games with their own rules module and their own table. */
   standaloneId?: StandaloneId;
+  href?: string;
+  durationLabel?: string;
   name: string;
   cover?: string;
   /** The cover image contains its own generated, styled game title. */
@@ -462,13 +464,27 @@ export const placeholderGames: LibraryGame[] = [
 ];
 
 export const libraryGames: LibraryGame[] = [
+  {
+    id: 'folio', name: 'Folio', href: '/folio', ...printedBoxArt('folio'),
+    world: 'Ten famous daily puzzles on one branching trail. Beat the bosses and reach the summit together.',
+    minutes: 25, durationLabel: '15–25 min', players: [1, 3], mode: 'Co-op', weight: 1,
+    genre: 'Puzzle roguelike', material: 'card', palette: ['#193d79', '#c5472c', '#f1dc93'],
+    motif: 'grid', playing: [],
+  },
+  {
+    id: 'relic', name: 'Relic', href: '/relic', ...printedBoxArt('relic'),
+    world: 'Scratch little surprises and discover a world of paper, luck and gentle skill',
+    minutes: 0, durationLabel: 'At your pace', players: [1, 6], mode: 'Co-op', weight: 1,
+    genre: 'Scratch tickets & growing workshop', material: 'kraft', palette: ['#76583d', '#a5c8a0', '#f6e3bb'],
+    motif: 'gem', playing: [],
+  },
   ...Object.values(realGames),
   ...Object.values(standaloneLibraryGames),
   ...placeholderGames,
 ];
 export const playableGame = (id: string) =>
   libraryGames.find(
-    (g) => g.id === id && (g.gameId || g.standaloneId),
+    (g) => g.id === id && (g.gameId || g.standaloneId || g.href),
   );
 export const gameByLibraryId = (id: string) =>
   libraryGames.find((g) => g.id === id);
@@ -484,6 +500,8 @@ export const shelves: {
     title: 'Ready to play',
     icon: 'sparkles',
     games: [
+      'folio',
+      'relic',
       'undertow',
       'wildgrove',
       'midnight',
@@ -501,7 +519,7 @@ export const shelves: {
     id: 'coop',
     title: 'Co-op',
     icon: 'handshake',
-    games: ['lumo', 'bora', 'tavi', 'suvi', 'kena'],
+    games: ['folio', 'relic', 'lumo', 'bora', 'tavi', 'suvi', 'kena'],
   },
   {
     id: 'quick',

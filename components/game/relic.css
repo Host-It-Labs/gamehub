@@ -1,0 +1,244 @@
+.relic-hub {
+  --relic-ink: #44382e;
+  --relic-muted: #877763;
+  --relic-paper: #fbf3e4;
+  --relic-green: #366d5c;
+  --relic-gold: #c79145;
+  font-family: var(--font-body, system-ui), sans-serif;
+  color: var(--relic-ink);
+  min-height: 100dvh;
+  background: #f8efde;
+  position: relative;
+  isolation: isolate;
+  padding: 32px clamp(22px, 7vw, 110px) 80px;
+}
+.relic-hub * {
+  box-sizing: border-box;
+}
+.relic-hub button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.relic-hub button:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+.relic-hub :focus-visible {
+  outline: 3px solid #7962ad;
+  outline-offset: 4px;
+}
+.relic-hub h1,
+.relic-hub h2 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+}
+.relic-hub-art {
+  position: fixed;
+  z-index: -1;
+  inset: 0 0 0 38%;
+  background:
+    linear-gradient(90deg, #f8efde, #f8efde22 28%, transparent 60%),
+    url('/art/relic/scratch-desk-portrait-v1.webp') center / cover;
+}
+.relic-hub-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, #f8efde, transparent 30%);
+}
+.relic-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  padding: 10px 0;
+}
+.relic-hub-content {
+  max-width: 650px;
+  margin-top: 45px;
+}
+.relic-hub h1 {
+  font-size: clamp(64px, 9vw, 106px);
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+  margin: 20px 0 24px;
+  color: #5b4934;
+}
+.relic-hub h1 span {
+  display: block;
+  font-size: clamp(26px, 3vw, 37px);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin-top: 24px;
+}
+.relic-hub-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 24px 0 32px;
+  font-size: 12px;
+  color: #64715c;
+}
+.relic-hub-facts span {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.relic-new-expedition,
+.relic-expeditions {
+  padding: 28px;
+  background: #fff9efd9;
+  border: 1px solid #fffdf2;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px #63451b0d;
+  backdrop-filter: blur(12px);
+  margin-top: 18px;
+}
+.relic-hub h2 {
+  font-size: 22px;
+  margin: 0 0 20px;
+}
+.relic-new-expedition label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 20px;
+}
+.relic-new-expedition input {
+  background: #fffcf5;
+  border: 1px solid #d9cbb6;
+  border-radius: 9px;
+  padding: 12px;
+  font: inherit;
+  min-height: 44px;
+  width: 100%;
+  color: #44382e;
+}
+.relic-new-expedition legend {
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+.relic-primary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #234d40;
+  border-radius: 11px;
+  background: #386b56;
+  color: #fff7e6;
+  min-height: 46px;
+  padding: 13px 20px;
+  box-shadow:
+    0 4px 0 #204337,
+    inset 0 1px 0 #ffffff25;
+  font-size: 13px;
+  font-weight: 650;
+  transition:
+    transform 0.15s,
+    background 0.15s;
+}
+.relic-primary:hover:not(:disabled) {
+  background: #457e65;
+}
+.relic-primary:active:not(:disabled) {
+  transform: translateY(2px);
+}
+.relic-fine {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #81715f;
+  margin-top: 18px;
+}
+.relic-fine a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.relic-saved {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  border-top: 1px solid #e6d9c4;
+  padding: 15px 0;
+}
+.relic-saved > span:nth-child(2) {
+  flex: 1;
+}
+.relic-saved strong {
+  font-size: 14px;
+}
+.relic-saved small {
+  display: block;
+  color: #81715f;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.relic-dunes {
+  --earth: #976840;
+  --rock: #d2a774;
+  --rock-light: #efd1a2;
+  --rock-dark: #a27349;
+  --accent: #e3b775;
+}
+.relic-cavern {
+  --earth: #282d42;
+  --rock: #778291;
+  --rock-light: #adb6bb;
+  --rock-dark: #444b67;
+  --accent: #8dcfc9;
+}
+.relic-ruins {
+  --earth: #675c46;
+  --rock: #b9a27b;
+  --rock-light: #e2c9a0;
+  --rock-dark: #807153;
+  --accent: #afd093;
+}
+.relic-world-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--rock);
+  box-shadow:
+    inset 2px 2px 0 #ffffff60,
+    inset -2px -2px 0 #00000020;
+}
+.relic-error {
+  margin-top: 18px;
+  padding: 12px;
+  background: #f9e6df;
+  border: 1px solid #d6b6a5;
+  border-radius: 10px;
+}
+.relic-error button {
+  margin-left: 12px;
+  text-decoration: underline;
+}
+@media (max-width: 600px) {
+  .relic-hub {
+    padding: 20px 18px 50px;
+  }
+  .relic-hub-art {
+    inset: 0;
+    opacity: 0.26;
+  }
+  .relic-hub-content {
+    margin-top: 26px;
+  }
+  .relic-new-expedition,
+  .relic-expeditions {
+    padding: 20px 16px;
+  }
+  .relic-hub h1 {
+    font-size: 76px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .relic-hub * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

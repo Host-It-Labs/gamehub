@@ -1,0 +1,73 @@
+{
+  "generator": "Built-in image_gen tool, fresh text-only generation per orientation followed by one bounded framing edit per orientation",
+  "export": "sharp WebP quality 90, effort 6, native dimensions; no scaling",
+  "images": [
+    {
+      "orientation": "landscape",
+      "source": "landscape-v1-source.png",
+      "output": "public/art/relic/dunes-landscape-v1.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 283702,
+      "landmarkBoundsApprox": {
+        "left": 418,
+        "top": 252,
+        "right": 1212,
+        "bottom": 448
+      },
+      "marginsApprox": {
+        "left": 0.272,
+        "top": 0.246,
+        "right": 0.211,
+        "bottom": 0.563
+      },
+      "quietGameplayRect": {
+        "left": 384,
+        "top": 470,
+        "right": 1152,
+        "bottom": 768
+      },
+      "rejected": "landscape-v1-rejected-source.png",
+      "reason": "Initial fossil and tent too near top, around 6% padding.",
+      "generatorSources": [
+        "/Users/williamguinaudie/.codex/generated_images/01a0c92b-2266-7652-abfe-34adfa78a820/exec-9a88826a-4fb8-4bdb-b2a2-8d72bf8dd8a1.png",
+        "/Users/williamguinaudie/.codex/generated_images/01a0c92b-2266-7652-abfe-34adfa78a820/exec-9e4c78dd-e904-4924-b6f4-908e0107e44c.png"
+      ]
+    },
+    {
+      "orientation": "portrait",
+      "source": "portrait-v1-source.png",
+      "output": "public/art/relic/dunes-portrait-v1.webp",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 365598,
+      "landmarkBoundsApprox": {
+        "left": 170,
+        "top": 243,
+        "right": 841,
+        "bottom": 505
+      },
+      "marginsApprox": {
+        "left": 0.166,
+        "top": 0.158,
+        "right": 0.179,
+        "bottom": 0.671
+      },
+      "quietGameplayRect": {
+        "left": 155,
+        "top": 615,
+        "right": 868,
+        "bottom": 1150
+      },
+      "rejected": "portrait-v1-rejected-source.png",
+      "reason": "Initial complete tent/arch union too wide for tall-phone cover crop.",
+      "generatorSources": [
+        "/Users/williamguinaudie/.codex/generated_images/01a0c92b-2266-7652-abfe-34adfa78a820/exec-2e403d33-9030-4ba4-bb37-5cea802a1fe8.png",
+        "/Users/williamguinaudie/.codex/generated_images/01a0c92b-2266-7652-abfe-34adfa78a820/exec-dcfabcd8-9ed1-4321-ae27-5106e39b14da.png"
+      ]
+    }
+  ],
+  "review": "Both final native sources inspected using view_image. Landmark bounds are conservative visual estimates, not segmentation. Zero painted slots or gameplay targets. Uniform center-cover static contact sheet inspected in reading order: 1440x900 landscape, 844x390 landscape, 390x844 portrait, 768x1024 portrait. All complete fossil and shelter silhouettes remain visible in these four static crops. No browser, runtime-overlay or touch acceptance claimed.",
+  "departures": "Landscape edit introduced a small expendable sky strip at the top; all landmarks are below it. Portrait landmarks begin at ~16% rather than requested 20-22%; they satisfy shared 14% portrait minimum and tested cover crops. Quiet gameplay region begins around y46% landscape and y40% portrait, rather than initial y28/30% prompt: preserving complete sizeable camp landmarks and protected padding required that compromise.",
+  "animation": "Static images only; no masks or extracted animation layers. Keep runtime particles over interactive terrain rather than claiming animated background."
+}

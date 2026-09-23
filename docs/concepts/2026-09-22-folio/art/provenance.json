@@ -1,0 +1,37 @@
+{
+  "game": "Folio",
+  "version": "cover-v1",
+  "created": "2026-09-22",
+  "generator": "built-in image_gen.imagegen",
+  "mode": "generate",
+  "useCase": "stylized-concept",
+  "references": [],
+  "prompt": "docs/concepts/2026-09-22-folio/art/cover-v1.prompt.txt",
+  "generatedSource": "/Users/williamguinaudie/.codex/generated_images/01a0ca16-c81e-79f3-8d71-b0172fca8a8b/exec-d442375e-fe52-490b-a42e-7709418a763e.png",
+  "archivedSource": "docs/concepts/2026-09-22-folio/art/sources/cover-v1.png",
+  "sourceDimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "sourceSha256": "392535ffadbbd5e0862c5e5bea514e3d22af7f7e1f10ba1c4121b63746c9760a",
+  "final": "public/art/optimized/box-folio-blind-v1.webp",
+  "derivatives": [
+    "public/art/optimized/box-folio-blind-v1-320.webp",
+    "public/art/optimized/box-folio-blind-v1-640.webp",
+    "public/art/optimized/box-folio-blind-v1-960.webp",
+    "public/art/optimized/box-folio-blind-v1-spine.webp"
+  ],
+  "operations": [
+    "PNG source preserved unchanged",
+    "WebP encoding",
+    "proportional resizing",
+    "outer-left texture strip for spine"
+  ],
+  "review": {
+    "title": "Exact Folio spelling, one occurrence, large cobalt lettering",
+    "composition": "Square full-bleed illustration; no border, mat or box mockup",
+    "motif": "Folded newspaper mountain trail, sunrise, letter tiles, numbers, crossword and pencil",
+    "thumbnail": "160px thumbnail reviewed separately",
+    "browserOrTouch": "Not checked in this asset task"
+  }
+}

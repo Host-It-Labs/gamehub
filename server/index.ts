@@ -22,6 +22,8 @@ import {
   type Identity,
 } from './auth.ts';
 import { Tables } from './tables.ts';
+import { Expeditions } from './expeditions.ts';
+import { FolioRuns } from './folio.ts';
 import {
   observe,
   canAct,
@@ -51,6 +53,8 @@ export async function makeServer(
   const db = openDatabase(
     options.database ?? process.env.DATABASE_PATH ?? '.data/gamehub.sqlite',
   );
+  const expeditions = new Expeditions(db);
+  const folio = new FolioRuns(db);
   const clients = new Set<Client>();
   type BotJob = {
     decision: string;
@@ -230,8 +234,54 @@ export async function makeServer(
           'Request origin is not allowed.',
         );
       const ip = req.socket.remoteAddress ?? 'unknown';
-      limit(`request:${ip}`, 600);
+      limit(`${path.startsWith('/api/expeditions') ? 'expedition' : 'request'}:${ip}`, path.startsWith('/api/expeditions') ? 3600 : 600);
       let who = identity(db, req);
+      if (path === '/api/folio' || path.startsWith('/api/folio/')) {
+        const match = /^\/api\/folio\/([A-Za-z0-9_-]{32})(?:\/(join|commands))?$/.exec(path);
+        check(path === '/api/folio' || match, 404, 'Folio route not found.');
+        if (path === '/api/folio' && req.method === 'GET') { send(res, 200, who ? folio.list(who) : []); return; }
+        const input = req.method === 'POST' ? await body(req) : {};
+        if (!who && req.method === 'POST' && (path === '/api/folio' || match?.[2] === 'join')) {
+          limit(`folio-guest:${ip}`, 30);
+          const name = displayName(input.name), id = token();
+          db.prepare('INSERT INTO guests VALUES (?,?)').run(id, name);
+          const cookie = newSession(db, id, false, secure);
+          res.setHeader('Set-Cookie', cookie);
+          req.headers.cookie = cookie.split(';')[0];
+          who = identity(db, req)!;
+        }
+        if (match && req.method === 'GET' && !match[2]) { send(res, 200, folio.get(match[1], who)); return; }
+        check(who, 401, 'Enter your name to join the run.');
+        if (path === '/api/folio' && req.method === 'POST') { send(res, 200, folio.create(who, input)); return; }
+        if (match && req.method === 'POST' && match[2] === 'join') { send(res, 200, folio.join(match[1], who, input)); return; }
+        if (match && req.method === 'POST' && match[2] === 'commands') { send(res, 200, folio.command(match[1], who, input)); return; }
+        throw new HttpError(405, 'Method not allowed.');
+      }
+      if (path === '/api/expeditions' || path.startsWith('/api/expeditions/')) {
+        const match = /^\/api\/expeditions\/([A-Za-z0-9_-]{32})(?:\/(join|commands|activity))?$/.exec(path);
+        check(path === '/api/expeditions' || match, 404, 'Expedition route not found.');
+        if (path === '/api/expeditions' && req.method === 'GET') {
+          send(res, 200, who ? expeditions.list(who) : []); return;
+        }
+        const input = req.method === 'POST' ? await body(req) : {};
+        if (!who && req.method === 'POST' && (path === '/api/expeditions' || match?.[2] === 'join')) {
+          limit(`expedition-guest:${ip}`, 30);
+          const name = displayName(input.name), id = token();
+          db.prepare('INSERT INTO guests VALUES (?,?)').run(id, name);
+          const cookie = newSession(db, id, false, secure);
+          res.setHeader('Set-Cookie', cookie);
+          req.headers.cookie = cookie.split(';')[0];
+          who = identity(db, req)!;
+        }
+        check(who, 401, 'Enter your name to join the expedition.');
+        limit(`expedition-actor:${who.id}`, 1200);
+        if (path === '/api/expeditions' && req.method === 'POST') { send(res, 200, expeditions.create(who, input)); return; }
+        if (match && req.method === 'POST' && match[2] === 'join') { send(res, 200, expeditions.join(match[1], who)); return; }
+        if (match && req.method === 'POST' && match[2] === 'activity') { send(res, 200, expeditions.activity(match[1], who, input)); return; }
+        if (match && req.method === 'POST' && match[2] === 'commands') { send(res, 200, expeditions.command(match[1], who, input)); return; }
+        if (match && req.method === 'GET' && !match[2]) { send(res, 200, expeditions.get(match[1], who)); return; }
+        throw new HttpError(405, 'Method not allowed.');
+      }
       if (path === '/api/session' && req.method === 'GET') {
         send(res, 200, {
           user: who?.userId
@@ -457,6 +507,10 @@ export async function makeServer(
       path === '/' ||
       path === '/auth' ||
       path === '/tables' ||
+      path === '/relic' ||
+      path === '/folio' ||
+      /^\/folio\/[A-Za-z0-9_-]{32}$/.test(path) ||
+      /^\/expedition\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/table\/[A-Za-z0-9_-]{32}$/.test(path)
     )
       file = join(publicDir, 'index.html');

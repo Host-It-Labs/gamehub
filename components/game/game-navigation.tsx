@@ -9,6 +9,7 @@ export function GameNavigation({
   onBack,
   onMenu,
   onOthers,
+  othersLabel = 'Others',
   onAdvance,
   round,
   progress,
@@ -19,6 +20,7 @@ export function GameNavigation({
   onBack: () => void;
   onMenu: () => void;
   onOthers: () => void;
+  othersLabel?: string;
   onAdvance?: () => void;
 }) {
   return (
@@ -49,7 +51,7 @@ export function GameNavigation({
         </button>
         <button className="game-navigation-others" onClick={onOthers}>
           <Users size={18} />
-          <span>Others</span>
+          <span>{othersLabel}</span>
         </button>
       </div>
     </nav>

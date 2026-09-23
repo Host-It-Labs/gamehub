@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
           return [
             { source: '/auth', destination: '/' },
             { source: '/tables', destination: '/' },
+            { source: '/relic', destination: '/' },
+            { source: '/folio', destination: '/' },
+            { source: '/folio/:token', destination: '/' },
+            { source: '/expedition/:token', destination: '/' },
             { source: '/table/:token', destination: '/' },
           ];
         },

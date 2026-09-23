@@ -1,0 +1,294 @@
+/*
+ * Shared pieces for Folio's games. Colours come from the run shell:
+ * --fk-hit (green, correct), --fk-near (ochre, elsewhere), --fk-miss (slate,
+ * absent), --folio-ink (cobalt), --folio-paper (cream), --folio-red (vermilion).
+ */
+.fk-panel {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: 100%;
+}
+.fk-toast {
+  position: absolute;
+  z-index: 20;
+  top: 6px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: var(--folio-ink);
+  color: var(--folio-paper);
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 6px 18px #0d1f4040;
+  pointer-events: none;
+  animation: fk-toast 1.6s ease both;
+}
+@keyframes fk-toast {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  10%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.fk-row {
+  display: grid;
+  gap: 6px;
+  width: min(100%, var(--fk-row-width, 330px));
+}
+.fk-row.small {
+  gap: 3px;
+}
+.fk-tile {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 2px solid #193d7930;
+  border-radius: 3px;
+  background: #fffaf0;
+  color: var(--folio-ink);
+  font:
+    800 clamp(1.1rem, 4.6vmin, 2rem) / 1 Georgia,
+    serif;
+  text-transform: uppercase;
+  user-select: none;
+}
+.fk-row.small .fk-tile {
+  border-width: 1.5px;
+  font-size: clamp(0.72rem, 2.4vmin, 1.05rem);
+}
+.fk-tile.filled {
+  border-color: #193d79a0;
+  animation: fk-pop 0.12s ease;
+}
+.fk-tile[data-grade='2'] {
+  background: var(--fk-hit);
+  border-color: var(--fk-hit);
+  color: #fffdf2;
+}
+.fk-tile[data-grade='1'] {
+  background: var(--fk-near);
+  border-color: var(--fk-near);
+  color: #fffdf2;
+}
+.fk-tile[data-grade='0'] {
+  background: var(--fk-miss);
+  border-color: var(--fk-miss);
+  color: #fffdf2;
+}
+.fk-tile.reveal {
+  animation: fk-flip 0.5s ease both;
+  animation-delay: calc(var(--i) * 0.28s);
+}
+@keyframes fk-flip {
+  0% {
+    transform: rotateX(0);
+    background: #fffaf0;
+    border-color: #193d79a0;
+    color: var(--folio-ink);
+  }
+  49% {
+    transform: rotateX(90deg);
+    background: #fffaf0;
+    border-color: #193d79a0;
+    color: var(--folio-ink);
+  }
+  51% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0);
+  }
+}
+@keyframes fk-pop {
+  50% {
+    transform: scale(1.1);
+  }
+}
+.fk-row.shake {
+  animation: fk-shake 0.5s ease;
+}
+@keyframes fk-shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-7px);
+  }
+  40%,
+  60% {
+    transform: translateX(7px);
+  }
+}
+.fk-row.win .fk-tile {
+  animation: fk-bounce 0.8s ease both;
+  animation-delay: calc(1.5s + var(--i) * 0.1s);
+}
+@keyframes fk-bounce {
+  0%,
+  20% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-26%);
+  }
+  50% {
+    transform: translateY(4%);
+  }
+  60% {
+    transform: translateY(-12%);
+  }
+  80% {
+    transform: translateY(2%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.fk-keyboard {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 500px);
+  user-select: none;
+}
+.fk-key-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+.folio-world .fk-key,
+.fk-key {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 44px;
+  min-height: 52px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 5px;
+  background: #e7dcb8;
+  color: var(--folio-ink);
+  font:
+    800 0.95rem/1 var(--font-sans),
+    Arial,
+    sans-serif;
+  box-shadow: inset 0 -2px 0 #193d7920;
+}
+.folio-world .fk-key.wide,
+.fk-key.wide {
+  flex-grow: 1.6;
+  max-width: 70px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.folio-world .fk-key[data-grade='2'],
+.fk-key[data-grade='2'] {
+  background: var(--fk-hit);
+  color: #fffdf2;
+}
+.folio-world .fk-key[data-grade='1'],
+.fk-key[data-grade='1'] {
+  background: var(--fk-near);
+  color: #fffdf2;
+}
+.folio-world .fk-key[data-grade='0'],
+.fk-key[data-grade='0'] {
+  background: var(--fk-miss);
+  color: #fffdf2;
+}
+.fk-key-split {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: 1fr 1fr / 1fr 1fr;
+}
+.fk-key-split i[data-grade='2'] {
+  background: var(--fk-hit);
+}
+.fk-key-split i[data-grade='1'] {
+  background: var(--fk-near);
+}
+.fk-key-split i[data-grade='0'] {
+  background: #b9b2a0;
+}
+.fk-key-label {
+  position: relative;
+}
+.fk-key-split + .fk-key-label {
+  text-shadow:
+    0 0 3px #fffaf0,
+    0 0 2px #fffaf0;
+}
+@media (max-height: 700px) {
+  .folio-world .fk-key,
+  .fk-key {
+    min-height: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-tile.reveal,
+  .fk-tile.filled,
+  .fk-row.shake,
+  .fk-row.win .fk-tile,
+  .fk-toast {
+    animation: none;
+  }
+}
+.fk-word-grid {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  /* Keyboard and spacing take ~215px; each row is a fifth of the width tall. */
+  width: min(100%, 330px, calc((100cqh - 215px) * 5 / var(--rows, 6) * 0.9));
+  min-width: 180px;
+  --fk-row-width: 100%;
+}
+.fk-badge {
+  justify-self: center;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--folio-red);
+  color: #fffdf2;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fk-answer {
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--folio-ink);
+  color: var(--folio-paper);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+@container folio-play (max-width: 380px) {
+  /* Keep Delete's icon (its only content); drop the one beside "Enter". */
+  .fk-key.wide > span + svg {
+    display: none;
+  }
+  .folio-world .fk-key.wide,
+  .fk-key.wide {
+    font-size: 0.64rem;
+    letter-spacing: 0;
+  }
+}

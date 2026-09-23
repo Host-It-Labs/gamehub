@@ -25,7 +25,15 @@ const add = (path) => {
 const previews = JSON.parse(
   await readFile('lib/artwork-previews.json', 'utf8'),
 );
-for (const id of ['undertow', 'wildgrove', 'midnight', 'orin', 'miro']) {
+for (const id of [
+  'undertow',
+  'wildgrove',
+  'midnight',
+  'orin',
+  'miro',
+  'relic',
+  'folio',
+]) {
   const cover = boxCover(id);
   add(cover);
   add(cover.replace('.webp', '-spine.webp'));

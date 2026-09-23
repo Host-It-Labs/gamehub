@@ -42,5 +42,13 @@
   "/art/optimized/box-atlas-blind-v1.webp": {
     "preview": "data:image/webp;base64,UklGRiABAABXRUJQVlA4IBQBAACwBgCdASoYABgAPwF4tFQrJySjKAgBYCAJZgCdKIFj/xMw8F5QMO4zCFiRoFYPboUe6aHkyaxuk8/SvnZSQAD+XWrWL3mefmLbg0usxjfy49MVVzbaOXEOqhXKcfm9zaXjRXoN9XNNwx+//tsfe99NAY+NKYuybDn8KvXdRP80mXrJtaAr1oEXi1jlVI7eJXgEiXn/pWHfeIz06J+Rwmay3o0PoSmIKw26s0su0issnTPaEuJOcaxvlGlX4ZmVOCMK0TCNYHbj6lVl0Cb67uz5M6/cy+OBwDA5b9t5OAc3PyakrYkRbkiczSPeBEfwQTQ0SPgCv3cqJANStO+6Hjr4kRKaistPtXEFxF5ob7ElaJ0gAAA=",
     "srcSet": "/art/optimized/box-atlas-blind-v1-320.webp 320w, /art/optimized/box-atlas-blind-v1-640.webp 640w, /art/optimized/box-atlas-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-relic-scratch-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRhwBAABXRUJQVlA4IBABAADwBQCdASoYABgAPwF0rVKrJqOiqAqpYCAJbACdMoMh1+o6v4jaXpm3DHSSGf/pqbNEOP+qWsVEAADODpB8Lom0qqixdXiSAHyDcPCoFAMHF4gJqZIENH3l5SvtZxAMjMkLQSn1vA+5WaJBrk72SG/m+ZqLOTGXe0kAkM3yk8dKuNQJFmhTWg0zZU5gBSLFhTZAGiIc7qwqeQ3sF3Bpb8u5Jdhf5L4UbCjoLRolCAtJ0P/V+zzV7uqNL8DdiWRl8fyp5ntfHdbwEEgLfIJFYKFPtrl0L0HKHM4gYyMtj6UmMyKV5d9pUAueE0mKi1Xjzg99Xx8SDPMlV6ycB81AZp7axv3/gf5ffMGzFEGgylsAAA==",
+    "srcSet": "/art/optimized/box-relic-scratch-v1-320.webp 320w, /art/optimized/box-relic-scratch-v1-640.webp 640w, /art/optimized/box-relic-scratch-v1-960.webp 960w, /art/optimized/box-relic-scratch-v1.webp 1254w"
+  },
+  "/art/optimized/box-folio-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRlYBAABXRUJQVlA4IEoBAADwBgCdASoYABgAPwFurlCrJiQiqA1RYCAJbACdMuugrJXz1Vk+Fez7YyJv5t3pZEks51rK2uivUsTVUN96t9QAAP7IpxMTQcEySntx58ehbK1F5t4MaxW79KEum/Flre4bPxxVCX0GA5PbrB/Jfe//74gvIDZ+K29VzFa3pgC9j22IK1rVe070TBBB38zWAxs9euibOJ5hdb7iD9NqxBvJxyg0qaX1RmaerpBSNDllSXBUP6QwDblOs2vnbgLZxxNxRpXqMrp2V+fO00+5OZC/3QhI6cp/eryIrdlkA+Oo/cdpA5ahGPHWVKRuauTTGFSYm1VdiUI3Idk7OABBqYraB2Y2mhsRcKxg8gH46xk2aWyw9V4Fx6UtvMsKxWY3rJ9tFWdkm66wIYD3MQ9E8OcO1fjvIoZLMy9AlBxBoPJuKzW15IZqk/REAAA=",
+    "srcSet": "/art/optimized/box-folio-blind-v1-320.webp 320w, /art/optimized/box-folio-blind-v1-640.webp 640w, /art/optimized/box-folio-blind-v1-960.webp 960w, /art/optimized/box-folio-blind-v1.webp 1254w"
   }
 }

@@ -1,0 +1,65 @@
+{
+  "date": "2026-09-22",
+  "generator": "built-in image_gen",
+  "sources": "Fresh text-only initial generations; single framing-only edits of those generated targets. No external or previous-game reference image.",
+  "records": [
+    {
+      "orientation": "landscape",
+      "source": "docs/concepts/2026-09-22-relic/art/cavern/sources/landscape-framing-edit.png",
+      "output": "public/art/relic/cavern-landscape-v1.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 305182,
+      "sha256": "e84581d6789c44dccc7e5c1d349922a1a3a1785de2679e81ee14178a930d3871",
+      "principalLandmarkBounds": [
+        332,
+        184,
+        1195,
+        513
+      ],
+      "conservativeProtectedBounds": [
+        284,
+        176,
+        1204,
+        522
+      ],
+      "coordinateConvention": "[left,top,right,bottom] native source pixels; manual visual measurement, approximate",
+      "export": {
+        "library": "sharp",
+        "format": "webp",
+        "quality": 90,
+        "effort": 6,
+        "resized": false
+      }
+    },
+    {
+      "orientation": "portrait",
+      "source": "docs/concepts/2026-09-22-relic/art/cavern/sources/portrait-framing-edit.png",
+      "output": "public/art/relic/cavern-portrait-v1.webp",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 278152,
+      "sha256": "d43b94ca98d713a996c66d8d4e93786b780f1c01cee92177a4916026da575975",
+      "principalLandmarkBounds": [
+        150,
+        258,
+        844,
+        432
+      ],
+      "conservativeProtectedBounds": [
+        136,
+        244,
+        860,
+        500
+      ],
+      "coordinateConvention": "[left,top,right,bottom] native source pixels; manual visual measurement, approximate",
+      "export": {
+        "library": "sharp",
+        "format": "webp",
+        "quality": 90,
+        "effort": 6,
+        "resized": false
+      }
+    }
+  ]
+}

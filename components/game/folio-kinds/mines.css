@@ -1,0 +1,405 @@
+/* Classic Minesweeper drawn on Folio paper. */
+.fk-mines {
+  --fk-mines-board: min(
+    100cqw,
+    calc(100cqh - 58px),
+    calc(var(--fk-mines-n, 9) * 46px)
+  );
+  gap: 10px;
+  align-content: center;
+}
+.fk-mines-s9 {
+  --fk-mines-n: 9;
+}
+.fk-mines-s10 {
+  --fk-mines-n: 10;
+}
+.fk-mines-s12 {
+  --fk-mines-n: 12;
+}
+.fk-mines-s16 {
+  --fk-mines-n: 16;
+}
+.fk-mines-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: var(--fk-mines-board);
+}
+.fk-mines-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
+  border: 1.5px solid var(--folio-ink);
+  border-radius: 4px;
+  background: var(--folio-card);
+  color: var(--folio-ink);
+  box-shadow: 2px 2px 0 var(--folio-line);
+}
+.fk-mines-count .fk-mines-mine {
+  width: 18px;
+  height: 18px;
+}
+.fk-mines-count b {
+  font: 800 1.2rem / 1 var(--folio-digits);
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--folio-red);
+}
+.fk-mines-mode {
+  display: inline-flex;
+  border: 1.5px solid var(--folio-ink);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--folio-card);
+}
+.fk-mines .fk-mines-mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--folio-ink);
+  font: 700 0.9rem / 1 var(--folio-serif);
+  cursor: pointer;
+}
+.fk-mines .fk-mines-mode button[aria-pressed='true'] {
+  background: var(--folio-ink);
+  color: var(--folio-paper);
+}
+.fk-mines .fk-mines-mode button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.fk-mines-board {
+  --fk-mines-gap: calc(var(--fk-mines-board) / var(--n) * 0.07);
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--n), minmax(0, 1fr));
+  gap: var(--fk-mines-gap);
+  width: var(--fk-mines-board);
+  aspect-ratio: 1;
+  padding: var(--fk-mines-gap);
+  box-sizing: border-box;
+  border: 1.5px solid var(--folio-ink);
+  border-radius: 5px;
+  background: #efe1b2;
+  box-shadow: 3px 3px 0 var(--folio-line);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.fk-mines-board.shake {
+  animation: fk-mines-shake 0.4s ease;
+}
+.fk-mines .fk-mines-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  font: 800 calc(var(--fk-mines-board) / var(--n) * 0.56) / 1
+    var(--folio-digits);
+  cursor: pointer;
+  transition: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.fk-mines .fk-mines-cell:hover,
+.fk-mines .fk-mines-mode button:hover {
+  transform: none;
+}
+.fk-mines .fk-mines-cell:focus-visible {
+  outline: 2px solid var(--folio-red);
+  outline-offset: 1px;
+  z-index: 2;
+}
+.fk-mines .fk-mines-cell > svg {
+  width: 72%;
+  height: 72%;
+  pointer-events: none;
+}
+/* Hidden squares: raised paper tiles. */
+.fk-mines .fk-mines-cell.hid {
+  background: linear-gradient(160deg, #fffdf6, var(--folio-card) 55%, #f7ecce);
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    inset 0 -1.5px 0 #193d7924,
+    0 1.5px 0 #193d7940,
+    0 2px 3px #193d7918;
+}
+.lost .fk-mines-cell.hid,
+.won .fk-mines-cell.hid {
+  cursor: default;
+}
+@media (hover: hover) {
+  .fk-mines:not(.won):not(.lost) .fk-mines-cell.hid:hover {
+    background: #fffef9;
+  }
+}
+.fk-mines .fk-mines-cell.hid:active,
+.fk-mines .fk-mines-cell.hid.press {
+  background: #f3e7c2;
+  box-shadow: inset 0 0 0 1px var(--folio-line);
+}
+/* Opened squares: flat, pressed into the page. */
+.fk-mines .fk-mines-cell.open {
+  background: #f6ebc6;
+  box-shadow: inset 0 0 0 1px #193d791c;
+  cursor: default;
+}
+.fk-mines .fk-mines-cell[data-n='1'] {
+  color: #2451b3;
+}
+.fk-mines .fk-mines-cell[data-n='2'] {
+  color: #3a7a36;
+}
+.fk-mines .fk-mines-cell[data-n='3'] {
+  color: #c5472c;
+}
+.fk-mines .fk-mines-cell[data-n='4'] {
+  color: #142d6e;
+}
+.fk-mines .fk-mines-cell[data-n='5'] {
+  color: #7c2230;
+}
+.fk-mines .fk-mines-cell[data-n='6'] {
+  color: #1e7672;
+}
+.fk-mines .fk-mines-cell[data-n='7'] {
+  color: #1c1a17;
+}
+.fk-mines .fk-mines-cell[data-n='8'] {
+  color: #7b786c;
+}
+.fk-mines .fk-mines-cell[data-n]:not([data-n='0']) {
+  cursor: pointer;
+}
+.fk-mines-num {
+  pointer-events: none;
+}
+.fk-mines .fk-mines-cell.fresh {
+  animation: fk-mines-pop 0.34s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  animation-delay: var(--d);
+}
+.fk-mines-mine {
+  color: var(--folio-ink);
+}
+/* The mine you hit: an ink splash in vermilion. */
+.fk-mines .fk-mines-cell.boom {
+  background: var(--folio-red);
+  overflow: visible;
+  z-index: 1;
+}
+.fk-mines .fk-mines-cell.boom .fk-mines-mine {
+  color: #1c1a17;
+  animation: fk-mines-jolt 0.5s ease both;
+}
+.fk-mines .fk-mines-cell.boom::before {
+  content: '';
+  position: absolute;
+  inset: -70%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 30% 28%, var(--folio-red) 0 13%, transparent 14%),
+    radial-gradient(circle at 76% 34%, var(--folio-red) 0 9%, transparent 10%),
+    radial-gradient(circle at 70% 78%, var(--folio-red) 0 11%, transparent 12%),
+    radial-gradient(circle at 22% 72%, var(--folio-red) 0 7%, transparent 8%),
+    radial-gradient(circle at 50% 50%, var(--folio-red) 0 30%, transparent 31%);
+  opacity: 0;
+  pointer-events: none;
+  animation: fk-mines-splash 0.9s ease-out both;
+}
+.fk-mines .fk-mines-cell.shown {
+  background: #f6ebc6;
+  box-shadow: inset 0 0 0 1px #193d791c;
+}
+.fk-mines .fk-mines-cell.shown .fk-mines-mine {
+  animation: fk-mines-surface 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: var(--d);
+}
+.fk-mines .fk-mines-cell.shown.fresh {
+  animation: none;
+}
+/* Wrong flags get crossed out once the mines are shown. */
+.fk-mines .fk-mines-cell.wrong::after {
+  content: '';
+  position: absolute;
+  inset: 14%;
+  background:
+    linear-gradient(
+      45deg,
+      transparent 44%,
+      var(--folio-red) 44% 56%,
+      transparent 56%
+    ),
+    linear-gradient(
+      -45deg,
+      transparent 44%,
+      var(--folio-red) 44% 56%,
+      transparent 56%
+    );
+  animation: fk-mines-cross 0.3s ease both;
+  animation-delay: var(--late);
+}
+.fk-mines-flag {
+  transform-origin: 50% 85%;
+}
+.fk-mines-flag.plant {
+  animation: fk-mines-plant 0.5s ease both;
+}
+.won .fk-mines-flag.bloom {
+  animation: fk-mines-bloom 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: var(--d);
+}
+.won .fk-mines-cell {
+  animation: fk-mines-wave 0.6s ease both;
+  animation-delay: calc(var(--w) * 38ms + 200ms);
+}
+.won .fk-mines-cell.fresh {
+  animation:
+    fk-mines-pop 0.34s cubic-bezier(0.3, 1.5, 0.5, 1) var(--d) both,
+    fk-mines-wave 0.6s ease calc(var(--w) * 38ms + 600ms) both;
+}
+.lost .fk-mines-board {
+  animation: fk-mines-shake 0.45s ease 0.05s;
+}
+
+@keyframes fk-mines-pop {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.3;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes fk-mines-plant {
+  0% {
+    transform: translateY(-45%) rotate(-18deg);
+    opacity: 0;
+  }
+  45% {
+    transform: translateY(0) rotate(12deg);
+    opacity: 1;
+  }
+  70% {
+    transform: rotate(-7deg);
+  }
+  88% {
+    transform: rotate(3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes fk-mines-bloom {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.45) rotate(-10deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes fk-mines-wave {
+  0%,
+  100% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-22%);
+  }
+  70% {
+    transform: translateY(4%);
+  }
+}
+@keyframes fk-mines-splash {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-20deg);
+  }
+  30% {
+    opacity: 0.85;
+    transform: scale(1.15) rotate(4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35) rotate(8deg);
+  }
+}
+@keyframes fk-mines-jolt {
+  0% {
+    transform: scale(0.4);
+  }
+  40% {
+    transform: scale(1.4) rotate(15deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes fk-mines-surface {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes fk-mines-cross {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes fk-mines-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fk-mines *,
+  .fk-mines *::before,
+  .fk-mines *::after {
+    animation: none !important;
+  }
+  .fk-mines-cell.boom::before {
+    display: none;
+  }
+}

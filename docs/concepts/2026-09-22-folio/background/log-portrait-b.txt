@@ -1,0 +1,698 @@
+Reading additional input from stdin...
+OpenAI Codex v0.154.0
+--------
+workdir: /Users/williamguinaudie/Documents/code/gamehub
+model: gpt-6-luna
+provider: headroom
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 01a0ca7d-ea3c-7eb2-8d06-2caa08ec4c03
+--------
+user
+$imagegen Generate this image using the built-in image generation tool. Use the largest native portrait size and highest quality, PNG. Save the final image to the exact absolute path: /Users/williamguinaudie/Documents/code/gamehub/docs/concepts/2026-09-22-folio/background/bg-portrait-b.png. Prompt: Use case: stylized-concept
+Asset type: full-bleed background plate for the web puzzle game Folio, portrait 1024x1536 for phones. Interface panels will be placed on top of it, so it is scenery only.
+Primary request: A tall, calm vertical view of a folded-newspaper mountain world. Bold paper mountains with crisp folded edges rise along the lower third and the far left and right edges; a winding cream paper trail climbs from the bottom centre and disappears between distant peaks. A low warm sun with a few radiating crayon rays sits near the upper right. Small cobalt pine trees made of torn paper dot the foothills. A few faint newsprint columns and a subtle crossword pattern are printed on some mountain faces like texture.
+Style/medium: Distinctive mid-century editorial risograph illustration with assured flat shapes, crayon grain, uneven printed ink, visible paper fibers and folded paper surfaces. Warm, witty, intelligent; polished art direction, never generic fantasy.
+Color palette: Warm butter-yellow paper sky, deep cobalt ink mountains, muted sage and ochre foothills, selective vermilion accents only on the sun and one tiny flag on the highest peak.
+Composition/framing: Edge-to-edge. The central 70 percent of the width from 12 percent to 72 percent of the height must be quiet: mostly plain grainy butter-yellow paper sky with only faint distant peaks, so text laid over it stays readable. Detail concentrates in the bottom band (about the lowest 25 percent) and a thin band of peaks at the very top edges. Soft low contrast in the quiet zone.
+Constraints: No text, no letters, no numbers, no words, no logos, no title, no interface, no panels, no people, no frame, no border, no watermark.
+Avoid: glossy 3D, gradients, photorealism, stock vector icons, tiny fussy detail, busy centre.
+warning: Model metadata for `gpt-6-luna` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.
+codex
+I’ll check the target and worktree, then delegate image generation as required.
+exec
+/bin/zsh -lc "git status --short --untracked-files=all -- . ':(exclude)**/.DS_Store' && printf '\\nTARGET_EXISTS=' && if test -e docs/concepts/2026-09-22-folio/background/bg-portrait-b.png; then printf 'yes\\n'; else printf 'no\\n'; fi && printf '\\nMEMORY_MATCHES\\n' && rg -n -i 'gamehub|Folio|imagegen|image generation' /Users/williamguinaudie/.codex/memories/MEMORY.md | head -40" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+ M .dockerignore
+ M app/page.tsx
+ M components/game/game-navigation.tsx
+ M components/game/library.tsx
+ M components/online/account.tsx
+ M lib/artwork-previews.json
+ M lib/games/box-covers.ts
+ M lib/games/library-fixtures.ts
+ M next.config.ts
+ M scripts/production-assets.mjs
+ M server/database.ts
+ M server/index.ts
+ M tests/content-history.test.mjs
+?? app/expedition/[token]/page.tsx
+?? app/folio/[token]/page.tsx
+?? app/folio/page.tsx
+?? app/relic/page.tsx
+?? components/game/folio-puzzle.tsx
+?? components/game/folio.css
+?? components/game/folio.tsx
+?? components/game/relic-art.tsx
+?? components/game/relic-panels.tsx
+?? components/game/relic-scratch-audio.ts
+?? components/game/relic-scratch-map.tsx
+?? components/game/relic-scratch-session.tsx
+?? components/game/relic-scratch-surface.tsx
+?? components/game/relic-scratch.css
+?? components/game/relic-scratch.tsx
+?? components/game/relic.css
+?? components/game/relic.tsx
+?? docs/concepts/2026-09-22-folio/art/README.md
+?? docs/concepts/2026-09-22-folio/art/cover-thumbnail-160.png
+?? docs/concepts/2026-09-22-folio/art/cover-v1.prompt.txt
+?? docs/concepts/2026-09-22-folio/art/export.mjs
+?? docs/concepts/2026-09-22-folio/art/preview-entry.json
+?? docs/concepts/2026-09-22-folio/art/provenance.json
+?? docs/concepts/2026-09-22-folio/art/sources/cover-v1.png
+?? docs/concepts/2026-09-22-folio/background/log-landscape-a.txt
+?? docs/concepts/2026-09-22-folio/background/log-landscape-b.txt
+?? docs/concepts/2026-09-22-folio/background/log-portrait-a.txt
+?? docs/concepts/2026-09-22-folio/background/log-portrait-b.txt
+?? docs/concepts/2026-09-22-folio/background/prompt-landscape.txt
+?? docs/concepts/2026-09-22-folio/background/prompt-portrait.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/bosses-v1-alpha-preview.png
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/bosses-v1-spacing-edit.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/bosses-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/cover-thumbnail-160.png
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/cover-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/export.mjs
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/provenance.json
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/sources/bosses-v1-initial.png
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/sources/bosses-v1.png
+?? docs/concepts/2026-09-22-relic-arcade/art/characters/sources/cover-v1.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/README.md
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-bells-portrait-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-bells-v1-framing.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-bells-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-darts-portrait-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-darts-v1-framing.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-darts-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-forge-portrait-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-forge-v1-framing.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/arcade-forge-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/provenance.json
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-bells-initial.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-bells-portrait-v1.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-bells-v1.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-darts-initial.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-darts-portrait-v1.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-darts-v1.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-forge-initial.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-forge-portrait-v1.png
+?? docs/concepts/2026-09-22-relic-arcade/art/scenery/sources/arcade-forge-v1.png
+?? docs/concepts/2026-09-22-relic-scratch/art/README.md
+?? docs/concepts/2026-09-22-relic-scratch/art/cover-thumbnail-160.png
+?? docs/concepts/2026-09-22-relic-scratch/art/cover-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-scratch/art/export.mjs
+?? docs/concepts/2026-09-22-relic-scratch/art/landscape-clear-region.png
+?? docs/concepts/2026-09-22-relic-scratch/art/landscape-v1-clearance-edit.prompt.txt
+?? docs/concepts/2026-09-22-relic-scratch/art/landscape-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-scratch/art/portrait-clear-region.png
+?? docs/concepts/2026-09-22-relic-scratch/art/portrait-v1-clearance-edit.prompt.txt
+?? docs/concepts/2026-09-22-relic-scratch/art/portrait-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic-scratch/art/provenance.json
+?? docs/concepts/2026-09-22-relic-scratch/art/sources/cover-v1.png
+?? docs/concepts/2026-09-22-relic-scratch/art/sources/landscape-v1-initial.png
+?? docs/concepts/2026-09-22-relic-scratch/art/sources/landscape-v1.png
+?? docs/concepts/2026-09-22-relic-scratch/art/sources/portrait-v1-initial.png
+?? docs/concepts/2026-09-22-relic-scratch/art/sources/portrait-v1.png
+?? docs/concepts/2026-09-22-relic/art/cavern/README.md
+?? docs/concepts/2026-09-22-relic/art/cavern/landscape-framing-edit.txt
+?? docs/concepts/2026-09-22-relic/art/cavern/landscape-initial.txt
+?? docs/concepts/2026-09-22-relic/art/cavern/portrait-framing-edit.txt
+?? docs/concepts/2026-09-22-relic/art/cavern/portrait-initial.txt
+?? docs/concepts/2026-09-22-relic/art/cavern/provenance.json
+?? docs/concepts/2026-09-22-relic/art/cavern/sources/landscape-framing-edit.png
+?? docs/concepts/2026-09-22-relic/art/cavern/sources/landscape-initial.png
+?? docs/concepts/2026-09-22-relic/art/cavern/sources/portrait-framing-edit.png
+?? docs/concepts/2026-09-22-relic/art/cavern/sources/portrait-initial.png
+?? docs/concepts/2026-09-22-relic/art/dunes/cover-crops.png
+?? docs/concepts/2026-09-22-relic/art/dunes/landscape-v1-correction.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/dunes/landscape-v1-rejected-source.png
+?? docs/concepts/2026-09-22-relic/art/dunes/landscape-v1-source.png
+?? docs/concepts/2026-09-22-relic/art/dunes/landscape-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/dunes/portrait-v1-correction.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/dunes/portrait-v1-rejected-source.png
+?? docs/concepts/2026-09-22-relic/art/dunes/portrait-v1-source.png
+?? docs/concepts/2026-09-22-relic/art/dunes/portrait-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/dunes/provenance.json
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/README.md
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/box-relic-blind-v1.png
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/box-relic-blind-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/cover-thumbnail-160.png
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/export.mjs
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-landscape-v1.png
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-landscape-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-landscape-v2.png
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-landscape-v2.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-portrait-v1.png
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-portrait-v1.prompt.txt
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-portrait-v2.png
+?? docs/concepts/2026-09-22-relic/art/ruins-cover/ruins-portrait-v2.prompt.txt
+?? docs/folio.md
+?? docs/relic.md
+?? lib/games/folio/catalog.ts
+?? lib/games/folio/countries.ts
+?? lib/games/folio/dictionary.ts
+?? lib/games/folio/engine.ts
+?? lib/games/folio/puzzles.ts
+?? lib/games/folio/types.ts
+?? lib/games/relic/engine.ts
+?? lib/games/relic/scratch.ts
+?? lib/games/relic/types.ts
+?? lib/games/relic/worlds.ts
+?? public/art/optimized/box-folio-blind-v1-320.webp
+?? public/art/optimized/box-folio-blind-v1-640.webp
+?? public/art/optimized/box-folio-blind-v1-960.webp
+?? public/art/optimized/box-folio-blind-v1-spine.webp
+?? public/art/optimized/box-folio-blind-v1.webp
+?? public/art/optimized/box-relic-blind-v1-320.webp
+?? public/art/optimized/box-relic-blind-v1-640.webp
+?? public/art/optimized/box-relic-blind-v1-960.webp
+?? public/art/optimized/box-relic-blind-v1-spine.webp
+?? public/art/optimized/box-relic-blind-v1.webp
+?? public/art/optimized/box-relic-scratch-v1-320.webp
+?? public/art/optimized/box-relic-scratch-v1-640.webp
+?? public/art/optimized/box-relic-scratch-v1-960.webp
+?? public/art/optimized/box-relic-scratch-v1-spine.webp
+?? public/art/optimized/box-relic-scratch-v1.webp
+?? public/art/relic/cavern-landscape-v1.webp
+?? public/art/relic/cavern-portrait-v1.webp
+?? public/art/relic/dunes-landscape-v1.webp
+?? public/art/relic/dunes-portrait-v1.webp
+?? public/art/relic/ruins-landscape-v1.webp
+?? public/art/relic/ruins-portrait-v1.webp
+?? public/art/relic/scratch-desk-landscape-v1.webp
+?? public/art/relic/scratch-desk-portrait-v1.webp
+?? scripts/folio-smoke.mjs
+?? scripts/relic-browser-qa.mjs
+?? scripts/relic-smoke.mjs
+?? server/expeditions.ts
+?? server/folio.ts
+?? tests/folio.test.mjs
+?? tests/relic-scratch.test.mjs
+?? tests/relic.test.mjs
+
+TARGET_EXISTS=no
+
+MEMORY_MATCHES
+1:# Task Group: Gamehub party games, full-screen multiplayer, and cross-game presentation
+3:scope: Implement Gamehub party-game rules and interaction/UI refinements while preserving stable IDs, private online state, full-screen play, and the boundary between automated and human acceptance.
+4:applies_to: cwd=/Users/williamguinaudie/Documents/code/gamehub; reuse_rule=shared-worktree sensitive; inspect current game/rules markers and preserve unrelated edits before changing accepted artwork, game rules, or multiplayer layout.
+10:- rollout_summaries/2026-09-20T12-43-16-wYw1-gamehub_cross_game_ui_artwork_and_ambience_refinement.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/20/rollout-2026-09-20T14-43-16-01a0bed7-9d32-7021-9e79-f52e23b2ae31.jsonl, updated_at=2026-09-20T13:45:38+00:00, thread_id=01a0bed7-9d32-7021-9e79-f52e23b2ae31, automated validation passed; browser/audio acceptance withdrawn)
+20:- rollout_summaries/2026-09-20T17-56-34-aXqf-gamehub_party_games_and_smooth_ranking_drag.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/20/rollout-2026-09-20T19-56-34-01a0bff6-7208-7c43-9eb2-596b770e2a67.jsonl, updated_at=2026-09-20T18:43:11+00:00, thread_id=01a0bff6-7208-7c43-9eb2-596b770e2a67, rules/build validated; drag feel unverified)
+21:- rollout_summaries/2026-09-20T16-34-27-i0hL-replace_adventures_with_party_games.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/20/rollout-2026-09-20T18-34-27-01a0bfab-434b-7760-950d-935a4ea4374d.jsonl, updated_at=2026-09-20T17:13:01+00:00, thread_id=01a0bfab-434b-7760-950d-935a4ea4374d, superseded Roka/Talo/Soma party implementation)
+31:- rollout_summaries/2026-09-20T18-27-18-obf1-gamehub_multiplayer_fullscreen_table_overlay.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/20/rollout-2026-09-20T20-27-18-01a0c012-953e-7690-a8d3-acd1507d9dbf.jsonl, updated_at=2026-09-20T18:29:57+00:00, thread_id=01a0c012-953e-7690-a8d3-acd1507d9dbf, code validation passed; mobile/browser QA pending)
+61:# Task Group: Gamehub 0.22.0 release and production-container optimization
+63:scope: Release Gamehub after a full runtime-payload audit; validate the shipped image, release metadata, tag ancestry, and multi-architecture registry artifact.
+64:applies_to: cwd=/Users/williamguinaudie/Documents/code/gamehub; reuse_rule=release- and checkout-sensitive; re-audit runtime imports/assets and obtain explicit approval before replacing an existing release/tag.
+66:## Task 1: Ship, repair, and optimize Gamehub v0.22.0
+70:- rollout_summaries/2026-09-20T18-45-48-Ie8G-gamehub_0_22_0_optimized_release.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/20/rollout-2026-09-20T20-45-48-01a0c023-8696-76b2-a1c1-b525381d62e2.jsonl, updated_at=2026-09-20T19:35:35+00:00, thread_id=01a0c023-8696-76b2-a1c1-b525381d62e2, v0.22.0 release and optimized GHCR image verified)
+84:- A successful Docker build did not prove Gamehub’s runtime image: it copied only old Trio modules while the server imported standalone, adventure, and party modules. Copy complete `lib/games` and `lib/online` trees, then run `node scripts/container-smoke.mjs <image>`; smoke covers health, SPA routes, accounts, match/session persistence, restart recovery, and non-root execution. [Task 1]
+86:- Release verification is: `gh run watch <run-id> --exit-status`, `gh release view v<version>`, compare `HEAD`, `origin/main`, and tag commit, then inspect `ghcr.io/host-it-labs/gamehub:<version>` using `docker buildx imagetools inspect`. v0.22.0 published an OCI index for `linux/amd64` and `linux/arm64`. [Task 1]
+94:# Task Group: Gamehub standalone adventure replacements and acceptance boundaries
+96:scope: Explain, redesign, implement, and validate Gamehub’s standalone tabletop games while keeping stable persistence IDs and separating automated evidence from human/browser acceptance.
+97:applies_to: cwd=/Users/williamguinaudie/Documents/code/gamehub; reuse_rule=shared-worktree sensitive; preserve `orin`/`vela`/`miro` IDs and recheck current implementation state before treating historical prototypes as current.
+103:- rollout_summaries/2026-09-20T12-43-42-x7Ny-gamehub_orin_vela_miro_half_implemented_games.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/20/rollout-2026-09-20T14-43-42-01a0bed8-00d8-7770-93af-b84112f75064.jsonl, updated_at=2026-09-20T12:44:59+00:00, thread_id=01a0bed8-00d8-7770-93af-b84112f75064, prototype inventory and boundaries)
+107:- orin, vela, miro, standalone-rules.ts, standalone/registry.ts, gamehub.standalone.v1, lighthouse, kite-race, hidden-traitor, docs/DESIGN.md, online-gap
+113:- rollout_summaries/2026-09-20T12-57-44-yhIg-implement_roka_talo_soma_game_replacements.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/20/rollout-2026-09-20T14-57-44-01a0bee4-dab4-7832-81d1-7f1a32b06a7c.jsonl, updated_at=2026-09-20T19:32:27+00:00, thread_id=01a0bee4-dab4-7832-81d1-7f1a32b06a7c, implementation validated except production/browser/human acceptance)
+128:- The original local standalone games had dedicated engines, table components, bots, difficulty settings, results, and `gamehub.standalone.v1` saves, but no online-multiplayer integration, finished board/box art, or browser/touch verification. Inspect `standalone-rules.ts`, engines, registry, tests, and `docs/DESIGN.md` rather than infer scope from filenames. [Task 1]
+139:# Task Group: Gamehub Mora paper-world, Observatory, and library visual refinement
+141:scope: Redesign Gamehub’s public visual identity and Mora/Elsewild presentation while preserving game mechanics and concurrent worktree edits.
+142:applies_to: cwd=/Users/williamguinaudie/Documents/code/gamehub; reuse_rule=shared-worktree sensitive; preserve internal IDs/rules and treat browser, touch, GPU, and compositing acceptance as separate from static checks.
+148:- rollout_summaries/2026-09-16T12-43-13-P8dn-gamehub_complete_creative_redesign_validation.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T14-43-13-01a0aa3e-2042-7ed3-9b1e-7492472f77c5.jsonl, updated_at=2026-09-16T14:26:23+00:00, thread_id=01a0aa3e-2042-7ed3-9b1e-7492472f77c5, automated validation passed)
+158:- rollout_summaries/2026-09-16T18-37-33-QiCY-gamehub_desktop_box_sizing_hover_blur.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T20-37-33-01a0ab82-85e3-7571-ac7b-a50dd6c32948.jsonl, updated_at=2026-09-16T18:42:03+00:00, thread_id=01a0ab82-85e3-7571-ac7b-a50dd6c32948, blur remains unresolved)
+159:- rollout_summaries/2026-09-16T14-51-40-A6E7-gamehub_game_box_redesign_nox_artwork.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T16-51-40-01a0aab3-bb73-7e83-9576-fcbd6870a60f.jsonl, updated_at=2026-09-16T15:00:20+00:00, thread_id=01a0aab3-bb73-7e83-9576-fcbd6870a60f, static checks passed)
+160:- rollout_summaries/2026-09-16T14-35-05-R2RA-gamehub_observatory_and_library_visual_refinement.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T16-35-05-01a0aaa4-8d21-7442-a41e-204650051dfa.jsonl, updated_at=2026-09-16T14:45:30+00:00, thread_id=01a0aaa4-8d21-7442-a41e-204650051dfa, box/Observatory implementation validated)
+170:- rollout_summaries/2026-09-19T05-27-49-zi6t-mora_paper_world_ui_and_portrait_redesign.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T07-27-49-01a0b822-9696-7dc1-a356-980f5268f591.jsonl, updated_at=2026-09-19T08:28:08+00:00, thread_id=01a0b822-9696-7dc1-a356-980f5268f591, final lint/browser validation incomplete)
+171:- rollout_summaries/2026-09-16T16-14-51-naNy-gamehub_observatory_overflow_mobile_scroll_fix.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T18-14-51-01a0aaff-e392-77a2-9e27-d71f2b7c4180.jsonl, updated_at=2026-09-16T16:17:21+00:00, thread_id=01a0aaff-e392-77a2-9e27-d71f2b7c4180, automated validation passed)
+172:- rollout_summaries/2026-09-16T15-27-18-8pdG-gamehub_observatory_v18_artwork_and_zoom_framing.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T17-27-18-01a0aad4-5b53-72e3-abfa-392462c31974.jsonl, updated_at=2026-09-16T19:32:03+00:00, thread_id=01a0aad4-5b53-72e3-abfa-392462c31974, camera-layout lesson)
+173:- rollout_summaries/2026-09-16T15-01-56-p3Qr-gamehub_mora_elsewild_paper_redesign.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T17-01-56-01a0aabd-2249-7812-a6c1-d996621e32e7.jsonl, updated_at=2026-09-16T15:11:43+00:00, thread_id=01a0aabd-2249-7812-a6c1-d996621e32e7, static validation passed)
+183:- rollout_summaries/2026-09-16T15-20-22-Au1U-gamehub_mora_observatory_floating_ui_surroundings.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/16/rollout-2026-09-16T17-20-22-01a0aace-0164-7113-b5fd-e973d92e0d2e.jsonl, updated_at=2026-09-16T15:25:07+00:00, thread_id=01a0aace-0164-7113-b5fd-e973d92e0d2e, browser/touch unverified)
+184:- rollout_summaries/2026-09-19T05-27-49-zi6t-mora_paper_world_ui_and_portrait_redesign.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T07-27-49-01a0b822-9696-7dc1-a356-980f5268f591.jsonl, updated_at=2026-09-19T08:28:08+00:00, thread_id=01a0b822-9696-7dc1-a356-980f5268f591, final validation incomplete)
+194:- rollout_summaries/2026-09-19T14-18-38-PGvm-mora_portrait_safe_area_generation_failures.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T16-18-38-01a0ba08-8ea9-70d0-aca9-27747f8f7ea8.jsonl, updated_at=2026-09-19T15:06:21+00:00, thread_id=01a0ba08-8ea9-70d0-aca9-27747f8f7ea8, six attempts; no safe-area pass)
+195:- rollout_summaries/2026-09-19T14-12-45-LWuM-mora_portrait_v7_generation_aborted.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T16-12-45-01a0ba03-2edd-7832-9212-1016716a61e4.jsonl, updated_at=2026-09-19T14:18:32+00:00, thread_id=01a0ba03-2edd-7832-9212-1016716a61e4, aborted prelude; no images generated)
+196:- rollout_summaries/2026-09-19T11-30-04-dHbS-gamehub_mora_paper_world_v5_and_v6_artwork.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T13-30-04-01a0b96e-3e07-7f60-82a6-d23e1e23c144.jsonl, updated_at=2026-09-19T12:15:18+00:00, thread_id=01a0b96e-3e07-7f60-82a6-d23e1e23c144, v5 framing failed; v6 unexecuted)
+197:- rollout_summaries/2026-09-19T11-02-08-YYXr-mora_paper_world_v4_generation_validation.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T13-02-08-01a0b954-a9bc-7cc1-8b5a-6596580f33a5.jsonl, updated_at=2026-09-19T11:10:39+00:00, thread_id=01a0b954-a9bc-7cc1-8b5a-6596580f33a5, v4 dimensions/visual pads verified; framing failed)
+198:- rollout_summaries/2026-09-19T10-02-02-bdhu-mora_observatory_single_storey_board_variants.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T12-02-02-01a0b91d-a350-7591-8d45-7717f099d128.jsonl, updated_at=2026-09-19T10:07:44+00:00, thread_id=01a0b91d-a350-7591-8d45-7717f099d128, v3 detector-parity evidence)
+208:- rollout_summaries/2026-09-19T14-20-26-YkQ8-gamehub_production_environment_plates_audit.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/19/rollout-2026-09-19T16-20-26-01a0ba0a-35ae-7a51-8841-4c7735b38ed0.jsonl, updated_at=2026-09-19T15:10:31+00:00, thread_id=01a0ba0a-35ae-7a51-8841-4c7735b38ed0, valid PNG batch; no full acceptance pass)
+
+**Considering guidance for tasks**
+
+I see the user’s direct prompt includes everything. It might be helpful to investigate the root guidance from the documentation specific to the task. But maybe I won’t need that if it’s a simple image task? However, I should still read AGENT explicitly. I need to access memory quickly—perhaps I can find the Folio? I’ll query memory for the exact Folio portrait lines. Let’s make sure I get this right!
+codex
+The worktree has substantial active Folio changes; I’m checking its artwork guidance and exact destination before generation.
+exec
+/bin/zsh -lc "printf 'TARGET_EXISTS='; if test -e docs/concepts/2026-09-22-folio/background/bg-portrait-b.png; then printf 'yes\\n'; else printf 'no\\n'; fi; printf '\\nDESIGN_GUIDANCE\\n'; sed -n '1,180p' docs/DESIGN.md; printf '\\nWORLD_SKILL\\n'; sed -n '1,220p' .agents/skills/game-world-layout/SKILL.md; printf '\\nMEMORY_FOLIO\\n'; rg -n -i -C 2 'Folio|paper world|background plate' /Users/williamguinaudie/.codex/memories/MEMORY.md | head -50" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+TARGET_EXISTS=no
+
+DESIGN_GUIDANCE
+# Gamehub design direction
+
+## Shared progress and human-only party games (21 September 2026)
+
+Progress always sits directly below the top-left back/name control, in the shared
+`GameProgress` component, on desktop and mobile. This supersedes previous centered
+round counters. Atlas omits the difficulty badge. My Top Five and Atlas require
+human players in every seat, including learning sessions; online starts cannot fill
+empty seats with bots, and disconnected humans cannot be replaced by bots.
+
+
+## Mobile navigation refinement (21 September 2026)
+
+On phones (including short landscape), back/name and icon-only Menu (vertical dots) and Others share the first row. Player badges occupy a horizontally scrollable second row. Desktop keeps the existing stacked Menu/Others layout. Nox is the exception: only its table-rim player badges are rendered, with no Others control. Online Table administration is host-only during play and sits below the navigation and player rows. Nox's centered arrow shows alternating exchange direction during passing and clockwise order during tricks, using the engine's seat-order calculation.
+
+## Global navigation and viewport rule (21 September 2026)
+
+This rule supersedes conflicting layout exceptions below and applies to all games, including party games, practice and online play. Top left holds only back/return and the game name. Menu and Others stay on the right, with Others directly below Menu on desktop and beside Menu on phones, as detailed above; time/advance-time and fullscreen controls also belong on the right. Mobile player badges use a separate horizontally scrollable second row. Nox uses only its table-rim badges and has no Others control.
+
+A playing screen should fit one viewport. Players must not have to scroll the whole page between choices, board, hand and confirmation. Reflow the active game, remove duplicate headings and reduce decorative spacing first. Preserve legible labels and usable touch targets. Put long rules, history, guess comparisons and optional inspections in overlays with internal scrolling; never conceal inaccessible gameplay using overflow clipping. Test portrait, short landscape, tablet and browser zoom; report any remaining accessibility/extreme-size scrolling fallback explicitly.
+
+Top Tier retains a private order for every visited topic until the next round. Switching restores that order. Refreshing from an active ranking selects the first fresh topic and stays in the ranking view; refreshing from the initial chooser stays there. Two refreshes per player per round. Compact topic cards keep their title and answer chips, without a category heading.
+
+
+This is the visual and interaction contract for future work. Mechanics are the stable core; names, fiction, characters, scenery and cultural references may evolve within these worlds. Do not reconstruct the previous Tide/Mora/Yatai presentation from old assets or memory.
+
+## Mora cleanup and future-game requirements
+
+This requirement supersedes historical sidebar and portrait-pan guidance below. Each game's entire UI—not only its board—needs its own material and shape language: hand tray, die, extension actions, habitat indicators, player badges and goals. Within a game those roles must also be visually distinct, not identical rounded panels recoloured. Preserve shared accessible interactions and `RuleExplanation` presentation.
+
+Design dedicated landscape and tall portrait boards with independent measured coordinates but identical gameplay. Portrait play must expose every area on one screen without board scrolling. Establish readable shape/pattern correspondence between die restrictions and placement sites; names and colour alone are insufficient. Preserve existing rule memberships.
+
+Brief new boards with localized animation layers/masks and foliage pivots so water and trees can move without moving targets or text. Respect reduced motion and visibility suspension; sound effects are deferred. See the shared world-layout skill for acceptance requirements. These are requirements, not a claim that the new artwork is already integrated.
+
+Advanced view opens an adaptive full-screen all-player board inspection from player badges, with your own seat in the passing-order diagram and a prominent close button. Omit the duplicate self board; show each opponent’s goal progress and remaining extension uses, even when spent. It must never push or shrink the live board.
+
+## Required naming and identity rules
+
+Game names must be short, simple to read aloud, and reasonably easy for non-English speakers to pronounce. Prefer clear syllables and uncomplicated spelling; avoid names that rely on English puns, dense consonant clusters or opaque English compounds. Universal pronunciation is not required. Apply this rule to every future name proposal. Existing implemented names below are not automatically approved by this rule; do not silently rename them during visual exploration.
+
+Each game must feel like its own game, with strongly distinct illustration, materials, typography, shapes and presentation, not merely another palette on a shared theme. Nox’s current visual style is approved for retention. Elsewild and Nightshift are being explored anew, including simpler names. Shared accessibility and interaction conventions remain; a shared visual skin is no longer the goal.
+
+The library should be warm and neutral rather than bright white or themed as one of its games. Explore physical game boxes, shelves and inviting tabletop presentation. Omit the current promotional heading and supporting tagline in concepts, and use a lighter, clearly visible Play control. Opening a game can feel like taking down a box and unfolding a board; motion must remain brief, skippable and reduced-motion compatible.
+
+Current scope (16 September 2026, revised after concept feedback): the user approved shaped game boxes for the library and a first immersive 3D implementation of the inland observatory. Keep existing navigation, omit the concept storyboard and invented navigation, and keep current public names until new names are selected. Food-game alternatives and the tropical alternative remain concepts. Concept storyboards are proposals, not functioning animation evidence.
+
+The observatory uses lazily loaded Three.js with an orthographic camera and simple geometry, capped render resolution, on-demand rendering, resource disposal and off-screen/hidden suspension. Keep gameplay targets in the DOM and retain an illustrated fallback when WebGL fails. Animal standees have physical bases; scores remain above and cards below. Do not add orbit controls that compete with touch placement. Use inexpensive CSS depth for library boxes so browsing does not load WebGL.
+
+## Worlds
+
+| Public identity | Internal ID | World | Content sets |
+| --- | --- | --- | --- |
+| Nox | `undertow` | Improvised boats, pirate radio, nocturnal harbour, communal salvage | One deck; normal and Fast rules |
+| Mora | `wildgrove` | Strange wildlife reclaiming human infrastructure | The Observatory; Floodline Station |
+| Yata | `midnight` | Underground street food and night culture | After Hours; Side B |
+| My Top Five | `orin` | Personal rankings and shared guesses | Two rounds |
+| Atlas | `miro` | Satellite globe and shared destinations | Places; Photos; Three facts |
+
+Nox, Mora and Yata share one rules module (`lib/games/trio/engine.ts`) because they
+share a deck, a die and a trick. My Top Five and Atlas use their own party
+engines behind `lib/games/standalone/registry.ts`.
+
+Internal IDs remain stable for routes, account preferences and records. Subject kind indices remain stable within each content set; changing a picture or name must never silently alter its scoring identity.
+
+## Artwork
+
+Nox retains printmaking and independent zines as its visual language: imperfect ink edges, simplified expressive silhouettes, a restrained pigment palette, visible paper and occasional deliberate misregistration. Use maritime woodcuts and radio ephemera for Nox. Elsewild and Nightshift must explore independent visual languages; their former field-note and gig-poster treatments are not constraints. Cultural references should contribute an idea or silhouette, not overwhelm recognition with decoration.
+
+Avoid glossy plastic, hyper-detailed rendering, uniform soft lighting, stock fantasy cuteness and tiny decorative detail that disappears at play size. Mature means assured graphic decisions, not obligatory darkness or violence. Keep each species and food visually distinct at thumbnail size.
+
+Generate fresh illustrations through the imagegen skill and a delegated image-generation agent. Review actual outputs before wiring them in. Save versioned files, prompts and provenance in the repository; project assets must not depend on generated-image cache paths. Do not repeatedly edit a degraded image or substitute CSS panels for an illustrated world.
+
+Map composition and interaction geometry are one design. Paint habitat spaces as actual places with enough room for their full capacity; set hit targets and slots against the final image. Each environment owns independent coordinates. Environment scale must make sense around the existing readable creature size. Do not shrink creatures to repair a miniature-looking map. Die groups use recognizable placement shapes and physical ground materials. Never add cryptic glyph rows or arbitrary habitat emblems; group memberships and placement rules remain unchanged.
+
+Render gameplay numbers, names, suit symbols, formulas and explanatory text as crisp accessible DOM content. Box-cover titles are the exception: generate their lettering inside the artwork, with accessible names on the surrounding controls. Keep responsive covers, loading manifests and optimized images synchronized. Preserve alpha on tokens.
+
+## Extension contract
+
+One extension means one mechanic. Content sets are independent of extensions. Every extension works alone and in every combination for its game.
+
+- Nox: Shields; Turning Tide; Salvage.
+- Elsewild: Roam; Migration; Sanctuary Goals.
+- Nightshift: Customer Orders; Specialty Stalls; Market Seasons.
+
+Setup has one Extensions heading. Tiles contain the same emblem used in-game, a short title, an unmistakable enabled state, and a separate information button within the tile boundary. Never nest interactive controls. Opening rules must not change selection.
+
+All overview and individual rules use `RuleExplanation`: action/requirement in the shared purple callout, rewards and examples in supporting paragraphs, limits in the separated note. Reuse these components in setup and match help. Show setup rules in a larger viewport-constrained modal with scrolling, accessible title, keyboard and long-press access, and restored focus. Do not append explanatory blocks below tiles.
+
+Game actions are tactile graphical pieces with clear available, selected, waiting and spent states. Larger controls may use reclaimed interface space, but must never cover card slots or inflate the illustrated board. Short labels and counters are useful; rules prose belongs in inspection. Stalls are a prominent action, not an inconspicuous utility icon.
+
+## Attention and confirmation
+
+The top player display is the source of turn and readiness information. Identify who can act and who is still deciding, including simultaneous exchanges, drafting and Salvage. Do not restore the bottom status strip. Use the shared animated, nonverbal status indicators for deciding, committed and waiting, plus a separate die-roller indicator. Shapes and accessible labels remain meaningful with reduced motion. Connection problems must remain visible near these states.
+
+Use a brief animation and a distinct sound when a player becomes actionable, respecting mute and reduced motion. Do not loop attention effects or replay cues on ordinary rerenders. Place confirmation immediately beside the hand in every game. Preserve the user's confirmation preference; exchanges and secret Salvage commitments always have an explicit lock action.
+
+Nox seats players around a table, anchored to the viewer. Card position communicates ownership; a clockwise marker and lead badge communicate order. Reveal completed tricks before gathering them toward the winner. Display ordinary penalties and Salvage adjustments distinctly. Process capture events once and in sequence; do not infer captures from current cards after a round reset.
+
+Ambient animation enhances the place without becoming another game object. Floodline water uses a transparent masked canvas with DOM hit targets above it. Suspend it off-screen and in hidden tabs; reduced motion gets a static frame. No wandering CSS rabbits.
+
+## Rules and data
+
+Salvage claims are secret simultaneous submissions from eligible non-leaders before any card is played. One claim per round; no final-trick claims. Reveal only after all eligible players commit. A successful claimant gets −6, an unsuccessful claimant +3, after Shields modify ordinary trick penalties. Negative scores are valid. Printed ranks and follow-suit rules never change.
+
+Migration moves one sheltered creature once per match before normal placement. It ignores the die for relocation, excludes Release, requires destination capacity, preserves remaining source order, and appends to the destination. Normal placement is validated against that resulting board. Submit both changes atomically; cancellation spends nothing. Roam can accompany the normal placement.
+
+Goals must reinforce habitat rules. Floodline's path goal requires A–B–A; its Beacon goal requires other occupied habitats without the Beacon species. Content-aware logic is shared by scoring, goal progress, explanations and bots.
+
+State version 4 replaces earlier playable saves. Old solo resumptions are removed on load; incompatible online games return to their existing lobbies on server startup, without manufacturing results. Accounts, memberships, preferences and completed history remain. No old game engine is retained for those matches.
+
+## Validation
+
+Run tests, typecheck, lint and build. Cover independent extensions, combination matrices, normal/Fast decks, both content sets, all seat counts, private submissions, invalid actions, reconnects, stale requests, state resets and bots using only public information.
+
+Use `node --experimental-strip-types scripts/simulate-salvage.mjs 25` to reproduce the automated policy comparison. The result measures particular bots, not proven human balance. Report counterexamples and limits honestly.
+
+Inspect generated art and verify all asset references. Browser, touch, sound and motion acceptance require actual interactive checks; static checks do not establish them. Follow the user's explicit browser-tool permission constraint. Never report deployment or production acceptance from local validation.
+
+Implementation evidence and balance limitations: [redesign-validation.md](redesign-validation.md). Asset provenance and prompts: [artwork-manifest.md](artwork-manifest.md).
+
+## Observatory and game-box prototype validation
+
+The approved paper-diorama concept is implemented as a Three.js 0.186.0 textured relief surface, not a fully modelled orbitable environment. The environment fills the presentation background; the playable board retains proportional coordinates and native horizontal exploration on narrow screens. Pawn standees and their raised bases remain DOM/CSS. Mouse movement shifts the relief light; reduced motion disables that response. Rendering is on demand, capped at 1.5 device pixel ratio and 1.5 million pixels, suspended when hidden/off-screen, with a static image fallback for renderer/texture failure. Full WebGL resources and observers are disposed on exit.
+
+Library boxes use CSS perspective and independent proportions (compact harbour card box, arched nature box, conventional food box). The neutral library keeps the existing header and Play/Resume flows; there are no invented navigation items, tutorial panels, promotional heading or coming-soon placeholders. Mora and Yata were subsequently selected in the refinement below; Nox was subsequently selected as the pirate game’s public name.
+
+Production sources: `public/art/observatory-diorama-v1.png` and `public/art/box-{undertow,wildgrove,midnight}-v1.png`. Box fronts are equal 512px thirds extracted from the delegated atlas. `scripts/optimize-artwork.mjs` produces actual-width responsive variants and the preview manifest. See [concept provenance and alternatives](concepts/2026-09-16/README.md) for the exact imagegen prompts and inspected references.
+
+After integration: 85 tests passed, including artwork decoding, responsive image sizes, map capacities/coordinates and the existing mechanics suite. Typecheck, lint and production build passed. The build emits a chunk-size advisory; Three.js is dynamically imported only by the observatory. No browser, touch, GPU performance or visual interaction acceptance was performed. No commits, pushes or deployment.
+
+## Refinement after box and observatory feedback (16 September 2026)
+
+Public names Mora and Yata are restored at the user's request. Nox is now selected for the pirate game (superseding the unselected Nami proposal). Internal IDs are unchanged. Creature art and player portraits are explicitly deferred.
+
+The library uses compact wrapping shelf items for a growing catalog. Nox is a smaller worn card box; Mora keeps an arched botanical stone/paper silhouette; Yata has a conventional box with Mora's footprint. CSS front, back, spine and top faces expose depth at rest and turn front-on on hover/focus. Reduced motion keeps the resting pose.
+
+The Observatory uses exactly one scene within an edge-to-edge board viewport; the table surrounding it is made of complementary materials and does not repeat the image. Preserve the scene's 3:2 proportions; native scrolling exposes any overflow on short or narrow screens. Version 2 has seventeen physically divided habitat spaces (4/4/2/3/3/1), with matching independently measured coordinates. The static fallback is hidden only after the WebGL surface is ready. Player and action controls use paper, wood and stone treatments; their shared behavior is retained.
+
+Source and generation prompt: [observatory v2](concepts/2026-09-16/observatory-v2.md). The user has not requested browser/computer-use tools, so browser, touch and visual interaction acceptance remain unverified.
+
+## Compact boxes and Nox naming (16 September 2026)
+
+The user selected **Nox**, replacing Blackwake. The `undertow` ID, saves and rules are unchanged. Each box front occupies approximately half its previous area (120px instead of 170px wide for Nox; 148px instead of 210px for Mora/Yata). Nox has a 14px card-box depth. Buttons retain 44px minimum height, with natural-height details and wrapping actions; the old 42px details row and clipped overflow no longer apply.
+
+New version-2 box art uses close compositions, visibly worn printing, playing cards for Nox, creature pieces for Mora and a stall sign for Yata. Titles remain accessible DOM text. Mora uses a continuous arched limestone silhouette repeated through its depth, including the curved roof, rather than a disconnected rectangular top or mismatched spine. See [box art provenance](concepts/2026-09-16/box-v2.md).
+
+Validation for this refinement: all 85 tests, typecheck, lint, production build and diff whitespace checks passed. HTTP tests and the build required loopback networking outside the restricted sandbox. All three generated source images were visually inspected and responsive variants decoded by the artwork test. Browser rendering, touch interaction and the resulting CSS depth remain unverified.
+
+## Mora paper-world refinement (16 September 2026)
+
+Creature art is no longer deferred: both content sets now use twelve freshly generated layered-paper creatures with preserved alpha and unchanged kind indices. The Observatory and Floodline Station were freshly generated as tactile paper worlds; architecture, foliage, floors and water share the tree material language. All seventeen placement centers in each map were measured against the new art. Sources and exact built-in imagegen prompts: [Observatory](concepts/2026-09-16/observatory-paper-v3.md), [Floodline](concepts/2026-09-16/floodline-paper-v1.md), [creatures](concepts/2026-09-16/mora-paper-creatures-v1.md). `node scripts/prepare-mora-paper-creatures.mjs` reproduces the creature crops.
+
+Habitat titles are smaller and no longer carry die-group glyphs. Each full board shows current / maximum habitat points and a short scoring condition. DOM equality/inequality marks sit between relevant spaces; multipliers reinforce cross-habitat scoring. Die help names the actual destinations for each content set. Maxima are per-habitat ceilings, not a promise they can all be reached in one match. Placement legality and scoring rules are unchanged.
+
+Both maps now use the shared proportional fit calculation: landscape fits within both available dimensions, portrait uses available height with horizontal exploration. Vertical board panning is removed. The paper table replaces the separate dark player strip and wooden hand strip; Observatory player tags overlay the quiet upper scene on taller landscape screens when goals do not occupy that edge. Short screens and goals retain their own player row to avoid covering gameplay. The board remains proportional rather than stretched to every screen ratio, with fixed controls outside the horizontally panning map.
+
+Validation: all 91 tests, typecheck, lint, production build and diff whitespace checks passed. HTTP tests and prerender needed sandbox-external loopback access. New tests enumerate all local species arrangements to check the four local habitat ceilings and exercise cross-habitat ceilings, pair symbols and die destination text. Generated art was visually inspected and runtime images decoded with alpha/dimension checks. Browser, touch and visual layout acceptance remain unverified; no browser/computer-use tools were requested. No commit, push or deployment.
+
+## Observatory surrounding scenery and floating hand (16 September 2026)
+
+The Observatory alone now places its unchanged proportional board over a wider generated paper woodland backdrop, covering the table to the edges of desktop screens. Only the outer 3% of the board illustration is feathered into the surroundings; gameplay targets, creature positions, and labels remain unmasked. The backdrop is a static compressed WebP and adds no rendering loop. Floodline and other games retain their existing presentation.
+
+The Observatory's equality and inequality markers are omitted; its scoring descriptions and multipliers remain. Its orange hand tray and shared ability backing panel are removed. Individual creatures use rounded pale pieces, raised rims and grounded shadows; dice and extension actions float independently above the scenery. Selected pieces retain a visible outline, keyboard focus remains distinct, and reduced motion disables transitions.
+
+Artwork source, generation prompt, and optimized output: [surrounding scenery provenance](concepts/2026-09-16/observatory-surroundings-v1.md). Browser and touch appearance have not been checked.
+
+Validation for this refinement: all 91 tests, typecheck, lint, production build, and scoped diff whitespace checks passed. HTTP tests and prerendering needed local networking outside the sandbox. The build retains its chunk-size advisory. The generated 1536 × 1024 surroundings were visually reviewed and the 438,606-byte WebP decoded by the artwork suite. The composed browser layout and touch behavior remain unverified. No commit, push, or deployment.
+
+
+## Unified Observatory scene and readable controls (16 September 2026)
+
+The Observatory now uses `observatory-unified-v1`, freshly generated as one continuous forest with all seventeen spaces. The central 80% is the playable rectangle. Measured habitat coordinates are converted into that rectangle; the whole illustration is rendered once behind the table and follows the board's scale and horizontal pan. There is no independent surroundings image or masked internal board edge. Only the outer perimeter fades into an olive table ground on screens wider than the illustration. The existing optional WebGL relief and static fallback both use the same full source; miniatures show the matching central crop.
+
+Navigation, identity/progress, passing direction, table inspection and left-side actions have opaque light backgrounds and dark text. The hand has a rounded backing and a shallow upward arc, with native horizontal scrolling retained. Short screens scroll the complete table to keep controls reachable. Sanctuary goals have a dedicated centered lavender row immediately below the players in solo and online Observatory matches, distinct from player score tags. Floodline retains its existing presentation. Mechanics and scoring are unchanged.
+
+The image was visually inspected; browser, touch, GPU, keyboard interaction and final rendered layout have not been checked. Source and exact prompt: [unified art provenance](concepts/2026-09-16/observatory-unified-v1.md).
+
+Validation: all 91 tests, typecheck, lint and production build passed; tests and prerender used loopback access outside the sandbox. The existing large-chunk advisory remains. No browser or touch checks, commit, push or deployment.
+
+## Reference-matched paperland and simple creatures (16 September 2026)
+
+WORLD_SKILL
+---
+name: game-world-layout
+description: Plan, generate and integrate full-screen illustrated game worlds in Gamehub, with aligned gameplay targets, stable floating hands, and landscape/portrait framing. Use for every new Gamehub game and changes to game navigation or responsive layout, as well as illustrated boards, artwork and cameras.
+---
+
+# Illustrated game worlds
+
+Read `docs/DESIGN.md`. Preserve each game's identity and scoring rules; Observatory supplies layout lessons, not a universal art style. Use the imagegen skill and delegate image generation as required by AGENTS.md. Use the original user-approved style reference for fresh artwork, not only a progressively regenerated derivative. Built-in generation is the authorized workflow; do not request API credentials.
+
+## All games: navigation and one-screen play
+
+Apply this contract to every Gamehub game, including non-illustrated party games, solo/online, practice and live play. Read the global navigation and viewport rule at the top of `docs/DESIGN.md` before changing layout.
+
+- Left: back/return and game name only. Right: Menu, Others directly underneath, time/advance-time and fullscreen controls. Keep these positions in all orientations; side rails do not reverse navigation. Reuse `components/game/game-navigation.tsx` for party/world screens and the shared trio toolbar for Nox/Mora/Yata. Keep player badges clear of both islands.
+- Strongly avoid whole-page scrolling during gameplay. Fit choices, board, hand and confirmation in the available viewport using responsive columns/side rails, compact spacing and removal of duplicated headings. Keep text legible and controls usable. Do not use overflow clipping to hide a failed fit.
+- Long rules, history, comparisons and optional inspections belong in explicit overlays with internal scrolling and restored focus. Local scrolling is an accessibility/extreme-size fallback, not proof of a normal viewport fit.
+- Preserve prepared choices across option switches. Refreshing choices from an active view stays in that view.
+- Check long content, maximum players, selection/refresh/lock/reveal states, portrait, short landscape, tablet and browser zoom. Report static/layout reasoning separately from actual browser and touch checks.
+
+## Measure before writing the image brief
+
+Start from approved camera geometry during an artwork refresh. A measured device-specific fit adjustment is preferable to shrinking every landmark for the worst-case viewport; do not change geometry without verifying both landmark visibility and source coverage. Read the live source/crop metadata, camera offsets and UI breakpoints; do not copy obsolete numbers from historical design notes.
+
+Define three separate regions:
+
+1. **Gameplay rectangle:** all placement targets, creature extents, rule labels and release/exploration access.
+2. **Protected landmark region:** COMPLETE silhouettes of every important building, dome, lookout, roof, canopy and base. Protect the entire recognizable object, not just its platform or placement center. A roof is not disposable scenery merely because it has no hit target.
+3. **Crop-safe surroundings:** continuous expendable trees, fields, paths, ground and distant scenery outside those regions. Only this material may be cut by the viewport. Do not put towers, flags, domes or other focal structures near source edges.
+
+Derive the protected region from the intersection of visible source rectangles across supported desktop, tablet, short landscape phone and portrait cameras, including actual upward offsets and advanced view. Subtract floating control areas where they obscure landmarks. In portrait, protect the complete tall composition within the initially visible board area; board scrolling is not an acceptance fallback. Preserve all important vertical silhouettes. A source image looking complete is not evidence that the game's camera displays it complete.
+
+For source W×H, logical crop (left,top,cw,ch) and displayed board (bx,by,bw,bh), require bw/cw = bh/ch. Let s=bw/cw. The full scene starts at (bx-left*s, by-top*s), size(W*s,H*s). A source point maps to (bx+(px-left)*s, by+(py-top)*s). Invert this transform to calculate each viewport's visible source rectangle. Validate the entire bounding box of each landmark, including its highest and lowest points.
+
+If protected content does not fit, first quantify the mismatch. Choose a bounded camera fit for the affected device or redesign it lower, broader or farther inward. Do not overcorrect a small miss with a large global zoom-out. Do not solve an art-composition miss by widening the logical crop, shrinking the whole sanctuary into excessive scenery, moving only the image away from targets, or undoing an approved camera. For a new game without approved geometry, establish source/crop/camera jointly first.
+
+## Flat pieces on a painted world (hard constraint)
+
+Everything the player touches is a flat 2D element drawn by the app: cards, tiles, tags, dice faces, buttons. There are no modelled 3D pieces and there will not be any: the image models we use cannot produce consistent 3D assets at scale. Design every world for that reality instead of for a miniature diorama.
+
+- **The play surface is a plane parallel to the screen.** Draw the area where pieces land (table top, chart, cloth, counter, floor spread) in true plan view: no perspective convergence, no receding lines, no tilt inside that area. A flat card dropped onto a tilted, perspectival table reads as a sticker pasted over a photo. The surroundings may show depth (walls receding, objects drawn in shallow oblique like a dollhouse plan), but the surface the pieces sit on must be flat and face-on.
+- **Fake the depth on the pieces, not in the plate.** Depth belongs to what the app draws: drop shadows with a fixed offset, a slight lift on pick-up, paper edge, a warm tint from the lantern. The brief must therefore state ONE light source and its direction (for example "a single lantern above the far edge; light falls toward the viewer") so CSS shadows and glows on cards match the painting. Mora's standees and their shadows are the reference: the painted pad is flat, the piece carries the depth.
+- **2.5D is welcome, real 3D only when trivial.** Layered parallax, CSS-transformed cards (rotateX under 12 degrees), a die that tumbles as a flat sprite sequence, glows, particles, breathing lantern pools, water shimmer masks: all fine. A "3D element" is acceptable only if it is a simple primitive the app can draw itself (a coin, a token disc, a plank shelf); never plan for modelled props.
+- **Camera before style.** Choose the camera so the constraint holds: straight-down plan view of the play surface, or a near-plan view with the surroundings tilting away at the edges only. Do not ask for "seen from a chair" or three-quarter interiors when pieces must lie on the table.
+- **No seated people, and no furniture that implies missing people.** Player count is 2 to 6 and the app places each player's tag on a rim anchor. Chairs, stools, place settings and mugs set out for a crowd make the room read as abandoned; painted people make the count wrong. Give the play surface a continuous, calm rim band (table edge, cloth hem, pushed-back clutter) on which a tag looks natural at any of the anchor positions, and let the world feel inhabited through the owner's belongings, light and sound rather than through seats.
+- **A round table is the wrong shape.** It wastes a portrait phone: the play area is a rectangle whose proportions follow the orientation (wide in landscape, tall in portrait), with the hand dock directly below it. Round-table framing was rejected for Nox on 19 September 2026.
+
+## Distinct game UI and living scenery
+
+Every game's hand tray, die, extension actions, habitat indicators, player badges and goal UI must be bespoke to its world in material, silhouette, typography and interaction presentation—not palette variants of one universal skin. Within a game, assign different physical roles: tray/container, carved die, action token, habitat sign, player identity tag and goal object must be distinguishable without reading. Preserve shared accessibility, rules components and state semantics.
+
+Define a concrete visual restriction language before artwork generation. Die faces depict actual placement shapes and environmental materials (for example circular versus square pads, stone paving or timber). Never add cryptic symbols, invented emblems or glyph rows below habitat names. Show recognizable objects, supported by short plain labels and accessible descriptions; colour alone is insufficient. Never alter existing group membership to accommodate art. State-dependent restrictions also need explicit recognizable icons and brief accessible descriptions. Test all die outcomes against rule predicates in both content sets.
+
+Plan both landscape and dedicated portrait boards for inexpensive programmatic animation from the outset. Identify water masks, foliage pivots, layer ordering, quiet occlusion edges and static fallback in the generation brief and coordinate metadata. Keep animated scenery separate from hit targets and readable labels; do not wobble the whole illustration. Use subtle localized motion, pause when hidden/off-screen, clean up resources, and respect reduced motion. Sound is a separate later addition unless requested. Record actual layer/mask implementation rather than calling a flat image animation-ready without evidence.
+
+## Generation brief
+
+### Padding the generator can actually follow
+
+Image generators do not measure pixel coordinates. Briefs that place the sanctuary at "x340..1200, y230..775" produced compositions with almost no woodland on one or more sides (landscape: too little on every side; portrait: none above the dome). Write the padding so a model can see it:
+
+- **Say it as a fraction of the picture, then as a comparison it can check visually.** "The sanctuary fills only the middle 55% of the width and the middle 50% of the height. The band of forest around it is, on every side, at least as wide as the largest terrace." A comparison against an object in the scene survives far better than a number.
+- **Name every side separately, and name the top first.** The top edge is the side most often left bare because the dome and lookout naturally rise. Write "above the dome there is as much forest as there is below the lowest path" and "the dome roof sits at about one quarter of the image height, never near the top edge".
+- **Describe the padding as content, not as empty space.** "Dense continuous cut-paper forest with several complete tree crowns, rocks and side paths that lead nowhere" gives the model something to draw; "leave 230 px of margin" gives it nothing.
+- **Explain why, in one clause.** "This outer forest will be cropped differently on every screen" makes the model treat it as expendable and keep focal objects out of it.
+- **Give a negative for the failure you saw last time.** "Do not let any building, pad, flag, tower top or pond touch the outer band."
+- **Put the sanctuary rule in the same sentence as the size rule.** The model trades one for the other otherwise: "the sanctuary is small in the frame, but everything inside it is large and clear: pads are the biggest objects".
+
+Keep the pixel rectangles too, but as a secondary line for our own measurement, after the visual description. Ask for the intended output size explicitly and check the actual size afterwards.
+
+### Keep the style paragraph first, and never shrink the buildings
+
+Observed on 19 September 2026: v3 and v4 briefs led with framing rules and said "buildings are small folded markers, never larger than the pad group" and "pads are the biggest objects". The results were flatter, duller and less alive than v2, whose prompt led with materials, palette (moss, sage, olive, ochre, autumn accents), flowers, depth and buildings with presence. Put the style paragraph first, name v2 as the look to match, ask for large readable pads *and* full-scale buildings, and keep framing rules after the style.
+
+### Default safe area for Mora boards (accepted 19 September 2026 from v5-a)
+
+Measured on the accepted v5-a boards. Brief future boards, for any game, at these fractions, stated in the prompt as comparisons the model can see:
+
+- **Landscape 1536×1024:** the sanctuary (every building, terrace and pad, outermost pixels) spans about **85% of the width and 61% of the height**, sitting slightly high: forest bands about 7–8% each side, 9% above, 30% below. The lower band is the widest because the UI dock lives there.
+- **Portrait 1024×1536:** the sanctuary spans about **61% of the width and 57% of the height**: forest bands about 19% each side, 16% above, 27% below.
+
+Never describe these as pixel rectangles; say "the sanctuary fills the middle 85 percent of the width" and "below it there is about three times as much forest as above it".
+
+### Never let the generator look at earlier images
+
+Every run that opened previous images as references (v3, v4, the first v6 attempt) came back more generic than the run before. Style must travel as text: the style paragraph and the accepted prompt. Say in every brief that the agent must not open any image file.
+
+### Generate orientations as separate fresh prompts
+
+Observed on 19 September 2026: running the landscape and portrait v2 prompts as two independent generations produced closer building, material and palette consistency than asking the landscape thread for a portrait "of this exact same world". A follow-up in the same thread drifts toward that thread's last image and its quirks. Prefer one carefully shared style paragraph copied verbatim into each orientation's prompt, generated separately; use in-thread follow-ups only for framing corrections of the same image.
+
+### Correction pass
+
+When a generation misses the padding, do not regenerate from scratch. In the same thread, ask for an edit that only changes framing: "Pull the camera back so the whole sanctuary occupies only the central [55%] of the width and [50%] of the height, filling the new space on every side, especially above, with continuous forest in the same style. Keep every building, pad and path exactly as they are; do not add or remove any pad." Then count pads again.
+
+### Accept only with measured margins
+
+Before integrating, measure the landmark union and report, per side, `margin / source size`: top, bottom, left, right. Targets for the current framing: landscape at least 0.20 on every side; portrait at least 0.14 top, 0.30 bottom, 0.12 each side. Reject a source that misses any side even if the sanctuary itself is beautiful; the runtime will otherwise show a soft-copy margin on the affected devices.
+
+
+Include actual native dimensions requested and a proportional coordinate system. Specify gameplay and protected landmark rectangles in pixels AND percentages. State that every complete main structure must lie within the protected rectangle; no roof, flagpole, tower top or main base may protrude. Surroundings must cover all edges with no visible rectangular board rim.
+
+Describe exact habitat and slot counts, spatial groupings, quiet label anchors, creature scale and a release clearing. Give habitats different silhouettes/materials/elevations: a timber lookout and a continuous dry rocky bed should be distinguishable without reading names. Avoid repeated identical platforms. No baked text, animals, cards or UI. Preserve original reference materials (for Observatory: tactile layered cut paper, fibers, matte edges and restrained colours), with focused playable areas.
+
+Keep the useful board large enough in the source to retain native detail. Record sampling density `cropWidth / (displayedBoardWidth * devicePixelRatio)`. Upscaling does not recover detail. Built-in output may remain1536×1024 despite a larger request; verify metadata and report the actual result rather than blocking on API access.
+
+## Inspect before integration
+
+- Count every painted placement space after EVERY generation/edit; narrow edits can add or remove unintended slots.
+- Measure real slot centers, label anchors and full landmark bounding boxes. Verify them against the brief and representative viewport transforms.
+- Reject important silhouettes outside the protected area even when all slots fit. Also reject a correct source image whose runtime framing cuts main structures.
+- Inspect contact-sheet crops at supported viewport geometries when practical. These are static art/camera checks, not browser or touch acceptance.
+- Preserve versioned source, exact prompts, actual dimensions and coordinate provenance. Export full-scene WebP at native resolution and miniatures from the exact shared crop. Never stretch side regions, repeat the sanctuary, feather seams or paint a separately scaled background copy.
+
+## Responsive camera and UI
+
+One uniformly scaled source and one coordinate contract drive scene, targets and miniature crops. Canvas drawing-buffer resolution is distinct from native image resolution; retain adequate DPR, on-demand rendering, hidden-page suspension and cleanup.
+
+The camera and stage must not depend on hand count, selected pieces, confirmation, waiting status or enabled extensions. Keep the same tray dimensions for full, partial and empty hands. Optional UI does not consume stage height. Advanced view must not resize or shift the live board. When enabled, selecting a player opens a full-screen, scrollable all-player board inspection, with your own seat marked in the table order but no duplicate of your board. Show passing direction and who passes to whom. Every opponent must retain all public goal/achievement progress and remaining extension uses, including zero/spent counts; use shared data calculations and never expose private hands or pending choices. Use adaptive columns and large boards for small player counts, a prominent close X, keyboard dismissal and restored focus.
+
+- **Desktop:** retain approved framing, leaving important lower labels clear of the actual hand dock. Artwork briefs must protect upper landmarks under this offset too.
+- **Tablet:** use measured source coverage and full-landmark fit together. A modest closer view is appropriate when spare room exists; do not force every sub-1280px viewport into a small contain fit. Browser zoom can move a desktop into these same CSS dimensions.
+- **Portrait:** design a dedicated tall composition, not a crop of the landscape board. The band above the play surface must be thin (under about 14% of the height) because the floating navigation covers it and a tall far wall reads as wasted space; put the play surface high and the hand dock band below it. Give it its own measured source, habitat coordinates, labels and complete-landmark bounds while preserving all rule identities and capacities. Every playable area, creature and Release must fit one screen without horizontal or vertical board scrolling. Reserve fixed header/dock clearances before generation; never shrink a wide board into illegible targets.
+- **Short landscape phone:** leave the center full height for the board. Use side rails: back/name left; Menu, Others and time controls right. Place players, goals, hand and game actions in the remaining side-rail space without moving navigation. This is the exception to the bottom-hand layout. Verify all targets and source-edge coverage without board scrolling. Compact visual controls must remain usable; check rail overlaps with goals, confirmation and all extension actions.
+
+Normal desktop/tablet/portrait hand is a rounded floating bottom tray with a safe-area gap. Die and extension actions sit beside the tray; allow sufficient horizontal width instead of a vertical scrollbar; passing/table controls sit right. Confirmation stays near the hand without resizing the scene. Phone side trays likewise keep fixed geometry independent of count. Respect keyboard focus, reduced motion and mute. Paper standees sit directly on painted spaces without extra oval bases.
+
+Navigation floats in separate compact islands: back and game name left, time/advance-time, fullscreen and Menu/Others in a right-anchored group. Reserve separate navigation and score areas on narrow screens so they cannot overlap. Use one shared nonverbal animated player-status component across games: distinguish deciding, committed and waiting by shape as well as motion, with an additional die-roller indicator. Keep accessible names and a reduced-motion static state. Ensure score ink contrasts with its actual tag background. Goals are distinct from player badges. Do not restore a full-width toolbar strip or bottom status bar.
+
+Fullscreen needs a user gesture; orientation lock may be rejected. Keep a visible action, explain unsupported fullscreen honestly, preserve portrait fallback, and never force re-entry or fake orientation with CSS rotation.
+
+## Acceptance
+
+Test image/target alignment, slot capacities, uniform scale, protected landmark extents, edge coverage and complete portrait visibility without board scrolling. Include representative568×320,667×375,844×390,932×430 phones,1133×744 tablet,1280×720 short desktop and the user's desktop dimensions, normal/advanced view, goals on/off and empty/full hands. Do not claim all-device coverage from one full-source thumbnail or slot-only tests.
+
+Run repository tests, typecheck, lint and build. Browser/touch tools require the user's explicit authorization; automated geometry checks do not establish live control overlap or touch acceptance. Document unresolved cases clearly. This process reduces avoidable iterations but cannot guarantee exact image-generator output.
+
+## Composition calibration, not subjective zoom
+
+Record landmark-union width/source width, height/source height and bounding-box area/source area separately from the logical crop ratio. These measure useful content allocation, not actual painted pixel coverage. Record top/bottom dead space and typical native slot diameter too. Compare the rejected and accepted candidates numerically before the next prompt; specify an intermediate target and allowed tolerance rather than “make it smaller”. A correct slot count and safe bounding box are insufficient if the composition wastes native resolution on unused surroundings.
+
+For the Observatory calibration, use `node --experimental-strip-types scripts/measure-observatory-framing.mjs` and `docs/concepts/2026-09-16/observatory-framing-calibration.md`. The script reports actual source ratios, per-device landmark extents and native sampling density. Its advanced-view fixtures assume a300px opponent column; runtime uses measured width. Preserve the source/crop contract while fitting the whole landmark union between header and dock on short desktops. Use the equations and measurement process for other games, not Observatory's absolute pixel coordinates as universal constants.
+
+## Browser zoom and bounded closer framing
+
+Treat browser zoom as changed CSS viewport dimensions, not an image-generation problem. A desktop can cross tablet/phone breakpoints at125–200% zoom. Re-evaluate on element resize, window resize and visualViewport resize; remove listeners on unmount. Test fractional dimensions too. Do not use physical device labels or DPR to infer the usable board rectangle.
+
+For landscape bottom-dock layouts, derive a minimum scale for full-source coverage and a maximum scale for complete landmarks above the hand. Choose a modest preferred increase (current Observatory8%), then clamp to the feasible interval. Adjust source origin within BOTH coverage and landmark-clearance limits. Fixed top offsets plus a width-only cover calculation are insufficient. The short-phone side-rail and dedicated portrait compositions remain separate. Advanced inspection is an overlay and never changes the live camera.
+
+For source size(W,H), horizontal source anchor cx, on-screen anchor Cx, protected vertical bounds(t,b), screen heightV, header clearanceT and lower clear edgeB: minimum cover scale is max(Cx/cx,(screenWidth-Cx)/(W-cx),T/t,V/H,(V-B)/(H-b)); maximum safe scale is(B-T)/(b-t). Source Y must lie between max(T-t*s,V-H*s) and min(0,B-b*s). Also verify horizontal landmark bounds. If the interval is empty, first reclaim genuinely spare header clearance within an explicit bound; otherwise report the incompatible extreme instead of stretching, repeating scenery or hiding playable content.
+
+Record browser-zoom checks, tablet increments and the chosen camera scale separately from native image detail. Regenerate only for a measured composition/detail shortfall. A future art brief can allocate slightly more native area to play, but may not promise higher resolution or fix a CSS border problem through generation alone.
+
+MEMORY_FOLIO
+
+**Evaluating image generation needs**
+
+I need to ensure that the output is sufficiently truncated yet still meets the user's needs. The user has provided an explicit request for a high-quality portrait, and I should clarify what the image generation tool can do since it seems there's no option for size adjustment. The prompt suggests they want the largest native quality, probably around 1024x1536. So, I'll need to ensure I don’t overwrite any existing files while keeping track of the right prompts and logs.
+**Clarifying image generation process**
+
+The target file path is missing, and background logs aren't tracked, which could mean the generation process started earlier without producing an output. The user likely expects something. I need to preserve their changes and check design guidelines for any full bleed workflows. It seems I need to request compact portions of targeted skills to streamline things. The user provided a complete image prompt, so I'll spawn an agent and specify that it should generate a 1024x1536 PNG in the highest quality, reporting back the output path without copying it to the repo.
+**Managing image generation tasks**
+
+The agent is supposed to move or copy the target, but since the path doesn’t exist, I need to delegate the generation tasks properly. The instructions say to pass complete image requirements to the subagent, which can generate and report results. I should note that the target is absent and use a default output path instead. I can spawn the subagent with the full prompt and ensure it knows the necessary skills and environment relevant to the tasks at hand.
+codex
+The destination is clear and absent; I’m delegating the built-in generation, then I’ll inspect and place the PNG.
+collab: SpawnAgent
+exec
+/bin/zsh -lc "printf 'WORLD_SKILL_HEADINGS\\n'; rg -n '"'^#{1,3} |portrait|source/crop|landmark|generation brief|Composition calibration|Acceptance'"' .agents/skills/game-world-layout/SKILL.md; printf '\\nFOLIO_REFS\\n'; rg -n -i 'Folio|folded.newspaper' docs/DESIGN.md docs/illustrated-worlds.md .agents/skills/game-world-layout/SKILL.md" in /Users/williamguinaudie/Documents/code/gamehub
+ exited 1 in 0ms:
+WORLD_SKILL_HEADINGS
+3:description: Plan, generate and integrate full-screen illustrated game worlds in Gamehub, with aligned gameplay targets, stable floating hands, and landscape/portrait framing. Use for every new Gamehub game and changes to game navigation or responsive layout, as well as illustrated boards, artwork and cameras.
+6:# Illustrated game worlds
+10:## All games: navigation and one-screen play
+18:- Check long content, maximum players, selection/refresh/lock/reveal states, portrait, short landscape, tablet and browser zoom. Report static/layout reasoning separately from actual browser and touch checks.
+20:## Measure before writing the image brief
+22:Start from approved camera geometry during an artwork refresh. A measured device-specific fit adjustment is preferable to shrinking every landmark for the worst-case viewport; do not change geometry without verifying both landmark visibility and source coverage. Read the live source/crop metadata, camera offsets and UI breakpoints; do not copy obsolete numbers from historical design notes.
+27:2. **Protected landmark region:** COMPLETE silhouettes of every important building, dome, lookout, roof, canopy and base. Protect the entire recognizable object, not just its platform or placement center. A roof is not disposable scenery merely because it has no hit target.
+30:Derive the protected region from the intersection of visible source rectangles across supported desktop, tablet, short landscape phone and portrait cameras, including actual upward offsets and advanced view. Subtract floating control areas where they obscure landmarks. In portrait, protect the complete tall composition within the initially visible board area; board scrolling is not an acceptance fallback. Preserve all important vertical silhouettes. A source image looking complete is not evidence that the game's camera displays it complete.
+32:For source W×H, logical crop (left,top,cw,ch) and displayed board (bx,by,bw,bh), require bw/cw = bh/ch. Let s=bw/cw. The full scene starts at (bx-left*s, by-top*s), size(W*s,H*s). A source point maps to (bx+(px-left)*s, by+(py-top)*s). Invert this transform to calculate each viewport's visible source rectangle. Validate the entire bounding box of each landmark, including its highest and lowest points.
+34:If protected content does not fit, first quantify the mismatch. Choose a bounded camera fit for the affected device or redesign it lower, broader or farther inward. Do not overcorrect a small miss with a large global zoom-out. Do not solve an art-composition miss by widening the logical crop, shrinking the whole sanctuary into excessive scenery, moving only the image away from targets, or undoing an approved camera. For a new game without approved geometry, establish source/crop/camera jointly first.
+36:## Flat pieces on a painted world (hard constraint)
+45:- **A round table is the wrong shape.** It wastes a portrait phone: the play area is a rectangle whose proportions follow the orientation (wide in landscape, tall in portrait), with the hand dock directly below it. Round-table framing was rejected for Nox on 19 September 2026.
+47:## Distinct game UI and living scenery
+53:Plan both landscape and dedicated portrait boards for inexpensive programmatic animation from the outset. Identify water masks, foliage pivots, layer ordering, quiet occlusion edges and static fallback in the generation brief and coordinate metadata. Keep animated scenery separate from hit targets and readable labels; do not wobble the whole illustration. Use subtle localized motion, pause when hidden/off-screen, clean up resources, and respect reduced motion. Sound is a separate later addition unless requested. Record actual layer/mask implementation rather than calling a flat image animation-ready without evidence.
+55:## Generation brief
+57:### Padding the generator can actually follow
+59:Image generators do not measure pixel coordinates. Briefs that place the sanctuary at "x340..1200, y230..775" produced compositions with almost no woodland on one or more sides (landscape: too little on every side; portrait: none above the dome). Write the padding so a model can see it:
+70:### Keep the style paragraph first, and never shrink the buildings
+74:### Default safe area for Mora boards (accepted 19 September 2026 from v5-a)
+83:### Never let the generator look at earlier images
+87:### Generate orientations as separate fresh prompts
+89:Observed on 19 September 2026: running the landscape and portrait v2 prompts as two independent generations produced closer building, material and palette consistency than asking the landscape thread for a portrait "of this exact same world". A follow-up in the same thread drifts toward that thread's last image and its quirks. Prefer one carefully shared style paragraph copied verbatim into each orientation's prompt, generated separately; use in-thread follow-ups only for framing corrections of the same image.
+91:### Correction pass
+95:### Accept only with measured margins
+97:Before integrating, measure the landmark union and report, per side, `margin / source size`: top, bottom, left, right. Targets for the current framing: landscape at least 0.20 on every side; portrait at least 0.14 top, 0.30 bottom, 0.12 each side. Reject a source that misses any side even if the sanctuary itself is beautiful; the runtime will otherwise show a soft-copy margin on the affected devices.
+100:Include actual native dimensions requested and a proportional coordinate system. Specify gameplay and protected landmark rectangles in pixels AND percentages. State that every complete main structure must lie within the protected rectangle; no roof, flagpole, tower top or main base may protrude. Surroundings must cover all edges with no visible rectangular board rim.
+106:## Inspect before integration
+109:- Measure real slot centers, label anchors and full landmark bounding boxes. Verify them against the brief and representative viewport transforms.
+114:## Responsive camera and UI
+120:- **Desktop:** retain approved framing, leaving important lower labels clear of the actual hand dock. Artwork briefs must protect upper landmarks under this offset too.
+121:- **Tablet:** use measured source coverage and full-landmark fit together. A modest closer view is appropriate when spare room exists; do not force every sub-1280px viewport into a small contain fit. Browser zoom can move a desktop into these same CSS dimensions.
+122:- **Portrait:** design a dedicated tall composition, not a crop of the landscape board. The band above the play surface must be thin (under about 14% of the height) because the floating navigation covers it and a tall far wall reads as wasted space; put the play surface high and the hand dock band below it. Give it its own measured source, habitat coordinates, labels and complete-landmark bounds while preserving all rule identities and capacities. Every playable area, creature and Release must fit one screen without horizontal or vertical board scrolling. Reserve fixed header/dock clearances before generation; never shrink a wide board into illegible targets.
+125:Normal desktop/tablet/portrait hand is a rounded floating bottom tray with a safe-area gap. Die and extension actions sit beside the tray; allow sufficient horizontal width instead of a vertical scrollbar; passing/table controls sit right. Confirmation stays near the hand without resizing the scene. Phone side trays likewise keep fixed geometry independent of count. Respect keyboard focus, reduced motion and mute. Paper standees sit directly on painted spaces without extra oval bases.
+129:Fullscreen needs a user gesture; orientation lock may be rejected. Keep a visible action, explain unsupported fullscreen honestly, preserve portrait fallback, and never force re-entry or fake orientation with CSS rotation.
+131:## Acceptance
+133:Test image/target alignment, slot capacities, uniform scale, protected landmark extents, edge coverage and complete portrait visibility without board scrolling. Include representative568×320,667×375,844×390,932×430 phones,1133×744 tablet,1280×720 short desktop and the user's desktop dimensions, normal/advanced view, goals on/off and empty/full hands. Do not claim all-device coverage from one full-source thumbnail or slot-only tests.
+137:## Composition calibration, not subjective zoom
+139:Record landmark-union width/source width, height/source height and bounding-box area/source area separately from the logical crop ratio. These measure useful content allocation, not actual painted pixel coverage. Record top/bottom dead space and typical native slot diameter too. Compare the rejected and accepted candidates numerically before the next prompt; specify an intermediate target and allowed tolerance rather than “make it smaller”. A correct slot count and safe bounding box are insufficient if the composition wastes native resolution on unused surroundings.
+141:For the Observatory calibration, use `node --experimental-strip-types scripts/measure-observatory-framing.mjs` and `docs/concepts/2026-09-16/observatory-framing-calibration.md`. The script reports actual source ratios, per-device landmark extents and native sampling density. Its advanced-view fixtures assume a300px opponent column; runtime uses measured width. Preserve the source/crop contract while fitting the whole landmark union between header and dock on short desktops. Use the equations and measurement process for other games, not Observatory's absolute pixel coordinates as universal constants.
+143:## Browser zoom and bounded closer framing
+147:For landscape bottom-dock layouts, derive a minimum scale for full-source coverage and a maximum scale for complete landmarks above the hand. Choose a modest preferred increase (current Observatory8%), then clamp to the feasible interval. Adjust source origin within BOTH coverage and landmark-clearance limits. Fixed top offsets plus a width-only cover calculation are insufficient. The short-phone side-rail and dedicated portrait compositions remain separate. Advanced inspection is an overlay and never changes the live camera.
+149:For source size(W,H), horizontal source anchor cx, on-screen anchor Cx, protected vertical bounds(t,b), screen heightV, header clearanceT and lower clear edgeB: minimum cover scale is max(Cx/cx,(screenWidth-Cx)/(W-cx),T/t,V/H,(V-B)/(H-b)); maximum safe scale is(B-T)/(b-t). Source Y must lie between max(T-t*s,V-H*s) and min(0,B-b*s). Also verify horizontal landmark bounds. If the interval is empty, first reclaim genuinely spare header clearance within an explicit bound; otherwise report the incompatible extreme instead of stretching, repeating scenery or hiding playable content.
+
+FOLIO_REFS
+
+collab: Wait
+**Evaluating image output**
+
+I need to inspect the generated output before copying, using the view_image tool. The user has requested an exact target, but it's absent, which complicates things. I can inspect the image path and then copy it, but I want to verify the dimensions and the PNG format to ensure quality. The native portrait size appears to be 941x1672 instead of the anticipated 1024x1536, which raises some questions about the image generation aspect ratios. It looks like the user aims for the highest quality, so I'll need to preserve that resolution.
+**Analyzing image output and requirements**
+
+I’m considering whether the actual PNG output could be 9:16 aspect ratio since the largest native portrait size is what the user wants. The model generated dimensions are 941x1672 instead of the expected 1024x1536, which raises a few concerns. The user specifically asked for subtle newsprint details without any text, but if any pseudo-writing is discernible, that could be an issue. I’ll need to visually inspect the image and potentially ask if the agent can regenerate it with a focus on avoiding text.
+codex
+Generation finished at native portrait dimensions; I’m inspecting it for text artifacts and composition before saving.
+codex
+The layout is strong, but I see text-like marks; I’m requesting a clean-text variant.
+collab: CloseAgent
+collab: SpawnAgent
+collab: Wait
+**Resuming tool call**
+
+I think I should start by resuming the first agent and sending the input again. I might send a preamble to the user, something like, "The first generation included pseudo-text; I’m retrying through the same generator-capable delegate," just to clarify what's happening. I should also check in with the user to ensure they haven’t raised any objections before proceeding. Alright, let’s move forward with that!
+codex
+The second delegate lacked image access; I’m retrying via the generator-capable delegate.
+collab: ResumeAgent
+collab: SendInput
+collab: Wait
+codex
+The fresh 1024×1536 variant is ready; I’m verifying the no-text constraint and file format.
+**Considering shell commands**
+
+I’m looking into using shell commands for a task. The `mkdir -p` command is there to create a directory but I wonder if it’s necessary since the user might have supplied a path where the parent already exists. Instead of `mkdir`, I could check if the directory exists with `test -d ...`. As for copying files, using `cp -n` could work if the target isn't already present. I’ll also consider outputting file stats with `ls -lh`.
+codex
+The new variant has a clear sky and no text-like marks; I’m copying it and verifying PNG dimensions.
+exec
+/bin/zsh -lc 'test -d docs/concepts/2026-09-22-folio/background && test ! -e docs/concepts/2026-09-22-folio/background/bg-portrait-b.png && cp /Users/williamguinaudie/.codex/generated_images/01a0ca7e-ee5f-79e3-bd24-4e06f4c6555d/call_tFDp2Sj9omdmkHmh02P6IOVQ.png docs/concepts/2026-09-22-folio/background/bg-portrait-b.png && file docs/concepts/2026-09-22-folio/background/bg-portrait-b.png && sips -g pixelWidth -g pixelHeight docs/concepts/2026-09-22-folio/background/bg-portrait-b.png && ls -lh docs/concepts/2026-09-22-folio/background/bg-portrait-b.png' in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 38ms:
+/Users/williamguinaudie/Documents/code/gamehub/docs/concepts/2026-09-22-folio/background/bg-portrait-b.png
+  pixelWidth: 1024
+  pixelHeight: 1536
+-rw-r--r--@ 1 williamguinaudie  staff   3.0M Sep 22 21:07 docs/concepts/2026-09-22-folio/background/bg-portrait-b.png
+
+**Verifying git status**
+
+I think I might not need to check the git status, but since the user wants to save everything, I should double-check whether the target files are tracked or untracked. I'll run `git status --short target` to make it simple. The output should show that the target is untracked, though I have other untracked changes as well. I’ll ensure the directory has no issues and could wrap up my findings with bullet points, including the path and relevant details. For binary files, I can provide the full path as they don’t have line numbers.
+**Closing agents and verifying files**
+
+The `.png` file is currently untracked alongside other untracked files. I might run `git status --short -- target` just to confirm its status, though it may not be necessary. The task seems resolved now. I should mention the quality generation tool used and the prompt correction, but there's no need to cite any memory since it's irrelevant. Since image generation was delegated, I could say it was created with a built-in image generator. I'll need to close both agents to avoid concurrency, and since the user didn't ask for a cleanup, I won’t mention any leftover external files.
+collab: CloseAgent
+codex
+Generated with the built-in image tool and saved to the exact requested path: `/Users/williamguinaudie/Documents/code/gamehub/docs/concepts/2026-09-22-folio/background/bg-portrait-b.png`
+
+Verified as a 1024 × 1536 RGB PNG. The final prompt kept your brief and clarified that newsprint and crossword textures should be abstract rules and blank grids only—no text-like marks.
+tokens used
+110 619
+Generated with the built-in image tool and saved to the exact requested path: `/Users/williamguinaudie/Documents/code/gamehub/docs/concepts/2026-09-22-folio/background/bg-portrait-b.png`
+
+Verified as a 1024 × 1536 RGB PNG. The final prompt kept your brief and clarified that newsprint and crossword textures should be abstract rules and blank grids only—no text-like marks.

@@ -1,0 +1,106 @@
+{
+  "generatedAt": "2026-09-22",
+  "generator": "Built-in image_gen.imagegen",
+  "originalBrief": "Original magical mechanical skill arcade, written-only brief; no previous artwork supplied or opened.",
+  "prompts": [
+    "bosses-v1.prompt.txt",
+    "cover-v1.prompt.txt",
+    "bosses-v1-spacing-edit.prompt.txt"
+  ],
+  "generationCache": "/Users/williamguinaudie/.codex/generated_images/01a0c9ca-5a9f-7160-b7d9-015edf02a201",
+  "generatedFiles": {
+    "initialBosses": "exec-ad359716-1bc6-473f-941a-2256665baf7c.png",
+    "cover": "exec-31bb5d7b-5370-433d-91e6-800386d6802e.png",
+    "spacingEditBosses": "exec-f5f99fb5-a7ad-473d-92ae-3cfcbea1ec81.png"
+  },
+  "editReference": "sources/bosses-v1-initial.png (only the new generated character sheet)",
+  "sources": [
+    {
+      "path": "docs/concepts/2026-09-22-relic-arcade/art/characters/sources/bosses-v1-initial.png",
+      "width": 1536,
+      "height": 1024,
+      "hasAlpha": true,
+      "sha256": "64c86ba22135e65b4aafa068eeaaf29229b655fa11a468cc6e5a5bd9701bca9e"
+    },
+    {
+      "path": "docs/concepts/2026-09-22-relic-arcade/art/characters/sources/bosses-v1.png",
+      "width": 1536,
+      "height": 1024,
+      "hasAlpha": true,
+      "sha256": "546fdf9e6b71a4f638c747613903363bd8bd432f78948378727e012fe7599b8c"
+    },
+    {
+      "path": "docs/concepts/2026-09-22-relic-arcade/art/characters/sources/cover-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": false,
+      "sha256": "f52c50fdac054e967097704de203ea6806a42c9a804aa4cd643133e6be95ac87"
+    }
+  ],
+  "exports": {
+    "bosses": "public/art/relic/arcade-bosses-v1.webp",
+    "cover": "public/art/optimized/box-relic-arcade-v1.webp",
+    "responsiveWidths": [
+      320,
+      640,
+      960
+    ],
+    "spine": {
+      "path": "public/art/optimized/box-relic-arcade-v1-spine.webp",
+      "sourceCrop": {
+        "left": 0,
+        "top": 0,
+        "width": 150,
+        "height": 1254
+      }
+    }
+  },
+  "validation": {
+    "alpha": {
+      "min": 0,
+      "max": 254,
+      "transparentPixels": 1006591,
+      "totalPixels": 1572864
+    },
+    "opaqueBoundsAtAlpha128": [
+      {
+        "character": "owl",
+        "region": 0,
+        "left": 28,
+        "top": 229,
+        "right": 488,
+        "bottom": 802,
+        "boundaryPixels": 0
+      },
+      {
+        "character": "tortoise",
+        "region": 1,
+        "left": 512,
+        "top": 250,
+        "right": 1005,
+        "bottom": 806,
+        "boundaryPixels": 1
+      },
+      {
+        "character": "golem",
+        "region": 2,
+        "left": 1033,
+        "top": 141,
+        "right": 1516,
+        "bottom": 799,
+        "boundaryPixels": 0
+      }
+    ],
+    "title": "Relic",
+    "titleVisuallyReviewed": true,
+    "thumbnailPixels": 160,
+    "notes": [
+      "Initial atlas rejected for cross-third silhouette overlap; retained for provenance.",
+      "Spacing edit is used. Complete silhouettes are visible. One tortoise antialiased edge pixel touches x=512, inside the middle third.",
+      "Golem crown rises above the requested 20% upper margin to y=141 (13.8%); full crown fits its third and remains visible.",
+      "Requested cover size was 1024x1024; generator returned a 1254x1254 square. Native export preserves this resolution.",
+      "Atlas preserves genuine generated alpha; RGB under transparent pixels can look like a dark glow in some previews. Flattened inspection shows clean character cutouts.",
+      "Runtime WebP conversion preserves alpha. No previous cover images were opened or supplied."
+    ]
+  }
+}
