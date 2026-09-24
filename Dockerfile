@@ -1,4 +1,7 @@
-FROM node:24-bookworm-slim AS build
+# The build stage makes platform-independent output (static client files), so it
+# always runs on the builder's own architecture. Only the runtime stage is built
+# per target platform, which keeps arm64 out of QEMU for npm ci and the build.
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
