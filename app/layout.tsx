@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { MobileViewport } from '@/components/game/mobile-viewport';
 export const metadata: Metadata = {
   title: 'Gamehub — Your little corner of play',
   description:
@@ -16,7 +17,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <MobileViewport />
+      </body>
     </html>
   );
 }

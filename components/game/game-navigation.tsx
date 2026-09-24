@@ -15,11 +15,14 @@ export function GameNavigation({
   progress,
 }: {
   name: string;
+  /** Other progress, shown small beneath the back control. */
   progress?: string;
-  round?: { current: number; total: number };
+  /** A fixed round count, shown as a pill centred on the top bar. */
+  round?: string;
   onBack: () => void;
   onMenu: () => void;
-  onOthers: () => void;
+  /** Omitted where there is nothing private to look at (Know Me, Quiz). */
+  onOthers?: () => void;
   othersLabel?: string;
   onAdvance?: () => void;
 }) {
@@ -33,10 +36,10 @@ export function GameNavigation({
         <ArrowLeft size={18} />
         <span>{name}</span>
       </button>
-      {(round || progress) && (
-        <GameProgress
-          label={round ? `Round ${round.current} / ${round.total}` : progress!}
-        />
+      {round ? (
+        <GameProgress round label={round} />
+      ) : (
+        progress && <GameProgress label={progress} />
       )}
       <div className="game-navigation-actions">
         {onAdvance && (
@@ -49,10 +52,12 @@ export function GameNavigation({
           <EllipsisVertical size={18} />
           <span>Menu</span>
         </button>
-        <button className="game-navigation-others" onClick={onOthers}>
-          <Users size={18} />
-          <span>{othersLabel}</span>
-        </button>
+        {onOthers && (
+          <button className="game-navigation-others" onClick={onOthers}>
+            <Users size={18} />
+            <span>{othersLabel}</span>
+          </button>
+        )}
       </div>
     </nav>
   );

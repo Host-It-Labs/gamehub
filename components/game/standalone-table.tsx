@@ -19,6 +19,7 @@ import {
   type AnyMove,
 } from '@/lib/games/standalone/registry';
 import { GameNavigation } from './game-navigation';
+import { useBadgeFit } from './use-fit';
 import { SortableRanking } from './ranking-handle';
 import { topics } from '@/lib/games/party/catalog';
 import {
@@ -124,7 +125,9 @@ export function StandaloneTable({
   viewerId,
   onNextGame,
 }: Props) {
-  const [panel, setPanel] = useState<'menu' | 'rules' | 'others' | null>(null);
+  const [panel, setPanel] = useState<'menu' | 'rules' | null>(null);
+  const badges = useRef<HTMLElement>(null);
+  useBadgeFit(badges);
   const entry = standaloneGames[g.kind],
     view = online ? g : observe(g, viewerSeat);
   const oldPhase = useRef(g.phase);
@@ -192,10 +195,8 @@ export function StandaloneTable({
     >
       <GameNavigation
         name={entry.name}
-        progress={`Round ${g.round}`}
         onBack={onHome}
         onMenu={() => setPanel('menu')}
-        onOthers={() => setPanel('others')}
         onAdvance={
           g.tutorial && canTeach
             ? () =>
@@ -205,7 +206,7 @@ export function StandaloneTable({
             : undefined
         }
       />
-      <header className="party-players">
+      <header className="party-players" ref={badges}>
         {g.seats.map((name, s) => (
           <div
             key={s}
@@ -344,16 +345,10 @@ export function StandaloneTable({
       >
         <DialogContent className="party-dialog">
           <DialogTitle>
-            {panel === 'menu'
-              ? entry.name
-              : panel === 'rules'
-                ? 'How to play'
-                : 'Around the table'}
+            {panel === 'menu' ? entry.name : 'How to play'}
           </DialogTitle>
           <DialogDescription>
-            {panel === 'others'
-              ? 'Public scores and activity. Private choices stay private.'
-              : entry.progress(g).detail}
+            {entry.progress(g).detail}
           </DialogDescription>
           {panel === 'menu' && (
             <div className="party-menu">
@@ -400,23 +395,6 @@ export function StandaloneTable({
                 </p>
               ))}
             </RuleExplanation>
-          )}
-          {panel === 'others' && (
-            <>
-              <div className="party-score-list">
-                {g.seats.map((name, s) => (
-                  <p key={s}>
-                    <b>{name}</b> · {groupName(g, g.teams[s])} ·{' '}
-                    {awaitingAction(view, s) ? 'Choosing' : 'Waiting'}
-                  </p>
-                ))}
-              </div>
-              <ol>
-                {g.log.slice(-12).map((l) => (
-                  <li key={l.id}>{l.text}</li>
-                ))}
-              </ol>
-            </>
           )}
         </DialogContent>
       </Dialog>

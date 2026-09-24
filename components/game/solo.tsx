@@ -694,7 +694,7 @@ export default function SoloGame() {
               <span>{world ? gameName(g) : 'Games'}</span>
             </button>
             {!world && <TableHeading g={g} />}
-            <GameProgress label={`Round ${g.round} / ${totalRounds(g)}`} />
+            <GameProgress round label={`Round ${g.round} / ${totalRounds(g)}`} />
             <div className="table-toolbar-actions">
               <div className="table-others-slot" />
               {!world && <FullscreenControl />}

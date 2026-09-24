@@ -237,6 +237,33 @@ empty seats with bots, and disconnected humans cannot be replaced by bots.
 
 On phones (including short landscape), back/name and icon-only Menu (vertical dots) and Others share the first row. Player badges occupy a horizontally scrollable second row. Desktop keeps the existing stacked Menu/Others layout. Nox is the exception: only its table-rim player badges are rendered, with no Others control. Online Table administration is host-only during play and sits below the navigation and player rows. Nox's centered arrow shows alternating exchange direction during passing and clockwise order during tricks, using the engine's seat-order calculation.
 
+## Phone top bar, round pill and portrait lock (24 September 2026)
+
+Supersedes the two sections above where they differ. Games with a fixed number
+of rounds (Nox, Mora, Yata, Folio) show the round as a pill centred at the top,
+on its own plate so it reads over the artwork; on wide screens it hangs just
+under the centred player badges, on phones it sits in the centre of the top
+bar. Know Me and Quiz, whose length changes as they go, show no round count
+and no Others control (there is nothing private to see). On phones every game
+uses Mora's bar: back left, round centre, Others then Menu right, badges on a
+second row showing full names while they fit and the contracted badge once the
+row would scroll (`useBadgeFit`). The badge row keeps headroom so the placement
+die on a badge corner is never clipped. Nox keeps its seat badges on the table.
+The contract is `components/game/mobile-hud.css`.
+
+Phones are portrait only. A tap while a game is open asks for fullscreen and a
+portrait lock where the browser allows it (Android Chrome); leaving fullscreen
+from the menu is respected. Where the lock is unavailable (iOS Safari), a
+landscape phone shows a rotate screen. Short landscape phone layouts are no
+longer an acceptance target.
+
+On phones the Nox and Yata docks are a grid: the stage takes the free height,
+one control row (die or menus, the confirm plate, Undo in its own right-hand
+slot) rests directly on the hand whatever its height, then the hand. Yata's
+tickets grow to a third of the width. Mora's lit habitats keep their on-stage
+label nudge so the cards no longer jump when a creature is chosen, and Release
+reads at 12 px.
+
 ## Global navigation and viewport rule (21 September 2026)
 
 This rule supersedes conflicting layout exceptions below and applies to all games, including party games, practice and online play. Top left holds only back/return and the game name. Menu and Others stay on the right, with Others directly below Menu on desktop and beside Menu on phones, as detailed above; time/advance-time and fullscreen controls also belong on the right. Mobile player badges use a separate horizontally scrollable second row. Nox uses only its table-rim badges and has no Others control.
@@ -563,11 +590,13 @@ Candidates `yata-counter-{landscape,portrait}-v2-{a,b}.png` all came back in tru
 
 ## Night library and open-box setup (19 September 2026)
 
+**Superseded for the library page (24 September 2026):** the library is now only the games that play. At William's request the Direction D filler was removed: the icon rail and its dead items, filter chips, grid/list and filters tools, the fake account, the "Tonight" hero with friend avatars, tables open now, weekly leaders, friends-playing stacks and all twenty-two placeholder games. `components/game/library.tsx` is a compact sticky top bar (brand left; sound settings and Play with friends, which creates a table at `/tables`, right) above equal square boxes grouped by kind — Strategy (Nox, Mora, Yata), Party (Know Me, Quiz), Solo & co-op (Folio, Relic). Each tile shows its box (in-progress ribbon kept), name, players and time, and opens the same setup modal as before. The grouping is data: `librarySections` in `lib/games/library-fixtures.ts`; a new game goes into `libraryGames` and one section, a new kind gets a new section. Short sections share a row and longer ones wrap onto their own rows, all at one tile size (three across a phone, two below 360px, about 140–190px from 700px up). A search field appears in the bar once the catalog reaches 13 games (`SEARCH_FROM`). The fixtures no longer carry fake friends, so no game shows anyone playing. The paragraphs below describe the earlier front page.
+
 The user chose Direction D from the library concepts (`concepts/2026-09-19-library-directions`, queue 04 landscape and queue 13 portrait; the images live in the art archive). `components/game/library.tsx` is now a magazine front page: a slim icon rail, a search-and-filter bar, a "Tonight" hero with stat chips, six friend avatars and the only Play button, a live column (open tables, weekly leaders) and four horizontal shelves. Boxes no longer carry Play or Resume; each shows player count and play time and opens the setup modal. Phones stack the hero and live column and show shelves as two-column tiles under section dividers.
 
 `components/game/game-box.tsx` draws every box from three CSS faces at one shared angle with a deep visible side; sizes travel as `--gw/--gh/--gd` so stylesheets can resize per breakpoint. The three real covers are crops of the live board plates (`public/art/box-*-v3.png`: the Nox cabin, the Mora observatory, the Yata canal market). Twenty-two placeholder games in `lib/games/library-fixtures.ts` fill the shelves with material, palette and motif only; friends, open tables and the leaderboard there are fixtures too, and no navigation item beyond Play with friends and Settings leads anywhere yet.
 
-Setup follows the Direction M open-box concept in `components/game/setup-box.tsx`: the lid carries the cover, title and stat chips; the kraft tray holds a Learn leaflet, seat tokens for players, three pawns for bot difficulty, folded boards for content sets (Nox shows its Fast mode deck instead), printed extension tiles with emblem, check and info mark, and one cream Play plate. A saved match appears as a continue strip at the top of the tray, which replaces the library's Resume button.
+Setup follows the Direction M open-box concept in `components/game/setup-box.tsx`: the lid carries the cover, title and stat chips; the kraft tray holds a Learn leaflet, seat tokens for players, three pawns for bot difficulty, folded boards for content sets (Nox shows its Fast mode deck instead), printed extension tiles with emblem, check and info mark, and one cream Play plate. A saved match appears as a continue strip at the top of the tray, which replaces the library's Resume button. Since 24 September 2026 the bottom row is Learn, Play and, when a match is saved, Continue on the right; games that keep several runs (Folio, Relic) show New run and a Continue that opens a list of runs in progress (`RunPicker`). On phones the modal fits without scrolling: shorter cover, one chip row, no world sentence, Players and Bot difficulty on one row.
 
 ### Shared table navigation
 

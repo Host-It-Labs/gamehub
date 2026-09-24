@@ -287,7 +287,7 @@ export function OnlineMatch({
           <span>{world ? gameName(g) : 'My tables'}</span>
         </button>
         {!world && <TableHeading g={g} />}
-            <GameProgress label={`Round ${g.round} / ${totalRounds(g)}`} />
+            <GameProgress round label={`Round ${g.round} / ${totalRounds(g)}`} />
         <div className="table-toolbar-actions">
               <div className="table-others-slot" />
               {!world && <FullscreenControl />}

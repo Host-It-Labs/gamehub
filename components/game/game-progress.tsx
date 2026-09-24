@@ -1,9 +1,23 @@
 import './game-progress.css';
+import './mobile-hud.css';
 
-/** All games place progress immediately below their back/name control. */
-export function GameProgress({ label }: { label: string }) {
+/**
+ * Game progress. A `round` count is a pill centred on the top bar; other
+ * progress (Relic's ticket tally) stays beneath the back control. Games whose
+ * length changes as they go (Know Me, Quiz) show no round count at all.
+ */
+export function GameProgress({
+  label,
+  round = false,
+}: {
+  label: string;
+  round?: boolean;
+}) {
   return (
-    <output className="game-progress" aria-label={label}>
+    <output
+      className={`game-progress ${round ? 'is-round' : ''}`}
+      aria-label={label}
+    >
       {label}
     </output>
   );

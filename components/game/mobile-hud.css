@@ -1,0 +1,281 @@
+/* The phone top bar, one contract for every game (24 September 2026).
+   Row one: back on the left, the round pill in the centre, Others then Menu on
+   the right. Row two: the player badges, full names while they fit and the
+   contracted badge once they would scroll (useBadgeFit sets data-fit).
+   Nox keeps its badges on the seats around the table, where the tricks land.
+   This sheet is imported last and prefixes `html` so it outranks the older
+   per-world navigation layers without !important. */
+
+/* Round pill materials per world. */
+.at-table .world-table[data-environment='cabin'] {
+  --round-bg: #15130fd9;
+  --round-fg: #e9cf94;
+  --round-line: #c9a86466;
+}
+.at-table .world-table[data-environment='observatory'] {
+  --round-bg: #f6f0dcf0;
+  --round-fg: #3e412d;
+  --round-line: #6d5b3a66;
+}
+.at-table .world-table[data-environment='market'] {
+  --round-bg: #fff1d5f2;
+  --round-fg: #52341f;
+  --round-line: #68432a;
+}
+
+@media (max-width: 600px) {
+  /* ---- Trio worlds: Nox, Mora, Yata ---- */
+  html .at-table .table-layout.world-table .table-toolbar {
+    position: absolute;
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 9;
+    pointer-events: none;
+  }
+  html .at-table .table-layout.world-table .table-toolbar > * {
+    pointer-events: auto;
+  }
+  html .at-table .table-layout.world-table .table-back {
+    position: static;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  html .at-table .table-layout.world-table .table-back > span,
+  html .at-table .table-layout.world-table .table-menu-trigger > span,
+  html .at-table .table-layout.world-table .table-board-chip > span {
+    display: none;
+  }
+  html .at-table .table-layout.world-table .table-toolbar-actions {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  html .at-table .table-layout.world-table .table-others-slot {
+    order: 1;
+  }
+  html .at-table .table-layout.world-table .table-others-slot:empty {
+    display: none;
+  }
+  html .at-table .table-layout.world-table .table-menu-trigger {
+    order: 2;
+  }
+  html
+    .at-table
+    .table-layout.world-table
+    .table-toolbar-actions
+    > .game-fullscreen {
+    display: none;
+  }
+  html .at-table .table-layout.world-table .table-menu-trigger,
+  html
+    .at-table
+    .table-layout.world-table
+    .table-others-slot
+    .table-board-button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+  html
+    .at-table
+    .table-layout.world-table
+    .table-toolbar
+    > .game-progress.is-round {
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Badges: one row under the bar. The scroller keeps headroom so the
+     placement die on a badge's corner is never clipped. */
+  html
+    .at-table
+    .table-layout.world-table:not([data-environment='cabin'])
+    .table-players {
+    position: absolute;
+    top: calc(max(8px, env(safe-area-inset-top)) + 44px);
+    left: env(safe-area-inset-left);
+    right: env(safe-area-inset-right);
+    bottom: auto;
+    width: auto;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    z-index: 8;
+    overflow: visible;
+    pointer-events: none;
+  }
+  html
+    .app:has(.playing-session)
+    .table-layout.world-table:not([data-environment='cabin'])
+    .table-players {
+    left: 96px;
+  }
+  html
+    .at-table
+    .table-layout.world-table:not([data-environment='cabin'])
+    .table-players
+    .players {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: safe center;
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
+    padding: 10px 9px 3px 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    pointer-events: auto;
+  }
+  html
+    .at-table
+    .table-layout.world-table
+    .table-players
+    .players
+    > :has(.player-button) {
+    flex: 0 0 auto;
+  }
+  html
+    .at-table
+    .table-layout.world-table:not([data-environment='cabin'])
+    .table-players
+    .player-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    min-height: 38px;
+    margin: 0;
+    padding: 4px 8px 4px 5px;
+    gap: 5px;
+  }
+  html
+    .at-table
+    .table-layout.world-table:not([data-environment='cabin'])
+    .table-players
+    .player-button
+    > span:nth-child(2) {
+    display: block;
+    white-space: nowrap;
+  }
+  html
+    .at-table
+    .table-layout.world-table:not([data-environment='cabin'])
+    .table-players
+    .player-button
+    .avatar {
+    display: inline-grid;
+  }
+  html
+    .at-table
+    .table-layout.world-table
+    .table-players
+    .players[data-fit='compact']
+    .player-button
+    > span:nth-child(2) {
+    display: none;
+  }
+  html .at-table .table-layout.world-table .table-players .table-second-line {
+    position: static;
+    width: auto;
+    flex: 0 0 auto;
+  }
+  html
+    .at-table
+    .table-layout.world-table
+    .table-players
+    .table-second-line:empty {
+    display: none;
+  }
+
+  /* ---- Games on GameNavigation: Folio, Relic, Know Me, Quiz ---- */
+  html .game-navigation {
+    align-items: center;
+    min-height: 44px;
+  }
+  html .game-navigation .game-navigation-back {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    max-width: none;
+    padding: 0;
+    justify-content: center;
+  }
+  html .game-navigation .game-navigation-back > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  html .game-navigation .game-navigation-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  html .game-navigation .game-navigation-actions button {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  html .game-navigation .game-navigation-time {
+    order: 0;
+  }
+  html .game-navigation .game-navigation-others {
+    order: 1;
+  }
+  html .game-navigation .game-navigation-menu {
+    order: 2;
+  }
+  html .game-navigation > .game-progress.is-round {
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Party badges take the whole second row. */
+  html .party-table .party-players {
+    top: calc(max(8px, env(safe-area-inset-top)) + 48px);
+    left: max(6px, env(safe-area-inset-left));
+    right: max(6px, env(safe-area-inset-right));
+    flex-wrap: nowrap;
+    justify-content: safe center;
+    gap: 6px;
+    padding: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  html .party-table .party-players > * {
+    flex: 0 0 auto;
+  }
+  html .party-table .party-player > span:nth-child(2) {
+    display: block;
+    max-width: none;
+  }
+  html .party-table .party-players[data-fit='compact'] .party-player b {
+    display: none;
+  }
+  html .party-table .party-players[data-fit='compact'] .party-player {
+    padding-right: 5px;
+  }
+}

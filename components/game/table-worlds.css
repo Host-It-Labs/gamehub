@@ -901,3 +901,281 @@
   .at-table .world-table[data-environment='market'] .card-hand .token-art { height: auto; }
   .market-world .counter-board .serving-dish strong { display: block; }
 }
+
+/* ===== Nox phone dock (24 September 2026) =====
+   One control row rests directly on the shelf whatever the hand holds: the die
+   tile, the confirm plate (Pass, Clear) and Undo. A one-row hand no longer
+   leaves the controls floating where a two-row hand would end, and the table
+   takes everything above the row. `html` outranks the older portrait layers. */
+@media (orientation: portrait) and (max-width: 600px) {
+  html .at-table .table-layout.world-table[data-environment='cabin'] {
+    --world-bottom-gap: max(10px, env(safe-area-inset-bottom));
+  }
+  html .at-table .world-table[data-environment='cabin'] .play-area {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    column-gap: 6px;
+    row-gap: 14px;
+    padding: 0 8px var(--world-bottom-gap);
+    box-sizing: border-box;
+  }
+  html .at-table .world-table[data-environment='cabin'] .play-area > :not(.hand-controls, .hand-frame, .hand-confirmation, .table-players, .board-frame) {
+    grid-area: 1 / 1 / 2 / -1;
+    place-self: center;
+    z-index: 6;
+  }
+  html .at-table .world-table[data-environment='cabin'] .play-area > span:empty { display: none; }
+  /* The table: under the top bar, above the dock, with room for the outward LEAD tag. */
+  html .at-table .world-table[data-environment='cabin'] .board-frame {
+    position: relative;
+    inset: auto;
+    grid-area: 1 / 1 / 2 / -1;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    margin: calc(max(8px, env(safe-area-inset-top)) + 48px) -8px 26px;
+  }
+  html .at-table .world-table[data-environment='cabin'] .hand-controls {
+    grid-area: 2 / 1;
+    position: static;
+    inset: auto;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    display: flex;
+    align-items: flex-end;
+    transform: none;
+  }
+  html .at-table .world-table[data-environment='cabin'] .hand-abilities {
+    height: auto;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  /* The die tile: the cube fills the tile's height, the result reads beside it. */
+  html .at-table .world-table[data-environment='cabin'] .dice-token {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto;
+    min-width: 0;
+    height: 48px;
+    padding: 0 8px 0 7px;
+  }
+  html .at-table .world-table[data-environment='cabin'] .dice-token .die-display:has(.die-cube-scene) {
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+    width: auto;
+    padding: 0;
+  }
+  html .at-table .world-table[data-environment='cabin'] .die-cube-scene { --die-size: 30px; margin: 0; }
+  html .at-table .world-table[data-environment='cabin'] .dice-token .die-display:has(.die-cube-scene) .die-caption {
+    width: auto;
+    max-width: 54px;
+    height: auto;
+    margin: 0;
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 10px;
+  }
+  html .at-table .world-table[data-environment='cabin'] .extension-action,
+  html .at-table .world-table[data-environment='cabin'] .forecast-tide {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    flex-basis: 48px;
+    padding: 4px;
+  }
+  /* Pass and Clear share the row; Undo keeps its own slot on the right. */
+  html .at-table .world-table[data-environment='cabin'] .hand-confirmation {
+    grid-area: 2 / 2;
+    position: static;
+    inset: auto;
+    transform: none;
+    width: auto;
+    max-width: none;
+    margin: 0 78px 0 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  html .at-table .world-table[data-environment='cabin'] .hand-confirmation > button {
+    min-height: 48px;
+    height: 48px;
+    margin: 0;
+  }
+  html .at-table .world-table[data-environment='cabin'] .hand-confirmation .confirm-action {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  html .at-table .world-table[data-environment='cabin'] .hand-confirmation .secondary {
+    flex: 0 0 auto;
+    padding: 0 12px;
+  }
+  html .at-table .world-table[data-environment='cabin'] .hand-frame {
+    grid-area: 3 / 1 / 4 / -1;
+    position: relative;
+    inset: auto;
+    transform: none;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    align-items: center;
+    overflow: visible;
+  }
+  html .at-table .world-table[data-environment='cabin'] .undo-choice {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: calc(100% + 14px);
+    width: 72px;
+    min-height: 48px;
+    height: 48px;
+    padding: 0 4px;
+    gap: 3px;
+    font-size: 13px;
+  }
+  /* With extension tokens beside the die the row splits: die and tokens on
+     top, then Pass and Clear with Undo on the line resting on the shelf. */
+  html .at-table .world-table[data-environment='cabin'] .play-area:has(.hand-abilities > :nth-child(2)) {
+    grid-template-rows: minmax(0, 1fr) auto auto auto;
+  }
+  html .at-table .world-table[data-environment='cabin'] .play-area:has(.hand-abilities > :nth-child(2)) .hand-controls { grid-area: 2 / 1 / 3 / -1; }
+  html .at-table .world-table[data-environment='cabin'] .play-area:has(.hand-abilities > :nth-child(2)) .hand-confirmation { grid-area: 3 / 1 / 4 / -1; }
+  html .at-table .world-table[data-environment='cabin'] .play-area:has(.hand-abilities > :nth-child(2)) .hand-frame { grid-area: 4 / 1 / 5 / -1; }
+}
+
+/* ===== Yata phone layout (24 September 2026) =====
+   The counter plate is width-bound on a phone, so the room goes to the tickets
+   and the dock: one row directly above the tickets holds the menus, the
+   confirm plate and Undo (always in its own slot on the right), and the stage
+   takes everything between the badges and that row. */
+@media (orientation: portrait) and (max-width: 600px) {
+  html .at-table .table-layout.world-table[data-environment='market'] {
+    --world-bottom-gap: max(10px, env(safe-area-inset-bottom));
+  }
+  html .at-table .world-table[data-environment='market'] .play-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    column-gap: 6px;
+    row-gap: 10px;
+    padding: 0 8px var(--world-bottom-gap);
+    box-sizing: border-box;
+  }
+  html .at-table .world-table[data-environment='market'] .play-area > :not(.hand-controls, .hand-frame, .hand-confirmation, .table-players, .board-frame) {
+    grid-area: 1 / 1 / 2 / -1;
+    place-self: center;
+    z-index: 6;
+  }
+  html .at-table .world-table[data-environment='market'] .play-area > span:empty { display: none; }
+  html .world-table[data-environment='market'] .board-frame {
+    position: relative;
+    inset: auto;
+    grid-area: 1 / 1 / 2 / -1;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    margin: calc(max(8px, env(safe-area-inset-top)) + 96px) -8px 0;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-controls {
+    grid-area: 2 / 1;
+    position: static;
+    inset: auto;
+    width: auto;
+    height: auto;
+    min-height: 48px;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-controls:not(:has(> :not(:empty))) { visibility: hidden; }
+  html .at-table .world-table[data-environment='market'] .hand-abilities { justify-content: flex-start; }
+  html .at-table .world-table[data-environment='market'] .hand-confirmation {
+    grid-area: 2 / 1;
+    position: static;
+    inset: auto;
+    transform: none;
+    justify-self: end;
+    align-self: center;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-confirmation > button { min-height: 44px; margin: 0; }
+  html .at-table .world-table[data-environment='market'] .hand-frame {
+    grid-area: 3 / 1 / 4 / -1;
+    position: relative;
+    inset: auto;
+    transform: none;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+  }
+  /* Tickets: three to a row, as large as the width allows. */
+  html .at-table .world-table[data-environment='market'] .hand-frame > .hand.card-hand {
+    --hand-card-width: calc((100% - 28px) / 3);
+    --hand-card-height: clamp(110px, 16dvh, 136px);
+    gap: 6px;
+    padding: 4px;
+    height: auto;
+  }
+  html .at-table .world-table[data-environment='market'] .card-hand .token-art { height: clamp(46px, 7dvh, 60px); }
+  /* Undo: the right end of the dock row, never under a menu or the plate. */
+  html .at-table .world-table[data-environment='market'] .undo-choice {
+    position: absolute;
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: calc(100% + 10px);
+    width: 76px;
+    min-height: 44px;
+    height: 44px;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-controls,
+  html .at-table .world-table[data-environment='market'] .hand-confirmation { margin-right: 82px; }
+  /* Extensions wrap inside the dock's left column: seasons and the stall
+     permit on one line, the three customer orders sharing the next. */
+  html .at-table .world-table[data-environment='market'] .hand-abilities {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    gap: 6px;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-abilities > .festival-controls { display: contents; }
+  html .at-table .world-table[data-environment='market'] .festival-controls > .piece-wrap:has(.extension-action-stall) { order: 1; }
+  html .at-table .world-table[data-environment='market'] .festival-orders {
+    order: 2;
+    flex: 1 1 100%;
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  html .at-table .world-table[data-environment='market'] .festival-orders > .piece-wrap { flex: 1 1 0; min-width: 0; }
+  html .at-table .world-table[data-environment='market'] .festival-orders .festival-order { width: 100%; min-width: 0; }
+}

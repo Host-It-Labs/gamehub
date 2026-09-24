@@ -16,6 +16,7 @@ import { Fragment, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { OpponentBoards, PlayerResources } from './opponent-boards';
 import { PlayerStatus } from './player-status';
+import { useBadgeFit } from './use-fit';
 import {
   Dialog,
   DialogContent,
@@ -830,6 +831,7 @@ export function Players({
   progress?: ReactNode;
 }) {
   const playersRoot = useRef<HTMLDivElement>(null);
+  useBadgeFit(playersRoot);
   const [othersSlot, setOthersSlot] = useState<Element | null>(null);
   useEffect(() => {
     setOthersSlot(playersRoot.current?.closest('.table-layout')?.querySelector('.table-others-slot') ?? null);

@@ -648,7 +648,8 @@
 
 /* No ease-back; one ring only, whatever hover, drag or focus does. */
 .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-nest { transform: translate(-50%, -62%); }
-.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-ground-label { transform: translate(-50%, -50%); opacity: 1; }
+/* A lit habitat keeps its card where it was: the on-stage nudge still applies. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region .mora-ground-label { transform: translate(calc(-50% + var(--label-nudge, 0px)), -50%); opacity: 1; }
 .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.legal-region,
 .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.prepared-region,
 .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target,
@@ -840,4 +841,54 @@
   max-width: none;
   object-fit: contain;
   transform: scale(1.06);
+}
+
+/* Release reads at the size of the habitat cards (24 September 2026): the old
+   Mora board rule shrank its label to 1.2cqw, about six pixels on a phone. */
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash > span {
+  position: static;
+  transform: none;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash {
+  min-width: 96px;
+  min-height: 34px;
+  padding: 4px 10px;
+}
+@media (min-width: 900px) and (min-height: 600px) {
+  .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash > span { font-size: 14px; }
+}
+
+/* Phone: Undo stands beside the creature tray (24 September 2026). The row
+   above the tray belongs to the die, the extension tokens and the goals card,
+   which used to cover Undo when Sanctuary Goals was on. */
+@media (orientation: portrait) and (max-width: 600px) {
+  html .at-table .table-layout[data-environment='observatory'] .hand-frame {
+    left: 10px;
+    right: 66px;
+    width: auto;
+    max-width: none;
+    transform: none;
+  }
+  html .at-table .table-layout[data-environment='observatory'] .hand-frame > .hand {
+    gap: 2px;
+    padding-inline: 10px;
+    justify-content: space-between;
+  }
+  html .at-table .table-layout[data-environment='observatory'] .undo-choice {
+    left: calc(100% + 6px);
+    right: auto;
+    top: 0;
+    bottom: 0;
+    width: 50px;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    flex-direction: column;
+    gap: 0;
+    font-size: 11px;
+  }
 }

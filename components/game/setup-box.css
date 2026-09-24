@@ -849,44 +849,127 @@
 }
 
 /* A quiet, uncluttered insert under the illustrated lid. */
-.modal.setup-modal { background: #f3eee3 !important; }
-.setup-box .tray { background: #f3eee3; padding: 20px; box-shadow: none; gap: 18px; }
-.setup-box .compartment { min-width: 0; padding: 12px; background: #fffcf6; border: 1px solid #ded5c5; box-shadow: none; border-radius: 10px; }
-.setup-box .compartment legend { padding: 0 5px; font: 600 13px/1.3 inherit; }
-.setup-box .tray-row-top { grid-template-columns: 88px minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; }
-.setup-box .tray-row-bottom { grid-template-columns: minmax(0, .95fr) minmax(0, 1.65fr); gap: 12px; }
-.setup-box .seat-row, .setup-box .pawn-row { gap: 4px; }
-.setup-box .seat, .setup-box .pawn-choice { min-width: 0; padding: 9px 4px; }
-.setup-box .leaflet { min-width: 0; width: auto; border: 1px solid #ded5c5; border-radius: 10px; box-shadow: none; }
-.setup-box .extensions .extension-choices { display: flex; flex-wrap: wrap; gap: 7px; }
-.setup-box .extensions .extension-tile { flex: 1 1 80px; min-width: 0; }
-.setup-box .extensions .extension-tile-toggle { min-width: 0; padding: 10px 5px; }
-.setup-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
-.setup-actions .play-plate, .setup-actions .resume-strip { margin: 0; min-width: 0; min-height: 66px; height: auto; box-sizing: border-box; border: 1px solid #bda47a; border-radius: 10px; background: #fff9ec; box-shadow: 0 3px 0 #d2c2a5; }
-.setup-actions .play-plate { font-size: 23px; }
-.setup-actions .resume-strip { padding: 10px 14px; display: flex; justify-content: center; gap: 10px; }
-.setup-actions .resume-thumb { display: none; }
-.setup-actions .resume-copy { min-width: 0; }
-.setup-actions .resume-copy strong { font-size: 17px; }
-.setup-actions .resume-copy small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.setup-actions .resume-go { flex: none; }
-.deck-choices { display: flex; flex-direction: column; gap: 6px; }
-.deck-choice { display: flex; align-items: center; gap: 10px; border: 1px solid #ddd3c1; border-radius: 7px; padding: 8px; cursor: pointer; }
-.deck-choice:has([aria-checked='true']) { background: #f2e3bf; border-color: #a88646; box-shadow: inset 0 0 0 1px #a88646; }
-.deck-choice:has(:focus-visible) { outline: 3px solid #9471ab; outline-offset: 2px; }
-.deck-glyph { flex: none; display: grid; place-items: center; width: 38px; height: 44px; border-radius: 4px; background: #423624; color: #f6dfa1; font: 700 13px Georgia, serif; box-shadow: 2px 2px 0 #b8a47b; }
-.deck-choice strong, .deck-choice small { display: block; }
-.deck-choice strong { font-size: 13px; }
-.deck-choice small { margin-top: 3px; font-size: 10px; color: #6b6255; }
-@media (max-width: 600px) {
-  .setup-box .tray-row-top { grid-template-columns: 1fr 1fr; }
-  .setup-box .leaflet { grid-column: 1/-1; }
-  .setup-box .tray-row-bottom { grid-template-columns: 1fr; }
+.modal.setup-modal {
+  background: #f3eee3 !important;
 }
-.setup-box .tray-row-top:not(:has(.leaflet)) { grid-template-columns: 1fr 1fr; }
+.setup-box .tray {
+  background: #f3eee3;
+  padding: 20px;
+  box-shadow: none;
+  gap: 18px;
+}
+.setup-box .compartment {
+  min-width: 0;
+  padding: 12px;
+  background: #fffcf6;
+  border: 1px solid #ded5c5;
+  box-shadow: none;
+  border-radius: 10px;
+}
+.setup-box .compartment legend {
+  padding: 0 5px;
+  font: 600 13px/1.3 inherit;
+}
+.setup-box .tray-row-top {
+  grid-template-columns: 88px minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.setup-box .tray-row-bottom {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.65fr);
+  gap: 12px;
+}
+.setup-box .seat-row,
+.setup-box .pawn-row {
+  gap: 4px;
+}
+.setup-box .seat,
+.setup-box .pawn-choice {
+  min-width: 0;
+  padding: 9px 4px;
+}
+.setup-box .leaflet {
+  min-width: 0;
+  width: auto;
+  border: 1px solid #ded5c5;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.setup-box .extensions .extension-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.setup-box .extensions .extension-tile {
+  flex: 1 1 80px;
+  min-width: 0;
+}
+.setup-box .extensions .extension-tile-toggle {
+  min-width: 0;
+  padding: 10px 5px;
+}
+.deck-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.deck-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ddd3c1;
+  border-radius: 7px;
+  padding: 8px;
+  cursor: pointer;
+}
+.deck-choice:has([aria-checked='true']) {
+  background: #f2e3bf;
+  border-color: #a88646;
+  box-shadow: inset 0 0 0 1px #a88646;
+}
+.deck-choice:has(:focus-visible) {
+  outline: 3px solid #9471ab;
+  outline-offset: 2px;
+}
+.deck-glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 44px;
+  border-radius: 4px;
+  background: #423624;
+  color: #f6dfa1;
+  font:
+    700 13px Georgia,
+    serif;
+  box-shadow: 2px 2px 0 #b8a47b;
+}
+.deck-choice strong {
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .setup-box .tray-row-top {
+    grid-template-columns: 1fr 1fr;
+  }
+  .setup-box .leaflet {
+    grid-column: 1/-1;
+  }
+  .setup-box .tray-row-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+.setup-box .tray-row-top:not(:has(.leaflet)) {
+  grid-template-columns: 1fr 1fr;
+}
 
-.lid.orin .lid-art,.lid.miro .lid-art{background:var(--box-deep)}
-.lid.orin .lid-art img,.lid.miro .lid-art img{object-fit:contain}
+.lid.orin .lid-art,
+.lid.miro .lid-art {
+  background: var(--box-deep);
+}
+.lid.orin .lid-art img,
+.lid.miro .lid-art img {
+  object-fit: contain;
+}
 
 /* The introduction and its separate, compact practice button. */
 .setup-intro {
@@ -919,11 +1002,27 @@
   font-weight: 750;
   cursor: pointer;
 }
-.setup-learn svg { width: 18px; height: 18px; }
-.setup-learn:hover { background: #fff3d9; border-color: #90734b; }
-.setup-learn:active { background: #f2e3c6; box-shadow: none; }
-.host-picker legend { display: inline-flex; align-items: center; gap: 6px; }
-.host-picker legend svg { width: 15px; height: 15px; }
+.setup-learn svg {
+  width: 18px;
+  height: 18px;
+}
+.setup-learn:hover {
+  background: #fff3d9;
+  border-color: #90734b;
+}
+.setup-learn:active {
+  background: #f2e3c6;
+  box-shadow: none;
+}
+.host-picker legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.host-picker legend svg {
+  width: 15px;
+  height: 15px;
+}
 .host-seats {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
@@ -959,15 +1058,31 @@
   height: 38px;
   border-radius: 50%;
   background: #e7dcc7;
-  box-shadow: inset 0 0 0 2px #fffcf6, 0 0 0 1.5px #ae9a7a;
+  box-shadow:
+    inset 0 0 0 2px #fffcf6,
+    0 0 0 1.5px #ae9a7a;
   color: #493a28;
   font-size: 16px;
   font-weight: 800;
 }
-.host-seat.present .host-avatar { box-shadow: inset 0 0 0 2px #fffcf6, 0 0 0 2px #526848; }
-.host-seat.away { opacity: 0.55; }
-.host-seat.empty { border-style: dashed; background: transparent; box-shadow: none; cursor: default; }
-.host-seat.empty .host-avatar { background: none; box-shadow: inset 0 0 0 1.5px #c8b99f; }
+.host-seat.present .host-avatar {
+  box-shadow:
+    inset 0 0 0 2px #fffcf6,
+    0 0 0 2px #526848;
+}
+.host-seat.away {
+  opacity: 0.55;
+}
+.host-seat.empty {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+}
+.host-seat.empty .host-avatar {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px #c8b99f;
+}
 .host-crown {
   position: absolute;
   top: 5px;
@@ -977,29 +1092,56 @@
   color: #b0852f;
   opacity: 0;
 }
-.host-seat:hover:not(:has([data-disabled])):not(.empty) { border-color: #8a7353; background: #f1e8d7; }
+.host-seat:hover:not(:has([data-disabled])):not(.empty) {
+  border-color: #8a7353;
+  background: #f1e8d7;
+}
 .host-seat:has([data-checked]) {
   background: #f6ecd2;
   border-color: #b0852f;
-  box-shadow: inset 0 0 0 1px #b0852f, 0 2px 0 #e0cf9f;
+  box-shadow:
+    inset 0 0 0 1px #b0852f,
+    0 2px 0 #e0cf9f;
 }
-.host-seat:has([data-checked]) .host-crown { opacity: 1; }
-.host-seat:has(:focus-visible) { outline: 3px solid #9471ab; outline-offset: 3px; }
-.host-seat:has([data-disabled]) { cursor: default; }
+.host-seat:has([data-checked]) .host-crown {
+  opacity: 1;
+}
+.host-seat:has(:focus-visible) {
+  outline: 3px solid #9471ab;
+  outline-offset: 3px;
+}
+.host-seat:has([data-disabled]) {
+  cursor: default;
+}
 @media (max-width: 480px) {
-  .setup-box .tray { padding: 14px 12px; }
-  .setup-intro { gap: 10px; }
-  .setup-intro .tray-note { font-size: 14px; }
-  .setup-learn { padding: 10px; gap: 6px; }
-  .setup-box .tray-row-top:not(:has(.leaflet)) { grid-template-columns: 1fr; }
+  .setup-box .tray {
+    padding: 14px 12px;
+  }
+  .setup-intro {
+    gap: 10px;
+  }
+  .setup-intro .tray-note {
+    font-size: 14px;
+  }
+  .setup-learn {
+    padding: 10px;
+    gap: 6px;
+  }
+  .setup-box .tray-row-top:not(:has(.leaflet)) {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Show the whole printed cover, including its title, in the opened lid. */
 .lid.printed-cover .lid-art {
   aspect-ratio: auto;
-  height: clamp(180px, 34dvh, 280px);
+  height: clamp(180px, 28dvh, 280px);
   min-height: 0;
-  background: radial-gradient(ellipse at center, var(--box-mid), var(--box-deep));
+  background: radial-gradient(
+    ellipse at center,
+    var(--box-mid),
+    var(--box-deep)
+  );
 }
 .lid.printed-cover .lid-art .artwork-frame {
   inset: 0 auto 0 50%;
@@ -1008,8 +1150,414 @@
   aspect-ratio: 1;
   transform: translateX(-50%);
 }
-.lid.printed-cover .lid-art img { object-fit: cover; object-position: center; }
-.lid.printed-cover .lid-art::after { display: none; }
+.lid.printed-cover .lid-art img {
+  object-fit: cover;
+  object-position: center;
+}
+.lid.printed-cover .lid-art::after {
+  display: none;
+}
 @media (max-height: 560px) and (orientation: landscape) {
-  .lid.printed-cover .lid-art { height: 110px; }
+  .lid.printed-cover .lid-art {
+    height: 110px;
+  }
+}
+
+/* Actions: a secondary Learn (or Practise), the cream Play plate and, when
+ * there is something to resume, Continue, side by side at a normal height. */
+.setup-actions {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.modal.setup-modal .setup-actions > * {
+  margin: 0;
+  min-width: 0;
+  min-height: 52px;
+  box-sizing: border-box;
+}
+.modal.setup-modal .setup-actions .play-plate {
+  flex: 1.3 1 0;
+  gap: 10px;
+  padding: 0 16px;
+  border: 1px solid #bda47a;
+  border-radius: 10px;
+  background: #fff9ec;
+  box-shadow: 0 3px 0 #d2c2a5;
+  font-size: 21px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.modal.setup-modal .setup-actions .play-plate svg {
+  width: 17px;
+  height: 17px;
+}
+.modal.setup-modal .setup-actions .play-plate:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+.modal.setup-modal .setup-actions .setup-learn {
+  flex: none;
+  white-space: nowrap;
+}
+.modal.setup-modal .setup-actions .resume-strip,
+.modal.setup-modal .setup-actions .run-picker {
+  flex: 1 1 0;
+}
+.modal.setup-modal .setup-actions .resume-strip {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1px solid #bda47a;
+  border-radius: 10px;
+  background: #fffcf6;
+  box-shadow: 0 3px 0 #d2c2a5;
+  color: var(--lib-ink);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.modal.setup-modal .setup-actions .resume-strip:hover {
+  background: #fff3d9;
+  border-color: #90734b;
+}
+.modal.setup-modal .setup-actions .resume-copy {
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+}
+.modal.setup-modal .setup-actions .resume-copy strong {
+  font:
+    700 17px/1.1 Georgia,
+    'Times New Roman',
+    serif;
+}
+.modal.setup-modal .setup-actions .resume-copy small {
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.run-picker {
+  display: flex;
+}
+/* The number of runs rides on Continue's corner, like a count on a tab. */
+.modal.setup-modal .run-picker .resume-strip {
+  position: relative;
+}
+.run-count {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--lib-walnut);
+  box-shadow: 0 0 0 2px #f3eee3;
+  color: #fff4dd;
+  font-size: 12px;
+  font-weight: 800;
+}
+.run-picker .resume-strip[aria-expanded='true'] {
+  background: #f6ecd8;
+  border-color: #90734b;
+}
+/* The runs list opens upward from Continue, over the tray, and scrolls inside. */
+.run-list {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: min(100%, 380px);
+  max-height: min(46dvh, 320px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid #bda47a;
+  border-radius: 12px;
+  background: #fffcf6;
+  box-shadow:
+    0 18px 40px -16px #1a120880,
+    0 3px 0 #d2c2a5;
+}
+.run-list a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 8px;
+  color: var(--lib-ink);
+  text-decoration: none;
+}
+.run-list a:hover {
+  background: #f6ecd8;
+}
+.run-list a:focus-visible {
+  outline: 3px solid #9471ab;
+  outline-offset: -3px;
+}
+.run-list a > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--lib-ink-3);
+}
+.run-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  background: #efe4cc;
+  color: var(--lib-walnut);
+}
+.run-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.run-copy {
+  display: grid;
+  min-width: 0;
+}
+.run-copy strong,
+.run-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.run-copy strong {
+  font:
+    700 14px/1.25 Georgia,
+    serif;
+}
+.run-copy small {
+  font-size: 12px;
+  color: var(--lib-ink-2);
+}
+
+/* Phones: one short screen. A smaller lid, a single row of stat chips, the
+ * world line read out rather than shown, tighter compartments and tiles. */
+@media (max-width: 600px) {
+  .modal.setup-modal {
+    width: calc(100vw - 12px);
+    max-height: calc(100dvh - 12px);
+  }
+  .modal.setup-modal .lid-art,
+  .modal.setup-modal .lid.printed-cover .lid-art {
+    aspect-ratio: auto;
+    min-height: 0;
+    height: clamp(112px, 22dvh, 200px);
+  }
+  .modal.setup-modal .lid-title {
+    font-size: 38px;
+    padding-bottom: 10px;
+  }
+  .modal.setup-modal .lid-edge {
+    padding: 6px 8px;
+  }
+  .modal.setup-modal .lid-edge .stat-strip {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .modal.setup-modal .lid-edge .stat-strip .stat {
+    height: 26px;
+    padding: 0 8px;
+    gap: 4px;
+    border-radius: 8px;
+    font-size: 11.5px;
+  }
+  .modal.setup-modal .lid-edge .stat-strip .stat svg {
+    width: 13px;
+    height: 13px;
+  }
+  .modal.setup-modal .setup-intro {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .setup-box .tray {
+    padding: 10px;
+    gap: 8px;
+  }
+  .setup-box .compartment {
+    padding: 8px;
+  }
+  .modal.setup-modal .compartment > legend,
+  .modal.setup-modal .compartment legend,
+  .modal.setup-modal .compartment .content-choice > legend,
+  .modal.setup-modal .compartment .extension-choices > legend {
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  /* Players and bots share one row. */
+  .setup-box .tray-row-top,
+  .setup-box .tray-row-top:not(:has(.leaflet)) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+  .setup-box .tray-row-top:not(:has(.bots)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .setup-box .tray-row-bottom {
+    gap: 8px;
+  }
+  .modal.setup-modal .seat-row,
+  .modal.setup-modal .pawn-row {
+    gap: 2px !important;
+  }
+  .setup-box .seat,
+  .setup-box .pawn-choice {
+    gap: 2px;
+    padding: 5px 0 3px;
+  }
+  .seat b,
+  .pawn-choice b {
+    font-size: 12px;
+  }
+  .chair {
+    width: 22px;
+    height: 26px;
+  }
+  .chair::before {
+    height: 14px;
+  }
+  .chair i {
+    top: 12px;
+    height: 8px;
+  }
+  .pawn {
+    height: 28px;
+  }
+  .modal.setup-modal .content-choice > div {
+    gap: 6px;
+  }
+  .modal.setup-modal .content-choice button {
+    padding: 24px 6px 8px;
+    gap: 2px;
+  }
+  .modal.setup-modal .content-choice button::before {
+    top: 6px;
+    left: 8px;
+    right: 8px;
+    height: 12px;
+  }
+  .modal.setup-modal .content-choice button::after {
+    width: 14px;
+    height: 14px;
+    right: 6px;
+    bottom: 6px;
+  }
+  .modal.setup-modal .content-choice button strong {
+    font-size: 13px;
+  }
+  .modal.setup-modal .content-choice button small {
+    font-size: 10.5px;
+  }
+  .deck-choices {
+    flex-direction: row;
+  }
+  .deck-choice {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 8px;
+    padding: 6px;
+  }
+  .deck-glyph {
+    width: 32px;
+    height: 36px;
+    font-size: 12px;
+  }
+  .setup-box .extensions .extension-choices {
+    gap: 6px;
+  }
+  .modal.setup-modal .extension-grid {
+    gap: 6px;
+  }
+  .modal.setup-modal .extension-tile-toggle,
+  .setup-box .extensions .extension-tile-toggle {
+    min-height: 70px;
+    gap: 4px;
+    padding: 8px 4px 24px;
+  }
+  .modal.setup-modal .extension-tile-toggle > svg {
+    width: 24px;
+    height: 24px;
+  }
+  .modal.setup-modal .extension-tile-toggle strong {
+    font-size: 11.5px;
+  }
+  .modal.setup-modal .extension-tile .expansion-check,
+  .modal.setup-modal .extension-tile:not(.enabled)::after {
+    bottom: 5px;
+  }
+  .modal.setup-modal .extension-info {
+    top: 2px;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+  }
+  .host-seats {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 6px;
+  }
+  .host-seat {
+    min-height: 0;
+    padding: 6px 4px;
+    gap: 4px;
+  }
+  .host-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+  .setup-actions {
+    gap: 8px;
+  }
+  .modal.setup-modal .setup-actions > * {
+    min-height: 44px;
+  }
+  .modal.setup-modal .setup-actions .play-plate {
+    padding: 0 12px;
+    font-size: 18px;
+    gap: 8px;
+  }
+  .modal.setup-modal .setup-actions .play-plate svg {
+    width: 15px;
+    height: 15px;
+  }
+  .modal.setup-modal .setup-actions .setup-learn {
+    min-height: 44px;
+    padding: 0 12px;
+    gap: 6px;
+    font-size: 14px;
+  }
+  .modal.setup-modal .setup-actions .setup-learn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .modal.setup-modal .setup-actions .resume-copy strong {
+    font-size: 16px;
+  }
+  .modal.setup-modal .setup-actions .resume-copy small {
+    font-size: 10.5px;
+  }
 }

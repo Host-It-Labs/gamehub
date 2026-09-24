@@ -8,10 +8,9 @@ import {
 } from '../lib/games/standalone/registry.ts';
 import {
   gameByLibraryId,
+  librarySections,
   libraryGames,
-  placeholderGames,
   playableGame,
-  shelves,
   standaloneLibraryGames,
 } from '../lib/games/library-fixtures.ts';
 
@@ -51,7 +50,10 @@ await test('every standalone game plays through at every table size it offers', 
     for (const seats of entry.seatChoices) {
       const fresh = entry.create(seats, seats * 31 + 7, 'medium');
       // Every set match, under either id, opens on its team game's state.
-      assert.equal(fresh.kind, id === 'dial' ? 'orin' : id === 'size' ? 'miro' : id);
+      assert.equal(
+        fresh.kind,
+        id === 'dial' ? 'orin' : id === 'size' ? 'miro' : id,
+      );
       assert.equal(
         fresh.seats.length,
         seats,
@@ -111,11 +113,6 @@ await test('the library shelves them as playable games, not as placeholders', ()
     assert.equal(game.name, standaloneGames[id].name);
     assert.ok(playableGame(id), `${id} opens from the library`);
     assert.equal(gameByLibraryId(id), game);
-    assert.equal(
-      placeholderGames.some((p) => p.id === id),
-      false,
-      `${id} is no longer standing in for itself`,
-    );
     // The setup box offers the seats the rules support, so the two must agree.
     const [min, max] = game.players;
     const choices = standaloneGames[id].seatChoices;
@@ -137,19 +134,24 @@ await test('the library shelves them as playable games, not as placeholders', ()
   );
 });
 
-await test('every shelf entry still resolves, including the promoted three', () => {
-  for (const shelf of shelves)
-    for (const id of shelf.games)
-      assert.ok(
-        gameByLibraryId(id),
-        `${shelf.id} lists a game that exists: ${id}`,
-      );
-  const shelved = new Set(shelves.flatMap((s) => s.games));
-  for (const id of publicStandaloneIds)
+await test('the library shows only games that play, each in exactly one section', () => {
+  for (const game of libraryGames)
+    assert.ok(playableGame(game.id), `${game.id} opens and plays`);
+  const listed = librarySections.flatMap((s) => s.games);
+  for (const id of listed)
+    assert.ok(gameByLibraryId(id), `a section lists a game that exists: ${id}`);
+  assert.equal(
+    new Set(listed).size,
+    listed.length,
+    'no game is in two sections',
+  );
+  for (const game of libraryGames)
     assert.ok(
-      shelved.has(id),
-      `${id} is on a shelf where somebody will find it`,
+      listed.includes(game.id),
+      `${game.id} is in a section where somebody will find it`,
     );
+  for (const id of publicStandaloneIds)
+    assert.ok(listed.includes(id), `${id} is on the library page`);
 });
 
 await test('the shelf and the table agree about which games open', async () => {
@@ -168,6 +170,9 @@ await test('the shelf and the table agree about which games open', async () => {
   const box = await source('components/game/game-box.tsx');
   // Any box with printed art shows it, including Folio and Relic, which have no engine id.
   assert.match(box, /cover \? \(/);
-  assert.match(box, /game\.cover \?\? \(developed && printedBoxArt\(developed\)\.cover\)/);
+  assert.match(
+    box,
+    /game\.cover \?\? \(developed && printedBoxArt\(developed\)\.cover\)/,
+  );
   assert.match(box, /game\.gameId \?\? game\.standaloneId \?\? 'placeholder'/);
 });

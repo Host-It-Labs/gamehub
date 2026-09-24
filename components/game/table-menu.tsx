@@ -1,6 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { EllipsisVertical, BookOpen, List, Trophy, Volume2, Maximize, Minimize } from 'lucide-react';
+import {
+  EllipsisVertical,
+  BookOpen,
+  List,
+  Trophy,
+  Volume2,
+  Maximize,
+  Minimize,
+} from 'lucide-react';
 import {
   Popover,
   PopoverTrigger,
@@ -63,8 +71,15 @@ export function TableMenu({
           {soundLabel}
         </button>
         {fullscreen && (
-          <button onClick={() => show(() => void fullscreen.toggle())}>
-            {fullscreen.active ? <Minimize size={18} /> : <Maximize size={18} />}
+          <button
+            data-fullscreen-toggle
+            onClick={() => show(() => void fullscreen.toggle())}
+          >
+            {fullscreen.active ? (
+              <Minimize size={18} />
+            ) : (
+              <Maximize size={18} />
+            )}
             {fullscreen.active ? 'Exit fullscreen' : 'Play fullscreen'}
           </button>
         )}

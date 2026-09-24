@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Factory, Play, Sparkles, Ticket } from 'lucide-react';
+import { Factory, Play, Sparkles, Ticket } from 'lucide-react';
 import { DialogDescription } from '@/components/ui/dialog';
 import { api, rememberedName, rememberName } from '@/lib/online/client';
 import type {
@@ -8,7 +8,7 @@ import type {
   ExpeditionView,
 } from '@/lib/games/relic/types';
 import type { LibraryGame } from '@/lib/games/library-fixtures';
-import { Lid } from './setup-box';
+import { Lid, RunPicker } from './setup-box';
 import './online-boxes.css';
 
 type Session = {
@@ -89,31 +89,6 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
           </li>
         </ul>
 
-        {desks.length > 0 && (
-          <fieldset className="compartment relic-box-desks">
-            <legend>Your desks</legend>
-            <ul>
-              {desks.slice(0, 4).map((d) => (
-                <li key={d.token}>
-                  <a href={`/expedition/${d.token}`}>
-                    <span className="relic-box-stub" aria-hidden="true">
-                      <Ticket />
-                    </span>
-                    <span className="relic-box-desk-copy">
-                      <strong>{d.name}</strong>
-                      <small>
-                        {d.members.join(' · ')} · {d.tickets ?? 0} tickets
-                        finished
-                      </small>
-                    </span>
-                    <ArrowRight aria-hidden="true" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </fieldset>
-        )}
-
         <form
           className="relic-box-new"
           onSubmit={(e) => {
@@ -136,9 +111,7 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
               </label>
             )}
             <label className="compartment online-name">
-              <span className="online-legend">
-                {desks.length ? 'New desk name' : 'Desk name'}
-              </span>
+              <span className="online-legend">Desk name</span>
               <input
                 required
                 maxLength={40}
@@ -147,18 +120,12 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
               />
             </label>
           </div>
-          <p className="tray-soon">
-            Scratch tickets together, share one purse, and build a little
-            factory that prints better tickets. Invite friends with the desk’s
-            link. No real money, ever.
-            {!session?.user && !loading && (
-              <>
-                {' '}
-                Saved in this browser; <a href="/auth">sign in</a> to play on
-                other devices.
-              </>
-            )}
-          </p>
+          {!session?.user && !loading && (
+            <p className="tray-soon">
+              Saved in this browser. <a href="/auth">Sign in</a> to play
+              anywhere.
+            </p>
+          )}
           {error && (
             <p role="alert" className="online-error">
               {error}
@@ -170,12 +137,19 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
               disabled={loading || busy || (!known && !name.trim())}
             >
               <Play aria-hidden="true" />
-              {busy
-                ? 'Turning the key…'
-                : desks.length
-                  ? 'Open a new desk'
-                  : 'Let’s play'}
+              {busy ? 'Opening…' : 'New desk'}
             </button>
+            <RunPicker
+              noun="desk"
+              runs={desks.map((d) => ({
+                key: d.token,
+                href: `/expedition/${d.token}`,
+                label: `Continue at ${d.name}: ${d.members.join(', ')}, ${d.tickets ?? 0} tickets finished`,
+                icon: <Ticket />,
+                title: d.name,
+                detail: `${d.members.join(' · ')} · ${d.tickets ?? 0} tickets`,
+              }))}
+            />
           </div>
         </form>
       </div>

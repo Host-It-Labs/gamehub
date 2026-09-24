@@ -226,73 +226,49 @@
   display: grid;
   gap: 18px;
 }
-.relic-box-desks ul {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.relic-box-desks a {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 6px 12px 6px 6px;
-  border: 1px dashed #b8733a;
-  border-radius: 8px;
-  background: #fbf2de;
-  color: var(--lib-ink);
-  text-decoration: none;
-}
-.relic-box-desks a:hover {
-  background: #f6e3bb;
-  border-style: solid;
-}
-.relic-box-desks a:focus-visible {
-  outline: 3px solid #9471ab;
-  outline-offset: 2px;
-}
-.relic-box-stub {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 40px;
-  border-radius: 5px;
-  /* Silver scratch foil over the stub. */
-  background:
-    repeating-linear-gradient(135deg, #ffffff55 0 2px, transparent 2px 5px),
-    linear-gradient(135deg, #c9cdd0, #8e9699);
-  color: #1f4d4f;
-}
-.relic-box-stub svg {
-  width: 20px;
-  height: 20px;
-}
-.relic-box-desk-copy {
-  display: grid;
-  min-width: 0;
-}
-.relic-box-desk-copy strong {
-  font:
-    700 15px/1.2 Georgia,
-    serif;
-}
-.relic-box-desk-copy small {
-  font-size: 12px;
-  color: var(--lib-ink-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.relic-box-desks a > svg {
-  width: 18px;
-  height: 18px;
-  color: #b8733a;
-}
 .relic-box .setup-actions .play-plate:not(:disabled):hover {
   color: #1f4d4f;
+}
+/* Phones: the name field, choices and practice list pack tighter; the
+ * difficulty note and the box facts stay on wider screens. */
+@media (max-width: 600px) {
+  .online-box .online-box-row {
+    gap: 8px;
+  }
+  .relic-box .online-box-row {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  .online-box .online-name {
+    gap: 4px;
+  }
+  .online-box .online-name input {
+    min-height: 40px;
+    padding: 6px 10px;
+  }
+  .online-box .online-note,
+  .relic-box-facts {
+    display: none;
+  }
+  .online-box .online-choice {
+    gap: 4px;
+    padding: 6px 4px;
+  }
+  .folio-box-people {
+    height: 20px;
+  }
+  .relic-box-new {
+    gap: 8px;
+  }
+  .folio-box-practice ul {
+    max-height: 44dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .online-box .tray-soon {
+    padding: 0 4px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
 }
 @media (max-width: 480px) {
   .folio-box-practice li {

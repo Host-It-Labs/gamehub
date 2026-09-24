@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { printedBoxArt } from '@/lib/games/box-covers';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import {
@@ -46,10 +47,7 @@ import {
   type GameOptions,
 } from '@/lib/games/trio/engine';
 import { playerRange, type LibraryGame } from '@/lib/games/library-fixtures';
-import {
-  standaloneGames,
-  type AnyGame,
-} from '@/lib/games/standalone/registry';
+import { standaloneGames, type AnyGame } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
 import './setup-box.css';
 
@@ -101,7 +99,9 @@ export function Lid({ game }: { game: LibraryGame }) {
           <ArtworkImage
             src={cover}
             width={1024}
-            height={game.coverIncludesTitle ? 1024 : game.standaloneId ? 1536 : 683}
+            height={
+              game.coverIncludesTitle ? 1024 : game.standaloneId ? 1536 : 683
+            }
             sizes="(max-width: 760px) 100vw, 720px"
             alt=""
             draggable={false}
@@ -111,7 +111,11 @@ export function Lid({ game }: { game: LibraryGame }) {
             <Motif strokeWidth={1.3} />
           </span>
         )}
-        <DialogTitle className={game.coverIncludesTitle ? "sr-only" : "lid-title"}>{game.name}</DialogTitle>
+        <DialogTitle
+          className={game.coverIncludesTitle ? 'sr-only' : 'lid-title'}
+        >
+          {game.name}
+        </DialogTitle>
       </div>
       <div className="lid-edge">
         <StatStrip game={game} full />
@@ -120,14 +124,163 @@ export function Lid({ game }: { game: LibraryGame }) {
   );
 }
 
-function SetupIntro({ game, onLearn, disabled = false }: { game: LibraryGame; onLearn: () => void; disabled?: boolean }) {
+/** The world line: shown on wide screens, read out on phones (see setup-box.css). */
+function SetupIntro({ game }: { game: LibraryGame }) {
   return (
     <div className="setup-intro">
       <DialogDescription className="tray-note">{game.world}.</DialogDescription>
-      <button type="button" className="setup-learn" disabled={disabled} onClick={onLearn}>
-        <BookOpen aria-hidden="true" />
-        <span>Learn</span>
+    </div>
+  );
+}
+
+/** The secondary action beside Play: Learn for most games, Practise for Folio. */
+export function LearnButton({
+  onClick,
+  disabled = false,
+  label = 'Learn',
+  Icon = BookOpen,
+  expanded,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  label?: string;
+  Icon?: LucideIcon;
+  expanded?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className="setup-learn"
+      disabled={disabled}
+      aria-expanded={expanded}
+      onClick={onClick}
+    >
+      <Icon aria-hidden="true" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+/** A single saved match: one plain Continue button with its progress underneath. */
+function ContinueButton({
+  label,
+  detail,
+  onClick,
+}: {
+  label: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="resume-strip"
+      data-starts-game
+      onClick={onClick}
+      aria-label={label}
+    >
+      <span className="resume-copy">
+        <strong>Continue</strong>
+        <small>{detail}</small>
+      </span>
+    </button>
+  );
+}
+
+export type SavedRun = {
+  key: string;
+  href: string;
+  /** The accessible name of the run's link. */
+  label: string;
+  title: ReactNode;
+  detail: ReactNode;
+  icon?: ReactNode;
+};
+
+/**
+ * Continue for games that keep several runs at once (Folio, Relic). One run
+ * links straight to it; more open a short list above the actions.
+ */
+export function RunPicker({
+  runs,
+  noun = 'run',
+}: {
+  runs: SavedRun[];
+  noun?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const listId = useId();
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    // Escape closes the list first, not the whole setup dialog behind it.
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      setOpen(false);
+      toggle.current?.focus();
+    };
+    document.addEventListener('pointerdown', away);
+    window.addEventListener('keydown', escape, true);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      window.removeEventListener('keydown', escape, true);
+    };
+  }, [open]);
+  if (runs.length === 0) return null;
+  if (runs.length === 1) {
+    const [run] = runs;
+    return (
+      <a className="resume-strip" href={run.href} aria-label={run.label}>
+        <span className="resume-copy">
+          <strong>Continue</strong>
+          <small>{run.title}</small>
+        </span>
+      </a>
+    );
+  }
+  return (
+    <div className="run-picker" ref={root}>
+      <button
+        ref={toggle}
+        type="button"
+        className="resume-strip"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={`Continue: ${runs.length} ${noun}s in progress`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="resume-copy">
+          <strong>Continue</strong>
+        </span>
+        <span className="run-count" aria-hidden="true">
+          {runs.length}
+        </span>
       </button>
+      {open && (
+        <ul className="run-list" id={listId} aria-label={`Your ${noun}s`}>
+          {runs.map((run) => (
+            <li key={run.key}>
+              <a href={run.href} aria-label={run.label}>
+                {run.icon && (
+                  <span className="run-icon" aria-hidden="true">
+                    {run.icon}
+                  </span>
+                )}
+                <span className="run-copy">
+                  <strong>{run.title}</strong>
+                  <small>{run.detail}</small>
+                </span>
+                <ArrowRight aria-hidden="true" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -160,10 +313,21 @@ export function PlaceholderBox({ game }: { game: LibraryGame }) {
   );
 }
 
-export type SetupPlayer = { id: string; name: string; connected: boolean; host: boolean; you: boolean };
+export type SetupPlayer = {
+  id: string;
+  name: string;
+  connected: boolean;
+  host: boolean;
+  you: boolean;
+};
 
 /** The seated players; the host picks who leads the table (starts and moves it on). */
-function HostPicker({ players, seats, onHost, disabled }: {
+function HostPicker({
+  players,
+  seats,
+  onHost,
+  disabled,
+}: {
   players: SetupPlayer[];
   seats: number;
   onHost?: (id: string) => void;
@@ -172,7 +336,10 @@ function HostPicker({ players, seats, onHost, disabled }: {
   const host = players.find((p) => p.host)?.id ?? '';
   return (
     <fieldset className="compartment host-picker">
-      <legend><Crown aria-hidden="true" />Host</legend>
+      <legend>
+        <Crown aria-hidden="true" />
+        Host
+      </legend>
       <RadioGroup
         disabled={disabled || !onHost}
         className="host-seats"
@@ -181,15 +348,27 @@ function HostPicker({ players, seats, onHost, disabled }: {
         onValueChange={(id) => id !== host && onHost?.(id)}
       >
         {players.map((p) => (
-          <label key={p.id} className={`host-seat ${p.connected ? 'present' : 'away'}`}>
+          <label
+            key={p.id}
+            className={`host-seat ${p.connected ? 'present' : 'away'}`}
+          >
             <RadioGroupItem value={p.id} className="sr-only" />
-            <span className="host-avatar" aria-hidden="true">{p.name.trim().charAt(0).toUpperCase() || '?'}</span>
-            <b>{p.name}{p.you ? ' (you)' : ''}</b>
+            <span className="host-avatar" aria-hidden="true">
+              {p.name.trim().charAt(0).toUpperCase() || '?'}
+            </span>
+            <b>
+              {p.name}
+              {p.you ? ' (you)' : ''}
+            </b>
             <Crown className="host-crown" aria-hidden="true" />
           </label>
         ))}
         {Array.from({ length: Math.max(0, seats - players.length) }, (_, i) => (
-          <span key={`empty-${i}`} className="host-seat empty" aria-label="Empty seat">
+          <span
+            key={`empty-${i}`}
+            className="host-seat empty"
+            aria-label="Empty seat"
+          >
             <span className="host-avatar" aria-hidden="true" />
           </span>
         ))}
@@ -246,11 +425,11 @@ export function StandaloneSetupBox({
     <div className="setup-box">
       <Lid game={game} />
       <div className="tray">
-        <SetupIntro game={game} onLearn={onLearn} disabled={disabled || startDisabled || unavailable} />
+        <SetupIntro game={game} />
 
         <div className="tray-row tray-row-top">
           <fieldset className="compartment seats">
-            <legend>Players, including you</legend>
+            <legend>Players</legend>
             <RadioGroup
               disabled={disabled}
               className="seat-row"
@@ -259,7 +438,11 @@ export function StandaloneSetupBox({
             >
               {entry.seatChoices.map((n) => (
                 <label key={n} className="seat">
-                  <RadioGroupItem value={String(n)} className="sr-only" disabled={n < minPlayers} />
+                  <RadioGroupItem
+                    value={String(n)}
+                    className="sr-only"
+                    disabled={n < minPlayers}
+                  />
                   <span className="chair" aria-hidden="true">
                     <i />
                   </span>
@@ -268,57 +451,73 @@ export function StandaloneSetupBox({
               ))}
             </RadioGroup>
           </fieldset>
-          {!humanOnly && <fieldset className="compartment bots">
-            <legend>
-              <Bot aria-hidden="true" />
-              Bot difficulty
-            </legend>
-            <RadioGroup
-              disabled={disabled}
-              className="pawn-row"
-              value={difficulty}
-              onValueChange={(v) => onDifficulty(v as Difficulty)}
-            >
-              {(['easy', 'medium', 'hard'] as const).map((level) => (
-                <label key={level} className={`pawn-choice ${level}`}>
-                  <RadioGroupItem value={level} className="sr-only" />
-                  <span className="pawn" aria-hidden="true">
-                    <i />
-                  </span>
-                  <b>{level}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>}
+          {!humanOnly && (
+            <fieldset className="compartment bots">
+              <legend>
+                <Bot aria-hidden="true" />
+                Bot difficulty
+              </legend>
+              <RadioGroup
+                disabled={disabled}
+                className="pawn-row"
+                value={difficulty}
+                onValueChange={(v) => onDifficulty(v as Difficulty)}
+              >
+                {(['easy', 'medium', 'hard'] as const).map((level) => (
+                  <label key={level} className={`pawn-choice ${level}`}>
+                    <RadioGroupItem value={level} className="sr-only" />
+                    <span className="pawn" aria-hidden="true">
+                      <i />
+                    </span>
+                    <b>{level}</b>
+                  </label>
+                ))}
+              </RadioGroup>
+            </fieldset>
+          )}
         </div>
-        {players && <HostPicker players={players} seats={seats} onHost={onHost} disabled={disabled} />}
-        {unavailable && <a className="play-plate" href="/tables">Play with friends at an online table</a>}
-        <div className="setup-actions">
-        <button type="button" className="play-plate" disabled={disabled || startDisabled || unavailable} onClick={onPlay}>
-          <Play aria-hidden="true" />
-          Play
-        </button>
-        {resumable && progress && (
-          <button
-            type="button"
-            className="resume-strip"
-            onClick={() => onResume(save)}
-            aria-label={`Continue your ${game.name} match, ${progress.label}`}
-          >
-            <span className="resume-thumb" aria-hidden="true">
-              <span className="resume-thumb-board" />
-            </span>
-            <span className="resume-copy">
-              <strong>Continue your match</strong>
-              <small>
-                {progress.label} · {progress.detail}
-              </small>
-            </span>
-            <span className="resume-go" aria-hidden="true">
-              <ArrowRight />
-            </span>
-          </button>
+        {players && (
+          <HostPicker
+            players={players}
+            seats={seats}
+            onHost={onHost}
+            disabled={disabled}
+          />
         )}
+        <div className="setup-actions">
+          <LearnButton
+            onClick={onLearn}
+            disabled={disabled || startDisabled || unavailable}
+          />
+          {unavailable ? (
+            <a
+              className="play-plate"
+              data-starts-game
+              href="/tables"
+              aria-label="Play with friends at an online table"
+            >
+              <Play aria-hidden="true" />
+              Online
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="play-plate"
+              data-starts-game
+              disabled={disabled || startDisabled}
+              onClick={onPlay}
+            >
+              <Play aria-hidden="true" />
+              Play
+            </button>
+          )}
+          {resumable && progress && (
+            <ContinueButton
+              label={`Continue your ${game.name} match, ${progress.label}`}
+              detail={progress.label}
+              onClick={() => onResume(save)}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -375,11 +574,11 @@ export function SetupBox({
     <div className="setup-box">
       <Lid game={game} />
       <div className="tray">
-        <SetupIntro game={game} onLearn={onLearn} disabled={disabled || startDisabled} />
+        <SetupIntro game={game} />
 
         <div className="tray-row tray-row-top">
           <fieldset className="compartment seats">
-            <legend>Players, including you</legend>
+            <legend>Players</legend>
             <RadioGroup
               disabled={disabled}
               className="seat-row"
@@ -388,7 +587,11 @@ export function SetupBox({
             >
               {[2, 3, 4, 5, 6].map((n) => (
                 <label key={n} className="seat">
-                  <RadioGroupItem value={String(n)} className="sr-only" disabled={n < minPlayers} />
+                  <RadioGroupItem
+                    value={String(n)}
+                    className="sr-only"
+                    disabled={n < minPlayers}
+                  />
                   <span className="chair" aria-hidden="true">
                     <i />
                   </span>
@@ -424,17 +627,31 @@ export function SetupBox({
           {id === 'undertow' ? (
             <fieldset className="compartment fast-mode">
               <legend>Deck</legend>
-              <RadioGroup disabled={disabled} className="deck-choices" value={fastMode ? 'fast' : 'normal'} onValueChange={(value) => onFastMode(value === 'fast')}>
-                {(['normal', 'fast'] as const).map((deck) => <label className="deck-choice" key={deck}>
-                  <RadioGroupItem className="sr-only" value={deck} />
-                  <span className="deck-glyph" aria-hidden="true">{deck === 'normal' ? '1–10' : '1–5'}</span>
-                  <span><strong>{deck === 'normal' ? 'Normal' : 'Fast mode'}</strong><small>{deck === 'normal' ? 'Full deck · a longer voyage' : 'Short deck · a quicker voyage'}</small></span>
-                </label>)}
+              <RadioGroup
+                disabled={disabled}
+                className="deck-choices"
+                value={fastMode ? 'fast' : 'normal'}
+                onValueChange={(value) => onFastMode(value === 'fast')}
+              >
+                {(['normal', 'fast'] as const).map((deck) => (
+                  <label className="deck-choice" key={deck}>
+                    <RadioGroupItem className="sr-only" value={deck} />
+                    <span className="deck-glyph" aria-hidden="true">
+                      {deck === 'normal' ? '1–10' : '1–5'}
+                    </span>
+                    <strong>{deck === 'normal' ? 'Normal' : 'Fast'}</strong>
+                  </label>
+                ))}
               </RadioGroup>
             </fieldset>
           ) : (
             <div className="compartment content">
-              <ContentChoice disabled={disabled} id={id} options={options} onChange={onOptions} />
+              <ContentChoice
+                disabled={disabled}
+                id={id}
+                options={options}
+                onChange={onOptions}
+              />
             </div>
           )}
           <div className="compartment extensions">
@@ -450,34 +667,26 @@ export function SetupBox({
           </div>
         </div>
         <div className="setup-actions">
-        <button type="button" className="play-plate" disabled={disabled || startDisabled} onClick={onPlay}>
-          <Play aria-hidden="true" />
-          Play
-        </button>
-        {resumable && (
+          <LearnButton onClick={onLearn} disabled={disabled || startDisabled} />
           <button
             type="button"
-            className="resume-strip"
-            onClick={() => onResume(save)}
-            aria-label={`Continue your ${game.name} match, round ${save.round} of ${totalRounds(save)}`}
+            className="play-plate"
+            data-starts-game
+            disabled={disabled || startDisabled}
+            onClick={onPlay}
           >
-            <span className="resume-thumb" aria-hidden="true">
-              <span className="resume-thumb-board" />
-            </span>
-            <span className="resume-copy">
-              <strong>Continue your match</strong>
-              <small>
-                Round {save.round} of {totalRounds(save)} ·{' '}
-                {save.players
-                  .map((p, i) => `${p.name} ${saveScores[i]}`)
-                  .join(' · ')}
-              </small>
-            </span>
-            <span className="resume-go" aria-hidden="true">
-              <ArrowRight />
-            </span>
+            <Play aria-hidden="true" />
+            Play
           </button>
-        )}
+          {resumable && (
+            <ContinueButton
+              label={`Continue your ${game.name} match, round ${save.round} of ${totalRounds(save)}, ${save.players
+                .map((p, i) => `${p.name} ${saveScores[i]}`)
+                .join(', ')}`}
+              detail={`Round ${save.round} of ${totalRounds(save)}`}
+              onClick={() => onResume(save)}
+            />
+          )}
         </div>
       </div>
     </div>

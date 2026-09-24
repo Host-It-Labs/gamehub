@@ -86,17 +86,6 @@
 .party-table.is-tribu .game-navigation button {
   color: var(--t-ink);
 }
-/* A small cream plate keeps the round readable over the studio lights. */
-.party-table.is-tribu .game-progress {
-  top: 46px;
-  padding: 1px 8px;
-  border: 1.5px solid var(--t-line);
-  border-radius: 999px;
-  background: var(--t-card);
-  color: var(--t-ink);
-  white-space: nowrap;
-}
-
 /* Players: cream name plates with ink outlines, one colour per seat. */
 .party-table.is-tribu .party-player {
   background: var(--t-card);

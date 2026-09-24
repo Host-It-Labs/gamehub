@@ -260,7 +260,8 @@ function Run({ initial }: { initial: FolioView }) {
       <Backdrop />
       <GameNavigation
         name="Folio"
-        progress={progress}
+        round={g.practice || g.phase === 'lobby' ? undefined : progress}
+        progress={g.practice ? progress : undefined}
         onBack={() =>
           g.phase === 'over' || g.phase === 'lobby'
             ? leave()

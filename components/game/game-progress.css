@@ -1,3 +1,5 @@
+/* Progress that is not a round count (Relic's tally, Folio practice) sits
+   beneath the back control. */
 .game-progress {
   position: absolute;
   top: 44px;
@@ -10,17 +12,31 @@
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
-@media (orientation: portrait),
-  (max-width: 600px),
-  (max-width: 950px) and (max-height: 500px) {
-  .game-progress {
-    max-width: 105px;
-    font-size: 10px;
-  }
-  .party-table.party-table .party-players,
-  .world-table.world-table > .world-players {
-    left: 120px;
-  }
+
+/* A fixed round count is a pill centred at the top of the screen, on its own
+   plate so it reads over any artwork. On wide screens the player badges hold
+   the centre of the top line, so the pill hangs just beneath them; on phones
+   it takes the free centre of the top bar (see mobile-hud.css). Each world
+   sets --round-bg/--round-fg/--round-line; the default is a dark glass. */
+.game-progress.is-round {
+  top: calc(100% + var(--round-drop, 16px));
+  left: 50%;
+  z-index: 9;
+  max-width: none;
+  padding: 5px 12px;
+  border: 1px solid var(--round-line, #ffffff2e);
+  border-radius: 999px;
+  background: var(--round-bg, #15130fcc);
+  color: var(--round-fg, #fbf3df);
+  box-shadow: 0 2px 8px #0000002e;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .table-toolbar {

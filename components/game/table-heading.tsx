@@ -24,7 +24,7 @@ export function TableProgress({
             ? 'Rolling dice'
             : `Pick ${Math.min(g.pick, handSize(g))} / ${handSize(g)}`;
   if (roundOnly)
-    return <GameProgress label={`Round ${g.round} / ${totalRounds(g)}`} />;
+    return <GameProgress round label={`Round ${g.round} / ${totalRounds(g)}`} />;
   return (
     <div className="table-progress">
       <small>{phase}</small>

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Crown, Dumbbell, Play, User, Users } from 'lucide-react';
+import { Crown, Dumbbell, Play, User, Users } from 'lucide-react';
 import { DialogDescription } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { api, rememberedName, rememberName } from '@/lib/online/client';
@@ -17,18 +17,31 @@ import {
   ROUNDS,
 } from '@/lib/games/folio/catalog';
 import type { LibraryGame } from '@/lib/games/library-fixtures';
-import { Lid } from './setup-box';
+import { LearnButton, Lid, RunPicker } from './setup-box';
 import { KindIcon } from './folio-icons';
 import './online-boxes.css';
 
 const errorText = (e: unknown) =>
   e instanceof Error ? e.message : 'Could not reach Folio. Please try again.';
 
-function runLabel(s: FolioSummary) {
+/** What tells one run from another: where it stands, then who and how hard. */
+function runTitle(s: FolioSummary) {
   if (s.phase === 'lobby')
     return `Waiting for ${s.seats - s.members.length} more`;
-  return `${LEVEL_NAMES[s.difficulty]} · Round ${Math.max(1, s.round)} of ${ROUNDS} · ${s.lives} ♥`;
+  return `Round ${Math.max(1, s.round)} of ${ROUNDS}`;
 }
+function runDetail(s: FolioSummary) {
+  const who = s.seats === 1 ? 'Solo' : s.members.join(', ');
+  return s.phase === 'lobby'
+    ? `${who} · ${LEVEL_NAMES[s.difficulty]}`
+    : `${who} · ${LEVEL_NAMES[s.difficulty]} · ${s.lives} ♥`;
+}
+
+const shortDate = (at: number) =>
+  new Date(at).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  });
 
 /**
  * Folio's setup in the library's open-box modal. Starting a run still lands
@@ -79,15 +92,6 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
           <DialogDescription className="tray-note">
             {game.world}
           </DialogDescription>
-          <button
-            type="button"
-            className="setup-learn"
-            aria-expanded={practice}
-            onClick={() => setPractice((v) => !v)}
-          >
-            <Dumbbell aria-hidden="true" />
-            <span>{practice ? 'Back' : 'Practise'}</span>
-          </button>
         </div>
 
         <label className="compartment online-name">
@@ -104,7 +108,7 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
 
         {practice ? (
           <fieldset className="compartment folio-box-practice">
-            <legend>One puzzle, outside any run</legend>
+            <legend>Practise one puzzle</legend>
             <ul>
               {KINDS.map((kind) => (
                 <li key={kind}>
@@ -118,6 +122,7 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
                   <button
                     type="button"
                     disabled={busy}
+                    aria-label={`Play ${PUZZLES[kind].name}`}
                     onClick={() =>
                       void enter({ practice: { kind, boss: false } })
                     }
@@ -143,7 +148,7 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
           <>
             <div className="tray-row online-box-row">
               <fieldset className="compartment">
-                <legend>Players at this table</legend>
+                <legend>Players</legend>
                 <RadioGroup
                   className="folio-box-seats"
                   value={String(seats)}
@@ -163,7 +168,7 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
                 </RadioGroup>
               </fieldset>
               <fieldset className="compartment">
-                <legend>Starting difficulty</legend>
+                <legend>Difficulty</legend>
                 <RadioGroup
                   className="folio-box-levels"
                   value={String(difficulty)}
@@ -192,13 +197,6 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
                 </small>
               </fieldset>
             </div>
-            <p className="tray-soon">
-              Every puzzle keeps its original rules and its own way to lose.
-              Pick your route through four acts and beat the boss at the end of
-              each. The crew shares its lives.
-              {seats > 1 &&
-                ` You’ll get a link for the others; the run begins when all ${seats} seats are filled.`}
-            </p>
           </>
         )}
 
@@ -207,46 +205,37 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
             {error}
           </p>
         )}
-        {!practice && (
-          <div className="setup-actions">
-            <button
-              type="button"
-              className="play-plate"
-              disabled={busy}
-              onClick={() => void enter({ seats, difficulty })}
-            >
-              <Play aria-hidden="true" />
-              {seats === 1 ? 'Start a run' : `Open a table for ${seats}`}
-            </button>
-            {active.slice(0, 2).map((s) => (
-              <a
-                key={s.token}
-                className="resume-strip"
-                href={`/folio/${s.token}`}
+        <div className="setup-actions">
+          <LearnButton
+            label={practice ? 'Back' : 'Practise'}
+            Icon={Dumbbell}
+            expanded={practice}
+            onClick={() => setPractice((v) => !v)}
+          />
+          {!practice && (
+            <>
+              <button
+                type="button"
+                className="play-plate"
+                disabled={busy}
+                onClick={() => void enter({ seats, difficulty })}
               >
-                <span className="resume-thumb" aria-hidden="true">
-                  <span className="resume-thumb-board" />
-                </span>
-                <span className="resume-copy">
-                  <strong>
-                    {s.seats === 1 ? (
-                      <User aria-hidden="true" />
-                    ) : (
-                      <Users aria-hidden="true" />
-                    )}{' '}
-                    Continue your run
-                  </strong>
-                  <small>
-                    {s.members.join(', ')} · {runLabel(s)}
-                  </small>
-                </span>
-                <span className="resume-go" aria-hidden="true">
-                  <ArrowRight />
-                </span>
-              </a>
-            ))}
-          </div>
-        )}
+                <Play aria-hidden="true" />
+                New run
+              </button>
+              <RunPicker
+                runs={active.map((s) => ({
+                  key: s.token,
+                  href: `/folio/${s.token}`,
+                  label: `Continue: ${runTitle(s)}, ${runDetail(s).replace('♥', 'lives')}, ${shortDate(s.updatedAt)}`,
+                  icon: s.seats === 1 ? <User /> : <Users />,
+                  title: runTitle(s),
+                  detail: `${runDetail(s)} · ${shortDate(s.updatedAt)}`,
+                }))}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
