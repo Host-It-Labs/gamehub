@@ -12,7 +12,7 @@ export function openDatabase(path: string) {
   const version = (
     db.prepare('PRAGMA user_version').get() as { user_version: number }
   ).user_version;
-  if (version > 5)
+  if (version > 6)
     throw new Error(
       'Database is newer than this application; restore a compatible backup before downgrading.',
     );
@@ -83,6 +83,20 @@ export function openDatabase(path: string) {
         PRIMARY KEY(run, actor, request_id)
       );
       PRAGMA user_version=5;
+      COMMIT;
+    `);
+  if (version < 6)
+    db.exec(`
+      BEGIN IMMEDIATE;
+      CREATE TABLE content_flags (
+        id INTEGER PRIMARY KEY,
+        game_id TEXT NOT NULL, content_key TEXT NOT NULL, title TEXT NOT NULL,
+        actor TEXT NOT NULL, user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(game_id, content_key, actor)
+      );
+      CREATE INDEX content_flags_content ON content_flags(game_id, content_key);
+      PRAGMA user_version=6;
       COMMIT;
     `);
   return db;

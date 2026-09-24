@@ -20,31 +20,33 @@ const zones = (...areas) =>
     (areas[i] ?? []).map((k, j) => card(k, i * 20 + j)),
   );
 
-await test('Floodline habitats reward exact pairs, an all-different beach, the Pier echo and exclusivity', () => {
+await test('Floodline habitats reward exact pairs, an all-different beach, the Pier alternation and exclusivity', () => {
   const z = zones(
-    [0, 0, 1, 1],
-    [0, 1, 2, 3],
-    [2, 3],
-    [4, 5, 4],
+    [0, 0, 1, 1, 2],
+    [0, 1, 2, 3, 4],
+    [2, 2, 2],
+    [4, 5, 4, 5],
     [5, 5, 2],
     [],
-    [0],
+    [3],
   );
   assert.deepEqual(
     [0, 1, 2, 3, 4, 6].map((i) => zoneScore(z, i, 'intermediate')),
-    [18, 16, 0, 14, 2, 0],
+    // Pools 7+7+1; beach 5×3; mangrove trio; pier 8+6; each cave 5 echoes the Pier's two, the cave 2 is capped at three; the lighthouse 3 lives elsewhere too.
+    [15, 15, 12, 14, 7, 0],
   );
   // One repeat collapses the Nesting beach to a point per creature.
   z[1] = [card(0), card(1), card(2), card(2)];
   assert.equal(zoneScore(z, 1, 'intermediate'), 4);
   z[1] = [card(0), card(1), card(2)];
-  assert.equal(zoneScore(z, 1, 'intermediate'), 12);
-  z[4] = [card(5)];
-  z[3] = [];
-  assert.equal(zoneScore(z, 4, 'intermediate'), 1);
+  assert.equal(zoneScore(z, 1, 'intermediate'), 9);
+  // A third creature of a species spoils its pair.
   z[0] = [card(0), card(0), card(0), card(1)];
-  assert.equal(zoneScore(z, 0, 'intermediate'), 0);
+  assert.equal(zoneScore(z, 0, 'intermediate'), 1);
   assert.equal(zoneScore(z, 0), 11);
+  // The Pier bonus needs the full A–B–A–B run, in order.
+  z[3] = [card(4), card(5), card(5), card(4)];
+  assert.equal(zoneScore(z, 3, 'intermediate'), 8);
 });
 await test('Observatory habitats ask one plain question each', () => {
   const z = zones([], [0, 0, 1, 1], [], [2, 2, 2], [3, 4, 5], [], []);
@@ -53,12 +55,14 @@ await test('Observatory habitats ask one plain question each', () => {
   assert.equal(zoneScore(z, 1), 7);
   z[1] = [card(0), card(0), card(0), card(0)];
   assert.equal(zoneScore(z, 1), 16);
+  // The Glasshouse trail echoes species kept in another habitat.
+  assert.equal(zoneScore(z, 3), 0);
+  z[3] = [card(0), card(3)];
   assert.equal(zoneScore(z, 3), 6);
-  z[3] = [card(2), card(2), card(3)];
-  assert.equal(zoneScore(z, 3), 10);
-  assert.equal(zoneScore(z, 4), 10);
-  z[4] = [card(3), card(3), card(4)];
-  assert.equal(zoneScore(z, 4), 4);
+  // The Dry channel only needs to be full.
+  assert.equal(zoneScore(z, 4), 6);
+  z[4] = [card(3), card(3)];
+  assert.equal(zoneScore(z, 4), 0);
   z[2] = [card(0), card(0)];
   assert.equal(zoneScore(z, 2), 9);
   z[2] = [card(0), card(1)];
@@ -73,11 +77,11 @@ await test('intermediate dishes have independent scoring and explicit downside',
     [7, 9, 4, 15, 4, 0],
   );
   assert.equal(foodBreakdown(cards, [[]], 'intermediate')[1], 2);
-  assert.equal(cardName('midnight', card(0), 'intermediate'), 'Ember Bao');
+  assert.equal(cardName('midnight', card(0), 'intermediate'), 'Bao');
   // Goals never name a species; habitat-specific ones use the coastal habitat names.
   assert.ok(sanctuaryGoalsFor('intermediate').every((goal) => goal.kind === undefined));
   assert.doesNotMatch(sanctuaryGoalsFor('intermediate')[3].rule, /Courtyard|Roof garden/);
-  assert.match(sanctuaryGoalsFor('intermediate')[11].rule, /Lighthouse/);
+  assert.match(sanctuaryGoalsFor('intermediate')[8].rule, /Lighthouse/);
 });
 await test('Roam enforces die, capacity and private locking', () => {
   let g = createGame(
@@ -323,14 +327,18 @@ await test('strategic bots finish intermediate games with both extensions', () =
 });
 
 await test('Floodline cave, mangrove and lighthouse offer distinct risks', () => {
-  const z = zones([], [], [0, 0], [], [1, 2], [], [3]);
-  assert.equal(zoneScore(z, 2, 'intermediate'), 9);
-  assert.equal(zoneScore(z, 4, 'intermediate'), 7);
-  assert.equal(zoneScore(z, 6, 'intermediate'), 5);
-  z[2][1] = card(1);
-  z[4][1] = card(1);
-  z[0] = [card(3)];
-  assert.equal(zoneScore(z, 2, 'intermediate'), 0);
-  assert.equal(zoneScore(z, 4, 'intermediate'), 2);
+  const z = zones([1, 1, 1, 2], [], [0, 0], [], [1, 2], [], [3]);
+  assert.equal(zoneScore(z, 2, 'intermediate'), 2);
+  // Each cave creature echoes its species elsewhere, capped at three.
+  assert.equal(zoneScore(z, 4, 'intermediate'), 3 + 1);
+  assert.equal(zoneScore(z, 6, 'intermediate'), 4);
+  z[2] = [card(0), card(0), card(0)];
+  z[6] = [card(3), card(3)];
+  assert.equal(zoneScore(z, 2, 'intermediate'), 12);
+  // Two lighthouse keepers of one species see each other.
   assert.equal(zoneScore(z, 6, 'intermediate'), 0);
+  z[6] = [card(3), card(4)];
+  assert.equal(zoneScore(z, 6, 'intermediate'), 8);
+  z[0] = [card(3)];
+  assert.equal(zoneScore(z, 6, 'intermediate'), 4);
 });

@@ -40,6 +40,9 @@ import {
   standaloneIds,
   type AnyGame,
 } from '@/lib/games/standalone/registry';
+import { setOf } from '@/lib/games/party/vote';
+import { FolioSetupBox } from './folio-box';
+import { RelicSetupBox } from './relic-box';
 import type { StandaloneId } from '@/lib/games/standalone/types';
 import {
   realGames,
@@ -79,6 +82,7 @@ import {
   isSavedGame,
   scores,
   passCount,
+  revealingTrick,
   type Game,
   type GameId,
   type Card,
@@ -132,8 +136,6 @@ export default function SoloGame() {
     [openOwn, setOpenOwn] = useState<StandaloneId | null>(null),
     [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
     [ownSeats, setOwnSeats] = useState(3);
-  const [ownTeams, setOwnTeams] = useState<number[] | undefined>();
-  const [ownMode, setOwnMode] = useState<'teams' | 'individual'>('individual');
   function leaveOwn() {
     if (window.confirm('Leave the board? Your game is saved so you can return later.')) { setOpenOwn(null); setOwnPractice(null); }
   }
@@ -175,7 +177,12 @@ export default function SoloGame() {
       const ownRestored: Partial<Record<StandaloneId, AnyGame>> = {};
       for (const id of standaloneIds) {
         const saved = rawOwn[id];
-        if (standaloneGames[id].isSavedGame(saved) && !saved.tutorial && saved.kind === id)
+        if (
+          standaloneGames[id].isSavedGame(saved) &&
+          !saved.tutorial &&
+          (saved.kind === id ||
+            (!!saved.tribu && (id === 'orin' || id === 'miro') && setOf(saved.kind) === id))
+        )
           ownRestored[id] = saved;
       }
       localStorage.setItem(OWN_SAVE, JSON.stringify(ownRestored));
@@ -212,7 +219,9 @@ export default function SoloGame() {
   function storeOwn(next: AnyGame) {
     if(next.tutorial){setOwnPractice(next);return;}
     setOwnPractice(null);
-    ownRef.current = { ...ownRef.current, [next.kind]: next };
+    // A set keeps one save under its library id whichever game it is playing.
+    const id = next.tribu ? setOf(next.kind) : next.kind;
+    ownRef.current = { ...ownRef.current, [id]: next };
     setOwn(ownRef.current);
     try {
       localStorage.setItem(OWN_SAVE, JSON.stringify(ownRef.current));
@@ -225,19 +234,17 @@ export default function SoloGame() {
   function openOwnSetup(id: StandaloneId) {
     const entry = standaloneGames[id];
     const saved = own[id];
-    setOwnTeams(saved?.mode === 'teams' ? saved.teams : undefined);
     setOwnSeats(
       saved && entry.seatChoices.includes(saved.seats.length)
         ? saved.seats.length
         : entry.defaultSeats,
     );
-    setOwnMode(saved ? saved.mode : id === 'miro' ? 'teams' : 'individual');
     if (saved) setDifficulty(saved.difficulty);
     setOwnSetup(id);
   }
   function startOwn(id: StandaloneId, learning=false) {
     if (requiresHumanPlayers(id)) return;
-    storeOwn(learning?practice(id,ownSeats,difficulty,0,ownMode,ownTeams):standaloneGames[id].create(ownSeats, seed(), difficulty, ownMode, undefined, ownTeams));
+    storeOwn(learning?practice(id,ownSeats,difficulty,0):standaloneGames[id].create(ownSeats, seed(), difficulty));
     setOwnSetup(null);
     setOpenOwn(id);
     cue('shuffle', volume);
@@ -417,7 +424,12 @@ export default function SoloGame() {
   }, [g?.phase, g?.id, g?.events, g?.tutorial, capturesSettled]);
   useBotTurns({
     game: g,
-    active: !g?.tutorial && !(panelOpen && panel === 'leave') && !inspectorOpen,
+    active:
+      !g?.tutorial &&
+      !(panelOpen && panel === 'leave') &&
+      !inspectorOpen &&
+      // Bots wait until the table has finished showing the completed trick.
+      !(g && revealingTrick(g) && capturesSettled < (g.events.findLast((e) => e.type === 'trick')?.id ?? -1)),
     isBot: isBotSeat,
     commit: (move, seat) => commitRef.current(move, seat),
     nonce: retry,
@@ -570,7 +582,7 @@ export default function SoloGame() {
     sc = g ? scores(g) : [],
     bestScore = g?.id === 'undertow' ? Math.min(...sc) : Math.max(...sc),
     winners = g?.players.filter((_, i) => sc[i] === bestScore) ?? [];
-  const ownGame = openOwn ? (ownPractice?.kind===openOwn?ownPractice:own[openOwn]) : undefined;
+  const ownGame = openOwn ? (ownPractice && (ownPractice.tribu ? setOf(ownPractice.kind) : ownPractice.kind)===openOwn?ownPractice:own[openOwn]) : undefined;
   if (openOwn && ownGame && !requiresHumanPlayers(openOwn))
     return (
       <div className={`app at-table ${openOwn}`}>
@@ -895,16 +907,14 @@ export default function SoloGame() {
               save={own[ownSetup]}
               seats={ownSeats}
               difficulty={difficulty}
-              mode={ownMode}
-              onMode={setOwnMode}
-              teams={ownTeams} onTeams={setOwnTeams}
-              onSeats={n => { setOwnSeats(n); setOwnTeams(undefined); }}
+              onSeats={setOwnSeats}
               onDifficulty={setDifficulty}
               onPlay={() => startOwn(ownSetup)}
               onLearn={() => startOwn(ownSetup,true)}
               onResume={(match) => {
                 setOwnSetup(null);
-                setOpenOwn(match.kind);
+                // A set saves under its library id whichever game it is on.
+                setOpenOwn(match.tribu ? setOf(match.kind) : match.kind);
               }}
             />
           ) : setup ? (
@@ -934,6 +944,10 @@ export default function SoloGame() {
               onPlay={() => start(setup)}
               onResume={resume}
             />
+          ) : preview?.id === 'folio' ? (
+            <FolioSetupBox game={preview} />
+          ) : preview?.id === 'relic' ? (
+            <RelicSetupBox game={preview} />
           ) : preview ? (
             <PlaceholderBox game={preview} />
           ) : null}

@@ -1,15 +1,13 @@
 import { boxCover } from '../games/box-covers.ts';
 import { catalog } from '../games/trio/engine';
-import { standaloneIds, standaloneGames } from '../games/standalone/registry';
+import { publicStandaloneIds, standaloneGames } from '../games/standalone/registry';
 export const onlineCatalog = [
   ...catalog,
-  ...standaloneIds.map((id) => ({
+  ...publicStandaloneIds.map((id) => ({
     id,
     name: standaloneGames[id].name,
     cover: boxCover(id)!,
     genre:
-      id === 'orin'
-        ? 'Personal rankings'
-        : 'Geography & shared challenges',
+      id === 'orin' ? 'Knowing each other' : 'Trivia',
   })),
 ];

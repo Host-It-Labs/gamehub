@@ -1,0 +1,111 @@
+/* Shared reveal motion. Items set their start with --reveal-delay (see
+   `stagger` in reveal-motion.tsx); each animation runs once and is short. */
+.reveal-pop {
+  animation: reveal-pop 420ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+.reveal-drop {
+  animation: reveal-drop 380ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+.reveal-rise {
+  animation: reveal-rise 360ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+.reveal-flip {
+  animation: reveal-flip 420ms cubic-bezier(0.3, 1.2, 0.4, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+.reveal-grow {
+  animation: reveal-grow 520ms cubic-bezier(0.25, 1, 0.35, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+  transform-origin: 0 50%;
+}
+/* A short celebratory ring around a perfect answer. A box-shadow never
+   makes its scroll container scrollable, unlike a larger pseudo-element. */
+.reveal-burst {
+  position: relative;
+}
+.reveal-burst::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: reveal-burst 750ms ease-out both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + 180ms);
+  pointer-events: none;
+}
+.count-up {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes reveal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes reveal-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes reveal-flip {
+  from {
+    opacity: 0;
+    transform: rotateX(90deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes reveal-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes reveal-burst {
+  0% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--burst, #ffd166) 85%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 22px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-pop,
+  .reveal-drop,
+  .reveal-rise,
+  .reveal-flip,
+  .reveal-grow,
+  .reveal-burst::after {
+    animation: none;
+  }
+}

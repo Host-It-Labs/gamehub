@@ -1,5 +1,5 @@
 import type { GameId as TrioGameId } from './trio/engine';
-type GameId = TrioGameId | 'orin' | 'miro';
+type GameId = TrioGameId | 'orin' | 'miro' | 'dial' | 'size';
 
 /**
  * Ambient soundscapes are assembled at play time from small pieces, so a

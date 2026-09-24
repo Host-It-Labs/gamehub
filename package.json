@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "mirror": "node scripts/mirror.mjs",
     "build": "vinext build",
     "check:assets": "node scripts/production-assets.mjs --check",
     "start": "node --experimental-strip-types server/index.ts",

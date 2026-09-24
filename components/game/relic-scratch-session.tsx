@@ -96,7 +96,7 @@ export function RelicScratchSession({ initial }: { initial: ExpeditionView }) {
       onAct={dispatch}
       onView={accept}
       onBack={() => {
-        void chain.current.then(() => window.location.assign('/relic'));
+        void chain.current.then(() => window.location.assign('/'));
       }}
     />
   );

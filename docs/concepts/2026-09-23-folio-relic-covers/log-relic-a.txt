@@ -1,0 +1,317 @@
+Reading additional input from stdin...
+OpenAI Codex v0.154.0
+--------
+workdir: /Users/williamguinaudie/Documents/code/gamehub
+model: gpt-6-sol
+provider: headroom
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a0cfb6-0b97-7b83-8acc-ef64661fd7d0
+--------
+user
+$imagegen Generate this image using the built-in image generation tool. Save the final image to the exact absolute path: /Users/williamguinaudie/Documents/code/gamehub/public/art/box-relic-v2-a.png. Prompt: Use case: illustration-story. Create a fresh full-bleed square 2D illustrated board-game cover, largest native square size, PNG. Text verbatim: "Relic", no other text, letters or numbers anywhere. A cosy shared scratch-ticket game for one to six friends: they scratch little paper tickets to uncover surprises, earn coins, and slowly build a tiny tabletop ticket factory of belts and machines that prints ever better tickets. Style: warm storybook gouache painting of an old workshop desk at golden hour, deep teal (#1f4d4f) and oxidised green surfaces, polished copper and brass (#b8733a), warm kraft and cream paper (#f6e3bb), soft sage green (#a5c8a0) accents; rich but gentle lamplight from the upper left, visible brush texture, tactile and inviting, not cluttered. Composition: in the lower centre three ornate paper scratch tickets fanned on the desk, each with a decorated border of stars and leaves and a silver scratch-off foil panel; the front ticket is half scratched with curls of silver foil shavings lifting off, revealing a glowing gem and a golden star beneath; a single brass coin edge-on scratching it, held by one hand seen only from the wrist, no face. Behind them on the right, a charming miniature ticket factory at toy scale: a small copper press with gears and a tiny chimney puffing steam, a short conveyor belt carrying blank tickets toward the front, and a little printing roller. On the left a small stack of brass coins and a jar of loose silver shavings. Sparkles of foil dust in the lamplight. Leave a clear open band of dark teal background above the title, at least one tenth of the image height, with nothing touching the top edge; the top of the title letters starts no higher than 11% down from the top edge. Make the title "Relic" huge across the upper centre, in an elegant chunky engraved serif with gentle flourishes, burnished copper-gold foil letters with a subtle scratched metallic sheen and a thin cream outline, perfectly spelled R-e-l-i-c, readable at 160px. All title letters completely within the central 84% of the canvas (8% margins minimum). Artwork fills every edge to the border. No real money, no casino, no slot machines, no playing cards, no dice. Not cut paper, not risograph ink printmaking, not a retro TV game show, not neon. No UI, no game screenshot, no counters, no digits, no border, no frame, no external mat or gray padding, no physical box mockup, no additional lettering, logos or signage. Original composition from this description alone.
+warning: Model metadata for `gpt-6-sol` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.
+**Checking repository status**
+codex
+I’ll check the target path, generate the cover, then save and inspect it.
+2026-09-23T19:21:19.126369Z ERROR codex_core::tools::router: error=unsupported call: exec_commandexec_command
+exec
+/bin/zsh -lc "git status --short --untracked-files=all -- ':"'!**/.DS_Store'"'; test -e public/art/box-relic-v2-a.png; printf 'target_exists=%s\\n' \""'$?"; rg -n -i '"'relic|cover art' /Users/williamguinaudie/.codex/memories/MEMORY.md | head -35" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+ M .claude/launch.json
+ M .dockerignore
+ M AGENTS.md
+ M app/globals.css
+ M components/game/art-variant-switcher.tsx
+ M components/game/blackwake-table.tsx
+ M components/game/boards.tsx
+ M components/game/expansions.tsx
+ M components/game/geography-table.css
+ M components/game/geography-table.tsx
+ M components/game/help.tsx
+ M components/game/mora-extension.tsx
+ M components/game/new-extensions.tsx
+ M components/game/party-table.css
+ M components/game/setup-box.tsx
+ M components/game/solo.tsx
+ M components/game/standalone-table.tsx
+ M components/game/table-worlds.css
+ M components/game/use-ambience.ts
+ M components/game/yatai-festival.tsx
+ M components/online/adventure-match.tsx
+ M components/online/table.tsx
+ M docs/DESIGN.md
+ M docs/artwork-manifest.md
+ M lib/artwork-previews.json
+ M lib/games/adventures/lessons.ts
+ M lib/games/ambience-player.ts
+ M lib/games/ambience.ts
+ M lib/games/box-covers.ts
+ M lib/games/floodline-art.json
+ M lib/games/floodline-portrait-art.json
+ M lib/games/library-fixtures.ts
+ M lib/games/observatory-art.json
+ M lib/games/observatory-portrait-art.json
+ M lib/games/party/catalog.ts
+ M lib/games/party/geo-places.json
+ M lib/games/party/geography.ts
+ M lib/games/party/ranking.ts
+ M lib/games/player-policy.ts
+ M lib/games/standalone/registry.ts
+ M lib/games/standalone/types.ts
+ M lib/games/table-world.ts
+ M lib/games/trio/bot.ts
+ M lib/games/trio/engine.ts
+ M lib/games/trio/mora-map.ts
+ M lib/games/yata-world-landscape.json
+ M lib/online/catalog.ts
+ M lib/online/client.ts
+ M lib/online/types.ts
+ D public/art/box-my-top-five-blind-v1.png
+ D public/art/optimized/box-my-top-five-blind-v1-320.webp
+ D public/art/optimized/box-my-top-five-blind-v1-640.webp
+ D public/art/optimized/box-my-top-five-blind-v1-spine.webp
+ D public/art/optimized/box-my-top-five-blind-v1.webp
+ M server/database.ts
+ M server/index.ts
+ M server/tables.ts
+ M tests/adventure-online.test.mjs
+ M tests/adventures.test.mjs
+ M tests/content-extensions.test.mjs
+ M tests/content-history.test.mjs
+ M tests/custom-teams.test.mjs
+ M tests/folio.test.mjs
+ M tests/geography.test.mjs
+ M tests/http.test.mjs
+ M tests/mora-extension.test.mjs
+ M tests/mora-scoring-display.test.mjs
+ M tests/observatory-layout.test.mjs
+ M tests/party-refinements.test.mjs
+ M tests/redesign.test.mjs
+ M tests/relic.test.mjs
+ M tests/standalone-games.test.mjs
+ M tests/table-worlds.test.mjs
+ M tests/top-tier-refresh.test.mjs
+ M tests/trio.test.mjs
+?? components/game/dial-table.css
+?? components/game/dial-table.tsx
+?? components/game/folio-box.tsx
+?? components/game/next-game-vote.tsx
+?? components/game/party-finale.css
+?? components/game/party-finale.tsx
+?? components/game/ranking-reveal.tsx
+?? components/game/reveal-motion.css
+?? components/game/reveal-motion.tsx
+?? components/game/sabi-marks.tsx
+?? components/game/sabi.css
+?? components/game/size-table.css
+?? components/game/size-table.tsx
+?? components/game/table-vote.tsx
+?? components/game/tribu-vote.tsx
+?? components/game/tribu.css
+?? docs/concepts/2026-09-23-floodline-three-rounds/README.md
+?? docs/concepts/2026-09-23-floodline-three-rounds/landscape.txt
+?? docs/concepts/2026-09-23-floodline-three-rounds/portrait.txt
+?? docs/concepts/2026-09-23-floodline-three-rounds/style.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/folio.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/log-folio-a.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/log-folio-b.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/log-relic-a.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/log-relic-b.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/relic.txt
+?? docs/concepts/2026-09-23-mundo/README.md
+?? docs/concepts/2026-09-23-sabi/README.md
+?? docs/concepts/2026-09-23-tribu-cover-retro/README.md
+?? docs/concepts/2026-09-23-tribu-cover/README.md
+?? docs/concepts/2026-09-23-tribu-studio/README.md
+?? lib/games/party/dial.ts
+?? lib/games/party/geo-names.json
+?? lib/games/party/size-countries.json
+?? lib/games/party/size-things.ts
+?? lib/games/party/size.ts
+?? lib/games/party/spectrums.ts
+?? lib/games/party/tribu-state.ts
+?? lib/games/party/tribu.ts
+?? lib/games/party/vote.ts
+?? public/art/box-mundo-blind-v1.png
+?? public/art/box-mundo-v1-a.png
+?? public/art/box-mundo-v1-b.png
+?? public/art/box-sabi-v1-a.png
+?? public/art/box-sabi-v1-b.png
+?? public/art/box-tribu-blind-v1.png
+?? public/art/box-tribu-v1-a.png
+?? public/art/box-tribu-v1-b.png
+?? public/art/box-tribu-v2-a-fail-1.png
+?? public/art/box-tribu-v2-a-fail-2.png
+?? public/art/box-tribu-v2-a.png
+?? public/art/box-tribu-v2-b-fail-1.png
+?? public/art/box-tribu-v2-b-fail-2.png
+?? public/art/box-tribu-v2-b.png
+?? public/art/box-tribu-v3-a.png
+?? public/art/box-tribu-v3-b.png
+?? public/art/mora-floodline-landscape-v5-a.png
+?? public/art/mora-floodline-landscape-v5-b.png
+?? public/art/mora-floodline-portrait-v5-a.png
+?? public/art/mora-floodline-portrait-v5-b.png
+?? public/art/optimized/box-mundo-blind-v1-320.webp
+?? public/art/optimized/box-mundo-blind-v1-640.webp
+?? public/art/optimized/box-mundo-blind-v1-spine.webp
+?? public/art/optimized/box-mundo-blind-v1.webp
+?? public/art/optimized/box-tribu-blind-v1-320.webp
+?? public/art/optimized/box-tribu-blind-v1-640.webp
+?? public/art/optimized/box-tribu-blind-v1-spine.webp
+?? public/art/optimized/box-tribu-blind-v1.webp
+?? public/art/optimized/mora-floodline-landscape-v5-b-board.webp
+?? public/art/optimized/mora-floodline-landscape-v5-b-overview.webp
+?? public/art/optimized/mora-floodline-landscape-v5-b.webp
+?? public/art/optimized/mora-floodline-portrait-v5-b-board.webp
+?? public/art/optimized/mora-floodline-portrait-v5-b-overview.webp
+?? public/art/optimized/mora-floodline-portrait-v5-b.webp
+?? public/art/optimized/sizes-animals-v1.webp
+?? public/art/optimized/sizes-things-v1.webp
+?? public/art/sizes-animals-v1-a.png
+?? public/art/sizes-animals-v1-b.png
+?? public/art/sizes-sil-animals-v1-a.png
+?? public/art/sizes-sil-animals-v1-b.png
+?? public/art/sizes-sil-landmarks-v1-a.png
+?? public/art/sizes-sil-landmarks-v1-b.png
+?? public/art/sizes-sil-objects-v1-a.png
+?? public/art/sizes-sil-objects-v1-b.png
+?? public/art/sizes-things-v1-a.png
+?? public/art/sizes-things-v1-b.png
+?? public/art/tribu-studio-landscape-a.png
+?? public/art/tribu-studio-landscape-b.png
+?? public/art/tribu-studio-portrait-a.png
+?? public/art/tribu-studio-portrait-b.png
+?? scripts/build-size-countries.mjs
+?? scripts/build-sizes-silhouettes.mjs
+?? scripts/optimize-sizes-sheets.mjs
+?? server/content-flags.ts
+?? tests/party-votes.test.mjs
+?? tests/sabi.test.mjs
+?? tests/size.test.mjs
+?? tests/tribu-helpers.mjs
+target_exists=1
+43:# Task Group: Gamehub September party-game evolution, release 0.23.0, and Relic foundations
+45:scope: Current Gamehub party/ranking/navigation contracts, release verification, and the persistent Relic foundation that was later redesigned into active play.
+83:## Task 4: Build the initial persistent cooperative Relic excavation game
+87:- rollout_summaries/2026-09-22T12-32-37-LMsW-gamehub_relic_cooperative_idle_excavation.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/22/rollout-2026-09-22T14-32-37-01a0c91a-95fe-77b0-b671-cb43f9ed7cfa.jsonl, updated_at=2026-09-22T13:36:53+00:00, thread_id=01a0c91a-95fe-77b0-b671-cb43f9ed7cfa, later superseded in gameplay direction by active-play redesign)
+91:- Relic, expedition_commands, SQLite BEGIN IMMEDIATE, idempotency, guest session, FOREIGN KEY constraint failed, OFFLINE_LIMIT, relic-smoke.mjs
+105:- Relic’s original persistence layer used group saves, authoritative server actions, `BEGIN IMMEDIATE` plus idempotent receipts, and guest `newSession(..., false, secure)` after `guests` insertion. The later active-play direction supersedes its offline-progression policy. [Task 4]
+111:- Do not reuse original Relic offline catch-up: the user later explicitly rejected unattended progress; use the active-play block above it for current gameplay policy. [Task 4]
+113:# Task Group: Gamehub Relic active-play arcade and Folio cooperative daily puzzles
+118:## Task 1: Redesign Relic as a Fortune Mill-inspired active skill arcade
+122:- rollout_summaries/2026-09-22T15-42-08-X8Tp-relic_active_play_fortune_mill_arcade_redesign.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/22/rollout-2026-09-22T17-42-08-01a0c9c8-1744-71a2-88a7-e9c1dd065453.jsonl, updated_at=2026-09-22T16:20:15+00:00, thread_id=01a0c9c8-1744-71a2-88a7-e9c1dd065453, automated/production smoke validation passed; human browser/audio acceptance pending)
+126:- Relic, Fortune Mill, active-play, activity heartbeats, advanceRelic, server/expeditions.ts, relic-arcade.tsx, othersLabel, production-assets.mjs, 219 tests
+148:- Relic’s active production is server-authoritative: `advanceRelic(game, now, activeMs)` defaults to zero; only successive validated heartbeats within 2.5 seconds contribute productive time, unioned per expedition. Reads, joins, commands, restarts, and returning after absence do not grant catch-up. [Task 1]
+149:- Preserve Relic’s stable IDs/routes/saves, shared expeditions, membership, transactional commands, and idempotent retries. Its UI is in `components/game/relic-arcade.tsx` / `relic-arcade-stage.tsx`; mechanics are under `lib/games/relic/`; `docs/relic.md` records policy and limits. [Task 1]
+150:- Folio uses deterministic daily seeds, hidden server solution state, SQLite persistence, stale-revision protection, and idempotent request IDs. Schema version 5 adds `folio_runs`, `folio_members`, and `folio_commands` without replacing account, table, or Relic data. [Task 2]
+302:- Roka replaces Orin with a 2–4 player cooperative volcanic-island rescue game; Talo replaces Vela with a four-player 2v2 shifting-temple expedition using simultaneous reusable actions and an odd-value relic pool; Soma replaces Miro with a 4–6 player storm-stranded airship repair game with one hidden saboteur, free discussion, limited sabotage, evidence, and no elimination. [Task 2]
+1364:- Favor original, moderately adventurous board-game-cover art (not photorealistic or childish), fluid card hover/drag with correct z-order, long-press-only mobile inspection, and prepared multiplayer moves that never auto-submit on a turn change. [Task 2]
+
+**Preparing image prompt**
+exec
+/bin/zsh -lc "rg -n 'Relic|cover|illustrat' docs/DESIGN.md | head -45; rg --files public/art | rg 'box-relic|box-folio' | head -20; sed -n '115,130p' /Users/williamguinaudie/.codex/memories/MEMORY.md" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+183:Each game must feel like its own game, with strongly distinct illustration, materials, typography, shapes and presentation, not merely another palette on a shared theme. Nox’s current visual style is approved for retention. Elsewild and Nightshift are being explored anew, including simpler names. Shared accessibility and interaction conventions remain; a shared visual skin is no longer the goal.
+189:The observatory uses lazily loaded Three.js with an orthographic camera and simple geometry, capped render resolution, on-demand rendering, resource disposal and off-screen/hidden suspension. Keep gameplay targets in the DOM and retain an illustrated fallback when WebGL fails. Animal standees have physical bases; scores remain above and cards below. Do not add orbit controls that compete with touch placement. Use inexpensive CSS depth for library boxes so browsing does not load WebGL.
+213:Generate fresh illustrations through the imagegen skill and a delegated image-generation agent. Review actual outputs before wiring them in. Save versioned files, prompts and provenance in the repository; project assets must not depend on generated-image cache paths. Do not repeatedly edit a degraded image or substitute CSS panels for an illustrated world.
+217:Render gameplay numbers, names, suit symbols, formulas and explanatory text as crisp accessible DOM content. Box-cover titles are the exception: generate their lettering inside the artwork, with accessible names on the surrounding controls. Keep responsive covers, loading manifests and optimized images synchronized. Preserve alpha on tokens.
+231:Game actions are tactile graphical pieces with clear available, selected, waiting and spent states. Larger controls may use reclaimed interface space, but must never cover card slots or inflate the illustrated board. Short labels and counters are useful; rules prose belongs in inspection. Stalls are a prominent action, not an inconspicuous utility icon.
+297:Both maps now use the shared proportional fit calculation: landscape fits within both available dimensions, portrait uses available height with horizontal exploration. Vertical board panning is removed. The paper table replaces the separate dark player strip and wooden hand strip; Observatory player tags overlay the quiet upper scene on taller landscape screens when goals do not occupy that edge. Short screens and goals retain their own player row to avoid covering gameplay. The board remains proportional rather than stretched to every screen ratio, with fixed controls outside the horizontally panning map.
+303:The Observatory alone now places its unchanged proportional board over a wider generated paper woodland backdrop, covering the table to the edges of desktop screens. Only the outer 3% of the board illustration is feathered into the surroundings; gameplay targets, creature positions, and labels remain unmasked. The backdrop is a static compressed WebP and adds no rendering loop. Floodline and other games retain their existing presentation.
+314:The Observatory now uses `observatory-unified-v1`, freshly generated as one continuous forest with all seventeen spaces. The central 80% is the playable rectangle. Measured habitat coordinates are converted into that rectangle; the whole illustration is rendered once behind the table and follows the board's scale and horizontal pan. There is no independent surroundings image or masked internal board edge. Only the outer perimeter fades into an olive table ground on screens wider than the illustration. The existing optional WebGL relief and static fallback both use the same full source; miniatures show the matching central crop.
+326:`observatory-layout.ts` owns the crop shared by map targets, miniatures and full-screen rendering. Following the supplied desktop screenshot, the entire source now uses one uniform scale: sides and corners are never independently stretched. The board grows to keep real scenery behind the fixed controls and cover every edge, and native scrolling in both directions exposes any gameplay overflow. Both the SVG fallback and optional on-demand Three.js relief render one continuous surface. No independent surroundings image, repeated board or fade into flat green is used. Regression checks cover the screenshot’s 1906 × 939 size, phone, tablet, desktop, ultrawide, advanced-view sidebar and both ends of horizontal/vertical scrolling. They assert uniform pixel scale as well as scene coverage and target alignment.
+335:The former peripheral-region stretching was visibly wrong even though coverage tests passed. It has been removed, rather than hidden by changing the illustration. The corrected tests explicitly forbid multiple independently scaled regions and compare horizontal and vertical source-pixel scale. Large scenes now require native two-axis scrolling when they do not fit the available board viewport. The supplied screenshot established the defect; no live browser or touch verification was performed for the correction.
+342:The root table no longer paints a separately scaled CSS background image. The board placeholder is removed once the scene mounts, and the SVG fallback is hidden when WebGL is ready. Thus only one scene is visible, including when the renderer fails. Its uniform scale supplies real edge coverage; no sides are stretched or repeated. Typical portrait phones/tablets keep their previous playable scale. Landscape can zoom and use native scrolling to fill its width while keeping controls outside the scroll region and every target reachable.
+344:Regression checks cover the tall source/crop dimensions, uniform pixel scale, all seventeen target centers, absence of a second CSS table image, preservation of ordinary portrait scale, and edge coverage across scrolling at phone, portrait tablet, landscape iPad Mini, desktop and ultrawide sizes. The artwork and cropped derivative were visually inspected. Live browser/touch/GPU appearance remains unverified.
+350:Landscape Observatory sizing now fits the entire gameplay crop into the available board area with 24px vertical clearance. It no longer enlarges the board solely to make the portrait source cover a wide table. The landscape board frame and viewport allow visible overflow so standees, focus outlines and Release cannot be cut off at the action-row boundary. Portrait geometry is unchanged. A single uniformly scaled scene remains; wide screens can expose the paper table at the sides because the source is portrait. Full-width scenery at this smaller gameplay scale would require a wider composition, not a duplicated or stretched background.
+358:Geometry checks now cover edge-to-edge artwork at landscape iPad Mini, desktop, 3440 × 1440 ultrawide, and a desktop with the opponent sidebar. An exceptionally short 2560 × 680 viewport still prioritizes the complete playable crop over full scenery coverage; the source cannot cover that extreme at this scale. Portrait exploration remains unchanged.
+366:Active source: `observatory-wide-v8.png`, 1536 × 1024. The logical 528 × 352 crop at510,300 increases native gameplay pixels by89% over v7. The scene continues beyond that logical rectangle, so outer painted pad rims remain visible; the source is not cut into a board/background pair. Portrait scroll padding reveals the outermost creature standees. All17 target centers were remeasured. Board sizing stays unchanged and the standard coverage fixtures pass, including the supplied desktop framing. Native image resolution remains finite; this is a sharper allocation, not a claim of4K art. No browser/touch verification.
+374:Future illustrated-game work must follow [game-world-layout](../.agents/skills/game-world-layout/SKILL.md), linked from AGENTS.md. It records shared source/crop math, separate landscape/portrait planning, pixel-density constraints, delegated generation briefs, fixed hand/camera invariants, and honest device validation. These are project-wide layout requirements; individual games retain their own art direction. A first-pass workflow improves predictability but cannot guarantee exact image-generator composition.
+378:The user accepted v8's stable framing and requested higher native detail. v9 and v10 were generated as tighter/high-resolution candidates, but both returned1536 ×1024 despite explicit3072 ×2048 requests. Both also exceeded their specified gameplay footprint and raised the dome beyond the approved framing. They are retained with provenance but are NOT active; installing them would reintroduce roof cropping or border/scale regressions. v8 remains the active artwork. No artificial upscaling is represented as recovered detail.
+380:The project skill is installed in `.agents/skills/game-world-layout/SKILL.md`, discoverable by Codex, and linked from AGENTS.md. It now includes native sampling-density calculation, actual output metadata verification and approved-screenshot visible-area measurement. Source metadata owns the roof landmark used by geometry checks. Coverage fixtures use the current fixed stage rather than the obsolete UI-content-sized stage. Native high-resolution asset replacement remains outstanding; the built-in tool did not deliver it. The optional CLI/API route is not authorized or configured (no API key present) and was not invoked.
+386:Minimum uniform cover scaling removes the remaining left/right/bottom paper gaps and gives the board more width. A measured roof offset keeps the dome landmark in view. This supersedes the former landscape fit-with-margins policy. Hand size and optional UI remain independent of camera sizing. Controls now form a bottom dock alongside the tray: die then vertically stacked extension actions on the left, passing/table view on the right. Responsive side columns reserve room for these controls while the hand scrolls within a stable tray. The project skill records this layout and the user's built-in-generation constraint.
+388:Geometry/type/lint checks do not establish live overlap or touch acceptance; no browser tools have been requested. In particular, cover scale can exceed the old logical stage height on wide screens and needs device review with the dock.
+392:The Observatory toolbar now floats above the scene as separate backed controls and no longer consumes a layout row. The scene can shift upward32px, bounded by measured roof clearance, with bottom coverage included in scaling. Tablet tray dimensions are capped at430px/106px with54px pieces; phones/short landscapes use360px/86px and44px pieces. Width remains fixed per viewport regardless of hand count.
+394:Short landscape phones use a dedicated56px-top/104px-bottom stage and fit the whole logical board, every placement and caption without scrolling. This deliberately prioritizes playable visibility over edge-to-edge image coverage. Representative568×320,667×375,844×390 and932×430 geometry cases pass. The bottom dock remains independent of extensions/confirmation.
+404:Fullscreen and Menu now share an explicitly right-anchored toolbar group in solo/online views. Desktop/tablet landscape scene offset uses the actual hand tray's top edge and leaves24px below the entire gameplay crop, with at least96px upward movement. This intentionally prioritizes lower-caption visibility over retaining upper scenery/roof clearance. Short landscape phones retain their fit-without-scroll behavior. Regression checks cover caption clearance and remaining bottom artwork coverage.
+408:Approved desktop behavior at widths1280px and above is retained. Landscape tablets below1280px use a proportional fit within the stage and no desktop upward offset; portrait fits all rows vertically with horizontal-only native exploration. Short landscape phones have a larger40px-top/80px-bottom play stage, a64px dock and38px pieces, increasing board scale relative to the previous56/104 stage. Labels/navigation use compact bounded typography. The logical board remains fully visible; the tighter source may leave scenery margins at ratios where uniform full-screen coverage would hide gameplay. No stretched or repeated scenery is introduced. Browser/device acceptance remains unverified.
+412:Short landscape phones now reserve side rails for UI: navigation, players and actions left; goals, a fixed two-column creature tray and passing right. The central stage uses nearly the full height, with one uniformly scaled scene covering the tested phone ratios. This supersedes the bottom-dock rule for short landscape phones only. Tray geometry remains independent of hand count. Desktop/tablet advanced view fits the remaining play column and reduces scale in proportion to its lost width; it does not inherit desktop cover zoom or its large upward offset. Geometry checks cover phone source coverage and advanced-view shrinking; live browser/touch acceptance is separate.
+416:The original user reference now guides the active regenerated board: layered cardstock foliage, cream paper architecture and muted moss/ochre colours. The Watchpost is a raised timber lookout; the Dry Channel is a continuous pale rocky bed, making them visually distinct. All17 positions are remeasured. The source remains1536×1024 with the approved822×548 crop at372,220, preserving the established camera and device coverage. Runtime and miniature WebPs retain native dimensions at quality94. Earlier candidates are preserved; v14 supersedes v10. See the v14 provenance for generation prompts and corrections. Mobile side-control overlaps remain a separate UI follow-up; this artwork change does not claim to resolve them.
+428:The v17 safety correction over-reduced the sanctuary. v18 increases landmark bounding height15% and bounding area21%, with its highest point93source pixels higher. Source/crop dimensions remain unchanged; all17 positions and Release are remapped. Normal desktop now clamps preferred scale and vertical offset to the full landmark bounds between80px header clearance and dockTop−24px; it no longer requires the art itself to reserve y335 universally. Source-edge coverage and full-landmark visibility pass together, including3440×1440. Native pad detail remains comparable, not upgraded resolution. Ratios, formulas, fixtures and sampling-density output are recorded in `concepts/2026-09-16/observatory-framing-calibration.md`, with a reusable measurement script linked from the shared skill.
+432:The v18 source is retained. Normal landscape camera now uses one source-coverage/landmark-fit calculation above500px height across desktop and tablet widths. It prefers8% closer framing, grows enough to close feasible edge gaps, and caps before landmarks hit the header/dock. Browser zoom no longer triggers a tablet contain-fit that ignores source borders; resize handling includes visualViewport and window events. Geometry fixtures exercise fractional browser-zoom dimensions and iPad Mini/Pro sizes. Shared skill, instructions and calibration measurements document the formulas and limitations. Native image resolution is unchanged.
+436:The active boards are now separate landscape and portrait paper worlds with measured17-space maps. See [implementation and validation](concepts/mora-paper-world-v1/implementation.md) and [generation prompts](concepts/mora-paper-world-v1/prompts.md). `lib/games/mora-world.ts` is the current framing contract; it supersedes earlier Observatory cover-zoom/panning recipes above. Source, targets and local foliage/pond animation share one transform. Complete landmarks take precedence when the source cannot cover an extreme aspect ratio; neutral paper remains visible around the source.
+442:The Observatory scene now covers the whole table: `paperWorldFrame` keeps the gameplay crop inside the stage between the UI bands and otherwise scales the single source to cover the surface, eating the outer woodland. No paper texture or border surrounds the board. Where a screen cannot be covered (phones, ultrawide), the canvas paints a soft darkened copy of the same source and feathers the sharp scene's outer margin into it; the crop is never feathered. Pads carry square/round ink outlines; the die engraves a six-cell habitat map on its four static faces; goals sit on a cream field-notebook card; the creature tray is layered cardstock with a bark edge and an open top for the fanned pieces. Wind shivers the woodland tiles around the still habitats, the pond surface shifts without looping, and pollen drifts; all stop under reduced motion. The tray is centred, the goals card stands above the die and actions, and phones frame the gameplay union box rather than the looser crop. The portrait source still needs regenerating with far more woodland above and below; see [full-bleed notes](concepts/mora-paper-world-v1/full-bleed.md).
+446:Both boards use the v2 paper-world sources with pads roughly twice as large; the framing constrains the gameplay union box and the phone now covers without a soft margin. Player tags have a fixed width with truncated names; a centred Boards control under the tags opens the table inspection (tags only preview on hover); the passing box is gone from the Observatory dock. The inspection has a sticky one-line passing cycle, no titles or goal ledgers, and three boards across with several opponents. The die is a real CSS cube that tumbles and settles on the result. Habitat labels are larger with plainer scoring summaries. See [prompts-v2](concepts/mora-paper-world-v1/prompts-v2.md).
+462:Nox and Yata now play on full-table environment plates, the way the Observatory does. `lib/games/table-world.ts` holds the measured geometry for each plate (`nox-world-{landscape,portrait}.json`, `yata-world-{landscape,portrait}.json`): the painted table or counter, the seat ring, blank signboards, protected landmarks and animation layers. `frameScene` in `mora-world.ts` is the shared framing rule for every world; `paperWorldFrame` and `tableWorldFrame` only supply their play box. `components/game/world-scene.tsx` paints one plate across the table with a soft copy where it cannot cover, breathing lantern pools and shifting sea behind the cabin windows, and publishes the plate's placement as `--world-x`, `--world-y` and `--world-scale` so CSS can pin controls to painted objects. `scroll-area.tsx` stages any board carrying `data-paper-world` and `data-world`.
+468:The plates are the closest of the generated candidates (`production-README.md` in the concepts folder records every attempt); all missed the strict band targets, so the framing metadata absorbs the difference. `tests/table-worlds.test.mjs` checks source and derived sizes, the play box inside the stage across the device set, edge coverage on desktops and stable variant identity. `scripts/optimize-paper-worlds.mjs` now derives WebP plates and overviews for every world; `scripts/measure-table-bounds.mjs` reports a plate's table bounds. The `ArtVariantSwitcher` takes a game and flips Nox between its two landscape cabins; remove it once one is chosen. Browser checks covered desktop and portrait for both games in solo play; online tables share the same components.
+486:`components/game/game-box.tsx` draws every box from three CSS faces at one shared angle with a deep visible side; sizes travel as `--gw/--gh/--gd` so stylesheets can resize per breakpoint. The three real covers are crops of the live board plates (`public/art/box-*-v3.png`: the Nox cabin, the Mora observatory, the Yata canal market). Twenty-two placeholder games in `lib/games/library-fixtures.ts` fill the shelves with material, palette and motif only; friends, open tables and the leaderboard there are fixtures too, and no navigation item beyond Play with friends and Settings leads anywhere yet.
+488:Setup follows the Direction M open-box concept in `components/game/setup-box.tsx`: the lid carries the cover, title and stat chips; the kraft tray holds a Learn leaflet, seat tokens for players, three pawns for bot difficulty, folded boards for content sets (Nox shows its Fast mode deck instead), printed extension tiles with emblem, check and info mark, and one cream Play plate. A saved match appears as a continue strip at the top of the tray, which replaces the library's Resume button.
+496:The library opens with the six implemented IDs on one shelf and concept games below. Developed games have dedicated illustrated fronts and spines, varied compact proportions and a complete bottom face. Setup keeps its cover and tag strip, uses a quiet plain insert and places equally prominent Play and Continue actions together.
+508:All games use isolated interactive practice: players can experiment, advance the clock manually, and begin a freshly seeded real match afterward. Roka, Talo and Soma have separate illustrated environments, material cues and original ambient soundscapes. Their source art, rules, privacy boundaries and validation are recorded in `docs/concepts/2026-09-20-roka-talo-soma/IMPLEMENTATION.md`.
+516:Top Tier is tactile cream/plum stationery and coloured tier strips. Outfox is moss-green cloth, cream cards and rust-red fox illustration. Hot Streak is a bright night stadium with original racing mascots, ticket drafting, secret deck manipulation, a timed automatic race, collisions and payout over three races. Preserve reduced motion and mute. New original covers and sprites have exact prompt/provenance records in `docs/concepts/2026-09-20-party-replacements/`.
+535:cream route cards, amber paths and a native SVG cover. Every player/team gets
+543:map geometry comes from Natural Earth. The cover is code-native cartography,
+555:## Library cover contract (21 September 2026)
+560:boxes by game identity, title length, or cover aspect ratio.
+562:Covers are dedicated thematic illustrations in the game's own visual language:
+564:of the gameplay interface. Compose new covers as full-bleed squares without
+568:visible DOM/CSS title over a finished cover. Keep the title safely inside the
+public/art/optimized/box-folio-blind-v1-960.webp
+public/art/optimized/box-folio-blind-v1.webp
+public/art/optimized/box-relic-scratch-v1-640.webp
+public/art/optimized/box-folio-blind-v1-spine.webp
+public/art/optimized/box-folio-blind-v1-320.webp
+public/art/optimized/box-relic-scratch-v1-960.webp
+public/art/optimized/box-folio-blind-v1-640.webp
+public/art/optimized/box-relic-scratch-v1-spine.webp
+public/art/optimized/box-relic-scratch-v1-320.webp
+public/art/optimized/box-relic-scratch-v1.webp
+scope: Design and validate Gamehub’s newer persistent games with server-authoritative activity, shared puzzle state, bounded failure, rich artwork, and clear automated-versus-human acceptance boundaries.
+applies_to: cwd=/Users/williamguinaudie/Documents/code/gamehub; reuse_rule=shared-worktree sensitive; preserve existing IDs, saves, routes, and transactional/idempotent server contracts before extending either game.
+
+## Task 1: Redesign Relic as a Fortune Mill-inspired active skill arcade
+
+### rollout_summary_files
+
+- rollout_summaries/2026-09-22T15-42-08-X8Tp-relic_active_play_fortune_mill_arcade_redesign.md (cwd=/Users/williamguinaudie/Documents/code/gamehub, rollout_path=/Users/williamguinaudie/.codex/sessions/2026/09/22/rollout-2026-09-22T17-42-08-01a0c9c8-1744-71a2-88a7-e9c1dd065453.jsonl, updated_at=2026-09-22T16:20:15+00:00, thread_id=01a0c9c8-1744-71a2-88a7-e9c1dd065453, automated/production smoke validation passed; human browser/audio acceptance pending)
+
+### keywords
+
+- Relic, Fortune Mill, active-play, activity heartbeats, advanceRelic, server/expeditions.ts, relic-arcade.tsx, othersLabel, production-assets.mjs, 219 tests
+
+## Task 2: Add Folio as a cooperative 1–3 player daily puzzle trail
+
+### rollout_summary_files
+
+**Preparing image output**
+codex
+The target path is free. I’ll generate the requested cover now.
+**Editing the top band**
+**Preparing top-band edit**
+codex
+The scene looks good, but the title sits too high. I’ll fix that.
+**Copying exact PNG file**
+codex
+The revised cover clears the top edge. I’ll save it and verify the PNG.
+exec
+/bin/zsh -lc 'cp /Users/williamguinaudie/.codex/generated_images/01a0cfb6-0b97-7b83-8acc-ef64661fd7d0/call_3JW3lLPG6d43n6SNo5VMxLRP.png public/art/box-relic-v2-a.png && sips -g pixelWidth -g pixelHeight -g format public/art/box-relic-v2-a.png && git status --short -- public/art/box-relic-v2-a.png' in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 23ms:
+?? public/art/box-relic-v2-a.png
+
+codex
+Generated and inspected the revised cover, then saved the 1254×1254 PNG to `/Users/williamguinaudie/Documents/code/gamehub/public/art/box-relic-v2-a.png`.
+
+Prompt used: your Relic cover brief, followed by a targeted edit to clear the top band and move the title below it while preserving the scratch-ticket scene. No code or existing assets were changed.
+
+
+tokens used
+104 013
+Generated and inspected the revised cover, then saved the 1254×1254 PNG to `/Users/williamguinaudie/Documents/code/gamehub/public/art/box-relic-v2-a.png`.
+
+Prompt used: your Relic cover brief, followed by a targeted edit to clear the top band and move the title below it while preserving the scratch-ticket scene. No code or existing assets were changed.
+
+

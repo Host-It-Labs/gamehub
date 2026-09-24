@@ -1,69 +1,69 @@
 {
-  "source": "/art/mora-floodline-landscape-v3-a-two-pads.png",
-  "image": "/art/optimized/mora-floodline-landscape-v3-a-two-pads.webp",
-  "boardImage": "/art/optimized/mora-floodline-landscape-v3-a-two-pads-board.webp",
+  "source": "/art/mora-floodline-landscape-v5-b.png",
+  "image": "/art/optimized/mora-floodline-landscape-v5-b.webp",
+  "boardImage": "/art/optimized/mora-floodline-landscape-v5-b-board.webp",
   "width": 1536,
   "height": 1024,
   "crop": {
-    "left": 15,
-    "top": 30,
-    "width": 1440,
-    "height": 700
+    "left": 30,
+    "top": 10,
+    "width": 1470,
+    "height": 740
   },
   "landmarks": {
-    "roofTop": 40,
+    "roofTop": 15,
     "protectedBounds": [
       {
         "name": "lighthouse",
         "bounds": [
-          215,
-          40,
-          165,
-          280
-        ]
-      },
-      {
-        "name": "sea cave",
-        "bounds": [
-          175,
-          330,
-          300,
-          190
+          100,
+          15,
+          400,
+          330
         ]
       },
       {
         "name": "field station hut",
         "bounds": [
-          560,
-          80,
-          300,
-          240
+          615,
+          15,
+          350,
+          235
         ]
       },
       {
         "name": "pier",
         "bounds": [
-          990,
-          110,
-          420,
-          210
+          1015,
+          150,
+          445,
+          215
         ]
       },
       {
         "name": "mangroves",
         "bounds": [
-          1080,
-          340,
-          420,
-          360
+          1010,
+          380,
+          490,
+          265
         ]
       },
       {
         "name": "rock pools",
         "bounds": [
-          520,
-          440,
-          420,
+          575,
+          455,
+          460,
+          290
+        ]
+      },
+      {
+        "name": "sea cave",
+        "bounds": [
+          35,
+          365,
+          530,
           260
         ]
       }
@@ -73,204 +73,240 @@
     {
       "zone": 0,
       "bounds": [
-        677,
-        496,
-        146,
-        102
+        650,
+        522,
+        248,
+        153
       ],
       "label": [
-        751,
-        626
+        773,
+        700
       ],
       "slots": [
         [
-          720,
-          523
+          690,
+          549
         ],
         [
-          786,
-          523
+          773,
+          549
         ],
         [
-          721,
-          574
+          857,
+          549
         ],
         [
-          788,
-          574
+          729,
+          648
+        ],
+        [
+          817,
+          648
         ]
       ],
-      "tokenWidth": 55,
-      "summary": "*Exact* pair 9"
+      "tokenWidth": 54,
+      "summary": "*Exact* pairs 7 · lone 1"
     },
     {
       "zone": 1,
       "bounds": [
-        672,
-        279,
-        149,
-        99
+        648,
+        256,
+        227,
+        103
       ],
       "label": [
-        751,
-        403
+        761,
+        380
       ],
       "slots": [
         [
-          710,
-          305
+          688,
+          283
         ],
         [
-          788,
-          305
+          761,
+          284
         ],
         [
-          705,
-          353
+          834,
+          284
         ],
         [
-          786,
-          353
+          725,
+          332
+        ],
+        [
+          797,
+          332
         ]
       ],
-      "tokenWidth": 55,
-      "summary": "All *different* 4 each \u00b7 repeat 1 each"
+      "tokenWidth": 54,
+      "summary": "All *different* 3 each · repeat 1 each"
     },
     {
       "zone": 2,
       "bounds": [
-        1238,
-        466,
-        109,
-        51
+        1134,
+        549,
+        248,
+        56
       ],
       "label": [
-        1293,
-        549
+        1257,
+        628
       ],
       "slots": [
         [
-          1265,
-          490
+          1174,
+          576
         ],
         [
-          1320,
-          490
+          1257,
+          576
+        ],
+        [
+          1341,
+          578
         ]
       ],
-      "tokenWidth": 51,
-      "summary": "*Matching* pair 9 \u00b7 different 0 \u00b7 single 1"
+      "tokenWidth": 54,
+      "summary": "Three *alike* 12 · else 1 each"
     },
     {
       "zone": 3,
       "bounds": [
-        1140,
-        176,
-        210,
-        108
+        1078,
+        238,
+        302,
+        56
       ],
       "label": [
-        1236,
-        315
+        1230,
+        318
       ],
       "slots": [
         [
-          1171,
-          264
+          1119,
+          267
         ],
         [
-          1251,
-          227
+          1193,
+          266
         ],
         [
-          1324,
-          195
+          1267,
+          265
+        ],
+        [
+          1340,
+          265
         ]
       ],
-      "tokenWidth": 52,
-      "summary": "2 each \u00b7 *A\u2013B\u2013A* +8"
+      "tokenWidth": 54,
+      "summary": "2 each · *A–B–A–B* +6"
     },
     {
       "zone": 4,
       "bounds": [
-        250,
-        470,
-        135,
-        50
+        162,
+        522,
+        303,
+        73
       ],
       "label": [
-        317.5,
-        540
+        314,
+        618
       ],
       "slots": [
         [
-          285,
-          495
+          203,
+          549
         ],
         [
-          350,
-          495
+          276,
+          567
+        ],
+        [
+          351,
+          568
+        ],
+        [
+          425,
+          549
         ]
       ],
-      "tokenWidth": 52,
-      "summary": "*Different* pair 7 \u00b7 matching 2 \u00b7 single 1"
+      "tokenWidth": 54,
+      "summary": "*Echo*: 1 per same species elsewhere"
     },
     {
       "zone": 6,
       "bounds": [
-        260,
-        270,
-        68,
-        48
+        308,
+        234,
+        157,
+        55
       ],
       "label": [
-        294,
-        337
+        386,
+        312
       ],
       "slots": [
         [
-          293,
-          293
+          348,
+          262
+        ],
+        [
+          424,
+          261
         ]
       ],
-      "tokenWidth": 52,
-      "summary": "5 if its species lives *only* here"
+      "tokenWidth": 54,
+      "summary": "4 each if its species lives *only* here"
     }
   ],
   "release": [
-    1040,
-    510
+    745,
+    440
   ],
   "animation": {
     "water": {
       "polygon": [
         [
-          880,
-          420
+          380,
+          770
         ],
         [
-          1060,
-          400
+          560,
+          745
         ],
         [
-          1130,
-          470
+          720,
+          775
         ],
         [
-          1090,
-          560
+          900,
+          765
         ],
         [
-          980,
-          610
+          1010,
+          800
         ],
         [
-          880,
-          560
+          960,
+          880
         ],
         [
-          850,
-          480
+          720,
+          905
+        ],
+        [
+          460,
+          885
+        ],
+        [
+          360,
+          825
         ]
       ]
     },
@@ -278,82 +314,82 @@
       {
         "polygon": [
           [
-            20,
-            690
-          ],
-          [
-            120,
-            660
-          ],
-          [
-            190,
-            700
-          ],
-          [
-            200,
+            0,
             790
           ],
           [
+            110,
+            770
+          ],
+          [
+            200,
+            830
+          ],
+          [
+            210,
+            930
+          ],
+          [
             140,
-            850
+            1000
           ],
           [
-            50,
-            850
+            30,
+            1010
           ],
           [
-            10,
-            780
+            0,
+            930
           ]
         ],
         "pivot": [
           100,
-          860
+          1020
         ]
       },
       {
         "polygon": [
           [
-            1180,
-            350
+            1080,
+            390
           ],
           [
-            1300,
-            330
-          ],
-          [
-            1400,
+            1250,
             380
           ],
           [
-            1420,
-            450
+            1440,
+            400
           ],
           [
-            1340,
-            480
-          ],
-          [
-            1220,
+            1470,
             470
           ],
           [
-            1160,
-            410
+            1360,
+            500
+          ],
+          [
+            1180,
+            500
+          ],
+          [
+            1070,
+            450
           ]
         ],
         "pivot": [
-          1290,
-          500
+          1260,
+          540
         ]
       }
     ]
   },
   "overview": {
     "left": 0,
-    "top": 10,
-    "width": 1480,
-    "height": 740
+    "top": 0,
+    "width": 1536,
+    "height": 790
   },
-  "overviewImage": "/art/optimized/mora-floodline-landscape-v3-a-two-pads-overview.webp"
+  "overviewImage": "/art/optimized/mora-floodline-landscape-v5-b-overview.webp"
 }

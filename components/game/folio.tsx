@@ -224,7 +224,7 @@ function Run({ initial }: { initial: FolioView }) {
   }
   const leave = () => {
     allowLeave();
-    window.location.assign('/folio');
+    window.location.assign('/');
   };
   const open =
     g.phase === 'map'
@@ -792,7 +792,7 @@ function Hub({ invite }: { invite?: string }) {
       <div className="folio-hub-inner">
         <div className="folio-cover">
           <img
-            src="/art/optimized/box-folio-blind-v1-640.webp"
+            src="/art/optimized/box-folio-blind-v2-640.webp"
             alt="Folio — a winding paper trail into the mountains"
           />
         </div>

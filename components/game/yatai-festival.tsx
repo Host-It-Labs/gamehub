@@ -100,8 +100,11 @@ function MenuFace({
           })}
         </span>
       )}
-      <span className="order-reward">
-        +{progress === undefined || progress === 3 ? 7 : 0}
+      {/* An open menu shows what it pays; a settled one shows what it paid. */}
+      <span
+        className={`order-reward ${!settled && progress !== undefined && progress < 3 ? 'pending' : ''}`}
+      >
+        +{!settled || progress === undefined || progress === 3 ? 7 : 0}
       </span>
       {!settled && round && <span className="order-round">{round}</span>}
     </>
@@ -277,7 +280,7 @@ export function FestivalControls({
           disabled={locked || !canBuild}
           onTap={() => onChange({ stall: !choice.stall })}
           inspect={inspect}
-          description="You have two specialty-stall permits for the entire game. Select this button, then draft a dish to open a stall of that type. Your choice locks and reveals with your dish. Every later matching dish earns +2, capped at +6 per stall; the opening dish and previously collected dishes earn nothing. For example, open a Moon bun stall, then draft two more buns to earn +4 in addition to their normal food score. Stalls persist across rounds, and your two stalls must be different dish types. The permit icon on the dish tracks its bonus. Tap this button again to cancel before playing."
+          description="You have two specialty-stall permits for the entire game. Select this button, then draft a dish to open a stall of that type. Your choice locks and reveals with your dish. Every later matching dish earns +2, capped at +6 per stall; the opening dish and previously collected dishes earn nothing. For example, open a Ramen stall, then draft two more Ramen to earn +4 in addition to their normal food score. Stalls persist across rounds, and your two stalls must be different dish types. The permit icon on the dish tracks its bonus. Tap this button again to cancel before playing."
         />
       )}
     </div>

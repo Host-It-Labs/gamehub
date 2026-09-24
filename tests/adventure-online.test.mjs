@@ -76,8 +76,18 @@ for (const id of standaloneIds)
           assert.equal(t.adventure.tutorial, false);
           let i = 0;
           while (t.status === 'playing' && i++ < 1000) {
-            const g = t.adventure,
-              s = standaloneGames[id].actingSeats(g)[0],
+            const g = t.adventure;
+            if (g.phase === 'reveal') {
+              // Reveals wait only on the host; other seats cannot move the table on.
+              if (humans > 1)
+                assert.throws(
+                  () => cmd(tables, t, actors[1], { type: 'adventure-move', move: { type: 'next' }, key: decisionKey(g) }),
+                  /host moves the table on/,
+                );
+              t = cmd(tables, t, host, { type: 'adventure-move', move: { type: 'next' }, key: decisionKey(g) });
+              continue;
+            }
+            const s = standaloneGames[id].actingSeats(g)[0],
               move = botMove(g, s);
             if (t.seats[s].bot) {
               tables.adventureBot(t.token, decisionKey(g), s);
@@ -92,7 +102,10 @@ for (const id of standaloneIds)
               const view = tables.view(t, actors[v]);
               assert.equal(view.game, null);
               assert.equal(view.adventure.rngState, 0);
-              if (id === 'miro') {
+              // A Sabi table may be playing Sizes after the opening vote.
+              if (view.adventure.kind === 'size')
+                assert.deepEqual(view.adventure.used, []);
+              if (view.adventure.kind === 'miro') {
                 assert.deepEqual(view.adventure.deck, []);
                 assert.deepEqual(view.adventure.cityIds, []);
                 if (view.adventure.phase === 'guess')
@@ -121,11 +134,21 @@ await test('simultaneous stale revisions accepted once; changed match and locked
       capacity: 4,
       difficulty: 'hard',
     });
-    const guest = identity('guest');
+    const guest = identity('guest'),
+      guest2 = identity('guest2'),
+      guest3 = identity('guest3');
     t = tables.join(t.token, guest);
-    t = tables.join(t.token, identity('guest2'));
-    t = tables.join(t.token, identity('guest3'));
+    t = tables.join(t.token, guest2);
+    t = tables.join(t.token, guest3);
     t = cmd(tables, t, host, { type: 'start' });
+    // Tribu's opening vote: everyone picks Top Five.
+    for (const who of [host, guest, guest2, guest3])
+      t = cmd(tables, t, who, {
+        type: 'adventure-move',
+        move: { type: 'vote', choice: 'orin' },
+        key: decisionKey(t.adventure),
+      });
+    assert.equal(t.adventure.phase, 'rank');
     const original = t,
       g = t.adventure;
     const m0 = standaloneGames.orin.legalMoves(g, 0)[0],
@@ -176,48 +199,24 @@ await test('simultaneous stale revisions accepted once; changed match and locked
     db.close();
   }
 });
-await test('all three online games retain exactly two equal teams through setup, practice and full matches',()=>{
+await test('party tables always play everyone for themselves, even when a stale client asks for teams',()=>{
   const {db,tables,host}=setup();
   try{
-    for(const id of standaloneIds)for(const n of [4,6]){
+    for(const id of standaloneIds){
       let t=tables.create(host);
-      t=cmd(tables,t,host,{type:'configure',gameId:id,capacity:n,difficulty:'medium',partyMode:'teams'});
-      assert.equal(t.partyMode,'teams');
-      const actors=[host];for(let s=1;s<n;s++){const actor=identity(`member-${s}`);actors.push(actor);t=tables.join(t.token,actor);}
+      t=cmd(tables,t,host,{type:'configure',gameId:id,capacity:4,difficulty:'medium',partyMode:'teams',teams:[0,0,1,1]});
+      assert.equal(t.partyMode,undefined);
+      assert.equal(t.teams,undefined);
+      const actors=[host];for(let s=1;s<4;s++){const actor=identity(`member-${s}`);actors.push(actor);t=tables.join(t.token,actor);}
       t=cmd(tables,t,host,{type:'start',learning:true});
-      assert.equal(t.adventure.mode,'teams');
+      assert.equal(t.adventure.mode,'individual');
       t=cmd(tables,t,host,{type:'begin-match'});
-      assert.equal(t.adventure.scores.length,2);
-      assert.deepEqual([0,1].map(group=>t.adventure.teams.filter(v=>v===group).length),[n/2,n/2]);
-      let steps=0;
-      while(t.status==='playing'&&steps++<1000){const g=t.adventure,seat=standaloneGames[id].actingSeats(g)[0],move=botMove(g,seat);t=cmd(tables,t,actors[seat],{type:'adventure-move',move,key:decisionKey(g)});}
-      assert.equal(t.status,'finished');
-      assert.ok(standaloneGames[id].isSavedGame(t.adventure));
+      assert.equal(t.adventure.mode,'individual');
+      assert.equal(t.adventure.scores.length,4);
     }
   }finally{db.close();}
 });
 
-await test('host custom teams persist through removal, practice, reload and match start', () => {
-  const { db, tables, host } = setup();
-  try {
-    let t=tables.create(host);
-    t=cmd(tables,t,host,{type:'configure',gameId:'miro',difficulty:'medium',capacity:5,partyMode:'teams',teams:[1,0,1,0,0]});
-    const a=identity('a'), b=identity('b');
-    t=tables.join(t.token,a); t=tables.join(t.token,b);
-    assert.throws(()=>cmd(tables,t,a,{type:'configure',gameId:'miro',difficulty:'medium',capacity:5,teams:[0,1,0,1,0]}),{status:403});
-    assert.throws(()=>cmd(tables,t,host,{type:'configure',gameId:'miro',difficulty:'medium',capacity:5,teams:[0,0,0,0,0]}),{status:400});
-    t=cmd(tables,t,host,{type:'remove',memberId:'a'});
-    assert.deepEqual(t.teams,[1,1,0,0,0]);
-    assert.deepEqual(tables.view(tables.get(t.token),host).teams,t.teams);
-    for (const name of ['c', 'd', 'e']) t = tables.join(t.token, identity(name));
-    t=cmd(tables,t,host,{type:'start',learning:true});
-    assert.deepEqual(t.adventure.teams,[1,1,0,0,0]);
-    t=cmd(tables,t,host,{type:'lesson',step:1});
-    assert.deepEqual(t.adventure.teams,[1,1,0,0,0]);
-    t=cmd(tables,t,host,{type:'begin-match'});
-    assert.deepEqual(t.adventure.teams,[1,1,0,0,0]);
-  } finally {db.close();}
-});
 await test('disconnected lobby guests must reconnect or be removed before starting', () => {
   const {db,tables,host}=setup();
   try {
@@ -251,38 +250,47 @@ for (const id of standaloneIds) await test(`${id}: disconnected humans cannot be
   } finally { db.close(); }
 });
 
-await test('Atlas persists one three-pin team turn and rejects previous-team submissions after switching', () => {
-  const { db, tables, host } = setup();
+await test('hosting defaults to the creator, can be handed over in the lobby, and gates moving reveals on', () => {
+  const connected = new Set(['host', 'ada', 'bo']);
+  const db = openDatabase(':memory:');
+  db.prepare('INSERT INTO users VALUES (?,?,?,?)').run('host', 'host@example.com', 'host', 'unused');
+  const tables = new Tables(db, (_table, member) => connected.has(member));
+  const host = identity('host', true), ada = identity('ada'), bo = identity('bo');
   try {
     let t = tables.create(host);
-    t = cmd(tables, t, host, { type: 'configure', gameId: 'miro', difficulty: 'medium', capacity: 4, partyMode: 'teams' });
-    const actors = [host, ...[1, 2, 3].map(s => identity(`atlas${s}`))];
-    for (const actor of actors.slice(1)) t = tables.join(t.token, actor);
-    t = cmd(tables, t, host, { type: 'start' });
-    const entry = standaloneGames.miro;
-    while (t.adventure.phase === 'guess') {
-      const seat = entry.actingSeats(t.adventure)[0];
-      t = cmd(tables, t, actors[seat], { type: 'adventure-move', key: decisionKey(t.adventure), move: botMove(t.adventure, seat) });
+    t = cmd(tables, t, host, { type: 'configure', gameId: 'orin', difficulty: 'medium', capacity: 3 });
+    t = tables.join(t.token, ada);
+    t = tables.join(t.token, bo);
+    assert.equal(tables.view(t, host).isHost, true);
+    assert.equal(tables.view(t, ada).isHost, false);
+    assert.throws(() => cmd(tables, t, ada, { type: 'host', memberId: 'ada' }), /Only the host/);
+    t = cmd(tables, t, host, { type: 'host', memberId: 'ada' });
+    const view = tables.view(t, host);
+    assert.equal(view.isHost, false);
+    assert.equal(tables.view(t, ada).isHost, true);
+    assert.deepEqual(view.members.filter(m => m.host).map(m => m.id), ['ada']);
+    assert.equal(view.members.find(m => m.id === 'host').owner, true);
+    // The new host runs the table; the creator cannot be removed or leave.
+    assert.throws(() => cmd(tables, t, host, { type: 'configure', gameId: 'orin', difficulty: 'medium', capacity: 3 }), /Only the host/);
+    assert.throws(() => cmd(tables, t, ada, { type: 'remove', memberId: 'host' }), /removed/);
+    assert.throws(() => cmd(tables, t, ada, { type: 'leave' }), /Hand hosting/);
+    t = cmd(tables, t, ada, { type: 'start' });
+    assert.throws(() => cmd(tables, t, ada, { type: 'host', memberId: 'bo' }), /lobby/);
+    const actors = [host, ada, bo];
+    while (t.adventure.phase !== 'reveal') {
+      const g = t.adventure, seat = standaloneGames.orin.actingSeats(g)[0];
+      t = cmd(tables, t, actors[seat], { type: 'adventure-move', move: botMove(g, seat), key: decisionKey(g) });
     }
-    const firstCaptain = entry.actingSeats(t.adventure)[0];
-    const firstTeam = t.adventure.teams[firstCaptain], key = decisionKey(t.adventure);
-    for (const prompt of [2, 0, 1]) {
-      t = cmd(tables, t, actors[firstCaptain], { type: 'adventure-move', key, move: { type: 'choose', prompt, seat: firstCaptain } });
-      assert.equal(t.adventure.turn, 0);
-      assert.equal(t.adventure.result, null);
-    }
-    t = new Tables(db, () => true).get(t.token);
-    assert.deepEqual(t.adventure.choices[firstTeam].seats, Array(3).fill(firstCaptain));
-    t = cmd(tables, t, actors[firstCaptain], { type: 'adventure-move', key, move: { type: 'lock' } });
-    assert.equal(t.adventure.turn, 1);
-    assert.equal(t.adventure.phase, 'discuss');
-    assert.throws(() => cmd(tables, t, actors[firstCaptain], { type: 'adventure-move', key, move: { type: 'choose', prompt: 0, seat: firstCaptain } }), /round has advanced/);
-    for (const actor of actors) assert.equal(tables.view(t, actor).adventure.result, null);
-    while (t.adventure.phase === 'discuss') {
-      const seat = entry.actingSeats(t.adventure)[0];
-      t = cmd(tables, t, actors[seat], { type: 'adventure-move', key: decisionKey(t.adventure), move: botMove(t.adventure, seat) });
-    }
-    assert.equal(t.adventure.phase, 'reveal');
-    assert.ok(t.adventure.choices.every(c => c.locked && c.seats.length === 3));
-  } finally { db.close(); }
+    const next = () => ({ type: 'adventure-move', move: { type: 'next' }, key: decisionKey(t.adventure) });
+    assert.equal(tables.view(t, bo).canAdvance, false);
+    assert.throws(() => cmd(tables, t, bo, next()), /host moves the table on/);
+    // A dropped host must not stall the table: any seated player may move on.
+    connected.delete('ada');
+    assert.equal(tables.view(t, bo).canAdvance, true);
+    const target = t.adventure.target;
+    t = cmd(tables, t, bo, next());
+    assert.equal(t.adventure.target, target + 1);
+  } finally {
+    db.close();
+  }
 });

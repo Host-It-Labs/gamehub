@@ -16,6 +16,7 @@ import {
   simultaneous,
   suitNames,
   suits,
+  trickRevealMs,
   type PublicGame,
   type Card,
   type Event,
@@ -48,6 +49,7 @@ export function BlackwakeTable({
   anchors,
   seatTags = false,
   onSeat,
+  cardPull,
   style,
 }: {
   g: PublicGame;
@@ -60,6 +62,9 @@ export function BlackwakeTable({
   /** Seat tags carry each player's score and turn state (the cabin has no top row). */
   seatTags?: boolean;
   onSeat?: (seat: number) => void;
+  /** With anchors: place each played card this share of the way from the centre to its
+   *  player's stool, horizontally and vertically, instead of on the shared card ellipse. */
+  cardPull?: [number, number];
   style?: CSSProperties;
   /** Width over height of the table box, so the painted direction ring keeps true arrowheads. */
   aspect?: number;
@@ -85,7 +90,7 @@ export function BlackwakeTable({
     ).matches;
     const timer = setTimeout(
       () => setQueue((previous) => previous.slice(1)),
-      reduced ? 1000 : 2200,
+      reduced ? 1000 : trickRevealMs,
     );
     return () => clearTimeout(timer);
   }, [reveal]);
@@ -181,16 +186,16 @@ export function BlackwakeTable({
         );
       })}
       {trick.map((entry, order) => {
-        const position = seatPosition(
-          entry.player,
-          viewer,
-          g.players.length,
-          ...geometry.cards,
-        );
+        const stool = cardPull && anchors?.[(entry.player - viewer + count) % count];
+        const position = stool
+          ? { x: 50 + (stool.x - 50) * cardPull[0], y: 50 + (stool.y - 50) * cardPull[1] }
+          : seatPosition(entry.player, viewer, count, ...geometry.cards);
         return (
           <div
             key={`${reveal?.id ?? 'live'}:${entry.card.id}`}
-            className={`blackwake-played-card ${reveal ? 'captured' : ''}`}
+            className={`blackwake-played-card ${reveal ? 'captured' : ''} ${order === 0 ? 'lead' : ''}`}
+            // Upper-half cards carry their order tag underneath, clear of the top seat plates.
+            data-tag-edge={position.y < 45 ? 'bottom' : undefined}
             style={
               {
                 left: `${position.x}%`,
@@ -201,8 +206,8 @@ export function BlackwakeTable({
               } as CSSProperties
             }
           >
-            <span className="played-order">
-              {order + 1}
+            <span className="played-order" aria-label={order === 0 ? 'Lead card' : undefined}>
+              {order === 0 ? 'LEAD' : order + 1}
               {entry.ward && <Shield size={13} />}
             </span>
             <div className="static-face">

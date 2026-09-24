@@ -137,32 +137,38 @@ const own = (
  * yet, so their covers still print a material and a motif the way the shelf
  * placeholders do — the difference is that these ones open and play.
  */
-export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
+const partyBoxes = {
   orin: own('orin', {
-    world: 'Rank your favourites, then discover who really knows you',
+    world: 'Party games about how well your group really knows each other',
     minutes: 20,
     players: [2, 6],
-    mode: 'Teams',
+    mode: 'Competitive',
     weight: 1,
-    genre: 'Personal rankings',
+    genre: 'Knowing each other',
     material: 'card',
-    palette: ['#413354', '#b4a1cb', '#fff3d9'],
+    palette: ['#b8432b', '#f2b531', '#fff6e2'],
     motif: 'grid',
     playing: [],
   }),
   miro: own('miro', {
-    world:
-      'Six destinations: place your pins, hear your team, find your world',
-    minutes: 8,
+    world: 'Quick trivia rounds: pin places on the globe, size things up',
+    minutes: 20,
     players: [2, 6],
-    mode: 'Teams',
+    mode: 'Competitive',
     weight: 1,
-    genre: 'Geography & shared challenges',
+    genre: 'Trivia',
     material: 'tin',
-    palette: ['#153748', '#ffcc70', '#eee6c9'],
+    palette: ['#1f5a4a', '#ff5a3c', '#fbf6e9'],
     motif: 'flame',
     playing: [],
   }),
+};
+/** Dial is played inside Tribu and Sizes inside Sabi; their old tables open
+ * the set's box. */
+export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
+  ...partyBoxes,
+  dial: partyBoxes.orin,
+  size: partyBoxes.miro,
 };
 
 const fake = (
@@ -479,7 +485,8 @@ export const libraryGames: LibraryGame[] = [
     motif: 'gem', playing: [],
   },
   ...Object.values(realGames),
-  ...Object.values(standaloneLibraryGames),
+  standaloneLibraryGames.orin,
+  standaloneLibraryGames.miro,
   ...placeholderGames,
 ];
 export const playableGame = (id: string) =>

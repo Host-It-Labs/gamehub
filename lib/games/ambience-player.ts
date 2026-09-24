@@ -9,7 +9,7 @@ import {
   type AmbienceEvent,
 } from './ambience';
 import type { GameId as TrioGameId } from './trio/engine';
-type GameId = TrioGameId | 'orin' | 'miro';
+type GameId = TrioGameId | 'orin' | 'miro' | 'dial' | 'size';
 
 /** Ambience sits under the cue sounds even at full volume. */
 const CEILING = 0.52;

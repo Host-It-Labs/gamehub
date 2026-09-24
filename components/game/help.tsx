@@ -15,6 +15,7 @@ import {
   tidePenaltyValue,
   passCount,
   totalRounds,
+  supplyPerKind,
   type PublicGame as Game,
 } from '@/lib/games/trio/engine';
 export function Help({
@@ -29,8 +30,11 @@ export function Help({
   const tideUsed = handSize(g) * g.players.length;
   const ranksInDeck = g.duelDeck ? (g.fastMode ? 3 : 5) : tideRanks(g);
   const tideTotal = 5 * ranksInDeck;
-  const used = g.players.length * 12,
-    omitted = 72 - used;
+  const perKind = supplyPerKind(g),
+    supply = perKind * 6,
+    kept = totalRounds(g) * 6,
+    used = g.players.length * kept,
+    omitted = supply - used;
   if (reference) {
     const inHands = g.players.reduce((n, p) => n + p.hand.length, 0);
     const placed = g.players.reduce((n, p) => n + p.zones.flat().length, 0);
@@ -54,7 +58,7 @@ export function Help({
           <dd>
             {tide
               ? `${tideTotal} cards · 5 suits × ${ranksInDeck} ranks`
-              : `72 ${grove ? 'creatures' : 'cards'} · 6 types × 12`}
+              : `${supply} ${grove ? 'creatures' : 'cards'} · 6 types × ${perKind}`}
           </dd>
           <dt>Used in this game</dt>
           <dd>{tide ? tideUsed : used}</dd>
@@ -122,7 +126,7 @@ export function Help({
         <p>
           {tide
             ? `Play ${totalRounds(g)} rounds. Each Storm card adds penalty points equal to its number. The ${tidePenaltyRank(g)} of the suit shown on the die adds ${tidePenaltyValue(g)} points. Other cards add no penalty points. Tied players share the win.`
-            : `Keep one ${grove ? 'creature' : 'dish'} per turn. After two rounds you will have kept twelve. Your collection stays between rounds. Tied players share the win.`}
+            : `Keep one ${grove ? 'creature' : 'dish'} per turn. After ${totalRounds(g) === 3 ? 'three' : 'two'} rounds you will have kept ${kept === 18 ? 'eighteen' : 'twelve'}. Your collection stays between rounds. Tied players share the win.`}
         </p>
       </section>
       <h3>Your turn, in order</h3>
@@ -249,9 +253,9 @@ export function Help({
       ) : (
         <>
           <p>
-            The full supply contains <b>72 {grove ? 'creatures' : 'cards'}</b>:
-            12 of each of the six types. Each player receives six per round and
-            keeps twelve across the whole game.
+            The full supply contains <b>{supply} {grove ? 'creatures' : 'cards'}</b>:
+            {perKind} of each of the six types. Each player receives six per round and
+            keeps {kept} across the whole game.
           </p>
           <p>
             With {g.players.length} players,{' '}
@@ -259,7 +263,7 @@ export function Help({
               {used} are played and {omitted} stay out of this match
             </b>
             . The shuffled supply is drawn without replacement. Unused items
-            stay hidden and never join a hand; you cannot assume all twelve of a
+            stay hidden and never join a hand; you cannot assume all {perKind} of a
             type will appear.
           </p>
           {grove && (

@@ -1,5 +1,229 @@
 # Gamehub design direction
 
+## Tribu refinements: closer scoring, finite spectrums, changeable votes (23 September 2026, later)
+
+- **Top Five scores by closeness.** Each of the author's answers earns 2
+  points where the guess ranked it exactly, 1 point one rank away, nothing
+  further off; a perfect list is 10 (`nearPoints` in
+  `lib/games/party/ranking.ts`). Replaces one point per exact rank plus two
+  for a perfect five.
+- **Top Five reveal is five straight Dials.** Each of the author's answers,
+  in their order, gets a five-slot track: the real rank glows in Dial's teal
+  bullseye colour, the ranks beside it are the pale near band, and every
+  guess drops in as an avatar where that player ranked it. Dial-style score
+  chips (avatar, name, +points; a perfect list gets the burst) follow, and
+  the full lists stay behind the people button. In short landscape the
+  scores stand in a column beside the tracks.
+- **Dial spectrums must be finite.** A spectrum belongs only if the table
+  agrees on what its two ends mean. Open-ended magnitudes with no shared
+  frame (Slow–Fast, Tiny–Huge, Cheap–Expensive, Quiet–Loud and the like: fast
+  compared to what?) are retired, together with near-duplicates. Rows are only
+  appended or retired, never removed, so saved ids stay stable.
+- **Votes can change until they close.** In every set vote (Tribu and
+  Sabi, opening and end of round) a player can switch their vote while
+  anyone is still undecided; the vote closes the moment everyone has voted
+  or the clock runs out. The online next-game vote already allowed this.
+
+## Know Me and Quiz: plain names, no teams, a host picker (23 September 2026, latest)
+
+- **Names.** Abstract strategy games (Nox, Mora, Yata) keep short abstract
+  names. Party games take plain, literal names. Tribu (`orin`) is now
+  **Know Me**; Sabi (`miro`) is now **Quiz**, a generic name because it will
+  hold more trivia games than Atlas and Sizes. Internal ids, saves and the
+  Tribu/Sabi code names in source stay. New covers in
+  [the cover notes](concepts/2026-09-23-know-me-quiz-covers/README.md).
+- **No teams.** Know Me and Quiz are always everyone for themselves. Setup has
+  no play-mode choice; the server ignores any team request and every new
+  match, practice and switch is individual. The engines still read old team
+  saves.
+- **Host picker.** In the online setup box the play-mode choice and the
+  explanation paragraph are gone. In their place is the row of players at the
+  table, with a crown on the host; the host taps another player to hand
+  hosting over. Empty seats show as dashed chairs. Rules stay in Rules.
+- Folio and Relic boxes on the shelf now show their printed covers and spines
+  (they have no engine id, which had left them as blank placeholders).
+
+## Sabi: small trivia games, Size It Up and a new Atlas (23 September 2026, later)
+
+Supersedes the Mundo section below where they differ.
+
+- **Sabi** (provisional name, internal id `miro`; was Mundo) is a set of
+  short trivia mini-games, not only a world game. It holds **Atlas** and
+  **Sizes** today and is meant to take more. Its structure is unchanged: an
+  opening vote, an again/switch/end vote after every round, shared totals
+  and round count. The name was chosen to be short and easy to say in any
+  language.
+- **Scores share one scale.** Both games give up to 100 points per prompt,
+  so neither dominates the carried totals: a Sizes comparison scores 0–100,
+  and an Atlas place gives 50 to the closest pin plus 50 to every pin within
+  100 km (the old 1 + 1, times fifty).
+- **Sizes is Magnitudle's Size It Up, nearly one to one.** A cream reference
+  silhouette stands at true scale on a ground line; players drag a tomato
+  silhouette to move it, pull its corner handle (or pinch) to resize it,
+  zoom the board with + and −. They size all three comparisons, moving
+  freely between the tabs, and lock once at the end (changed 23 September
+  2026; a lock per comparison was dropped). The host then reveals the three
+  one at a time. A reveal lines up on the mat the reference, the true size in
+  gold, and every player's guess in their colour, best first, with the true
+  size laid over each; a guess far past three and a half times the truth is
+  cropped to its slot with a fade. Hovering or tapping a player, on the mat or
+  in the list, dims the rest. It counts a "52 / 100" up with *Off by*, prints
+  a one-line fact, and lists everyone's points. Scoring is
+  Size It Up's curve on relative error (6% off or less scores 100; 12% → 90,
+  20% → 78, 32% → 62, 50% → 45, 75% → 30, 110% → 18, 160% → 0, straight
+  lines between). Each round is three comparisons: an animal, an object or
+  landmark, then a country (east to west
+  or north to south, from the Natural Earth outlines). The target is between
+  a fifth and eight times the reference. A lock can carry all three sizes so
+  the last drag and the lock land as one move. Silhouettes are three generated 4×4
+  sheets, thresholded to alpha masks by `scripts/build-sizes-silhouettes.mjs`
+  with each cell's box in `lib/games/party/size-silhouettes.json`; the
+  catalogue with real sizes and facts is `lib/games/party/size-things.ts`.
+- **Atlas rounds: two places and a final.** Each round is an easier named
+  place, a harder named place (never the headline cities: no Paris, London,
+  New York, Rome, Tokyo…), then the final: a photograph and two clues that
+  never name the place, its country or its people. Named places live in
+  `lib/games/party/geo-names.json`; the 23 photographed finals stay in
+  `geo-places.json`. Rules marker 10.
+- **Atlas globe (23 September 2026, later).** The globe stands free on the
+  desk with a thin sky-blue rim, no mat behind it. Close up it drapes Esri
+  World Imagery tiles over the bundled Blue Marble texture, sharper the
+  closer the camera (to about 60 km up), with the credit shown while tiles
+  are in view. Dragging keeps the ground under the pointer at every zoom, and
+  zoom works in altitude so it slows near the ground. Pins are map pins with
+  their tip on the spot, drawn above the globe and hidden past the horizon.
+  At the reveal every guess draws an arc to the answer and the globe turns to
+  show them.
+- **One look for the set: the measuring desk.** A deep green self-healing
+  cutting mat with a pale grid and ruler ticks is the board of every Sabi
+  game (Sizes stands its silhouettes on it; Atlas's globe is the exception
+  and stands free on the desk); cream index cards with a red rule hold the steps, the prompt and
+  the results; glossy enamel tomato buttons; warm lamp light from the upper
+  left on a pale wooden desk. Shared pieces in `components/game/sabi.css`
+  and `sabi-steps.tsx`: `.sabi-stage`, `.sabi-board`, `.sabi-card`,
+  `.sabi-steps`, `.sabi-results`, `.sabi-actions`. New Sabi games build on
+  them. Never Tribu's neon night, never the old gouache poster. Cover:
+  `box-sabi-blind-v1`; prompts in
+  [the Sabi concept notes](concepts/2026-09-23-sabi/README.md).
+
+## Mundo: Atlas and Sizes, and reveals with a pulse (23 September 2026)
+
+- Superseded by Sabi above: the name, the look, Sizes' rules and Atlas's
+  rounds. The set structure and the reveal kit below still hold.
+- **Reveals with a pulse.** Every party reveal and the match results use one
+  kit, `components/game/reveal-motion.tsx`: numbers count up, items drop or
+  pop in one after another, and a perfect answer gets a ring burst. Each
+  reveal settles in under two seconds and is instant under reduced motion.
+  Top Five flips its ranks in one by one, then the guesser chips, then the
+  scores. Dial blooms its bands from the hidden point, swings the guesses in,
+  then pops the scores. Atlas lists teams closest first with distances
+  counting up. Sizes counts the answer up, shrinks countries to scale, drops
+  the guesses onto a log ruler and pops the points. The results screen counts
+  down from last place to the winner, who lands last with a crown and a light
+  sweep.
+
+## Tribu, and no noise on the table (23 September 2026)
+
+- **Tribu** (provisional name, internal id `orin`) replaces My Top Five and
+  Dial as separate games. It is one party game about how well a group knows
+  each other, and it holds both: **Top Five** and **Dial**. A match opens with
+  a ten-second vote between the two. Every round ends with a ten-second vote:
+  the same game again, the other game, or **End**. The game being played wins
+  any tie it is part of and an empty vote. A tie without it prefers playing
+  over ending, and the opening draws at random when nobody votes. Points carry
+  across games: each player's total is what the results show. Top Five keeps
+  its teams option, and a team's points count for each of its players. Dial is
+  always everyone for themselves. Rounds keep counting across a switch, up to
+  twelve. The saved state is always one of the two games (`orin` or `dial`);
+  `lib/games/party/tribu.ts` swaps it when the table switches, keeping seats,
+  log, round and totals. Old Dial tables open as Tribu.
+- **Look.** A retro game show (changed 23 September 2026; the night-party
+  indigo was dropped). The table stands on an illustrated 70s studio set
+  (`tribu-studio-landscape-*` / `tribu-studio-portrait-*`): curtains, marquee
+  bulbs, podiums, plants and lights at the edges, a calm lacquered stage in
+  the middle under a soft cream wash. Tribu will hold more games, so the art
+  is general: no dials or ranking cards in the set or the cover
+  (`box-tribu-blind-v2`, the set with a lit "Tribu" marquee). Surfaces are
+  cream with chunky dark-brown ink outlines and hard offset shadows in tomato
+  red, mustard and teal, under a heavy rounded display face. The Dial is a
+  game-show wheel: a teal→mustard→orange→tomato band inside a tomato rim of
+  marquee bulbs that chase while the clue is written, with the clue-giver's
+  two spectrums above it as large segmented options. Top Five uses cream
+  contestant cards with a coloured header band. Never dark, never neon, no
+  bare sunburst, no close-up grinning faces.
+- **Flags.** Removed from the table for now (23 September 2026). The
+  `content_flags` log and endpoint stay so they can come back.
+- **Top Five prompts are taste, not reasoning.** A prompt belongs only if the
+  ranking shows something about the person. Retire anything that reason can
+  settle: the most useful thing, what to bring to an island, the animal you'd
+  least like to fight, the skill everyone should have.
+- **Hard rule: no noise text on the playing screen.** Every game. No
+  eyebrows, subtitles, taglines, duplicate game titles or helper sentences
+  ("Only you can see this", "Drag the needle…"). The board, buttons, avatars,
+  dots and images carry the state. What stays is content (a prompt, a clue,
+  answer labels), names, scores and one short word per action (Lock, Next).
+  Explanations belong in Rules.
+- **Hard rule: no flat, uninspired screens.** Every game needs depth and
+  energy: a considered palette, light, glow or material, and a centrepiece
+  worth looking at. Stay sleek, not busy: one strong idea, not piles of
+  ornament. Long prompts use balanced wrapping (`text-wrap: balance`) so lines
+  never break awkwardly.
+
+## Table votes, Dial, and better conversation starters (23 September 2026)
+
+- **Round votes.** Every party game (My Top Five, Atlas, Dial) is open-ended.
+  After a round's last reveal the host presses Next, then everyone has ten
+  seconds to vote *Keep playing* or *Finish here*. The most votes wins, silent
+  players don't count, and a tie or an empty vote keeps playing. Everyone
+  voting closes it early. This is the one exception to the host-moves-on rule:
+  a vote is each player's own choice and never waits on anyone. Practice votes
+  have no clock. Atlas runs out of places after seven rounds; the others stop
+  at twelve.
+- **What next?** When a party match finishes online, the results show a
+  ten-second vote between the party games that fit the table. The winner
+  starts at once with the same players; a tie is settled at random; nobody
+  voting leaves the table on the results with Play again and Library.
+- **Dial** (internal id `dial`, provisional name) is our Wavelength-style
+  game. Each round every player gives one clue: they pick one of two
+  spectrums, see a hidden point, and type a short clue. Everyone else turns
+  their own dial privately and locks. Within 2 scores 4, within 6 scores 3,
+  within 10 scores 2; the clue-giver earns the average. Individual play only.
+  Its look is an old radio tuner: teal enamel, cream face, amber bands.
+- **My Top Five reveal.** One row per rank: the author's real answer, the
+  viewer's own guess under a miss, and a chip per guesser (green when they
+  matched). Scores sit below; full lists open in a dialog.
+- **Prompts.** Conversation starters should be personal and easy to argue
+  about (little luxuries, worst habits in a housemate, pizza toppings), not
+  abstract or whimsical trivia (front-door colours, animals as guides, biscuit
+  shapes). Retired prompts keep their id and are never dealt again. Players
+  can flag a prompt with *Bad prompt?*; flags land in the `content_flags`
+  table (one per player per prompt) for the next catalog pass.
+
+## Players lock choices; the host moves the game on (23 September 2026)
+
+Playtesting showed that asking every player to confirm each next step made
+games longer and left the table waiting on whoever was slowest. This applies to
+every game, solo and online:
+
+- Wait for player input only when a player locks in their own decision: a
+  ranking, a guess, a pin, a card, a final submit. Those locks stay explicit.
+- Never ask every player to confirm moving on (next category, next list, next
+  round, finish). One **Next** belongs to the table host, and the game waits
+  for the host to press it, even when everyone has locked in, so the table can
+  talk about the reveal.
+- The host is the player who created the table by default. The host can hand
+  hosting to any other player from the lobby's player list (**Make host**).
+  The new host configures, starts and moves the game on; the creator stays at
+  the table and cannot be removed.
+- If the host disconnects mid-match, any seated player may press Next, so the
+  table never stalls. Other players see who moves the table on instead of a
+  button.
+- Bots never move the table on. In local play the person at the device is host.
+
+My Top Five and Atlas follow this now: their reveals use one host `next` move in
+place of the old everyone-presses-Continue `ready` step. Their rules are
+otherwise unchanged.
+
 ## Shared progress and human-only party games (21 September 2026)
 
 Progress always sits directly below the top-left back/name control, in the shared
@@ -404,8 +628,9 @@ not generated bitmap artwork. Attribution lives in `public/maps/README.md`.
 Setup keeps one Learn control at the top and only Play/Continue in its footer.
 All list games use drag handles with pointer capture and keyboard arrow support.
 Correct/wrong reveal rows animate with reduced-motion overrides. Sound respects
-mute. Teammates share drafts; only the rotating captain locks. Every player
-acknowledges each reveal, including in practice and online play.
+mute. Teammates share drafts; only the rotating captain locks. The host moves
+each reveal on with one Next, including in practice and online play (superseded
+by the 23 September host rule above).
 
 Verification: `docs/verification/2026-09-20-party-refinements.md`.
 
@@ -455,7 +680,7 @@ round, in any order, then locks all three together. Once everyone has locked,
 each team gets its 20-second turn to select a frozen teammate pin for Places,
 then Photos, then Three facts. All three pins stay frozen throughout the round. Starting teams alternate each category,
 so both teams start each category exactly once. Captains rotate per category.
-Each reveal waits for everybody to continue. Individual play skips discussion.
+Each reveal waits for the host to press Next. Individual play skips discussion.
 Closest-pin and 100 km bonus scoring are unchanged. Rules marker 8 rejects
 incompatible earlier Atlas saves. The map is a borderless satellite 3D globe
 with gesture controls and only a World reset button.
@@ -538,3 +763,28 @@ not required. After both teams lock, reveal the three categories in sequence.
 Rules marker 9 rejects the earlier one-choice team state; affected Atlas
 tables return to the lobby, preserving their participants. My Top Five is
 unchanged. Browser, touch and audible playback acceptance remain separate.
+
+## Mora rules pass and Floodline three rounds (23 September 2026)
+
+Observatory (beginner, two rounds): the Glasshouse trail echoes the rest of
+the board: each creature earns 3 if its species also lives in another of your
+habitats (maximum 9). The Dry channel no longer asks for different species; a
+full channel of any species earns 6, otherwise nothing. Both reward spreading
+species across the sanctuary rather than hoarding or avoiding them. Goals were checked against the habitat rules:
+Mirror terraces now asks for four of one species across Courtyard and Roof
+garden (herd below, pairs above) instead of two species in both, which fought
+Courtyard's largest-group scoring. Full houses counts only habitats of three or
+more spaces; Glasshouse guests became Glass walk (fill the trail); Big family
+became Hollow twins; Three families became Four families.
+
+Floodline Station (intermediate) plays three rounds with a 108-creature supply
+and a regenerated board of 23 spaces (5/5/3/4/4/2). Its habitats were rethought
+for plain wording: Rock pools exact pairs, Nesting beach all different,
+Mangrove roots three alike, Pier A–B–A–B in order, Sea cave echoes your other
+habitats, Lighthouse keeps two lone species. Its twelve goals are its own and
+keep the same ids, so saved draws stay valid. Packets pass left in odd rounds
+and right in even rounds. The shared die face Empty is now Emptiest (least
+crowded habitat with room), which removed forced releases late in a long game.
+Details, prompts and measurements:
+[floodline three rounds](concepts/2026-09-23-floodline-three-rounds/README.md).
+

@@ -53,6 +53,11 @@ await test('Every supported ranking table finishes two rounds without deadlocks 
         let g = ranking.createGame(kind, n, 829, 'medium', mode);
         let steps = 0;
         while (!g.over && steps++ < 1000) {
+          // Reveals wait on the host alone; seat 0 stands in for them.
+          if (g.phase === 'reveal') {
+            g = ranking.play(g, { type: 'next' }, 0);
+            continue;
+          }
           const actor = ranking.actingSeats(g)[0];
           assert.notEqual(actor, undefined);
           const move = ranking.botMove(ranking.observe(g, actor), actor);

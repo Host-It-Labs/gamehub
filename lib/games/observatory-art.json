@@ -188,7 +188,7 @@
     ]
    ],
    "tokenWidth": 60,
-   "summary": "*Same* species: 2 · 6 · 12"
+   "summary": "*Echo*: 3 each if its species lives elsewhere"
   },
   {
    "zone": 4,
@@ -217,7 +217,7 @@
     ]
    ],
    "tokenWidth": 60,
-   "summary": "*Different* species: 1 · 4 · 10"
+   "summary": "*Full* channel: 6"
   },
   {
    "zone": 6,

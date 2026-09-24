@@ -5651,6 +5651,9 @@ svg {
   top: 0;
   font-size: 9px;
 }
+.order-reward.pending {
+  opacity: 0.6;
+}
 .festival-preview-menus {
   display: flex;
   flex-wrap: wrap;
@@ -6641,6 +6644,14 @@ button.sanctuary-goal {
 .season-forecast b {
   font-size: 10px;
 }
+/* The snaking route is drawn only on the landscape counter; elsewhere the dishes run in a row. */
+.season-route,
+.season-step {
+  display: contents;
+}
+.season-line {
+  display: none;
+}
 .hand-abilities {
   flex-wrap: wrap;
   row-gap: 6px;
@@ -7201,12 +7212,32 @@ button.primary {
   padding: 2px 4px;
   font-size: 10px;
 }
+.blackwake-played-card[data-tag-edge='bottom'] .played-order {
+  top: auto;
+  bottom: -8px;
+}
+.blackwake-played-card.lead {
+  z-index: 3;
+}
+.blackwake-played-card.lead .static-face {
+  outline: 3px solid #d8a54f;
+  outline-offset: 2px;
+}
+.blackwake-played-card.lead .played-order {
+  border-radius: 9px;
+  padding: 2px 6px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: #d8a54f;
+  color: #1f1c14;
+}
 .blackwake-played-card.captured {
-  animation: capture-trick 2.2s both;
+  /* Keep in step with trickRevealMs: a brief still hold, then the sweep to the winner. */
+  animation: capture-trick 1.5s both;
 }
 @keyframes capture-trick {
   0%,
-  54% {
+  40% {
     opacity: 1;
     transform: translate(-50%, -50%);
   }
@@ -7229,7 +7260,7 @@ button.primary {
   border-radius: 3px;
   padding: 3px 7px;
   font-size: 18px;
-  animation: capture-points 2.2s both;
+  animation: capture-points 1.5s both;
 }
 .capture-score.reward {
   color: #244a3c;
@@ -7237,11 +7268,11 @@ button.primary {
 }
 @keyframes capture-points {
   0%,
-  50% {
+  35% {
     opacity: 0;
     transform: translateY(8px);
   }
-  65%,
+  48%,
   90% {
     opacity: 1;
     transform: translateY(0);

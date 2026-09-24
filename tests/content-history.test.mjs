@@ -49,13 +49,13 @@ for (const gameId of ['miro']) await test(`${gameId}: account union, guests, tut
 });
 await test('exhausted pools remain playable and My Top Five ignores history', () => {
   for (const id of ['miro', 'orin']) {
-    const base = standaloneGames[id].create(6, 42, 'medium');
+    const base = id === 'miro' ? standaloneGames[id].create(6, 42, 'medium') : rankingGame(id, 6, 42, 'medium', 'individual');
     const keys = id === 'miro' ? base.deck.map(placeHistoryKey) : [...base.deck, ...base.offers.flat()].map(String);
     const seen = new Set(keys);
     const next = id === 'miro' ? geographyGame(6, 42, 'medium', 'individual', seen) : rankingGame(id, 6, 42, 'medium', 'individual', seen);
     assert.equal(new Set(next.deck).size, next.deck.length);
     if (id === 'orin') assert.deepEqual(next, base);
-    if (id === 'miro') assert.equal(next.deck.length, 6);
+    if (id === 'miro') assert.equal(next.deck.length, base.deck.length);
   }
 });
 
@@ -65,11 +65,11 @@ await test('version 2 databases migrate and retain history across disk reopen', 
   let db;
   try {
     db = openDatabase(path);
-    db.exec('DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; DROP TABLE user_content_history; DROP TABLE expedition_commands; DROP TABLE expedition_members; DROP TABLE expeditions; PRAGMA user_version=2');
+    db.exec('DROP TABLE content_flags; DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; DROP TABLE user_content_history; DROP TABLE expedition_commands; DROP TABLE expedition_members; DROP TABLE expeditions; PRAGMA user_version=2');
     db.prepare('INSERT INTO users VALUES (?,?,?,?)').run('host', 'host@test.invalid', 'Host', 'unused');
     db.close();
     db = openDatabase(path);
-    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 5);
+    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 6);
     db.prepare('INSERT INTO user_content_history VALUES (?,?,?)').run('host', 'miro', 'place:example');
     db.close();
     db = openDatabase(path);

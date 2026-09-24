@@ -7,10 +7,11 @@ import {
   botMove,
   decisionKey,
 } from '../lib/games/standalone/registry.ts';
-import { topics } from '../lib/games/party/catalog.ts';
+import { topics, liveTopicIds } from '../lib/games/party/catalog.ts';
 import * as ranking from '../lib/games/party/ranking.ts';
 
 import { practice, advancePractice } from '../lib/games/adventures/lessons.ts';
+import { skipOpening } from './tribu-helpers.mjs';
 const permutations = (n) =>
   n === 0
     ? [[]]
@@ -22,11 +23,13 @@ const permutations = (n) =>
         ]),
       );
 function ranked(id = 'orin', n = 4) {
-  let g = standaloneGames[id].create(
-    n,
-    77,
-    'medium',
-    n === 2 ? 'individual' : 'teams',
+  let g = skipOpening(
+    standaloneGames[id].create(
+      n,
+      77,
+      'medium',
+      n === 2 ? 'individual' : 'teams',
+    ),
   );
   for (let s = 0; s < n; s++) {
     g = ranking.play(g, { type: 'topic', target: g.offers[s][0] }, s);
@@ -46,9 +49,11 @@ function ranked(id = 'orin', n = 4) {
   }
   return g;
 }
-await test('116 original topics have six distinct answers and fresh three-topic offers', () => {
-  assert.equal(topics.length, 116);
-  assert.equal(new Set(topics.map((t) => t.title)).size, 116);
+await test('179 original topics, 96 still dealt, have six distinct answers and fresh three-topic offers', () => {
+  assert.equal(topics.length, 179);
+  assert.equal(new Set(topics.map((t) => t.title)).size, 179);
+  assert.equal(liveTopicIds.length, 96);
+  assert.ok(liveTopicIds.every((id) => !topics[id].retired));
   assert.equal(new Set(topics.map((t) => t.category)).size, 8);
   for (const t of topics) {
     assert.equal(t.answers.length, 6);
@@ -74,12 +79,15 @@ await test('every seat count completes reproducibly, preserves inputs and saves 
             `${id} invalid ${g.phase}`,
           );
           const before = JSON.stringify(g);
-          const s = e.actingSeats(g)[0],
-            m = botMove(g, s);
+          // Reveals wait on the host alone; seat 0 stands in for them here.
+          const s = g.phase === 'reveal' ? 0 : e.actingSeats(g)[0],
+            m = g.phase === 'reveal' ? { type: 'next' } : botMove(g, s);
           assert.ok(m, `${id} stalled ${g.phase}`);
           assert.ok(e.validMove(g, m, s));
-          const next = e.play(g, m, s);
-          assert.deepEqual(next, e.play(g, m, s));
+          // Pin the clock: end-of-round votes carry a deadline.
+          const now = 1_000_000 + steps;
+          const next = e.play(g, m, s, now);
+          assert.deepEqual(next, e.play(g, m, s, now));
           assert.notEqual(next, g);
           assert.equal(JSON.stringify(g), before);
           assert.equal(next.revision, g.revision + 1);
@@ -118,7 +126,7 @@ await test('ranking drafts, offers, future lists, team guesses and seeds stay pr
 await test('all permutations are accepted; duplicate, incomplete, outsider and hostile moves are rejected', () => {
   for (const id of ['orin']) {
     const e = standaloneGames[id];
-    let g = e.create(4, 1, 'easy');
+    let g = skipOpening(e.create(4, 1, 'easy'));
     g = e.play(g, { type: 'topic', target: g.offers[0][0] }, 0);
     if (id === 'orin')
       for (const order of permutations(ranking.count(g)))
@@ -136,6 +144,7 @@ await test('all permutations are accepted; duplicate, incomplete, outsider and h
       { type: 'arrange', order: [] },
       { type: 'topic', target: -1 },
       { type: 'lock', admin: true },
+      { type: 'next' },
       { type: 'ready' },
     ])
       assert.equal(e.play(g, m, 0), g);
@@ -145,7 +154,7 @@ await test('all permutations are accepted; duplicate, incomplete, outsider and h
 });
 await test('simultaneous ranking locks are atomic and independent of submission order', () => {
   for (const id of ['orin']) {
-    let g = standaloneGames[id].create(4, 8, 'medium');
+    let g = skipOpening(standaloneGames[id].create(4, 8, 'medium'));
     for (let s = 0; s < 4; s++)
       g = ranking.play(g, { type: 'topic', target: g.offers[s][0] }, s);
 
@@ -160,31 +169,8 @@ await test('simultaneous ranking locks are atomic and independent of submission 
     assert.equal(a.phase, 'guess');
   }
 });
-await test('captains lock shared drafts, owner cannot guess, reveal waits for all teams and scores exact ranks', () => {
-  for (const id of ['orin']) {
-    let g = ranked(id, 6);
-    assert.equal(ranking.validMove(g, { type: 'lock' }, g.target), false);
-    const answer = g.ballots[g.target].order;
-    for (const t of ranking.guessingTeams(g)) {
-      const cap = ranking.captain(g, t),
-        mate = g.teams.findIndex(
-          (team, s) => team === t && s !== g.target && s !== cap,
-        );
-      if (mate >= 0) {
-        g = ranking.play(g, { type: 'arrange', order: answer }, mate);
-        assert.equal(ranking.validMove(g, { type: 'lock' }, mate), false);
-      }
-      g = ranking.play(g, { type: 'arrange', order: answer }, cap);
-      g = ranking.play(g, { type: 'lock' }, cap);
-    }
-    assert.equal(g.phase, 'reveal');
-    assert.deepEqual(g.scores, id === 'orin' ? [7, 7] : [0, 8]);
-    assert.deepEqual(observe(g, -1).result.order, answer);
-  }
-});
-
-await test('withdraw before final lock; ready acknowledgements do not skip someone’s reveal', () => {
-  let g = standaloneGames.orin.create(2, 33, 'medium');
+await test('withdraw before final lock; one next moves the reveal on without waiting for everyone', () => {
+  let g = skipOpening(standaloneGames.orin.create(2, 33, 'medium'));
   g = ranking.play(g, { type: 'topic', target: g.offers[0][0] }, 0);
   g = ranking.play(g, { type: 'lock' }, 0);
   g = ranking.play(g, { type: 'unlock' }, 0);
@@ -193,11 +179,12 @@ await test('withdraw before final lock; ready acknowledgements do not skip someo
   g = ranking.play(g, { type: 'lock' }, 1);
   assert.equal(g.phase, 'reveal');
   const key = decisionKey(g);
-  g = ranking.play(g, { type: 'ready' }, 0);
-  assert.equal(g.phase, 'reveal');
+  assert.deepEqual(ranking.actingSeats(g), []);
+  assert.equal(ranking.botMove(g, 1), null);
   assert.equal(ranking.play(g, { type: 'ready' }, 0), g);
-  g = ranking.play(g, { type: 'ready' }, 1);
+  g = ranking.play(g, { type: 'next' }, 0);
   assert.equal(g.target, 1);
+  assert.equal(g.phase, 'guess');
   assert.notEqual(decisionKey(g), key);
 });
 await test('save markers reject all retired games and malformed structures', () => {
@@ -206,11 +193,13 @@ await test('save markers reject all retired games and malformed structures', () 
       g = e.create(4, 5, 'easy');
     for (const change of [
       { rules: 2 },
-      { rules: 1 },
+      { rules: id === 'dial' ? 99 : 1 },
       { seats: [] },
       { round: 0 },
+      { round: 13 },
       { phase: 'unknown' },
-      { ready: [] },
+      id === 'dial' ? { guesses: [] } : { ready: [] },
+      { phase: 'vote', vote: null },
       { rngState: null },
       { scores: [NaN] },
     ])

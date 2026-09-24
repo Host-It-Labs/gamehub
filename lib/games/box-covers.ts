@@ -4,16 +4,16 @@ const coverSlugs: Record<string, string> = {
   undertow: 'nox',
   wildgrove: 'mora',
   midnight: 'yata',
-  orin: 'my-top-five',
-  miro: 'atlas',
+  orin: 'know-me',
+  miro: 'quiz',
   relic: 'relic',
   folio: 'folio',
 };
 
 export function boxCover(id: string) {
-  if (id === 'relic') return '/art/optimized/box-relic-scratch-v1.webp';
+  if (id === 'relic') return '/art/optimized/box-relic-scratch-v2.webp';
   const slug = coverSlugs[id];
-  const version = id === 'midnight' ? 2 : 1;
+  const version = id === 'midnight' || id === 'folio' ? 2 : 1;
   return slug ? `/art/optimized/box-${slug}-blind-v${version}.webp` : undefined;
 }
 

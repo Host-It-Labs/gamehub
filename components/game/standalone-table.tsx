@@ -4,15 +4,16 @@ import {
   LockKeyhole,
   LoaderCircle,
   Check,
-  Sparkles,
   Volume2,
   RotateCcw,
   BookOpen,
+  RefreshCw,
 } from 'lucide-react';
 import {
   standaloneGames,
   botMove,
   tick,
+  deadline,
   observe,
   type AnyGame,
   type AnyMove,
@@ -24,7 +25,6 @@ import {
   tiers,
   guessSlot,
   guessName,
-  guessPoints,
   captain,
   guessingTeams,
   count,
@@ -32,6 +32,18 @@ import {
   type RankingGame,
 } from '@/lib/games/party/ranking';
 import { GeographyTable } from './geography-table';
+import { DialTable } from './dial-table';
+import { SizeTable } from './size-table';
+import { PartyFinale } from './party-finale';
+import { RankingReveal } from './ranking-reveal';
+import { RoundVotePanel } from './table-vote';
+import { TribuVote } from './tribu-vote';
+import { seatTotals } from '@/lib/games/party/tribu';
+import { setOf } from '@/lib/games/party/vote';
+import './tribu.css';
+import './sabi.css';
+import { NextGameVote } from './next-game-vote';
+import type { StandaloneId } from '@/lib/games/standalone/types';
 import {
   adventureLessons,
   advancePractice,
@@ -62,11 +74,24 @@ type Props = {
   onAdvance?: () => void;
   onBegin?: () => void;
   canTeach?: boolean;
+  /** Only the table host moves reveals on; local play always can. */
+  canAdvance?: boolean;
+  hostName?: string;
+  /** Online, after a party match: the ten-second vote for the next game. */
+  nextVote?: { endsAt: number; ballots: Record<string, StandaloneId> } | null;
+  viewerId?: string;
+  onNextGame?: (id: StandaloneId) => void;
 };
 const seed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 function awaitingAction(g: AnyGame, seat: number) {
   if (g.over) return false;
-  if (g.phase === 'reveal') return !g.ready[seat];
+  if (g.phase === 'reveal') return false;
+  if (g.phase === 'vote') return !g.vote?.choices[seat];
+  if (g.kind === 'dial')
+    return g.phase === 'clue'
+      ? seat === g.target
+      : seat !== g.target && !g.guesses[seat]?.locked;
+  if (g.kind === 'size') return g.phase === 'guess' && !g.guesses[seat].locked;
   if (g.kind === 'miro')
     return g.phase === 'guess'
       ? !g.guesses[seat].locked
@@ -93,6 +118,11 @@ export function StandaloneTable({
   onAdvance,
   onBegin,
   canTeach = true,
+  canAdvance = true,
+  hostName,
+  nextVote,
+  viewerId,
+  onNextGame,
 }: Props) {
   const [panel, setPanel] = useState<'menu' | 'rules' | 'others' | null>(null);
   const entry = standaloneGames[g.kind],
@@ -122,24 +152,19 @@ export function StandaloneTable({
     return () => clearTimeout(timer);
   }, [g, online, panel, entry, viewerSeat, onChange]);
   useEffect(() => {
-    if (
-      online ||
-      g.tutorial ||
-      g.over ||
-      g.kind !== 'miro' ||
-      g.discussionEndsAt === null
-    )
-      return;
+    const due = deadline(g);
+    if (online || due === null) return;
     const timer = setTimeout(
       () => {
         const next = tick(g);
         if (next !== g) onChange?.(next);
       },
-      Math.max(0, g.discussionEndsAt - Date.now()) + 25,
+      Math.max(0, due - Date.now()) + 25,
     );
     return () => clearTimeout(timer);
   }, [g, online, onChange]);
   const result = g.over ? entry.outcome(g) : null;
+  const tribu = g.tribu ? seatTotals(g) : null;
   function begin() {
     if (online) onBegin?.();
     else
@@ -148,9 +173,9 @@ export function StandaloneTable({
           g.seats.length,
           seed(),
           g.difficulty,
-          g.mode,
+          g.tribu ? g.tribu.mode : g.mode,
           undefined,
-          g.teams,
+          g.tribu ? g.tribu.teams : g.teams,
         ),
       );
   }
@@ -158,16 +183,16 @@ export function StandaloneTable({
     if (online) onLesson?.(step);
     else
       onChange?.(
-        practice(g.kind, g.seats.length, g.difficulty, step, g.mode, g.teams),
+        practice(g.kind, g.seats.length, g.difficulty, step),
       );
   }
   return (
     <div
-      className={`party-table party-${g.kind} ${g.tutorial ? 'is-practice' : ''} ${view.kind !== 'miro' && (view.phase !== 'rank' || view.ballots[viewerSeat]) ? 'has-list' : ''}`}
+      className={`party-table party-${g.kind} mode-${g.mode} ${setOf(g.kind) === 'orin' ? 'is-tribu' : 'is-sabi'} ${g.tutorial ? 'is-practice' : ''} ${view.kind === 'dial' || (view.kind === 'orin' && (view.phase !== 'rank' || view.ballots[viewerSeat])) ? 'has-list' : ''}`}
     >
       <GameNavigation
         name={entry.name}
-        round={{ current: g.round, total: 2 }}
+        progress={`Round ${g.round}`}
         onBack={onHome}
         onMenu={() => setPanel('menu')}
         onOthers={() => setPanel('others')}
@@ -186,7 +211,7 @@ export function StandaloneTable({
             key={s}
             className={`party-player ${s === viewerSeat ? 'is-you' : ''} ${awaitingAction(view, s) ? 'is-active' : ''}`}
           >
-            <span className={`party-avatar team-${g.teams[s]}`}>
+            <span className={`party-avatar team-${g.teams[s]} seat-${s}`}>
               {name.slice(0, 1)}
             </span>
             <span>
@@ -195,7 +220,9 @@ export function StandaloneTable({
                 {s === viewerSeat ? ' · you' : ''}
               </b>
               <small>
-                {`${groupName(g, g.teams[s])} · ${Number(g.scores[g.teams[s]].toFixed(2))} pts`}
+                {tribu
+                  ? `${(g.kind === 'orin' || g.kind === 'miro') && g.mode === 'teams' ? `${groupName(g, g.teams[s])} · ` : ''}${Number(tribu[s].toFixed(2))} pts`
+                  : `${groupName(g, g.teams[s])} · ${Number(g.scores[g.teams[s]].toFixed(2))} pts`}
               </small>
             </span>
             <output
@@ -212,38 +239,68 @@ export function StandaloneTable({
         ))}
       </header>
       <main className="party-main">
-        <div className="party-title">
-          <p>
-            {g.kind === 'miro'
-              ? 'SIX DESTINATIONS · TRUST YOUR TEAM'
-              : 'HOW WELL DO YOU KNOW THEM?'}
-          </p>
-          <h1>{entry.name}</h1>
-        </div>
         {result ? (
-          <section className="party-finale">
-            <Sparkles size={48} />
-            <h2>{result.title}</h2>
-            <p>{result.detail}</p>
-            <div className="party-scores">
-              {result.rows?.map((r) => (
-                <div key={r.name}>
-                  <b>{r.name}</b>
-                  <strong>{r.value}</strong>
-                </div>
-              ))}
-            </div>
-            <button className="party-primary" onClick={onNew ?? onHome}>
-              Play again
-            </button>
-            <button onClick={onHome}>Back to library</button>
-          </section>
+          <PartyFinale result={result}>
+            {nextVote && viewerId && onNextGame ? (
+              <NextGameVote
+                vote={nextVote}
+                viewerId={viewerId}
+                seats={g.seats.length}
+                disabled={disabled}
+                onVote={onNextGame}
+              />
+            ) : (
+              <>
+                <button className="party-primary" onClick={onNew ?? onHome}>
+                  Play again
+                </button>
+                <button onClick={onHome}>Back to library</button>
+              </>
+            )}
+          </PartyFinale>
+        ) : view.phase === 'vote' && view.vote && view.vote.options ? (
+          <TribuVote
+            vote={view.vote}
+            current={view.vote.opening ? null : view.kind}
+            viewer={viewerSeat}
+            disabled={disabled}
+            onVote={(choice) => commit({ type: 'vote', choice })}
+          />
+        ) : view.phase === 'vote' && view.vote ? (
+          <RoundVotePanel
+            vote={view.vote}
+            round={view.round}
+            viewer={viewerSeat}
+            seats={view.seats}
+            disabled={disabled}
+            onVote={(choice) => commit({ type: 'vote', choice })}
+          />
+        ) : view.kind === 'dial' ? (
+          <DialTable
+            g={view}
+            viewer={viewerSeat}
+            disabled={disabled}
+            commit={commit}
+            canAdvance={canAdvance}
+            hostName={hostName}
+          />
+        ) : view.kind === 'size' ? (
+          <SizeTable
+            g={view}
+            viewer={viewerSeat}
+            disabled={disabled}
+            commit={commit}
+            canAdvance={canAdvance}
+            hostName={hostName}
+          />
         ) : view.kind === 'miro' ? (
           <GeographyTable
             g={view}
             viewer={viewerSeat}
             disabled={disabled}
             commit={commit}
+            canAdvance={canAdvance}
+            hostName={hostName}
           />
         ) : (
           <RankingTable
@@ -251,6 +308,8 @@ export function StandaloneTable({
             viewer={viewerSeat}
             disabled={disabled}
             commit={commit}
+            canAdvance={canAdvance}
+            hostName={hostName}
           />
         )}
       </main>
@@ -326,8 +385,12 @@ export function StandaloneTable({
               outcome={adventureLessons[g.kind][0].title}
               note={
                 g.kind === 'miro'
-                  ? 'Everyone freezes all three private pins before discussion. Each team chooses all three in one turn before switching teams. Both teams confirm before any destination is revealed.'
-                  : 'Discuss with your team outside the app. The list owner must stay silent while teams guess.'
+                  ? 'Everyone freezes all three private pins before discussion. Each team chooses all three in one turn before switching teams. Both teams confirm before any place is revealed.'
+                  : g.kind === 'size'
+                    ? 'Sizes are typical adult or standard figures. Country outlines come from Natural Earth, each drawn at true relative scale.'
+                    : g.kind === 'dial'
+                      ? 'The clue-giver stays quiet while everyone turns their dial.'
+                      : 'Discuss with your team outside the app. The list owner must stay silent while teams guess.'
               }
             >
               {adventureLessons[g.kind].map((l) => (
@@ -365,11 +428,15 @@ function RankingTable({
   viewer,
   disabled,
   commit,
+  canAdvance,
+  hostName,
 }: {
   g: RankingGame;
   viewer: number;
   disabled: boolean;
   commit: (m: AnyMove) => void;
+  canAdvance: boolean;
+  hostName?: string;
 }) {
   const catalog = topics;
   const owner = g.phase === 'rank' ? viewer : g.target,
@@ -381,8 +448,7 @@ function RankingTable({
         answers: card.answers,
       }
     : null;
-  const team = g.teams[viewer],
-    isOwner = g.target === viewer,
+  const isOwner = g.target === viewer,
     canGuess =
       g.phase === 'guess' &&
       !isOwner &&
@@ -412,107 +478,79 @@ function RankingTable({
       className={`ranking-stage ${topic ? 'has-topic' : ''} phase-${g.phase}`}
     >
       {g.phase === 'rank' && (
-        <>
-          <div className="ranking-intro">
-            <span className="party-eyebrow">
-              <LockKeyhole size={14} /> YOUR PRIVATE LIST
-            </span>
-            <h2>
-              {topic
-                ? 'Make it your order.'
-                : 'Pick your conversation starter.'}
-            </h2>
-            <p>
-              {
-                'Rank from 1st to 5th. Your favourite at the top, your least favourite at the bottom.'
-              }
-            </p>
-          </div>
-          <div className={`topic-choices ${topic ? 'compact' : ''}`}>
-            {g.offers[viewer]?.map((id) => (
+        <div className={`topic-choices ${topic ? 'compact' : ''}`}>
+          {g.offers[viewer]?.map((id) => (
+            <div
+              key={id}
+              className={`topic-option ${topic?.id === id ? 'chosen' : ''}`}
+            >
               <button
-                key={id}
                 className={`topic-card ${topic?.id === id ? 'chosen' : ''}`}
                 disabled={disabled || locked}
                 aria-pressed={topic?.id === id}
-                onClick={() => {
-                  commit({ type: 'topic', target: id });
-                }}
+                onClick={() => commit({ type: 'topic', target: id })}
               >
-                {!topic && <span>{catalog[id].category}</span>}
                 <strong>{catalog[id].title}</strong>
-                <span className="topic-answer-chips">
-                  {catalog[id].answers.slice(0, 5).map((answer) => (
-                    <span key={answer}>{answer}</span>
-                  ))}
-                </span>
-                {!topic && <b>Choose this list ↗</b>}
+                {!topic && (
+                  <span className="topic-answer-chips">
+                    {catalog[id].answers.slice(0, 5).map((answer) => (
+                      <span key={answer}>{answer}</span>
+                    ))}
+                  </span>
+                )}
               </button>
-            ))}
-          </div>
-          {g.kind === 'orin' && (
-            <button
-              className="topic-refresh"
-              disabled={disabled || locked || (g.refreshes?.[viewer] ?? 0) >= 2}
-              onClick={() => commit({ type: 'refresh' })}
-            >
-              Refresh choices · {2 - (g.refreshes?.[viewer] ?? 0)} left
-            </button>
-          )}
-          {!topic && (
-            <p className="catalog-note">
-              {catalog.length} {'original topics · fresh choices every round'}
-            </p>
-          )}
-        </>
+            </div>
+          ))}
+          <button
+            className="topic-refresh"
+            disabled={disabled || locked || (g.refreshes?.[viewer] ?? 0) >= 2}
+            aria-label={`New choices, ${2 - (g.refreshes?.[viewer] ?? 0)} left`}
+            title="New choices"
+            onClick={() => commit({ type: 'refresh' })}
+          >
+            <RefreshCw size={18} aria-hidden="true" />
+            <b aria-hidden="true">{2 - (g.refreshes?.[viewer] ?? 0)}</b>
+          </button>
+        </div>
       )}
 
       {g.phase !== 'rank' && (
-        <div className="ranking-intro">
-          <span className="party-eyebrow">
-            {g.phase === 'reveal'
-              ? 'THE REVEAL'
-              : `${g.target + 1} OF ${g.seats.length} LISTS`}
+        <div className="ranking-author">
+          <span
+            className={`party-avatar team-${g.teams[g.target]} seat-${g.target}`}
+          >
+            {g.seats[g.target].slice(0, 1)}
           </span>
-          <h2>
-            {g.phase === 'reveal'
-              ? `${g.seats[g.target]}'s real ranking`
-              : isOwner
-                ? 'Keep your poker face.'
-                : `Think like ${g.seats[g.target]}.`}
-          </h2>
-          <p>
-            {g.phase === 'reveal'
-              ? 'Compare your guesses, then continue together.'
-              : isOwner
-                ? 'Your ranking is locked. Let the other players discuss it without hints.'
-                : !canGuess
-                  ? 'Your opponents are guessing this list.'
-                  : g.mode === 'teams' && guessSlot(g, viewer) < 2
-                    ? `Your ${groupName(g, team)} shares this guess. ${g.seats[cap]} is the captain.`
-                    : 'Guess silently on your own. The author must stay silent too. Everyone locks before the reveal.'}
-          </p>
+          <b>{isOwner ? 'You' : g.seats[g.target]}</b>
+          <span
+            className="ranking-count"
+            aria-label={`List ${g.target + 1} of ${g.seats.length}`}
+          >
+            {g.seats.map((_, s) => (
+              <i
+                key={s}
+                className={
+                  s < g.target ? 'is-done' : s === g.target ? 'is-now' : ''
+                }
+              />
+            ))}
+          </span>
         </div>
       )}
       {topic && (
         <div className="tier-paper">
           <div className="tier-paper-heading">
-            <span>{topic.category}</span>
             <h3>{topic.title}</h3>
-            <span>
-              {g.phase === 'rank'
-                ? 'Your order'
-                : g.phase === 'reveal'
-                  ? 'True order'
-                  : canGuess
-                    ? `${guessName(g, guessSlot(g, viewer))}’s guess`
-                    : isOwner
-                      ? 'Your locked order'
-                      : 'The possible answers'}
-            </span>
+            {canGuess && g.mode === 'teams' && guessSlot(g, viewer) < 2 && (
+              <span className="tier-paper-team">
+                {guessName(g, guessSlot(g, viewer))}
+              </span>
+            )}
           </div>
 
-          {order && order.length > 0 ? (
+          {g.phase === 'reveal' && g.result ? (
+            <RankingReveal g={g} viewer={viewer} topic={topic} />
+          ) : order && order.length > 0 ? (
             <SortableRanking
               key={`${g.round}-${g.phase}-${owner}-${topic.id}`}
               order={order}
@@ -538,148 +576,64 @@ function RankingTable({
               ))}
             </div>
           )}
-
-          {g.phase === 'reveal' && g.result && (
-            <>
-              <section
-                className="revealed-guesses"
-                aria-label="Everyone’s guesses"
-              >
-                <h3>Everyone’s guesses</h3>
-                {g.mode === 'teams' && g.kind === 'orin' && (
-                  <p className="guess-team-summary">
-                    {g.result.gains
-                      .map(
-                        (gain, team) =>
-                          `${groupName(g, team)} +${Number(gain.toFixed(2))}${team === g.teams[g.target] ? ' (silent guesses averaged)' : ' (shared guess)'}`,
-                      )
-                      .join(' · ')}
-                  </p>
-                )}
-                <div className="guess-comparison">
-                  {guessingTeams(g).map((t) => (
-                    <div key={t}>
-                      <h4>
-                        {guessName(g, t)}{' '}
-                        <b>
-                          +
-                          {guessPoints(
-                            g.result!.guesses[t]!.order,
-                            g.result!.order,
-                            g.kind,
-                          )}
-                        </b>
-                      </h4>
-                      <ol>
-                        {g.result!.guesses[t]!.order.map((v, i) => (
-                          <li
-                            key={i}
-                            className={
-                              v === g.result!.order[i] ? 'correct' : 'incorrect'
-                            }
-                          >
-                            <span>{labels[i]}</span>
-                            {topic.answers[v]}{' '}
-                            {v === g.result!.order[i] ? '✓' : '×'}
-                          </li>
-                        ))}
-                      </ol>
-                      <small>
-                        {guessPoints(
-                          g.result!.guesses[t]!.order,
-                          g.result!.order,
-                          g.kind,
-                        )}{' '}
-                        guessing points
-                      </small>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </>
-          )}
         </div>
       )}
       <div className="party-dock" aria-live="polite">
-        {g.phase === 'rank' && ballot && (
-          <>
-            {locked ? (
-              <>
-                <p>
-                  <LockKeyhole size={16} />
-                  Locked · waiting for the other players
-                </p>
-                <button
-                  disabled={disabled}
-                  onClick={() => commit({ type: 'unlock' })}
-                >
-                  {'Change my ranking'}
-                </button>
-              </>
-            ) : (
-              <>
-                <span>{'Only you can see this order.'}</span>
-                <button
-                  className="party-primary"
-                  disabled={disabled}
-                  onClick={() => commit({ type: 'lock' })}
-                >
-                  <LockKeyhole size={17} />
-                  {'Lock my ranking'}
-                </button>
-              </>
-            )}
-          </>
-        )}
-        {canGuess &&
+        {((g.phase === 'rank' && ballot) || (canGuess && cap === viewer)) &&
           (locked ? (
-            <>
-              <span>Guess locked. Waiting for the other players.</span>
-              {cap === viewer && (
-                <button
-                  disabled={disabled}
-                  onClick={() => commit({ type: 'unlock' })}
-                >
-                  Unlock
-                </button>
-              )}
-            </>
+            <button
+              className="party-locked"
+              disabled={disabled}
+              onClick={() => commit({ type: 'unlock' })}
+            >
+              <LockKeyhole size={17} aria-hidden="true" />
+              Unlock
+            </button>
           ) : (
-            <>
-              <span>
-                {cap === viewer
-                  ? g.mode === 'teams' && guessSlot(g, viewer) < 2
-                    ? 'Discuss it, then lock your team’s guess.'
-                    : 'Lock your private guess when ready.'
-                  : `${g.seats[cap]} locks your shared guess.`}
-              </span>
-              {cap === viewer && (
-                <button
-                  className="party-primary"
-                  disabled={disabled}
-                  onClick={() => commit({ type: 'lock' })}
-                >
-                  Lock guess
-                </button>
-              )}
-            </>
+            <button
+              className="party-primary"
+              disabled={disabled}
+              onClick={() => commit({ type: 'lock' })}
+            >
+              <LockKeyhole size={17} aria-hidden="true" />
+              Lock
+            </button>
           ))}
+        {canGuess && cap !== viewer && (
+          <span className="party-waiting">
+            <LoaderCircle
+              className="party-action-spinner"
+              size={16}
+              aria-hidden="true"
+            />
+            {g.seats[cap]}
+          </span>
+        )}
         {g.phase === 'guess' && isOwner && (
-          <p>
-            <LockKeyhole size={16} />
-            All guesses must lock before the reveal.
-          </p>
-        )}
-        {g.phase === 'reveal' && (
-          <button
-            className="party-primary"
-            disabled={disabled || g.ready[viewer]}
-            onClick={() => commit({ type: 'ready' })}
+          <span
+            className="party-lock-count"
+            aria-label={`${guessingTeams(g).filter((t) => g.guesses[t]?.locked).length} of ${guessingTeams(g).length} guesses locked`}
           >
-            {g.ready[viewer] ? 'Waiting for everyone…' : 'Continue'}
-            <Check size={18} />
-          </button>
+            {guessingTeams(g).map((t) => (
+              <i key={t} className={g.guesses[t]?.locked ? 'is-locked' : ''} />
+            ))}
+          </span>
         )}
+        {g.phase === 'reveal' &&
+          (canAdvance ? (
+            <button
+              className="party-primary"
+              disabled={disabled}
+              onClick={() => commit({ type: 'next' })}
+            >
+              {g.target === g.seats.length - 1 ? 'End of round' : 'Next'}
+              <Check size={18} />
+            </button>
+          ) : (
+            <span className="party-waiting">
+              {hostName ?? 'The host'} moves on
+            </span>
+          ))}
       </div>
     </section>
   );

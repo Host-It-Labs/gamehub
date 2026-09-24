@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { paperWorldVariants } from '@/lib/games/mora-world';
-import { isTableWorldGame, tableWorldVariants } from '@/lib/games/table-world';
+import { isTableWorldGame, tableWorldVariants, tallWorldQuery } from '@/lib/games/table-world';
 import { useArtVariant } from '@/lib/games/art-variant';
 
 /** Floating review control: flips a world between registered artwork
@@ -11,11 +11,11 @@ export function ArtVariantSwitcher({ game = 'wildgrove' }: { game?: string }) {
   const [variant, setVariant] = useArtVariant(game);
   const [portrait, setPortrait] = useState(false);
   useEffect(() => {
-    const q = window.matchMedia('(orientation: portrait)');
+    const q = window.matchMedia(tallWorldQuery(game));
     const update = () => setPortrait(q.matches);
     update(); q.addEventListener('change', update);
     return () => q.removeEventListener('change', update);
-  }, []);
+  }, [game]);
   const options = isTableWorldGame(game)
     ? tableWorldVariants(game, portrait)
     : paperWorldVariants(portrait, game === 'floodline' ? 'floodline' : 'observatory');

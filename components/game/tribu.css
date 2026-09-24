@@ -1,0 +1,761 @@
+/* Tribu (Top Five + Dial): a retro game show. An illustrated 70s studio set
+ * behind the play, chunky ink outlines with hard offset
+ * shadows, tomato red, mustard and teal, and a rounded heavy display face.
+ * No glass, no night. The layout carries the game: no eyebrows, no
+ * subtitles, no helper sentences. */
+.party-table.is-tribu {
+  --t-ink: #2b1a12;
+  --t-cream: #fff6e2;
+  --t-card: #fffaf0;
+  --t-sun: #fbe3ae;
+  --t-soft: #7a5843;
+  --t-line: #2b1a12;
+  --t-mustard: #f2b531;
+  --t-tomato: #e5482e;
+  --t-teal: #1f9e94;
+  --t-orange: #f07a2a;
+  --t-sky: #4f86e8;
+  --t-gold: #f2b531;
+  --t-coral: #e5482e;
+  --t-cyan: #1f9e94;
+  --t-magenta: #e5482e;
+  --t-deep: var(--t-card);
+  --t-hard: 3px 4px 0 var(--t-ink);
+  --t-spectrum: linear-gradient(90deg, #1f9e94, #f2b531 45%, #f07a2a 70%, #e5482e);
+  --t-display: 'Cooper Black', 'Cooper Std', ui-rounded, 'SF Pro Rounded',
+    'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  --ink: var(--t-ink);
+  --paper: var(--t-card);
+  --accent: var(--t-tomato);
+  background: #f6e2b4 url('/art/optimized/tribu-studio-landscape-1536.webp') center / cover no-repeat;
+  color: var(--t-ink);
+}
+@media (orientation: landscape) and (max-width: 1000px) {
+  .party-table.is-tribu {
+    background-image: url('/art/optimized/tribu-studio-landscape-960.webp');
+  }
+}
+@media (orientation: portrait) {
+  .party-table.is-tribu {
+    background-image: url('/art/optimized/tribu-studio-portrait-1024.webp');
+  }
+}
+@media (orientation: portrait) and (max-width: 640px) {
+  .party-table.is-tribu {
+    background-image: url('/art/optimized/tribu-studio-portrait-640.webp');
+  }
+}
+/* The studio set: detail at the edges, a soft cream wash over the stage so
+ * the cards and the dial read cleanly on top. */
+.party-table.is-tribu:before {
+  background: radial-gradient(70% 62% at 50% 52%, #fff6e2b3 0%, #fff6e266 55%, #fff6e200 85%);
+}
+.party-table.is-tribu button {
+  border: 2px solid var(--t-line);
+  background: var(--t-card);
+  color: var(--t-ink);
+  backdrop-filter: none;
+}
+.party-table.is-tribu button:not(:disabled):hover {
+  box-shadow: var(--t-hard);
+  transform: translate(-1px, -1px);
+}
+.party-table.is-tribu button:focus-visible {
+  outline-color: var(--t-teal);
+}
+.party-table.is-tribu .party-primary {
+  background: var(--t-tomato) !important;
+  border: 2.5px solid var(--t-ink) !important;
+  color: var(--t-cream) !important;
+  box-shadow: var(--t-hard), inset 0 2px 0 #ffffff40;
+  font-family: var(--t-display);
+  font-weight: 900;
+  letter-spacing: 0.3px;
+}
+.party-table.is-tribu .party-primary:not(:disabled):active {
+  transform: translate(2px, 3px);
+  box-shadow: 1px 1px 0 var(--t-ink);
+}
+.party-table.is-tribu .party-locked {
+  border-color: var(--t-teal);
+  color: var(--t-teal);
+  background: #e3f4f1;
+}
+
+/* Navigation keeps its shared positions; only the material changes. */
+.party-table.is-tribu .game-navigation button {
+  color: var(--t-ink);
+}
+/* A small cream plate keeps the round readable over the studio lights. */
+.party-table.is-tribu .game-progress {
+  top: 46px;
+  padding: 1px 8px;
+  border: 1.5px solid var(--t-line);
+  border-radius: 999px;
+  background: var(--t-card);
+  color: var(--t-ink);
+  white-space: nowrap;
+}
+
+/* Players: cream name plates with ink outlines, one colour per seat. */
+.party-table.is-tribu .party-player {
+  background: var(--t-card);
+  border: 2px solid var(--t-line);
+  color: var(--t-ink);
+  box-shadow: 2px 3px 0 var(--t-ink);
+  backdrop-filter: none;
+}
+.party-table.is-tribu .party-player.is-you {
+  box-shadow: 2px 3px 0 var(--t-ink), 0 0 0 3px var(--t-mustard);
+}
+.party-table.is-tribu .party-player.is-active {
+  background: #fff0c9;
+}
+.party-table.is-tribu .party-action-status {
+  color: #1b7c3f;
+}
+.party-table.is-tribu .party-action-spinner {
+  color: var(--t-tomato);
+}
+.party-table.is-tribu .party-avatar {
+  font-family: var(--t-display);
+  color: var(--t-ink);
+  box-shadow: inset 0 0 0 2px var(--t-ink);
+}
+.party-table.is-tribu .seat-0 { --seat: #2fb3a8; }
+.party-table.is-tribu .seat-1 { --seat: #f0603f; }
+.party-table.is-tribu .seat-2 { --seat: #f2b531; }
+.party-table.is-tribu .seat-3 { --seat: #6c9bf0; }
+.party-table.is-tribu .seat-4 { --seat: #74c25e; }
+.party-table.is-tribu .seat-5 { --seat: #f28bb0; }
+.party-table.is-tribu .party-avatar[class*='seat-'] {
+  background: var(--seat);
+}
+.party-table.is-tribu.mode-teams .party-avatar.team-0 { background: #2fb3a8; }
+.party-table.is-tribu.mode-teams .party-avatar.team-1 { background: #f0603f; }
+
+/* The dock sits under the play area: one clear action, no sentences. */
+.party-table.is-tribu .party-dock {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  justify-content: center;
+  color: var(--t-soft);
+}
+.party-table.is-tribu .party-dock button {
+  min-width: 132px;
+}
+.party-waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.party-lock-count {
+  display: inline-flex;
+  gap: 7px;
+  padding: 10px 4px;
+}
+.party-lock-count i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--t-ink);
+  background: var(--t-card);
+}
+.party-lock-count i.is-locked {
+  background: var(--t-mustard);
+  box-shadow: 0 0 10px #f2b531cc;
+}
+
+/* --- Top Five --------------------------------------------------------- */
+.party-orin.is-tribu .topic-choices {
+  align-items: stretch;
+}
+.topic-option {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+/* Three contestant cards: cream, ink outline, a coloured header band. */
+.party-table.is-tribu .topic-card {
+  flex: 1;
+  min-width: 0;
+  border-radius: 20px;
+  transform: none;
+  background:
+    linear-gradient(var(--glow), var(--glow)) top / 100% 12px no-repeat,
+    var(--t-card);
+  border: 2.5px solid var(--t-line);
+  box-shadow: 4px 5px 0 var(--t-ink);
+  color: var(--t-ink);
+  justify-content: center;
+  gap: 16px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.party-table.is-tribu .topic-option:nth-child(1) .topic-card { --glow: var(--t-teal); }
+.party-table.is-tribu .topic-option:nth-child(2) .topic-card { --glow: var(--t-mustard); }
+.party-table.is-tribu .topic-option:nth-child(3) .topic-card { --glow: var(--t-tomato); }
+.party-table.is-tribu .topic-card:not(:disabled):hover {
+  transform: translate(-2px, -3px);
+  box-shadow: 6px 8px 0 var(--t-ink);
+  outline: none;
+}
+.party-table.is-tribu .topic-card.chosen {
+  background:
+    linear-gradient(var(--glow), var(--glow)) top / 100% 12px no-repeat,
+    color-mix(in srgb, var(--glow) 16%, var(--t-card));
+  box-shadow: 4px 5px 0 var(--t-ink), 0 0 0 4px var(--glow);
+  outline: none;
+}
+.party-table.is-tribu .topic-card strong {
+  font-family: var(--t-display);
+  font-size: clamp(20px, 2.4vw, 27px);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.2px;
+  margin: 0;
+  text-wrap: balance;
+}
+.party-table.is-tribu .topic-card .topic-answer-chips > span {
+  background: var(--t-cream);
+  border: 1.5px solid #2b1a1233;
+  color: var(--t-soft);
+  font-size: 12px;
+  font-weight: 650;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+.party-table.is-tribu .compact .topic-card {
+  box-shadow: 2px 3px 0 var(--t-ink);
+  justify-content: center;
+  background:
+    linear-gradient(var(--glow), var(--glow)) left / 7px 100% no-repeat,
+    var(--t-card);
+}
+.party-table.is-tribu .compact .topic-card.chosen {
+  background:
+    linear-gradient(var(--glow), var(--glow)) left / 7px 100% no-repeat,
+    color-mix(in srgb, var(--glow) 18%, var(--t-card));
+  box-shadow: 2px 3px 0 var(--t-ink), 0 0 0 3px var(--glow);
+}
+.party-table.is-tribu .compact .topic-card strong {
+  font-size: 14px;
+}
+.party-table.is-tribu .topic-refresh {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  align-self: center;
+  justify-self: center;
+  width: 48px;
+  min-width: 0;
+  height: 48px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  position: relative;
+  color: var(--t-ink);
+  box-shadow: 2px 3px 0 var(--t-ink);
+}
+.party-table.is-tribu .topic-refresh b {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  border: 2px solid var(--t-ink);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  background: var(--t-mustard);
+  color: var(--t-ink);
+}
+.party-orin.is-tribu .topic-choices:not(.compact) {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  margin: auto;
+  width: min(1060px, 100%);
+}
+.party-orin.is-tribu .topic-choices:not(.compact) .topic-card {
+  min-height: min(300px, 46dvh);
+  padding: 30px 22px 26px;
+}
+.party-orin.is-tribu .topic-choices.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+}
+
+/* The ranking board: a cream score card on the studio wall. */
+.party-table.is-tribu .tier-paper {
+  background: var(--t-card);
+  border: 2.5px solid var(--t-line);
+  box-shadow: 5px 6px 0 var(--t-ink);
+  backdrop-filter: none;
+  color: var(--t-ink);
+}
+.party-table.is-tribu .tier-paper-heading h3 {
+  font-family: var(--t-display);
+  font-size: clamp(20px, 2.6vw, 28px);
+  font-weight: 900;
+  line-height: 1.15;
+  text-wrap: balance;
+  max-width: 30ch;
+}
+.party-table.is-tribu .tier-paper-heading .tier-paper-team {
+  font-size: 12px;
+  color: var(--t-soft);
+}
+.party-table.is-tribu .tier-row {
+  background: var(--t-cream);
+  border: 2px solid var(--t-line);
+  color: var(--t-ink);
+  border-radius: 14px;
+}
+.party-table.is-tribu .tier-row > strong {
+  font-family: var(--t-display);
+  font-weight: 800;
+}
+.party-table.is-tribu .tier-label {
+  font-family: var(--t-display);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--t-ink);
+  box-shadow: inset 0 0 0 2px var(--t-ink);
+}
+.party-table.is-tribu .tier-0 .tier-label { background: var(--t-mustard); }
+.party-table.is-tribu .tier-1 .tier-label { background: #f0603f; }
+.party-table.is-tribu .tier-2 .tier-label { background: #f28a3c; }
+.party-table.is-tribu .tier-3 .tier-label { background: #2fb3a8; }
+.party-table.is-tribu .tier-4 .tier-label { background: #6c9bf0; }
+.party-table.is-tribu .ranking-handle {
+  color: #2b1a1288;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.party-table.is-tribu .tier-row.is-dragging {
+  outline-color: var(--t-teal);
+  box-shadow: 5px 7px 0 var(--t-ink);
+}
+.party-table.is-tribu .answer-cloud span {
+  background: var(--t-card);
+  border: 2px solid var(--t-line);
+  color: var(--t-ink);
+  box-shadow: 2px 2px 0 var(--t-ink);
+}
+
+/* Whose list: one avatar and a progress row of dots. */
+.ranking-author {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--t-display, inherit);
+  font-size: 18px;
+}
+.ranking-author .party-avatar {
+  width: 34px;
+  height: 34px;
+}
+.ranking-count {
+  display: inline-flex;
+  gap: 5px;
+  margin-left: 4px;
+}
+.ranking-count i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2b1a1226;
+}
+.ranking-count i.is-done { background: #2b1a1277; }
+.ranking-count i.is-now { background: var(--t-tomato); box-shadow: 0 0 0 2px #e5482e44; }
+
+/* Reveal: every answer is a straight five-slot Dial. The real rank is the
+ * teal bullseye, the ranks beside it the pale near band (Dial's zone
+ * colours), and each guess drops in as an avatar where it was ranked. */
+.ranking-reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.rank-tracks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.rank-track-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1.8fr);
+  align-items: stretch;
+  min-height: 50px;
+  background: var(--t-cream, #fff6e2);
+  border: 2px solid var(--t-line, #2b1a12);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.rank-track-row .tier-label { border-radius: 0; }
+.rank-track-answer {
+  align-self: center;
+  padding: 4px 10px;
+  font-family: var(--t-display, inherit);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.rank-track {
+  list-style: none;
+  margin: 5px 5px 5px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 2px solid var(--t-ink, #2b1a12);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fffaf0;
+}
+.rank-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  border-left: 1.5px dashed #2b1a1233;
+}
+.rank-cell:first-child { border-left: 0; }
+.rank-cell.is-near { background: #bfe6e0; }
+.rank-cell.is-spot {
+  background: #2fb3a8;
+  box-shadow: inset 0 0 0 2px var(--t-ink, #2b1a12);
+}
+/* The bands bloom with their row, like the Dial's. */
+.rank-cell.is-spot,
+.rank-cell.is-near {
+  animation: rank-band 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + 120ms);
+}
+@keyframes rank-band {
+  from { background: #fffaf0; }
+}
+.rank-cell-number {
+  position: absolute;
+  font-family: var(--t-display, inherit);
+  font-size: 15px;
+  font-weight: 900;
+  color: #2b1a1224;
+}
+.rank-cell.is-spot .rank-cell-number { color: #ffffff55; }
+.rank-cell-guesses {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.rank-cell-guesses .party-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  font-style: normal;
+  flex: none;
+}
+/* Several guesses in one slot overlap like stacked chips. */
+.rank-cell-guesses .party-avatar + .party-avatar { margin-left: -9px; }
+.rank-cell-guesses .party-avatar.is-mine {
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px var(--t-ink, #2b1a12), 0 0 0 2px #fffaf0,
+    0 0 0 4px var(--t-ink, #2b1a12);
+}
+.rank-scores {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.rank-scores > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px 3px 3px;
+  border-radius: 999px;
+  background: var(--t-card, #fffaf0);
+  border: 2px solid var(--t-line, #2b1a12);
+  font-size: 13px;
+}
+.rank-scores .party-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  font-style: normal;
+}
+.rank-scores strong {
+  font-family: var(--t-display, inherit);
+  color: var(--t-tomato, #e5482e);
+}
+.rank-scores > span.is-mine { box-shadow: 0 0 0 3px var(--seat, var(--t-mustard)); }
+.rank-scores > span.is-perfect {
+  --burst: var(--t-tomato, #e5482e);
+  background: var(--t-mustard, #f2b531);
+  box-shadow: 3px 3px 0 var(--t-ink, #2b1a12);
+}
+.party-table .rank-scores .comparison-open {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+}
+.party-table.is-tribu .guess-team-summary { color: var(--t-soft); font-size: 12px; text-align: center; margin: 0; }
+@media (max-width: 520px) {
+  .rank-track-row { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1.9fr); min-height: 44px; }
+  .rank-track-row .tier-label { font-size: 14px; }
+  .rank-track-answer { font-size: 13px; padding: 3px 7px; }
+  .rank-cell-guesses .party-avatar { width: 20px; height: 20px; font-size: 9px; }
+  .rank-cell-guesses .party-avatar + .party-avatar { margin-left: -11px; }
+}
+/* Short landscape: the author rail shrinks, the tracks take the width and
+ * the scores stand in a column beside them, so nothing scrolls. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .party-orin.is-tribu .ranking-stage.has-topic.phase-reveal {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .party-orin.is-tribu .ranking-stage.phase-reveal .ranking-author {
+    flex-direction: column;
+  }
+  .party-orin.is-tribu .ranking-stage.phase-reveal .ranking-count {
+    margin: 0;
+  }
+  .party-orin.is-tribu .ranking-stage.phase-reveal .tier-paper {
+    padding: 6px 8px;
+  }
+  .party-orin.is-tribu .ranking-stage.phase-reveal .tier-paper-heading {
+    margin-bottom: 4px;
+  }
+  .party-orin.is-tribu .ranking-stage.phase-reveal .tier-paper-heading h3 {
+    font-size: 16px;
+    max-width: none;
+  }
+  .ranking-reveal {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .rank-tracks { gap: 3px; align-content: start; }
+  .rank-track-row { min-height: 28px; border-radius: 10px; grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1.8fr); }
+  .rank-track-row .tier-label { font-size: 13px; }
+  .rank-track-answer { font-size: 13px; padding: 2px 8px; }
+  .rank-track { margin: 2px 2px 2px 0; border-radius: 7px; }
+  .rank-cell-number { font-size: 12px; }
+  .rank-cell-guesses .party-avatar { width: 18px; height: 18px; font-size: 8px; }
+  .rank-cell-guesses .party-avatar + .party-avatar { margin-left: -8px; }
+  .rank-scores {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: start;
+    gap: 3px;
+  }
+  .rank-scores > span { padding: 1px 9px 1px 1px; font-size: 12px; }
+  .rank-scores > span strong { margin-left: auto; }
+  .rank-scores .party-avatar { width: 18px; height: 18px; font-size: 8px; }
+  .party-table .rank-scores .comparison-open { align-self: center; width: 24px; height: 24px; }
+  .party-table.is-tribu .guess-team-summary { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rank-cell.is-spot, .rank-cell.is-near { animation: none; }
+}
+
+/* Results. */
+.party-table.is-tribu .party-finale {
+  background: var(--t-card);
+  border: 2.5px solid var(--t-line);
+  border-radius: 28px;
+  color: var(--t-ink);
+  box-shadow: 6px 8px 0 var(--t-ink);
+}
+.party-table.is-tribu .party-finale h2 {
+  font-family: var(--t-display);
+  font-weight: 900;
+  color: var(--t-tomato);
+  text-shadow: 3px 3px 0 var(--t-mustard);
+}
+.party-table.is-tribu .party-finale > svg { color: var(--t-mustard); }
+.party-table.is-tribu .party-scores > div { background: var(--t-cream); border: 2px solid var(--t-line); }
+
+/* --- Votes: big graphic tiles, the clock, the dots. ---------------------- */
+.tribu-vote {
+  width: min(760px, 100%);
+  margin: auto;
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+}
+.party-table.is-tribu .vote-clock {
+  width: min(360px, 80%);
+  height: 14px;
+  background: var(--t-card);
+  border: 2px solid var(--t-line);
+  box-sizing: border-box;
+}
+.party-table.is-tribu .vote-clock i {
+  background: var(--t-spectrum);
+  opacity: 1;
+}
+.party-table.is-tribu .vote-clock b {
+  position: absolute;
+  right: -34px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--t-ink);
+}
+.party-table.is-tribu .vote-clock { overflow: visible; }
+.party-table.is-tribu .vote-clock i { border-radius: 999px; }
+.tribu-vote-options {
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+/* Each option is a door on the game-show stage. */
+.party-table.is-tribu .tribu-tile {
+  position: relative;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px 14px 18px;
+  min-height: min(290px, 48dvh);
+  border-radius: 26px;
+  border: 2.5px solid var(--t-line);
+  background:
+    linear-gradient(var(--tile), var(--tile)) top / 100% 14px no-repeat,
+    var(--t-card);
+  box-shadow: 5px 6px 0 var(--t-ink);
+}
+.party-table.is-tribu .tribu-tile.tile-orin { --tile: var(--t-mustard); }
+.party-table.is-tribu .tribu-tile.tile-dial { --tile: var(--t-teal); }
+.party-table.is-tribu .tribu-tile.tile-finish { --tile: #c9b49a; }
+.party-table.is-tribu .tribu-tile:disabled { opacity: 1; }
+.party-table.is-tribu .tribu-tile.is-mine {
+  background:
+    linear-gradient(var(--tile), var(--tile)) top / 100% 14px no-repeat,
+    color-mix(in srgb, var(--tile) 18%, var(--t-card));
+  box-shadow: 5px 6px 0 var(--t-ink), 0 0 0 4px var(--tile);
+}
+.tribu-tile-art {
+  position: relative;
+  width: min(120px, 60%);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tile) 22%, var(--t-cream));
+  box-shadow: inset 0 0 0 2px #2b1a1222;
+}
+.tribu-mark {
+  width: 80%;
+  height: 80%;
+}
+.tile-finish .tribu-mark {
+  width: 52%;
+  height: 52%;
+  color: var(--t-soft);
+}
+.tribu-mark .mark-bar { fill: var(--t-mustard); stroke: var(--t-ink); stroke-width: 1.5; }
+.tribu-mark .mark-bar-1 { fill: #f0603f; }
+.tribu-mark .mark-bar-2 { fill: #f28a3c; }
+.tribu-mark .mark-bar-3 { fill: #2fb3a8; }
+.tribu-mark .mark-bar-4 { fill: #6c9bf0; }
+.tribu-mark .mark-needle { stroke: var(--t-ink); stroke-linecap: round; }
+.tribu-mark .mark-hub { fill: var(--t-ink); }
+.tribu-again {
+  position: absolute;
+  right: 2px;
+  bottom: 6px;
+  padding: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--t-ink);
+  background: var(--tile);
+  color: var(--t-ink);
+}
+.tribu-tile strong {
+  font-family: var(--t-display);
+  font-size: clamp(20px, 2.6vw, 28px);
+  font-weight: 900;
+}
+.party-table.is-tribu .vote-count i {
+  background: var(--tile);
+  box-shadow: inset 0 0 0 2px var(--t-ink);
+}
+.party-table.is-tribu .vote-check { color: var(--t-ink); }
+.party-table.is-tribu .tribu-tile.is-mine .vote-check { color: var(--t-ink); }
+
+@media (max-width: 700px) {
+  .party-orin.is-tribu .topic-choices:not(.compact) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .party-orin.is-tribu .topic-choices:not(.compact) .topic-card {
+    min-height: 0;
+    padding: 16px 14px;
+    gap: 10px;
+  }
+  .party-orin.is-tribu .topic-choices:not(.compact) .topic-refresh {
+    grid-row: auto;
+  }
+  .party-orin.is-tribu .topic-choices.compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 40px;
+  }
+  .party-orin.is-tribu .compact .topic-refresh {
+    width: 40px;
+    height: 40px;
+  }
+  .party-table.is-tribu .compact .topic-card strong { font-size: 11px; }
+  .tribu-vote-options { gap: 8px; }
+  .party-table.is-tribu .tribu-tile {
+    min-height: 0;
+    padding: 18px 6px 12px;
+    border-radius: 20px;
+    gap: 8px;
+  }
+  .tribu-tile strong { font-size: 16px; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .party-table.is-tribu .tribu-tile { min-height: 0; padding: 12px 8px; gap: 6px; }
+  .tribu-tile-art { width: min(90px, 26dvh); }
+  .tribu-vote { gap: 10px; }
+  .party-orin.is-tribu .topic-choices.compact { display: flex; flex-direction: column; }
+  .party-orin.is-tribu .compact .topic-option { flex: 1; }
+  .party-orin.is-tribu .topic-choices:not(.compact) .topic-card { min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .party-table.is-tribu .vote-clock i { transition: none; }
+}
+
+/* The reveal panel hugs its rows instead of stretching to the dock. */
+.party-orin.is-tribu .ranking-stage.phase-reveal .tier-paper {
+  flex: 0 1 auto;
+}
+.party-table.is-tribu .party-finale.is-animated {
+  --finale-accent: var(--t-tomato);
+  --finale-row: var(--t-cream);
+  --finale-line: #2b1a1233;
+  --finale-win: linear-gradient(120deg, #f2b53155, #f07a2a44);
+}
+.party-table.is-tribu .finale-standings li.is-winner {
+  box-shadow: 0 0 0 2px var(--t-ink), 4px 5px 0 var(--t-ink);
+}
+.party-table.is-tribu .finale-glow {
+  background: linear-gradient(100deg, transparent 30%, #ffffff88 50%, transparent 70%);
+}

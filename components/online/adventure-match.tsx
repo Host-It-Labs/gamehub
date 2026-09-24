@@ -56,6 +56,11 @@ export function AdventureMatch({
         onAdvance={() => void dispatch({ type: 'advance-practice' })}
         onBegin={() => void dispatch({ type: 'begin-match' })}
         canTeach={table.isHost}
+        canAdvance={table.canAdvance}
+        hostName={table.members.find((m) => m.host)?.name}
+        nextVote={table.status === 'finished' ? table.nextVote : null}
+        viewerId={table.viewerId}
+        onNextGame={(gameId) => void dispatch({ type: 'next-game', gameId })}
       />
       <Dialog open={sound} onOpenChange={setSound}>
         <DialogContent>

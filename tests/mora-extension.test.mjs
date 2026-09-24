@@ -17,11 +17,11 @@ void test('Wild Trails is opt-in, Mora-only, and rejects missing goal definition
   assert.equal(expanded.sanctuaryGoalsEnabled, true);
   assert.equal(isSavedGame(expanded), true);
   delete base.sanctuaryGoalsEnabled;
-  // Mirror terraces: two species living in both Courtyard and Roof garden.
+  // Mirror terraces: four of one species across Courtyard's herd and Roof garden's pairs.
   expanded.sanctuaryGoals = [3, 6, 9];
   assert.equal(isSavedGame(base), true);
-  for (const g of [base, expanded]) g.players[0].zones = [[creature(0), creature(1)], [creature(0), creature(1)], [], [], [], [], []];
-  assert.equal(scores(expanded)[0] - scores(base)[0], 5);
+  for (const g of [base, expanded]) g.players[0].zones = [[creature(0), creature(0)], [creature(0), creature(0)], [], [], [], [], []];
+  assert.equal(scores(expanded)[0] - scores(base)[0], 4);
   assert.equal(createGame('midnight', 'medium', 1, false, 3, false, false, false, true).sanctuaryGoalsEnabled, false);
   assert.equal(isSavedGame({ ...expanded, sanctuaryGoalsEnabled: 'yes' }), false);
 });
@@ -55,20 +55,23 @@ void test('new goals are seeded, distinct, varied between matches and public to 
 void test('goal scoring uses only the drawn goals and rejects invalid saved goals', async () => {
   const { sanctuaryGoalProgress, sanctuaryBonus } = await import('../lib/games/trio/engine.ts');
   const zones = [[creature(0), creature(0)], [creature(0), creature(1), creature(2), creature(3)], [creature(1), creature(1)], [creature(0), creature(2), creature(3)], [creature(4)], [creature(5)], [creature(0)]];
-  assert.equal(sanctuaryGoalProgress(zones, 0).points, 5);
+  // Full houses needs habitats of three or more spaces: Root hollows and Watchpost do not count.
+  assert.equal(sanctuaryGoalProgress(zones, 0).points, 4);
   assert.equal(sanctuaryGoalProgress(zones, 6).points, 0); // Species 5 is only in trash.
   assert.equal(sanctuaryGoalProgress(zones, 7).points, 4);
-  assert.equal(sanctuaryGoalProgress(zones, 8).points, 5);
-  // Rooftop pairs and Glasshouse trio want alike creatures; this board has none there.
+  assert.equal(sanctuaryGoalProgress(zones, 8).points, 4); // Species 0–3 each reach two.
+  // Rooftop pairs want alike creatures; Glass walk just wants a full trail.
   assert.equal(sanctuaryGoalProgress(zones, 9).points, 0);
-  assert.equal(sanctuaryGoalProgress(zones, 10).points, 0);
-  assert.equal(sanctuaryGoalProgress(zones, 11).points, 5);
-  assert.equal(sanctuaryBonus(zones, [0, 6, 9]), 5);
+  assert.equal(sanctuaryGoalProgress(zones, 10).points, 3);
+  assert.equal(sanctuaryGoalProgress(zones, 11).points, 6);
+  assert.equal(sanctuaryBonus(zones, [0, 6, 9]), 4);
+  const small = zones.map((cards) => [...cards]);
+  small[1] = [creature(0), creature(1)];
+  small[3] = [creature(3)];
+  assert.equal(sanctuaryGoalProgress(small, 0).points, 0);
   const alike = zones.map((cards) => [...cards]);
   alike[1] = [creature(0), creature(0), creature(1), creature(1)];
-  alike[3] = [creature(2), creature(2), creature(3)];
-  assert.equal(sanctuaryGoalProgress(alike, 9).points, 4);
-  assert.equal(sanctuaryGoalProgress(alike, 10).points, 4);
+  assert.equal(sanctuaryGoalProgress(alike, 9).points, 3);
   const g = createGame('wildgrove', 'medium', 42, false, 3, false, false, false, true);
   for (const goals of [[0, 0, 1], [0, 1], [0, 1, 99], [0, 1, '2']]) assert.equal(isSavedGame({ ...g, sanctuaryGoals: goals }), false);
 });

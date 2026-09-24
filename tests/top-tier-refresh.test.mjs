@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as ranking from '../lib/games/party/ranking.ts';
 
-await test('Each player can refresh twice per round, with fresh topics throughout a full six-player game', () => {
+await test('Each player can refresh twice per round, with fresh topics every round of a full six-player game', () => {
   let g = ranking.createGame('orin', 6, 123);
-  const seen = new Set();
   for (let round = 1; round <= 2; round++) {
+    // Nine topics a seat each round; the deck refills once it runs low.
+    const seen = new Set();
     assert.deepEqual(g.refreshes, [0, 0, 0, 0, 0, 0]);
     for (let seat = 0; seat < 6; seat++) {
       for (let attempt = 0; attempt <= 2; attempt++) {
@@ -32,13 +33,17 @@ await test('Each player can refresh twice per round, with fresh topics throughou
       g = ranking.play(g, { type: 'lock' }, seat);
       assert.equal(ranking.validMove(g, { type: 'refresh' }, seat), false);
     }
+    assert.equal(seen.size, 54);
     while (!g.over && g.round === round) {
+      if (g.phase === 'reveal') {
+        g = ranking.play(g, { type: 'next' }, 0);
+        continue;
+      }
       const seat = ranking.actingSeats(g)[0];
       g = ranking.play(g, ranking.botMove(g, seat), seat);
     }
   }
   assert.ok(g.over);
-  assert.equal(seen.size, 108);
 });
 
 await test('Refresh respects locks, phases, game kind and older saves', () => {

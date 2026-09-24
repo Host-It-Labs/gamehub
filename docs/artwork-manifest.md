@@ -320,3 +320,8 @@ Active full source: `public/art/observatory-wide-v7.png` (1536 × 1024). Runtime
 ### Active balanced paper v18
 
 `observatory-handmade-v18.png`, native1536×1024, quality94 fullscene and exact822×548 miniature WebPs. All17 targets remeasured; source/crop dimensions retained. Landmark bounding area26.81% versus22.11% in v17. [Generation provenance](concepts/2026-09-16/observatory-handmade-v18.md), [composition and camera calibration](concepts/2026-09-16/observatory-framing-calibration.md).
+
+## Floodline Station three-round boards — 23 September 2026
+
+- `mora-floodline-landscape-v5-b.png` and `mora-floodline-portrait-v5-b.png` → `optimized/mora-floodline-{landscape,portrait}-v5-b{,-board,-overview}.webp`; 23 spaces. Unused `-v5-a` candidates kept beside them. [Prompts and measurements](concepts/2026-09-23-floodline-three-rounds/README.md).
+

@@ -120,7 +120,13 @@ export function ContentChoice({
                   : 'Side B'}
             </strong>
             <small>
-              {set === 'beginner' ? 'Original rules' : 'Alternate scoring'}
+              {id === 'wildgrove'
+                ? set === 'beginner'
+                  ? 'Beginner · 2 rounds'
+                  : 'Intermediate · 3 rounds'
+                : set === 'beginner'
+                  ? 'Original rules'
+                  : 'Alternate scoring'}
             </small>
           </button>
         ))}

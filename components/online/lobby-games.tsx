@@ -96,11 +96,11 @@ export function LobbyGames({ table, disabled, dispatch, error }: Props) {
             {isStandaloneId(table.gameId) ? <StandaloneSetupBox
               online
               disabled={disabled || !table.isHost} startDisabled={offline.length > 0 || needsHumans} game={game} seats={table.capacity} minPlayers={table.members.length}
-              difficulty={table.difficulty} mode={table.partyMode ?? 'individual'}
-              teams={table.teams} onTeams={teams => configure({ teams })}
-              playerNames={Array.from({ length: table.capacity }, (_, i) => table.members[i]?.name ?? (requiresHumanPlayers(table.gameId) ? `Waiting for player ${i + 1}` : `Bot ${i + 1}`))}
+              difficulty={table.difficulty}
+              players={table.members.filter(m => !m.bot).map(m => ({ id: m.id, name: m.name, connected: m.connected, host: m.host, you: m.id === table.viewerId }))}
+              onHost={table.isHost && !disabled ? memberId => void dispatch({ type: 'host', memberId }) : undefined}
               onSeats={capacity => configure({ capacity })} onDifficulty={difficulty => configure({ difficulty })}
-              onMode={partyMode => configure({ partyMode })} onPlay={() => start()} onLearn={() => start(true)} onResume={() => {}}
+              onPlay={() => start()} onLearn={() => start(true)} onResume={() => {}}
             /> : <SetupBox disabled={disabled || !table.isHost} startDisabled={offline.length > 0} game={game} players={table.capacity} minPlayers={table.members.length}
               difficulty={table.difficulty} fastMode={table.fastMode ?? false} options={{contentSet: table.contentSet, roamEnabled: table.roamEnabled,
                 turningTide: table.turningTide, marketSeasons: table.marketSeasons,

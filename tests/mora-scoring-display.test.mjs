@@ -15,7 +15,8 @@ const cards = (kinds) =>
   kinds.map((kind, id) => ({ id: `test-${id}`, kind, rank: 1 }));
 for (const set of ['beginner', 'intermediate']) {
   await test(`${set} printed maxima agree with scoring for every local arrangement`, () => {
-    for (let zone = 0; zone < 4; zone++) {
+    // The beginner Glasshouse trail echoes other habitats, so it is checked below.
+    for (let zone = 0; zone < (set === 'beginner' ? 3 : 4); zone++) {
       const habitat = habitatsFor(set)[zone];
       let max = 0;
       const visit = (kinds) => {
@@ -29,12 +30,21 @@ for (const set of ['beginner', 'intermediate']) {
       assert.equal(max, habitat.maxScore, habitat.name);
     }
     const zones = Array.from({ length: 7 }, () => []);
-    zones[4] = cards([0, 1, 2]);
-    if (set === 'beginner') zones[0] = cards([0, 1, 2]);
+    if (set === 'beginner') {
+      zones[3] = cards([0, 1, 2]);
+      zones[4] = cards([0, 1, 2]);
+      zones[0] = cards([0, 1, 2]);
+    } else {
+      // Every cave creature echoes three of its species elsewhere.
+      zones[4] = cards([0, 0, 0, 0]);
+      zones[0] = cards([0, 0, 0]);
+    }
     assert.equal(zoneScore(zones, 4, set), habitatsFor(set)[4].maxScore);
+    if (set === 'beginner')
+      assert.equal(zoneScore(zones, 3, set), habitatsFor(set)[3].maxScore);
     for (const zone of [0, 1, 2, 3, 4])
       zones[zone] = cards([set === 'beginner' ? 0 : 1]);
-    zones[6] = cards([0]);
+    zones[6] = cards(set === 'beginner' ? [0] : [0, 2]);
     assert.equal(zoneScore(zones, 6, set), habitatsFor(set)[6].maxScore);
   });
   await test(`${set} die descriptions name destinations without removed board glyphs`, () => {
@@ -48,14 +58,14 @@ for (const set of ['beginner', 'intermediate']) {
   await test(`${set} scoring symbols stay between the appropriate pair spaces`, () => {
     const map = moraMapFor(set);
     const pair = map.habitats.find((h) => h.zone === 2);
-    assert.deepEqual(habitatRelationships(pair, set), [
-      {
-        at: [
-          (pair.slots[0][0] + pair.slots[1][0]) / 2,
-          (pair.slots[0][1] + pair.slots[1][1]) / 2,
-        ],
-        symbol: '=',
-      },
-    ]);
+    const mid = (a, b) => [
+      (pair.slots[a][0] + pair.slots[b][0]) / 2,
+      (pair.slots[a][1] + pair.slots[b][1]) / 2,
+    ];
+    // Root hollows are one pair; Mangrove roots want all three alike.
+    assert.deepEqual(
+      habitatRelationships(pair, set),
+      (set === 'beginner' ? [[0, 1]] : [[0, 1], [1, 2]]).map(([a, b]) => ({ at: mid(a, b), symbol: '=' })),
+    );
   });
 }

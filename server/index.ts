@@ -1,4 +1,4 @@
-import {standaloneGames, decisionKey as adventureKey} from '../lib/games/standalone/registry.ts';
+import {standaloneGames, decisionKey as adventureKey, deadline as adventureDeadline} from '../lib/games/standalone/registry.ts';
 import {
   createServer,
   type IncomingMessage,
@@ -24,10 +24,13 @@ import {
 import { Tables } from './tables.ts';
 import { Expeditions } from './expeditions.ts';
 import { FolioRuns } from './folio.ts';
+import { flagContent, flaggedTitle } from './content-flags.ts';
 import {
   observe,
   canAct,
   preparationKey,
+  revealingTrick,
+  trickRevealMs,
   type Move,
 } from '../lib/games/trio/engine.ts';
 import type { Command } from '../lib/online/types.ts';
@@ -144,10 +147,17 @@ export async function makeServer(
     if(t.adventure){
       const g=t.adventure,key=adventureKey(g);
       for(const [seat,job]of seats)if(job.decision!==key||(seat!==-1&&!standaloneGames[g.kind].actingSeats(g).includes(seat))){clearTimeout(job.timer);void job.worker?.terminate();seats.delete(seat);}
+      if(t.status==='finished'&&t.nextVote){
+        const nextKey=`next:${t.matchId}`;
+        for(const [seat,job]of seats)if(job.decision!==nextKey){clearTimeout(job.timer);seats.delete(seat);}
+        if(!seats.has(-2))seats.set(-2,{decision:nextKey,timer:setTimeout(()=>{seats.delete(-2);if(stopping)return;tables.nextGameTick(invite);publish(invite);},Math.max(0,t.nextVote.endsAt-Date.now())+25)});
+        jobs.set(invite,seats);return;
+      }
       if(t.status!=='playing'||g.tutorial){for(const job of seats.values())clearTimeout(job.timer);jobs.delete(invite);return;}
       for(const seat of standaloneGames[g.kind].actingSeats(g)){if(options.bots===false||!t.seats[seat]?.bot||seats.has(seat))continue;const job:BotJob={decision:key,timer:setTimeout(()=>{seats.delete(seat);if(stopping)return;tables.adventureBot(invite,key,seat);publish(invite);},650)};seats.set(seat,job);}
-      if(g.kind==='miro'&&g.phase==='discuss'&&g.discussionEndsAt!==null&&!seats.has(-1)){
-        const job:BotJob={decision:key,timer:setTimeout(()=>{seats.delete(-1);if(stopping)return;tables.adventureTick(invite,key);publish(invite);},Math.max(0,g.discussionEndsAt-Date.now())+25)};
+      const due=adventureDeadline(g);
+      if(due!==null&&!seats.has(-1)){
+        const job:BotJob={decision:key,timer:setTimeout(()=>{seats.delete(-1);if(stopping)return;tables.adventureTick(invite,key);publish(invite);},Math.max(0,due-Date.now())+25)};
         seats.set(-1,job);
       }
       jobs.set(invite,seats);return;
@@ -203,7 +213,8 @@ export async function makeServer(
           } catch {
             finish(null);
           }
-        }, 120),
+          // Let clients finish showing a completed Nox trick before a bot plays into the next one.
+        }, revealingTrick(game) ? trickRevealMs + 120 : 120),
       };
       seats.set(seat, job);
     });
@@ -235,6 +246,15 @@ export async function makeServer(
         );
       const ip = req.socket.remoteAddress ?? 'unknown';
       limit(`${path.startsWith('/api/expeditions') ? 'expedition' : 'request'}:${ip}`, path.startsWith('/api/expeditions') ? 3600 : 600);
+      // Development: a test-player tab sends its own guest session, since
+      // every localhost tab shares the one cookie.
+      const devSession =
+        process.env.NODE_ENV === 'development'
+          ? (req.headers['x-gamehub-dev-session'] ??
+            url.searchParams.get('dev_session'))
+          : null;
+      if (typeof devSession === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(devSession))
+        req.headers.cookie = `gamehub_session=${devSession}`;
       let who = identity(db, req);
       if (path === '/api/folio' || path.startsWith('/api/folio/')) {
         const match = /^\/api\/folio\/([A-Za-z0-9_-]{32})(?:\/(join|commands))?$/.exec(path);
@@ -358,6 +378,17 @@ export async function makeServer(
           return;
         }
       }
+      if (path === '/api/content-flags') {
+        check(req.method === 'POST', 405, 'Method not allowed.');
+        check(who, 401, 'Sign in or join a table first.');
+        limit(`flag:${who.id}`, 60);
+        const input = await body(req),
+          title = flaggedTitle(input.gameId, input.key);
+        check(title, 400, 'Unknown prompt.');
+        flagContent(db, who, input.gameId as 'orin' | 'dial', input.key as number, title);
+        send(res, 200, { flagged: true });
+        return;
+      }
       const preference =
         /^\/api\/preferences\/(confirm-moves\.(?:undertow|wildgrove|midnight))$/.exec(
           path,
@@ -390,6 +421,28 @@ export async function makeServer(
           return;
         }
         throw new HttpError(405, 'Method not allowed.');
+      }
+      const devPlayer =
+        process.env.NODE_ENV === 'development' && req.method === 'POST'
+          ? /^\/api\/tables\/([A-Za-z0-9_-]{32})\/dev-player$/.exec(path)
+          : null;
+      if (devPlayer) {
+        // Development only: seat a fresh guest and hand its session to a new tab.
+        const t = tables.get(devPlayer[1]);
+        check(who?.userId === t.owner, 403, 'Only the host can add test players.');
+        check(t.status === 'lobby', 409, 'Add test players in the lobby.');
+        const id = token();
+        db.prepare('INSERT INTO guests VALUES (?,?)').run(
+          id,
+          `Player ${t.members.length + 1}`,
+        );
+        const session = newSession(db, id, false, secure)
+          .split(';')[0]
+          .slice('gamehub_session='.length);
+        tables.join(devPlayer[1], identity(db, { headers: { cookie: `gamehub_session=${session}` } } as IncomingMessage)!);
+        publish(devPlayer[1]);
+        send(res, 200, { session });
+        return;
       }
       const match =
         /^\/api\/tables\/([A-Za-z0-9_-]{32})(?:\/(join|events|commands))?$/.exec(

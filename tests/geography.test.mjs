@@ -8,7 +8,9 @@ import {
   decisionKey,
   botMove,
 } from '../lib/games/standalone/registry.ts';
-import places from '../lib/games/party/geo-places.json' with { type: 'json' };
+import photos from '../lib/games/party/geo-places.json' with { type: 'json' };
+import names from '../lib/games/party/geo-names.json' with { type: 'json' };
+const places = geo.places;
 const entry = standaloneGames.miro;
 function pinAndLock(
   g,
@@ -30,6 +32,14 @@ function pinAndLock(
       seat,
     );
   return geo.play(g, { type: 'lock' }, seat);
+}
+/** Host Next; after a round's last reveal everyone votes, which ends the vote. */
+function next(g, choice = 'more') {
+  g = geo.play(g, { type: 'next' }, 0);
+  if (g.phase === 'vote')
+    for (let s = 0; s < g.seats.length; s++)
+      g = geo.play(g, { type: 'vote', choice }, s);
+  return g;
 }
 function choose(g) {
   const team = geo.activeTeam(g),
@@ -107,35 +117,43 @@ await test('each captain selects all three frozen teammate pins before switching
   assert.deepEqual(g.result.pins[0], g.result.pins[1]);
   assert.equal(g.result.gains[0], g.result.gains[1]);
   assert.ok(entry.isSavedGame(g));
-  for (let s = 0; s < 4; s++) g = geo.play(g, { type: 'ready' }, s);
+  assert.deepEqual(geo.actingSeats(g), []);
+  assert.equal(geo.play(g, { type: 'ready' }, 0), g);
+  g = geo.play(g, { type: 'next' }, 2);
   assert.equal(g.phase, 'reveal');
-  assert.equal(g.challenge, 'photo');
+  assert.equal(g.challenge, 'hard');
   assert.equal(g.discussionEndsAt, null);
 });
-await test('two rounds each cycle all three categories, medium then hard, with six distinct destinations', () => {
+await test('every round runs an easier place, a harder place, then a photographed final', () => {
   for (const mode of ['individual', 'teams'])
     for (const n of mode === 'teams' ? [4, 6] : [2, 3, 4, 5, 6])
       for (let seed = 1; seed <= 15; seed++) {
         let g = geo.createGame(n, seed, 'easy', mode),
           guard = 0;
-        assert.equal(new Set(g.deck).size, 6);
+        assert.equal(new Set(g.deck).size, g.deck.length);
+        assert.ok(g.deck.length >= 36, 'twelve rounds of places');
         const rounds = new Map();
         while (!g.over) {
           assert.ok(guard++ < 200);
           assert.ok(entry.isSavedGame(g), `${mode}/${n}/${g.phase}`);
           assert.deepEqual(
-            g.prompts.map((p) => p.difficulty),
-            Array(3).fill(g.round === 1 ? 'medium' : 'hard'),
+            g.prompts.slice(0, 2).map((p) => p.difficulty),
+            ['medium', 'hard'],
           );
           rounds.set(`${g.round}:${g.challenge}`, g.challenge);
           assert.ok(
             g.prompts.every((p, i) =>
-              geo.challenges[i] === 'photo'
-                ? p.photo && p.facts.length === 0
-                : p.photo === null,
+              geo.challenges[i] === 'final'
+                ? p.photo && p.facts.length === 2 && p.title === ''
+                : p.photo === null && p.facts.length === 0 && p.title,
             ),
           );
-          assert.equal(g.prompts[2].facts.length, 3);
+          if (g.phase === 'reveal') {
+            // Reveals wait on the host alone; no bot moves the table on.
+            assert.equal(botMove(g, 0), null);
+            g = geo.play(g, { type: 'next' }, 0);
+            continue;
+          }
           const seat = geo.actingSeats(g)[0],
             m = botMove(g, seat);
           assert.ok(m);
@@ -147,7 +165,7 @@ await test('two rounds each cycle all three categories, medium then hard, with s
         assert.ok(entry.isSavedGame(g));
         assert.deepEqual(
           [...rounds.values()],
-          ['named', 'photo', 'facts', 'named', 'photo', 'facts'],
+          ['easy', 'hard', 'final', 'easy', 'hard', 'final'],
         );
         assert.deepEqual(geo.actingSeats(g), []);
       }
@@ -160,7 +178,7 @@ await test('scoring rewards closeness, allows shared closest points, and breaks 
     { lat: 0, lng: 0 },
     { lat: 0, lng: 0 },
   ]);
-  assert.deepEqual(g.result.gains, [2, 0]);
+  assert.deepEqual(g.result.gains, [100, 0]);
   assert.deepEqual(g.result.distances[0], [0]);
   assert.equal(
     entry.outcome({ ...g, scores: [3, 3], totalDistance: [300, 400] }).title,
@@ -189,7 +207,7 @@ await test('malformed moves, unfinished locks, outsiders and retired ordering sa
     { type: 'pin', prompt: 0, lat: 0, lng: 181 },
     { type: 'pin', prompt: 0, lat: 0, lng: 0, score: 9 },
     { type: 'lock' },
-    { type: 'ready' },
+    { type: 'next' },
     { type: 'unlock' },
   ])
     assert.equal(geo.play(g, m, 0), g);
@@ -205,6 +223,23 @@ await test('malformed moves, unfinished locks, outsiders and retired ordering sa
   g = pinAndLock(g, 0);
   assert.equal(geo.play(g, { type: 'unlock' }, 0), g);
 });
+await test('named places cover the world, skip the headline cities and never repeat a final', () => {
+  const key = (p) => `${p.country}:${p.name}`;
+  assert.equal(new Set(names.map(key)).size, names.length);
+  for (const p of photos) assert.ok(!names.some((n) => key(n) === key(p)));
+  for (const difficulty of ['medium', 'hard']) {
+    const list = names.filter((p) => p.difficulty === difficulty);
+    assert.ok(list.length >= 36, difficulty);
+    assert.ok(new Set(list.map((p) => p.region)).size >= 7, difficulty);
+  }
+  for (const p of names) {
+    assert.ok(geo.isPin(p), p.name);
+    assert.ok(p.source.startsWith('https://en.wikipedia.org/'));
+    assert.ok(
+      !['Paris', 'London', 'New York', 'Rome', 'Tokyo'].includes(p.name),
+    );
+  }
+});
 await test('great-circle distance handles poles and the date line', () => {
   assert.equal(geo.distance({ lat: 0, lng: 0 }, { lat: 0, lng: 0 }), 0);
   assert.ok(
@@ -218,15 +253,19 @@ await test('great-circle distance handles poles and the date line', () => {
     ) < 1,
   );
 });
-await test('photo pool has local real images, provenance, three clues, and broad geographical coverage', async () => {
-  assert.ok(places.length >= 18);
-  assert.equal(new Set(places.map((p) => p.photo)).size, places.length);
-  assert.equal(new Set(places.map((p) => p.region)).size, 6);
-  for (const difficulty of ['medium', 'hard'])
-    assert.ok(places.filter((p) => p.difficulty === difficulty).length >= 6);
-  for (const p of places) {
+await test('photo pool has local real images, provenance, two clues, and broad geographical coverage', async () => {
+  assert.ok(photos.length >= 12);
+  assert.equal(new Set(photos.map((p) => p.photo)).size, photos.length);
+  assert.equal(new Set(photos.map((p) => p.region)).size, 6);
+  for (const p of photos) {
     assert.ok(geo.isPin(p));
-    assert.equal(p.facts.length, 3);
+    assert.equal(p.facts.length, 2);
+    // Clues never give the place or its country away.
+    for (const f of p.facts) {
+      assert.ok(!f.includes(p.country), `${p.name}: ${f}`);
+      for (const word of p.name.split(/[\s-]+/).filter((w) => w.length > 3))
+        assert.ok(!f.includes(word), `${p.name}: ${f}`);
+    }
     assert.ok(p.source.startsWith('https://en.wikipedia.org/'));
     assert.ok(p.photoSource.startsWith('https://commons.wikimedia.org/'));
     assert.ok(p.artist && p.license);
@@ -306,16 +345,13 @@ await test('teams take one complete turn each per round; the starting team alter
           assert.deepEqual(g.choices, choices);
           assert.equal(g.discussionEndsAt, null);
           assert.ok(entry.isSavedGame(g));
-          for (let seat = 0; seat < n - 1; seat++)
-            g = geo.play(g, { type: 'ready' }, seat);
-          assert.equal(g.phase, 'reveal');
           assert.equal(g.over, false);
-          g = geo.play(g, { type: 'ready' }, n - 1);
+          g = next(g, round === 2 ? 'finish' : 'more');
         }
       }
       assert.equal(g.over, true);
       assert.equal(g.round, 2);
-      assert.equal(g.challenge, 'facts');
+      assert.equal(g.challenge, 'final');
     }
 });
 
@@ -352,7 +388,7 @@ await test('all three categories are prepared independently before any discussio
   g = pinAndLock(g, 3);
   const frozen = structuredClone(g.guesses);
   assert.equal(g.phase, 'discuss');
-  assert.equal(g.challenge, 'named');
+  assert.equal(g.challenge, 'easy');
   for (let category = 0; category < 3; category++) {
     for (let seat = 0; seat < 4; seat++)
       for (let prompt = 0; prompt < 3; prompt++)
@@ -370,8 +406,7 @@ await test('all three categories are prepared independently before any discussio
       frozen[0].pins.map((pin, i) => (i === category ? pin : null)),
     );
     assert.deepEqual(g.guesses, frozen);
-    for (let seat = 0; seat < 4; seat++)
-      g = geo.play(g, { type: 'ready' }, seat);
+    g = next(g);
   }
   assert.equal(g.round, 2);
   assert.equal(g.phase, 'guess');
@@ -419,7 +454,6 @@ await test('team tabs preserve independent selections, captain stays fixed, and 
       assert.deepEqual(g.result.pins[team], [
         frozen[chosen[team][prompt]].pins[prompt],
       ]);
-    for (let seat = 0; seat < 6; seat++)
-      g = geo.play(g, { type: 'ready' }, seat);
+    g = geo.play(g, { type: 'next' }, 0);
   }
 });

@@ -5,12 +5,37 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+const DEV_SESSION = 'gamehub.dev-session.v1';
+/** Development only: a tab opened as an extra test player carries its own
+ *  guest session, because every localhost tab shares the one cookie. */
+export function devSession(): string | null {
+  if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined')
+    return null;
+  try {
+    const fromLink = /#dev-session=([A-Za-z0-9_-]+)/.exec(window.location.hash);
+    if (fromLink) {
+      sessionStorage.setItem(DEV_SESSION, fromLink[1]);
+      history.replaceState(null, '', window.location.pathname);
+    }
+    return sessionStorage.getItem(DEV_SESSION);
+  } catch {
+    return null;
+  }
+}
+/** Appends the tab's dev session to URLs that cannot carry headers (SSE). */
+export function withDevSession(path: string) {
+  const dev = devSession();
+  return dev ? `${path}?dev_session=${dev}` : path;
+}
 export async function api<T>(path: string, input?: unknown): Promise<T> {
+  const dev = devSession();
   const response = await fetch(path, {
     method: input === undefined ? 'GET' : 'POST',
     credentials: 'same-origin',
-    headers:
-      input === undefined ? undefined : { 'Content-Type': 'application/json' },
+    headers: {
+      ...(input === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(dev ? { 'X-Gamehub-Dev-Session': dev } : {}),
+    },
     body: input === undefined ? undefined : JSON.stringify(input),
   });
   const value = (await response.json()) as { error?: string };

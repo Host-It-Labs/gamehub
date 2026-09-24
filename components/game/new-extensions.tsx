@@ -18,6 +18,35 @@ export type ExtensionKind =
   | 'salvage'
   | 'turningTide'
   | 'marketSeasons';
+// The six picks of a round snake through two columns: across, down, back, down, across.
+// Centres in a 100 × 100 box; the line stretches with the grid, so any cell size works.
+const SEASON_ROUTE = [
+  [25, 16.7],
+  [75, 16.7],
+  [75, 50],
+  [25, 50],
+  [25, 83.3],
+  [75, 83.3],
+];
+function SeasonRouteLine({ reached }: { reached: number }) {
+  const path = (points: number[][]) => points.map((p) => p.join(',')).join(' ');
+  const route = [[4, 16.7], ...SEASON_ROUTE, [96, 83.3]];
+  // The tail before the first pick counts as travelled once the round starts.
+  const travelled = route.slice(0, Math.min(route.length, reached + 1));
+  return (
+    <svg
+      className="season-line"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <polyline className="season-line-ahead" points={path(route)} />
+      {travelled.length > 1 && (
+        <polyline className="season-line-done" points={path(travelled)} />
+      )}
+    </svg>
+  );
+}
 export function NewExtensionRules({ kind }: { kind: ExtensionKind }) {
   if (kind === 'roamEnabled')
     return (
@@ -219,22 +248,28 @@ export function ExtensionControls({
           onClick={() => showRules('marketSeasons', 'Market Seasons')}
         >
           <Sun />
-          {g
-            .seasonForecast!.slice((g.round - 1) * 6, g.round * 6)
-            .map((kind, i) => (
-              <img
-                key={i}
-                className={
-                  i === g.pick - 1 && g.phase !== 'over'
-                    ? 'current'
-                    : i < g.pick - 1
-                      ? 'past'
-                      : ''
-                }
-                src={tokenImage(kind, true, g.contentSet)}
-                alt={foodsFor(g.contentSet)[kind].name}
-              />
-            ))}
+          <span className="season-route">
+            <SeasonRouteLine
+              reached={g.phase === 'over' ? SEASON_ROUTE.length + 1 : g.pick}
+            />
+            {g
+              .seasonForecast!.slice((g.round - 1) * 6, g.round * 6)
+              .map((kind, i) => (
+                <span className="season-step" data-step={i} key={i}>
+                  <img
+                    className={
+                      i === g.pick - 1 && g.phase !== 'over'
+                        ? 'current'
+                        : i < g.pick - 1 || g.phase === 'over'
+                          ? 'past'
+                          : ''
+                    }
+                    src={tokenImage(kind, true, g.contentSet)}
+                    alt={foodsFor(g.contentSet)[kind].name}
+                  />
+                </span>
+              ))}
+          </span>
           <b>+{p.seasonPoints ?? 0}</b>
         </button>
       )}

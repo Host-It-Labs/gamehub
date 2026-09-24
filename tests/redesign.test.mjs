@@ -165,19 +165,16 @@ await test('Migration and Roam combine atomically and preserve creature order', 
     [4, 2],
   );
 });
-await test('coastal goals reward A–B–A and occupied habitats without Beacon species', () => {
+await test('coastal goals reward the A–B–A–B Pier and two lone lighthouse species', () => {
   const zones = Array.from({ length: 7 }, () => []);
-  zones[3] = [0, 1, 0].map((kind, id) => ({ kind, id, rank: 0 }));
+  zones[3] = [0, 1, 0, 1].map((kind, id) => ({ kind, id, rank: 0 }));
   assert.equal(sanctuaryGoalProgress(zones, 10, 'intermediate').complete, true);
-  zones[3][2].kind = 2;
-  assert.equal(
-    sanctuaryGoalProgress(zones, 10, 'intermediate').complete,
-    false,
-  );
-  zones[6] = [{ kind: 5, id: 6, rank: 0 }];
-  zones[0] = [{ kind: 0, id: 7, rank: 0 }];
-  zones[1] = [{ kind: 1, id: 8, rank: 0 }];
-  assert.equal(sanctuaryGoalProgress(zones, 11, 'intermediate').complete, true);
+  zones[3][3].kind = 2;
+  assert.deepEqual(sanctuaryGoalProgress(zones, 10, 'intermediate'), { progress: 3, complete: false, points: 0 });
+  zones[6] = [{ kind: 4, id: 6, rank: 0 }, { kind: 5, id: 7, rank: 0 }];
+  assert.equal(sanctuaryGoalProgress(zones, 8, 'intermediate').complete, true);
+  zones[0] = [{ kind: 5, id: 8, rank: 0 }];
+  assert.equal(sanctuaryGoalProgress(zones, 8, 'intermediate').progress, 1);
 });
 await test('all independent extension combinations terminate with valid state in both content sets', () => {
   for (const id of ['undertow', 'wildgrove', 'midnight'])

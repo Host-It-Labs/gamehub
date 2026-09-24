@@ -1,4 +1,5 @@
-import places from './geo-places.json' with { type: 'json' };
+import photos from './geo-places.json' with { type: 'json' };
+import names from './geo-names.json' with { type: 'json' };
 import {
   shuffle,
   roll,
@@ -7,12 +8,48 @@ import {
   type Difficulty,
 } from '../standalone/types.ts';
 import { groups, groupName, assertSeats, type PartyMode } from './groups.ts';
+import {
+  openVote,
+  voteClosed,
+  voteResult,
+  voteOptions,
+  isChoice,
+  validVote,
+  maxRounds as matchRounds,
+  type RoundChoice,
+  type RoundVote,
+  type SetGame,
+} from './vote.ts';
+import type { TribuState } from './tribu-state.ts';
 export type Pin = { lat: number; lng: number };
+export type Place = {
+  name: string;
+  country: string;
+  region: string;
+  difficulty: string;
+  lat: number;
+  lng: number;
+  source: string;
+  facts?: string[];
+  photo?: string;
+  photoSource?: string;
+  artist?: string;
+  license?: string;
+  licenseUrl?: string;
+  photoAlt?: string;
+};
+/** Every place Atlas can deal: the photographed finals first, then the named
+ * places. Indices are stable within a release; saves hold them. */
+export const places: Place[] = [...photos, ...names];
+const isFinal = (id: number) => id < photos.length;
 export type GeoMove =
   | { type: 'pin'; prompt: number; lat: number; lng: number }
   | { type: 'choose'; prompt: number; seat: number }
-  | { type: 'lock' | 'ready' };
-export type GeoChallenge = 'named' | 'photo' | 'facts';
+  | { type: 'vote'; choice: RoundChoice }
+  | { type: 'lock' | 'next' };
+/** Each round: an easier named place, a harder one, then a photograph with
+ * two clues. */
+export type GeoChallenge = 'easy' | 'hard' | 'final';
 export type GeoPrompt = {
   difficulty: 'medium' | 'hard';
   title: string;
@@ -22,12 +59,14 @@ export type GeoPrompt = {
 };
 export type GeoGame = StandaloneBase & {
   kind: 'miro';
-  rules: 9;
+  rules: 10;
   mode: PartyMode;
   teams: number[];
   scores: number[];
   round: number;
-  phase: 'guess' | 'discuss' | 'reveal';
+  phase: 'guess' | 'discuss' | 'reveal' | 'vote';
+  /** The ten-second keep-going-or-finish vote after each round's last reveal. */
+  vote?: RoundVote | null;
   tutorial: boolean;
   lesson: number;
   deck: number[];
@@ -39,25 +78,53 @@ export type GeoGame = StandaloneBase & {
   discussionEndsAt: number | null;
   firstTeam: number;
   turn: number;
+  /** Kept for saved games; reveals now advance on the host's single `next`. */
   ready: boolean[];
   totalDistance: number[];
   result: null | {
-    places: (typeof places)[number][];
+    places: Place[];
     pins: Pin[][];
     distances: number[][];
     gains: number[];
   };
+  /** The match round this game's places began on, when Atlas joined a Sabi
+   * match after Sizes; absent means round 1. */
+  start?: number;
+  /** Present while Atlas is played inside Sabi. */
+  tribu?: TribuState;
+  /** Set when the table voted to switch games; the registry swaps the state. */
+  handoff?: SetGame | null;
 };
-export const rounds = 2;
-export const challenges = ['named', 'photo', 'facts'] as const;
+/** Rounds are open-ended now: the table votes after each one. Three places a
+ * round, so the catalog bounds how many rounds of places one deck holds. */
+export function maxRounds(g: { deck: number[] }) {
+  return Math.floor(g.deck.length / 3);
+}
+/** Which round of places this is: the match round, less any rounds played
+ * before Atlas joined. */
+export function placeRound(g: { round: number; start?: number }) {
+  return g.round - (g.start ?? 1) + 1;
+}
+/** Joins a Sabi match at `round`; the places deal from the top of the deck. */
+export function startAt(g: GeoGame, round: number) {
+  g.round = round;
+  if (round > 1) g.start = round;
+  return g;
+}
+export const challenges = ['easy', 'hard', 'final'] as const;
 export function stage(g: GeoGame) {
-  return (g.round - 1) * challenges.length + challenges.indexOf(g.challenge);
+  return (
+    (placeRound(g) - 1) * challenges.length + challenges.indexOf(g.challenge)
+  );
 }
 export const challengeLabels: Record<GeoChallenge, string> = {
-  named: 'Name the place',
-  photo: 'Read the landscape',
-  facts: 'Follow three clues',
+  easy: 'Place',
+  hard: 'Harder',
+  final: 'Final',
 };
+/** Points for the closest pin and for landing within 100 km. */
+export const closestPoints = 50,
+  nearPoints = 50;
 export function distance(a: Pin, b: Pin) {
   const r = Math.PI / 180,
     dlat = (b.lat - a.lat) * r,
@@ -88,7 +155,7 @@ export function createGame(
   assertSeats(n, mode);
   const g: GeoGame = {
     kind: 'miro',
-    rules: 9,
+    rules: 10,
     version: 1,
     rngState: seed >>> 0,
     difficulty,
@@ -105,7 +172,7 @@ export function createGame(
     lesson: 0,
     deck: [],
     cityIds: [],
-    challenge: 'named',
+    challenge: 'easy',
     prompts: [],
     guesses: [],
     choices: [],
@@ -116,27 +183,31 @@ export function createGame(
     totalDistance: Array(mode === 'teams' ? 2 : n).fill(0),
     result: null,
   };
-  const medium = shuffle(
-    places.flatMap((p, i) => (p.difficulty === 'medium' ? [i] : [])),
-    () => roll(g),
-  );
-  const hard = shuffle(
-    places.flatMap((p, i) => (p.difficulty === 'hard' ? [i] : [])),
-    () => roll(g),
-  );
   const unseenFirst = (a: number, b: number) =>
     Number(seen.has(placeHistoryKey(a))) - Number(seen.has(placeHistoryKey(b)));
-  medium.sort(unseenFirst);
-  hard.sort(unseenFirst);
-  if (medium.length < 3 || hard.length < 3)
-    throw new Error('Atlas needs at least three places per difficulty.');
-  g.deck = [...medium.slice(0, 3), ...hard.slice(0, 3)];
+  const pool = (keep: (p: Place, i: number) => boolean) =>
+    shuffle(
+      places.flatMap((p, i) => (keep(p, i) ? [i] : [])),
+      () => roll(g),
+    ).sort(unseenFirst);
+  const easy = pool((p, i) => !isFinal(i) && p.difficulty === 'medium'),
+    hard = pool((p, i) => !isFinal(i) && p.difficulty === 'hard'),
+    final = pool((_, i) => isFinal(i));
+  const rounds = Math.min(easy.length, hard.length, final.length);
+  if (rounds < 2) throw new Error('Atlas needs at least two rounds of places.');
+  // Three places a round: easier, harder, then the photographed final.
+  g.deck = Array.from({ length: rounds }, (_, r) => [
+    easy[r],
+    hard[r],
+    final[r],
+  ]).flat();
   g.firstTeam = Math.floor(roll(g) * g.scores.length);
   deal(g);
   return g;
 }
 function deal(g: GeoGame) {
   g.phase = 'guess';
+  g.vote = null;
   g.discussionEndsAt = null;
   g.result = null;
   g.turn = 0;
@@ -146,23 +217,18 @@ function deal(g: GeoGame) {
     locked: false,
   }));
   g.ready = g.seats.map(() => false);
-  g.cityIds = g.deck.slice((g.round - 1) * 3, g.round * 3);
+  g.cityIds = g.deck.slice((placeRound(g) - 1) * 3, placeRound(g) * 3);
   g.prompts = g.cityIds.map((id, p) => ({
-    difficulty: g.round === 1 ? 'medium' : 'hard',
+    difficulty: places[id].difficulty as 'medium' | 'hard',
     title:
-      challenges[p] === 'named'
-        ? `${places[id].name}, ${places[id].country}`
-        : challenges[p] === 'photo'
-          ? 'Where was this photographed?'
-          : 'Which town or city fits?',
-    photo: challenges[p] === 'photo' ? places[id].photo : null,
-    photoAlt: challenges[p] === 'photo' ? places[id].photoAlt : null,
-    facts: challenges[p] === 'facts' ? [...places[id].facts] : [],
+      challenges[p] === 'final'
+        ? ''
+        : `${places[id].name}, ${places[id].country}`,
+    photo: challenges[p] === 'final' ? (places[id].photo ?? null) : null,
+    photoAlt: challenges[p] === 'final' ? (places[id].photoAlt ?? null) : null,
+    facts: challenges[p] === 'final' ? [...(places[id].facts ?? [])] : [],
   }));
-  note(
-    g,
-    `Round ${g.round}: Complete Places, Photos and Three facts privately before discussing.`,
-  );
+  note(g, `Round ${g.round}: two places and a final, pinned privately.`);
 }
 export function captain(g: GeoGame, team: number) {
   const seats = g.teams.flatMap((t, s) => (t === team ? [s] : []));
@@ -173,8 +239,10 @@ export function activeTeam(g: GeoGame) {
 }
 export function actingSeats(g: GeoGame) {
   if (g.over) return [];
-  if (g.phase === 'reveal')
-    return g.seats.flatMap((_, s) => (g.ready[s] ? [] : [s]));
+  // Reveals wait on the table host only; see `next`.
+  if (g.phase === 'reveal') return [];
+  if (g.phase === 'vote')
+    return g.seats.flatMap((_, s) => (g.vote?.choices[s] ? [] : [s]));
   if (g.phase === 'discuss') return [captain(g, activeTeam(g))];
   return g.seats.flatMap((_, s) => (g.guesses[s].locked ? [] : [s]));
 }
@@ -195,9 +263,18 @@ export function validMove(g: GeoGame, m: unknown, s: number): m is GeoMove {
       ? ['type', 'prompt', 'lat', 'lng']
       : v.type === 'choose'
         ? ['type', 'prompt', 'seat']
-        : ['type'];
+        : v.type === 'vote'
+          ? ['type', 'choice']
+          : ['type'];
   if (Object.keys(v).some((k) => !keys.includes(k))) return false;
-  if (g.phase === 'reveal') return v.type === 'ready' && !g.ready[s];
+  // The engine accepts `next` from any seat; the table decides who hosts.
+  if (g.phase === 'reveal') return v.type === 'next';
+  if (g.phase === 'vote')
+    return (
+      v.type === 'vote' &&
+      isChoice(v.choice, g.vote) &&
+      g.vote?.choices[s] !== v.choice
+    );
   if (g.phase === 'guess') {
     if (g.guesses[s].locked) return false;
     if (v.type === 'pin') return [0, 1, 2].includes(v.prompt) && isPin(v);
@@ -227,16 +304,16 @@ function reveal(g: GeoGame) {
   const distances = pins.map((pair) =>
     pair.map((pin, p) => distance(pin, targets[p])),
   );
-  // One point for the closest pin, one precision bonus within 100 km. Equal metre-rounded distances share the point.
+  // Points for the closest pin, and a precision bonus within 100 km. Equal metre-rounded distances share the closest points.
   const gains = distances.map((pair) =>
     pair.reduce(
       (sum, d, p) =>
         sum +
         (Math.round(d * 1000) ===
         Math.min(...distances.map((ds) => Math.round(ds[p] * 1000)))
-          ? 1
+          ? closestPoints
           : 0) +
-        (d <= 100 ? 1 : 0),
+        (d <= 100 ? nearPoints : 0),
       0,
     ),
   );
@@ -265,25 +342,35 @@ export function play(
     now >= g.discussionEndsAt
   )
     return tick(g, now);
+  if (g.phase === 'vote' && g.vote && voteClosed(g.vote, now))
+    return tick(g, now);
   const n = structuredClone(g);
   n.revision++;
-  if (m.type === 'ready') {
-    n.ready[s] = true;
-    if (n.ready.every(Boolean)) {
-      if (n.round === rounds && n.challenge === 'facts') {
-        n.over = true;
-        note(n, 'Two rounds, six destinations complete.');
-      } else {
-        if (n.challenge === 'facts') {
-          n.round++;
-          n.challenge = 'named';
-          deal(n);
-        } else {
-          n.challenge = challenges[challenges.indexOf(n.challenge) + 1];
-          n.ready = n.seats.map(() => false);
-          reveal(n);
-        }
-      }
+  if (m.type === 'vote') {
+    n.vote!.choices[s] = m.choice;
+    if (voteClosed(n.vote!, now)) closeRound(n);
+  } else if (m.type === 'next') {
+    const last = placeRound(n) >= maxRounds(n);
+    if (n.challenge === 'final' && last && !n.tribu) {
+      n.over = true;
+      note(n, `All ${placeRound(n) * 3} destinations complete.`);
+    } else if (n.challenge === 'final') {
+      // Inside Sabi, an Atlas out of places can still hand over to Sizes.
+      n.phase = 'vote';
+      n.vote = openVote(
+        n.seats.length,
+        now,
+        !n.tutorial,
+        n.tribu
+          ? last
+            ? ['size', 'finish']
+            : ['miro', 'size', 'finish']
+          : undefined,
+      );
+      note(n, `Round ${n.round} complete. Another round?`);
+    } else {
+      n.challenge = challenges[challenges.indexOf(n.challenge) + 1];
+      reveal(n);
     }
   } else if (n.phase === 'guess') {
     if (m.type === 'pin')
@@ -334,8 +421,53 @@ function finishDiscussion(g: GeoGame, now: number) {
     );
   }
 }
-/** The server owns the deadline. Missing selections fall back to the captain's frozen pins. */
+function closeRound(g: GeoGame) {
+  const opening = !!g.vote!.opening,
+    options = voteOptions(g.vote);
+  const keep = opening
+    ? null
+    : g.tribu
+      ? options.includes('miro')
+        ? 'miro'
+        : 'size'
+      : 'more';
+  const choice = voteResult(g.vote!, keep, (n) => Math.floor(roll(g) * n));
+  g.vote = null;
+  if (opening) {
+    // Sabi's first vote: the places are dealt, or the table goes to Sizes.
+    if (choice === 'size') g.handoff = 'size';
+    else g.phase = 'guess';
+    note(g, `The table chose ${choice === 'size' ? 'Sizes' : 'Atlas'}.`);
+    return;
+  }
+  if (choice === 'finish' || g.round >= matchRounds) {
+    // The finished table keeps the last reveal on screen.
+    g.phase = 'reveal';
+    g.over = true;
+    note(
+      g,
+      `The table finished after ${g.round} round${g.round === 1 ? '' : 's'}.`,
+    );
+    return;
+  }
+  g.round++;
+  if (choice === 'size') {
+    g.handoff = 'size';
+    return;
+  }
+  g.challenge = 'easy';
+  deal(g);
+}
+/** The server owns the deadlines. Missing selections fall back to the
+ * captain's frozen pins; silent voters don't count. */
 export function tick(g: GeoGame, now = Date.now()): GeoGame {
+  if (g.phase === 'vote') {
+    if (g.over || !g.vote || !voteClosed(g.vote, now)) return g;
+    const n = structuredClone(g);
+    n.revision++;
+    closeRound(n);
+    return n;
+  }
   if (
     g.over ||
     g.tutorial ||
@@ -381,7 +513,20 @@ export function observe(g: GeoGame, viewer: number): GeoGame {
 }
 export function botMove(g: GeoGame, s: number): GeoMove | null {
   if (!actingSeats(g).includes(s)) return null;
-  if (g.phase === 'reveal') return { type: 'ready' };
+  // Practice bots play the classic two rounds, then vote to finish.
+  if (g.phase === 'vote')
+    return {
+      type: 'vote',
+      choice: g.vote?.opening
+        ? s % 2
+          ? 'size'
+          : 'miro'
+        : g.round >= 2
+          ? 'finish'
+          : g.tribu
+            ? voteOptions(g.vote)[0]
+            : 'more',
+    };
   if (g.phase === 'discuss') {
     const t = activeTeam(g),
       prompt = g.choices[t].seats.findIndex((seat) => seat === null);
@@ -416,9 +561,13 @@ export function validState(g: GeoGame) {
     a.length === length &&
     new Set(a).size === length &&
     a.every((id) => Number.isInteger(id) && !!places[id]);
+  const opening = g.phase === 'vote' && !!g.vote?.opening;
   return (
-    g.rules === 9 &&
-    ['guess', 'discuss', 'reveal'].includes(g.phase) &&
+    g.rules === 10 &&
+    ['guess', 'discuss', 'reveal', 'vote'].includes(g.phase) &&
+    (g.phase === 'vote'
+      ? validVote(g.vote, g.seats.length)
+      : g.vote === undefined || g.vote === null) &&
     (g.phase === 'discuss' && !g.tutorial
       ? typeof g.discussionEndsAt === 'number' &&
         Number.isFinite(g.discussionEndsAt) &&
@@ -426,20 +575,28 @@ export function validState(g: GeoGame) {
       : g.discussionEndsAt === null) &&
     Number.isInteger(g.round) &&
     g.round >= 1 &&
-    g.round <= rounds &&
+    (g.start === undefined ||
+      (Number.isInteger(g.start) && g.start > 1 && g.start <= g.round)) &&
+    placeRound(g) <= maxRounds(g) &&
     challenges.includes(g.challenge) &&
-    (g.phase === 'reveal' || g.challenge === 'named') &&
-    ids(g.deck, 6) &&
+    (g.phase === 'reveal' || g.phase === 'vote' || g.challenge === 'easy') &&
+    Array.isArray(g.deck) &&
+    g.deck.length >= 6 &&
+    g.deck.length % 3 === 0 &&
+    ids(g.deck, g.deck.length) &&
     ids(g.cityIds, 3) &&
-    g.cityIds.every((id, p) => id === g.deck[(g.round - 1) * 3 + p]) &&
-    g.deck.every(
-      (id, p) => places[id].difficulty === (p < 3 ? 'medium' : 'hard'),
+    g.cityIds.every((id, p) => id === g.deck[(placeRound(g) - 1) * 3 + p]) &&
+    g.deck.every((id, i) =>
+      i % 3 === 2
+        ? isFinal(id)
+        : !isFinal(id) &&
+          places[id].difficulty === (i % 3 === 0 ? 'medium' : 'hard'),
     ) &&
     triple(g.prompts) &&
     g.prompts.every(
       (p) =>
         p &&
-        p.difficulty === (g.round === 1 ? 'medium' : 'hard') &&
+        p.difficulty === places[g.cityIds[g.prompts.indexOf(p)]]?.difficulty &&
         typeof p.title === 'string' &&
         (p.photo === null || typeof p.photo === 'string') &&
         Array.isArray(p.facts) &&
@@ -478,12 +635,12 @@ export function validState(g: GeoGame) {
     ) &&
     g.totalDistance.length === g.scores.length &&
     g.totalDistance.every((d) => Number.isFinite(d) && d >= 0) &&
-    (g.phase === 'guess' || g.guesses.every((b) => b.locked)) &&
+    (g.phase === 'guess' || opening || g.guesses.every((b) => b.locked)) &&
     (g.phase !== 'discuss' ||
       (g.mode === 'teams' &&
         g.turn < g.scores.length &&
         !g.choices[activeTeam(g)].locked)) &&
-    (g.phase === 'reveal'
+    (g.phase === 'reveal' || (g.phase === 'vote' && !opening)
       ? g.choices.every((c) => c.locked) &&
         !!g.result &&
         single(g.result.places) &&
@@ -497,13 +654,12 @@ export function validState(g: GeoGame) {
             ds.every((d) => Number.isFinite(d) && d >= 0 && d <= 20016),
         ) &&
         g.result.gains.length === g.scores.length &&
-        g.result.gains.every((v) => Number.isInteger(v) && v >= 0 && v <= 2)
+        g.result.gains.every(
+          (v) =>
+            Number.isInteger(v) && v >= 0 && v <= closestPoints + nearPoints,
+        )
       : g.result === null) &&
-    (!g.over ||
-      (g.round === rounds &&
-        g.challenge === 'facts' &&
-        g.phase === 'reveal' &&
-        g.ready.every(Boolean)))
+    (!g.over || (g.challenge === 'final' && g.phase !== 'guess'))
   );
 }
 

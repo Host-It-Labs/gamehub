@@ -29,7 +29,7 @@ await test('current habitat and food scoring matches the published rules', () =>
   // Root hollows hold two creatures; legacy overflow scores as two singles at most.
   assert.equal(zoneScore(zones([c(0), c(0), c(0)], 2), 2), 3);
   assert.equal(zoneScore(zones([c(0), c(0)], 2), 2), 9);
-  assert.equal(zoneScore(zones([c(0), c(0), c(0)], 3), 3), 6);
+  assert.equal(zoneScore(zones([c(0), c(1), c(2)], 4), 4), 6);
   assert.equal(foodScore([c(0), c(0)], []), 7);
   assert.equal(foodScore([c(1), c(1), c(1), c(1)], []), 13);
   assert.equal(foodScore([c(2), c(2), c(2)], []), 9);
@@ -387,42 +387,26 @@ await test('Mora herd retains its scoring and legacy trash cannot block discardi
   assert.ok(allowedZone(g, 0, c(0), 5));
 });
 
-await test('Mora Glasshouse trail rewards a matching pair and a different guest', () => {
-  for (const [kinds, expected] of [
-    [[], 0],
-    [[0], 2],
-    [[0, 0], 4],
-    [[0, 1], 4],
-    [[0, 0, 0], 6],
-    [[0, 0, 1], 10],
-    [[0, 1, 0], 10],
-    [[0, 1, 2], 6],
-  ]) {
-    assert.equal(
-      zoneScore(
-        zones(
-          kinds.map((kind) => c(kind)),
-          3,
-        ),
-        3,
-      ),
-      expected,
-    );
-  }
+await test('Mora Glasshouse trail echoes species kept in other habitats', () => {
+  const board = Array.from({ length: 7 }, () => []);
+  board[3] = [c(0), c(0), c(1)];
+  // The rest of the trail and released creatures are not another habitat.
+  board[5] = [c(1, 21)];
+  assert.equal(zoneScore(board, 3), 0);
+  board[0] = [c(0, 20)];
+  assert.equal(zoneScore(board, 3), 6);
+  board[6] = [c(1, 22)];
+  assert.equal(zoneScore(board, 3), 9);
 });
 
-await test('Mora Dry channel counts different species here, nothing elsewhere', () => {
+await test('Mora Dry channel scores only when full, with any species', () => {
   const board = Array.from({ length: 7 }, () => []);
-  board[3] = [c(0), c(1)];
-  board[4] = [c(0), c(0), c(2)];
-  board[5] = [c(2)];
-  assert.equal(zoneScore(board, 4), 4);
-  board[0] = [c(2)];
-  assert.equal(zoneScore(board, 4), 4);
+  board[4] = [c(0), c(1)];
+  assert.equal(zoneScore(board, 4), 0);
+  board[4] = [c(0), c(0), c(0)];
+  assert.equal(zoneScore(board, 4), 6);
   board[4] = [c(0), c(1), c(2)];
-  assert.equal(zoneScore(board, 4), 10);
-  board[4] = [c(0)];
-  assert.equal(zoneScore(board, 4), 1);
+  assert.equal(zoneScore(board, 4), 6);
 });
 
 await test('Mora lookout counts habitats with its resident species, excluding trash and itself', () => {
@@ -460,10 +444,10 @@ await test('Mora bot values trail completion and avoids breaking a scoring pair 
   g.pick = 6;
   g.roller = g.active = 0;
   g.players[0].zones[2] = [c(0, 101), c(0, 102)];
-  g.players[0].zones[3] = [c(1, 103), c(0, 104)];
-  g.players[0].hand = [c(1, 105)];
-  const complete = { type: 'play', card: 105, zone: 3 };
-  // A second matching creature lifts the trail from 4 to 10 points.
+  g.players[0].zones[4] = [c(1, 103), c(2, 104)];
+  g.players[0].hand = [c(3, 105)];
+  const complete = { type: 'play', card: 105, zone: 4 };
+  // The third creature of any species fills the channel for 6 points.
   assert.equal(heuristic(g, complete), 6);
   assert.deepEqual(chooseMove(observe(g), 'medium'), complete);
   g.players[0].hand = [c(0, 105)];

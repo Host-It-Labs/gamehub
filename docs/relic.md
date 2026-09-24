@@ -45,7 +45,7 @@ Version 1 saves keep their unlocked books; every other atlas rank is refunded at
 
 ## Feedback and artwork
 
-The desk uses original warm teal/copper workshop plates, generated independently for landscape and portrait. Every gameplay seal is a DOM/canvas layer on the paper ticket; painted scenery contains no interactive targets. The square library cover includes the exact Relic title. Sources, exact prompts, revised candidates, WebP exports, crop geometry and hashes are preserved in `docs/concepts/2026-09-22-relic-scratch/art/`.
+The desk uses original warm teal/copper workshop plates, generated independently for landscape and portrait. Every gameplay seal is a DOM/canvas layer on the paper ticket; painted scenery contains no interactive targets. The square library cover includes the exact Relic title. Sources, exact prompts, revised candidates, WebP exports, crop geometry and hashes are preserved in `docs/concepts/2026-09-22-relic-scratch/art/`. The current cover is `box-relic-scratch-v2` (23 September 2026, prompts in `docs/concepts/2026-09-23-folio-relic-covers/`). The library box opens Relic in the shared open-box modal (`components/game/relic-box.tsx`) with saved desks and a new-desk form; leaving a desk returns to the library, and `/relic` remains as a direct page.
 
 Web Audio generates motion-dependent paper/metal friction, reveal chimes, coin payouts, paper changes and upgrade tones after a user gesture. Muting persists locally, and pointer release, blur, hidden pages and unmount stop friction. Animated foil shavings and reveal pops respect reduced motion. Actual device audio and subjective tactile feel still require hands-on review.
 

@@ -1,6 +1,7 @@
 import { requiresHumanPlayers } from '../lib/games/player-policy.ts';
-import { groups, validTeams } from '../lib/games/party/groups.ts';
+
 import { placeHistoryKey } from '../lib/games/party/geography.ts';
+import type { StandaloneId } from '../lib/games/standalone/types.ts';
 import { standaloneGames, isStandaloneId, observe as observeAdventure, botMove as adventureBot, decisionKey as adventureKey, tick as tickAdventure, type AnyGame } from '../lib/games/standalone/registry.ts';
 import { practice, adventureLessons } from '../lib/games/adventures/lessons.ts';
 import type { OnlineGameId } from '../lib/online/types.ts';
@@ -33,6 +34,8 @@ type Seat = Participant & { bot: boolean };
 export type StoredTable = {
   token: string;
   owner: string;
+  /** Member who runs the table; defaults to the owner and can be handed over. */
+  host?: string;
   gameId: OnlineGameId;
   difficulty: Difficulty;
   shields?: boolean;
@@ -55,12 +58,29 @@ export type StoredTable = {
   matchId: string | null;
   game: Game | null;
   adventure?: AnyGame | null;
-  partyMode?: 'teams' | 'individual';
-  teams?: number[];
   botError: boolean;
   setupOpen?: boolean;
   votes?: Partial<Record<OnlineGameId, string[]>>;
+  /** After a party match: ten seconds to vote which party game comes next. */
+  nextVote?: NextVote | null;
 };
+export type NextVote = { endsAt: number; ballots: Record<string, StandaloneId> };
+export const nextGameMs = 10_000;
+export const partyGames: StandaloneId[] = ['orin', 'miro'];
+/** Marks a finished party match and opens the what-next vote. */
+function finishAdventure(t: StoredTable, now = Date.now()) {
+  if (t.status !== 'playing' || !t.adventure?.over || t.adventure.tutorial) return;
+  t.status = 'finished';
+  t.nextVote = { endsAt: now + nextGameMs, ballots: {} };
+}
+/** The most votes wins; a tie is settled at random; silence starts nothing. */
+export function nextGameWinner(v: NextVote, pick = (n: number) => randomInt(n)) {
+  const tally = new Map<StandaloneId, number>();
+  for (const id of Object.values(v.ballots)) tally.set(id, (tally.get(id) ?? 0) + 1);
+  const top = Math.max(0, ...tally.values());
+  const tied = partyGames.filter((id) => top > 0 && tally.get(id) === top);
+  return tied.length ? tied[pick(tied.length)] : null;
+}
 export function parseMove(value: unknown): Move {
   check(value && typeof value === 'object', 400, 'Invalid move.');
   const m = value as Record<string, unknown>;
@@ -124,6 +144,22 @@ export function parseMove(value: unknown): Move {
     ...(m.stall === undefined ? {} : { stall: m.stall as boolean }),
   };
 }
+/** The member who runs the table: configures, starts and moves the game on. */
+export function hostOf(t: StoredTable) {
+  return t.members.some((m) => m.id === t.host) ? t.host! : t.owner;
+}
+/** The host moves reveals on; if they drop, any connected seated player may. */
+export function mayAdvance(
+  t: StoredTable,
+  who: string,
+  connected: (member: string) => boolean,
+) {
+  const host = hostOf(t);
+  return (
+    who === host ||
+    (!connected(host) && t.seats.some((s) => s.id === who && !s.bot))
+  );
+}
 export class Tables {
   db: DatabaseSync;
   connected: (table: string, member: string) => boolean;
@@ -137,6 +173,10 @@ export class Tables {
       const table = JSON.parse(row.state) as StoredTable;
       const legacy = { ...table } as unknown as Record<string, unknown>;
       let changed = false;
+      // Dial is played inside Tribu and Sizes inside Sabi; their tables open
+      // the set's box.
+      if (table.gameId === 'dial') { table.gameId = 'orin'; changed = true; }
+      if (table.gameId === 'size') { table.gameId = 'miro'; changed = true; }
       if (!catalog.some(c => c.id === table.gameId) && !isStandaloneId(table.gameId)) {
         table.gameId = 'undertow';
         table.game = null;
@@ -311,13 +351,12 @@ export class Tables {
       marketSeasons: t.marketSeasons ?? false,
       fastMode: t.fastMode ?? false,
       ambienceEnabled: t.ambienceEnabled === true,
-      partyMode: t.partyMode ?? 'individual',
-      teams: t.teams ?? groups(t.capacity, 'teams'),
       capacity: t.capacity,
       revision: t.revision,
       status: t.status,
       viewerId: who.id,
-      isHost: t.owner === who.userId,
+      isHost: hostOf(t) === who.id,
+      canAdvance: mayAdvance(t, who.id, (id) => this.connected(t.token, id)),
       viewerSeat: index < 0 ? null : index,
       matchId: t.matchId,
       game,
@@ -325,10 +364,12 @@ export class Tables {
       botError: t.botError,
       setupOpen: t.status === 'lobby' && (t.setupOpen ?? false),
       votes: t.votes ?? {},
+      nextVote: t.status === 'finished' ? (t.nextVote ?? null) : null,
       members: [
         ...t.members.map((m, i) => ({
           ...m,
-          host: m.id === t.owner,
+          host: m.id === hostOf(t),
+          owner: m.id === t.owner,
           connected: this.connected(t.token, m.id),
           bot: false,
           seat:
@@ -381,6 +422,7 @@ export class Tables {
       check(
         command.matchId === t.matchId &&
           (command.revision === t.revision ||
+            command.action.type === 'next-game' ||
             (command.action.type === 'adventure-move' && t.adventure && command.action.key === adventureKey(t.adventure)) ||
             (command.action.type === 'move' &&
               t.game &&
@@ -390,8 +432,8 @@ export class Tables {
         'The table changed. Try again.',
       );
       const a = command.action;
-      if (!['move', 'adventure-move', 'rename', 'leave', 'vote'].includes(a.type))
-        check(who.userId === t.owner, 403, 'Only the host can do that.');
+      if (!['move', 'adventure-move', 'rename', 'leave', 'vote', 'next-game'].includes(a.type))
+        check(who.id === hostOf(t), 403, 'Only the host can do that.');
       switch (a.type) {
         case 'ambience':
           check(typeof a.enabled === 'boolean', 400, 'Invalid ambience setting.');
@@ -403,8 +445,10 @@ export class Tables {
           const seat=t.seats.findIndex(s=>s.id===who.id&&!s.bot);check(seat>=0,403,'No player seat.');
           check(a.key===adventureKey(game),409,'The round has advanced.');
           check(standaloneGames[game.kind].validMove(game,a.move,seat),409,'That action is unavailable.');
+          // Players only lock in their own choices; moving the table on belongs to the host.
+          check(a.move.type!=='next'||mayAdvance(t,who.id,id=>this.connected(t.token,id)),403,'The host moves the table on.');
           t.adventure=standaloneGames[game.kind].play(game,a.move,seat);check(t.adventure!==game,409,'Action could not be applied.');
-          if(t.adventure.over&&!t.adventure.tutorial)t.status='finished';break;
+          finishAdventure(t);break;
         }
         case 'advance-practice': {
           check(!requiresHumanPlayers(t.gameId) || !t.seats.some(s => s.bot), 409, 'This game requires human players.');
@@ -427,8 +471,18 @@ export class Tables {
             : [...voters, who.id];
           break;
         }
+        case 'next-game': {
+          const v = t.nextVote;
+          check(t.status === 'finished' && v && Date.now() < v.endsAt, 409, 'The vote has closed.');
+          check(t.seats.some((s) => s.id === who.id && !s.bot), 403, 'Only players vote.');
+          check(typeof a.gameId === 'string' && partyGames.includes(a.gameId as StandaloneId) && standaloneGames[a.gameId as StandaloneId].seatChoices.includes(t.seats.length), 400, 'Unknown game.');
+          v.ballots[who.id] = a.gameId as StandaloneId;
+          if (t.seats.every((s) => s.bot || v.ballots[s.id] || !this.connected(t.token, s.id)))
+            this.startNext(t);
+          break;
+        }
         case 'lesson':
-          if(t.adventure){check(t.adventure.tutorial,409,'No practice in progress.');check(Number.isInteger(a.step)&&a.step>=0&&a.step<adventureLessons[t.adventure.kind].length,400,'Invalid step.');t.adventure=practice(t.adventure.kind,t.capacity,t.difficulty,a.step,t.partyMode,t.teams);t.adventure.seats=t.seats.map(s=>s.name);break;}
+          if(t.adventure){check(t.adventure.tutorial,409,'No practice in progress.');check(Number.isInteger(a.step)&&a.step>=0&&a.step<adventureLessons[t.adventure.kind].length,400,'Invalid step.');t.adventure=practice(t.adventure.kind,t.capacity,t.difficulty,a.step);t.adventure.seats=t.seats.map(s=>s.name);break;}
           check(t.game?.tutorial, 409, 'No lesson is in progress.');
           check(
             Number.isInteger(a.step) &&
@@ -529,15 +583,11 @@ export class Tables {
           const allowed=isStandaloneId(a.gameId)?standaloneGames[a.gameId].seatChoices:[2,3,4,5,6];
           check(allowed.some(n=>n>=t.members.length),409,'Too many players for this game.');
           t.capacity = allowed.includes(a.capacity)?a.capacity:allowed.find(n=>n>=t.members.length)!;
-          check(a.partyMode === undefined || ['teams','individual'].includes(a.partyMode),400,'Invalid party mode.');
-          t.partyMode = a.partyMode ?? t.partyMode ?? 'individual';
-          check(a.teams === undefined || validTeams(a.teams, t.capacity), 400, 'Put at least one player on each team.');
-          t.teams = a.teams ?? (validTeams(t.teams, t.capacity) ? t.teams : groups(t.capacity, 'teams'));
           break;
         case 'begin-match':
         case 'start': {
           if (a.type === 'start') {
-            const offline = t.members.filter(m => m.id !== t.owner && !this.connected(t.token, m.id));
+            const offline = t.members.filter(m => m.id !== who.id && !this.connected(t.token, m.id));
             check(!offline.length, 409, `Disconnected players: ${offline.map(m => m.name).join(', ')}. Wait for them to reconnect or remove them before starting.`);
           }
           t.setupOpen = false;
@@ -572,7 +622,7 @@ export class Tables {
               bot: true,
             });
           if(isStandaloneId(t.gameId)){
-            t.game=null;t.adventure=a.type==='start'&&a.learning?practice(t.gameId,t.capacity,t.difficulty,0,t.partyMode,t.teams):standaloneGames[t.gameId].create(t.capacity,randomInt(4294967296),t.difficulty,t.partyMode,this.contentHistory(t),t.teams);
+            t.game=null;t.adventure=a.type==='start'&&a.learning?practice(t.gameId,t.capacity,t.difficulty,0):standaloneGames[t.gameId].create(t.capacity,randomInt(4294967296),t.difficulty,'individual',this.contentHistory(t));
             t.adventure.seats=t.seats.map(s=>s.name);t.matchId=token();t.status='playing';t.botError=false;break;
           }
           t.adventure=null;
@@ -633,7 +683,7 @@ export class Tables {
           check(t.status === 'playing', 409, 'No match is in progress.');
           const seat = t.seats.find((s) => s.id === a.memberId && !s.bot);
           check(
-            seat && seat.id !== t.owner && !this.connected(t.token, seat.id),
+            seat && seat.id !== hostOf(t) && !this.connected(t.token, seat.id),
             409,
             'Only a disconnected guest can be replaced.',
           );
@@ -642,30 +692,31 @@ export class Tables {
           t.game!.players[t.seats.indexOf(seat)].name = seat.name;
           break;
         }
+        case 'host': {
+          const next = t.members.find((m) => m.id === a.memberId);
+          check(t.status === 'lobby', 409, 'Hand over hosting in the lobby.');
+          check(next, 404, 'That player is not at this table.');
+          t.host = next.id;
+          break;
+        }
         case 'remove':
           check(
-            t.status === 'lobby' && a.memberId !== t.owner,
+            t.status === 'lobby' && a.memberId !== t.owner && a.memberId !== hostOf(t),
             409,
             'Guests can only be removed in the lobby.',
           );
-          if (t.teams) {
-            const removed = t.members.findIndex(m => m.id === a.memberId);
-            if (removed >= 0) { const [team] = t.teams.splice(removed, 1); t.teams.push(team); }
-          }
           t.members = t.members.filter((m) => m.id !== a.memberId);
           for (const id of Object.keys(t.votes ?? {}) as OnlineGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== a.memberId);
           break;
         case 'leave':
           check(
-            t.status === 'lobby' && who.id !== t.owner,
+            t.status === 'lobby' && who.id !== t.owner && who.id !== hostOf(t),
             409,
-            'Your seat is reserved until this match ends.',
+            who.id === hostOf(t) && t.status === 'lobby'
+              ? 'Hand hosting to another player before leaving.'
+              : 'Your seat is reserved until this match ends.',
           );
-          if (t.teams) {
-            const removed = t.members.findIndex(m => m.id === who.id);
-            if (removed >= 0) { const [team] = t.teams.splice(removed, 1); t.teams.push(team); }
-          }
           t.members = t.members.filter((m) => m.id !== who.id);
           for (const id of Object.keys(t.votes ?? {}) as OnlineGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== who.id);
@@ -689,6 +740,7 @@ export class Tables {
           break;
         }
         case 'abandon':
+          t.nextVote = null;
           t.status = 'lobby';
           t.game = null;
           t.adventure = null;
@@ -724,12 +776,38 @@ export class Tables {
     const t=this.get(invite),g=t.adventure;
     if(t.status!=='playing'||!g||g.tutorial||adventureKey(g)!==key)return;
     const next=tickAdventure(g);if(next===g)return;
-    t.adventure=next;t.revision++;this.save(t);
+    t.adventure=next;finishAdventure(t);t.revision++;this.save(t);
+  }
+  /** Closes the what-next vote once its ten seconds are up. */
+  nextGameTick(invite: string) {
+    const t = this.get(invite);
+    if (t.status !== 'finished' || !t.nextVote || Date.now() < t.nextVote.endsAt) return;
+    this.startNext(t);
+    t.revision++;
+    this.save(t);
+  }
+  /** Starts the voted party game with the same players, or leaves the table on
+   *  the results when nobody voted or somebody has left. */
+  private startNext(t: StoredTable) {
+    const v = t.nextVote;
+    t.nextVote = null;
+    const id = v && nextGameWinner(v);
+    if (!id || !t.seats.every((s) => t.members.some((m) => m.id === s.id))) return;
+    const n = t.seats.length;
+    if (!standaloneGames[id].seatChoices.includes(n)) return;
+    t.gameId = id;
+    t.capacity = n;
+    t.adventure = standaloneGames[id].create(n, randomInt(4294967296), t.difficulty, 'individual', this.contentHistory(t));
+    t.adventure.seats = t.seats.map((s) => s.name);
+    t.game = null;
+    t.matchId = token();
+    t.status = 'playing';
+    t.botError = false;
   }
   adventureBot(invite:string, key:string,seat:number) {
     const t=this.get(invite),g=t.adventure;
     if(t.status!=='playing'||!g||requiresHumanPlayers(t.gameId)||g.tutorial||!t.seats[seat]?.bot||adventureKey(g)!==key)return;
-    const move=adventureBot(g,seat);if(!move)return;const next=standaloneGames[g.kind].play(g,move,seat);if(next===g)return;t.adventure=next;if(next.over)t.status='finished';t.revision++;this.save(t);
+    const move=adventureBot(g,seat);if(!move)return;const next=standaloneGames[g.kind].play(g,move,seat);if(next===g)return;t.adventure=next;finishAdventure(t);t.revision++;this.save(t);
   }
   /** Applies a bot's reply while that seat still faces the decision it was
    *  asked about; other seats committing meanwhile do not discard it. */

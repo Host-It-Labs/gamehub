@@ -20,7 +20,7 @@ for (const [world,set] of [['observatory','beginner'],['floodline','intermediate
   });
   await test(`${name} pads retain every rule capacity and source alignment`,()=>{
     const map=moraMapFor(set,tall);
-    assert.equal(map.habitats.reduce((n,h)=>n+h.slots.length,0),world==='floodline'?16:17);
+    assert.equal(map.habitats.reduce((n,h)=>n+h.slots.length,0),world==='floodline'?23:17);
     for(const h of map.habitats){
       assert.equal(h.slots.length,habitatsFor(set)[h.zone].cap);
       const original=art.habitats.find(a=>a.zone===h.zone);
@@ -85,13 +85,14 @@ await test('orientation and world select genuinely different geography and stati
 
 await test('accepted Floodline artwork and pad geometry are the same revision', () => {
   const landscape = paperWorldFor(false, 'floodline-landscape-v2-b', 'floodline');
-  assert.match(landscape.image, /landscape-v3-a-two-pads/);
-  assert.deepEqual(landscape.habitats.find(h => h.zone === 1).slots, [[710,305],[788,305],[705,353],[786,353]]);
-  assert.deepEqual(landscape.habitats.find(h => h.zone === 4).slots, [[285,495],[350,495]]);
+  assert.match(landscape.image, /landscape-v5-b/);
+  assert.deepEqual(landscape.habitats.find(h => h.zone === 1).slots, [[688,283],[761,284],[834,284],[725,332],[797,332]]);
+  assert.deepEqual(landscape.habitats.find(h => h.zone === 4).slots, [[203,549],[276,567],[351,568],[425,549]]);
   for (const tall of [false, true]) {
     const art = paperWorldFor(tall, undefined, 'floodline');
-    assert.equal(art.habitats.find(h => h.zone === 4).slots.length, 2);
-    assert.match(art.source, /two-pads/);
-    assert.match(art.boardImage, /two-pads-board/);
+    // Three rounds of six need room: 5 + 5 + 3 + 4 + 4 + 2 spaces.
+    assert.deepEqual([0, 1, 2, 3, 4, 6].map(zone => art.habitats.find(h => h.zone === zone).slots.length), [5, 5, 3, 4, 4, 2]);
+    assert.match(art.source, /v5-b/);
+    assert.match(art.boardImage, /v5-b-board/);
   }
 });

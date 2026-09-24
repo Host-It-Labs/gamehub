@@ -14,6 +14,7 @@ import {
   rememberName,
   requestId,
   joinTable,
+  withDevSession,
 } from '@/lib/online/client';
 import {
   type Command,
@@ -77,7 +78,7 @@ export function SharedTable({ invite }: { invite: string }) {
   const joined = !!table;
   useEffect(() => {
     if (!joined) return;
-    const events = new EventSource(`/api/tables/${invite}/events`);
+    const events = new EventSource(withDevSession(`/api/tables/${invite}/events`));
     events.onmessage = (event) => {
       const t = JSON.parse(event.data) as Table;
       accept(t);
@@ -122,6 +123,25 @@ export function SharedTable({ invite }: { invite: string }) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  }
+  async function openTestPlayer() {
+    // Open synchronously so the popup blocker sees the click, then point it at the seat.
+    const tab = window.open('about:blank', '_blank');
+    // A blocked popup would otherwise leave a disconnected seat that stalls the start.
+    if (!tab) {
+      setError('Allow popups for this site to open a test player tab.');
+      return;
+    }
+    try {
+      const { session } = await api<{ session: string }>(
+        `/api/tables/${invite}/dev-player`,
+        {},
+      );
+      tab.location.href = `/table/${invite}#dev-session=${session}`;
+    } catch (e) {
+      tab.close();
+      setError((e as Error).message);
     }
   }
   async function dispatch(action?: TableCommand): Promise<boolean> {
@@ -338,6 +358,22 @@ export function SharedTable({ invite }: { invite: string }) {
                         <button
                           className="text-button"
                           disabled={disabled}
+                          title={`${m.name} will configure, start and move the game on`}
+                          onClick={() =>
+                            void dispatch({ type: 'host', memberId: m.id })
+                          }
+                        >
+                          Make host
+                        </button>
+                      )}
+                    {table.isHost &&
+                      !m.host &&
+                      !m.owner &&
+                      !m.bot &&
+                      table.status === 'lobby' && (
+                        <button
+                          className="text-button"
+                          disabled={disabled}
                           onClick={() =>
                             void dispatch({ type: 'remove', memberId: m.id })
                           }
@@ -380,6 +416,16 @@ export function SharedTable({ invite }: { invite: string }) {
                       ? requiresHumanPlayers(table.gameId) ? ` · Waiting for ${table.capacity - table.members.length} human players` : ` · ${table.capacity - table.members.length} bots will fill the remaining seats`
                       : table.members.some(m => !m.connected && !m.bot) ? ' · Some players are disconnected' : ' · Everyone is here'}
                   </p>
+                  {process.env.NODE_ENV === 'development' && table.isHost && (
+                    <button
+                      className="secondary"
+                      disabled={disabled || table.members.length >= table.capacity}
+                      title="Development only: opens a new tab seated as another guest"
+                      onClick={() => void openTestPlayer()}
+                    >
+                      Open test player tab
+                    </button>
+                  )}
 
                 </>
               )}
@@ -440,7 +486,9 @@ export function SharedTable({ invite }: { invite: string }) {
                       Close table
                     </button>
                   )}
-                  {!table.isHost && table.status === 'lobby' && (
+                  {!table.isHost &&
+                    !table.members.some((m) => m.id === table.viewerId && m.owner) &&
+                    table.status === 'lobby' && (
                     <button
                       className="text-button"
                       disabled={disabled}

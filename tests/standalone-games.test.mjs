@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import {
   standaloneGames,
   standaloneIds,
+  publicStandaloneIds,
 } from '../lib/games/standalone/registry.ts';
 import {
   gameByLibraryId,
@@ -22,6 +23,11 @@ const finish = (entry, g) => {
   let guard = 0;
   while (!g.over) {
     assert.ok(guard++ < 2000, `${entry.id} finishes`);
+    // Reveals wait on the table host rather than on a seat; seat 0 hosts here.
+    if (g.phase === 'reveal') {
+      g = entry.play(g, { type: 'next' }, 0);
+      continue;
+    }
     const waiting = entry.actingSeats(g);
     assert.ok(waiting.length, `${entry.id} is always waiting on somebody`);
     for (const seat of waiting) {
@@ -44,7 +50,8 @@ await test('every standalone game plays through at every table size it offers', 
     );
     for (const seats of entry.seatChoices) {
       const fresh = entry.create(seats, seats * 31 + 7, 'medium');
-      assert.equal(fresh.kind, id);
+      // Every set match, under either id, opens on its team game's state.
+      assert.equal(fresh.kind, id === 'dial' ? 'orin' : id === 'size' ? 'miro' : id);
       assert.equal(
         fresh.seats.length,
         seats,
@@ -66,7 +73,7 @@ await test('every standalone game plays through at every table size it offers', 
 });
 
 await test('a saved match is recognised only by the game that wrote it', () => {
-  const saves = standaloneIds.map((id) =>
+  const saves = publicStandaloneIds.map((id) =>
     JSON.parse(
       JSON.stringify(
         standaloneGames[id].create(
@@ -77,7 +84,7 @@ await test('a saved match is recognised only by the game that wrote it', () => {
       ),
     ),
   );
-  for (const [i, id] of standaloneIds.entries())
+  for (const [i, id] of publicStandaloneIds.entries())
     for (const [j, save] of saves.entries())
       assert.equal(
         standaloneGames[id].isSavedGame(save),
@@ -92,7 +99,10 @@ await test('a saved match is recognised only by the game that wrote it', () => {
 });
 
 await test('the library shelves them as playable games, not as placeholders', () => {
-  for (const id of standaloneIds) {
+  // Old Dial tables open Tribu's box; Dial has no shelf entry of its own.
+  assert.equal(standaloneLibraryGames.dial, standaloneLibraryGames.orin);
+  assert.equal(gameByLibraryId('dial'), undefined);
+  for (const id of publicStandaloneIds) {
     const game = standaloneLibraryGames[id];
     assert.ok(game, `${id} has a library entry`);
     assert.equal(game.id, id);
@@ -135,7 +145,7 @@ await test('every shelf entry still resolves, including the promoted three', () 
         `${shelf.id} lists a game that exists: ${id}`,
       );
   const shelved = new Set(shelves.flatMap((s) => s.games));
-  for (const id of standaloneIds)
+  for (const id of publicStandaloneIds)
     assert.ok(
       shelved.has(id),
       `${id} is on a shelf where somebody will find it`,
@@ -156,7 +166,8 @@ await test('the shelf and the table agree about which games open', async () => {
     'their saves live under their own key',
   );
   const box = await source('components/game/game-box.tsx');
-  // Only retained trio and standalone games have playable covers.
-  assert.match(box, /developed \? \(/);
+  // Any box with printed art shows it, including Folio and Relic, which have no engine id.
+  assert.match(box, /cover \? \(/);
+  assert.match(box, /game\.cover \?\? \(developed && printedBoxArt\(developed\)\.cover\)/);
   assert.match(box, /game\.gameId \?\? game\.standaloneId \?\? 'placeholder'/);
 });

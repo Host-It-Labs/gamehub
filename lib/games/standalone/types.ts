@@ -1,7 +1,8 @@
-/** Stable storage IDs for the three independent party games. Public names live
- * in the registry. The rules marker rejects saves from their retired predecessors. */
+/** Stable storage IDs for the party games. Tribu is `orin` (with Dial inside
+ * it) and Sabi is `miro` (with Sizes inside it). Public names live in the
+ * registry. The rules marker rejects saves from their retired predecessors. */
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type StandaloneId = 'orin' | 'miro';
+export type StandaloneId = 'orin' | 'miro' | 'dial' | 'size';
 
 export type LogEntry = { id: number; seat?: number; text: string };
 
@@ -25,8 +26,10 @@ export type Outcome = {
   detail: string;
   /** Seats that won; empty when everybody lost together. */
   winners: number[];
-  /** Per-seat figure for the score rows, or undefined for shared results. */
-  rows?: { name: string; value: string }[];
+  /** Per-seat figure for the score rows, or undefined for shared results.
+   * `seat` lets results colour a row by its player; `points` lets them count
+   * up to it. */
+  rows?: { name: string; value: string; seat?: number; points?: number }[];
 };
 
 export function rng(seed: number) {

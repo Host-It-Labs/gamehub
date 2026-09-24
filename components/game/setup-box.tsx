@@ -1,8 +1,6 @@
 'use client';
 import { printedBoxArt } from '@/lib/games/box-covers';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
-import { useId } from 'react';
-import { TeamPicker } from './team-picker';
 import {
   Amphora,
   ArrowRight,
@@ -29,8 +27,7 @@ import {
   Sparkles,
   Tent,
   TrainFront,
-  UserRound,
-  UsersRound,
+  Crown,
   Waves,
   Wind,
   type LucideIcon,
@@ -89,18 +86,20 @@ export type SetupChoices = GameOptions & {
   sanctuaryGoalsEnabled?: boolean;
 };
 
-function Lid({ game }: { game: LibraryGame }) {
+export function Lid({ game }: { game: LibraryGame }) {
   const Motif = motifs[game.motif] ?? Sparkles;
   const developed = game.gameId ?? game.standaloneId;
+  // Folio and Relic have no engine id but do have a printed cover.
+  const cover = game.cover ?? (developed && printedBoxArt(developed).cover);
   return (
     <div
       className={`lid ${game.gameId ?? game.standaloneId ?? 'placeholder'} ${game.coverIncludesTitle ? 'printed-cover' : ''}`}
       style={boxStyle(game, 300)}
     >
       <div className="lid-art">
-        {developed ? (
+        {cover ? (
           <ArtworkImage
-            src={game.cover ?? printedBoxArt(developed!).cover}
+            src={cover}
             width={1024}
             height={game.coverIncludesTitle ? 1024 : game.standaloneId ? 1536 : 683}
             sizes="(max-width: 760px) 100vw, 720px"
@@ -161,6 +160,44 @@ export function PlaceholderBox({ game }: { game: LibraryGame }) {
   );
 }
 
+export type SetupPlayer = { id: string; name: string; connected: boolean; host: boolean; you: boolean };
+
+/** The seated players; the host picks who leads the table (starts and moves it on). */
+function HostPicker({ players, seats, onHost, disabled }: {
+  players: SetupPlayer[];
+  seats: number;
+  onHost?: (id: string) => void;
+  disabled: boolean;
+}) {
+  const host = players.find((p) => p.host)?.id ?? '';
+  return (
+    <fieldset className="compartment host-picker">
+      <legend><Crown aria-hidden="true" />Host</legend>
+      <RadioGroup
+        disabled={disabled || !onHost}
+        className="host-seats"
+        aria-label="Host"
+        value={host}
+        onValueChange={(id) => id !== host && onHost?.(id)}
+      >
+        {players.map((p) => (
+          <label key={p.id} className={`host-seat ${p.connected ? 'present' : 'away'}`}>
+            <RadioGroupItem value={p.id} className="sr-only" />
+            <span className="host-avatar" aria-hidden="true">{p.name.trim().charAt(0).toUpperCase() || '?'}</span>
+            <b>{p.name}{p.you ? ' (you)' : ''}</b>
+            <Crown className="host-crown" aria-hidden="true" />
+          </label>
+        ))}
+        {Array.from({ length: Math.max(0, seats - players.length) }, (_, i) => (
+          <span key={`empty-${i}`} className="host-seat empty" aria-label="Empty seat">
+            <span className="host-avatar" aria-hidden="true" />
+          </span>
+        ))}
+      </RadioGroup>
+    </fieldset>
+  );
+}
+
 /**
  * Setup for a game with its own rules module. Those games carry no content
  * sets or extensions yet, so the tray is the two choices that always matter:
@@ -176,11 +213,8 @@ export function StandaloneSetupBox({
   seats,
   difficulty,
   onSeats,
-  teams,
-  onTeams,
-  playerNames,
-  mode,
-  onMode,
+  players,
+  onHost,
   onDifficulty,
   onPlay,
   onLearn,
@@ -193,19 +227,16 @@ export function StandaloneSetupBox({
   startDisabled?: boolean;
   save?: AnyGame;
   seats: number;
-  mode: 'teams' | 'individual';
-  onMode: (mode: 'teams' | 'individual') => void;
   difficulty: Difficulty;
   onSeats: (n: number) => void;
-  teams?: number[];
-  onTeams?: (teams: number[]) => void;
-  playerNames?: string[];
+  /** Online tables: who is seated, so the host can hand the lead to someone else. */
+  players?: SetupPlayer[];
+  onHost?: (id: string) => void;
   onDifficulty: (d: Difficulty) => void;
   onPlay: () => void;
   onLearn: () => void;
   onResume: (game: AnyGame) => void;
 }) {
-  const modeId = useId();
   const entry = standaloneGames[game.standaloneId as StandaloneId];
   const humanOnly = requiresHumanPlayers(game.standaloneId);
   const unavailable = humanOnly && !online;
@@ -260,37 +291,7 @@ export function StandaloneSetupBox({
             </RadioGroup>
           </fieldset>}
         </div>
-        <fieldset className="compartment play-mode">
-          <legend>Play mode</legend>
-          <RadioGroup
-              disabled={disabled}
-            className="play-mode-options"
-            aria-label="Play mode"
-            value={mode}
-            onValueChange={(value) => onMode(value as 'individual' | 'teams')}
-          >
-            <label className="play-mode-option" htmlFor={`${modeId}-individual`}>
-              <RadioGroupItem id={`${modeId}-individual`} className="sr-only" value="individual" />
-              <UserRound className="play-mode-icon" aria-hidden="true" />
-              <span className="play-mode-copy">
-                <strong>Individual</strong>
-                <small>Everyone for themselves</small>
-              </span>
-              <span className="play-mode-check" aria-hidden="true" />
-            </label>
-            <label className="play-mode-option" htmlFor={`${modeId}-teams`}>
-              <RadioGroupItem id={`${modeId}-teams`} className="sr-only" value="teams" />
-              <UsersRound className="play-mode-icon" aria-hidden="true" />
-              <span className="play-mode-copy">
-                <strong>Two teams</strong>
-                <small>Uneven teams welcome · Win together</small>
-              </span>
-              <span className="play-mode-check" aria-hidden="true" />
-            </label>
-          </RadioGroup>
-        </fieldset>
-        {mode === 'teams' && onTeams && <TeamPicker names={playerNames ?? Array.from({ length: seats }, (_, i) => i ? `Player ${i + 1}` : 'You')} teams={teams} onChange={onTeams} disabled={disabled} />}
-        <p className="tray-soon">{game.standaloneId === 'miro' ? 'Two rounds: medium, then hard. Everyone privately completes Places, Photos and Three facts in any order, then locks all three pins. Once everyone is ready, one team has 60 seconds to choose all three pins, then the other team takes its turn. One captain confirms the complete set. The other team starts round two.' : 'Everyone prepares at once. The opposing team shares a guess. The author’s teammates guess silently on their own; their average scores against the shared guess. The author stays silent. In individual mode, everyone except the author guesses.'} {humanOnly ? 'Human players only. Every seat must be filled before starting.' : 'Solo bots are practice opponents.'}</p>
+        {players && <HostPicker players={players} seats={seats} onHost={onHost} disabled={disabled} />}
         {unavailable && <a className="play-plate" href="/tables">Play with friends at an online table</a>}
         <div className="setup-actions">
         <button type="button" className="play-plate" disabled={disabled || startDisabled || unavailable} onClick={onPlay}>

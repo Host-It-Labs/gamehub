@@ -1,4 +1,15 @@
-import { topics } from './catalog.ts';
+import { liveTopicIds } from './catalog.ts';
+import {
+  openVote,
+  voteClosed,
+  voteResult,
+  isChoice,
+  maxRounds,
+  type RoundChoice,
+  type RoundVote,
+  type SetGame,
+} from './vote.ts';
+import type { TribuState } from './tribu-state.ts';
 import { groups, assertSeats, groupName } from './groups.ts';
 export { groupName, teamNames } from './groups.ts';
 import {
@@ -11,7 +22,8 @@ import {
 export type RankingMove =
   | { type: 'topic'; target: number }
   | { type: 'arrange'; order: number[] }
-  | { type: 'lock' | 'unlock' | 'ready' | 'refresh' };
+  | { type: 'vote'; choice: RoundChoice }
+  | { type: 'lock' | 'unlock' | 'next' | 'refresh' };
 type Ballot = {
   topic: number;
   order: number[];
@@ -25,7 +37,9 @@ export type RankingGame = StandaloneBase & {
   round: number;
   tutorial: boolean;
   lesson: number;
-  phase: 'rank' | 'guess' | 'reveal';
+  phase: 'rank' | 'guess' | 'reveal' | 'vote';
+  /** The ten-second keep-going-or-finish vote after each round's last reveal. */
+  vote?: RoundVote | null;
   offers: number[][];
   refreshes?: number[];
   topicOrders?: Record<number, number[]>[];
@@ -33,10 +47,15 @@ export type RankingGame = StandaloneBase & {
   target: number;
   guesses: (Guess | null)[];
   scores: number[];
+  /** Kept for saved games; reveals now advance on the host's single `next`. */
   ready: boolean[];
   deck: number[];
   teams: number[];
   lastAction: string;
+  /** Present while this game is part of a Tribu match. */
+  tribu?: TribuState;
+  /** Set when the table voted to switch games; the registry swaps the state. */
+  handoff?: SetGame | null;
   result: null | {
     order: number[];
     guesses: (Guess | null)[];
@@ -84,16 +103,23 @@ export function createGame(
     lastAction: '',
     result: null,
   };
-  g.deck = shuffle(
-    topics.map((t) => t.id),
-    () => roll(g),
-  );
+  g.deck = shuffle(liveTopicIds, () => roll(g));
 
   deal(g);
   return g;
 }
 function deal(g: RankingGame) {
+  // Three offers plus two refreshes per seat; reshuffle unseen-this-pass topics
+  // back in when a long evening runs the deck low.
+  if (g.deck.length < g.seats.length * 9)
+    g.deck.push(
+      ...shuffle(
+        liveTopicIds.filter((id) => !g.deck.includes(id)),
+        () => roll(g),
+      ),
+    );
   g.phase = 'rank';
+  g.vote = null;
   g.target = 0;
   g.result = null;
   g.guesses = Array.from({ length: guessCount(g) }, () => null);
@@ -136,13 +162,27 @@ export function captain(g: RankingGame, team: number) {
   );
   return seats[(g.target + g.round - 1) % seats.length];
 }
+/** Points for one answer by how many places the guess put it from the
+ * author's rank, like Dial's bands: 2 on the spot, 1 one place off. */
+export const nearPoints = [2, 1] as const;
+/** A perfect list: every answer on the spot. */
+export const perfectPoints = nearPoints[0] * 5;
+/** How far the guess put each of the author's answers, in the author's order. */
+export function guessOffsets(order: number[], answer: number[]) {
+  return answer.map((v, i) => Math.abs(order.indexOf(v) - i));
+}
+export function itemPoints(offset: number) {
+  return nearPoints[offset] ?? 0;
+}
 export function guessPoints(
   order: number[],
   answer: number[],
   _kind?: RankingGame['kind'],
 ) {
-  const hits = order.slice(0, 5).filter((v, i) => v === answer[i]).length;
-  return hits + (hits === 5 ? 2 : 0);
+  return guessOffsets(order.slice(0, 5), answer.slice(0, 5)).reduce(
+    (sum, d) => sum + itemPoints(d),
+    0,
+  );
 }
 export function actingSeats(g: RankingGame): number[] {
   if (g.over) return [];
@@ -152,7 +192,10 @@ export function actingSeats(g: RankingGame): number[] {
     return guessingTeams(g).flatMap((t) =>
       !g.guesses[t]?.locked ? [captain(g, t)] : [],
     );
-  return g.seats.flatMap((_, s) => (!g.ready[s] ? [s] : []));
+  if (g.phase === 'vote')
+    return g.seats.flatMap((_, s) => (g.vote?.choices[s] ? [] : [s]));
+  // Reveals wait on the table host only; see `next`.
+  return [];
 }
 export function permutation(a: unknown, n: number): a is number[] {
   return (
@@ -178,9 +221,18 @@ export function validMove(
   )
     return false;
   const m = move as RankingMove;
-  if (Object.keys(m).some((k) => !['type', 'target', 'order'].includes(k)))
+  if (
+    Object.keys(m).some((k) => !['type', 'target', 'order', 'choice'].includes(k))
+  )
     return false;
-  if (g.phase === 'reveal') return m.type === 'ready' && !g.ready[seat];
+  if (g.phase === 'vote')
+    return (
+      m.type === 'vote' &&
+      isChoice(m.choice, g.vote) &&
+      g.vote?.choices[seat] !== m.choice
+    );
+  // The engine accepts `next` from any seat; the table decides who hosts.
+  if (g.phase === 'reveal') return m.type === 'next';
   if (g.phase === 'rank') {
     const b = g.ballots[seat];
     if (m.type === 'unlock') return !!b?.locked;
@@ -199,8 +251,15 @@ export function validMove(
   if (m.type === 'arrange') return permutation(m.order, count(g));
   return m.type === 'lock' && captain(g, t) === seat;
 }
-export function play(g: RankingGame, m: RankingMove, s: number): RankingGame {
+export function play(
+  g: RankingGame,
+  m: RankingMove,
+  s: number,
+  now = Date.now(),
+): RankingGame {
   if (!validMove(g, m, s)) return g;
+  if (g.phase === 'vote' && g.vote && voteClosed(g.vote, now))
+    return tick(g, now);
   const n = structuredClone(g);
   n.revision++;
   n.lastAction = m.type;
@@ -281,26 +340,68 @@ export function play(g: RankingGame, m: RankingMove, s: number): RankingGame {
         `${n.seats[n.target]}'s list revealed. ${n.scores.map((_, i) => `${groupName(n, i)} +${gains[i]}`).join(', ')}.`,
       );
     }
-  } else if (m.type === 'ready') {
-    n.ready[s] = true;
-    if (n.ready.every(Boolean)) {
-      if (n.round === 2 && n.target === n.seats.length - 1) {
-        n.over = true;
-        note(n, 'Both rounds complete.');
-        return n;
-      }
-      n.target++;
-      n.result = null;
-      n.guesses = Array.from({ length: guessCount(n) }, () => null);
-      n.ready = n.seats.map(() => false);
-      if (n.target < n.seats.length) n.phase = 'guess';
-      else {
-        n.round++;
-        deal(n);
-      }
+  } else if (n.phase === 'vote') {
+    if (m.type === 'vote') n.vote!.choices[s] = m.choice;
+    if (voteClosed(n.vote!, now)) return closeRound(n);
+  } else if (m.type === 'next') {
+    if (n.target === n.seats.length - 1) {
+      n.phase = 'vote';
+      n.vote = openVote(
+        n.seats.length,
+        now,
+        !n.tutorial,
+        n.tribu ? ['orin', 'dial', 'finish'] : undefined,
+      );
+      note(n, `Round ${n.round} complete. Another round?`);
+      return n;
+    }
+    n.target++;
+    n.result = null;
+    n.guesses = Array.from({ length: guessCount(n) }, () => null);
+    if (n.target < n.seats.length) n.phase = 'guess';
+    else {
+      n.round++;
+      deal(n);
     }
   }
   return n;
+}
+function closeRound(g: RankingGame): RankingGame {
+  const opening = !!g.vote!.opening;
+  const choice = voteResult(g.vote!, opening ? null : g.tribu ? 'orin' : 'more', (n) =>
+    Math.floor(roll(g) * n),
+  );
+  g.vote = null;
+  if (opening) {
+    // Tribu's first vote: the deal is ready, or the table goes to Dial.
+    if (choice === 'dial') g.handoff = 'dial';
+    else g.phase = 'rank';
+    note(g, `The table chose ${choice === 'dial' ? 'Dial' : 'My Top Five'}.`);
+    return g;
+  }
+  if (choice === 'finish' || g.round >= maxRounds) {
+    // The finished table keeps the last reveal on screen.
+    g.phase = 'reveal';
+    g.over = true;
+    note(g, `The table finished after ${g.round} round${g.round === 1 ? '' : 's'}.`);
+    return g;
+  }
+  g.round++;
+  if (choice === 'dial') {
+    g.handoff = 'dial';
+    return g;
+  }
+  g.target = 0;
+  deal(g);
+  return g;
+}
+/** The server owns the vote deadline; players who stay silent don't count. */
+export function tick(g: RankingGame, now = Date.now()): RankingGame {
+  if (g.over || g.phase !== 'vote' || !g.vote || !voteClosed(g.vote, now))
+    return g;
+  const n = structuredClone(g);
+  n.revision++;
+  return closeRound(n);
 }
 export function observe(g: RankingGame, viewer: number): RankingGame {
   const n = structuredClone(g);
@@ -342,7 +443,20 @@ export function observe(g: RankingGame, viewer: number): RankingGame {
 }
 export function botMove(g: RankingGame, s: number): RankingMove | null {
   if (!actingSeats(g).includes(s)) return null;
-  if (g.phase === 'reveal') return { type: 'ready' };
+  // Practice bots play the classic two rounds, then vote to finish.
+  if (g.phase === 'vote')
+    return {
+      type: 'vote',
+      choice: g.vote?.opening
+        ? s % 2
+          ? 'dial'
+          : 'orin'
+        : g.round >= 2
+          ? 'finish'
+          : g.tribu
+            ? 'orin'
+            : 'more',
+    };
   if (g.phase === 'rank') {
     const b = g.ballots[s];
     if (!b)

@@ -7,9 +7,11 @@ import {
   tableWorldPlayBox,
   tableWorldTarget,
   tableWorldVariants,
+  tallWorldQuery,
   cropPercent,
 } from '../lib/games/table-world.ts';
 import { paperWorldFor, paperWorldFrame } from '../lib/games/mora-world.ts';
+import { readFileSync } from 'node:fs';
 
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-7, `${a} != ${b}`);
 const inside = (box, outer) =>
@@ -17,10 +19,16 @@ const inside = (box, outer) =>
   box.left + box.width <= outer.left + outer.width && box.top + box.height <= outer.top + outer.height;
 // The same device set the Observatory is checked against, including browser-zoomed desktops.
 const devices = [[320, 568], [375, 667], [390, 844], [430, 932], [768, 1024], [568, 320], [667, 375], [844, 390], [932, 430], [1133, 744], [1194, 834], [1280, 720], [1440, 900], [1912, 952], [3440, 1440], ...[1.1, 1.25, 1.5].map((z) => [1512 / z, 850 / z])];
+// The plate each game shows: tallWorldQuery in lib/games/table-world.ts.
+const tallFor = (game, w, h) => h > w || (game === 'midnight' && w / h <= 1.3 && h > 500);
 // Fixed stage reserves, mirroring components/game/table-worlds.css.
 const stageFor = (game, w, h) => {
-  const tall = h > w, phone = !tall && h <= 500;
+  const tall = tallFor(game, w, h), phone = !tall && h <= 500;
   if (phone) return { x: 104, y: 8, width: w - 336, height: h - 16 };
+  // Yata's counter stage reaches the bottom gap: the ledge the hand lies on is part of its play box.
+  if (game === 'midnight' && !tall) return { x: 0, y: 58, width: w, height: h - 58 - 18 };
+  // Wide tall Yata screens take one row of tickets under one dock row.
+  if (game === 'midnight' && w >= 720) return { x: 0, y: 58, width: w, height: h - 58 - 156 - 18 - 84 };
   const short = tall && h <= 700;
   const hand = tall ? (game === 'undertow' ? (short ? 184 : 212) : short ? 216 : 250) : game === 'undertow' ? 196 : 176;
   const top = tall ? (game === 'undertow' ? (short ? 52 : 56) : short ? 96 : 104) : 58;
@@ -50,7 +58,11 @@ for (const game of ['undertow', 'midnight']) {
       assert.ok(inside(art.table, art.crop), 'table inside crop');
       const play = tableWorldPlayBox(art);
       assert.ok(inside(art.table, play), 'table inside play box');
-      assert.ok(inside(play, art.crop), 'play box inside crop');
+      // Yata's counter keeps its menu boards and ledge on screen too; those lie outside the gameplay crop.
+      if (art.ledge) {
+        for (const box of [art.ledge, ...(art.signboards ?? [])]) assert.ok(inside(box, play), 'ledge and boards inside play box');
+        assert.ok(inside(art.ledge, { left: 0, top: art.table.top + art.table.height, width: art.width, height: art.height }), 'ledge below the counter');
+      } else assert.ok(inside(play, art.crop), 'play box inside crop');
       for (const l of art.landmarks.protectedBounds) {
         const [x, y, w, h] = l.bounds;
         assert.ok(x >= 0 && y >= 0 && x + w <= art.width && y + h <= art.height, l.name);
@@ -63,14 +75,14 @@ for (const game of ['undertow', 'midnight']) {
     });
   }
   await test(`${game}: the play box stays inside the stage on every device while the plate covers wherever it can`, () => {
-    for (const [w, h] of devices) {
-      const tall = h > w;
+    for (const [w, h] of [...devices, [1100, 900], [1040, 800], [1045, 800], [1024, 768]]) {
+      const tall = tallFor(game, w, h);
       const art = tableWorldFor(game, tall);
       const stage = stageFor(game, w, h);
       const f = tableWorldFrame(art, { width: w, height: h }, stage), target = tableWorldTarget(art, f);
       close(target.width / art.width, target.height / art.height);
       close(target.x, f.image.x); close(target.y, f.image.y);
-      const lean = tall ? 0 : stage.height * 0.05;
+      const lean = tall || art.ledge ? 0 : stage.height * 0.05;
       const play = tableWorldPlayBox(art);
       for (const [x, y] of [[play.left, play.top], [play.left + play.width, play.top + play.height]]) {
         const px = target.x + x * f.scale, py = target.y + y * f.scale;
@@ -86,8 +98,10 @@ for (const game of ['undertow', 'midnight']) {
     }
   });
   await test(`${game}: desktops and landscape tablets are covered edge to edge`, () => {
-    for (const [w, h] of [[1440, 900], [1512, 982], [1280, 720], [1194, 834], [1133, 744]]) {
-      const f = tableWorldFrame(tableWorldFor(game, false), { width: w, height: h }, stageFor(game, w, h));
+    // Yata also covers squarish windows on either side of its 13:10 switch to the tall counter.
+    const extra = game === 'midnight' ? [[1920, 1080], [1024, 768], [1045, 800], [1040, 800], [1100, 900], [1000, 800], [834, 1194]] : [];
+    for (const [w, h] of [[1440, 900], [1512, 982], [1280, 720], [1194, 834], [1133, 744], ...extra]) {
+      const f = tableWorldFrame(tableWorldFor(game, tallFor(game, w, h)), { width: w, height: h }, stageFor(game, w, h));
       assert.ok(f.covers, `${game} ${w}×${h}`);
     }
   });
@@ -107,10 +121,21 @@ await test('the Observatory framing is unchanged by the shared scene framing', (
   assert.ok(f.covers && Number.isFinite(f.scale) && f.scale > 0);
 });
 
-await test('accepted Counter B and Floodline A override old candidate selections without changing geometry', () => {
+await test('accepted Counter B and Floodline B override old candidate selections without changing geometry', () => {
   for (const tall of [false, true]) {
     const counter = tableWorldFor('midnight', tall, 'yata-counter-a');
     assert.match(counter.image, /v2-b\.webp$/);
   }
-  assert.match(paperWorldFor(false, 'floodline-landscape-v2-b', 'floodline').image, /v3-a-two-pads/);
+  // Floodline's accepted board is the three-round v5-b art; candidate ids never override it.
+  for (const [tall, id] of [[false, 'floodline-landscape-v2-b'], [true, 'floodline-portrait-v2-a']])
+    assert.match(paperWorldFor(tall, id, 'floodline').image, /-v5-b\.webp$/);
+});
+
+await test('Yata switches its plate and its layout at the same breakpoint', () => {
+  const css = readFileSync('components/game/table-worlds.css', 'utf8');
+  const tall = tallWorldQuery('midnight');
+  assert.equal(tall, '(orientation: portrait), (max-aspect-ratio: 13/10) and (min-height: 501px)');
+  assert.ok(css.includes(`@media ${tall} {`), 'tall layout uses the plate query');
+  assert.ok(css.includes('@media (min-aspect-ratio: 1301/1000) and (min-height: 501px) {'), 'counter layout is its complement');
+  assert.equal(tallWorldQuery('undertow'), '(orientation: portrait)');
 });

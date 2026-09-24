@@ -310,11 +310,11 @@ await test('schema version 3 upgrades without losing existing account or table r
     );
     db.prepare('INSERT INTO tables VALUES (?,?,?)').run('t', 'u', '{}');
     db.exec(
-      'DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; DROP TABLE expedition_commands; DROP TABLE expedition_members; DROP TABLE expeditions; PRAGMA user_version=3',
+      'DROP TABLE content_flags; DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; DROP TABLE expedition_commands; DROP TABLE expedition_members; DROP TABLE expeditions; PRAGMA user_version=3',
     );
     db.close();
     db = openDatabase(path);
-    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 5);
+    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 6);
     assert.equal(db.prepare('SELECT name FROM users').get().name, 'User');
     assert.equal(db.prepare('SELECT token FROM tables').get().token, 't');
     assert.equal(

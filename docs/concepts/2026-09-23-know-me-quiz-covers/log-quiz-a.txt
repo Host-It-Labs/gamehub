@@ -1,0 +1,365 @@
+Reading additional input from stdin...
+OpenAI Codex v0.154.0
+--------
+workdir: /Users/williamguinaudie/Documents/code/gamehub
+model: gpt-6-sol
+provider: headroom
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a0cff2-a3e1-7ef1-9c0c-9048f9df734f
+--------
+user
+$imagegen Generate this image using the built-in image generation tool. Save the final image to the exact absolute path: /Users/williamguinaudie/Documents/code/gamehub/public/art/box-quiz-v1-a.png. Prompt: Use case: square library box cover illustration for a party trivia game called Quiz that holds several short trivia games about the world, geography, sizes and general knowledge. Newest image model, highest quality, largest native square size, PNG, no watermark.
+
+Style: crisp stylised 3D tabletop illustration with soft clay-and-enamel toy materials, clean rounded shapes, bright and optimistic, sleek rather than busy. The setting is "the measuring desk": a modern, bright, playful trivia desk. The whole surface is a deep green self-healing cutting mat (#1f5a4a with darker #174537 areas) printed with a fine pale grid and small ruler ticks along its edges. One warm desk-lamp light comes from the upper left and casts soft, real, slightly long shadows to the lower right. Palette: cutting-mat green #1f5a4a and #174537, pale mint-grey grid lines, cream #fbf6e9, signal tomato-red #ff5a3c, cobalt blue #3569ff, sunflower yellow #ffd23f, with small brass accents.
+
+Composition: a top-down, slightly angled view of the green cutting mat, which fills the entire square to every edge (full bleed, the mat continues past all four edges, no table edge, no border, no frame, no background outside the mat). Scattered around the outer ring of the square, leaving the centre open: a small glossy desk globe with one tomato-red enamel pin stuck in it; a brass magnifying glass; a yellow tape measure with its tape partly pulled out; a cobalt stopwatch; a cream lightbulb; a few chunky glossy enamel tokens shaped like a question mark and an exclamation mark in red, cobalt and yellow; a small stack of flat cream quiz cards with a red rule and no writing, a brass buzzer bell, and a small cobalt trophy cup. Objects are cropped naturally by the edges in places so the scene feels continuous.
+
+Title: across the centre, the single word "Quiz" (capital Q, then lowercase u, i, z), spelled exactly Q-u-i-z, as huge chunky rounded glossy enamel letters in cream #fbf6e9 with a tomato-red #ff5a3c edge and a soft cast shadow on the mat, lying flat on the desk and slightly tilted, custom friendly typography, perfectly legible even as a small thumbnail. The title sits entirely within the central 84% of the square with clear margin around it and dominates the composition.
+
+Must not appear: any other text, letters, numbers or digits anywhere (the tape measure, ruler ticks, stopwatch and grid carry no numerals or words), no logos, no user interface, no screenshot, no box mockup, no border, no frame, no vignette card, no gray mat, no people or hands. Not neon or night glass, not a gouache travel poster, not cut paper or kraft, not ink printmaking or risograph.
+warning: Model metadata for `gpt-6-sol` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.
+**Inspecting project state**
+codex
+I’ll check the worktree and destination, generate the cover, then inspect and save it.
+exec
+/bin/zsh -lc "git status --short --untracked-files=all -- ':"'!**/.DS_Store'"' && ls -ld public/art && if test -e public/art/box-quiz-v1-a.png; then file public/art/box-quiz-v1-a.png; fi && rg -n 'box cover|Quiz|Sabi' /Users/williamguinaudie/.codex/memories/MEMORY.md | head -30 && sed -n '1,100p' docs/DESIGN.md" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+ M .dockerignore
+ M AGENTS.md
+ M app/globals.css
+ M components/game/art-variant-switcher.tsx
+ M components/game/blackwake-table.tsx
+ M components/game/boards.tsx
+ M components/game/expansions.tsx
+ M components/game/folio.tsx
+ M components/game/game-box.tsx
+ M components/game/geography-table.css
+ M components/game/geography-table.tsx
+ M components/game/help.tsx
+ M components/game/library.tsx
+ M components/game/mora-extension.tsx
+ M components/game/new-extensions.tsx
+ M components/game/party-table.css
+ M components/game/relic-scratch-session.tsx
+ M components/game/setup-box.css
+ M components/game/setup-box.tsx
+ M components/game/solo.tsx
+ M components/game/standalone-table.tsx
+ M components/game/table-worlds.css
+D  components/game/team-picker.tsx
+ M components/game/use-ambience.ts
+ M components/game/yatai-festival.tsx
+ M components/online/adventure-match.tsx
+ M components/online/lobby-games.tsx
+ M components/online/table.tsx
+ M docs/DESIGN.md
+ M docs/artwork-manifest.md
+ M docs/folio.md
+ M docs/relic.md
+ M lib/artwork-previews.json
+ M lib/games/adventures/lessons.ts
+ M lib/games/ambience-player.ts
+ M lib/games/ambience.ts
+ M lib/games/box-covers.ts
+ M lib/games/floodline-art.json
+ M lib/games/floodline-portrait-art.json
+ M lib/games/library-fixtures.ts
+ M lib/games/observatory-art.json
+ M lib/games/observatory-portrait-art.json
+ M lib/games/party/catalog.ts
+ M lib/games/party/geo-places.json
+ M lib/games/party/geography.ts
+ M lib/games/party/ranking.ts
+ M lib/games/player-policy.ts
+ M lib/games/standalone/registry.ts
+ M lib/games/standalone/types.ts
+ M lib/games/table-world.ts
+ M lib/games/trio/bot.ts
+ M lib/games/trio/engine.ts
+ M lib/games/trio/mora-map.ts
+ M lib/games/yata-world-landscape.json
+ M lib/online/catalog.ts
+ M lib/online/client.ts
+ M lib/online/types.ts
+ M package.json
+ D public/art/box-my-top-five-blind-v1.png
+ D public/art/optimized/box-my-top-five-blind-v1-320.webp
+ D public/art/optimized/box-my-top-five-blind-v1-640.webp
+ D public/art/optimized/box-my-top-five-blind-v1-spine.webp
+ D public/art/optimized/box-my-top-five-blind-v1.webp
+ M scripts/folio-smoke.mjs
+ M scripts/relic-smoke.mjs
+ M server/database.ts
+ M server/index.ts
+ M server/tables.ts
+ M tests/adventure-online.test.mjs
+ M tests/adventures.test.mjs
+ M tests/content-extensions.test.mjs
+ M tests/content-history.test.mjs
+ D tests/custom-teams.test.mjs
+ M tests/folio.test.mjs
+ M tests/geography.test.mjs
+ M tests/http.test.mjs
+ M tests/mora-extension.test.mjs
+ M tests/mora-scoring-display.test.mjs
+ M tests/observatory-layout.test.mjs
+ M tests/party-refinements.test.mjs
+ M tests/redesign.test.mjs
+ M tests/relic.test.mjs
+ M tests/standalone-games.test.mjs
+ M tests/table-worlds.test.mjs
+ M tests/top-tier-refresh.test.mjs
+ M tests/trio.test.mjs
+?? components/game/dial-table.css
+?? components/game/dial-table.tsx
+?? components/game/folio-box.tsx
+?? components/game/next-game-vote.tsx
+?? components/game/online-boxes.css
+?? components/game/party-finale.css
+?? components/game/party-finale.tsx
+?? components/game/ranking-reveal.tsx
+?? components/game/relic-box.tsx
+?? components/game/reveal-motion.css
+?? components/game/reveal-motion.tsx
+?? components/game/sabi-marks.tsx
+?? components/game/sabi-steps.tsx
+?? components/game/sabi.css
+?? components/game/size-table.css
+?? components/game/size-table.tsx
+?? components/game/table-vote.tsx
+?? components/game/tribu-vote.tsx
+?? components/game/tribu.css
+?? docs/concepts/2026-09-23-floodline-three-rounds/README.md
+?? docs/concepts/2026-09-23-floodline-three-rounds/landscape.txt
+?? docs/concepts/2026-09-23-floodline-three-rounds/portrait.txt
+?? docs/concepts/2026-09-23-floodline-three-rounds/style.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/README.md
+?? docs/concepts/2026-09-23-folio-relic-covers/log-folio-a.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/log-folio-b.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/log-relic-a.txt
+?? docs/concepts/2026-09-23-folio-relic-covers/log-relic-b.txt
+?? docs/concepts/2026-09-23-know-me-quiz-covers/README.md
+?? docs/concepts/2026-09-23-know-me-quiz-covers/log-know-me-a.txt
+?? docs/concepts/2026-09-23-know-me-quiz-covers/log-know-me-b.txt
+?? docs/concepts/2026-09-23-know-me-quiz-covers/log-quiz-a.txt
+?? docs/concepts/2026-09-23-know-me-quiz-covers/log-quiz-b.txt
+?? docs/concepts/2026-09-23-know-me-quiz-covers/prompt-know-me.txt
+?? docs/concepts/2026-09-23-know-me-quiz-covers/prompt-quiz.txt
+?? docs/concepts/2026-09-23-mundo/README.md
+?? docs/concepts/2026-09-23-sabi/README.md
+?? docs/concepts/2026-09-23-tribu-cover-retro/README.md
+?? docs/concepts/2026-09-23-tribu-cover/README.md
+?? docs/concepts/2026-09-23-tribu-studio/README.md
+?? lib/games/party/dial.ts
+?? lib/games/party/geo-names.json
+?? lib/games/party/size-countries.json
+?? lib/games/party/size-silhouettes.json
+?? lib/games/party/size-things.ts
+?? lib/games/party/size.ts
+?? lib/games/party/spectrums.ts
+?? lib/games/party/tribu-state.ts
+?? lib/games/party/tribu.ts
+?? lib/games/party/vote.ts
+?? public/art/box-folio-v2-a.png
+?? public/art/box-folio-v2-b.png
+?? public/art/box-relic-v2-a.png
+?? public/art/box-relic-v2-b.png
+?? public/art/box-sabi-blind-v1.png
+?? public/art/box-sabi-v1-a.png
+?? public/art/box-sabi-v1-b-fail-1.png
+?? public/art/box-sabi-v1-b.png
+?? public/art/box-tribu-blind-v2.png
+?? public/art/box-tribu-v3-a.png
+?? public/art/mora-floodline-landscape-v5-a.png
+?? public/art/mora-floodline-landscape-v5-b.png
+?? public/art/mora-floodline-portrait-v5-a.png
+?? public/art/mora-floodline-portrait-v5-b.png
+?? public/art/optimized/box-folio-blind-v2-320.webp
+?? public/art/optimized/box-folio-blind-v2-640.webp
+?? public/art/optimized/box-folio-blind-v2-960.webp
+?? public/art/optimized/box-folio-blind-v2-spine.webp
+?? public/art/optimized/box-folio-blind-v2.webp
+?? public/art/optimized/box-relic-scratch-v2-320.webp
+?? public/art/optimized/box-relic-scratch-v2-640.webp
+?? public/art/optimized/box-relic-scratch-v2-960.webp
+?? public/art/optimized/box-relic-scratch-v2-spine.webp
+?? public/art/optimized/box-relic-scratch-v2.webp
+?? public/art/optimized/box-sabi-blind-v1-320.webp
+?? public/art/optimized/box-sabi-blind-v1-640.webp
+?? public/art/optimized/box-sabi-blind-v1-spine.webp
+?? public/art/optimized/box-sabi-blind-v1.webp
+?? public/art/optimized/box-tribu-blind-v2-320.webp
+?? public/art/optimized/box-tribu-blind-v2-640.webp
+?? public/art/optimized/box-tribu-blind-v2-spine.webp
+?? public/art/optimized/box-tribu-blind-v2.webp
+?? public/art/optimized/mora-floodline-landscape-v5-b-board.webp
+?? public/art/optimized/mora-floodline-landscape-v5-b-overview.webp
+?? public/art/optimized/mora-floodline-landscape-v5-b.webp
+?? public/art/optimized/mora-floodline-portrait-v5-b-board.webp
+?? public/art/optimized/mora-floodline-portrait-v5-b-overview.webp
+?? public/art/optimized/mora-floodline-portrait-v5-b.webp
+?? public/art/optimized/sizes-sil-animals-v1.webp
+?? public/art/optimized/sizes-sil-landmarks-v1.webp
+?? public/art/optimized/sizes-sil-objects-v1.webp
+?? public/art/optimized/tribu-studio-landscape-1536.webp
+?? public/art/optimized/tribu-studio-landscape-960.webp
+?? public/art/optimized/tribu-studio-portrait-1024.webp
+?? public/art/optimized/tribu-studio-portrait-640.webp
+?? public/art/sizes-sil-animals-v1-a.png
+?? public/art/sizes-sil-animals-v1-b.png
+?? public/art/sizes-sil-landmarks-v1-a-fail-1.png
+?? public/art/sizes-sil-landmarks-v1-a.png
+?? public/art/sizes-sil-landmarks-v1-b-fail-1.png
+?? public/art/sizes-sil-landmarks-v1-b.png
+?? public/art/sizes-sil-objects-v1-a.png
+?? public/art/sizes-sil-objects-v1-b.png
+?? public/art/tribu-studio-landscape-a.png
+?? public/art/tribu-studio-portrait-a.png
+?? scripts/build-size-countries.mjs
+?? scripts/build-sizes-silhouettes.mjs
+?? scripts/mirror.mjs
+?? server/content-flags.ts
+?? tests/party-votes.test.mjs
+?? tests/sabi.test.mjs
+?? tests/size.test.mjs
+?? tests/tribu-helpers.mjs
+drwxr-xr-x@ 87 williamguinaudie  staff  2784 Sep 23 21:44 public/art
+# Gamehub design direction
+
+## Sabi: small trivia games, Size It Up and a new Atlas (23 September 2026, later)
+
+Supersedes the Mundo section below where they differ.
+
+- **Sabi** (provisional name, internal id `miro`; was Mundo) is a set of
+  short trivia mini-games, not only a world game. It holds **Atlas** and
+  **Sizes** today and is meant to take more. Its structure is unchanged: an
+  opening vote, an again/switch/end vote after every round, shared totals
+  and round count. The name was chosen to be short and easy to say in any
+  language.
+- **Scores share one scale.** Both games give up to 100 points per prompt,
+  so neither dominates the carried totals: a Sizes comparison scores 0–100,
+  and an Atlas place gives 50 to the closest pin plus 50 to every pin within
+  100 km (the old 1 + 1, times fifty).
+- **Sizes is Magnitudle's Size It Up, nearly one to one.** A cream reference
+  silhouette stands at true scale on a ground line; players drag a tomato
+  silhouette to move it, pull its corner handle (or pinch) to resize it,
+  zoom the board with + and −, and lock. The reveal lays the true size
+  behind every guess, counts a "52 / 100" up on the mat with *You / Actual /
+  Off by*, prints a one-line fact, and lists everyone's points. Scoring is
+  Size It Up's curve on relative error (6% off or less scores 100; 12% → 90,
+  20% → 78, 32% → 62, 50% → 45, 75% → 30, 110% → 18, 160% → 0, straight
+  lines between). Each round is three comparisons, each locked and revealed
+  on its own: an animal, an object or landmark, then a country (east to west
+  or north to south, from the Natural Earth outlines). The target is between
+  a fifth and eight times the reference. A lock can carry the final size so
+  a drag and its lock land as one move. Silhouettes are three generated 4×4
+  sheets, thresholded to alpha masks by `scripts/build-sizes-silhouettes.mjs`
+  with each cell's box in `lib/games/party/size-silhouettes.json`; the
+  catalogue with real sizes and facts is `lib/games/party/size-things.ts`.
+- **Atlas rounds: two places and a final.** Each round is an easier named
+  place, a harder named place (never the headline cities: no Paris, London,
+  New York, Rome, Tokyo…), then the final: a photograph and two clues that
+  never name the place, its country or its people. Named places live in
+  `lib/games/party/geo-names.json`; the 23 photographed finals stay in
+  `geo-places.json`. Rules marker 10.
+- **One look for the set: the measuring desk.** A deep green self-healing
+  cutting mat with a pale grid and ruler ticks is the board of every Sabi
+  game (the globe sits on it like a desk globe; Sizes stands its silhouettes
+  on it); cream index cards with a red rule hold the steps, the prompt and
+  the results; glossy enamel tomato buttons; warm lamp light from the upper
+  left on a pale wooden desk. Shared pieces in `components/game/sabi.css`
+  and `sabi-steps.tsx`: `.sabi-stage`, `.sabi-board`, `.sabi-card`,
+  `.sabi-steps`, `.sabi-results`, `.sabi-actions`. New Sabi games build on
+  them. Never Tribu's neon night, never the old gouache poster. Cover:
+  `box-sabi-blind-v1`; prompts in
+  [the Sabi concept notes](concepts/2026-09-23-sabi/README.md).
+
+## Mundo: Atlas and Sizes, and reveals with a pulse (23 September 2026)
+
+- Superseded by Sabi above: the name, the look, Sizes' rules and Atlas's
+  rounds. The set structure and the reveal kit below still hold.
+- **Reveals with a pulse.** Every party reveal and the match results use one
+  kit, `components/game/reveal-motion.tsx`: numbers count up, items drop or
+  pop in one after another, and a perfect answer gets a ring burst. Each
+  reveal settles in under two seconds and is instant under reduced motion.
+  Top Five flips its ranks in one by one, then the guesser chips, then the
+  scores. Dial blooms its bands from the hidden point, swings the guesses in,
+  then pops the scores. Atlas lists teams closest first with distances
+  counting up. Sizes counts the answer up, shrinks countries to scale, drops
+  the guesses onto a log ruler and pops the points. The results screen counts
+  down from last place to the winner, who lands last with a crown and a light
+  sweep.
+
+## Tribu, and no noise on the table (23 September 2026)
+
+- **Tribu** (provisional name, internal id `orin`) replaces My Top Five and
+  Dial as separate games. It is one party game about how well a group knows
+  each other, and it holds both: **Top Five** and **Dial**. A match opens with
+  a ten-second vote between the two. Every round ends with a ten-second vote:
+  the same game again, the other game, or **End**. The game being played wins
+  any tie it is part of and an empty vote. A tie without it prefers playing
+  over ending, and the opening draws at random when nobody votes. Points carry
+  across games: each player's total is what the results show. Top Five keeps
+  its teams option, and a team's points count for each of its players. Dial is
+  always everyone for themselves. Rounds keep counting across a switch, up to
+  twelve. The saved state is always one of the two games (`orin` or `dial`);
+  `lib/games/party/tribu.ts` swaps it when the table switches, keeping seats,
+  log, round and totals. Old Dial tables open as Tribu.
+- **Look.** A retro game show (changed 23 September 2026; the night-party
+  indigo was dropped). The table stands on an illustrated 70s studio set
+  (`tribu-studio-landscape-*` / `tribu-studio-portrait-*`): curtains, marquee
+  bulbs, podiums, plants and lights at the edges, a calm lacquered stage in
+  the middle under a soft cream wash. Tribu will hold more games, so the art
+  is general: no dials or ranking cards in the set or the cover
+  (`box-tribu-blind-v2`, the set with a lit "Tribu" marquee). Surfaces are
+  cream with chunky dark-brown ink outlines and hard offset shadows in tomato
+  red, mustard and teal, under a heavy rounded display face. The Dial is a
+  game-show wheel: a teal→mustard→orange→tomato band inside a tomato rim of
+  marquee bulbs that chase while the clue is written, with the clue-giver's
+  two spectrums above it as large segmented options. Top Five uses cream
+  contestant cards with a coloured header band. Never dark, never neon, no
+  bare sunburst, no close-up grinning faces.
+- **Flags.** Removed from the table for now (23 September 2026). The
+  `content_flags` log and endpoint stay so they can come back.
+- **Top Five prompts are taste, not reasoning.** A prompt belongs only if the
+  ranking shows something about the person. Retire anything that reason can
+  settle: the most useful thing, what to bring to an island, the animal you'd
+
+**Running the test**
+exec
+/bin/zsh -lc "if test -e public/art/box-quiz-v1-a.png; then echo 'TARGET EXISTS'; else echo 'TARGET ABSENT'; fi; rg -n 'box cover|Sabi|Quiz' /Users/williamguinaudie/.codex/memories/MEMORY.md | head -12; rg -n 'box-quiz-v1-a|box-quiz' docs/concepts/2026-09-23-know-me-quiz-covers docs/artwork-manifest.md | head -20" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+TARGET ABSENT
+docs/concepts/2026-09-23-know-me-quiz-covers/log-quiz-b.txt:14:$imagegen Generate this image using the built-in image generation tool. Save the final image to the exact absolute path: /Users/williamguinaudie/Documents/code/gamehub/public/art/box-quiz-v1-b.png. Prompt: Use case: square library box cover illustration for a party trivia game called Quiz that holds several short trivia games about the world, geography, sizes and general knowledge. Newest image model, highest quality, largest native square size, PNG, no watermark.
+docs/concepts/2026-09-23-know-me-quiz-covers/log-quiz-b.txt:28:/bin/zsh -lc "git status --short --untracked-files=all | rg -v '("'^|/)'"\\.DS_Store"'$'"' || true; test -e public/art/box-quiz-v1-b.png && echo 'TARGET_EXISTS' || echo 'TARGET_ABSENT'; rg -n 'box-covers|Quiz|Sabi|library cover' /Users/williamguinaudie/.codex/memories/MEMORY.md | head -35" in /Users/williamguinaudie/Documents/code/gamehub
+docs/concepts/2026-09-23-know-me-quiz-covers/log-quiz-a.txt:14:$imagegen Generate this image using the built-in image generation tool. Save the final image to the exact absolute path: /Users/williamguinaudie/Documents/code/gamehub/public/art/box-quiz-v1-a.png. Prompt: Use case: square library box cover illustration for a party trivia game called Quiz that holds several short trivia games about the world, geography, sizes and general knowledge. Newest image model, highest quality, largest native square size, PNG, no watermark.
+docs/concepts/2026-09-23-know-me-quiz-covers/log-quiz-a.txt:28:/bin/zsh -lc "git status --short --untracked-files=all -- ':"'!**/.DS_Store'"' && ls -ld public/art && if test -e public/art/box-quiz-v1-a.png; then file public/art/box-quiz-v1-a.png; fi && rg -n 'box cover|Quiz|Sabi' /Users/williamguinaudie/.codex/memories/MEMORY.md | head -30 && sed -n '1,100p' docs/DESIGN.md" in /Users/williamguinaudie/Documents/code/gamehub
+docs/concepts/2026-09-23-know-me-quiz-covers/README.md:20:## Prompt: Quiz (`public/art/box-quiz-v1-{a,b}.png`)
+
+**Preparing the image prompt**
+codex
+The destination is free. I’ll generate the square cover now.
+**Copying image to destination**
+codex
+The cover reads clearly as “Quiz” and fills the square. I’ll save and verify the PNG.
+exec
+/bin/zsh -lc 'cp /Users/williamguinaudie/.codex/generated_images/01a0cff2-a3e1-7ef1-9c0c-9048f9df734f/call_cRdAuSGKWqo8YISSuTEw2Hnt.png /Users/williamguinaudie/Documents/code/gamehub/public/art/box-quiz-v1-a.png && file public/art/box-quiz-v1-a.png && sips -g pixelWidth -g pixelHeight public/art/box-quiz-v1-a.png && git status --short -- public/art/box-quiz-v1-a.png' in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 43ms:
+/Users/williamguinaudie/Documents/code/gamehub/public/art/box-quiz-v1-a.png
+  pixelWidth: 1254
+  pixelHeight: 1254
+?? public/art/box-quiz-v1-a.png
+
+**Selecting native 1254 asset**
+codex
+Generated and saved the 1254 × 1254 PNG at `public/art/box-quiz-v1-a.png` using the built-in image generation tool.
+
+The final prompt used your measuring-desk brief, structured around the full-bleed green mat, outer-ring desk objects, and a large cream-and-red **“Quiz”** title with no other text. The image was visually reviewed; browser QA was skipped for this asset-only task.
+tokens used
+27 164
+Generated and saved the 1254 × 1254 PNG at `public/art/box-quiz-v1-a.png` using the built-in image generation tool.
+
+The final prompt used your measuring-desk brief, structured around the full-bleed green mat, outer-ring desk objects, and a large cream-and-red **“Quiz”** title with no other text. The image was visually reviewed; browser QA was skipped for this asset-only task.

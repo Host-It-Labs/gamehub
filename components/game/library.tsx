@@ -355,8 +355,8 @@ export function Library({
   const needle = query.trim().toLowerCase();
 
   function open(game: LibraryGame) {
-    if (game.href) window.location.assign(game.href);
-    else if (game.gameId) onSetup(game.gameId);
+    // Folio and Relic open their own box in the modal, like the placeholders.
+    if (game.gameId) onSetup(game.gameId);
     else if (game.standaloneId) onStandalone(game.standaloneId);
     else onOpenPlaceholder(game);
   }

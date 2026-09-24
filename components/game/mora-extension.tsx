@@ -5,8 +5,11 @@ import {
   Flower2,
   Footprints,
   Grid2x2,
-  Layers,
   Heart,
+  Lightbulb,
+  Waypoints,
+  PawPrint,
+  Package,
   Home,
   Square,
   Trees,
@@ -44,10 +47,11 @@ function GoalArt({
         </span>
       </span>
     );
-  const Icon = {
+  const Icon = ({
     full: Home,
     squares: Square,
     rounds: Circle,
+    herd: PawPrint,
     mirror: Copy,
     family: Users,
     diversity: Sparkles,
@@ -55,11 +59,12 @@ function GoalArt({
     pairs: Heart,
     variety: Flower2,
     twins: Grid2x2,
-    group: Layers,
+    fill: Package,
     trail: Footprints,
     lookout: Eye,
-    species: Trees,
-  }[goal.type];
+    spread: Waypoints,
+    lighthouse: Lightbulb,
+  } satisfies Record<SanctuaryGoal['type'], unknown>)[goal.type];
   return <Icon size={30} aria-hidden="true" />;
 }
 
@@ -128,7 +133,7 @@ export function WildTrailsRules({
             Complete three randomly drawn goals for <b>bonus points</b>.
           </>
         }
-        note="Goals stay the same for both rounds. Released creatures never count. Normal placement, habitat scoring and the die stay the same."
+        note="Goals stay the same for every round. Released creatures never count. Normal placement, habitat scoring and the die stay the same."
       >
         <p>
           <b>Discover.</b> Each new match draws three goals from twelve.

@@ -16,6 +16,8 @@ export type Member = {
   name: string;
   connected: boolean;
   host: boolean;
+  /** Created the table; stays at it even after handing hosting over. */
+  owner?: boolean;
   seat: number | null;
   bot: boolean;
 };
@@ -28,14 +30,14 @@ export type Table = GameOptions & {
   sanctuaryGoalsEnabled?: boolean;
   ambienceEnabled?: boolean;
   fastMode?: boolean;
-  partyMode?: 'teams' | 'individual';
-  teams?: number[];
   capacity: number;
   revision: number;
   status: 'lobby' | 'playing' | 'finished' | 'closed';
   members: Member[];
   viewerId: string;
   isHost: boolean;
+  /** Whether this viewer may move reveals on: the host, or anyone seated while the host is away. */
+  canAdvance: boolean;
   viewerSeat: number | null;
   matchId: string | null;
   game: GameView | null;
@@ -43,6 +45,8 @@ export type Table = GameOptions & {
   botError: boolean;
   setupOpen?: boolean;
   votes?: Partial<Record<OnlineGameId, string[]>>;
+  /** Open for ten seconds after a party match: member id → the game they want next. */
+  nextVote?: { endsAt: number; ballots: Record<string, StandaloneId> } | null;
 };
 export type TableCommand =
   | {
@@ -61,8 +65,6 @@ export type TableCommand =
       customerOrders?: boolean;
       sanctuaryGoalsEnabled?: boolean;
       fastMode?: boolean;
-      partyMode?: 'teams' | 'individual';
-      teams?: number[];
       capacity: number;
     }
   | { type: 'adventure-move'; move: AnyMove; key: string }
@@ -70,11 +72,12 @@ export type TableCommand =
   | { type: 'advance-practice' }
   | { type: 'setup'; open: boolean }
   | { type: 'vote'; gameId: OnlineGameId }
+  | { type: 'next-game'; gameId: StandaloneId }
   | { type: 'lesson'; step: number }
   | { type: 'start'; learning?: boolean }
   | { type: 'begin-match' }
   | { type: 'abandon' | 'close' | 'leave' | 'retry-bot' }
-  | { type: 'replace' | 'remove'; memberId: string }
+  | { type: 'replace' | 'remove' | 'host'; memberId: string }
   | { type: 'rename'; name: string }
   | { type: 'move'; move: Move; decision?: string };
 export type Command = {

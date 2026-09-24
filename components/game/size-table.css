@@ -1,0 +1,491 @@
+/* Sizes on the Sabi mat (sabi.css): after Size It Up, a cream reference
+ * silhouette at true scale and a tomato silhouette the player resizes, both
+ * standing on one ground line. The reveal lines up the true size in gold and
+ * every player's guess in their colour, the true size laid over each. */
+.size-board {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.size-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #e8f3cf00,
+    #e8f3cfaa 6%,
+    #e8f3cfaa 94%,
+    #e8f3cf00
+  );
+  box-shadow: 0 10px 24px #0000003a;
+}
+.size-ground:after {
+  content: '';
+  position: absolute;
+  inset: 2px 0 auto;
+  height: 46px;
+  background: linear-gradient(180deg, #0d2a2255, transparent);
+}
+.size-thing {
+  position: absolute;
+  line-height: 0;
+}
+.size-thing > small {
+  position: absolute;
+  left: 0;
+  max-width: 180px;
+  line-height: 1.2;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #e8f3cfb8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.size-sil {
+  display: block;
+  background: currentColor;
+  mask-image: var(--sheet);
+  -webkit-mask-image: var(--sheet);
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+svg.size-sil {
+  background: none;
+  overflow: visible;
+}
+svg.size-sil path {
+  fill: currentColor;
+  stroke: none;
+}
+.size-thing.is-ref {
+  color: var(--s-cream);
+  filter: drop-shadow(0 6px 8px #0006);
+}
+.size-thing.is-target {
+  color: var(--s-tomato);
+  filter: drop-shadow(0 6px 10px #6d180a70);
+  outline: none;
+}
+.size-thing.is-target.is-live {
+  cursor: grab;
+}
+.size-thing.is-target.is-live:active {
+  cursor: grabbing;
+}
+.size-thing.is-target.is-locked {
+  filter: saturate(0.6) drop-shadow(0 6px 10px #0005);
+}
+/* The dotted selection frame and its corner handle. */
+.size-frame {
+  position: absolute;
+  inset: -6px;
+  border: 1.5px dashed #ffd9d0aa;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.size-thing.is-target:focus-visible .size-frame {
+  border: 2px solid var(--s-sun);
+}
+.size-handle {
+  position: absolute;
+  top: -22px;
+  right: -22px;
+  width: 44px;
+  height: 44px;
+  cursor: nesw-resize;
+  touch-action: none;
+}
+.size-handle:after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #fff 0 18%, transparent 20%),
+    var(--s-tomato);
+  box-shadow:
+    0 0 0 3px var(--s-cream),
+    0 4px 10px #0007;
+}
+/* The reveal lineup: one slot per silhouette, all on the ground line. */
+.size-slot {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+}
+.party-table.is-sabi .size-slot.is-guess {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+/* A guess far past the true size is cropped to its slot, fading out. */
+.size-clip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.size-clip.is-over {
+  mask-image:
+    linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(0deg, #000 70%, transparent);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+.size-slot .size-thing {
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity 160ms ease;
+}
+.size-slot.is-guess .size-thing.is-guess,
+.size-slot.is-guess > small {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.size-slot > small {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  line-height: 1.15;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e8f3cfcc;
+  text-align: center;
+  white-space: nowrap;
+  transition: opacity 160ms ease;
+}
+.size-slot > small > * {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.size-slot > small i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--seat);
+  box-shadow: 0 0 0 2px #fff8;
+}
+.size-slot > small em {
+  font-style: normal;
+  font-weight: 600;
+  color: #e8f3cf99;
+  font-variant-numeric: tabular-nums;
+}
+.size-slot.is-answer > small b {
+  color: var(--s-sun);
+  font-family: var(--s-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+.size-thing.is-truth {
+  color: var(--s-sun);
+  filter: drop-shadow(0 0 14px #ffd23f99) drop-shadow(0 6px 8px #0006);
+}
+.size-thing.is-guess {
+  color: var(--seat);
+  filter: drop-shadow(0 6px 8px #0006);
+}
+/* The true size over each guess: gold where the guess fell short, a gold
+ * tint where it overshot. */
+.size-thing.is-ghost {
+  pointer-events: none;
+  color: var(--s-sun);
+  opacity: 0.4;
+}
+.size-slot.is-you > small {
+  color: var(--s-cream);
+}
+.size-slot.is-guess:focus-visible {
+  outline: none;
+}
+.size-slot.is-guess:focus-visible > small {
+  outline: 2px solid var(--s-sun);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Singling out one player dims the rest. */
+.size-stage.has-focus .size-slot.is-guess:not(.is-focus) .size-thing,
+.size-stage.has-focus .size-slot.is-guess:not(.is-focus) > small {
+  opacity: 0.18;
+}
+.size-stage.has-focus .size-slot.is-focus .size-thing.is-ghost {
+  opacity: 0.55;
+}
+.size-slot.is-focus > small {
+  color: var(--s-cream);
+}
+.party-table.is-sabi .size-card .sabi-results li {
+  padding: 0;
+}
+.party-table.is-sabi .size-card .sabi-results li > button {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: inherit;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.size-card .sabi-results li > button > i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow:
+    0 1px 0 #ffffff80 inset,
+    0 0 0 2px #fff,
+    0 1px 3px #0004;
+}
+.size-card .sabi-results li > button > span {
+  color: var(--s-soft);
+  font-size: 13px;
+}
+.party-table.is-sabi .size-card .sabi-results li.is-focus {
+  box-shadow: 0 0 0 2px var(--s-sun);
+  background: #fff8dc;
+}
+.size-zoom {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.party-table.is-sabi .size-zoom button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid #e8f3cf40;
+  background: #133a30cc;
+  color: var(--s-cream);
+  backdrop-filter: blur(6px);
+  font-weight: 700;
+}
+/* The score card on the mat, like Size It Up's. */
+.size-score {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 10px 16px 12px;
+  border-radius: 16px;
+  background: #0d2a22d9;
+  box-shadow:
+    0 0 0 1px #e8f3cf2e,
+    0 12px 28px #0006;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+.size-points {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--s-display);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--s-sun);
+  font-variant-numeric: tabular-nums;
+}
+.size-points .count-up {
+  font-size: clamp(40px, 6vw, 64px);
+  text-shadow: 0 3px 0 #b88900;
+}
+.size-points small {
+  font-size: 16px;
+  color: #e8f3cfb0;
+}
+.size-score dl {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.size-score dl > div {
+  display: flex;
+  gap: 8px;
+}
+.size-score dt {
+  min-width: 46px;
+  color: #e8f3cf99;
+}
+.size-score dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.size-score dd i {
+  font-style: normal;
+  font-weight: 500;
+  color: #e8f3cf99;
+}
+
+/* The card: which silhouette is which, the readout, the lock. */
+.size-legend {
+  flex: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.size-legend li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.size-legend i {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border-radius: 5px;
+}
+.size-legend .is-ref i {
+  background: var(--s-cream);
+  box-shadow: 0 0 0 2px var(--s-mat);
+}
+.size-legend .is-target i {
+  background: var(--s-tomato);
+}
+.size-legend span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.size-legend b {
+  font-family: var(--s-display);
+  font-size: clamp(16px, 1.6vw, 20px);
+  font-weight: 800;
+}
+.size-legend em {
+  font-style: normal;
+  color: var(--s-soft);
+  font-size: 13px;
+}
+.size-legend small {
+  flex-basis: 100%;
+  margin-top: 2px;
+  color: var(--s-tomato-deep);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.size-readout {
+  margin-right: auto;
+  white-space: nowrap;
+  font-family: var(--s-display);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--s-ink);
+}
+.size-fact {
+  flex: none;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff3c2;
+  box-shadow: 0 0 0 1px #e8cf6d;
+  font-size: 14px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+@media (orientation: portrait) and (max-width: 1000px) {
+  .size-legend {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  .size-legend {
+    gap: 6px;
+  }
+  .size-legend b {
+    font-size: 15px;
+  }
+  .size-score {
+    top: 8px;
+    left: 8px;
+    padding: 8px 12px;
+  }
+  .size-points .count-up {
+    font-size: 38px;
+  }
+  .size-score dl {
+    font-size: 12px;
+  }
+  .size-fact {
+    font-size: 12.5px;
+    padding: 8px 10px;
+  }
+  .size-zoom {
+    top: 8px;
+    right: 8px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .size-legend {
+    gap: 4px;
+  }
+  .size-legend b {
+    font-size: 14px;
+  }
+  .size-legend small {
+    font-size: 10px;
+  }
+  .size-readout {
+    font-size: 20px;
+  }
+  .size-fact {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+  .size-score {
+    top: 8px;
+    left: 8px;
+    padding: 6px 10px;
+  }
+  .size-points .count-up {
+    font-size: 32px;
+  }
+  .size-score dl {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+  .size-zoom {
+    top: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+}

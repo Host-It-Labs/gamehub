@@ -102,11 +102,11 @@ try {
   const art = [
     '/art/relic/scratch-desk-landscape-v1.webp',
     '/art/relic/scratch-desk-portrait-v1.webp',
-    '/art/optimized/box-relic-scratch-v1.webp',
-    '/art/optimized/box-relic-scratch-v1-spine.webp',
+    '/art/optimized/box-relic-scratch-v2.webp',
+    '/art/optimized/box-relic-scratch-v2-spine.webp',
   ];
   for (const width of [320, 640, 960])
-    art.push(`/art/optimized/box-relic-scratch-v1-${width}.webp`);
+    art.push(`/art/optimized/box-relic-scratch-v2-${width}.webp`);
   for (const src of art) {
     const response = await fetch(base + src);
     assert.equal(response.status, 200, src);

@@ -18,7 +18,8 @@ import {
   festivalBreakdown,
   orderProgress,
   counts,
-  habitats,
+  habitatsFor,
+  totalRounds,
   type Game,
   type Observation,
   type Move,
@@ -112,7 +113,7 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
       ? migratedZones(p.zones, m.migration)
       : p.zones.map((area) => [...area]);
     (zones[z] ??= []).push(c);
-    const remaining = Math.max(0, (3 - g.round) * 6 - g.pick);
+    const remaining = Math.max(0, (totalRounds(g) - g.round + 1) * 6 - g.pick);
     const value = (areas: Card[][]) =>
       areas.reduce(
         (sum, _, zone) => sum + zoneScore(areas, zone, g.contentSet),
@@ -128,7 +129,7 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
     // three points per future pick so speculative completions are not free.
     const depth = Math.max(
       0,
-      Math.min(lookahead, remaining, habitats[z].cap - zones[z].length),
+      Math.min(lookahead, remaining, habitatsFor(g.contentSet)[z].cap - zones[z].length),
     );
     const extend = (steps: number, firstKind: number) => {
       if (steps > 0)

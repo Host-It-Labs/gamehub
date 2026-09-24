@@ -1,0 +1,884 @@
+[
+  {
+    "name": "Kraków",
+    "country": "Poland",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 50.0614,
+    "lng": 19.9372,
+    "source": "https://en.wikipedia.org/wiki/Krak%C3%B3w"
+  },
+  {
+    "name": "Seville",
+    "country": "Spain",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 37.3886,
+    "lng": -5.995,
+    "source": "https://en.wikipedia.org/wiki/Seville"
+  },
+  {
+    "name": "Porto",
+    "country": "Portugal",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 41.15,
+    "lng": -8.6108,
+    "source": "https://en.wikipedia.org/wiki/Porto"
+  },
+  {
+    "name": "Edinburgh",
+    "country": "United Kingdom",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 55.9533,
+    "lng": -3.1892,
+    "source": "https://en.wikipedia.org/wiki/Edinburgh"
+  },
+  {
+    "name": "Naples",
+    "country": "Italy",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 40.8358,
+    "lng": 14.2486,
+    "source": "https://en.wikipedia.org/wiki/Naples"
+  },
+  {
+    "name": "Munich",
+    "country": "Germany",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 48.1375,
+    "lng": 11.575,
+    "source": "https://en.wikipedia.org/wiki/Munich"
+  },
+  {
+    "name": "Reykjavík",
+    "country": "Iceland",
+    "region": "Europe",
+    "difficulty": "medium",
+    "lat": 64.1458,
+    "lng": -21.9425,
+    "source": "https://en.wikipedia.org/wiki/Reykjav%C3%ADk"
+  },
+  {
+    "name": "Marrakesh",
+    "country": "Morocco",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": 31.63,
+    "lng": -8.0089,
+    "source": "https://en.wikipedia.org/wiki/Marrakesh"
+  },
+  {
+    "name": "Cape Town",
+    "country": "South Africa",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": -33.9253,
+    "lng": 18.4239,
+    "source": "https://en.wikipedia.org/wiki/Cape_Town"
+  },
+  {
+    "name": "Nairobi",
+    "country": "Kenya",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": -1.2864,
+    "lng": 36.8172,
+    "source": "https://en.wikipedia.org/wiki/Nairobi"
+  },
+  {
+    "name": "Casablanca",
+    "country": "Morocco",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": 33.5333,
+    "lng": -7.5833,
+    "source": "https://en.wikipedia.org/wiki/Casablanca"
+  },
+  {
+    "name": "Dakar",
+    "country": "Senegal",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": 14.6928,
+    "lng": -17.4467,
+    "source": "https://en.wikipedia.org/wiki/Dakar"
+  },
+  {
+    "name": "Accra",
+    "country": "Ghana",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": 5.55,
+    "lng": -0.2,
+    "source": "https://en.wikipedia.org/wiki/Accra"
+  },
+  {
+    "name": "Addis Ababa",
+    "country": "Ethiopia",
+    "region": "Africa",
+    "difficulty": "medium",
+    "lat": 9.0358,
+    "lng": 38.7525,
+    "source": "https://en.wikipedia.org/wiki/Addis_Ababa"
+  },
+  {
+    "name": "Kyoto",
+    "country": "Japan",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 35.0116,
+    "lng": 135.7681,
+    "source": "https://en.wikipedia.org/wiki/Kyoto"
+  },
+  {
+    "name": "Hanoi",
+    "country": "Vietnam",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 21.0285,
+    "lng": 105.8542,
+    "source": "https://en.wikipedia.org/wiki/Hanoi"
+  },
+  {
+    "name": "Kathmandu",
+    "country": "Nepal",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 27.71,
+    "lng": 85.32,
+    "source": "https://en.wikipedia.org/wiki/Kathmandu"
+  },
+  {
+    "name": "Osaka",
+    "country": "Japan",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 34.6939,
+    "lng": 135.5022,
+    "source": "https://en.wikipedia.org/wiki/Osaka"
+  },
+  {
+    "name": "Phnom Penh",
+    "country": "Cambodia",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 11.5694,
+    "lng": 104.9211,
+    "source": "https://en.wikipedia.org/wiki/Phnom_Penh"
+  },
+  {
+    "name": "Kuala Lumpur",
+    "country": "Malaysia",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 3.1478,
+    "lng": 101.6953,
+    "source": "https://en.wikipedia.org/wiki/Kuala_Lumpur"
+  },
+  {
+    "name": "Busan",
+    "country": "South Korea",
+    "region": "Asia",
+    "difficulty": "medium",
+    "lat": 35.18,
+    "lng": 129.075,
+    "source": "https://en.wikipedia.org/wiki/Busan"
+  },
+  {
+    "name": "Beirut",
+    "country": "Lebanon",
+    "region": "Middle East",
+    "difficulty": "medium",
+    "lat": 33.8981,
+    "lng": 35.5058,
+    "source": "https://en.wikipedia.org/wiki/Beirut"
+  },
+  {
+    "name": "Amman",
+    "country": "Jordan",
+    "region": "Middle East",
+    "difficulty": "medium",
+    "lat": 31.9497,
+    "lng": 35.9328,
+    "source": "https://en.wikipedia.org/wiki/Amman"
+  },
+  {
+    "name": "Muscat",
+    "country": "Oman",
+    "region": "Middle East",
+    "difficulty": "medium",
+    "lat": 23.5889,
+    "lng": 58.4083,
+    "source": "https://en.wikipedia.org/wiki/Muscat"
+  },
+  {
+    "name": "Doha",
+    "country": "Qatar",
+    "region": "Middle East",
+    "difficulty": "medium",
+    "lat": 25.2867,
+    "lng": 51.5333,
+    "source": "https://en.wikipedia.org/wiki/Doha"
+  },
+  {
+    "name": "Vancouver",
+    "country": "Canada",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 49.2608,
+    "lng": -123.1139,
+    "source": "https://en.wikipedia.org/wiki/Vancouver"
+  },
+  {
+    "name": "Montreal",
+    "country": "Canada",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 45.5089,
+    "lng": -73.5542,
+    "source": "https://en.wikipedia.org/wiki/Montreal"
+  },
+  {
+    "name": "New Orleans",
+    "country": "United States",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 29.9761,
+    "lng": -90.0783,
+    "source": "https://en.wikipedia.org/wiki/New_Orleans"
+  },
+  {
+    "name": "Seattle",
+    "country": "United States",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 47.6039,
+    "lng": -122.33,
+    "source": "https://en.wikipedia.org/wiki/Seattle"
+  },
+  {
+    "name": "Denver",
+    "country": "United States",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 39.74,
+    "lng": -104.99,
+    "source": "https://en.wikipedia.org/wiki/Denver"
+  },
+  {
+    "name": "Boston",
+    "country": "United States",
+    "region": "North America",
+    "difficulty": "medium",
+    "lat": 42.3603,
+    "lng": -71.0578,
+    "source": "https://en.wikipedia.org/wiki/Boston"
+  },
+  {
+    "name": "Havana",
+    "country": "Cuba",
+    "region": "Central America & Caribbean",
+    "difficulty": "medium",
+    "lat": 23.1367,
+    "lng": -82.3589,
+    "source": "https://en.wikipedia.org/wiki/Havana"
+  },
+  {
+    "name": "Panama City",
+    "country": "Panama",
+    "region": "Central America & Caribbean",
+    "difficulty": "medium",
+    "lat": 8.9711,
+    "lng": -79.5347,
+    "source": "https://en.wikipedia.org/wiki/Panama_City"
+  },
+  {
+    "name": "San Juan",
+    "country": "Puerto Rico",
+    "region": "Central America & Caribbean",
+    "difficulty": "medium",
+    "lat": 18.4064,
+    "lng": -66.0639,
+    "source": "https://en.wikipedia.org/wiki/San_Juan,_Puerto_Rico"
+  },
+  {
+    "name": "Kingston",
+    "country": "Jamaica",
+    "region": "Central America & Caribbean",
+    "difficulty": "medium",
+    "lat": 17.9714,
+    "lng": -76.7931,
+    "source": "https://en.wikipedia.org/wiki/Kingston,_Jamaica"
+  },
+  {
+    "name": "Santo Domingo",
+    "country": "Dominican Republic",
+    "region": "Central America & Caribbean",
+    "difficulty": "medium",
+    "lat": 18.4625,
+    "lng": -69.9361,
+    "source": "https://en.wikipedia.org/wiki/Santo_Domingo"
+  },
+  {
+    "name": "San José",
+    "country": "Costa Rica",
+    "region": "Central America & Caribbean",
+    "difficulty": "medium",
+    "lat": 9.9325,
+    "lng": -84.08,
+    "source": "https://en.wikipedia.org/wiki/San_Jos%C3%A9,_Costa_Rica"
+  },
+  {
+    "name": "Cartagena",
+    "country": "Colombia",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": 10.4236,
+    "lng": -75.5503,
+    "source": "https://en.wikipedia.org/wiki/Cartagena,_Colombia"
+  },
+  {
+    "name": "Lima",
+    "country": "Peru",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": -12.06,
+    "lng": -77.0375,
+    "source": "https://en.wikipedia.org/wiki/Lima"
+  },
+  {
+    "name": "Quito",
+    "country": "Ecuador",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": -0.22,
+    "lng": -78.5125,
+    "source": "https://en.wikipedia.org/wiki/Quito"
+  },
+  {
+    "name": "Montevideo",
+    "country": "Uruguay",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": -34.9056,
+    "lng": -56.1842,
+    "source": "https://en.wikipedia.org/wiki/Montevideo"
+  },
+  {
+    "name": "Medellín",
+    "country": "Colombia",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": 6.2308,
+    "lng": -75.5906,
+    "source": "https://en.wikipedia.org/wiki/Medell%C3%ADn"
+  },
+  {
+    "name": "Santiago",
+    "country": "Chile",
+    "region": "South America",
+    "difficulty": "medium",
+    "lat": -33.4375,
+    "lng": -70.65,
+    "source": "https://en.wikipedia.org/wiki/Santiago"
+  },
+  {
+    "name": "Auckland",
+    "country": "New Zealand",
+    "region": "Oceania",
+    "difficulty": "medium",
+    "lat": -36.8492,
+    "lng": 174.7653,
+    "source": "https://en.wikipedia.org/wiki/Auckland"
+  },
+  {
+    "name": "Melbourne",
+    "country": "Australia",
+    "region": "Oceania",
+    "difficulty": "medium",
+    "lat": -37.8142,
+    "lng": 144.9631,
+    "source": "https://en.wikipedia.org/wiki/Melbourne"
+  },
+  {
+    "name": "Perth",
+    "country": "Australia",
+    "region": "Oceania",
+    "difficulty": "medium",
+    "lat": -31.9522,
+    "lng": 115.8589,
+    "source": "https://en.wikipedia.org/wiki/Perth"
+  },
+  {
+    "name": "Brisbane",
+    "country": "Australia",
+    "region": "Oceania",
+    "difficulty": "medium",
+    "lat": -27.4678,
+    "lng": 153.0281,
+    "source": "https://en.wikipedia.org/wiki/Brisbane"
+  },
+  {
+    "name": "Tromsø",
+    "country": "Norway",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 69.6517,
+    "lng": 18.9556,
+    "source": "https://en.wikipedia.org/wiki/Troms%C3%B8"
+  },
+  {
+    "name": "Sarajevo",
+    "country": "Bosnia and Herzegovina",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 43.8564,
+    "lng": 18.4131,
+    "source": "https://en.wikipedia.org/wiki/Sarajevo"
+  },
+  {
+    "name": "Tallinn",
+    "country": "Estonia",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 59.4372,
+    "lng": 24.7453,
+    "source": "https://en.wikipedia.org/wiki/Tallinn"
+  },
+  {
+    "name": "Lviv",
+    "country": "Ukraine",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 49.8425,
+    "lng": 24.0322,
+    "source": "https://en.wikipedia.org/wiki/Lviv"
+  },
+  {
+    "name": "Plovdiv",
+    "country": "Bulgaria",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 42.15,
+    "lng": 24.75,
+    "source": "https://en.wikipedia.org/wiki/Plovdiv"
+  },
+  {
+    "name": "Bilbao",
+    "country": "Spain",
+    "region": "Europe",
+    "difficulty": "hard",
+    "lat": 43.2569,
+    "lng": -2.9236,
+    "source": "https://en.wikipedia.org/wiki/Bilbao"
+  },
+  {
+    "name": "Windhoek",
+    "country": "Namibia",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": -22.57,
+    "lng": 17.0836,
+    "source": "https://en.wikipedia.org/wiki/Windhoek"
+  },
+  {
+    "name": "Timbuktu",
+    "country": "Mali",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": 16.7758,
+    "lng": -3.0094,
+    "source": "https://en.wikipedia.org/wiki/Timbuktu"
+  },
+  {
+    "name": "Kigali",
+    "country": "Rwanda",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": -1.9525,
+    "lng": 30.115,
+    "source": "https://en.wikipedia.org/wiki/Kigali"
+  },
+  {
+    "name": "Maputo",
+    "country": "Mozambique",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": -25.9689,
+    "lng": 32.5733,
+    "source": "https://en.wikipedia.org/wiki/Maputo"
+  },
+  {
+    "name": "Lalibela",
+    "country": "Ethiopia",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": 12.0317,
+    "lng": 39.0411,
+    "source": "https://en.wikipedia.org/wiki/Lalibela"
+  },
+  {
+    "name": "Ouagadougou",
+    "country": "Burkina Faso",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": 12.3686,
+    "lng": -1.5275,
+    "source": "https://en.wikipedia.org/wiki/Ouagadougou"
+  },
+  {
+    "name": "Mombasa",
+    "country": "Kenya",
+    "region": "Africa",
+    "difficulty": "hard",
+    "lat": -4.05,
+    "lng": 39.6667,
+    "source": "https://en.wikipedia.org/wiki/Mombasa"
+  },
+  {
+    "name": "Samarkand",
+    "country": "Uzbekistan",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 39.6506,
+    "lng": 66.9653,
+    "source": "https://en.wikipedia.org/wiki/Samarkand"
+  },
+  {
+    "name": "Ulaanbaatar",
+    "country": "Mongolia",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 47.9219,
+    "lng": 106.9153,
+    "source": "https://en.wikipedia.org/wiki/Ulaanbaatar"
+  },
+  {
+    "name": "Chiang Mai",
+    "country": "Thailand",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 18.7953,
+    "lng": 98.9986,
+    "source": "https://en.wikipedia.org/wiki/Chiang_Mai"
+  },
+  {
+    "name": "Mandalay",
+    "country": "Myanmar",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 21.9831,
+    "lng": 96.0844,
+    "source": "https://en.wikipedia.org/wiki/Mandalay"
+  },
+  {
+    "name": "Tbilisi",
+    "country": "Georgia",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 41.7225,
+    "lng": 44.7925,
+    "source": "https://en.wikipedia.org/wiki/Tbilisi"
+  },
+  {
+    "name": "Lhasa",
+    "country": "China",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": 29.6539,
+    "lng": 91.1175,
+    "source": "https://en.wikipedia.org/wiki/Lhasa"
+  },
+  {
+    "name": "Yogyakarta",
+    "country": "Indonesia",
+    "region": "Asia",
+    "difficulty": "hard",
+    "lat": -7.8014,
+    "lng": 110.3644,
+    "source": "https://en.wikipedia.org/wiki/Yogyakarta"
+  },
+  {
+    "name": "Isfahan",
+    "country": "Iran",
+    "region": "Middle East",
+    "difficulty": "hard",
+    "lat": 32.6653,
+    "lng": 51.6703,
+    "source": "https://en.wikipedia.org/wiki/Isfahan"
+  },
+  {
+    "name": "Sanaa",
+    "country": "Yemen",
+    "region": "Middle East",
+    "difficulty": "hard",
+    "lat": 15.3483,
+    "lng": 44.2064,
+    "source": "https://en.wikipedia.org/wiki/Sanaa"
+  },
+  {
+    "name": "Aleppo",
+    "country": "Syria",
+    "region": "Middle East",
+    "difficulty": "hard",
+    "lat": 36.2,
+    "lng": 37.16,
+    "source": "https://en.wikipedia.org/wiki/Aleppo"
+  },
+  {
+    "name": "Yazd",
+    "country": "Iran",
+    "region": "Middle East",
+    "difficulty": "hard",
+    "lat": 31.8822,
+    "lng": 54.3397,
+    "source": "https://en.wikipedia.org/wiki/Yazd"
+  },
+  {
+    "name": "Erbil",
+    "country": "Iraq",
+    "region": "Middle East",
+    "difficulty": "hard",
+    "lat": 36.1912,
+    "lng": 44.0092,
+    "source": "https://en.wikipedia.org/wiki/Erbil"
+  },
+  {
+    "name": "Shiraz",
+    "country": "Iran",
+    "region": "Middle East",
+    "difficulty": "hard",
+    "lat": 29.61,
+    "lng": 52.5425,
+    "source": "https://en.wikipedia.org/wiki/Shiraz"
+  },
+  {
+    "name": "Nuuk",
+    "country": "Greenland",
+    "region": "North America",
+    "difficulty": "hard",
+    "lat": 64.1767,
+    "lng": -51.7361,
+    "source": "https://en.wikipedia.org/wiki/Nuuk"
+  },
+  {
+    "name": "Yellowknife",
+    "country": "Canada",
+    "region": "North America",
+    "difficulty": "hard",
+    "lat": 62.4536,
+    "lng": -114.37,
+    "source": "https://en.wikipedia.org/wiki/Yellowknife"
+  },
+  {
+    "name": "Santa Fe",
+    "country": "United States",
+    "region": "North America",
+    "difficulty": "hard",
+    "lat": 35.6672,
+    "lng": -105.9644,
+    "source": "https://en.wikipedia.org/wiki/Santa_Fe,_New_Mexico"
+  },
+  {
+    "name": "Juneau",
+    "country": "United States",
+    "region": "North America",
+    "difficulty": "hard",
+    "lat": 58.3,
+    "lng": -134.4161,
+    "source": "https://en.wikipedia.org/wiki/Juneau,_Alaska"
+  },
+  {
+    "name": "Fairbanks",
+    "country": "United States",
+    "region": "North America",
+    "difficulty": "hard",
+    "lat": 64.8436,
+    "lng": -147.7231,
+    "source": "https://en.wikipedia.org/wiki/Fairbanks,_Alaska"
+  },
+  {
+    "name": "Whitehorse",
+    "country": "Canada",
+    "region": "North America",
+    "difficulty": "hard",
+    "lat": 60.7242,
+    "lng": -135.0561,
+    "source": "https://en.wikipedia.org/wiki/Whitehorse"
+  },
+  {
+    "name": "Antigua Guatemala",
+    "country": "Guatemala",
+    "region": "Central America & Caribbean",
+    "difficulty": "hard",
+    "lat": 14.5575,
+    "lng": -90.7333,
+    "source": "https://en.wikipedia.org/wiki/Antigua_Guatemala"
+  },
+  {
+    "name": "Granada",
+    "country": "Nicaragua",
+    "region": "Central America & Caribbean",
+    "difficulty": "hard",
+    "lat": 11.9333,
+    "lng": -85.95,
+    "source": "https://en.wikipedia.org/wiki/Granada,_Nicaragua"
+  },
+  {
+    "name": "Willemstad",
+    "country": "Curaçao",
+    "region": "Central America & Caribbean",
+    "difficulty": "hard",
+    "lat": 12.1167,
+    "lng": -68.9333,
+    "source": "https://en.wikipedia.org/wiki/Willemstad"
+  },
+  {
+    "name": "Tegucigalpa",
+    "country": "Honduras",
+    "region": "Central America & Caribbean",
+    "difficulty": "hard",
+    "lat": 14.1058,
+    "lng": -87.2047,
+    "source": "https://en.wikipedia.org/wiki/Tegucigalpa"
+  },
+  {
+    "name": "Bridgetown",
+    "country": "Barbados",
+    "region": "Central America & Caribbean",
+    "difficulty": "hard",
+    "lat": 13.0969,
+    "lng": -59.6131,
+    "source": "https://en.wikipedia.org/wiki/Bridgetown"
+  },
+  {
+    "name": "Port of Spain",
+    "country": "Trinidad and Tobago",
+    "region": "Central America & Caribbean",
+    "difficulty": "hard",
+    "lat": 10.6667,
+    "lng": -61.5167,
+    "source": "https://en.wikipedia.org/wiki/Port_of_Spain"
+  },
+  {
+    "name": "Valdivia",
+    "country": "Chile",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -39.8139,
+    "lng": -73.2458,
+    "source": "https://en.wikipedia.org/wiki/Valdivia"
+  },
+  {
+    "name": "Salvador",
+    "country": "Brazil",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -12.9747,
+    "lng": -38.4767,
+    "source": "https://en.wikipedia.org/wiki/Salvador,_Bahia"
+  },
+  {
+    "name": "Arequipa",
+    "country": "Peru",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -16.3989,
+    "lng": -71.5369,
+    "source": "https://en.wikipedia.org/wiki/Arequipa"
+  },
+  {
+    "name": "Iquitos",
+    "country": "Peru",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -3.75,
+    "lng": -73.25,
+    "source": "https://en.wikipedia.org/wiki/Iquitos"
+  },
+  {
+    "name": "Manaus",
+    "country": "Brazil",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -3.1189,
+    "lng": -60.0217,
+    "source": "https://en.wikipedia.org/wiki/Manaus"
+  },
+  {
+    "name": "Paramaribo",
+    "country": "Suriname",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": 5.8522,
+    "lng": -55.2039,
+    "source": "https://en.wikipedia.org/wiki/Paramaribo"
+  },
+  {
+    "name": "Asunción",
+    "country": "Paraguay",
+    "region": "South America",
+    "difficulty": "hard",
+    "lat": -25.28,
+    "lng": -57.6344,
+    "source": "https://en.wikipedia.org/wiki/Asunci%C3%B3n"
+  },
+  {
+    "name": "Suva",
+    "country": "Fiji",
+    "region": "Oceania",
+    "difficulty": "hard",
+    "lat": -18.1416,
+    "lng": 178.4419,
+    "source": "https://en.wikipedia.org/wiki/Suva"
+  },
+  {
+    "name": "Nouméa",
+    "country": "New Caledonia",
+    "region": "Oceania",
+    "difficulty": "hard",
+    "lat": -22.2758,
+    "lng": 166.458,
+    "source": "https://en.wikipedia.org/wiki/Noum%C3%A9a"
+  },
+  {
+    "name": "Darwin",
+    "country": "Australia",
+    "region": "Oceania",
+    "difficulty": "hard",
+    "lat": -12.4381,
+    "lng": 130.8411,
+    "source": "https://en.wikipedia.org/wiki/Darwin,_Northern_Territory"
+  },
+  {
+    "name": "Alice Springs",
+    "country": "Australia",
+    "region": "Oceania",
+    "difficulty": "hard",
+    "lat": -23.7,
+    "lng": 133.87,
+    "source": "https://en.wikipedia.org/wiki/Alice_Springs"
+  },
+  {
+    "name": "Apia",
+    "country": "Samoa",
+    "region": "Oceania",
+    "difficulty": "hard",
+    "lat": -13.8333,
+    "lng": -171.75,
+    "source": "https://en.wikipedia.org/wiki/Apia"
+  },
+  {
+    "name": "Port Moresby",
+    "country": "Papua New Guinea",
+    "region": "Oceania",
+    "difficulty": "hard",
+    "lat": -9.4789,
+    "lng": 147.1494,
+    "source": "https://en.wikipedia.org/wiki/Port_Moresby"
+  }
+]

@@ -1,0 +1,130 @@
+/* Final results. Colours come from the game skin (tribu.css, sabi.css)
+   through --finale-* tokens; the motion comes from reveal-motion.css. */
+.party-finale.is-animated {
+  --finale-accent: #c47a36;
+  --finale-row: #ffffff;
+  --finale-line: #29253a1a;
+  --finale-win: #fff1c9;
+  width: min(560px, 100%);
+  max-width: none;
+  margin: auto;
+  padding: clamp(20px, 4vh, 36px) clamp(16px, 4vw, 30px);
+  display: grid;
+  justify-items: center;
+  gap: clamp(8px, 1.6vh, 14px);
+}
+.finale-crown {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  color: var(--finale-accent);
+  --burst: var(--finale-accent);
+}
+.party-finale.is-animated h2 {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 42px);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.finale-standings {
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.finale-standings li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px 9px 10px;
+  border-radius: 16px;
+  background: var(--finale-row);
+  border: 1px solid var(--finale-line);
+  overflow: hidden;
+}
+.finale-standings li:not(:has(.party-avatar)) {
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+}
+.finale-rank {
+  font-weight: 900;
+  opacity: 0.55;
+  text-align: center;
+}
+.finale-standings .party-avatar {
+  font-style: normal;
+  width: 32px;
+  height: 32px;
+}
+.finale-standings b {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.finale-standings strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.finale-standings strong small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+.finale-standings li.is-winner {
+  background: var(--finale-win);
+  border-color: var(--finale-accent);
+  transform-origin: 50% 100%;
+}
+.finale-standings li.is-winner .finale-rank {
+  opacity: 1;
+  color: var(--finale-accent);
+}
+/* A light sweep across the winning row as it lands. */
+.finale-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    #ffffff88 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: finale-sweep 900ms ease-out both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + 250ms);
+  pointer-events: none;
+}
+@keyframes finale-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+.finale-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+.finale-actions > * {
+  flex: 0 1 auto;
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .finale-standings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .finale-crown {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .finale-glow {
+    display: none;
+  }
+}

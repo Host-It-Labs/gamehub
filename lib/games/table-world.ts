@@ -10,6 +10,8 @@ import { frameScene, sceneTarget, type Box } from './mora-world.ts';
 export type TableWorld = typeof noxLandscape & {
   seatRing?: { left: number; top: number; width: number; height: number };
   signboards?: { left: number; top: number; width: number; height: number }[];
+  /** Yata: the wooden ledge in front of the counter where the hand lies. */
+  ledge?: { left: number; top: number; width: number; height: number };
 };
 export type TableWorldGame = 'undertow' | 'midnight';
 export type TableWorldVariant = {
@@ -23,6 +25,13 @@ const bases: Record<TableWorldGame, { landscape: TableWorld; portrait: TableWorl
   midnight: { landscape: yataLandscape as unknown as TableWorld, portrait: yataPortrait as unknown as TableWorld },
 };
 export const isTableWorldGame = (id: string): id is TableWorldGame => id === 'undertow' || id === 'midnight';
+
+/** When a table world switches to its tall plate. Yata's landscape counter, menu
+ *  boards and ledge only fill the screen above about 13:10, so squarish windows
+ *  and tablets take the tall counter too; short landscape phones keep the wide
+ *  plate with side rails. The CSS uses the same query (table-worlds.css §5). */
+export const tallWorldQuery = (game?: string) =>
+  game === 'midnight' ? '(orientation: portrait), (max-aspect-ratio: 13/10) and (min-height: 501px)' : '(orientation: portrait)';
 
 /** Alternative renderings of the same measured geometry (candidate generations). */
 export const tableWorldVariants = (game: TableWorldGame, tall = false): TableWorldVariant[] =>
@@ -44,16 +53,22 @@ export function tableWorldFor(game: TableWorldGame, tall = false, variant?: stri
   return world;
 }
 
-/** What must stay inside the safe stage: the table and, for Nox, the seat ring around it. */
+/** What must stay inside the safe stage: the table and, for Nox, the seat ring around it.
+ *  Yata's wide plate also keeps its menu boards and the ledge the hand lies on. */
 export function tableWorldPlayBox(art: TableWorld) {
   const ring = art.seatRing ?? art.table;
-  return { left: ring.left, top: ring.top, width: ring.width, height: ring.height };
+  if (!art.ledge) return { left: ring.left, top: ring.top, width: ring.width, height: ring.height };
+  const boxes = [ring, art.ledge, ...(art.signboards ?? [])];
+  const left = Math.min(...boxes.map((b) => b.left)), top = Math.min(...boxes.map((b) => b.top));
+  const right = Math.max(...boxes.map((b) => b.left + b.width)), bottom = Math.max(...boxes.map((b) => b.top + b.height));
+  return { left, top, width: right - left, height: bottom - top };
 }
 
 export function tableWorldFrame(art: TableWorld, surface: { width: number; height: number }, safe?: Box) {
   const tall = art.height > art.width;
   // Card tables read best centred; the seat ring already carries its own air.
-  return frameScene(art, tableWorldPlayBox(art), surface, safe, { lean: tall ? 0 : 0.05, air: 0, nudge: 0 });
+  // The ledge sits at the stage's lower edge, so it may not lean past it.
+  return frameScene(art, tableWorldPlayBox(art), surface, safe, { lean: tall || art.ledge ? 0 : 0.05, air: 0, nudge: 0 });
 }
 
 export const tableWorldTarget = (art: TableWorld, board: { x: number; y: number; width: number }) => sceneTarget(art, board);

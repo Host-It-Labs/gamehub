@@ -51,39 +51,46 @@ export function habitatRelationships(
   };
   switch (art.zone) {
     case 0:
-      // Courtyard herds and Rock pool pairs both want alike neighbours.
+      // Courtyard herds; Rock pools want exact pairs in each row.
       between(0, 1, '=');
       between(2, 3, '=');
+      if (coastal) between(3, 4, '=');
       break;
     case 1:
       // Roof garden pairs; the Nesting beach wants every species different.
-      between(0, 1, coastal ? '≠' : '=');
-      between(2, 3, coastal ? '≠' : '=');
-      if (coastal) between(0, 3, '≠');
-      break;
-    case 2:
-      between(0, 1, '=');
-      break;
-    case 3:
-      // Glasshouse pair and guest, or the Pier's ordered A–B–A echo.
-      between(0, 1, coastal ? '≠' : '=');
-      between(1, 2, '≠');
-      if (coastal)
-        marks.push({
-          at: [art.slots[1][0], art.slots[1][1] - 6],
-          symbol: 'A–B–A',
-        });
-      break;
-    case 4:
-      // Dry channel variety, or the Sea cave's exclusive species.
-      if (coastal) between(0, 1, '≠');
-      else {
+      if (coastal) {
         between(0, 1, '≠');
         between(1, 2, '≠');
+        between(3, 4, '≠');
+      } else {
+        between(0, 1, '=');
+        between(2, 3, '=');
       }
       break;
+    case 2:
+      // Root hollows pair; Mangrove roots want three alike.
+      between(0, 1, '=');
+      if (coastal) between(1, 2, '=');
+      break;
+    case 3:
+      // The Glasshouse trail echoes other habitats (see the summary); the Pier alternates in order.
+      if (coastal) {
+        const [first, , , last] = art.slots;
+        const upright = Math.abs(last[1] - first[1]) > Math.abs(last[0] - first[0]);
+        const middle = [(art.slots[1][0] + art.slots[2][0]) / 2, (art.slots[1][1] + art.slots[2][1]) / 2];
+        marks.push({
+          at: upright ? [middle[0] + art.tokenWidth * 1.4, middle[1]] : [middle[0], middle[1] - 6],
+          symbol: 'A–B–A–B',
+        });
+      }
+      break;
+    case 4:
+      // Dry channel only needs filling; the Sea cave echoes the rest of the board.
+      break;
     default:
-      beside(coastal ? '5' : '×2');
+      // Watchpost multiplies; the two lighthouse keepers must differ.
+      if (coastal) between(0, 1, '≠');
+      beside(coastal ? '4' : '×2');
   }
   return marks;
 }

@@ -91,6 +91,9 @@ export function GameBox({
 }) {
   const Motif = motifs[game.motif] ?? Sparkles;
   const developed = game.gameId ?? game.standaloneId;
+  // Folio and Relic have no engine id but do carry printed cover and spine art.
+  const cover = game.cover ?? (developed && printedBoxArt(developed).cover);
+  const spine = game.spine ?? (developed && printedBoxArt(developed).spine);
   return (
     <span
       className={`gbox ${game.material} ${game.gameId ?? game.standaloneId ?? 'placeholder'} ${game.coverIncludesTitle ? 'printed-cover' : ''} ${className}`}
@@ -101,14 +104,14 @@ export function GameBox({
         <span className="gbox-face gbox-top" />
         <span className="gbox-face gbox-bottom" />
         <span className="gbox-face gbox-side">
-          {developed && <img className="gbox-spine-art" src={game.spine ?? printedBoxArt(developed!).spine} alt="" draggable={false} />}
+          {spine && <img className="gbox-spine-art" src={spine} alt="" draggable={false} />}
           {!game.coverIncludesTitle && <span className="gbox-side-title">{game.name}</span>}
           {!game.coverIncludesTitle && <Motif className="gbox-side-motif" />}
         </span>
         <span className="gbox-face gbox-front">
-          {developed ? (
+          {cover ? (
             <ArtworkImage
-              src={game.cover ?? printedBoxArt(developed!).cover}
+              src={cover}
               width={1024}
               height={game.coverIncludesTitle || game.standaloneId ? 1024 : 683}
               sizes={sizes ?? `${width * 2}px`}

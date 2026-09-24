@@ -1,7 +1,7 @@
 'use client';
 import { BlackwakeTable, type TableGeometry } from './blackwake-table';
 import { paperWorldFor, paperWorldIdFor } from '@/lib/games/mora-world';
-import { cropPercent, tableWorldFor } from '@/lib/games/table-world';
+import { cropPercent, tableWorldFor, tallWorldQuery } from '@/lib/games/table-world';
 import { WorldScene } from './world-scene';
 import { useArtVariant } from '@/lib/games/art-variant';
 import { ObservatoryScene } from './observatory-scene';
@@ -295,12 +295,12 @@ export function Board({
   useEffect(() => {
     // Every full-table world has its own portrait plate.
     if (mini) return;
-    const query = window.matchMedia('(orientation: portrait)');
+    const query = window.matchMedia(tallWorldQuery(g.id));
     const update = () => setPortrait(query.matches);
     update();
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
-  }, [mini]);
+  }, [mini, g.id]);
   // Mora's two worlds keep separate candidate picks; the Observatory uses the legacy key.
   const worldId = paperWorldIdFor(g.contentSet);
   const [variant] = useArtVariant(
@@ -377,6 +377,8 @@ export function Board({
           geometry={cabinGeometry}
           aspect={cabin.table.width / cabin.table.height}
           anchors={anchors}
+          // Landscape pulls each card out towards its own stool so narrow tables do not pile the trick in the middle.
+          cardPull={portrait ? undefined : [0.6, 0.55]}
           seatTags
           onSeat={
             inspect

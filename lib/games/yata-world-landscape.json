@@ -30,6 +30,12 @@
       "height": 242
     }
   ],
+  "ledge": {
+    "left": 320,
+    "top": 660,
+    "width": 900,
+    "height": 252
+  },
   "landmarks": {
     "protectedBounds": [
       {

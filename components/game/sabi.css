@@ -1,0 +1,611 @@
+/* Sabi (Atlas + Sizes): the measuring desk. A deep green cutting mat with
+ * a pale grid is the board of every Sabi game; cream index cards hold the
+ * prompt, the steps and the results; enamel buttons and pins. Warm lamp light
+ * from the upper left. Daylight and tactile: never Tribu's neon night, never
+ * a poster. Both games use the shared pieces below (.sabi-stage, .sabi-board,
+ * .sabi-card, .sabi-steps, .sabi-results, .sabi-actions). */
+.party-table.is-sabi {
+  --s-mat: #1f5a4a;
+  --s-mat-deep: #133a30;
+  --s-mat-light: #2d7a63;
+  --s-grid: #e8f3cf;
+  --s-desk: #e8dcc4;
+  --s-card: #fbf6e9;
+  --s-card-edge: #e9dfc6;
+  --s-ink: #1b2a24;
+  --s-soft: #5c6b62;
+  --s-line: #1b2a2422;
+  --s-tomato: #ff5a3c;
+  --s-tomato-deep: #c93a20;
+  --s-cobalt: #3569ff;
+  --s-sun: #ffd23f;
+  --s-cream: #fff8e6;
+  --s-display:
+    Futura, 'Futura PT', 'Avenir Next', 'Century Gothic', 'Trebuchet MS',
+    system-ui, sans-serif;
+  --ink: var(--s-ink);
+  --paper: var(--s-card);
+  --accent: var(--s-tomato);
+  color: var(--s-ink);
+  background:
+    radial-gradient(70% 55% at 8% 0%, #fff4d9 0%, transparent 65%),
+    radial-gradient(90% 70% at 100% 100%, #cdbb96 0%, transparent 70%),
+    linear-gradient(170deg, #efe5d0 0%, var(--s-desk) 55%, #dccdb0 100%);
+}
+.party-table.is-sabi:before {
+  background:
+    repeating-linear-gradient(
+      93deg,
+      #8a6a3a08 0 2px,
+      transparent 2px 9px,
+      #8a6a3a05 9px 10px,
+      transparent 10px 23px
+    ),
+    radial-gradient(120% 90% at 50% 120%, #5b441f22, transparent 60%);
+}
+.party-table.is-sabi button {
+  border-color: var(--s-line);
+  background: var(--s-card);
+  color: var(--s-ink);
+}
+.party-table.is-sabi button:not(:disabled):hover {
+  box-shadow: 0 5px 14px #1b2a2420;
+}
+.party-table.is-sabi button:focus-visible {
+  outline: 3px solid var(--s-cobalt);
+  outline-offset: 2px;
+}
+/* Enamel: a glossy tomato pill with a pressed lip. */
+.party-table.is-sabi .party-primary {
+  border: 0 !important;
+  background:
+    linear-gradient(180deg, #ffffff40, transparent 48%), var(--s-tomato) !important;
+  color: #fff8ef !important;
+  box-shadow:
+    0 1px 0 #ffffff66 inset,
+    0 4px 0 var(--s-tomato-deep),
+    0 10px 20px #c93a2040;
+  font-family: var(--s-display);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.party-table.is-sabi .party-primary:not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 #ffffff66 inset,
+    0 1px 0 var(--s-tomato-deep);
+}
+.party-table.is-sabi .party-primary:disabled {
+  filter: saturate(0.4);
+  opacity: 0.55;
+}
+.party-table.is-sabi .party-locked {
+  border: 2px solid var(--s-mat) !important;
+  color: var(--s-mat) !important;
+  font-family: var(--s-display);
+  font-weight: 800;
+}
+.party-table.is-sabi .party-player {
+  background: #fbf6e9e6;
+  border-color: var(--s-line);
+  color: var(--s-ink);
+  box-shadow: 0 3px 10px #5b441f1c;
+}
+.party-table.is-sabi .party-player.is-you {
+  box-shadow:
+    0 0 0 2px var(--s-mat),
+    0 3px 10px #5b441f1c;
+}
+.party-table.is-sabi .party-action-status {
+  color: var(--s-mat);
+}
+.party-table.is-sabi .party-action-spinner {
+  color: var(--s-tomato);
+}
+.party-table.is-sabi .party-avatar {
+  font-family: var(--s-display);
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 0 #0003;
+}
+.party-table.is-sabi .seat-0 {
+  --seat: #ff5a3c;
+}
+.party-table.is-sabi .seat-1 {
+  --seat: #3569ff;
+}
+.party-table.is-sabi .seat-2 {
+  --seat: #12a870;
+}
+.party-table.is-sabi .seat-3 {
+  --seat: #9c52f2;
+}
+.party-table.is-sabi .seat-4 {
+  --seat: #f28c28;
+}
+.party-table.is-sabi .seat-5 {
+  --seat: #f26aae;
+}
+.party-table.is-sabi .party-avatar[class*='seat-'] {
+  background: var(--seat);
+}
+.party-table.is-sabi.mode-teams .party-avatar.team-0 {
+  background: var(--s-tomato);
+}
+.party-table.is-sabi.mode-teams .party-avatar.team-1 {
+  background: var(--s-cobalt);
+}
+.party-table.is-sabi .party-host-wait {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--s-soft);
+}
+
+/* The shared stage: the mat on the left, the index card on the right. */
+.sabi-stage {
+  flex: 1;
+  min-height: 0;
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(270px, 27vw, 350px);
+  gap: clamp(10px, 1.6vw, 18px);
+}
+.sabi-board {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    /* ruler ticks along the top and left edges */
+    repeating-linear-gradient(90deg, #e8f3cf55 0 1px, transparent 1px 12px) 0 0
+      / 100% 7px no-repeat,
+    repeating-linear-gradient(0deg, #e8f3cf55 0 1px, transparent 1px 12px) 0 0 /
+      7px 100% no-repeat,
+    /* the grid: fine lines every 24px, bold every 120px */
+    linear-gradient(90deg, #e8f3cf26 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(0deg, #e8f3cf26 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(90deg, #e8f3cf12 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(0deg, #e8f3cf12 1px, transparent 1px) 0 0 / 24px 24px,
+    /* lamp light */
+    radial-gradient(90% 80% at 12% 0%, #3f9577 0%, transparent 60%),
+    linear-gradient(
+      160deg,
+      var(--s-mat-light),
+      var(--s-mat) 45%,
+      var(--s-mat-deep)
+    );
+  box-shadow:
+    0 0 0 1px #0d2a22,
+    0 2px 0 #ffffff26 inset,
+    0 -18px 40px #0000002e inset,
+    0 18px 40px #3b2a0f33,
+    0 4px 0 #0d2a22;
+  color: var(--s-cream);
+}
+.sabi-card {
+  container-type: inline-size;
+  position: relative;
+  /* Starts below the floating Menu and Others buttons. */
+  margin-top: 26px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vh, 14px);
+  padding: clamp(12px, 1.8vh, 18px) clamp(12px, 1.4vw, 18px);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, #ffffff99, transparent 30%), var(--s-card);
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 3px 0 var(--s-card-edge),
+    0 16px 34px #5b441f2e;
+}
+/* Index-card tabs: numbered, the current one lifted and red-ruled. */
+.sabi-steps {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #ff5a3c66;
+}
+/* Narrow cards keep only the current step's name. */
+@container (max-width: 300px) {
+  .sabi-steps {
+    display: flex;
+  }
+  .party-table .sabi-steps > * {
+    flex: none;
+    min-width: 40px;
+    padding-inline: 8px;
+  }
+  .sabi-steps > .is-current {
+    flex: 1;
+  }
+  .sabi-steps > :not(.is-current) span {
+    display: none;
+  }
+}
+ol.sabi-steps {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+.party-table .sabi-steps > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 6px;
+  border-radius: 12px;
+  border: 1px solid var(--s-line);
+  background: #fff8ec;
+  color: var(--s-soft);
+  font-family: var(--s-display);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sabi-steps > * b {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1b2a2412;
+  color: var(--s-ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.sabi-steps span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sabi-steps .is-done b {
+  background: var(--s-mat);
+  color: var(--s-cream);
+}
+.party-table.is-sabi .sabi-steps .is-current {
+  border-color: var(--s-ink);
+  background: var(--s-ink);
+  color: var(--s-cream);
+  box-shadow: 0 4px 10px #1b2a2433;
+}
+.sabi-steps .is-current b {
+  background: var(--s-tomato);
+  color: #fff;
+}
+.sabi-steps .is-current.is-done b {
+  background: var(--s-sun);
+  color: var(--s-ink);
+}
+.sabi-actions {
+  flex: none;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.sabi-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 132px;
+  min-height: 46px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 15px;
+}
+/* Results: one row per player or team, their colour, the value and points. */
+.sabi-results {
+  flex: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.sabi-results li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--s-line);
+  font-variant-numeric: tabular-nums;
+}
+.sabi-results li.is-you {
+  box-shadow: 0 0 0 2px var(--s-ink);
+}
+.sabi-results li > i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow:
+    0 1px 0 #ffffff80 inset,
+    0 0 0 2px #fff,
+    0 1px 3px #0004;
+}
+.sabi-results b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.sabi-results .count-up,
+.sabi-results li > span {
+  color: var(--s-soft);
+  font-size: 13px;
+}
+.sabi-results strong {
+  min-width: 48px;
+  text-align: right;
+  font-family: var(--s-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--s-mat);
+}
+.sabi-results li.is-perfect strong {
+  color: var(--s-tomato);
+}
+
+/* Votes: index cards on the desk. */
+.party-table.is-sabi .vote-clock {
+  width: min(360px, 80%);
+  height: 10px;
+  overflow: visible;
+  background: #1b2a2418;
+}
+.party-table.is-sabi .vote-clock i {
+  border-radius: 999px;
+  opacity: 1;
+  background: linear-gradient(
+    90deg,
+    var(--s-mat),
+    var(--s-sun),
+    var(--s-tomato)
+  );
+}
+.party-table.is-sabi .vote-clock b {
+  position: absolute;
+  right: -34px;
+  font-size: 12px;
+  color: var(--s-soft);
+}
+.party-table.is-sabi .tribu-tile {
+  position: relative;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px 14px 18px;
+  min-height: min(290px, 48dvh);
+  border-radius: 20px;
+  border: 0;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 38px,
+      #ff5a3c55 38px 40px,
+      transparent 40px
+    ),
+    linear-gradient(180deg, #ffffff99, transparent 40%), var(--s-card);
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 4px 0 var(--s-card-edge),
+    0 18px 36px #5b441f33;
+}
+.party-table.is-sabi .tribu-tile.tile-miro {
+  --tile: var(--s-cobalt);
+}
+.party-table.is-sabi .tribu-tile.tile-size {
+  --tile: var(--s-tomato);
+}
+.party-table.is-sabi .tribu-tile.tile-finish {
+  --tile: var(--s-soft);
+}
+.party-table.is-sabi .tribu-tile:disabled {
+  opacity: 1;
+}
+.party-table.is-sabi .tribu-tile.is-mine {
+  box-shadow:
+    0 0 0 3px var(--tile),
+    0 4px 0 var(--s-card-edge),
+    0 18px 36px color-mix(in srgb, var(--tile) 30%, transparent);
+}
+.party-table.is-sabi .tribu-tile strong {
+  font-family: var(--s-display);
+  font-weight: 800;
+  color: var(--s-ink);
+}
+.party-table.is-sabi .tribu-again {
+  color: #fff;
+}
+.party-table.is-sabi .vote-count i {
+  background: var(--tile);
+}
+.party-table.is-sabi .vote-check {
+  color: var(--tile);
+}
+/* The marks sit on a little patch of cutting mat. */
+.sabi-mark {
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, #e8f3cf22 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(0deg, #e8f3cf22 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(160deg, var(--s-mat-light, #2d7a63), var(--s-mat, #1f5a4a));
+  box-shadow: 0 3px 0 #0d2a22;
+}
+.sabi-mark .mark-globe {
+  fill: #3569ff;
+}
+.sabi-mark .mark-lines {
+  stroke: #cfe0ff;
+  stroke-width: 2;
+  opacity: 0.8;
+}
+.sabi-mark .mark-pin {
+  fill: #ff5a3c;
+  stroke: #fff8e6;
+  stroke-width: 2;
+}
+.sabi-mark .mark-pin-dot {
+  fill: #fff8e6;
+}
+.sabi-mark .mark-small {
+  fill: #fff8e6;
+}
+.sabi-mark .mark-big {
+  fill: #ff5a3c;
+}
+.sabi-mark .mark-times {
+  stroke: #ffd23f;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+@media (max-width: 700px) {
+  .party-table.is-sabi .tribu-tile {
+    min-height: 0;
+    padding: 18px 6px 12px;
+    border-radius: 16px;
+    gap: 8px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .party-table.is-sabi .tribu-tile {
+    min-height: 0;
+    padding: 12px 8px;
+    gap: 6px;
+  }
+}
+
+/* Results: an index card, sunflower for the winner. */
+.party-table.is-sabi .party-finale.is-animated {
+  --finale-accent: var(--s-tomato);
+  --finale-row: #fff;
+  --finale-line: var(--s-line);
+  --finale-win: #fff3c2;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 64px,
+      #ff5a3c55 64px 66px,
+      transparent 66px
+    ),
+    var(--s-card);
+  border: 0;
+  border-radius: 24px;
+  color: var(--s-ink);
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 5px 0 var(--s-card-edge),
+    0 24px 50px #5b441f33;
+}
+.party-table.is-sabi .party-finale h2 {
+  font-family: var(--s-display);
+  font-weight: 800;
+  color: var(--s-ink);
+}
+.party-table.is-sabi .finale-standings strong {
+  font-family: var(--s-display);
+  color: var(--s-mat);
+}
+.party-table.is-sabi .finale-standings li.is-winner strong {
+  color: var(--s-tomato);
+}
+
+/* Portrait: the mat on top, the card below it; both inside the viewport. */
+@media (orientation: portrait) and (max-width: 1000px) {
+  .sabi-stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    /* The mat starts below the floating Menu and Others buttons. */
+    margin-top: 22px;
+  }
+  .sabi-card {
+    margin-top: 0;
+    max-height: 46dvh;
+  }
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  .sabi-board {
+    border-radius: 16px;
+  }
+  .sabi-card {
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+  .sabi-steps {
+    padding-bottom: 8px;
+    gap: 4px;
+  }
+  .party-table .sabi-steps > * {
+    min-height: 34px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  .sabi-actions > button {
+    min-height: 44px;
+    min-width: 116px;
+  }
+  .sabi-results {
+    gap: 4px;
+  }
+  .sabi-results li {
+    min-height: 34px;
+    padding: 4px 10px;
+    font-size: 14px;
+  }
+  .sabi-results strong {
+    font-size: 16px;
+  }
+}
+/* Short landscape phones: a narrow card beside the mat. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .sabi-stage {
+    grid-template-columns: minmax(0, 1fr) clamp(220px, 30vw, 290px);
+    gap: 10px;
+  }
+  .sabi-board {
+    border-radius: 14px;
+  }
+  .sabi-card {
+    /* Clears the floating Others button above the card column. */
+    margin-top: 30px;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+  .sabi-steps {
+    padding-bottom: 6px;
+  }
+  .party-table .sabi-steps > * {
+    min-height: 32px;
+    font-size: 11px;
+  }
+  .sabi-steps > * b {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+  .sabi-results li {
+    min-height: 30px;
+    padding: 3px 8px;
+  }
+  .sabi-actions > button {
+    min-height: 40px;
+    min-width: 100px;
+    padding: 6px 12px;
+  }
+}

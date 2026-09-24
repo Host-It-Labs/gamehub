@@ -63,6 +63,8 @@ Other fidelity fixes from that edition: the shared clue system was removed; Worl
 
 Cobalt ink on butter-yellow paper with vermilion accents, matching the box cover. The background plates (`public/art/folio/`) were generated for this edition from written prompts only; prompts, the four candidates and the export script are in `docs/concepts/2026-09-22-folio/background/`. Landscape A and portrait A were chosen for their newsprint-and-crossword mountain faces, which echo the cover. Animations (tile flips, pops, shakes, cascades, reveal flourishes, the marching path on the map, the verdict stamp) are all disabled under reduced motion.
 
+The library box opens Folio's setup in the shared open-box modal (`components/game/folio-box.tsx`): name, seats, starting difficulty, practice list and up to two runs to continue. Starting a run goes to `/folio/<token>`; leaving a run returns to the library. `/folio` remains as a direct page. The cover is `box-folio-blind-v2` (23 September 2026, prompts in `docs/concepts/2026-09-23-folio-relic-covers/`).
+
 ## Verification (22 September 2026)
 
 - Repository tests pass, including the engine/server suite (`tests/folio.test.mjs`: map invariants over 300 seeds, difficulty per act, perfect runs to the summit on every difficulty, two-loss defeat with no healing, post-boss edits, lobby/seat locking, per-table names, stale commands, retries, reopen, v1 retirement, HTTP flow) and one suite per game (`tests/folio-<kind>.test.mjs`: every level and boss over 25+ seeds solves within and loses at its allowance, no secret leaks, malformed moves change nothing, content invariants).

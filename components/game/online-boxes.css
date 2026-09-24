@@ -1,0 +1,305 @@
+/* Folio and Relic in the library's open-box modal: the shared lid and tray,
+ * with a few pieces of their own (a name field, puzzle-grid difficulty,
+ * ticket-stub desks). */
+.online-box .online-box-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.online-box .online-name {
+  display: grid;
+  gap: 6px;
+}
+.online-box .online-legend {
+  padding: 0 5px;
+  font: 600 13px/1.3 inherit;
+}
+.online-box .online-name input {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #cdbd9a;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--lib-ink);
+  font-size: 16px;
+}
+.online-box .online-name input:focus-visible {
+  outline: 3px solid #9471ab;
+  outline-offset: 1px;
+}
+.online-box .online-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--lib-ink-2);
+}
+.online-box .online-error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fbe3dc;
+  color: #8a2a17;
+  font-size: 14px;
+}
+.online-box a.resume-strip {
+  text-decoration: none;
+}
+.online-box .resume-copy strong svg {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+}
+.online-box .tray-soon a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Shared choice tile: seats and difficulty. */
+.online-box .folio-box-seats,
+.online-box .folio-box-levels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.online-box .online-choice {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 4px;
+  border: 1px solid #ded5c5;
+  border-radius: 8px;
+  background: #faf5eb;
+  cursor: pointer;
+  text-align: center;
+}
+.online-box .online-choice b {
+  font-size: 13px;
+}
+.online-box .online-choice:hover {
+  border-color: #8a7353;
+}
+.online-box .online-choice:has(:focus-visible) {
+  outline: 3px solid #9471ab;
+  outline-offset: 2px;
+}
+
+/* Folio: cobalt on butter paper, vermilion when chosen. */
+.folio-box .online-choice:has([data-checked]) {
+  background: #f6e7ae;
+  border-color: #193d79;
+  box-shadow: inset 0 0 0 1px #193d79;
+  color: #193d79;
+}
+.folio-box-people {
+  display: flex;
+  height: 26px;
+  align-items: center;
+}
+.folio-box-people svg {
+  width: 18px;
+  height: 18px;
+  margin-inline: -2px;
+}
+/* A little puzzle grid that fills in as the level rises. */
+.folio-box-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 7px);
+  gap: 2px;
+  padding: 2px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+}
+.folio-box-grid i {
+  width: 7px;
+  height: 7px;
+  background: #fffdf8;
+  box-shadow: inset 0 0 0 1px #d4c6af;
+}
+.level-1 .folio-box-grid i:nth-child(5),
+.level-2 .folio-box-grid i:nth-child(odd),
+.level-3 .folio-box-grid i:not(:nth-child(4)) {
+  background: #193d79;
+  box-shadow: none;
+}
+.level-3:has([data-checked]) .folio-box-grid i:nth-child(9) {
+  background: #c5472c;
+}
+.folio-box-practice ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.folio-box-practice li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #ebe2d2;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+.folio-box-kind {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: #f1dc93;
+  color: #193d79;
+}
+.folio-box-kind svg {
+  width: 20px;
+  height: 20px;
+}
+.folio-box-kind-name {
+  display: grid;
+  min-width: 0;
+}
+.folio-box-kind-name b {
+  font-size: 14px;
+}
+.folio-box-kind-name small {
+  font-size: 11px;
+  color: var(--lib-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folio-box-practice button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #bba788;
+  border-radius: 7px;
+  background: #fff9ec;
+  color: #193d79;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.folio-box-practice button svg {
+  width: 14px;
+  height: 14px;
+}
+.folio-box-practice button:hover:not(:disabled) {
+  background: #193d79;
+  border-color: #193d79;
+  color: #fffdf8;
+}
+.folio-box .setup-actions .play-plate:not(:disabled):hover {
+  color: #193d79;
+}
+
+/* Relic: teal desk, copper foil, ticket stubs for saved desks. */
+.relic-box-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.relic-box-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #1f4d4f;
+  color: #f6e3bb;
+  font-size: 12px;
+  font-weight: 700;
+}
+.relic-box-facts svg {
+  width: 14px;
+  height: 14px;
+  color: #e0a86c;
+}
+.relic-box-new {
+  display: grid;
+  gap: 18px;
+}
+.relic-box-desks ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.relic-box-desks a {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 12px 6px 6px;
+  border: 1px dashed #b8733a;
+  border-radius: 8px;
+  background: #fbf2de;
+  color: var(--lib-ink);
+  text-decoration: none;
+}
+.relic-box-desks a:hover {
+  background: #f6e3bb;
+  border-style: solid;
+}
+.relic-box-desks a:focus-visible {
+  outline: 3px solid #9471ab;
+  outline-offset: 2px;
+}
+.relic-box-stub {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+  border-radius: 5px;
+  /* Silver scratch foil over the stub. */
+  background:
+    repeating-linear-gradient(135deg, #ffffff55 0 2px, transparent 2px 5px),
+    linear-gradient(135deg, #c9cdd0, #8e9699);
+  color: #1f4d4f;
+}
+.relic-box-stub svg {
+  width: 20px;
+  height: 20px;
+}
+.relic-box-desk-copy {
+  display: grid;
+  min-width: 0;
+}
+.relic-box-desk-copy strong {
+  font:
+    700 15px/1.2 Georgia,
+    serif;
+}
+.relic-box-desk-copy small {
+  font-size: 12px;
+  color: var(--lib-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.relic-box-desks a > svg {
+  width: 18px;
+  height: 18px;
+  color: #b8733a;
+}
+.relic-box .setup-actions .play-plate:not(:disabled):hover {
+  color: #1f4d4f;
+}
+@media (max-width: 480px) {
+  .folio-box-practice li {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+  .folio-box-practice li button:last-child {
+    grid-column: 2 / -1;
+    justify-self: end;
+  }
+}
