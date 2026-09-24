@@ -663,19 +663,6 @@
 .inspector-wide .inspection-body > :first-child { grid-column: 1 / -1; }
 .inspector-wide .inspection-body section h3 { margin: 0 0 6px; }
 
-/* Temporary artwork review control. Remove with <ArtVariantSwitcher/> when a variant is chosen. */
-.art-variant-switcher {
-  position: absolute; left: 10px; bottom: 50%; z-index: 30; display: flex; flex-direction: column; gap: 4px; padding: 4px;
-  background: #1b2418cc; border: 1px solid #f6f0dc55; border-radius: 10px; backdrop-filter: blur(4px);
-}
-.art-variant-switcher button {
-  min-width: 44px; min-height: 28px; padding: 3px 8px; border-radius: 7px; border: 1px solid #f6f0dc55;
-  background: transparent; color: #f6f0dc; font: 600 11px/1 Georgia, serif; cursor: pointer;
-}
-.art-variant-switcher button[aria-pressed='true'] { background: #f6f0dc; color: #1b2418; }
-@media (orientation: portrait) { .art-variant-switcher { left: 6px; bottom: 45%; } }
-.art-variant-switcher { margin: 0; min-width: 0; }
-
 /* Goals card: tray height in landscape, count pills instead of dots; rules as three cards. */
 .sanctuary-goal-count {
   display: inline-flex; align-items: baseline; padding: .05em .5em; border-radius: 1em; background: #fff8e6; color: #2f4a30;

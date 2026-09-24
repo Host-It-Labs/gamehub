@@ -56,6 +56,12 @@ for (const tall of [false, true]) {
 }
 for (const ambience of ambiences)
   for (const sound of [...ambience.beds, ...ambience.events]) add(sound.src);
+// Sizes builds its sheet URLs from each silhouette's sheet name.
+const silhouettes = JSON.parse(
+  await readFile('lib/games/party/size-silhouettes.json', 'utf8'),
+);
+for (const sheet of Object.keys(silhouettes.sheets))
+  add(`/art/optimized/sizes-sil-${sheet}-v1.webp`);
 const places = JSON.parse(
   await readFile('lib/games/party/geo-places.json', 'utf8'),
 );

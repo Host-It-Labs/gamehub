@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Check, ArrowRight, LockKeyhole, Expand } from 'lucide-react';
 import {
   activeTeam,
@@ -12,7 +12,7 @@ import {
   type GeoMove,
 } from '@/lib/games/party/geography';
 import { groupName } from '@/lib/games/party/groups';
-import { GeoPinMap, type MapPin } from './geo-pin-map';
+import type { MapPin } from './geo-pin-map';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,10 @@ import {
 import { CountUp, stagger } from './reveal-motion';
 import { SabiSteps } from './sabi-steps';
 import './geography-table.css';
+// The globe pulls in three.js; load it only once an Atlas table opens.
+const GeoPinMap = lazy(() =>
+  import('./geo-pin-map').then((m) => ({ default: m.GeoPinMap })),
+);
 /** Seat colours, shared with Sizes. */
 const colors = [
   '#ff5a3c',
@@ -161,12 +165,14 @@ function Round({
       className={`sabi-stage atlas-stage ${revealed ? 'is-revealed' : ''}`}
     >
       <div className="sabi-board atlas-board">
-        <GeoPinMap
-          pins={visiblePins}
-          onPin={
-            canPin ? (p) => commit({ type: 'pin', prompt, ...p }) : undefined
-          }
-        />
+        <Suspense fallback={<div className="atlas-map-shell" />}>
+          <GeoPinMap
+            pins={visiblePins}
+            onPin={
+              canPin ? (p) => commit({ type: 'pin', prompt, ...p }) : undefined
+            }
+          />
+        </Suspense>
         {discussing && (
           <output className="atlas-turn">
             {groupName(g, active)}

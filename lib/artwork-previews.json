@@ -1,28 +1,4 @@
 {
-  "/art/blackwake-cover-v1.png": {
-    "preview": "data:image/webp;base64,UklGRtoAAABXRUJQVlA4IM4AAAAwBQCdASoYABgAPwF4s1OrJySiqAgBYCAJQBOiP/wDS7HjpQYQNK47LQiONz65CLoo0AD+2hRTuEWDg02qs09KOK/xwWVJNjdLVCLznax9bxtTXWko0pmP40Iyzg8IRBMVd9xN3/TmP9ZTTEQeNQJp34j0hRQN8UJYEI8y/6i55GLfYAyaniHp5SE8uM1uoQ3PMEW7fxtqhfjtOFtNVcYCOPlnEbJHZUv2Y/3Wr5mS2ireV9Hzni5jz7orrPTFvDAGjPpRvmQcnM7KTAboAA==",
-    "srcSet": "/art/optimized/blackwake-cover-v1-320.webp 320w, /art/optimized/blackwake-cover-v1-640.webp 640w, /art/optimized/blackwake-cover-v1-960.webp 960w"
-  },
-  "/art/elsewild-cover-v1.png": {
-    "preview": "data:image/webp;base64,UklGRuYAAABXRUJQVlA4INoAAAAwBgCdASoYABgAPwF4tFQrJySjKAgBYCAJQBWGbInANqwP+yhJf7SZFZvUyCVgFQj3gD/nj86F53QAAP7ZO+B3b2FzeamndaEf2gfBttoZBrNFz4bCwf+H/JVYnREXVU4MUkgILMaH4wnbZVwnYqa7InnRazuSuOu6694wxH4+siIejWdrjLwuCsQrOQqE+dwR9gLIsxI/rAm2K03ipg2c0xuat7l2z39I62aq6uDvLuArg0ClCcV3i3i47K4n/DQqwBa+kVY7D7SxFr5Br5N0lLlQwq0PXOQAAA==",
-    "srcSet": "/art/optimized/elsewild-cover-v1-320.webp 320w, /art/optimized/elsewild-cover-v1-640.webp 640w, /art/optimized/elsewild-cover-v1-960.webp 960w"
-  },
-  "/art/nightshift-cover-v1.png": {
-    "preview": "data:image/webp;base64,UklGRuwAAABXRUJQVlA4IOAAAADQBQCdASoYABgAPwFyrFGrJqOiqA1RYCAJQBOgtYymc1zHi9yoxoHTOdXUGnJWDJAKELa/rd6AAP66OJRcMO0KLhLYFi1xPBPZIbK8ap1KzYi2IC6QwePsLlIek2gQCHJCWiTqXx+UJ1F+s2PswaL4HZDTD8M5fwD2Hm71gNsYSig3nnS3Xbske0Hrd1btb2XNia7ULhpd1/BpUDgkIeCrPOuFR1qVIcQIKwY+r56DTxXg6/AI/ekKITaRvo9iNFLym2RZjWLldz+FguTEPRu9saBu2Cqzy1UA9LiN+QAAAA==",
-    "srcSet": "/art/optimized/nightshift-cover-v1-320.webp 320w, /art/optimized/nightshift-cover-v1-640.webp 640w, /art/optimized/nightshift-cover-v1-960.webp 960w"
-  },
-  "/art/box-undertow-v3.png": {
-    "preview": "data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAABwAwCdASoYABAAPwFsrU8rJiQiMAgBYCAJQBOgBaRgztZW5jgA/u5X5h+WrKE+JoxLwwXEzpaKQCOEzoh4XBjdVpMXroPFEyEx2v6hGyUVSpwe3S0QCQkA7rTCpz5jviBxGSoMlQAAAA==",
-    "srcSet": "/art/optimized/box-undertow-v3-320.webp 320w, /art/optimized/box-undertow-v3-640.webp 640w, /art/optimized/box-undertow-v3-960.webp 960w"
-  },
-  "/art/box-wildgrove-v3.png": {
-    "preview": "data:image/webp;base64,UklGRrIAAABXRUJQVlA4IKYAAABQBACdASoYABAAPwFqrE6rJiQiMAgBYCAJQBOmUAS2goAWsLq2hlO6BLeAAP6psJPQ+oDBQ+Jx+ujaUE8r19ydBPpuaEH0OVf2tdb0bEgqh6cgFwdEJRgEePvCeVmhqwxwvUM35q0mDbOgmGa1YMcfOzzuFLPVH9e1s7vtsRBgeKy7XO8N8o/Pp5VJyUrHWzV3iKwQKJT2/jyHDoi5QlFR0we0fRAA",
-    "srcSet": "/art/optimized/box-wildgrove-v3-320.webp 320w, /art/optimized/box-wildgrove-v3-640.webp 640w, /art/optimized/box-wildgrove-v3-960.webp 960w"
-  },
-  "/art/box-midnight-v3.png": {
-    "preview": "data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAACQBACdASoYABAAPwFqrU6rJiQiMAgBYCAJbACdMoR3IsBxf4CO3BtGuDDj+MAA/r5pWsLYYRMoFqIO711CUPnc0NZPOIA7p3xzWw0lceACiRbwCMW+Vd3oFhrVZ7375r0AdrcEZcJhyXUvM5XV1aOp6bS8UUoX89lgIiSBYktb/FKxNSZMF3W29xAh4hlLvbf/k4eK1mt3h8XKV7uRVUu1UHGSQKg870m//eiAAAA=",
-    "srcSet": "/art/optimized/box-midnight-v3-320.webp 320w, /art/optimized/box-midnight-v3-640.webp 640w, /art/optimized/box-midnight-v3-960.webp 960w"
-  },
   "/art/optimized/box-nox-blind-v1.webp": {
     "preview": "data:image/webp;base64,UklGRvQAAABXRUJQVlA4IOgAAACQBQCdASoYABgAPwF2slOrJyQiqAgBYCAJQBgFMX/MIULf0/7mtqFn+UPMGFEjAiWsBqiIAAD+6aT8EFbBVzcMbSXamguMu8/Soc1kppH+39V8eUbZPL/cZtusULTpf1X2qqaOJctS9W1SKJYVn6fdRFtR/JyPmpl+kixUcDXvh52joJfI0p+y4oYW7y0jNLSeH3v1VkkwSt4BsMbhjwfYdIjbZDHs/CYEypa50YmjqYJTW1ferAmJwBM+0OKe1vhyb0II5YIN6mqCA21dM7L5V34HlWs1WjSWrkq3hOHG8g1Y94YrUVgA",
     "srcSet": "/art/optimized/box-nox-blind-v1-320.webp 320w, /art/optimized/box-nox-blind-v1-640.webp 640w, /art/optimized/box-nox-blind-v1.webp 1024w"
@@ -35,22 +11,6 @@
     "preview": "data:image/webp;base64,UklGRiYBAABXRUJQVlA4IBoBAADQBQCdASoYABgAPwFwrFGrJiQiqA1RYCAJbACdMoPKDjheRkmTNgJjJJsRi+4lB6Vhz+Oocs4MAP7MSy7x9qlZRTdV7Bu4N+pKKeLw/X59/KAIk7+3jJ75yE6jIYjTvvDt8cE5f4Bu2Nu4tajafxpcrmLFSekK8JAS5n6k359j6PDmTN8azlQDJaukmQr3wsZmw8KYtqVhyXvsKM7YRGk3a+c9YWBHT+wZKwtEwJ7EV7qQu7gKgmGoJq36NIKgET6IIwVQlGpogvFJs3LEP9VKbbIhmxcAk3ZpO4H09SGRMDynVfhLA2KTOr154fgn9QHOneSAxcktoEpO0N5Rli2+LvLzwoAbLJnYQKp5Vjm17tytx5G7/B5PgAA=",
     "srcSet": "/art/optimized/box-yata-blind-v2-320.webp 320w, /art/optimized/box-yata-blind-v2-640.webp 640w, /art/optimized/box-yata-blind-v2.webp 1024w"
   },
-  "/art/optimized/box-atlas-blind-v1.webp": {
-    "preview": "data:image/webp;base64,UklGRiABAABXRUJQVlA4IBQBAACwBgCdASoYABgAPwF4tFQrJySjKAgBYCAJZgCdKIFj/xMw8F5QMO4zCFiRoFYPboUe6aHkyaxuk8/SvnZSQAD+XWrWL3mefmLbg0usxjfy49MVVzbaOXEOqhXKcfm9zaXjRXoN9XNNwx+//tsfe99NAY+NKYuybDn8KvXdRP80mXrJtaAr1oEXi1jlVI7eJXgEiXn/pWHfeIz06J+Rwmay3o0PoSmIKw26s0su0issnTPaEuJOcaxvlGlX4ZmVOCMK0TCNYHbj6lVl0Cb67uz5M6/cy+OBwDA5b9t5OAc3PyakrYkRbkiczSPeBEfwQTQ0SPgCv3cqJANStO+6Hjr4kRKaistPtXEFxF5ob7ElaJ0gAAA=",
-    "srcSet": "/art/optimized/box-atlas-blind-v1-320.webp 320w, /art/optimized/box-atlas-blind-v1-640.webp 640w, /art/optimized/box-atlas-blind-v1.webp 1024w"
-  },
-  "/art/optimized/box-relic-scratch-v1.webp": {
-    "preview": "data:image/webp;base64,UklGRhwBAABXRUJQVlA4IBABAADwBQCdASoYABgAPwF0rVKrJqOiqAqpYCAJbACdMoMh1+o6v4jaXpm3DHSSGf/pqbNEOP+qWsVEAADODpB8Lom0qqixdXiSAHyDcPCoFAMHF4gJqZIENH3l5SvtZxAMjMkLQSn1vA+5WaJBrk72SG/m+ZqLOTGXe0kAkM3yk8dKuNQJFmhTWg0zZU5gBSLFhTZAGiIc7qwqeQ3sF3Bpb8u5Jdhf5L4UbCjoLRolCAtJ0P/V+zzV7uqNL8DdiWRl8fyp5ntfHdbwEEgLfIJFYKFPtrl0L0HKHM4gYyMtj6UmMyKV5d9pUAueE0mKi1Xjzg99Xx8SDPMlV6ycB81AZp7axv3/gf5ffMGzFEGgylsAAA==",
-    "srcSet": "/art/optimized/box-relic-scratch-v1-320.webp 320w, /art/optimized/box-relic-scratch-v1-640.webp 640w, /art/optimized/box-relic-scratch-v1-960.webp 960w, /art/optimized/box-relic-scratch-v1.webp 1254w"
-  },
-  "/art/optimized/box-folio-blind-v1.webp": {
-    "preview": "data:image/webp;base64,UklGRlYBAABXRUJQVlA4IEoBAADwBgCdASoYABgAPwFurlCrJiQiqA1RYCAJbACdMuugrJXz1Vk+Fez7YyJv5t3pZEks51rK2uivUsTVUN96t9QAAP7IpxMTQcEySntx58ehbK1F5t4MaxW79KEum/Flre4bPxxVCX0GA5PbrB/Jfe//74gvIDZ+K29VzFa3pgC9j22IK1rVe070TBBB38zWAxs9euibOJ5hdb7iD9NqxBvJxyg0qaX1RmaerpBSNDllSXBUP6QwDblOs2vnbgLZxxNxRpXqMrp2V+fO00+5OZC/3QhI6cp/eryIrdlkA+Oo/cdpA5ahGPHWVKRuauTTGFSYm1VdiUI3Idk7OABBqYraB2Y2mhsRcKxg8gH46xk2aWyw9V4Fx6UtvMsKxWY3rJ9tFWdkm66wIYD3MQ9E8OcO1fjvIoZLMy9AlBxBoPJuKzW15IZqk/REAAA=",
-    "srcSet": "/art/optimized/box-folio-blind-v1-320.webp 320w, /art/optimized/box-folio-blind-v1-640.webp 640w, /art/optimized/box-folio-blind-v1-960.webp 960w, /art/optimized/box-folio-blind-v1.webp 1254w"
-  },
-  "/art/optimized/box-tribu-blind-v2.webp": {
-    "preview": "data:image/webp;base64,UklGRhwBAABXRUJQVlA4IBABAADQBgCdASoYABgAPwF0rlKrJqQiqAqpYCAJbACdMuN7WK/5tl3OsOCtbukggfuTXF8f/RMtXVmCTVrnto/ux0AA+erHjhgK4uGMR5cRqsOh2DaQGpHBNLoi/6LtQ+7SfnTGrYxi/Z9DVrnGzxpvSY5o+XUnAgdT/MEVAbqvxkPUA/SnXvfS4i/wbwaa5i9p/qeKXNSfCHwTB3Ru9SJYrNm2XWUrIqVpSpVdfssKrRvDBLhXdHVLlE5fNWOdjRkKjthPhrbh2qjmc7ShyB2hxtK8wBG/Fn6rXtACAQeS8ZU7E1VDrYK3PeuAHvCOOb6wkQdBmsub5rJKm7hHKt1Ou+CzyQWBgX5MTW/M/KMEqbAAAA==",
-    "srcSet": "/art/optimized/box-tribu-blind-v2-320.webp 320w, /art/optimized/box-tribu-blind-v2-640.webp 640w, /art/optimized/box-tribu-blind-v2.webp 1024w"
-  },
   "/art/optimized/box-folio-blind-v2.webp": {
     "preview": "data:image/webp;base64,UklGRhwBAABXRUJQVlA4IBABAADQBQCdASoYABgAPwFyrFGrJqQiqA1RYCAJbACdMtDlqAtweqbeIs9ClfHqNDU5Vs0La8JG/W/gAP7e2WJO9A1m69wTWS7FxthnZrfcPPULXctOrqRkMjolF38vJs/2B1sHwfcRmzK1iwlndujKP/6Vp/Qq1+ClEBex98wcIJlmSlC8XT/16KNcNfMQBeQKcxWBO7d8CEmTkCemCGLnuAQEwtjRB5CO/HGdHmRECdYWwsRxrqE28qcctgLjYAnvq+scarEhC3R4MCSQgHpfP75+xJkJ6vkYpXJUSOgqT+mNvsqz7H7X/H2IhQ7jTEysg2dA79rv6rbWJl1rDnUANIIhxC9AbfA1O4pSfAU404AAAA==",
     "srcSet": "/art/optimized/box-folio-blind-v2-320.webp 320w, /art/optimized/box-folio-blind-v2-640.webp 640w, /art/optimized/box-folio-blind-v2-960.webp 960w, /art/optimized/box-folio-blind-v2.webp 1254w"
@@ -58,10 +18,6 @@
   "/art/optimized/box-relic-scratch-v2.webp": {
     "preview": "data:image/webp;base64,UklGRgwBAABXRUJQVlA4IAABAACQBgCdASoYABgAPwF0rVKrJqOiqAqpYCAJbACdMoR8/fgKVlEAqjY34K9fpW1mWf2vs1+JtG3DqicW7nwAAP7abPjs5MJSN1GGxJn3LI5AOLwD9b1/e2HvwlQ/lNag85tA88xWi22MTKDBAbr1j/UnNPztDq+0lNtoh3VeCr1M45m1bfOWEddvN6BroBxyv8G1JALD1HvS+1c+y8SkaXVE3Lpkc7a4WDYsHSJ4SeKiNCgbYAvBnOPLsnU9VzoXh8DK1VFy5zGOA0T0VODJBI7uENxxzhULL6OjWUj/sjPmDFdYs5qu5xDpIs26J1BWcJYmjeEQemW/l8klFpHIQAAA",
     "srcSet": "/art/optimized/box-relic-scratch-v2-320.webp 320w, /art/optimized/box-relic-scratch-v2-640.webp 640w, /art/optimized/box-relic-scratch-v2-960.webp 960w, /art/optimized/box-relic-scratch-v2.webp 1254w"
-  },
-  "/art/optimized/box-sabi-blind-v1.webp": {
-    "preview": "data:image/webp;base64,UklGRkYBAABXRUJQVlA4IDoBAABQBgCdASoYABgAPwFwrVErJiQiqA1RYCAJbACdMoMi1dXhUY3oq+Qa8lELgfrnYWEpL773ed9veCU4AADON2B+uoMMJRKtajgXZYj+Of4NU+kyGealdhrRcyNzbOz2hclqww9RtDHURDaBK1IF+lRJ3EYvxdsp29Z6OxO4hT89Q4NnH2vhBJl9DIFxF04qpn1ARUutDUVyBu4NlszTxnNpnG/Vta+uVsjkS/+HBVRgxndIhhqMps4+PoD2GdyQOGQ3+XnElSdpfFpW+xYC/ILivL73Hy/ly3lyvYPLLAbv43KqylxHAW1S+9SvhkseUwAWj3lANXYMg89ij/MAFE/xO5TzIJ0ugLZkSGe3Df3XrpTOWy6si4ggfCx097jZFfixgOG6NfUl2KQn6jnuTVbu7I/wWfxPwUAAAA==",
-    "srcSet": "/art/optimized/box-sabi-blind-v1-320.webp 320w, /art/optimized/box-sabi-blind-v1-640.webp 640w, /art/optimized/box-sabi-blind-v1.webp 1024w"
   },
   "/art/optimized/box-know-me-blind-v1.webp": {
     "preview": "data:image/webp;base64,UklGRhABAABXRUJQVlA4IAQBAABwBgCdASoYABgAPwFyr1KrJqQiqAqpYCAJbACxHuN/doK8AQwG1qHJ2LemDXEZTZ9CGwxm294jitMpzEgA/ZVbZ1+SYEq+myDVcGsRIoMfCKd9l4mc5KkxRMG454j4Wv98g9OQ3/CetI0YIGgXYo+wK/uB1av/ui74OtQt/4Q1kn6gABIVeP6Hs5c6xjpHvL9bP2zDSsMhVuoBZw6QUdzBSwtGR9TH77D19G+PrCFq0CkZYtulSGznqrMyFbp7LLc/4HbtFVrKmTMzBOHC70ocSnBBG1/7PlSKSvGuBr5lPjFOSOBWRbtkLkavo2n7pxNF6j0d1e8WZx2e7UR1Mx5zOnKAAA==",

@@ -497,7 +497,6 @@
   .at-table .world-table[data-environment='market'] .season-forecast { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; width: 92px; box-sizing: border-box; padding: 4px; }
   .at-table .world-table[data-environment='market'] .season-forecast img { width: 20px; height: 20px; }
   .market-world .counter-board .serving-dish strong { display: none; }
-  .at-table .world-table[data-environment='market'] .art-variant-switcher { display: none; }
   .at-table .world-table[data-environment='cabin'] .table-toolbar > .table-progress.table-round { height: 30px; font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -752,7 +751,6 @@
   .at-table .world-table[data-environment='market'] .hand-controls { inset: 0; height: auto; display: block; }
   .at-table .world-table[data-environment='market'] .hand-controls > .sort-button,
   .at-table .world-table[data-environment='market'] .hand-controls > span:not(:empty) { position: absolute; right: 14px; bottom: calc(var(--world-bottom-gap) + 6px); margin: 0; }
-  .at-table .world-table[data-environment='market'] .art-variant-switcher { left: auto; right: 10px; bottom: auto; top: 56px; }
   /* The clipboards, laid out in source pixels and scaled and sheared with the plate. The box is the
      left paper (144, 348, 108 × 242); the right paper sits 1148 px further along, sheared the other way. */
   .at-table .world-table[data-environment='market'] .hand-controls > .hand-abilities {
@@ -886,7 +884,6 @@
   .at-table .world-table[data-environment='market'] .player-button { min-height: 38px; padding: 3px 8px 6px; font-size: 12px; }
   .at-table .world-table[data-environment='market'] .festival-controls { flex-direction: row; }
   .at-table .world-table[data-environment='market'] .festival-orders { flex-direction: row; }
-  .at-table .world-table[data-environment='market'] .art-variant-switcher { left: auto; right: 8px; bottom: auto; top: calc(var(--world-top) + 44px); flex-direction: row; }
 }
 /* Short tall screens: smaller tickets and a tighter dock so the stage keeps real height. */
 @media (orientation: portrait) and (max-height: 700px), (max-aspect-ratio: 13/10) and (min-height: 501px) and (max-height: 700px) {

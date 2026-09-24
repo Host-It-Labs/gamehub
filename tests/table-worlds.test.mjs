@@ -40,10 +40,9 @@ const stageFor = (game, w, h) => {
 for (const game of ['undertow', 'midnight']) {
   for (const tall of [false, true]) {
     const art = tableWorldFor(game, tall);
-    await test(`${game} ${tall ? 'portrait' : 'landscape'}: source and derived files match the measured metadata`, async () => {
+    await test(`${game} ${tall ? 'portrait' : 'landscape'}: shipped files match the measured metadata`, async () => {
       assert.equal(art.game, game);
-      const source = await sharp(`public${art.source}`).metadata();
-      assert.equal(source.width, art.width); assert.equal(source.height, art.height);
+      // Source PNGs live in the art archive outside the repo; the shipped plate carries the same size.
       assert.equal(tall, art.height > art.width);
       const full = await sharp(`public${art.image}`).metadata();
       assert.equal(full.width, art.width); assert.equal(full.height, art.height);

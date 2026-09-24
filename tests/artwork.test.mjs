@@ -22,14 +22,6 @@ await test('production artwork resolves, responsive covers decode, and all token
       assert.equal((await metadata(path)).width, parseInt(width));
     }
   }
-  for (const game of catalog) {
-    const box = `/art/box-${game.id}-v3.png`;
-    assert.ok((await metadata(box)).width >= 320);
-    for (const variant of previews[box].srcSet.split(', ')) {
-      const [path, width] = variant.split(' ');
-      assert.equal((await metadata(path)).width, parseInt(width));
-    }
-  }
   for (const food of [false, true])
     for (const set of ['beginner', 'intermediate'])
       for (let kind = 0; kind < 6; kind++) {

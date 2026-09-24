@@ -1,6 +1,7 @@
-# World geometry
+# Map sources
 
-`world.json` contains country polygon coordinates from Natural Earth's public-domain
+These notes cover `public/maps`. The retired `world.json` (now in the art
+archive outside the repo) contained country polygon coordinates from Natural Earth's public-domain
 1:110m Admin 0 Countries dataset. Coordinates are rounded to three decimals; properties
 are omitted. It is for a geography game, not navigation or legal boundary determinations.
 
@@ -15,7 +16,6 @@ Real location photographs are stored locally in `public/geography`; each catalog
 record includes the original Wikimedia Commons file, author and licence.
 Full acquisition metadata is in `docs/geography/photo-provenance.json`.
 
-`public/art/atlas-cover.svg` is an original code-native cover composed from the same public-domain polygons, native typography, route strokes and circles.
 
 ## Atlas satellite globe
 
