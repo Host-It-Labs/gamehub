@@ -1,14 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Factory, Play, Sparkles, Ticket } from 'lucide-react';
-import { DialogDescription } from '@/components/ui/dialog';
+import { Factory, Sparkles, Ticket } from 'lucide-react';
 import { api, rememberedName, rememberName } from '@/lib/online/client';
 import type {
   ExpeditionSummary,
   ExpeditionView,
 } from '@/lib/games/relic/types';
 import type { LibraryGame } from '@/lib/games/library-fixtures';
-import { Lid, RunPicker } from './setup-box';
+import { PlayButton, RunPicker, SetupIntro, SetupShell } from './setup-box';
+import { SetupRow } from './setup-row';
 import './online-boxes.css';
 
 type Session = {
@@ -69,90 +69,87 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
     }
   }
   return (
-    <div className="setup-box online-box relic-box">
-      <Lid game={game} />
-      <div className="tray">
-        <div className="setup-intro">
-          <DialogDescription className="tray-note">
-            {game.world}.
-          </DialogDescription>
-        </div>
-        <ul className="relic-box-facts" aria-label="What is in the box">
-          <li>
-            <Ticket aria-hidden="true" /> 8 ticket books
-          </li>
-          <li>
-            <Factory aria-hidden="true" /> A factory you build
-          </li>
-          <li>
-            <Sparkles aria-hidden="true" /> Up to 6 at one desk
-          </li>
-        </ul>
-
-        <form
-          className="relic-box-new"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void open();
-          }}
-        >
-          <div className="tray-row online-box-row">
-            {!known && (
-              <label className="compartment online-name">
-                <span className="online-legend">Your name</span>
-                <input
-                  required
-                  maxLength={30}
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="What should we call you?"
-                />
-              </label>
-            )}
-            <label className="compartment online-name">
-              <span className="online-legend">Desk name</span>
+    <SetupShell game={game} className="online-box relic-box">
+      <SetupIntro game={game} />
+      <ul className="relic-box-facts" aria-label="What is in the box">
+        <li>
+          <Ticket aria-hidden="true" /> 8 ticket books
+        </li>
+        <li>
+          <Factory aria-hidden="true" /> A factory you build
+        </li>
+        <li>
+          <Sparkles aria-hidden="true" /> Up to 6 at one desk
+        </li>
+      </ul>
+      <form
+        className="relic-box-new"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void open();
+        }}
+      >
+        <div className="setup-options">
+          {!known && (
+            <SetupRow label="Your name" className="setup-name">
               <input
                 required
-                maxLength={40}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                aria-label="Your name"
+                maxLength={30}
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="What should we call you?"
               />
-            </label>
-          </div>
-          {!session?.user && !loading && (
-            <p className="tray-soon">
-              Saved in this browser. <a href="/auth">Sign in</a> to play
-              anywhere.
-            </p>
+            </SetupRow>
           )}
-          {error && (
-            <p role="alert" className="online-error">
-              {error}
-            </p>
-          )}
-          <div className="setup-actions">
-            <button
-              className="play-plate"
-              disabled={loading || busy || (!known && !name.trim())}
-            >
-              <Play aria-hidden="true" />
-              {busy ? 'Opening…' : 'New desk'}
-            </button>
-            <RunPicker
-              noun="desk"
-              runs={desks.map((d) => ({
-                key: d.token,
-                href: `/expedition/${d.token}`,
-                label: `Continue at ${d.name}: ${d.members.join(', ')}, ${d.tickets ?? 0} tickets finished`,
-                icon: <Ticket />,
-                title: d.name,
-                detail: `${d.members.join(' · ')} · ${d.tickets ?? 0} tickets`,
-              }))}
+          <SetupRow
+            label="Desk"
+            className="setup-name"
+            note={
+              !session?.user &&
+              !loading && (
+                <>
+                  Saved in this browser. <a href="/auth">Sign in</a> to play
+                  anywhere.
+                </>
+              )
+            }
+          >
+            <input
+              required
+              aria-label="Desk name"
+              maxLength={40}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
-          </div>
-        </form>
-      </div>
-    </div>
+          </SetupRow>
+        </div>
+        {error && (
+          <p role="alert" className="online-error">
+            {error}
+          </p>
+        )}
+        <div className="setup-actions">
+          <PlayButton
+            type="submit"
+            disabled={loading || busy || (!known && !name.trim())}
+          >
+            {busy ? 'Opening…' : 'New desk'}
+          </PlayButton>
+          <RunPicker
+            noun="desk"
+            runs={desks.map((d) => ({
+              key: d.token,
+              href: `/expedition/${d.token}`,
+              label: `Continue at ${d.name}: ${d.members.join(', ')}, ${d.tickets ?? 0} tickets finished`,
+              icon: <Ticket />,
+              title: d.name,
+              detail: `${d.members.join(' · ')} · ${d.tickets ?? 0} tickets`,
+            }))}
+          />
+        </div>
+      </form>
+    </SetupShell>
   );
 }

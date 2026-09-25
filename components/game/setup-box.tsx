@@ -1,6 +1,13 @@
 'use client';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { printedBoxArt } from '@/lib/games/box-covers';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from 'react';
+import { printedBoxArt, wideCover } from '@/lib/games/box-covers';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import {
   Amphora,
@@ -29,6 +36,7 @@ import {
   Tent,
   TrainFront,
   Crown,
+  Users,
   Waves,
   Wind,
   type LucideIcon,
@@ -36,8 +44,9 @@ import {
 import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArtworkImage } from './artwork';
+import { Segmented, SetupRow } from './setup-row';
 import { ContentChoice, GameExtensionChoices } from './expansions';
-import { StatStrip, AvatarStack } from './library';
+import { StatStrip } from './library';
 import { boxStyle } from './game-box';
 import {
   scores,
@@ -84,25 +93,31 @@ export type SetupChoices = GameOptions & {
   sanctuaryGoalsEnabled?: boolean;
 };
 
+/** The lid: the wide cover (its title painted in) edge to edge, then the stat chips. */
 export function Lid({ game }: { game: LibraryGame }) {
   const Motif = motifs[game.motif] ?? Sparkles;
   const developed = game.gameId ?? game.standaloneId;
+  const wide = wideCover(game.id);
   // Folio and Relic have no engine id but do have a printed cover.
-  const cover = game.cover ?? (developed && printedBoxArt(developed).cover);
+  const cover =
+    wide ?? game.cover ?? (developed && printedBoxArt(developed).cover);
+  const titled = !!wide || game.coverIncludesTitle;
   return (
     <div
-      className={`lid ${game.gameId ?? game.standaloneId ?? 'placeholder'} ${game.coverIncludesTitle ? 'printed-cover' : ''}`}
-      style={boxStyle(game, 300)}
+      className={`lid ${game.id} ${wide ? 'wide-cover' : titled ? 'printed-cover' : ''}`}
     >
       <div className="lid-art">
         {cover ? (
           <ArtworkImage
             src={cover}
-            width={1024}
-            height={
-              game.coverIncludesTitle ? 1024 : game.standaloneId ? 1536 : 683
+            width={wide ? 1536 : 1024}
+            height={wide ? 512 : game.coverIncludesTitle ? 1024 : 683}
+            // The lid spans the modal, which is at most 720px wide.
+            sizes={
+              wide
+                ? '(max-width: 740px) 100vw, 720px'
+                : '(max-width: 700px) 200px, 260px'
             }
-            sizes="(max-width: 760px) 100vw, 720px"
             alt=""
             draggable={false}
           />
@@ -111,9 +126,7 @@ export function Lid({ game }: { game: LibraryGame }) {
             <Motif strokeWidth={1.3} />
           </span>
         )}
-        <DialogTitle
-          className={game.coverIncludesTitle ? 'sr-only' : 'lid-title'}
-        >
+        <DialogTitle className={titled ? 'sr-only' : 'lid-title'}>
           {game.name}
         </DialogTitle>
       </div>
@@ -124,12 +137,77 @@ export function Lid({ game }: { game: LibraryGame }) {
   );
 }
 
-/** The world line: shown on wide screens, read out on phones (see setup-box.css). */
-function SetupIntro({ game }: { game: LibraryGame }) {
+/** The world line under the lid; read out rather than shown on phones. */
+export function SetupIntro({ game }: { game: LibraryGame }) {
   return (
-    <div className="setup-intro">
-      <DialogDescription className="tray-note">{game.world}.</DialogDescription>
-    </div>
+    <DialogDescription className="setup-intro">
+      {game.world.replace(/\.$/, '')}.
+    </DialogDescription>
+  );
+}
+
+const levels = ['easy', 'medium', 'hard'] as const;
+
+/** Bot strength as one to three bars, so the three read as a scale. */
+function BotLevels({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Difficulty;
+  onChange: (d: Difficulty) => void;
+  disabled: boolean;
+}) {
+  return (
+    <Segmented
+      label="Bot difficulty"
+      className="seg-levels"
+      disabled={disabled}
+      value={value}
+      onChange={onChange}
+      options={levels.map((level, i) => ({
+        value: level,
+        label: (
+          <>
+            <span className="level-bars" aria-hidden="true">
+              {levels.map((_, bar) => (
+                <i key={bar} className={bar <= i ? 'on' : ''} />
+              ))}
+            </span>
+            <b>{level[0].toUpperCase() + level.slice(1)}</b>
+          </>
+        ),
+      }))}
+    />
+  );
+}
+
+function SeatCount({
+  seats,
+  choices,
+  minPlayers,
+  onChange,
+  disabled,
+}: {
+  seats: number;
+  choices: readonly number[];
+  minPlayers: number;
+  onChange: (n: number) => void;
+  disabled: boolean;
+}) {
+  return (
+    <Segmented
+      label="Players"
+      className="seg-count"
+      disabled={disabled}
+      value={seats}
+      onChange={onChange}
+      options={choices.map((n) => ({
+        value: n,
+        label: <b>{n}</b>,
+        disabled: n < minPlayers,
+      }))}
+    />
   );
 }
 
@@ -157,6 +235,20 @@ export function LearnButton({
     >
       <Icon aria-hidden="true" />
       <span>{label}</span>
+    </button>
+  );
+}
+
+/** Play, filled with the game's own colour. */
+export function PlayButton({
+  children = 'Play',
+  type = 'button',
+  ...props
+}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'>) {
+  return (
+    <button type={type} className="play-plate" {...props}>
+      <Play aria-hidden="true" />
+      {children}
     </button>
   );
 }
@@ -285,31 +377,36 @@ export function RunPicker({
   );
 }
 
+/** What every setup shares: the game's colours, the lid, then the tray. */
+export function SetupShell({
+  game,
+  className = '',
+  children,
+}: {
+  game: LibraryGame;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`setup-box ${className}`} style={boxStyle(game, 300)}>
+      <Lid game={game} />
+      <div className="tray">{children}</div>
+    </div>
+  );
+}
+
 export function PlaceholderBox({ game }: { game: LibraryGame }) {
   return (
-    <div className="setup-box">
-      <Lid game={game} />
-      <div className="tray">
-        <DialogDescription className="tray-note">
-          {game.world}. {game.genre} for {playerRange(game.players)} players,
-          about {game.minutes} minutes.
-        </DialogDescription>
-        <div className="tray-social">
-          {game.playing.length > 0 && (
-            <>
-              <AvatarStack ids={game.playing} size={28} max={4} />
-              <small>
-                {game.playing.length} friends have this on their table
-              </small>
-            </>
-          )}
-        </div>
-        <p className="tray-soon">
-          This box is not on the shelf yet. It stands in for a future game so
-          the library shows its shape.
-        </p>
-      </div>
-    </div>
+    <SetupShell game={game}>
+      <DialogDescription className="setup-intro">
+        {game.world}. {game.genre} for {playerRange(game.players)} players,
+        about {game.minutes} minutes.
+      </DialogDescription>
+      <p className="setup-soon">
+        This box is not on the shelf yet. It stands in for a future game so the
+        library shows its shape.
+      </p>
+    </SetupShell>
   );
 }
 
@@ -335,11 +432,7 @@ function HostPicker({
 }) {
   const host = players.find((p) => p.host)?.id ?? '';
   return (
-    <fieldset className="compartment host-picker">
-      <legend>
-        <Crown aria-hidden="true" />
-        Host
-      </legend>
+    <SetupRow label="Host" Icon={Crown} className="host-picker">
       <RadioGroup
         disabled={disabled || !onHost}
         className="host-seats"
@@ -373,7 +466,7 @@ function HostPicker({
           </span>
         ))}
       </RadioGroup>
-    </fieldset>
+    </SetupRow>
   );
 }
 
@@ -422,60 +515,27 @@ export function StandaloneSetupBox({
   const resumable = !unavailable && save && !save.over;
   const progress = resumable ? entry.progress(save) : null;
   return (
-    <div className="setup-box">
-      <Lid game={game} />
-      <div className="tray">
-        <SetupIntro game={game} />
-
-        <div className="tray-row tray-row-top">
-          <fieldset className="compartment seats">
-            <legend>Players</legend>
-            <RadioGroup
+    <SetupShell game={game}>
+      <SetupIntro game={game} />
+      <div className="setup-options">
+        <SetupRow label="Players" Icon={Users}>
+          <SeatCount
+            seats={seats}
+            choices={entry.seatChoices}
+            minPlayers={minPlayers}
+            onChange={onSeats}
+            disabled={disabled}
+          />
+        </SetupRow>
+        {!humanOnly && (
+          <SetupRow label="Bots" Icon={Bot}>
+            <BotLevels
+              value={difficulty}
+              onChange={onDifficulty}
               disabled={disabled}
-              className="seat-row"
-              value={String(seats)}
-              onValueChange={(v) => onSeats(Number(v))}
-            >
-              {entry.seatChoices.map((n) => (
-                <label key={n} className="seat">
-                  <RadioGroupItem
-                    value={String(n)}
-                    className="sr-only"
-                    disabled={n < minPlayers}
-                  />
-                  <span className="chair" aria-hidden="true">
-                    <i />
-                  </span>
-                  <b>{n}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
-          {!humanOnly && (
-            <fieldset className="compartment bots">
-              <legend>
-                <Bot aria-hidden="true" />
-                Bot difficulty
-              </legend>
-              <RadioGroup
-                disabled={disabled}
-                className="pawn-row"
-                value={difficulty}
-                onValueChange={(v) => onDifficulty(v as Difficulty)}
-              >
-                {(['easy', 'medium', 'hard'] as const).map((level) => (
-                  <label key={level} className={`pawn-choice ${level}`}>
-                    <RadioGroupItem value={level} className="sr-only" />
-                    <span className="pawn" aria-hidden="true">
-                      <i />
-                    </span>
-                    <b>{level}</b>
-                  </label>
-                ))}
-              </RadioGroup>
-            </fieldset>
-          )}
-        </div>
+            />
+          </SetupRow>
+        )}
         {players && (
           <HostPicker
             players={players}
@@ -484,43 +544,38 @@ export function StandaloneSetupBox({
             disabled={disabled}
           />
         )}
-        <div className="setup-actions">
-          <LearnButton
-            onClick={onLearn}
-            disabled={disabled || startDisabled || unavailable}
-          />
-          {unavailable ? (
-            <a
-              className="play-plate"
-              data-starts-game
-              href="/tables"
-              aria-label="Play with friends at an online table"
-            >
-              <Play aria-hidden="true" />
-              Online
-            </a>
-          ) : (
-            <button
-              type="button"
-              className="play-plate"
-              data-starts-game
-              disabled={disabled || startDisabled}
-              onClick={onPlay}
-            >
-              <Play aria-hidden="true" />
-              Play
-            </button>
-          )}
-          {resumable && progress && (
-            <ContinueButton
-              label={`Continue your ${game.name} match, ${progress.label}`}
-              detail={progress.label}
-              onClick={() => onResume(save)}
-            />
-          )}
-        </div>
       </div>
-    </div>
+      <div className="setup-actions">
+        <LearnButton
+          onClick={onLearn}
+          disabled={disabled || startDisabled || unavailable}
+        />
+        {unavailable ? (
+          <a
+            className="play-plate"
+            data-starts-game
+            href="/tables"
+            aria-label="Play with friends at an online table"
+          >
+            <Play aria-hidden="true" />
+            Online
+          </a>
+        ) : (
+          <PlayButton
+            data-starts-game
+            disabled={disabled || startDisabled}
+            onClick={onPlay}
+          />
+        )}
+        {resumable && progress && (
+          <ContinueButton
+            label={`Continue your ${game.name} match, ${progress.label}`}
+            detail={progress.label}
+            onClick={() => onResume(save)}
+          />
+        )}
+      </div>
+    </SetupShell>
   );
 }
 
@@ -571,124 +626,60 @@ export function SetupBox({
   const resumable = save && save.phase !== 'over';
   const saveScores = resumable ? scores(save) : [];
   return (
-    <div className="setup-box">
-      <Lid game={game} />
-      <div className="tray">
-        <SetupIntro game={game} />
-
-        <div className="tray-row tray-row-top">
-          <fieldset className="compartment seats">
-            <legend>Players</legend>
-            <RadioGroup
-              disabled={disabled}
-              className="seat-row"
-              value={String(players)}
-              onValueChange={(v) => onPlayers(Number(v))}
-            >
-              {[2, 3, 4, 5, 6].map((n) => (
-                <label key={n} className="seat">
-                  <RadioGroupItem
-                    value={String(n)}
-                    className="sr-only"
-                    disabled={n < minPlayers}
-                  />
-                  <span className="chair" aria-hidden="true">
-                    <i />
-                  </span>
-                  <b>{n}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
-          <fieldset className="compartment bots">
-            <legend>
-              <Bot aria-hidden="true" />
-              Bot difficulty
-            </legend>
-            <RadioGroup
-              disabled={disabled}
-              className="pawn-row"
-              value={difficulty}
-              onValueChange={(v) => onDifficulty(v as Difficulty)}
-            >
-              {(['easy', 'medium', 'hard'] as const).map((level) => (
-                <label key={level} className={`pawn-choice ${level}`}>
-                  <RadioGroupItem value={level} className="sr-only" />
-                  <span className="pawn" aria-hidden="true">
-                    <i />
-                  </span>
-                  <b>{level}</b>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
-        </div>
-        <div className="tray-row tray-row-bottom">
-          {id === 'undertow' ? (
-            <fieldset className="compartment fast-mode">
-              <legend>Deck</legend>
-              <RadioGroup
-                disabled={disabled}
-                className="deck-choices"
-                value={fastMode ? 'fast' : 'normal'}
-                onValueChange={(value) => onFastMode(value === 'fast')}
-              >
-                {(['normal', 'fast'] as const).map((deck) => (
-                  <label className="deck-choice" key={deck}>
-                    <RadioGroupItem className="sr-only" value={deck} />
-                    <span className="deck-glyph" aria-hidden="true">
-                      {deck === 'normal' ? '1–10' : '1–5'}
-                    </span>
-                    <strong>{deck === 'normal' ? 'Normal' : 'Fast'}</strong>
-                  </label>
-                ))}
-              </RadioGroup>
-            </fieldset>
-          ) : (
-            <div className="compartment content">
-              <ContentChoice
-                disabled={disabled}
-                id={id}
-                options={options}
-                onChange={onOptions}
-              />
-            </div>
-          )}
-          <div className="compartment extensions">
-            <GameExtensionChoices
-              disabled={disabled}
-              id={id}
-              options={options}
-              shields={shields}
-              customerOrders={customerOrders}
-              sanctuaryGoalsEnabled={sanctuaryGoalsEnabled}
-              onChange={onExtensions}
-            />
-          </div>
-        </div>
-        <div className="setup-actions">
-          <LearnButton onClick={onLearn} disabled={disabled || startDisabled} />
-          <button
-            type="button"
-            className="play-plate"
-            data-starts-game
-            disabled={disabled || startDisabled}
-            onClick={onPlay}
-          >
-            <Play aria-hidden="true" />
-            Play
-          </button>
-          {resumable && (
-            <ContinueButton
-              label={`Continue your ${game.name} match, round ${save.round} of ${totalRounds(save)}, ${save.players
-                .map((p, i) => `${p.name} ${saveScores[i]}`)
-                .join(', ')}`}
-              detail={`Round ${save.round} of ${totalRounds(save)}`}
-              onClick={() => onResume(save)}
-            />
-          )}
-        </div>
+    <SetupShell game={game}>
+      <SetupIntro game={game} />
+      <div className="setup-options">
+        <SetupRow label="Players" Icon={Users}>
+          <SeatCount
+            seats={players}
+            choices={[2, 3, 4, 5, 6]}
+            minPlayers={minPlayers}
+            onChange={onPlayers}
+            disabled={disabled}
+          />
+        </SetupRow>
+        <SetupRow label="Bots" Icon={Bot}>
+          <BotLevels
+            value={difficulty}
+            onChange={onDifficulty}
+            disabled={disabled}
+          />
+        </SetupRow>
+        <ContentChoice
+          disabled={disabled}
+          id={id}
+          options={options}
+          fastMode={fastMode}
+          onChange={onOptions}
+          onFastMode={onFastMode}
+        />
+        <GameExtensionChoices
+          disabled={disabled}
+          id={id}
+          options={options}
+          shields={shields}
+          customerOrders={customerOrders}
+          sanctuaryGoalsEnabled={sanctuaryGoalsEnabled}
+          onChange={onExtensions}
+        />
       </div>
-    </div>
+      <div className="setup-actions">
+        <LearnButton onClick={onLearn} disabled={disabled || startDisabled} />
+        <PlayButton
+          data-starts-game
+          disabled={disabled || startDisabled}
+          onClick={onPlay}
+        />
+        {resumable && (
+          <ContinueButton
+            label={`Continue your ${game.name} match, round ${save.round} of ${totalRounds(save)}, ${save.players
+              .map((p, i) => `${p.name} ${saveScores[i]}`)
+              .join(', ')}`}
+            detail={`Round ${save.round} of ${totalRounds(save)}`}
+            onClick={() => onResume(save)}
+          />
+        )}
+      </div>
+    </SetupShell>
   );
 }

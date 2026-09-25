@@ -4,7 +4,7 @@
  */
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { boxCover } from '../lib/games/box-covers.ts';
+import { boxCover, wideCover } from '../lib/games/box-covers.ts';
 import {
   creaturesFor,
   foodsFor,
@@ -38,6 +38,10 @@ for (const id of [
   add(cover);
   add(cover.replace('.webp', '-spine.webp'));
   for (const entry of previews[cover].srcSet.split(', '))
+    add(entry.split(' ')[0]);
+  const wide = wideCover(id);
+  add(wide);
+  for (const entry of previews[wide].srcSet.split(', '))
     add(entry.split(' ')[0]);
 }
 for (const set of ['beginner', 'intermediate']) {

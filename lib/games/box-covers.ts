@@ -12,9 +12,20 @@ const coverSlugs: Record<string, string> = {
 
 export function boxCover(id: string) {
   if (id === 'relic') return '/art/optimized/box-relic-scratch-v2.webp';
+  // Yata's cover follows its flat toon table art (25 September 2026).
+  if (id === 'midnight') return '/art/optimized/box-yata-toon-v1.webp';
   const slug = coverSlugs[id];
-  const version = id === 'midnight' || id === 'folio' ? 2 : 1;
+  const version = id === 'folio' ? 2 : 1;
   return slug ? `/art/optimized/box-${slug}-blind-v${version}.webp` : undefined;
+}
+
+/** Dedicated 3:1 covers for the setup lid, titles generated into the art.
+ * Games without one fall back to their square cover. */
+const wideCovers = new Set(Object.keys(coverSlugs));
+export function wideCover(id: string) {
+  return wideCovers.has(id)
+    ? `/art/optimized/box-${coverSlugs[id]}-wide-v1.webp`
+    : undefined;
 }
 
 export function printedBoxArt(id: string) {

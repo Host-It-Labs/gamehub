@@ -112,6 +112,9 @@ Before creating or changing a game's illustrated board, responsive scene framing
 # Library cover artwork
 
 - Use dedicated full-bleed square illustrations, equally sized across the library.
+- The setup lid uses each game's separate wide cover, cut to 3:1 (`wideCover`
+  in `lib/games/box-covers.ts`); keep its title and subjects inside the middle
+  30–70% of the generated height so short screens can trim the band.
 - Generate the exact current game title inside the image, with legible custom
   typography integrated into the composition. Never overlay visible DOM titles
   or add duplicate titles to cover art. Keep accessible control and dialog names.

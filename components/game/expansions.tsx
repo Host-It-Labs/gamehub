@@ -3,9 +3,11 @@ import { useState, useRef, type ReactNode } from 'react';
 import {
   Anchor,
   Award,
+  Check,
   Footprints,
   Info,
   MoveRight,
+  Puzzle,
   ReceiptText,
   Shield,
   Store,
@@ -18,12 +20,21 @@ import { NewExtensionRules } from './new-extensions';
 import { AbilityRules, CustomerOrderRules } from './extension-rules';
 import { WildTrailsRules } from './mora-extension';
 import { Piece } from './interactions';
-import type { GameId, GameOptions } from '@/lib/games/trio/engine';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { SetupRow } from './setup-row';
+import {
+  foodsFor,
+  tokenImage,
+  type ContentSet,
+  type GameId,
+  type GameOptions,
+} from '@/lib/games/trio/engine';
 type Choices = GameOptions & {
   shields?: boolean;
   customerOrders?: boolean;
   sanctuaryGoalsEnabled?: boolean;
 };
+/** One extension: a switch-like toggle (long-press or I for rules) and an info mark. */
 function ExtensionChoice({
   title,
   Icon,
@@ -45,34 +56,36 @@ function ExtensionChoice({
   function openHelp(source?: HTMLElement) {
     returnFocus.current =
       source ??
-      tile.current?.querySelector<HTMLButtonElement>(
-        '.extension-tile-toggle',
-      ) ??
+      tile.current?.querySelector<HTMLButtonElement>('.ext-toggle') ??
       null;
     setOpen(true);
   }
   return (
-    <div ref={tile} className={`extension-tile ${enabled ? 'enabled' : ''}`}>
+    <div ref={tile} className={`ext ${enabled ? 'on' : ''}`}>
       <Piece
-        className="extension-tile-toggle"
+        className="ext-toggle"
         label={`${title}. ${enabled ? 'Enabled' : 'Disabled'}. Hold or press I for rules.`}
         selected={enabled}
         unavailable={disabled}
         onTap={disabled ? undefined : onChange}
         inspect={() => openHelp()}
       >
-        <Icon aria-hidden="true" />
+        <span className="ext-icon" aria-hidden="true">
+          <Icon />
+        </span>
         <strong>{title}</strong>
-        {enabled && <span className="expansion-check">✓</span>}
+        <span className="ext-switch" aria-hidden="true">
+          <i>{enabled && <Check />}</i>
+        </span>
       </Piece>
       <button
         type="button"
-        className="extension-info"
+        className="ext-info"
         aria-label={`${title} rules`}
         aria-haspopup="dialog"
         onClick={(event) => openHelp(event.currentTarget)}
       >
-        <Info size={17} />
+        <Info />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
@@ -86,52 +99,164 @@ function ExtensionChoice({
     </div>
   );
 }
+
+type SetCard = {
+  value: string;
+  name: string;
+  meta: string;
+  preview: ReactNode;
+};
+
+/** The two ways to set up the box, each shown as what you will play on. */
+function setCards(id: GameId): { label: string; cards: SetCard[] } {
+  if (id === 'undertow')
+    return {
+      label: 'Deck',
+      cards: [
+        {
+          value: 'normal',
+          name: 'Normal',
+          meta: 'Cards 1 to 10',
+          preview: <DeckFan faces={[1, 6, 10]} />,
+        },
+        {
+          value: 'fast',
+          name: 'Fast',
+          meta: 'Cards 1 to 5',
+          preview: <DeckFan faces={[1, 3, 5]} />,
+        },
+      ],
+    };
+  if (id === 'wildgrove')
+    return {
+      label: 'Board',
+      cards: [
+        {
+          value: 'beginner',
+          name: 'The Observatory',
+          meta: 'Beginner · 2 rounds',
+          preview: (
+            <BoardPreview src="/art/optimized/mora-observatory-preview-v1.webp" />
+          ),
+        },
+        {
+          value: 'intermediate',
+          name: 'Floodline Station',
+          meta: 'Intermediate · 3 rounds',
+          preview: (
+            <BoardPreview src="/art/optimized/mora-floodline-preview-v1.webp" />
+          ),
+        },
+      ],
+    };
+  return {
+    label: 'Menu',
+    cards: (['beginner', 'intermediate'] as const).map((set) => ({
+      value: set,
+      name: set === 'beginner' ? 'After Hours' : 'Side B',
+      meta: set === 'beginner' ? 'Original scoring' : 'Alternate scoring',
+      preview: <DishPreview set={set} />,
+    })),
+  };
+}
+
+function BoardPreview({ src }: { src: string }) {
+  return (
+    <img
+      className="set-board"
+      src={src}
+      alt=""
+      width={480}
+      height={240}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+    />
+  );
+}
+
+function DishPreview({ set }: { set: ContentSet }) {
+  return (
+    <span className="set-dishes">
+      {foodsFor(set).map((food, kind) => (
+        <img
+          key={food.name}
+          src={tokenImage(kind, true, set)}
+          alt=""
+          width={512}
+          height={512}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      ))}
+    </span>
+  );
+}
+
+function DeckFan({ faces }: { faces: number[] }) {
+  return (
+    <span className="set-deck">
+      {faces.map((face) => (
+        <i key={face}>{face}</i>
+      ))}
+    </span>
+  );
+}
+
+/** Board (Mora), menu (Yata) or deck (Nox): two picture cards, one chosen. */
 export function ContentChoice({
   id,
   options,
+  fastMode,
   onChange,
+  onFastMode,
   disabled = false,
 }: {
   id: GameId;
   options: GameOptions;
+  fastMode: boolean;
   onChange: (value: GameOptions) => void;
+  onFastMode: (on: boolean) => void;
   disabled?: boolean;
 }) {
-  if (id === 'undertow') return null;
+  const { label, cards } = setCards(id);
+  const value =
+    id === 'undertow'
+      ? fastMode
+        ? 'fast'
+        : 'normal'
+      : (options.contentSet ?? 'beginner');
   return (
-    <fieldset className="content-choice">
-      <legend>{id === 'wildgrove' ? 'Field station' : 'Menu'}</legend>
-      <div>
-        {(['beginner', 'intermediate'] as const).map((set) => (
-          <button
-            type="button"
-            key={set}
-            disabled={disabled}
-            aria-pressed={(options.contentSet ?? 'beginner') === set}
-            onClick={() => onChange({ ...options, contentSet: set })}
-          >
-            <strong>
-              {id === 'wildgrove'
-                ? set === 'beginner'
-                  ? 'The Observatory'
-                  : 'Floodline Station'
-                : set === 'beginner'
-                  ? 'After Hours'
-                  : 'Side B'}
-            </strong>
-            <small>
-              {id === 'wildgrove'
-                ? set === 'beginner'
-                  ? 'Beginner · 2 rounds'
-                  : 'Intermediate · 3 rounds'
-                : set === 'beginner'
-                  ? 'Original rules'
-                  : 'Alternate scoring'}
-            </small>
-          </button>
+    <SetupRow label={label} className="setup-sets">
+      <RadioGroup
+        aria-label={label}
+        disabled={disabled}
+        className="set-cards"
+        value={value}
+        onValueChange={(v) =>
+          id === 'undertow'
+            ? onFastMode(v === 'fast')
+            : onChange({ ...options, contentSet: v as ContentSet })
+        }
+      >
+        {cards.map((card) => (
+          <label key={card.value} className={`set-card ${id}`}>
+            <RadioGroupItem value={card.value} className="sr-only" />
+            <span className="set-preview" aria-hidden="true">
+              {card.preview}
+              <span className="set-check">
+                <Check />
+              </span>
+            </span>
+            <span className="set-copy">
+              <strong>{card.name}</strong>
+              <small>{card.meta}</small>
+            </span>
+          </label>
         ))}
-      </div>
-    </fieldset>
+      </RadioGroup>
+    </SetupRow>
   );
 }
 export function GameExtensionChoices({
@@ -226,9 +351,8 @@ export function GameExtensionChoices({
             },
           ];
   return (
-    <fieldset className="extension-choices">
-      <legend>Extensions</legend>
-      <div className="extension-grid">
+    <SetupRow label="Extensions" Icon={Puzzle} className="setup-extensions">
+      <div className="ext-list">
         {entries.map((entry) => (
           <ExtensionChoice
             key={entry.key}
@@ -242,6 +366,6 @@ export function GameExtensionChoices({
           </ExtensionChoice>
         ))}
       </div>
-    </fieldset>
+    </SetupRow>
   );
 }

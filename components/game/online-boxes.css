@@ -1,133 +1,18 @@
-/* Folio and Relic in the library's open-box modal: the shared lid and tray,
- * with a few pieces of their own (a name field, puzzle-grid difficulty,
- * ticket-stub desks). */
-.online-box .online-box-row {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-.online-box .online-name {
-  display: grid;
-  gap: 6px;
-}
-.online-box .online-legend {
-  padding: 0 5px;
-  font: 600 13px/1.3 inherit;
-}
-.online-box .online-name input {
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid #cdbd9a;
-  border-radius: 8px;
-  background: #fffdf8;
-  color: var(--lib-ink);
-  font-size: 16px;
-}
-.online-box .online-name input:focus-visible {
-  outline: 3px solid #9471ab;
-  outline-offset: 1px;
-}
-.online-box .online-note {
-  display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--lib-ink-2);
-}
+/* Folio and Relic in the library's setup modal: the shared lid and tray
+ * (setup-box.css) with a few pieces of their own. */
 .online-box .online-error {
   margin: 0;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
   background: #fbe3dc;
   color: #8a2a17;
   font-size: 14px;
 }
-.online-box a.resume-strip {
-  text-decoration: none;
-}
-.online-box .resume-copy strong svg {
-  width: 15px;
-  height: 15px;
-  vertical-align: -2px;
-}
-.online-box .tray-soon a {
-  color: inherit;
-  text-decoration: underline;
-}
 
-/* Shared choice tile: seats and difficulty. */
-.online-box .folio-box-seats,
-.online-box .folio-box-levels {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-.online-box .online-choice {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 10px 4px;
-  border: 1px solid #ded5c5;
-  border-radius: 8px;
-  background: #faf5eb;
-  cursor: pointer;
-  text-align: center;
-}
-.online-box .online-choice b {
-  font-size: 13px;
-}
-.online-box .online-choice:hover {
-  border-color: #8a7353;
-}
-.online-box .online-choice:has(:focus-visible) {
-  outline: 3px solid #9471ab;
-  outline-offset: 2px;
-}
-
-/* Folio: cobalt on butter paper, vermilion when chosen. */
-.folio-box .online-choice:has([data-checked]) {
-  background: #f6e7ae;
-  border-color: #193d79;
-  box-shadow: inset 0 0 0 1px #193d79;
-  color: #193d79;
-}
-.folio-box-people {
-  display: flex;
-  height: 26px;
-  align-items: center;
-}
-.folio-box-people svg {
-  width: 18px;
-  height: 18px;
-  margin-inline: -2px;
-}
-/* A little puzzle grid that fills in as the level rises. */
-.folio-box-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 7px);
-  gap: 2px;
-  padding: 2px;
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
-}
-.folio-box-grid i {
-  width: 7px;
-  height: 7px;
-  background: #fffdf8;
-  box-shadow: inset 0 0 0 1px #d4c6af;
-}
-.level-1 .folio-box-grid i:nth-child(5),
-.level-2 .folio-box-grid i:nth-child(odd),
-.level-3 .folio-box-grid i:not(:nth-child(4)) {
-  background: #193d79;
-  box-shadow: none;
-}
-.level-3:has([data-checked]) .folio-box-grid i:nth-child(9) {
-  background: #c5472c;
-}
+/* Folio: practise one puzzle. */
 .folio-box-practice ul {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -139,18 +24,18 @@
   align-items: center;
   gap: 8px;
   padding: 6px;
-  border: 1px solid #ebe2d2;
-  border-radius: 8px;
-  background: #fffdf8;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
 }
 .folio-box-kind {
   display: grid;
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 6px;
-  background: #f1dc93;
-  color: #193d79;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .folio-box-kind svg {
   width: 20px;
@@ -164,9 +49,9 @@
   font-size: 14px;
 }
 .folio-box-kind-name small {
-  font-size: 11px;
-  color: var(--lib-ink-2);
   overflow: hidden;
+  color: var(--ink-2);
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -175,11 +60,11 @@
   align-items: center;
   gap: 4px;
   min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid #bba788;
-  border-radius: 7px;
-  background: #fff9ec;
-  color: #193d79;
+  padding: 0 11px;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--accent);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -189,20 +74,18 @@
   height: 14px;
 }
 .folio-box-practice button:hover:not(:disabled) {
-  background: #193d79;
-  border-color: #193d79;
-  color: #fffdf8;
-}
-.folio-box .setup-actions .play-plate:not(:disabled):hover {
-  color: #193d79;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
-/* Relic: teal desk, copper foil, ticket stubs for saved desks. */
+/* Relic: what is in the box. */
 .relic-box-facts {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
-  margin: 0;
+  margin: -4px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -210,72 +93,30 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: #1f4d4f;
-  color: #f6e3bb;
-  font-size: 12px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12.5px;
   font-weight: 700;
 }
 .relic-box-facts svg {
-  width: 14px;
-  height: 14px;
-  color: #e0a86c;
+  width: 15px;
+  height: 15px;
 }
 .relic-box-new {
-  display: grid;
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.relic-box .setup-actions .play-plate:not(:disabled):hover {
-  color: #1f4d4f;
-}
-/* Phones: the name field, choices and practice list pack tighter; the
- * difficulty note and the box facts stay on wider screens. */
 @media (max-width: 600px) {
-  .online-box .online-box-row {
-    gap: 8px;
-  }
-  .relic-box .online-box-row {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-  .online-box .online-name {
-    gap: 4px;
-  }
-  .online-box .online-name input {
-    min-height: 40px;
-    padding: 6px 10px;
-  }
-  .online-box .online-note,
-  .relic-box-facts {
-    display: none;
-  }
-  .online-box .online-choice {
-    gap: 4px;
-    padding: 6px 4px;
-  }
-  .folio-box-people {
-    height: 20px;
+  .relic-box-facts li {
+    height: 26px;
+    padding: 0 9px;
+    font-size: 11.5px;
   }
   .relic-box-new {
-    gap: 8px;
-  }
-  .folio-box-practice ul {
-    max-height: 44dvh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .online-box .tray-soon {
-    padding: 0 4px;
-    font-size: 12px;
-    line-height: 1.35;
-  }
-}
-@media (max-width: 480px) {
-  .folio-box-practice li {
-    grid-template-columns: 30px minmax(0, 1fr) auto;
-  }
-  .folio-box-practice li button:last-child {
-    grid-column: 2 / -1;
-    justify-self: end;
+    gap: 12px;
   }
 }

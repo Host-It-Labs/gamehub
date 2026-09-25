@@ -1,5 +1,13 @@
 # Gamehub design direction
 
+## Setup modal and wide covers (25 September 2026)
+
+William liked the setup lid (cover plus stat chips) but not the tray under it, and asked for covers that fill the wide lid instead of a small square in a coloured band. Every game now has a dedicated **wide cover** with its title painted in, cut to exactly 3:1 (`wideCover` in `lib/games/box-covers.ts`, delivery files from `scripts/optimize-wide-covers.mjs`; prompts, attempts and picks in [wide covers](concepts/2026-09-25-wide-covers/README.md)). The brief keeps the title and subjects inside the middle 30–70% of the generated height, so the lid may trim up to a fifth of the 3:1 band on short screens (`clamp(26.67cqw, 30dvh, 33.34cqw)`). The square covers stay for the library boxes.
+
+Yata's cover was too realistic and detailed next to its flat toon table, so both its square and wide covers were regenerated in the table's cel-shaded toon paragraph (`box-yata-toon-v1`); the gouache cover moved to the art archive.
+
+The tray is rebuilt in `components/game/setup-box.tsx` and `setup-row.tsx`: calm paper, small uppercase labels, and the game's own palette (`--box-deep` as the accent) on every selected state and on Play. Players and bot strength are segmented tracks (bots carry one to three bars). The content set is a pair of picture cards that show what you will play on: Mora's **Board** shows each board (`mora-*-preview-v1.webp`, the middle of the overview plates), Yata's **Menu** its six dishes, Nox's **Deck** a fan of cards. Extensions are rows with a visible on/off switch and an info mark (three tiles in a row on phones), still opening the shared `RuleExplanation` modal by long-press, I or the mark. Learn, Play and Continue close the tray. Folio and Relic reuse the same shell, rows and buttons. On a 375px phone every setup fits without scrolling.
+
 ## Tribu refinements: closer scoring, finite spectrums, changeable votes (23 September 2026, later)
 
 - **Top Five scores by closeness.** Each of the author's answers earns 2
@@ -596,7 +604,7 @@ The user chose Direction D from the library concepts (`concepts/2026-09-19-libra
 
 `components/game/game-box.tsx` draws every box from three CSS faces at one shared angle with a deep visible side; sizes travel as `--gw/--gh/--gd` so stylesheets can resize per breakpoint. The three real covers are crops of the live board plates (`public/art/box-*-v3.png`: the Nox cabin, the Mora observatory, the Yata canal market). Twenty-two placeholder games in `lib/games/library-fixtures.ts` fill the shelves with material, palette and motif only; friends, open tables and the leaderboard there are fixtures too, and no navigation item beyond Play with friends and Settings leads anywhere yet.
 
-Setup follows the Direction M open-box concept in `components/game/setup-box.tsx`: the lid carries the cover, title and stat chips; the kraft tray holds a Learn leaflet, seat tokens for players, three pawns for bot difficulty, folded boards for content sets (Nox shows its Fast mode deck instead), printed extension tiles with emblem, check and info mark, and one cream Play plate. A saved match appears as a continue strip at the top of the tray, which replaces the library's Resume button. Since 24 September 2026 the bottom row is Learn, Play and, when a match is saved, Continue on the right; games that keep several runs (Folio, Relic) show New run and a Continue that opens a list of runs in progress (`RunPicker`). On phones the modal fits without scrolling: shorter cover, one chip row, no world sentence, Players and Bot difficulty on one row.
+**Superseded for the tray (25 September 2026), see Setup modal and wide covers above.** Setup follows the Direction M open-box concept in `components/game/setup-box.tsx`: the lid carries the cover, title and stat chips; the kraft tray holds a Learn leaflet, seat tokens for players, three pawns for bot difficulty, folded boards for content sets (Nox shows its Fast mode deck instead), printed extension tiles with emblem, check and info mark, and one cream Play plate. A saved match appears as a continue strip at the top of the tray, which replaces the library's Resume button. Since 24 September 2026 the bottom row is Learn, Play and, when a match is saved, Continue on the right; games that keep several runs (Folio, Relic) show New run and a Continue that opens a list of runs in progress (`RunPicker`). On phones the modal fits without scrolling: shorter cover, one chip row, no world sentence, Players and Bot difficulty on one row.
 
 ### Shared table navigation
 

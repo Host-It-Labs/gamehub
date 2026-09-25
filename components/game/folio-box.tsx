@@ -1,8 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Crown, Dumbbell, Play, User, Users } from 'lucide-react';
-import { DialogDescription } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Crown, Dumbbell, Grid3x3, User, Users } from 'lucide-react';
 import { api, rememberedName, rememberName } from '@/lib/online/client';
 import {
   KINDS,
@@ -17,7 +15,14 @@ import {
   ROUNDS,
 } from '@/lib/games/folio/catalog';
 import type { LibraryGame } from '@/lib/games/library-fixtures';
-import { LearnButton, Lid, RunPicker } from './setup-box';
+import {
+  LearnButton,
+  PlayButton,
+  RunPicker,
+  SetupIntro,
+  SetupShell,
+} from './setup-box';
+import { Segmented, SetupRow } from './setup-row';
 import { KindIcon } from './folio-icons';
 import './online-boxes.css';
 
@@ -85,30 +90,22 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
   }
   const active = runs.filter((r) => r.phase !== 'over' && !r.practice);
   return (
-    <div className="setup-box online-box folio-box">
-      <Lid game={game} />
-      <div className="tray">
-        <div className="setup-intro">
-          <DialogDescription className="tray-note">
-            {game.world}
-          </DialogDescription>
-        </div>
-
-        <label className="compartment online-name">
-          <span className="online-legend">Your name</span>
+    <SetupShell game={game} className="online-box folio-box">
+      <SetupIntro game={game} />
+      <div className="setup-options">
+        <SetupRow label="Your name" className="setup-name">
           <input
             id="folio-box-name"
+            aria-label="Your name"
             maxLength={30}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
             placeholder="How the crew will see you"
           />
-        </label>
-
+        </SetupRow>
         {practice ? (
-          <fieldset className="compartment folio-box-practice">
-            <legend>Practise one puzzle</legend>
+          <SetupRow label="Practise" className="folio-box-practice">
             <ul>
               {KINDS.map((kind) => (
                 <li key={kind}>
@@ -143,100 +140,83 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
                 </li>
               ))}
             </ul>
-          </fieldset>
+          </SetupRow>
         ) : (
           <>
-            <div className="tray-row online-box-row">
-              <fieldset className="compartment">
-                <legend>Players</legend>
-                <RadioGroup
-                  className="folio-box-seats"
-                  value={String(seats)}
-                  onValueChange={(v) => setSeats(Number(v))}
-                >
-                  {[1, 2, 3].map((n) => (
-                    <label key={n} className="online-choice">
-                      <RadioGroupItem value={String(n)} className="sr-only" />
-                      <span className="folio-box-people" aria-hidden="true">
-                        {Array.from({ length: n }, (_, i) => (
-                          <User key={i} />
-                        ))}
-                      </span>
-                      <b>{n === 1 ? 'Solo' : `${n} players`}</b>
-                    </label>
-                  ))}
-                </RadioGroup>
-              </fieldset>
-              <fieldset className="compartment">
-                <legend>Difficulty</legend>
-                <RadioGroup
-                  className="folio-box-levels"
-                  value={String(difficulty)}
-                  onValueChange={(v) => setDifficulty(Number(v) as Difficulty)}
-                >
-                  {([1, 2, 3] as const).map((level) => (
-                    <label
-                      key={level}
-                      className={`online-choice level-${level}`}
-                    >
-                      <RadioGroupItem
-                        value={String(level)}
-                        className="sr-only"
-                      />
-                      <span className="folio-box-grid" aria-hidden="true">
-                        {Array.from({ length: 9 }, (_, i) => (
-                          <i key={i} />
+            <SetupRow label="Players" Icon={Users}>
+              <Segmented
+                label="Players"
+                className="seg-count"
+                value={seats}
+                onChange={setSeats}
+                options={[1, 2, 3].map((n) => ({
+                  value: n,
+                  label: <b>{n === 1 ? 'Solo' : n}</b>,
+                }))}
+              />
+            </SetupRow>
+            <SetupRow
+              label="Difficulty"
+              Icon={Grid3x3}
+              note={DIFFICULTY_NOTES[difficulty]}
+            >
+              <Segmented
+                label="Difficulty"
+                className="seg-levels"
+                value={difficulty}
+                onChange={setDifficulty}
+                options={([1, 2, 3] as const).map((level) => ({
+                  value: level,
+                  label: (
+                    <>
+                      <span className="level-bars" aria-hidden="true">
+                        {[1, 2, 3].map((bar) => (
+                          <i key={bar} className={bar <= level ? 'on' : ''} />
                         ))}
                       </span>
                       <b>{LEVEL_NAMES[level]}</b>
-                    </label>
-                  ))}
-                </RadioGroup>
-                <small className="online-note">
-                  {DIFFICULTY_NOTES[difficulty]}
-                </small>
-              </fieldset>
-            </div>
-          </>
-        )}
-
-        {error && (
-          <p role="alert" className="online-error">
-            {error}
-          </p>
-        )}
-        <div className="setup-actions">
-          <LearnButton
-            label={practice ? 'Back' : 'Practise'}
-            Icon={Dumbbell}
-            expanded={practice}
-            onClick={() => setPractice((v) => !v)}
-          />
-          {!practice && (
-            <>
-              <button
-                type="button"
-                className="play-plate"
-                disabled={busy}
-                onClick={() => void enter({ seats, difficulty })}
-              >
-                <Play aria-hidden="true" />
-                New run
-              </button>
-              <RunPicker
-                runs={active.map((s) => ({
-                  key: s.token,
-                  href: `/folio/${s.token}`,
-                  label: `Continue: ${runTitle(s)}, ${runDetail(s).replace('♥', 'lives')}, ${shortDate(s.updatedAt)}`,
-                  icon: s.seats === 1 ? <User /> : <Users />,
-                  title: runTitle(s),
-                  detail: `${runDetail(s)} · ${shortDate(s.updatedAt)}`,
+                    </>
+                  ),
                 }))}
               />
-            </>
-          )}
-        </div>
+            </SetupRow>
+          </>
+        )}
       </div>
-    </div>
+
+      {error && (
+        <p role="alert" className="online-error">
+          {error}
+        </p>
+      )}
+      <div className="setup-actions">
+        <LearnButton
+          label={practice ? 'Back' : 'Practise'}
+          Icon={Dumbbell}
+          expanded={practice}
+          onClick={() => setPractice((v) => !v)}
+        />
+        {!practice && (
+          <>
+            <PlayButton
+              disabled={busy}
+              onClick={() => void enter({ seats, difficulty })}
+            >
+              New run
+            </PlayButton>
+            <RunPicker
+              runs={active.map((s) => ({
+                key: s.token,
+                href: `/folio/${s.token}`,
+                label: `Continue: ${runTitle(s)}, ${runDetail(s).replace('♥', 'lives')}, ${shortDate(s.updatedAt)}`,
+                icon: s.seats === 1 ? <User /> : <Users />,
+                title: runTitle(s),
+                detail: `${runDetail(s)} · ${shortDate(s.updatedAt)}`,
+              }))}
+            />
+          </>
+        )}
+      </div>
+    </SetupShell>
   );
 }
