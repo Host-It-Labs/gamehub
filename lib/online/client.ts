@@ -73,3 +73,13 @@ export function joinTable<T>(invite: string, name: string): Promise<T> {
   joins.set(invite, promise);
   return promise;
 }
+
+/** Where Folio and Relic go back to: the table that sent the players there,
+ *  otherwise home. A removed table sends its link home in turn. */
+export function returnPath() {
+  try {
+    return sessionStorage.getItem('gamehub.return-table') ?? '/';
+  } catch {
+    return '/';
+  }
+}

@@ -147,6 +147,10 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
               title: d.name,
               detail: `${d.members.join(' · ')} · ${d.tickets ?? 0} tickets`,
             }))}
+            onDelete={async (token) => {
+              await api(`/api/expeditions/${token}/delete`, {});
+              setDesks((rows) => rows.filter((r) => r.token !== token));
+            }}
           />
         </div>
       </form>

@@ -56,14 +56,15 @@ try {
   assert.equal(joined.members.length, 2);
   const opened = await guest(`${path}/commands`, {
     requestId: randomUUID(),
-    action: { type: 'scratch-open', pack: 'pocket' },
+    action: { type: 'scratch-open', pack: 'seven' },
   });
-  const ticket = opened.game.scratch.tickets[opened.viewerId];
+  const ticket = opened.game.scratch.tickets[opened.viewerId][0];
+  // One sweep over the whole ticket: the ticket ends and pays by itself.
   const points = Array.from({ length: 66 }, (_, i) => ({
     x: i % 4 < 2 ? 0.005 : 0.995,
     y: 0.005 + Math.floor(i / 2) * 0.03,
   }));
-  await guest(`${path}/commands`, {
+  const command = {
     requestId: randomUUID(),
     action: {
       type: 'scratch-stroke',
@@ -72,10 +73,6 @@ try {
       tool: 'coin',
       points,
     },
-  });
-  const command = {
-    requestId: randomUUID(),
-    action: { type: 'scratch-claim', ticket: ticket.id },
   };
   const moved = await guest(`${path}/commands`, command);
   assert.ok(moved.game.coins > 0);
@@ -102,11 +99,14 @@ try {
   const art = [
     '/art/relic/scratch-desk-landscape-v1.webp',
     '/art/relic/scratch-desk-portrait-v1.webp',
-    '/art/optimized/box-relic-scratch-v2.webp',
-    '/art/optimized/box-relic-scratch-v2-spine.webp',
+    '/art/optimized/box-lucky-v1.webp',
+    '/art/optimized/box-lucky-v1-spine.webp',
+    '/art/lucky/symbols-v1.webp',
+    '/art/lucky/ticket-seven-v1.webp',
+    '/art/lucky/ticket-crown-v1-small.webp',
   ];
-  for (const width of [320, 640, 960])
-    art.push(`/art/optimized/box-relic-scratch-v2-${width}.webp`);
+  for (const width of [320, 640])
+    art.push(`/art/optimized/box-lucky-v1-${width}.webp`);
   for (const src of art) {
     const response = await fetch(base + src);
     assert.equal(response.status, 200, src);
@@ -122,7 +122,7 @@ try {
   assert.equal(retry.game.revision, moved.game.revision);
   assert.equal(retry.game.coins, moved.game.coins);
   console.log(
-    `Relic production smoke passed: two guests, scratch coverage and payout, activity endpoint, disk restart, deduplicated retry, two SPA routes and ${art.length} WebP assets.`,
+    `Lucky production smoke passed: two guests, scratch coverage and payout, activity endpoint, disk restart, deduplicated retry, two SPA routes and ${art.length} WebP assets.`,
   );
 } finally {
   await app?.close();

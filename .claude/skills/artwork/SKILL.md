@@ -18,6 +18,8 @@ CODEX=$(command -v codex || echo /Users/williamguinaudie/.nvm/versions/node/v22.
 
 Resolve `codex` from `PATH`; the nvm path is only a fallback for shells that do not have it. If neither resolves, tell the user instead of guessing another path.
 
+Since 25 September 2026 the configured default model (`gpt-6-sol`) is refused for this ChatGPT account ("not supported when using Codex with a ChatGPT account"); pass `-m gpt-6-astra` after `exec`. Codex needs network access, so run it outside the command sandbox.
+
 - Run generations **in parallel** — there is no three-at-a-time cap. Launch them as background Bash calls and collect the results as they land. A dozen at once is fine; the practical limit is the user's Codex allowance and patience, not the harness. Each generation can take several minutes.
 - Still **one image per invocation**: never ask a single call for two variants or two orientations.
 - Order matters only for reporting: tell the user what is running, and report each image as it lands rather than waiting for the whole set.

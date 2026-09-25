@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Coins,
   Copy,
@@ -9,6 +9,7 @@ import {
   Minimize2,
   Sparkles,
   Ticket,
+  Users,
   Volume2,
   VolumeX,
   X,
@@ -21,7 +22,7 @@ import {
   type RelicGame,
 } from '@/lib/games/relic/engine';
 import { advanceFactory, TICK_MS } from '@/lib/games/relic/factory';
-import { PACKS, packOpen, type PackId } from '@/lib/games/relic/scratch';
+import { PACKS, packOpen } from '@/lib/games/relic/scratch';
 import type { ExpeditionView } from '@/lib/games/relic/types';
 import { ScratchAudio } from './relic-scratch-audio';
 import { ScratchDesk } from './relic-scratch-desk';
@@ -96,7 +97,7 @@ export function RelicScratch({
 }) {
   const game = view.game,
     state = game.scratch!,
-    ticket = state.tickets[view.viewerId];
+    table = state.tickets[view.viewerId] ?? [];
   const live = usePredicted(game),
     liveState = live.scratch!;
   const [tab, setTab] = useState<Tab>(() => {
@@ -110,7 +111,6 @@ export function RelicScratch({
   const [overlay, setOverlay] = useState<'menu' | 'others' | 'help' | null>(
     null,
   );
-  const [nextPack, setNextPack] = useState<PackId>(ticket?.pack ?? 'pocket');
   const [muted, setMuted] = useState(() => {
       try {
         return localStorage.getItem('gamehub-relic-muted') === 'true';
@@ -120,11 +120,6 @@ export function RelicScratch({
     }),
     [copied, setCopied] = useState(false),
     [fullscreen, setFullscreen] = useState(false);
-  const [surfaceStatus, setSurfaceStatus] = useState({
-    id: ticket?.id,
-    count: ticket?.cells.filter((c) => c.revealed).length ?? 0,
-    syncing: false,
-  });
   const [audio] = useState(() => new ScratchAudio());
   const root = useRef<HTMLElement>(null),
     dialog = useRef<HTMLDialogElement>(null),
@@ -133,11 +128,6 @@ export function RelicScratch({
   useEffect(() => {
     viewRef.current = onView;
   }, [onView]);
-  const syncing = surfaceStatus.id === ticket?.id && surfaceStatus.syncing;
-  const count =
-    surfaceStatus.id === ticket?.id
-      ? surfaceStatus.count
-      : (ticket?.cells.filter((c) => c.revealed).length ?? 0);
   useEffect(() => {
     try {
       localStorage.setItem('gamehub-relic-tab', tab);
@@ -154,12 +144,15 @@ export function RelicScratch({
   useEffect(() => {
     audio.setMuted(muted);
   }, [audio, muted]);
+  // A first desk starts with a few tickets on the table.
   useEffect(() => {
-    if (!ticket && !booted.current) {
-      booted.current = true;
-      void onAct({ type: 'scratch-open', pack: 'pocket' });
-    }
-  }, [ticket, onAct]);
+    if (booted.current || state.completed || table.length) return;
+    booted.current = true;
+    void (async () => {
+      for (let i = 0; i < 3; i++)
+        if (!(await onAct({ type: 'scratch-open', pack: 'seven' }))) break;
+    })();
+  }, [state.completed, table.length, onAct]);
   useEffect(() => {
     const sessionId = crypto.randomUUID();
     let stopped = false,
@@ -252,11 +245,6 @@ export function RelicScratch({
     if (result && cue) audio.cue(cue);
     return result;
   }
-  async function claim() {
-    await audio.unlock();
-    const result = await onAct({ type: 'scratch-claim', ticket: ticket!.id });
-    if (result?.scratchCoins) audio.cue('prize');
-  }
   async function toggleFullscreen() {
     try {
       if (document.fullscreenElement) await document.exitFullscreen?.();
@@ -265,12 +253,6 @@ export function RelicScratch({
       /* Fullscreen is optional on unsupported devices. */
     }
   }
-  const ticketId = ticket?.id;
-  const setStatus = useCallback(
-    (revealed: number, pending: boolean) =>
-      setSurfaceStatus({ id: ticketId, count: revealed, syncing: pending }),
-    [ticketId],
-  );
   const rate = liveState.factory.rate;
   return (
     <main className="relic-scratch-room" ref={root} data-tab={tab}>
@@ -282,14 +264,13 @@ export function RelicScratch({
         <img src="/art/relic/scratch-desk-landscape-v1.webp" alt="" />
       </picture>
       <GameNavigation
-        name="Relic"
+        name="Lucky"
         onBack={onBack}
         onMenu={() => setOverlay('menu')}
-        onOthers={() => setOverlay('others')}
-        progress={`${state.completed} tickets · ${PACKS.filter((p) => packOpen(state, p.id)).length}/${PACKS.length} books`}
+        progress={`${state.completed} ${state.completed === 1 ? 'ticket' : 'tickets'} · ${PACKS.filter((p) => packOpen(state, p.id)).length}/${PACKS.length} books`}
       />
       <header className="rs-top">
-        <div className="rs-tabs" role="tablist" aria-label="Relic">
+        <div className="rs-tabs" role="tablist" aria-label="Lucky">
           {TABS.map(({ id, name, icon: Icon }) => (
             <button
               key={id}
@@ -341,30 +322,17 @@ export function RelicScratch({
           <ScratchDesk
             state={state}
             coins={game.coins}
-            ticket={ticket}
-            nextPack={nextPack}
+            table={table}
             busy={busy}
-            syncing={syncing}
-            count={count}
             audio={audio}
-            onChoose={setNextPack}
-            onBuyBook={(id) => {
-              void act({ type: 'scratch-book', pack: id }, 'upgrade').then(
-                (ok) => ok && setNextPack(id),
-              );
-            }}
-            onOpen={() =>
-              void act({ type: 'scratch-open', pack: nextPack }, 'paper')
+            onTake={(pack, level) =>
+              act({ type: 'scratch-open', pack, level }, 'paper')
             }
-            onClaim={() => void claim()}
-            onStatus={setStatus}
-            onStroke={(sequence, batch) =>
-              onAct({
-                type: 'scratch-stroke',
-                ticket: ticket!.id,
-                sequence,
-                ...batch,
-              })
+            onBuyBook={(id) => {
+              void act({ type: 'scratch-book', pack: id }, 'upgrade');
+            }}
+            onStroke={(ticket, sequence, batch) =>
+              onAct({ type: 'scratch-stroke', ticket, sequence, ...batch })
             }
           />
         ) : tab === 'factory' ? (
@@ -400,7 +368,7 @@ export function RelicScratch({
                 ? 'How to play'
                 : overlay === 'others'
                   ? 'Others at your desk'
-                  : 'Relic menu'
+                  : 'Lucky menu'
             }
           >
             <button
@@ -415,12 +383,51 @@ export function RelicScratch({
                 <h2>How to play</h2>
                 <div className="scratch-help">
                   <p>
-                    <b>Scratch.</b> Hold and rub the foil. Keyboard: arrows to
-                    move, hold Space to scratch.
+                    <b>Tickets.</b> Tap a book to lay a ticket on your table,
+                    then tap the ticket to pick it up. Hold and rub the foil;
+                    keyboard: arrows to move, hold Space to scratch.
                   </p>
                   <p>
-                    <b>Books.</b> Buy the next book on the left. Each has one
-                    rule printed on its foil; following it pays a bonus.
+                    <b>Books.</b> Every book is a small puzzle with its rule on
+                    the shelf. A ticket pays the moment it is over; a perfect
+                    ticket pays the jackpot.
+                  </p>
+                  <ul>
+                    <li>
+                      <b>Lucky Seven:</b> every seal points toward the 7.
+                    </li>
+                    <li>
+                      <b>Twins:</b> the arrow on each seal points to its twin;
+                      scratch twins one after the other.
+                    </li>
+                    <li>
+                      <b>Garden:</b> start at 1 and draw one path through every
+                      seal, numbers in order, never across a hedge.
+                    </li>
+                    <li>
+                      <b>Ladder:</b> every number must be higher than the last;
+                      the colour tells you roughly how high.
+                    </li>
+                    <li>
+                      <b>Gold Mine:</b> numbers count the dynamite around them.
+                    </li>
+                    <li>
+                      <b>Sun &amp; Moon:</b> each row and column holds as many
+                      suns as moons, never three alike in a line; = and × join
+                      equal and opposite seals. Scratch only the moons.
+                    </li>
+                    <li>
+                      <b>Sea Chart:</b> the edge numbers count ship parts in
+                      each row and column; ships never touch.
+                    </li>
+                    <li>
+                      <b>Crown Jewels:</b> one crown in every row, column and
+                      colour, and crowns never touch.
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Levels.</b> Playing a book opens harder levels that pay
+                    more. You can always go back to an easier one.
                   </p>
                   <p>
                     <b>Factory.</b> Printers make tickets, bots scratch them,
@@ -429,12 +436,8 @@ export function RelicScratch({
                     while this page is open.
                   </p>
                   <p>
-                    <b>Upgrades.</b> Each card shows the number it changes, now
-                    and after buying.
-                  </p>
-                  <p>
                     <b>Together.</b> Coins, books, the factory and upgrades are
-                    shared. Everyone has their own ticket.
+                    shared. Everyone has their own table.
                   </p>
                 </div>
               </>
@@ -479,7 +482,7 @@ export function RelicScratch({
               </>
             ) : (
               <>
-                <h2>Relic</h2>
+                <h2>Lucky</h2>
                 <div className="scratch-menu-stats">
                   <span>
                     <b>{state.completed}</b> tickets
@@ -506,6 +509,13 @@ export function RelicScratch({
                 >
                   <HelpCircle />
                   How to play
+                </button>
+                <button
+                  className="scratch-menu-item"
+                  onClick={() => setOverlay('others')}
+                >
+                  <Users />
+                  Players and invitation
                 </button>
                 {process.env.NODE_ENV === 'development' && (
                   <button

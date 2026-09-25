@@ -163,6 +163,31 @@
   border-top: 1px solid #e6d9c4;
   padding: 15px 0;
 }
+.relic-saved-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-top: 1px solid #e6d9c4;
+}
+.relic-saved-row .relic-saved {
+  flex: 1;
+  min-width: 0;
+  border-top: 0;
+}
+.relic-saved-delete {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #81715f;
+  cursor: pointer;
+}
+.relic-saved-delete:hover {
+  background: #f5ddd2;
+  color: #a3321f;
+}
 .relic-saved > span:nth-child(2) {
   flex: 1;
 }

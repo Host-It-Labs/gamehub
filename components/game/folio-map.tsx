@@ -3,7 +3,6 @@ import { useState, type CSSProperties } from 'react';
 import { Crown } from 'lucide-react';
 import type { MapNode, PublicGame } from '@/lib/games/folio/types';
 import {
-  ACTS,
   BOSS_EVERY,
   LANES,
   LEVEL_NAMES,
@@ -20,6 +19,8 @@ function wobble(id: string) {
 /** Vertical position of a round within its act: the start low, the boss high. */
 const rowY = (row: number) =>
   0.07 + ((BOSS_EVERY - 1 - (row % BOSS_EVERY)) / (BOSS_EVERY - 1)) * 0.74;
+/** Act tabs shown at once. */
+const TABS = 4;
 export const actOfRow = (row: number) => Math.floor(row / BOSS_EVERY);
 /** The act the crew is in or about to enter. */
 export function currentAct(g: PublicGame, open: string[]) {
@@ -65,10 +66,19 @@ export function FolioMap({
   };
   const boss = (a: number) =>
     g.map.find((n) => n.type === 'boss' && actOfRow(n.row) === a);
+  // The trail never ends: tabs cover a short window around the crew, up to
+  // the last act drawn so far.
+  const last = g.map.length
+    ? actOfRow(Math.max(...g.map.map((n) => n.row)))
+    : 0;
+  const tabs = Array.from(
+    { length: Math.min(TABS, last + 1) },
+    (_, i) => Math.max(0, last + 1 - TABS) + i,
+  );
   return (
     <div className="folio-map-wrap">
       <div className="folio-acts" role="tablist" aria-label="Acts">
-        {Array.from({ length: ACTS }, (_, a) => {
+        {tabs.map((a) => {
           const b = boss(a);
           return (
             <button

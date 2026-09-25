@@ -250,7 +250,7 @@ for (const id of standaloneIds) await test(`${id}: disconnected humans cannot be
   } finally { db.close(); }
 });
 
-await test('hosting defaults to the creator, can be handed over in the lobby, and gates moving reveals on', () => {
+await test('the creator keeps hosting the table; a picked player leads only the next match', () => {
   const connected = new Set(['host', 'ada', 'bo']);
   const db = openDatabase(':memory:');
   db.prepare('INSERT INTO users VALUES (?,?,?,?)').run('host', 'host@example.com', 'host', 'unused');
@@ -265,31 +265,45 @@ await test('hosting defaults to the creator, can be handed over in the lobby, an
     assert.equal(tables.view(t, ada).isHost, false);
     assert.throws(() => cmd(tables, t, ada, { type: 'host', memberId: 'ada' }), /Only the host/);
     t = cmd(tables, t, host, { type: 'host', memberId: 'ada' });
-    const view = tables.view(t, host);
-    assert.equal(view.isHost, false);
-    assert.equal(tables.view(t, ada).isHost, true);
+    // In the lobby the creator still runs everything; Ada is only marked.
+    let view = tables.view(t, host);
+    assert.equal(view.isHost, true);
+    assert.equal(tables.view(t, ada).isHost, false);
+    assert.deepEqual(view.members.filter(m => m.host).map(m => m.id), ['host']);
+    assert.deepEqual(view.members.filter(m => m.nextHost).map(m => m.id), ['ada']);
+    t = cmd(tables, t, host, { type: 'configure', gameId: 'orin', difficulty: 'medium', capacity: 3 });
+    assert.throws(() => cmd(tables, t, ada, { type: 'configure', gameId: 'orin', difficulty: 'medium', capacity: 3 }), /Only the host/);
+    assert.throws(() => cmd(tables, t, ada, { type: 'start' }), /Only the host/);
+    assert.throws(() => cmd(tables, t, ada, { type: 'remove', memberId: 'host' }), /Only the host/);
+    t = cmd(tables, t, host, { type: 'start' });
+    assert.throws(() => cmd(tables, t, host, { type: 'host', memberId: 'bo' }), /lobby/);
+    // During the match Ada leads: she moves the table on.
+    view = tables.view(t, bo);
     assert.deepEqual(view.members.filter(m => m.host).map(m => m.id), ['ada']);
-    assert.equal(view.members.find(m => m.id === 'host').owner, true);
-    // The new host runs the table; the creator cannot be removed or leave.
-    assert.throws(() => cmd(tables, t, host, { type: 'configure', gameId: 'orin', difficulty: 'medium', capacity: 3 }), /Only the host/);
-    assert.throws(() => cmd(tables, t, ada, { type: 'remove', memberId: 'host' }), /removed/);
-    assert.throws(() => cmd(tables, t, ada, { type: 'leave' }), /Hand hosting/);
-    t = cmd(tables, t, ada, { type: 'start' });
-    assert.throws(() => cmd(tables, t, ada, { type: 'host', memberId: 'bo' }), /lobby/);
     const actors = [host, ada, bo];
     while (t.adventure.phase !== 'reveal') {
       const g = t.adventure, seat = standaloneGames.orin.actingSeats(g)[0];
       t = cmd(tables, t, actors[seat], { type: 'adventure-move', move: botMove(g, seat), key: decisionKey(g) });
     }
     const next = () => ({ type: 'adventure-move', move: { type: 'next' }, key: decisionKey(t.adventure) });
+    assert.equal(tables.view(t, ada).canAdvance, true);
+    assert.equal(tables.view(t, host).canAdvance, false);
     assert.equal(tables.view(t, bo).canAdvance, false);
     assert.throws(() => cmd(tables, t, bo, next()), /host moves the table on/);
-    // A dropped host must not stall the table: any seated player may move on.
+    // A dropped leader must not stall the table: any seated player may move on.
     connected.delete('ada');
     assert.equal(tables.view(t, bo).canAdvance, true);
     const target = t.adventure.target;
     t = cmd(tables, t, bo, next());
     assert.equal(t.adventure.target, target + 1);
+    connected.add('ada');
+    // Back in the lobby the pick is spent and the creator leads again.
+    t = cmd(tables, t, host, { type: 'abandon' });
+    view = tables.view(t, host);
+    assert.deepEqual(view.members.filter(m => m.host).map(m => m.id), ['host']);
+    assert.equal(view.members.some(m => m.nextHost), false);
+    t = cmd(tables, t, host, { type: 'start' });
+    assert.deepEqual(tables.view(t, host).members.filter(m => m.host).map(m => m.id), ['host']);
   } finally {
     db.close();
   }

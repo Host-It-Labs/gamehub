@@ -4,7 +4,7 @@ import { placeHistoryKey } from '../lib/games/party/geography.ts';
 import type { StandaloneId } from '../lib/games/standalone/types.ts';
 import { standaloneGames, isStandaloneId, observe as observeAdventure, botMove as adventureBot, decisionKey as adventureKey, tick as tickAdventure, type AnyGame } from '../lib/games/standalone/registry.ts';
 import { practice, adventureLessons } from '../lib/games/adventures/lessons.ts';
-import type { OnlineGameId } from '../lib/online/types.ts';
+import type { OnlineGameId, ShelfGameId } from '../lib/online/types.ts';
 import { lessons } from '../lib/games/trio/lessons.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { randomInt } from 'node:crypto';
@@ -33,8 +33,9 @@ type Participant = { id: string; name: string };
 type Seat = Participant & { bot: boolean };
 export type StoredTable = {
   token: string;
+  /** Created the table and hosts it for good: configures, starts, closes. */
   owner: string;
-  /** Member who runs the table; defaults to the owner and can be handed over. */
+  /** Member picked in the lobby to lead the next match only; cleared when it ends. */
   host?: string;
   gameId: OnlineGameId;
   difficulty: Difficulty;
@@ -60,10 +61,13 @@ export type StoredTable = {
   adventure?: AnyGame | null;
   botError: boolean;
   setupOpen?: boolean;
-  votes?: Partial<Record<OnlineGameId, string[]>>;
+  votes?: Partial<Record<ShelfGameId, string[]>>;
   /** After a party match: ten seconds to vote which party game comes next. */
   nextVote?: NextVote | null;
+  /** The table moved on to a game with its own online room (Folio, Relic). */
+  handoff?: Handoff | null;
 };
+export type Handoff = { kind: 'folio' | 'relic'; url: string; at: number };
 export type NextVote = { endsAt: number; ballots: Record<string, StandaloneId> };
 export const nextGameMs = 10_000;
 export const partyGames: StandaloneId[] = ['orin', 'miro'];
@@ -71,6 +75,7 @@ export const partyGames: StandaloneId[] = ['orin', 'miro'];
 function finishAdventure(t: StoredTable, now = Date.now()) {
   if (t.status !== 'playing' || !t.adventure?.over || t.adventure.tutorial) return;
   t.status = 'finished';
+  endMatch(t);
   t.nextVote = { endsAt: now + nextGameMs, ballots: {} };
 }
 /** The most votes wins; a tie is settled at random; silence starts nothing. */
@@ -144,10 +149,25 @@ export function parseMove(value: unknown): Move {
     ...(m.stall === undefined ? {} : { stall: m.stall as boolean }),
   };
 }
-/** The member who runs the table: configures, starts and moves the game on. */
+/** Who leads the game on screen: the member picked for this match while it
+ *  is being played, otherwise the table's creator, who always hosts the table. */
 export function hostOf(t: StoredTable) {
-  return t.members.some((m) => m.id === t.host) ? t.host! : t.owner;
+  return t.status === 'playing' && t.members.some((m) => m.id === t.host)
+    ? t.host!
+    : t.owner;
 }
+/** The member picked in the lobby to lead the next match, if not the creator. */
+export function nextHostOf(t: StoredTable) {
+  return t.host !== t.owner && t.members.some((m) => m.id === t.host)
+    ? t.host!
+    : null;
+}
+/** A finished match hands the lead back to the table's creator. */
+function endMatch(t: StoredTable) {
+  t.host = undefined;
+}
+/** Match-running commands the picked leader may use alongside the creator. */
+const leaderCommands = ['lesson', 'advance-practice', 'begin-match', 'retry-bot'];
 /** The host moves reveals on; if they drop, any connected seated player may. */
 export function mayAdvance(
   t: StoredTable,
@@ -261,6 +281,32 @@ export class Tables {
       throw error;
     }
   }
+  exists(invite: string) {
+    return !!this.db.prepare('SELECT 1 FROM tables WHERE token=?').get(invite);
+  }
+  /** Deletes a table outright, so its invite link stops resolving. */
+  remove(invite: string) {
+    this.db.prepare('DELETE FROM commands WHERE table_token=?').run(invite);
+    this.db.prepare('DELETE FROM tables WHERE token=?').run(invite);
+  }
+  /** Checks the table may move everyone on to a game with its own room. */
+  checkLaunch(t: StoredTable, who: Identity) {
+    check(t.status !== 'closed', 410, 'This table has closed.');
+    check(who.id === t.owner, 403, 'Only the host can do that.');
+    check(t.status === 'lobby', 409, 'Return to the lobby first.');
+    const offline = t.members.filter((m) => m.id !== who.id && !this.connected(t.token, m.id));
+    check(!offline.length, 409, `Disconnected players: ${offline.map((m) => m.name).join(', ')}.`);
+  }
+  /** Records the room everyone was sent to; the lobby offers it to latecomers. */
+  handOff(invite: string, handoff: Omit<Handoff, 'at'>, now = Date.now()) {
+    const t = this.get(invite);
+    t.handoff = { ...handoff, at: now };
+    t.setupOpen = false;
+    t.host = undefined;
+    t.revision++;
+    this.save(t);
+    return t;
+  }
   create(who: Identity) {
     check(who.userId, 401, 'Sign in to create a table.');
     const existing = this.list(who);
@@ -355,7 +401,7 @@ export class Tables {
       revision: t.revision,
       status: t.status,
       viewerId: who.id,
-      isHost: hostOf(t) === who.id,
+      isHost: t.owner === who.id,
       canAdvance: mayAdvance(t, who.id, (id) => this.connected(t.token, id)),
       viewerSeat: index < 0 ? null : index,
       matchId: t.matchId,
@@ -365,11 +411,13 @@ export class Tables {
       setupOpen: t.status === 'lobby' && (t.setupOpen ?? false),
       votes: t.votes ?? {},
       nextVote: t.status === 'finished' ? (t.nextVote ?? null) : null,
+      handoff: t.handoff ?? null,
       members: [
         ...t.members.map((m, i) => ({
           ...m,
           host: m.id === hostOf(t),
           owner: m.id === t.owner,
+          nextHost: t.status === 'lobby' && m.id === nextHostOf(t),
           connected: this.connected(t.token, m.id),
           bot: false,
           seat:
@@ -433,7 +481,12 @@ export class Tables {
       );
       const a = command.action;
       if (!['move', 'adventure-move', 'rename', 'leave', 'vote', 'next-game'].includes(a.type))
-        check(who.id === hostOf(t), 403, 'Only the host can do that.');
+        check(
+          who.id === t.owner ||
+            (leaderCommands.includes(a.type) && who.id === hostOf(t)),
+          403,
+          'Only the host can do that.',
+        );
       switch (a.type) {
         case 'ambience':
           check(typeof a.enabled === 'boolean', 400, 'Invalid ambience setting.');
@@ -460,7 +513,10 @@ export class Tables {
         case 'vote': {
           check(t.status === 'lobby', 409, 'Voting is open in the lobby.');
           check(
-            (catalog.some((c) => c.id === a.gameId) || (typeof a.gameId === 'string' && isStandaloneId(a.gameId))),
+            (catalog.some((c) => c.id === a.gameId) ||
+              a.gameId === 'folio' ||
+              a.gameId === 'relic' ||
+              (typeof a.gameId === 'string' && isStandaloneId(a.gameId))),
             400,
             'Unknown game.',
           );
@@ -613,6 +669,7 @@ export class Tables {
           if (requiresHumanPlayers(t.gameId)) {
             check(t.members.length === t.capacity && (a.type === 'start' || !t.seats.some(s => s.bot)), 409, 'This game needs a human in every seat. Invite players or reduce the seat count.');
           }
+          t.handoff = null;
           if (a.type === 'start')
             t.seats = t.members.map((m) => ({ ...m, bot: false }));
           while (t.seats.length < t.capacity)
@@ -675,7 +732,10 @@ export class Tables {
             'That move is not allowed.',
           );
           t.game = play(t.game, move, actor);
-          if (t.game.phase === 'over') t.status = 'finished';
+          if (t.game.phase === 'over') {
+            t.status = 'finished';
+            endMatch(t);
+          }
           break;
         }
         case 'replace': {
@@ -694,31 +754,34 @@ export class Tables {
         }
         case 'host': {
           const next = t.members.find((m) => m.id === a.memberId);
-          check(t.status === 'lobby', 409, 'Hand over hosting in the lobby.');
+          check(t.status === 'lobby', 409, 'Pick who leads the next game in the lobby.');
           check(next, 404, 'That player is not at this table.');
-          t.host = next.id;
+          // Picking the creator, or the current pick again, clears the pick.
+          t.host = next.id === t.owner || next.id === t.host ? undefined : next.id;
           break;
         }
         case 'remove':
           check(
-            t.status === 'lobby' && a.memberId !== t.owner && a.memberId !== hostOf(t),
+            t.status === 'lobby' && a.memberId !== t.owner,
             409,
             'Guests can only be removed in the lobby.',
           );
           t.members = t.members.filter((m) => m.id !== a.memberId);
-          for (const id of Object.keys(t.votes ?? {}) as OnlineGameId[])
+          if (t.host === a.memberId) t.host = undefined;
+          for (const id of Object.keys(t.votes ?? {}) as ShelfGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== a.memberId);
           break;
         case 'leave':
           check(
-            t.status === 'lobby' && who.id !== t.owner && who.id !== hostOf(t),
+            t.status === 'lobby' && who.id !== t.owner,
             409,
-            who.id === hostOf(t) && t.status === 'lobby'
-              ? 'Hand hosting to another player before leaving.'
+            who.id === t.owner
+              ? 'The host closes the table instead.'
               : 'Your seat is reserved until this match ends.',
           );
           t.members = t.members.filter((m) => m.id !== who.id);
-          for (const id of Object.keys(t.votes ?? {}) as OnlineGameId[])
+          if (t.host === who.id) t.host = undefined;
+          for (const id of Object.keys(t.votes ?? {}) as ShelfGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== who.id);
           break;
         case 'rename': {
@@ -740,6 +803,8 @@ export class Tables {
           break;
         }
         case 'abandon':
+          endMatch(t);
+          t.handoff = null;
           t.nextVote = null;
           t.status = 'lobby';
           t.game = null;
@@ -825,7 +890,10 @@ export class Tables {
       move && validMove(t.game, move, seat) ? move : fallbackMove(t.game, seat);
     t.game = play(t.game, safeMove, seat);
     t.botError = false;
-    if (t.game.phase === 'over') t.status = 'finished';
+    if (t.game.phase === 'over') {
+      t.status = 'finished';
+      endMatch(t);
+    }
     t.revision++;
     this.save(t);
   }

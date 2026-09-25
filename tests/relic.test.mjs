@@ -286,9 +286,9 @@ await test('dev unlimited coins keep the purse full only in development', () => 
       /only available in development/,
     );
     process.env.NODE_ENV = 'development';
-    assert.equal(send({ type: 'dev-unlimited', on: true }).game.coins, 1e15);
-    const bought = send({ type: 'scratch-book', pack: 'ribbon' });
-    assert.equal(bought.game.coins, 1e15);
+    assert.equal(send({ type: 'dev-unlimited', on: true }).game.coins, 1e17);
+    const bought = send({ type: 'scratch-book', pack: 'twins' });
+    assert.equal(bought.game.coins, 1e17);
     const off = send({ type: 'dev-unlimited', on: false });
     assert.equal(off.game.devUnlimited, false);
   } finally {
@@ -447,5 +447,35 @@ await test('HTTP group invitations, simultaneous purchases, deduplication and pr
       );
   } finally {
     await app.close();
+  }
+});
+
+await test('deleting a desk takes it off your list; the desk goes once nobody is left', () => {
+  const db = openDatabase(':memory:');
+  try {
+    const expeditions = new Expeditions(db);
+    const desk = expeditions.create(
+      actor('Jo'),
+      { title: 'Jo and Mara', world: 'dunes' },
+      start,
+    );
+    expeditions.join(desk.token, actor('Mara'), start);
+    assert.throws(() => expeditions.remove(desk.token, actor('Ren')), /Join/);
+    assert.deepEqual(expeditions.remove(desk.token, actor('Jo')), {
+      deleted: true,
+    });
+    assert.equal(expeditions.list(actor('Jo')).length, 0);
+    assert.equal(expeditions.list(actor('Mara')).length, 1, 'Mara keeps it');
+    expeditions.remove(desk.token, actor('Mara'));
+    assert.throws(
+      () => expeditions.get(desk.token, actor('Mara'), start),
+      /Join|could not be found/,
+    );
+    assert.equal(
+      db.prepare('SELECT count(*) AS n FROM expeditions').get().n,
+      0,
+    );
+  } finally {
+    db.close();
   }
 });

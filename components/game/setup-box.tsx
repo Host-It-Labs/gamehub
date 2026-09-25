@@ -35,13 +35,19 @@ import {
   Sparkles,
   Tent,
   TrainFront,
-  Crown,
+  Flag,
+  Trash2,
   Users,
   Waves,
   Wind,
   type LucideIcon,
 } from 'lucide-react';
-import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArtworkImage } from './artwork';
 import { Segmented, SetupRow } from './setup-row';
@@ -296,11 +302,15 @@ export type SavedRun = {
 export function RunPicker({
   runs,
   noun = 'run',
+  onDelete,
 }: {
   runs: SavedRun[];
   noun?: string;
+  /** Deletes a run from the viewer's list; a confirmation comes first. */
+  onDelete?: (key: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [doomed, setDoomed] = useState<SavedRun | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const listId = useId();
@@ -324,15 +334,43 @@ export function RunPicker({
     };
   }, [open]);
   if (runs.length === 0) return null;
+  const remove = (run: SavedRun) =>
+    onDelete && (
+      <button
+        type="button"
+        className="run-delete"
+        aria-label={`Delete ${noun}: ${[run.title, run.detail]
+          .filter((t) => typeof t === 'string')
+          .join(', ')}`}
+        onClick={() => {
+          setOpen(false);
+          setDoomed(run);
+        }}
+      >
+        <Trash2 aria-hidden="true" />
+      </button>
+    );
+  const confirm = onDelete && (
+    <DeleteRunDialog
+      run={doomed}
+      noun={noun}
+      onClose={() => setDoomed(null)}
+      onDelete={onDelete}
+    />
+  );
   if (runs.length === 1) {
     const [run] = runs;
     return (
-      <a className="resume-strip" href={run.href} aria-label={run.label}>
-        <span className="resume-copy">
-          <strong>Continue</strong>
-          <small>{run.title}</small>
-        </span>
-      </a>
+      <div className="run-picker single">
+        <a className="resume-strip" href={run.href} aria-label={run.label}>
+          <span className="resume-copy">
+            <strong>Continue</strong>
+            <small>{run.title}</small>
+          </span>
+        </a>
+        {remove(run)}
+        {confirm}
+      </div>
     );
   }
   return (
@@ -369,11 +407,80 @@ export function RunPicker({
                 </span>
                 <ArrowRight aria-hidden="true" />
               </a>
+              {remove(run)}
             </li>
           ))}
         </ul>
       )}
+      {confirm}
     </div>
+  );
+}
+
+/** Asks before a saved run is deleted; nothing is removed until confirmed. */
+export function DeleteRunDialog({
+  run,
+  noun,
+  onClose,
+  onDelete,
+}: {
+  run: SavedRun | null;
+  noun: string;
+  onClose: () => void;
+  onDelete: (key: string) => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  // Keep the last run on screen while the dialog fades out.
+  const [r, setR] = useState(run);
+  if (run && run !== r) setR(run);
+  return (
+    <Dialog
+      open={!!run}
+      onOpenChange={(o) => {
+        if (!o && !busy) {
+          setError('');
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="run-delete-dialog" showCloseButton={false}>
+        <DialogTitle>Delete this {noun}?</DialogTitle>
+        <DialogDescription>
+          {r?.title} · {r?.detail}
+        </DialogDescription>
+        <p>This cannot be undone. At a shared table, the others keep theirs.</p>
+        {error && <p role="alert">{error}</p>}
+        <div className="run-delete-actions">
+          <button type="button" disabled={busy} onClick={onClose}>
+            Keep
+          </button>
+          <button
+            type="button"
+            className="danger"
+            disabled={busy}
+            onClick={async () => {
+              if (!r) return;
+              setBusy(true);
+              setError('');
+              try {
+                await onDelete(r.key);
+                onClose();
+              } catch (e) {
+                setError(
+                  e instanceof Error ? e.message : 'Could not delete it.',
+                );
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <Trash2 aria-hidden="true" />
+            Delete
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -418,7 +525,8 @@ export type SetupPlayer = {
   you: boolean;
 };
 
-/** The seated players; the host picks who leads the table (starts and moves it on). */
+/** The seated players; the host picks who leads this match (moves it on).
+ *  The pick lasts one match; the table's creator keeps hosting the table. */
 function HostPicker({
   players,
   seats,
@@ -432,11 +540,11 @@ function HostPicker({
 }) {
   const host = players.find((p) => p.host)?.id ?? '';
   return (
-    <SetupRow label="Host" Icon={Crown} className="host-picker">
+    <SetupRow label="Leads" Icon={Flag} className="host-picker">
       <RadioGroup
         disabled={disabled || !onHost}
         className="host-seats"
-        aria-label="Host"
+        aria-label="Leads this game"
         value={host}
         onValueChange={(id) => id !== host && onHost?.(id)}
       >
@@ -453,7 +561,7 @@ function HostPicker({
               {p.name}
               {p.you ? ' (you)' : ''}
             </b>
-            <Crown className="host-crown" aria-hidden="true" />
+            <Flag className="host-crown" aria-hidden="true" />
           </label>
         ))}
         {Array.from({ length: Math.max(0, seats - players.length) }, (_, i) => (

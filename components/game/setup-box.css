@@ -918,6 +918,97 @@
   font-size: 14px;
 }
 
+/* Each saved run carries its own small delete control, confirmed in a modal. */
+.run-picker.single {
+  gap: 6px;
+}
+.run-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px;
+}
+.modal.setup-modal .run-delete {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  min-height: 40px;
+  align-self: stretch;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.modal.setup-modal .run-picker.single .run-delete {
+  width: 46px;
+  border-color: var(--line-2);
+  border-radius: 15px;
+  background: var(--card);
+}
+.modal.setup-modal .run-delete:hover {
+  border-color: #e7b8aa;
+  background: #f9e3dc;
+  color: #a3321f;
+}
+.run-delete:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.run-delete svg {
+  width: 17px;
+  height: 17px;
+}
+.run-delete-dialog {
+  z-index: 60;
+  gap: 12px;
+  color: #29241e;
+  background: #fbf8f2 !important;
+}
+.run-delete-dialog h2 {
+  font:
+    700 19px/1.2 Georgia,
+    serif;
+}
+.run-delete-dialog p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  text-wrap: balance;
+}
+.run-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.run-delete-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d8ccb6;
+  border-radius: 11px;
+  background: #fff;
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.run-delete-actions button.danger {
+  border-color: #8e2a1a;
+  background: #b53a24;
+  color: #fff6ef;
+}
+.run-delete-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.run-delete-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* Phones: full-width rows where a row needs it, smaller type, no world line. */
 @media (max-width: 600px) {
   .modal.setup-modal {

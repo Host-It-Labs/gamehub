@@ -47,6 +47,8 @@ export async function makeServer(
     origin?: string;
     staticDir?: string;
     bots?: boolean;
+    /** How long a table may sit with nobody connected before it is deleted. */
+    idleTableMs?: number;
   } = {},
 ) {
   const origin = new URL(
@@ -117,6 +119,16 @@ export async function makeServer(
     }
   }
   function publish(invite: string) {
+    if (!tables.exists(invite)) {
+      // The table was removed: tell anyone still listening, then let go.
+      for (const c of clients)
+        if (c.invite === invite) {
+          c.res.write('event: gone\ndata: {}\n\n');
+          c.res.end();
+          clients.delete(c);
+        }
+      return;
+    }
     const t = tables.get(invite);
     for (const c of clients)
       if (c.invite === invite) {
@@ -139,6 +151,37 @@ export async function makeServer(
         }
       }
     schedule(invite);
+  }
+  /** Deletes a table and forgets its timers; its link then leads nowhere. */
+  function drop(invite: string) {
+    for (const job of jobs.get(invite)?.values() ?? []) {
+      clearTimeout(job.timer);
+      void job.worker?.terminate();
+    }
+    jobs.delete(invite);
+    emptySince.delete(invite);
+    tables.remove(invite);
+  }
+  // Tables nobody is connected to are removed once the grace period runs out,
+  // so a sleeping phone or a quick refresh does not lose the table.
+  const idleTableMs = options.idleTableMs ?? 10 * 60_000;
+  const emptySince = new Map<string, number>();
+  function sweep(now = Date.now()) {
+    for (const { token: invite, state } of db
+      .prepare('SELECT token, state FROM tables')
+      .all() as { token: string; state: string }[]) {
+      if ((JSON.parse(state) as { status: string }).status === 'closed') {
+        drop(invite);
+        continue;
+      }
+      if ([...clients].some((c) => c.invite === invite)) {
+        emptySince.delete(invite);
+        continue;
+      }
+      const since = emptySince.get(invite) ?? now;
+      emptySince.set(invite, since);
+      if (now - since >= idleTableMs) drop(invite);
+    }
   }
   function schedule(invite: string) {
     if (stopping) return;
@@ -257,7 +300,7 @@ export async function makeServer(
         req.headers.cookie = `gamehub_session=${devSession}`;
       let who = identity(db, req);
       if (path === '/api/folio' || path.startsWith('/api/folio/')) {
-        const match = /^\/api\/folio\/([A-Za-z0-9_-]{32})(?:\/(join|commands))?$/.exec(path);
+        const match = /^\/api\/folio\/([A-Za-z0-9_-]{32})(?:\/(join|commands|delete))?$/.exec(path);
         check(path === '/api/folio' || match, 404, 'Folio route not found.');
         if (path === '/api/folio' && req.method === 'GET') { send(res, 200, who ? folio.list(who) : []); return; }
         const input = req.method === 'POST' ? await body(req) : {};
@@ -275,10 +318,11 @@ export async function makeServer(
         if (path === '/api/folio' && req.method === 'POST') { send(res, 200, folio.create(who, input)); return; }
         if (match && req.method === 'POST' && match[2] === 'join') { send(res, 200, folio.join(match[1], who, input)); return; }
         if (match && req.method === 'POST' && match[2] === 'commands') { send(res, 200, folio.command(match[1], who, input)); return; }
+        if (match && req.method === 'POST' && match[2] === 'delete') { send(res, 200, folio.remove(match[1], who)); return; }
         throw new HttpError(405, 'Method not allowed.');
       }
       if (path === '/api/expeditions' || path.startsWith('/api/expeditions/')) {
-        const match = /^\/api\/expeditions\/([A-Za-z0-9_-]{32})(?:\/(join|commands|activity))?$/.exec(path);
+        const match = /^\/api\/expeditions\/([A-Za-z0-9_-]{32})(?:\/(join|commands|activity|delete))?$/.exec(path);
         check(path === '/api/expeditions' || match, 404, 'Expedition route not found.');
         if (path === '/api/expeditions' && req.method === 'GET') {
           send(res, 200, who ? expeditions.list(who) : []); return;
@@ -299,6 +343,7 @@ export async function makeServer(
         if (match && req.method === 'POST' && match[2] === 'join') { send(res, 200, expeditions.join(match[1], who)); return; }
         if (match && req.method === 'POST' && match[2] === 'activity') { send(res, 200, expeditions.activity(match[1], who, input)); return; }
         if (match && req.method === 'POST' && match[2] === 'commands') { send(res, 200, expeditions.command(match[1], who, input)); return; }
+        if (match && req.method === 'POST' && match[2] === 'delete') { send(res, 200, expeditions.remove(match[1], who)); return; }
         if (match && req.method === 'GET' && !match[2]) { send(res, 200, expeditions.get(match[1], who)); return; }
         throw new HttpError(405, 'Method not allowed.');
       }
@@ -445,7 +490,7 @@ export async function makeServer(
         return;
       }
       const match =
-        /^\/api\/tables\/([A-Za-z0-9_-]{32})(?:\/(join|events|commands))?$/.exec(
+        /^\/api\/tables\/([A-Za-z0-9_-]{32})(?:\/(join|events|commands|launch))?$/.exec(
           path,
         );
       check(match, 404, 'Not found.');
@@ -480,6 +525,38 @@ export async function makeServer(
         send(res, 200, view);
         return;
       }
+      if (action === 'launch' && req.method === 'POST') {
+        // Folio and Relic run in their own rooms: open one, seat everyone at
+        // the table in it, and send the table there.
+        limit(`command:${who.id}`, 120);
+        const input = await body(req);
+        tables.checkLaunch(t, who);
+        const guest = (m: { id: string; name: string }): Identity => ({
+          id: m.id,
+          name: m.name,
+          userId: null,
+          sessionHash: '',
+          expires: 0,
+        });
+        const others = t.members.filter((m) => m.id !== who.id);
+        let url: string;
+        if (input.kind === 'folio') {
+          check(t.members.length <= 3, 409, 'Folio seats one to three players.');
+          const run = folio.create(who, { seats: t.members.length, difficulty: input.difficulty ?? 1 }) as { token: string };
+          for (const m of others) folio.join(run.token, guest(m), {});
+          url = `/folio/${run.token}`;
+        } else {
+          check(input.kind === 'relic', 400, 'Unknown game.');
+          const owner = t.members.find((m) => m.id === t.owner)?.name ?? who.name;
+          const room = expeditions.create(who, { title: `${owner}’s table`.slice(0, 40), world: input.world ?? 'dunes' }) as { token: string };
+          for (const m of others) expeditions.join(room.token, guest(m));
+          url = `/expedition/${room.token}`;
+        }
+        tables.handOff(invite, { kind: input.kind, url });
+        publish(invite);
+        send(res, 200, { url });
+        return;
+      }
       if (action === 'commands' && req.method === 'POST') {
         limit(`command:${who.id}`, 120);
         const changed = tables.command(
@@ -488,6 +565,7 @@ export async function makeServer(
           (await body(req)) as unknown as Command,
         );
         publish(invite);
+        if (changed.status === 'closed') drop(invite);
         send(
           res,
           200,
@@ -622,6 +700,8 @@ export async function makeServer(
     }
   }, 15000);
   heartbeat.unref();
+  const sweeper = setInterval(() => sweep(), Math.min(30_000, idleTableMs));
+  sweeper.unref();
   for (const row of db.prepare('SELECT token FROM tables').all() as {
     token: string;
   }[])
@@ -629,6 +709,7 @@ export async function makeServer(
   async function close() {
     stopping = true;
     clearInterval(heartbeat);
+    clearInterval(sweeper);
     for (const seats of jobs.values())
       for (const j of seats.values()) {
         clearTimeout(j.timer);
@@ -643,7 +724,7 @@ export async function makeServer(
     });
     db.close();
   }
-  return { server, close, tables, db };
+  return { server, close, tables, db, sweep };
 }
 if (
   process.argv[1] &&

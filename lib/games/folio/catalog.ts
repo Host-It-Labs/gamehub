@@ -1,9 +1,11 @@
 import type { Kind } from './types.ts';
 
-/** Four acts of three puzzle rounds, each ending in a boss. */
-export const ACTS = 4;
+/**
+ * The trail never ends: acts of three puzzle rounds and a boss keep coming
+ * until the crew runs out of lives. The map always holds the act in play and
+ * the one after it.
+ */
 export const BOSS_EVERY = 4;
-export const ROUNDS = ACTS * BOSS_EVERY;
 export const LANES = 3;
 /** Two shared lives: the crew may lose once. Nothing restores a life. */
 export const START_LIVES = 2;
@@ -148,7 +150,7 @@ export const LEVEL_NAMES = ['', 'Easy', 'Medium', 'Hard', 'Very hard'] as const;
 /** What each starting difficulty means, shown under the slider. */
 export const DIFFICULTY_NOTES = [
   '',
-  'Easy, then medium, hard and very hard after each boss.',
-  'Medium, then hard, then very hard for the last two acts.',
-  'Hard, then very hard from the first boss on.',
+  'Easy, then medium, hard, and very hard until you lose.',
+  'Medium, then hard, and very hard until you lose.',
+  'Hard, then very hard until you lose.',
 ] as const;

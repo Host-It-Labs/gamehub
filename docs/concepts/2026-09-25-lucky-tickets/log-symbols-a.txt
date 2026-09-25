@@ -1,0 +1,561 @@
+Reading additional input from stdin...
+OpenAI Codex v0.154.0
+--------
+workdir: /Users/williamguinaudie/Documents/code/gamehub
+model: gpt-6-astra
+provider: openai
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a0d7f6-8d15-70d2-85c0-a4942cdb7423
+--------
+user
+$imagegen Generate this image using the built-in image generation tool, newest model, highest quality. Save the final PNG to the exact absolute path: /Users/williamguinaudie/Documents/code/gamehub/public/art/lucky/symbols-v1-a.png. Do not edit or retouch it afterwards and do not make a second pass. Prompt: Size: square 1024x1024. Use case: game-asset sprite sheet. Create a fresh sheet of exactly 16 separate glossy scratch-ticket prize symbols arranged in a strict 4 by 4 grid, each symbol centred in its own equal square cell with generous empty padding, none touching or overlapping, all the same visual size. Transparent background (alpha); if transparency is unavailable use a perfectly flat pure magenta #ff00ff background. Row 1: a bold lucky red numeral 7 with a gold outline; a pair of red cherries on a green stem; a golden bell; a green four-leaf clover. Row 2: a stack of three gold coins; a shining five-pointed gold star; a silver crescent moon; a golden smiling-free sun disc with rays (no face). Row 3: a blue cut diamond; a red cut ruby; a gold bar; a red stick of dynamite with a lit fuse. Row 4: a pink rose flower; a small wooden sailing ship; a jewelled gold crown; a golden horseshoe. Style: chunky, cheerful, polished enamel and metal with a bright highlight and a soft dark outline, like the prize symbols on a classic scratch card, readable at 40px. No text or letters apart from the numeral 7, no cell borders, no grid lines, no background shapes.
+2026-09-25T09:48:04.989687Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (https://chatgpt.com/backend-api/ps/mcp)")))
+2026-09-25T09:48:04.995446Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (https://developers.openai.com/mcp?source=codex)")))
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+codex
+I’m using the imagegen skill to generate one image and save it unchanged at your exact path. The built-in tool doesn’t expose model or quality selectors; I’ll request the specified 1024×1024 output in a single pass.
+
+
+exec
+/bin/zsh -lc "git status --short --untracked-files=normal -- . ':(exclude)**/.DS_Store' ':(exclude).DS_Store'" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+ M AGENTS.md
+ M components/game/folio-box.tsx
+ M components/game/folio-map.tsx
+ M components/game/folio.css
+ M components/game/folio.tsx
+ M components/game/relic-box.tsx
+ M components/game/relic-scratch-session.tsx
+ M components/game/relic-scratch.tsx
+ M components/game/relic.css
+ M components/game/relic.tsx
+ M components/game/setup-box.css
+ M components/game/setup-box.tsx
+ M components/online/account.tsx
+ M components/online/lobby-games.tsx
+ M components/online/table-lobby.css
+ M components/online/table.tsx
+ M docs/folio.md
+ M lib/games/folio/catalog.ts
+ M lib/games/folio/engine.ts
+ M lib/games/library-fixtures.ts
+ M lib/online/client.ts
+ M lib/online/types.ts
+ M server/expeditions.ts
+ M server/folio.ts
+ M server/index.ts
+ M server/tables.ts
+ M tests/adventure-online.test.mjs
+ M tests/folio.test.mjs
+ M tests/http.test.mjs
+ M tests/relic.test.mjs
+?? docs/concepts/2026-09-25-lucky-tickets/
+?? lib/games/relic/books.ts
+
+exec
+/bin/zsh -lc 'test ! -e public/art/lucky/symbols-v1-a.png && echo destination_available; cat /Users/williamguinaudie/.codex/skills/.system/imagegen/SKILL.md' in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+destination_available
+---
+name: "imagegen"
+description: "Generate or edit raster images when the task benefits from AI-created bitmap visuals such as photos, illustrations, textures, sprites, mockups, or transparent-background cutouts. Use when Codex should create a brand-new image, transform an existing image, or derive visual variants from references, and the output should be a bitmap asset rather than repo-native code or vector. Do not use when the task is better handled by editing existing SVG/vector/code-native assets, extending an established icon or logo system, or building the visual directly in HTML/CSS/canvas."
+---
+
+# Image Generation Skill
+
+Generates or edits images for the current project (for example website assets, game assets, UI mockups, product mockups, wireframes, logo design, photorealistic images, or infographics).
+
+## Top-level modes and rules
+
+This skill has exactly two top-level modes:
+
+- **Default built-in tool mode (preferred):** built-in `image_gen` tool for image generation, editing, and transparent-image requests. Does not require `OPENAI_API_KEY`.
+- **Fallback CLI mode:** `scripts/image_gen.py` CLI. Use when the user explicitly asks for or confirms the CLI/API/model path. Requires `OPENAI_API_KEY`.
+
+Within CLI fallback, the CLI exposes three subcommands:
+
+- `generate`
+- `edit`
+- `generate-batch`
+
+Rules:
+- Use the built-in `image_gen` tool by default for normal image generation and editing requests.
+- Do not switch to CLI fallback for ordinary quality, size, or file-path control.
+- For transparent images, ask built-in `image_gen` for a transparent background and preserve the generated alpha.
+- Never silently switch from built-in `image_gen` or CLI `gpt-image-2` to CLI `gpt-image-1.5`; ask the user first unless they explicitly requested `gpt-image-1.5`.
+- The word `batch` by itself does not mean CLI fallback. If the user asks for many assets or says to batch-generate assets without explicitly asking for CLI/API/model controls, stay on the built-in path and issue one built-in call per requested asset or variant.
+- If the built-in tool fails or is unavailable, tell the user the CLI fallback exists and that it requires `OPENAI_API_KEY`. Proceed only if the user explicitly asks for that fallback.
+- If the user explicitly asks for CLI mode, use the bundled `scripts/image_gen.py` workflow. Do not create one-off SDK runners.
+- Never modify `scripts/image_gen.py`. If something is missing, ask the user before doing anything else.
+
+Built-in save-path policy:
+- In built-in tool mode, Codex saves generated images under `$CODEX_HOME/*` by default.
+- Do not describe or rely on OS temp as the default built-in destination.
+- Do not describe or rely on a destination-path argument (if any) on the built-in `image_gen` tool. If a specific location is needed, generate first and then move or copy the selected output from `$CODEX_HOME/generated_images/...`.
+- Save-path precedence in built-in mode:
+  1. If the user names a destination, move or copy the selected output there.
+  2. If the image is meant for the current project, move or copy the final selected image into the workspace before finishing.
+  3. If the image is only for preview or brainstorming, render it inline; the underlying file can remain at the default `$CODEX_HOME/*` path.
+- Never leave a project-referenced asset only at the default `$CODEX_HOME/*` path.
+- Do not overwrite an existing asset unless the user explicitly asked for replacement; otherwise create a sibling versioned filename such as `hero-v2.png` or `item-icon-edited.png`.
+
+Shared prompt guidance for both modes lives in `references/prompting.md` and `references/sample-prompts.md`.
+
+Fallback-only docs/resources for CLI mode:
+- `references/cli.md`
+- `references/image-api.md`
+- `references/codex-network.md`
+- `scripts/image_gen.py`
+
+## When to use
+- Generate a new image (concept art, product shot, cover, website hero)
+- Generate a new image using one or more reference images for style, composition, or mood
+- Edit an existing image (inpainting, lighting or weather transformations, background replacement, object removal, compositing, transparent background)
+- Produce many assets or variants for one task
+
+## When not to use
+- Extending or matching an existing SVG/vector icon set, logo system, or illustration library inside the repo
+- Creating simple shapes, diagrams, wireframes, or icons that are better produced directly in SVG, HTML/CSS, or canvas
+- Making a small project-local asset edit when the source file already exists in an editable native format
+- Any task where the user clearly wants deterministic code-native output instead of a generated bitmap
+
+## Decision tree
+
+Think about two separate questions:
+
+1. **Intent:** is this a new image or an edit of an existing image?
+2. **Execution strategy:** is this one asset or many assets/variants?
+
+Intent:
+- If the user wants to modify an existing image while preserving parts of it, treat the request as **edit**.
+- If the user provides images only as references for style, composition, mood, or subject guidance, treat the request as **generate**.
+- If the user provides no images, treat the request as **generate**.
+
+Built-in edit semantics:
+- Built-in edit mode is for images already visible in the conversation context, such as attached images or images generated earlier in the thread.
+- If the user wants to edit a local image file with the built-in tool, first load it with built-in `view_image` tool so the image is visible in the conversation context, then proceed with the built-in edit flow.
+- Do not promise arbitrary filesystem-path editing through the built-in tool.
+- If a local file still needs direct file-path control, masks, or other explicit CLI-only parameters, use the explicit CLI fallback only when the user asks for it.
+- For edits, preserve invariants aggressively and save non-destructively by default.
+
+Execution strategy:
+- In the built-in default path, produce many assets or variants by issuing one `image_gen` call per requested asset or variant.
+- In the CLI fallback path, use the CLI `generate-batch` subcommand only when the user explicitly chose CLI mode and needs many prompts/assets.
+- For many distinct assets, do not use `n` as a substitute for separate prompts. `n` is for variants of one prompt; distinct assets need distinct built-in calls or distinct CLI `generate-batch` jobs.
+
+Assume the user wants a new image unless they clearly ask to change an existing one.
+
+## Workflow
+1. Decide the top-level mode: built-in by default, including transparent-output requests; fallback CLI only if explicitly requested or confirmed.
+2. Decide the intent: `generate` or `edit`.
+3. Decide whether the output is preview-only or meant to be consumed by the current project.
+4. Decide the execution strategy: single asset vs repeated built-in calls vs CLI `generate-batch`.
+5. Collect inputs up front: prompt(s), exact text (verbatim), constraints/avoid list, and any input images.
+6. For every input image, label its role explicitly:
+   - reference image
+   - edit target
+   - supporting insert/style/compositing input
+7. If the edit target is only on the local filesystem and you are staying on the built-in path, inspect it with `view_image` first so the image is available in conversation context.
+8. If the user asked for a photo, illustration, sprite, product image, banner, or other explicitly raster-style asset, use `image_gen` rather than substituting SVG/HTML/CSS placeholders. If the request is for an icon, logo, or UI graphic that should match existing repo-native SVG/vector/code assets, prefer editing those directly instead.
+9. Augment the prompt based on specificity:
+   - If the user's prompt is already specific and detailed, normalize it into a clear spec without adding creative requirements.
+   - If the user's prompt is generic, add tasteful augmentation only when it materially improves output quality.
+10. Use the built-in `image_gen` tool by default.
+11. For transparent-output requests, ask built-in `image_gen` for a transparent background and preserve the generated alpha channel.
+12. Inspect outputs and validate: subject, style, composition, text accuracy, and invariants/avoid items.
+13. Iterate with a single targeted change, then re-check.
+14. For preview-only work, render the image inline; the underlying file may remain at the default `$CODEX_HOME/generated_images/...` path.
+15. For project-bound work, move or copy the selected artifact into the workspace and update any consuming code or references. Never leave a project-referenced asset only at the default `$CODEX_HOME/generated_images/...` path.
+16. For batches or multi-asset requests, persist every requested deliverable final in the workspace unless the user explicitly asked to keep outputs preview-only. Discarded variants do not need to be kept unless requested.
+17. If the user explicitly chooses or confirms the CLI fallback, then use the fallback-only docs for model, quality, size, `input_fidelity`, masks, output format, output paths, and network setup.
+18. Always report the final saved path(s) for any workspace-bound asset(s), plus the final prompt or prompt set and whether the built-in tool or fallback CLI mode was used.
+
+## Transparent image requests
+
+Ask built-in `image_gen` for a genuinely transparent background and preserve its alpha.
+
+## Prompt augmentation
+
+Reformat user prompts into a structured, production-oriented spec. Make the user's goal clearer and more actionable, but do not blindly add detail.
+
+Treat this as prompt-shaping guidance, not a closed schema. Use only the lines that help, and add a short extra labeled line when it materially improves clarity.
+
+### Specificity policy
+
+Use the user's prompt specificity to decide how much augmentation is appropriate:
+
+- If the prompt is already specific and detailed, preserve that specificity and only normalize/structure it.
+- If the prompt is generic, you may add tasteful augmentation when it will materially improve the result.
+
+Allowed augmentations:
+- composition or framing hints
+- polish level or intended-use hints
+- practical layout guidance
+- reasonable scene concreteness that supports the stated request
+
+Not allowed augmentations:
+- extra characters or objects that are not implied by the request
+- brand names, slogans, palettes, or narrative beats that are not implied
+- arbitrary side-specific placement unless the surrounding layout supports it
+
+## Use-case taxonomy (exact slugs)
+
+Classify each request into one of these buckets and keep the slug consistent across prompts and references.
+
+Generate:
+- photorealistic-natural — candid/editorial lifestyle scenes with real texture and natural lighting.
+- product-mockup — product/packaging shots, catalog imagery, merch concepts.
+- ui-mockup — app/web interface mockups and wireframes; specify the desired fidelity.
+- infographic-diagram — diagrams/infographics with structured layout and text.
+- scientific-educational — classroom explainers, scientific diagrams, and learning visuals with required labels and accuracy constraints.
+- ads-marketing — campaign concepts and ad creatives with audience, brand position, scene, and exact tagline/copy.
+- productivity-visual — slide, chart, workflow, and data-heavy business visuals.
+- logo-brand — logo/mark exploration, vector-friendly.
+- illustration-story — comics, children’s book art, narrative scenes.
+- stylized-concept — style-driven concept art, 3D/stylized renders.
+- historical-scene — period-accurate/world-knowledge scenes.
+
+Edit:
+- text-localization — translate/replace in-image text, preserve layout.
+- identity-preserve — try-on, person-in-scene; lock face/body/pose.
+- precise-object-edit — remove/replace a specific element (including interior swaps).
+- lighting-weather — time-of-day/season/atmosphere changes only.
+- background-extraction — transparent background / clean cutout. Ask built-in `image_gen` for actual transparency.
+- style-transfer — apply reference style while changing subject/scene.
+- compositing — multi-image insert/merge with matched lighting/perspective.
+- sketch-to-render — drawing/line art to photoreal render.
+
+## Shared prompt schema
+
+Use the following labeled spec as shared prompt scaffolding for both top-level modes:
+
+```text
+Use case: <taxonomy slug>
+Asset type: <where the asset will be used>
+Primary request: <user's main prompt>
+Input images: <Image 1: role; Image 2: role> (optional)
+Scene/backdrop: <environment>
+Subject: <main subject>
+Style/medium: <photo/illustration/3D/etc>
+Composition/framing: <wide/close/top-down; placement>
+Lighting/mood: <lighting + mood>
+Color palette: <palette notes>
+Materials/textures: <surface details>
+Text (verbatim): "<exact text>"
+Constraints: <must keep/must avoid>
+Avoid: <negative constraints>
+```
+
+Notes:
+- `Asset type` and `Input images` are prompt scaffolding, not dedicated CLI flags.
+- `Scene/backdrop` refers to the visual setting. It is not the same as the fallback CLI `background` parameter, which controls output transparency behavior.
+- Fallback-only execution notes such as `Quality:`, `Input fidelity:`, masks, output format, and output paths belong in the CLI path only. Do not treat them as built-in `image_gen` tool arguments.
+
+Augmentation rules:
+- Keep it short.
+- Add only the details needed to improve the prompt materially.
+- For edits, explicitly list invariants (`change only X; keep Y unchanged`).
+- If any critical detail is missing and blocks success, ask a question; otherwise proceed.
+
+## Examples
+
+### Generation example (hero image)
+```text
+Use case: product-mockup
+Asset type: landing page hero
+Primary request: a minimal hero image of a ceramic coffee mug
+Style/medium: clean product photography
+Composition/framing: wide composition with usable negative space for page copy if needed
+Lighting/mood: soft studio lighting
+Constraints: no logos, no text, no watermark
+```
+
+### Edit example (invariants)
+```text
+Use case: precise-object-edit
+Asset type: product photo background replacement
+Primary request: replace only the background with a warm sunset gradient
+Constraints: change only the background; keep the product and its edges unchanged; no text; no watermark
+```
+
+## Prompting best practices
+- Structure prompt as scene/backdrop -> subject -> details -> constraints.
+- Include intended use (ad, UI mock, infographic) to set the mode and polish level.
+- Use camera/composition language for photorealism.
+- Only use SVG/vector stand-ins when the user explicitly asked for vector output or a non-image placeholder.
+- Quote exact text and specify typography + placement.
+- For tricky words, spell them letter-by-letter and require verbatim rendering.
+- For multi-image inputs, reference images by index and describe how they should be used.
+- For edits, repeat invariants every iteration to reduce drift.
+- Iterate with single-change follow-ups.
+- If the prompt is generic, add only the extra detail that will materially help.
+- If the prompt is already detailed, normalize it instead of expanding it.
+- For CLI fallback only, see `references/cli.md` and `references/image-api.md` for model, `quality`, `input_fidelity`, masks, output format, and output-path guidance.
+- For transparent images, ask built-in `image_gen` for actual transparency and preserve its alpha.
+
+More principles shared by both modes: `references/prompting.md`.
+Copy/paste specs shared by both modes: `references/sample-prompts.md`.
+
+## Guidance by asset type
+Asset-type templates (website assets, game assets, wireframes, logo) are consolidated in `references/sample-prompts.md`.
+
+## gpt-image-2 guidance for CLI fallback
+
+The fallback CLI defaults to `gpt-image-2`.
+
+- Use `gpt-image-2` for new CLI/API workflows unless the user confirms a different model.
+- CLI `gpt-image-2` does not support `background=transparent`; ask before using `gpt-image-1.5` unless the user explicitly requested that model.
+- `gpt-image-2` always uses high fidelity for image inputs; do not set `input_fidelity` with this model.
+- `gpt-image-2` supports `quality` values `low`, `medium`, `high`, and `auto`.
+- Use `quality low` for fast drafts, thumbnails, and quick iterations. Use `medium`, `high`, or `auto` for final assets, dense text, diagrams, identity-sensitive edits, or high-resolution outputs.
+- Square images are typically fastest to generate. Use `1024x1024` for fast square drafts.
+- If the user asks for 4K-style output, use `3840x2160` for landscape or `2160x3840` for portrait.
+- `gpt-image-2` size may be `auto` or `WIDTHxHEIGHT` if all constraints hold: max edge `<= 3840px`, both edges multiples of `16px`, long-to-short ratio `<= 3:1`, total pixels between `655,360` and `8,294,400`.
+
+Popular `gpt-image-2` sizes:
+- `1024x1024` square
+- `1536x1024` landscape
+- `1024x1536` portrait
+- `2048x2048` 2K square
+- `2048x1152` 2K landscape
+- `3840x2160` 4K landscape
+- `2160x3840` 4K portrait
+- `auto`
+
+## Fallback CLI mode only
+
+### Temp and output conventions
+These conventions apply only to the CLI fallback. They do not describe built-in `image_gen` output behavior.
+- Use `tmp/imagegen/` for intermediate files (for example JSONL batches); delete them when done.
+- Write final artifacts under `output/imagegen/`.
+- Use `--out` or `--out-dir` to control output paths; keep filenames stable and descriptive.
+
+### Dependencies
+Prefer `uv` for dependency management in this repo.
+
+Required Python package:
+```bash
+uv pip install openai
+```
+
+Optional for image inspection and downscaling:
+```bash
+uv pip install pillow
+```
+
+Portability note:
+- If you are using the installed skill outside this repo, install dependencies into that environment with its package manager.
+- In uv-managed environments, `uv pip install ...` remains the preferred path.
+
+### Environment
+- `OPENAI_API_KEY` must be set for live API calls.
+- Do not ask the user for `OPENAI_API_KEY` when using the built-in `image_gen` tool.
+- Never ask the user to paste the full key in chat. Ask them to set it locally and confirm when ready.
+
+If the key is missing, give the user these steps:
+1. Create an API key in the OpenAI platform UI: https://platform.openai.com/api-keys
+2. Set `OPENAI_API_KEY` as an environment variable in their system.
+3. Offer to guide them through setting the environment variable for their OS/shell if needed.
+
+If installation is not possible in this environment, tell the user which dependency is missing and how to install it into their active environment.
+
+### Script-mode notes
+- CLI commands + examples: `references/cli.md`
+- API parameter quick reference: `references/image-api.md`
+- Network approvals / sandbox settings for CLI mode: `references/codex-network.md`
+
+## Reference map
+- `references/prompting.md`: shared prompting principles for both modes.
+- `references/sample-prompts.md`: shared copy/paste prompt recipes for both modes.
+- `references/cli.md`: fallback-only CLI usage via `scripts/image_gen.py`.
+- `references/image-api.md`: fallback-only API/CLI parameter reference.
+- `references/codex-network.md`: fallback-only network/sandbox troubleshooting for CLI mode.
+- `scripts/image_gen.py`: fallback-only CLI implementation. Use only when the user explicitly chooses or confirms CLI mode.
+
+exec
+/bin/zsh -lc "sed -n '1,160p' docs/DESIGN.md" in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+# Gamehub design direction
+
+## Setup modal and wide covers (25 September 2026)
+
+William liked the setup lid (cover plus stat chips) but not the tray under it, and asked for covers that fill the wide lid instead of a small square in a coloured band. Every game now has a dedicated **wide cover** with its title painted in, cut to exactly 3:1 (`wideCover` in `lib/games/box-covers.ts`, delivery files from `scripts/optimize-wide-covers.mjs`; prompts, attempts and picks in [wide covers](concepts/2026-09-25-wide-covers/README.md)). The brief keeps the title and subjects inside the middle 30–70% of the generated height, so the lid may trim up to a fifth of the 3:1 band on short screens (`clamp(26.67cqw, 30dvh, 33.34cqw)`). The square covers stay for the library boxes.
+
+Yata's cover was too realistic and detailed next to its flat toon table, so both its square and wide covers were regenerated in the table's cel-shaded toon paragraph (`box-yata-toon-v1`); the gouache cover moved to the art archive.
+
+The tray is rebuilt in `components/game/setup-box.tsx` and `setup-row.tsx`: calm paper, small uppercase labels, and the game's own palette (`--box-deep` as the accent) on every selected state and on Play. Players and bot strength are segmented tracks (bots carry one to three bars). The content set is a pair of picture cards that show what you will play on: Mora's **Board** shows each board (`mora-*-preview-v1.webp`, the middle of the overview plates), Yata's **Menu** its six dishes, Nox's **Deck** a fan of cards. Extensions are rows with a visible on/off switch and an info mark (three tiles in a row on phones), still opening the shared `RuleExplanation` modal by long-press, I or the mark. Learn, Play and Continue close the tray. Folio and Relic reuse the same shell, rows and buttons. On a 375px phone every setup fits without scrolling.
+
+## Tribu refinements: closer scoring, finite spectrums, changeable votes (23 September 2026, later)
+
+- **Top Five scores by closeness.** Each of the author's answers earns 2
+  points where the guess ranked it exactly, 1 point one rank away, nothing
+  further off; a perfect list is 10 (`nearPoints` in
+  `lib/games/party/ranking.ts`). Replaces one point per exact rank plus two
+  for a perfect five.
+- **Top Five reveal is five straight Dials.** Each of the author's answers,
+  in their order, gets a five-slot track: the real rank glows in Dial's teal
+  bullseye colour, the ranks beside it are the pale near band, and every
+  guess drops in as an avatar where that player ranked it. Dial-style score
+  chips (avatar, name, +points; a perfect list gets the burst) follow, and
+  the full lists stay behind the people button. In short landscape the
+  scores stand in a column beside the tracks.
+- **Dial spectrums must be finite.** A spectrum belongs only if the table
+  agrees on what its two ends mean. Open-ended magnitudes with no shared
+  frame (Slow–Fast, Tiny–Huge, Cheap–Expensive, Quiet–Loud and the like: fast
+  compared to what?) are retired, together with near-duplicates. Rows are only
+  appended or retired, never removed, so saved ids stay stable.
+- **Votes can change until they close.** In every set vote (Tribu and
+  Sabi, opening and end of round) a player can switch their vote while
+  anyone is still undecided; the vote closes the moment everyone has voted
+  or the clock runs out. The online next-game vote already allowed this.
+
+## Know Me and Quiz: plain names, no teams, a host picker (23 September 2026, latest)
+
+- **Names.** Abstract strategy games (Nox, Mora, Yata) keep short abstract
+  names. Party games take plain, literal names. Tribu (`orin`) is now
+  **Know Me**; Sabi (`miro`) is now **Quiz**, a generic name because it will
+  hold more trivia games than Atlas and Sizes. Internal ids, saves and the
+  Tribu/Sabi code names in source stay. New covers in
+  [the cover notes](concepts/2026-09-23-know-me-quiz-covers/README.md).
+- **No teams.** Know Me and Quiz are always everyone for themselves. Setup has
+  no play-mode choice; the server ignores any team request and every new
+  match, practice and switch is individual. The engines still read old team
+  saves.
+- **Host picker.** In the online setup box the play-mode choice and the
+  explanation paragraph are gone. In their place is the row of players at the
+  table, with a crown on the host; the host taps another player to hand
+  hosting over. Empty seats show as dashed chairs. Rules stay in Rules.
+- Folio and Relic boxes on the shelf now show their printed covers and spines
+  (they have no engine id, which had left them as blank placeholders).
+
+## Sabi: small trivia games, Size It Up and a new Atlas (23 September 2026, later)
+
+Supersedes the Mundo section below where they differ.
+
+- **Sabi** (provisional name, internal id `miro`; was Mundo) is a set of
+  short trivia mini-games, not only a world game. It holds **Atlas** and
+  **Sizes** today and is meant to take more. Its structure is unchanged: an
+  opening vote, an again/switch/end vote after every round, shared totals
+  and round count. The name was chosen to be short and easy to say in any
+  language.
+- **Scores share one scale.** Both games give up to 100 points per prompt,
+  so neither dominates the carried totals: a Sizes comparison scores 0–100,
+  and an Atlas place gives 50 to the closest pin plus 50 to every pin within
+  100 km (the old 1 + 1, times fifty).
+- **Sizes is Magnitudle's Size It Up, nearly one to one.** A cream reference
+  silhouette stands at true scale on a ground line; players drag a tomato
+  silhouette to move it, pull its corner handle (or pinch) to resize it,
+  zoom the board with + and −. They size all three comparisons, moving
+  freely between the tabs, and lock once at the end (changed 23 September
+  2026; a lock per comparison was dropped). The host then reveals the three
+  one at a time. A reveal lines up on the mat the reference, the true size in
+  gold, and every player's guess in their colour, best first, with the true
+  size laid over each; a guess far past three and a half times the truth is
+  cropped to its slot with a fade. Hovering or tapping a player, on the mat or
+  in the list, dims the rest. It counts a "52 / 100" up with *Off by*, prints
+  a one-line fact, and lists everyone's points. Scoring is
+  Size It Up's curve on relative error (6% off or less scores 100; 12% → 90,
+  20% → 78, 32% → 62, 50% → 45, 75% → 30, 110% → 18, 160% → 0, straight
+  lines between). Each round is three comparisons: an animal, an object or
+  landmark, then a country (east to west
+  or north to south, from the Natural Earth outlines). The target is between
+  a fifth and eight times the reference. A lock can carry all three sizes so
+  the last drag and the lock land as one move. Silhouettes are three generated 4×4
+  sheets, thresholded to alpha masks by `scripts/build-sizes-silhouettes.mjs`
+  with each cell's box in `lib/games/party/size-silhouettes.json`; the
+  catalogue with real sizes and facts is `lib/games/party/size-things.ts`.
+- **Atlas rounds: two places and a final.** Each round is an easier named
+  place, a harder named place (never the headline cities: no Paris, London,
+  New York, Rome, Tokyo…), then the final: a photograph and two clues that
+  never name the place, its country or its people. Named places live in
+  `lib/games/party/geo-names.json`; the 23 photographed finals stay in
+  `geo-places.json`. Rules marker 10.
+- **Atlas globe (23 September 2026, later).** The globe stands free on the
+  desk with a thin sky-blue rim, no mat behind it. Close up it drapes Esri
+  World Imagery tiles over the bundled Blue Marble texture, sharper the
+  closer the camera (to about 60 km up), with the credit shown while tiles
+  are in view. Dragging keeps the ground under the pointer at every zoom, and
+  zoom works in altitude so it slows near the ground. Pins are map pins with
+  their tip on the spot, drawn above the globe and hidden past the horizon.
+  At the reveal every guess draws an arc to the answer and the globe turns to
+  show them.
+- **One look for the set: the measuring desk.** A deep green self-healing
+  cutting mat with a pale grid and ruler ticks is the board of every Sabi
+  game (Sizes stands its silhouettes on it; Atlas's globe is the exception
+  and stands free on the desk); cream index cards with a red rule hold the steps, the prompt and
+  the results; glossy enamel tomato buttons; warm lamp light from the upper
+  left on a pale wooden desk. Shared pieces in `components/game/sabi.css`
+  and `sabi-steps.tsx`: `.sabi-stage`, `.sabi-board`, `.sabi-card`,
+  `.sabi-steps`, `.sabi-results`, `.sabi-actions`. New Sabi games build on
+  them. Never Tribu's neon night, never the old gouache poster. Cover:
+  `box-sabi-blind-v1`; prompts in
+  [the Sabi concept notes](concepts/2026-09-23-sabi/README.md).
+
+## Mundo: Atlas and Sizes, and reveals with a pulse (23 September 2026)
+
+- Superseded by Sabi above: the name, the look, Sizes' rules and Atlas's
+  rounds. The set structure and the reveal kit below still hold.
+- **Reveals with a pulse.** Every party reveal and the match results use one
+  kit, `components/game/reveal-motion.tsx`: numbers count up, items drop or
+  pop in one after another, and a perfect answer gets a ring burst. Each
+  reveal settles in under two seconds and is instant under reduced motion.
+  Top Five flips its ranks in one by one, then the guesser chips, then the
+  scores. Dial blooms its bands from the hidden point, swings the guesses in,
+  then pops the scores. Atlas lists teams closest first with distances
+  counting up. Sizes counts the answer up, shrinks countries to scale, drops
+  the guesses onto a log ruler and pops the points. The results screen counts
+  down from last place to the winner, who lands last with a crown and a light
+  sweep.
+
+## Tribu, and no noise on the table (23 September 2026)
+
+- **Tribu** (provisional name, internal id `orin`) replaces My Top Five and
+  Dial as separate games. It is one party game about how well a group knows
+  each other, and it holds both: **Top Five** and **Dial**. A match opens with
+  a ten-second vote between the two. Every round ends with a ten-second vote:
+  the same game again, the other game, or **End**. The game being played wins
+  any tie it is part of and an empty vote. A tie without it prefers playing
+  over ending, and the opening draws at random when nobody votes. Points carry
+  across games: each player's total is what the results show. Top Five keeps
+  its teams option, and a team's points count for each of its players. Dial is
+  always everyone for themselves. Rounds keep counting across a switch, up to
+  twelve. The saved state is always one of the two games (`orin` or `dial`);
+  `lib/games/party/tribu.ts` swaps it when the table switches, keeping seats,
+  log, round and totals. Old Dial tables open as Tribu.
+- **Look.** A retro game show (changed 23 September 2026; the night-party
+  indigo was dropped). The table stands on an illustrated 70s studio set
+  (`tribu-studio-landscape-*` / `tribu-studio-portrait-*`): curtains, marquee
+  bulbs, podiums, plants and lights at the edges, a calm lacquered stage in
+  the middle under a soft cream wash. Tribu will hold more games, so the art
+  is general: no dials or ranking cards in the set or the cover
+  (`box-tribu-blind-v2`, the set with a lit "Tribu" marquee). Surfaces are
+  cream with chunky dark-brown ink outlines and hard offset shadows in tomato
+  red, mustard and teal, under a heavy rounded display face. The Dial is a
+  game-show wheel: a teal→mustard→orange→tomato band inside a tomato rim of
+  marquee bulbs that chase while the clue is written, with the clue-giver's
+  two spectrums above it as large segmented options. Top Five uses cream
+  contestant cards with a coloured header band. Never dark, never neon, no
+
+codex
+The single generation is complete. I’m copying the original PNG to your requested path without modifying it.
+
+
+exec
+/bin/zsh -lc 'mkdir -p public/art/lucky
+cp -n /Users/williamguinaudie/.codex/generated_images/01a0d7f6-8d15-70d2-85c0-a4942cdb7423/exec-ac7a4d02-faf0-4b25-b361-a41ef9135af7.png /Users/williamguinaudie/Documents/code/gamehub/public/art/lucky/symbols-v1-a.png
+sips -g pixelWidth -g pixelHeight -g hasAlpha public/art/lucky/symbols-v1-a.png
+cmp /Users/williamguinaudie/.codex/generated_images/01a0d7f6-8d15-70d2-85c0-a4942cdb7423/exec-ac7a4d02-faf0-4b25-b361-a41ef9135af7.png public/art/lucky/symbols-v1-a.png' in /Users/williamguinaudie/Documents/code/gamehub
+ succeeded in 0ms:
+codex
+Saved unchanged to [symbols-v1-a.png](/Users/williamguinaudie/Documents/code/gamehub/public/art/lucky/symbols-v1-a.png).
+
+Used your exact prompt with the built-in tool, once. Output has transparency but is **1254×1254**, despite requesting 1024×1024. No retouching or second pass.
+tokens used
+33 134
+Saved unchanged to [symbols-v1-a.png](/Users/williamguinaudie/Documents/code/gamehub/public/art/lucky/symbols-v1-a.png).
+
+Used your exact prompt with the built-in tool, once. Output has transparency but is **1254×1254**, despite requesting 1024×1024. No retouching or second pass.

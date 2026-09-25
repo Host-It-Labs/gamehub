@@ -12,7 +12,6 @@ import {
   DIFFICULTY_NOTES,
   LEVEL_NAMES,
   PUZZLES,
-  ROUNDS,
 } from '@/lib/games/folio/catalog';
 import type { LibraryGame } from '@/lib/games/library-fixtures';
 import {
@@ -33,7 +32,7 @@ const errorText = (e: unknown) =>
 function runTitle(s: FolioSummary) {
   if (s.phase === 'lobby')
     return `Waiting for ${s.seats - s.members.length} more`;
-  return `Round ${Math.max(1, s.round)} of ${ROUNDS}`;
+  return `Round ${Math.max(1, s.round)}`;
 }
 function runDetail(s: FolioSummary) {
   const who = s.seats === 1 ? 'Solo' : s.members.join(', ');
@@ -213,6 +212,10 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
                 title: runTitle(s),
                 detail: `${runDetail(s)} · ${shortDate(s.updatedAt)}`,
               }))}
+              onDelete={async (token) => {
+                await api(`/api/folio/${token}/delete`, {});
+                setRuns((rows) => rows.filter((r) => r.token !== token));
+              }}
             />
           </>
         )}

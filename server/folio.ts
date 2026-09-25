@@ -137,6 +137,21 @@ export class FolioRuns {
       ];
     });
   }
+  /**
+   * Delete a run from the viewer's list. The viewer leaves the table; the run
+   * itself is deleted once nobody is left in it.
+   */
+  remove(invite: string, who: Identity) {
+    return this.transaction(() => {
+      check(this.isMember(invite, who), 404, 'This run is not in your list.');
+      this.db
+        .prepare('DELETE FROM folio_members WHERE run=? AND actor=?')
+        .run(invite, who.id);
+      if (!this.count(invite))
+        this.db.prepare('DELETE FROM folio_runs WHERE token=?').run(invite);
+      return { deleted: true };
+    });
+  }
   create(who: Identity, input: Record<string, unknown>, now = Date.now()) {
     const practice = input.practice as
       | { kind?: unknown; boss?: unknown }

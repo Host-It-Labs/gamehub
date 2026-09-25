@@ -1,12 +1,26 @@
 'use client';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import { useBoardLeave } from '../game/use-board-leave';
-import { TableAmbienceControl } from './table-ambience-control';
 import { AdventureMatch } from './adventure-match';
 import { onlineCatalog } from '@/lib/online/catalog';
 import { decisionKey } from '@/lib/games/trio/engine';
+import { gameByLibraryId } from '@/lib/games/library-fixtures';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
-import { Settings2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bot,
+  Crown,
+  EllipsisVertical,
+  Flag,
+  Link2,
+  LogOut,
+  Play,
+  Settings2,
+  UserPlus,
+  UserX,
+  Volume2,
+  X,
+} from 'lucide-react';
 import {
   api,
   ApiError,
@@ -18,13 +32,42 @@ import {
 } from '@/lib/online/client';
 import {
   type Command,
+  type Member,
   type Table,
   type TableCommand,
 } from '@/lib/online/types';
-import { OnlineHeader } from './account';
 import { OnlineMatch } from './match';
-import { LobbyGames, SharedLesson } from './lobby-games';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { LobbyGames, SharedLesson, type Launch } from './lobby-games';
+import { GameBox } from '../game/game-box';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import '../game/library.css';
+import './table-lobby.css';
+
+/** A removed or closed table leads back to the home page. */
+function goHome() {
+  window.location.replace('/');
+}
+/** Folio and Relic link back to the table that sent the players there. */
+function followHandoff(invite: string, url: string) {
+  try {
+    sessionStorage.setItem('gamehub.return-table', `/table/${invite}`);
+    sessionStorage.setItem(`gamehub.handoff.${url}`, '1');
+  } catch {
+    /* The room still opens without the way back. */
+  }
+  window.location.assign(url);
+}
+const initial = (name: string) => name.trim().charAt(0).toUpperCase() || '?';
 
 export function SharedTable({ invite }: { invite: string }) {
   const [leaving, setLeaving] = useState(false);
@@ -42,7 +85,10 @@ export function SharedTable({ invite }: { invite: string }) {
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(false),
     [copied, setCopied] = useState(false);
-  const allowLeave = useBoardLeave(!!(table?.game || table?.adventure), requestLeave);
+  const allowLeave = useBoardLeave(
+    !!(table?.game || table?.adventure),
+    requestLeave,
+  );
   const pending = useRef<Command | null>(null),
     current = useRef<Table | null>(null),
     sending = useRef(false);
@@ -64,11 +110,12 @@ export function SharedTable({ invite }: { invite: string }) {
       })
       .catch((e) => {
         if (!active) return;
-        if (e instanceof ApiError && e.status === 400 && !stored)
+        if (e instanceof ApiError && [404, 410].includes(e.status)) goHome();
+        else if (e instanceof ApiError && e.status === 400 && !stored)
           setNeedsName(true);
         else {
           setError(e.message);
-          setFatal(e instanceof ApiError && [404, 410, 409].includes(e.status));
+          setFatal(e instanceof ApiError && e.status === 409);
         }
       });
     return () => {
@@ -78,7 +125,9 @@ export function SharedTable({ invite }: { invite: string }) {
   const joined = !!table;
   useEffect(() => {
     if (!joined) return;
-    const events = new EventSource(withDevSession(`/api/tables/${invite}/events`));
+    const events = new EventSource(
+      withDevSession(`/api/tables/${invite}/events`),
+    );
     events.onmessage = (event) => {
       const t = JSON.parse(event.data) as Table;
       accept(t);
@@ -91,25 +140,44 @@ export function SharedTable({ invite }: { invite: string }) {
         .then(accept)
         .catch((error) => {
           if (!(error instanceof ApiError)) return;
-          if ([401, 403, 404, 410].includes(error.status)) {
+          if ([404, 410].includes(error.status)) {
+            events.close();
+            goHome();
+          } else if ([401, 403].includes(error.status)) {
             events.close();
             setFatal(true);
             setError(error.message);
-            if (error.status === 410 && current.current)
-              accept({ ...current.current, status: 'closed', game: null });
           }
         });
     };
+    events.addEventListener('gone', () => {
+      events.close();
+      goHome();
+    });
     events.addEventListener('revoked', () => {
       events.close();
       setConnected(false);
-      setError('Your session or seat has changed. Reopen the invite to join.');
+      setError('Your seat has changed. Reopen the invite to join.');
       setFatal(true);
     });
     return () => {
       events.close();
     };
   }, [invite, joined]);
+  useEffect(() => {
+    if (table?.status === 'closed') goHome();
+  }, [table?.status]);
+  // Everyone follows the host into Folio or Relic once; latecomers get a card.
+  const handoff = table?.handoff;
+  useEffect(() => {
+    if (!handoff || Date.now() - handoff.at > 60_000) return;
+    try {
+      if (sessionStorage.getItem(`gamehub.handoff.${handoff.url}`)) return;
+    } catch {
+      return;
+    }
+    followHandoff(invite, handoff.url);
+  }, [invite, handoff]);
   async function join(event: SyntheticEvent) {
     event.preventDefault();
     setBusy(true);
@@ -120,6 +188,7 @@ export function SharedTable({ invite }: { invite: string }) {
       setNeedsName(false);
       setError('');
     } catch (e) {
+      if (e instanceof ApiError && [404, 410].includes(e.status)) goHome();
       setError((e as Error).message);
     } finally {
       setBusy(false);
@@ -148,7 +217,8 @@ export function SharedTable({ invite }: { invite: string }) {
     if (sending.current || !current.current || (!action && !pending.current))
       return false;
     sending.current = true;
-    const drafting = action?.type === 'adventure-move' && action.move.type === 'arrange';
+    const drafting =
+      action?.type === 'adventure-move' && action.move.type === 'arrange';
     if (!drafting) setBusy(true);
     setError('');
     if (!pending.current && action)
@@ -180,9 +250,7 @@ export function SharedTable({ invite }: { invite: string }) {
         }
       } else {
         setRetry(true);
-        setError(
-          'The connection was interrupted. Retry the same action to safely check whether it was saved.',
-        );
+        setError('Connection lost. Retry to check your last action.');
       }
       return false;
     } finally {
@@ -190,108 +258,147 @@ export function SharedTable({ invite }: { invite: string }) {
       setBusy(false);
     }
   }
-  async function copy() {
+  async function launch(choice: Launch) {
+    setError('');
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-    } catch {
-      setError('Copy the invite link from the address bar.');
+      const { url } = await api<{ url: string }>(
+        `/api/tables/${invite}/launch`,
+        choice,
+      );
+      followHandoff(invite, url);
+    } catch (e) {
+      setError((e as Error).message);
     }
   }
-  async function rename(event: SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = new FormData(event.currentTarget).get('name') as string;
-    if (await dispatch({ type: 'rename', name: value }))
-      rememberName(value.trim());
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/table/${invite}`,
+      );
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Copy the link from the address bar.');
+    }
   }
   const disabled = busy || retry || !connected || fatal;
-  return (
-    <div className={`app ${(table?.game || table?.adventure) ? `at-table ${table.gameId}` : ''}`}>
-      <OnlineHeader />
-      {error && (
-        <div className="online-notice" role="alert">
-          {error}
-          {retry && (
-            <button
-              className="secondary"
-              disabled={busy}
-              onClick={() => void dispatch()}
-            >
-              Retry last action
-            </button>
-          )}
-          {!table && !needsName && !fatal && (
-            <button
-              className="secondary"
-              onClick={() => window.location.reload()}
-            >
-              Reconnect
-            </button>
-          )}
-        </div>
+  const notice = error && (
+    <div className="online-notice" role="alert">
+      {error}
+      {retry && (
+        <button
+          className="secondary"
+          disabled={busy}
+          onClick={() => void dispatch()}
+        >
+          Retry
+        </button>
       )}
-      {!table ? (
-        <main className="online-card">
-          {needsName ? (
-            <>
-              <h1>Take a seat</h1>
-              <p>Enter your name to join. You do not need an account.</p>
+      {!table && !needsName && !fatal && (
+        <button className="secondary" onClick={() => window.location.reload()}>
+          Reconnect
+        </button>
+      )}
+    </div>
+  );
+  if (!table || table.status === 'closed')
+    return (
+      <div className="app">
+        <div className="night-library table-room">
+          <header className="lib-bar">
+            <a className="room-back" href="/" aria-label="Home">
+              <ArrowLeft aria-hidden="true" />
+            </a>
+          </header>
+          {notice}
+          <main className="room-join">
+            {needsName ? (
               <form onSubmit={join}>
-                <label>
-                  Your name
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoComplete="name"
-                    required
-                    maxLength={30}
-                  />
-                </label>
-                <button className="primary" disabled={busy}>
-                  Join table
+                <h1>Take a seat</h1>
+                <input
+                  aria-label="Your name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  required
+                  maxLength={30}
+                />
+                <button className="lib-friends" disabled={busy}>
+                  Join
                 </button>
-                <small>We’ll remember you in this browser.</small>
               </form>
-            </>
-          ) : (
-            <p>
-              {fatal
-                ? 'This invitation is unavailable.'
-                : error
-                  ? 'Unable to join the table.'
-                  : 'Joining table…'}
-            </p>
-          )}
-        </main>
-      ) : table.status === 'closed' ? (
-        <main className="online-card">
-          <h1>This table is closed</h1>
-          <a href="/tables">Back to my tables</a>
-        </main>
+            ) : (
+              <output className="room-joining" aria-busy={!error} />
+            )}
+          </main>
+        </div>
+      </div>
+    );
+  const owner = table.members.find((m) => m.owner);
+  const title = owner ? `${owner.name}’s table` : 'Table';
+  const me = table.members.find((m) => m.id === table.viewerId && !m.bot);
+  const home = table.isHost ? '/tables' : '/';
+  const menu = (
+    <RoomMenu
+      table={table}
+      me={me}
+      disabled={disabled}
+      dispatch={dispatch}
+      onTestPlayer={openTestPlayer}
+    />
+  );
+  return (
+    <div
+      className={`app ${table.game || table.adventure ? `at-table ${table.gameId}` : ''}`}
+    >
+      {table.status === 'lobby' ? (
+        <div className="night-library table-room">
+          <header className="lib-bar">
+            <a className="room-back" href={home} aria-label="Back">
+              <ArrowLeft aria-hidden="true" />
+            </a>
+            <h1 className="room-title">{title}</h1>
+            <div className="lib-actions">
+              <output
+                className={`room-live ${connected ? 'is-connected' : ''}`}
+                aria-label={connected ? 'Connected' : 'Reconnecting'}
+              />
+              <button className="lib-friends" onClick={copy}>
+                <Link2 aria-hidden="true" />
+                <span>{copied ? 'Copied' : 'Invite'}</span>
+              </button>
+              {menu}
+            </div>
+          </header>
+          {notice}
+          <main className="lib-main room-main">
+            <Seats table={table} disabled={disabled} dispatch={dispatch} />
+            {table.handoff && (
+              <Handoff
+                url={table.handoff.url}
+                kind={table.handoff.kind}
+                onJoin={() => followHandoff(invite, table.handoff!.url)}
+              />
+            )}
+            <LobbyGames
+              error={error}
+              table={table}
+              disabled={disabled}
+              dispatch={dispatch}
+              onLaunch={launch}
+            />
+          </main>
+        </div>
       ) : (
         <>
-          {(table.status === 'lobby' || table.isHost) && <details
-            className={`online-session table-session ${table.status === 'lobby' ? 'lobby-session' : 'playing-session'} ${table.isHost ? 'host-session' : 'guest-session'}`}
-            key={`${table.status}-${table.isHost}`}
-            open={table.status === 'lobby' && table.isHost}
-          >
-            <summary>
-              {table.status === 'lobby' ? (
-                <>
-                  <span>
-                    {`${onlineCatalog.find((c) => c.id === table.gameId)?.name} · Up next`}
-                    <small>
-                      {table.members.length} players ·{' '}
-                      {table.isHost ? 'You’re hosting' : 'Waiting for the host'}
-                    </small>
-                  </span>
-                  <span
-                    className={`lobby-connection ${connected ? 'is-connected' : ''}`}
-                  >
-                    {connected ? 'Connected' : 'Reconnecting…'}
-                  </span>
-                </>
-              ) : (
+          {notice}
+          {table.isHost && (
+            <details
+              className="online-session table-session playing-session host-session"
+              key={table.status}
+            >
+              <summary>
                 <span className="playing-session-trigger">
                   <Settings2 size={16} aria-hidden="true" />
                   Table
@@ -300,225 +407,86 @@ export function SharedTable({ invite }: { invite: string }) {
                     aria-label={connected ? 'Connected' : 'Reconnecting'}
                   />
                 </span>
-              )}
-            </summary>
-            <section className="online-card table-lobby">
-              <div className="online-row">
-                <div>
-                  <span className="lobby-eyebrow">
-                    {table.status === 'lobby'
-                      ? 'Gather your players'
-                      : 'Your table'}
-                  </span>
-                  <h1>
-                    {table.status === 'lobby'
-                      ? 'Around the table'
-                      : onlineCatalog.find((c) => c.id === table.gameId)?.name}
-                  </h1>
-                </div>
-                <button className="secondary" onClick={copy}>
-                  {copied ? 'Copied!' : 'Copy invite link'}
-                </button>
-              </div>
-              <output>
-                {connected
-                  ? table.status === 'lobby'
-                    ? table.isHost
-                      ? 'Share the invite. Choose a game below. Start when you’re ready.'
-                      : 'You’re in. Suggest a game below while everyone joins.'
-                    : 'Table connected'
-                  : 'Reconnecting… Your seat is saved.'}
-              </output>
-              <TableAmbienceControl table={table} disabled={disabled} dispatch={dispatch} />
-              <ul className="member-list">
-                {table.members.map((m) => (
-                  <li key={`${m.id}-${m.bot}`}>
-                    <span
-                      className={`presence ${m.connected ? 'present' : ''}`}
-                    />
-                    <span>
-                      {m.name}
-                      {m.id === table.viewerId && !m.bot ? ' (you)' : ''}
-                      <small>
-                        {m.host
-                          ? 'Host'
-                          : m.bot
-                            ? 'Bot'
-                            : !m.connected
-                              ? 'Disconnected'
-                              : m.seat === null && table.status !== 'lobby'
-                                ? 'Waiting for next match'
-                                : 'Connected'}
-                      </small>
-                    </span>
-                    {table.isHost &&
-                      !m.host &&
-                      !m.bot &&
-                      table.status === 'lobby' && (
-                        <button
-                          className="text-button"
-                          disabled={disabled}
-                          title={`${m.name} will configure, start and move the game on`}
-                          onClick={() =>
-                            void dispatch({ type: 'host', memberId: m.id })
-                          }
-                        >
-                          Make host
-                        </button>
-                      )}
-                    {table.isHost &&
-                      !m.host &&
-                      !m.owner &&
-                      !m.bot &&
-                      table.status === 'lobby' && (
-                        <button
-                          className="text-button"
-                          disabled={disabled}
-                          onClick={() =>
-                            void dispatch({ type: 'remove', memberId: m.id })
-                          }
-                        >
-                          Remove
-                        </button>
-                      )}
-                    {table.isHost &&
-                      !m.host &&
-                      !m.bot &&
-                      !m.connected &&
-                      m.seat !== null &&
-                      table.status === 'playing' && !requiresHumanPlayers(table.gameId) && (
-                        <button
-                          className="secondary"
-                          disabled={disabled}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Replace ${m.name} with a bot for this match?`,
-                              )
-                            )
-                              void dispatch({
-                                type: 'replace',
-                                memberId: m.id,
-                              });
-                          }}
-                        >
-                          Replace with bot
-                        </button>
-                      )}
-                  </li>
-                ))}
-              </ul>
-              {table.status === 'lobby' && (
-                <>
-                  <p className="lobby-seat-note">
-                    {table.members.length} of {table.capacity} seats taken
-                    {table.capacity > table.members.length
-                      ? requiresHumanPlayers(table.gameId) ? ` · Waiting for ${table.capacity - table.members.length} human players` : ` · ${table.capacity - table.members.length} bots will fill the remaining seats`
-                      : table.members.some(m => !m.connected && !m.bot) ? ' · Some players are disconnected' : ' · Everyone is here'}
-                  </p>
-                  {process.env.NODE_ENV === 'development' && table.isHost && (
-                    <button
-                      className="secondary"
-                      disabled={disabled || table.members.length >= table.capacity}
-                      title="Development only: opens a new tab seated as another guest"
-                      onClick={() => void openTestPlayer()}
-                    >
-                      Open test player tab
-                    </button>
-                  )}
-
-                </>
-              )}
-              <div className="lobby-utilities">
-                <details>
-                  <summary>Change your name</summary>
-                  <form onSubmit={rename} className="online-row">
-                    <label>
-                      Your name
-                      <input
-                        key={table.viewerId}
-                        name="name"
-                        defaultValue={
-                          table.members.find(
-                            (m) => m.id === table.viewerId && !m.bot,
-                          )?.name
-                        }
-                        maxLength={30}
-                        required
+              </summary>
+              <section className="online-card table-lobby">
+                <ul className="member-list">
+                  {table.members.map((m) => (
+                    <li key={`${m.id}-${m.bot}`}>
+                      <span
+                        className={`presence ${m.connected ? 'present' : ''}`}
                       />
-                    </label>
-                    <button className="secondary" disabled={disabled}>
-                      Save name
-                    </button>
-                  </form>
-                </details>
+                      <span>
+                        {m.name}
+                        {m.host && !m.bot && <small>Leads</small>}
+                      </span>
+                      {!m.host &&
+                        !m.bot &&
+                        !m.connected &&
+                        m.seat !== null &&
+                        table.status === 'playing' &&
+                        !requiresHumanPlayers(table.gameId) && (
+                          <button
+                            className="secondary"
+                            disabled={disabled}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Replace ${m.name} with a bot for this match?`,
+                                )
+                              )
+                                void dispatch({
+                                  type: 'replace',
+                                  memberId: m.id,
+                                });
+                            }}
+                          >
+                            <Bot size={15} aria-hidden="true" /> Bot
+                          </button>
+                        )}
+                    </li>
+                  ))}
+                </ul>
                 <div className="online-actions">
-                  {table.isHost && table.status !== 'lobby' && (
-                    <button
-                      className="primary"
-                      disabled={disabled}
-                      onClick={() => {
-                        if (
-                          table.status === 'finished' ||
-                          window.confirm(
-                            'End this match and return everyone to the lobby?',
-                          )
-                        )
-                          void dispatch({ type: 'abandon' });
-                      }}
-                    >
-                      Return to lobby
-                    </button>
-                  )}
-                  {table.isHost && (
-                    <button
-                      className="text-button"
-                      disabled={disabled}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            'Close this table and disable its invite link?',
-                          )
-                        )
-                          void dispatch({ type: 'close' });
-                      }}
-                    >
-                      Close table
-                    </button>
-                  )}
-                  {!table.isHost &&
-                    !table.members.some((m) => m.id === table.viewerId && m.owner) &&
-                    table.status === 'lobby' && (
-                    <button
-                      className="text-button"
-                      disabled={disabled}
-                      onClick={() => void dispatch({ type: 'leave' })}
-                    >
-                      Leave table
-                    </button>
-                  )}
+                  <button
+                    className="primary"
+                    disabled={disabled}
+                    onClick={() => {
+                      if (
+                        table.status === 'finished' ||
+                        window.confirm('End this match for everyone?')
+                      )
+                        void dispatch({ type: 'abandon' });
+                    }}
+                  >
+                    Back to lobby
+                  </button>
+                  <button
+                    className="text-button"
+                    disabled={disabled}
+                    onClick={() => {
+                      if (window.confirm('Close this table for everyone?'))
+                        void dispatch({ type: 'close' });
+                    }}
+                  >
+                    Close table
+                  </button>
                 </div>
-              </div>
-              {table.botError && (
-                <p role="alert">
-                  A bot has paused.{' '}
-                  {table.isHost ? (
-                    <button
-                      className="secondary"
-                      disabled={disabled}
-                      onClick={() => void dispatch({ type: 'retry-bot' })}
-                    >
-                      Retry bot
-                    </button>
-                  ) : (
-                    'The host can retry it.'
-                  )}
-                </p>
+              </section>
+            </details>
+          )}
+          {table.botError && (
+            <p className="online-notice" role="alert">
+              A bot paused.
+              {table.isHost && (
+                <button
+                  className="secondary"
+                  disabled={disabled}
+                  onClick={() => void dispatch({ type: 'retry-bot' })}
+                >
+                  Retry
+                </button>
               )}
-            </section>
-          </details>}
-          {table.status === 'lobby' && (
-            <LobbyGames error={error} table={table} disabled={disabled} dispatch={dispatch} />
+            </p>
           )}
           {table.game?.tutorial && (
             <SharedLesson
@@ -527,7 +495,15 @@ export function SharedTable({ invite }: { invite: string }) {
               dispatch={dispatch}
             />
           )}
-          {table.adventure && table.viewerSeat !== null && <AdventureMatch key={table.matchId} table={table} disabled={disabled} dispatch={dispatch} onHome={requestLeave} />}
+          {table.adventure && table.viewerSeat !== null && (
+            <AdventureMatch
+              key={table.matchId}
+              table={table}
+              disabled={disabled}
+              dispatch={dispatch}
+              onHome={requestLeave}
+            />
+          )}
           {table.game && table.viewerSeat !== null ? (
             <OnlineMatch
               onHome={requestLeave}
@@ -556,13 +532,18 @@ export function SharedTable({ invite }: { invite: string }) {
               }
             />
           ) : (
-            !table.adventure && table.status !== 'lobby' && (
-              <div className="online-card">
-                <h2>Waiting for the next match</h2>
-                <p>
-                  The current seats are reserved. You can play when the host
-                  returns to the lobby.
-                </p>
+            !table.adventure && (
+              <div className="night-library table-room">
+                <header className="lib-bar">
+                  <a className="room-back" href={home} aria-label="Back">
+                    <ArrowLeft aria-hidden="true" />
+                  </a>
+                  <h1 className="room-title">{title}</h1>
+                  <div className="lib-actions">{menu}</div>
+                </header>
+                <main className="room-join">
+                  <Waiting gameId={table.gameId} />
+                </main>
               </div>
             )
           )}
@@ -570,15 +551,287 @@ export function SharedTable({ invite }: { invite: string }) {
       )}
       <Dialog open={leaving} onOpenChange={setLeaving}>
         <DialogContent className="modal help-modal" finalFocus={returnFocus}>
-          <DialogTitle>Leave the table?</DialogTitle>
-          <DialogDescription>
-            The match will keep going, and the other players may be waiting for you.
-            Your seat stays reserved. You can return from My tables.
-          </DialogDescription>
-          <button className="primary" onClick={() => setLeaving(false)}>Keep playing</button>
-          <button className="secondary" onClick={() => { allowLeave(); window.location.href = '/tables'; }}>Leave table</button>
+          <DialogTitle>Leave the match?</DialogTitle>
+          <DialogDescription>Your seat stays yours.</DialogDescription>
+          <button className="primary" onClick={() => setLeaving(false)}>
+            Stay
+          </button>
+          <button
+            className="secondary"
+            onClick={() => {
+              allowLeave();
+              window.location.href = home;
+            }}
+          >
+            Leave
+          </button>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/** The people at the table, as seats; empty seats show who fills them. */
+function Seats({
+  table,
+  disabled,
+  dispatch,
+}: {
+  table: Table;
+  disabled: boolean;
+  dispatch: (action: TableCommand) => Promise<boolean>;
+}) {
+  const people = table.members.filter((m) => !m.bot);
+  const empty = Math.max(0, table.capacity - people.length);
+  const bots = !requiresHumanPlayers(table.gameId);
+  return (
+    <ul className="room-seats" aria-label="Players">
+      {people.map((m) => (
+        <Seat
+          key={m.id}
+          member={m}
+          you={m.id === table.viewerId}
+          manage={table.isHost && !m.owner}
+          disabled={disabled}
+          dispatch={dispatch}
+        />
+      ))}
+      {Array.from({ length: empty }, (_, i) => (
+        <li
+          key={`empty-${i}`}
+          className="room-seat is-empty"
+          aria-label={bots ? 'Bot seat' : 'Open seat'}
+        >
+          <span className="room-avatar" aria-hidden="true">
+            {bots ? <Bot /> : <UserPlus />}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Seat({
+  member: m,
+  you,
+  manage,
+  disabled,
+  dispatch,
+}: {
+  member: Member;
+  you: boolean;
+  manage: boolean;
+  disabled: boolean;
+  dispatch: (action: TableCommand) => Promise<boolean>;
+}) {
+  const [open, setOpen] = useState(false);
+  const face = (
+    <>
+      <span className="room-avatar" aria-hidden="true">
+        {initial(m.name)}
+        {m.owner && (
+          <i className="room-mark is-host">
+            <Crown />
+          </i>
+        )}
+        {m.nextHost && (
+          <i className="room-mark is-leader">
+            <Flag />
+          </i>
+        )}
+      </span>
+      <b>{m.name}</b>
+    </>
+  );
+  const label = `${m.name}${you ? ' (you)' : ''}${m.owner ? ', host' : ''}${m.nextHost ? ', leads the next game' : ''}${m.connected ? '' : ', offline'}`;
+  const className = `room-seat ${m.connected ? '' : 'is-away'} ${you ? 'is-you' : ''}`;
+  if (!manage)
+    return (
+      <li className={className} aria-label={label}>
+        {face}
+      </li>
+    );
+  function act(action: TableCommand) {
+    setOpen(false);
+    void dispatch(action);
+  }
+  return (
+    <li className={className}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          className="room-seat-button"
+          aria-label={label}
+          disabled={disabled}
+        >
+          {face}
+        </PopoverTrigger>
+        <PopoverContent className="room-menu" align="center">
+          <button
+            onClick={() => act({ type: 'host', memberId: m.id })}
+            aria-pressed={!!m.nextHost}
+          >
+            <Flag aria-hidden="true" />
+            {m.nextHost ? 'Don’t lead' : 'Lead next game'}
+          </button>
+          <button
+            className="is-danger"
+            onClick={() => act({ type: 'remove', memberId: m.id })}
+          >
+            <UserX aria-hidden="true" />
+            Remove
+          </button>
+        </PopoverContent>
+      </Popover>
+    </li>
+  );
+}
+
+/** Name, sounds and leaving live in one menu instead of on the page. */
+function RoomMenu({
+  table,
+  me,
+  disabled,
+  dispatch,
+  onTestPlayer,
+}: {
+  table: Table;
+  me: Member | undefined;
+  disabled: boolean;
+  dispatch: (action: TableCommand) => Promise<boolean>;
+  onTestPlayer: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  async function rename(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = new FormData(event.currentTarget).get('name') as string;
+    if (await dispatch({ type: 'rename', name: value })) {
+      rememberName(value.trim());
+      setOpen(false);
+    }
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger className="lib-sound" aria-label="Table menu">
+        <EllipsisVertical aria-hidden="true" />
+      </PopoverTrigger>
+      <PopoverContent className="room-menu" align="end">
+        <form onSubmit={rename} className="room-rename">
+          <input
+            key={table.viewerId}
+            name="name"
+            aria-label="Your name"
+            defaultValue={me?.name}
+            maxLength={30}
+            required
+          />
+          <button className="secondary" disabled={disabled}>
+            Save
+          </button>
+        </form>
+        {table.isHost && (
+          <label className="room-toggle">
+            <Volume2 aria-hidden="true" />
+            Sounds
+            <input
+              type="checkbox"
+              checked={table.ambienceEnabled === true}
+              disabled={disabled}
+              onChange={(event) =>
+                void dispatch({
+                  type: 'ambience',
+                  enabled: event.target.checked,
+                })
+              }
+            />
+          </label>
+        )}
+        {process.env.NODE_ENV === 'development' &&
+          table.isHost &&
+          table.status === 'lobby' && (
+            <button
+              disabled={disabled || table.members.length >= table.capacity}
+              onClick={() => {
+                setOpen(false);
+                onTestPlayer();
+              }}
+            >
+              <UserPlus aria-hidden="true" />
+              Test player
+            </button>
+          )}
+        {table.isHost ? (
+          <button
+            className="is-danger"
+            disabled={disabled}
+            onClick={() => {
+              if (window.confirm('Close this table for everyone?'))
+                void dispatch({ type: 'close' });
+            }}
+          >
+            <X aria-hidden="true" />
+            Close table
+          </button>
+        ) : (
+          table.status === 'lobby' && (
+            <button
+              className="is-danger"
+              disabled={disabled}
+              onClick={() => void dispatch({ type: 'leave' })}
+            >
+              <LogOut aria-hidden="true" />
+              Leave table
+            </button>
+          )
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** The table went on to Folio or Relic; anyone arriving later can follow. */
+function Handoff({
+  url,
+  kind,
+  onJoin,
+}: {
+  url: string;
+  kind: 'folio' | 'relic';
+  onJoin: () => void;
+}) {
+  const box = gameByLibraryId(kind);
+  if (!box) return null;
+  return (
+    <a
+      className="room-handoff"
+      href={url}
+      onClick={(event) => {
+        event.preventDefault();
+        onJoin();
+      }}
+    >
+      <GameBox game={box} width={64} sizes="80px" />
+      <b>{box.name}</b>
+      <span className="lib-friends">
+        <Play aria-hidden="true" />
+        Join
+      </span>
+    </a>
+  );
+}
+
+/** Joined mid-match: the seat opens when the table returns to the lobby. */
+function Waiting({ gameId }: { gameId: string }) {
+  const box =
+    gameByLibraryId(gameId) ??
+    gameByLibraryId(onlineCatalog.find((c) => c.id === gameId)?.id ?? '');
+  return (
+    <output className="room-waiting" aria-label="Match in progress">
+      {box && <GameBox game={box} width={150} sizes="200px" />}
+      <span className="room-waiting-dots" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+    </output>
   );
 }

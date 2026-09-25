@@ -58,8 +58,10 @@ Applies to every game, solo and online. Wait for players only when they lock in
 their own decision (a ranking, guess, pin, card or final submit). Never make
 every player confirm moving on to the next step, reveal or round. That single
 **Next** belongs to the table host, and the game waits for the host even when
-everyone has locked in. The host defaults to the table creator and can be
-handed to another player in the lobby; while the host is disconnected any
+everyone has locked in. The table creator always hosts the table (sets up,
+starts and closes it). In the lobby they may pick another player to lead the
+next match only: that player presses Next during that one match, and the lead
+returns to the creator when it ends. While the leader is disconnected any
 seated player may press Next. Bots never move the table on. See the
 23 September 2026 section of [docs/DESIGN.md](docs/DESIGN.md).
 Party games end each round, and each match, with a ten-second table vote
@@ -91,6 +93,7 @@ Required for every new or changed extension explanation:
 - **Hard rule: no noise text in the playing layout, in every game.** No eyebrows, subtitles, taglines, duplicate game titles, or helper and status sentences. The board, buttons, avatars, dots and images carry the state. Keep only content (prompts, clues, answer labels), names, scores and one short word per action; explanations go in Rules. When in doubt, cut the text.
 - **Hard rule: never ship a flat, uninspired screen.** Give every game depth and energy (a considered palette, light, glow or material, and a centrepiece worth looking at) while staying sleek rather than busy. Wrap prompts with `text-wrap: balance` so lines never break awkwardly.
 - Know Me (`orin`, formerly Tribu) holds Top Five and Dial as one game with an opening vote and an again/switch/end vote each round; see the Tribu section of [docs/DESIGN.md](docs/DESIGN.md). Always everyone for themselves: no teams. Only Top Five prompts carry a flag, on each option.
+- Lucky (`relic`, formerly Relic) is a shared scratch-ticket room: every book is a small puzzle with three levels, tickets lie on a table and pay the moment they are over, and upgrades are big steps. See [docs/relic.md](docs/relic.md) and the Lucky section of [docs/DESIGN.md](docs/DESIGN.md).
 - Quiz (`miro`, formerly Sabi and Mundo) holds short trivia games the same way, Atlas and Sizes today, always everyone for themselves; see the Sabi section of [docs/DESIGN.md](docs/DESIGN.md). Every Quiz game uses the shared measuring-desk pieces in `components/game/sabi.css` and `sabi-steps.tsx`, and scores up to 100 per prompt. The Know Me and Quiz sets share `lib/games/party/tribu.ts` (the switch) and `components/game/reveal-motion.tsx` (quick reveal motion: count-ups and staggered drops and pops, under two seconds, off under reduced motion). New reveal and results screens use that kit.
 
 # Illustrated board workflow
@@ -130,4 +133,4 @@ Before creating or changing a game's illustrated board, responsive scene framing
 
 ## Shared game progress
 
-Games with a fixed number of rounds (Nox, Mora, Yata, Folio) show the round as a pill centred at the top of the screen, on its own plate so it reads over the artwork: `<GameProgress round>` from `components/game/game-progress.tsx` (or `round` on `GameNavigation`). On wide screens it hangs just beneath the centred player badges; on phones it sits in the centre of the top bar. Games whose length changes as they go (Know Me, Quiz) show no round count. Other progress (Relic's tally) stays small beneath the back control. Never put progress in a bottom action panel. Atlas does not show a medium/hard badge. Know Me (Top Five and Dial) and Quiz (Atlas and Sizes) require human players in every seat; no solo bot matches, bot-filled online seats, or bot replacements.
+Games with a fixed number of rounds (Nox, Mora, Yata, Folio) show the round as a pill centred at the top of the screen, on its own plate so it reads over the artwork: `<GameProgress round>` from `components/game/game-progress.tsx` (or `round` on `GameNavigation`). On wide screens it hangs just beneath the centred player badges; on phones it sits in the centre of the top bar. Games whose length changes as they go (Know Me, Quiz) show no round count. Other progress (Lucky's tally) stays small beneath the back control. Never put progress in a bottom action panel. Atlas does not show a medium/hard badge. Know Me (Top Five and Dial) and Quiz (Atlas and Sizes) require human players in every seat; no solo bot matches, bot-filled online seats, or bot replacements.

@@ -17,7 +17,7 @@ const sources = {
   orin: 'box-know-me-wide-v1-a.png',
   miro: 'box-quiz-wide-v1-b.png',
   folio: 'box-folio-wide-v1-b.png',
-  relic: 'box-relic-wide-v1-b.png',
+  // Lucky (relic) cuts its own lid in scripts/optimize-lucky-art.mjs.
 };
 const manifestPath = 'lib/artwork-previews.json';
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));

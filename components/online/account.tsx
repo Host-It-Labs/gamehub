@@ -2,20 +2,12 @@
 import { useEffect, useState, type SyntheticEvent } from 'react';
 import { api, rememberName } from '@/lib/online/client';
 import type { User } from '@/lib/online/types';
-import { catalog, type GameId } from '@/lib/games/trio/engine';
+import { ArrowLeft, LogOut, Plus, Users } from 'lucide-react';
+import { gameByLibraryId } from '@/lib/games/library-fixtures';
+import { GameBox } from '../game/game-box';
+import '../game/library.css';
+import './table-lobby.css';
 
-export function OnlineHeader() {
-  return (
-    <header className="app-header">
-      <a className="brand" href="/">
-        <span className="brand-icon">g</span>gamehub
-      </a>
-      <a className="secondary" href="/tables">
-        My tables
-      </a>
-    </header>
-  );
-}
 export function Account() {
   const [signup, setSignup] = useState(false),
     [busy, setBusy] = useState(false),
@@ -40,63 +32,75 @@ export function Account() {
   }
   return (
     <div className="app">
-      <OnlineHeader />
-      <main className="online-card auth-card">
-        <h1>{signup ? 'Create your account' : 'Welcome back'}</h1>
-        <p>Host a table and invite your friends.</p>
-        <form onSubmit={submit}>
-          {signup && (
-            <label>
-              Your name
-              <input name="name" autoComplete="name" required maxLength={30} />
-            </label>
-          )}
-          <label>
-            Email
+      <div className="night-library friends-page">
+        <header className="lib-bar">
+          <a className="room-back" href="/tables" aria-label="Back">
+            <ArrowLeft aria-hidden="true" />
+          </a>
+          <h1 className="room-title">{signup ? 'Sign up' : 'Log in'}</h1>
+        </header>
+        <main className="room-join">
+          <form onSubmit={submit} className="friends-auth">
+            {signup && (
+              <input
+                name="name"
+                aria-label="Your name"
+                placeholder="Your name"
+                autoComplete="name"
+                required
+                maxLength={30}
+              />
+            )}
             <input
               name="email"
               type="email"
+              aria-label="Email"
+              placeholder="Email"
               autoComplete="email"
               required
               maxLength={254}
             />
-          </label>
-          <label>
-            Password
             <input
               name="password"
               type="password"
+              aria-label="Password"
+              placeholder={signup ? 'Password · 10+ characters' : 'Password'}
               autoComplete={signup ? 'new-password' : 'current-password'}
               minLength={signup ? 10 : undefined}
               maxLength={128}
               required
             />
-          </label>
-          {signup && <small>At least 10 characters.</small>}
-          {error && (
-            <p role="alert" className="form-error">
-              {error}
-            </p>
-          )}
-          <button className="primary" disabled={busy}>
-            {busy ? 'Please wait…' : signup ? 'Sign up' : 'Log in'}
-          </button>
-        </form>
-        <button
-          className="text-button"
-          onClick={() => {
-            setSignup(!signup);
-            setError('');
-          }}
-        >
-          {signup ? 'Already have an account? Log in' : 'New here? Sign up'}
-        </button>
-        <a href="/">Play solo without an account</a>
-      </main>
+            {error && (
+              <p role="alert" className="form-error">
+                {error}
+              </p>
+            )}
+            <button className="lib-friends" disabled={busy}>
+              {busy ? '…' : signup ? 'Sign up' : 'Log in'}
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                setSignup(!signup);
+                setError('');
+              }}
+            >
+              {signup ? 'Log in instead' : 'Create an account'}
+            </button>
+          </form>
+        </main>
+      </div>
     </div>
   );
 }
-type Summary = { token: string; gameId: GameId; status: string; count: number };
+type Summary = {
+  token: string;
+  gameId: string;
+  status: string;
+  count: number;
+};
+/** Play with friends: your open tables, a new one, and signing in to host. */
 export function MyTables() {
   const [user, setUser] = useState<User | null>(null),
     [tables, setTables] = useState<Summary[]>([]),
@@ -144,66 +148,89 @@ export function MyTables() {
   }
   return (
     <div className="app">
-      <OnlineHeader />
-      <main className="online-card">
-        <h1>Play with friends</h1>
-        <a className="relic-online-link" href="/relic">
-          <strong>Relic · Your shared arcades</strong>
-          <span>Skillful throws, growing machines, and a separate arcade for each group →</span>
-        </a>
-        {loading ? (
-          <output>Loading your tables…</output>
-        ) : user ? (
-          <>
-            <div className="online-row">
-              <p>Hi, {user.name}.</p>
-              <button className="text-button" onClick={logout}>
-                Log out
+      <div className="night-library friends-page">
+        <header className="lib-bar">
+          <a className="room-back" href="/" aria-label="Home">
+            <ArrowLeft aria-hidden="true" />
+          </a>
+          <h1 className="room-title">Play with friends</h1>
+          {user && (
+            <div className="lib-actions">
+              <span className="friends-me" title={user.name} aria-hidden="true">
+                {user.name.trim().charAt(0).toUpperCase()}
+              </span>
+              <button
+                className="lib-sound"
+                onClick={logout}
+                aria-label="Log out"
+              >
+                <LogOut aria-hidden="true" />
               </button>
             </div>
-            <button className="primary" onClick={create} disabled={busy}>
-              Create a table
-            </button>
-            <div className="table-list">
-              {tables.map((t) => (
-                <a href={`/table/${t.token}`} key={t.token}>
-                  <strong>
-                    {catalog.find((g) => g.id === t.gameId)?.name}
-                  </strong>
-                  <span>
-                    {t.count} {t.count === 1 ? 'person' : 'people'} ·{' '}
-                    {{
-                      lobby: 'Waiting to start',
-                      playing: 'In progress',
-                      finished: 'Finished',
-                      closed: 'Closed',
-                    }[t.status] ?? 'Unavailable'}
-                  </span>
-                  <span>Open table →</span>
-                </a>
-              ))}
-            </div>
-            {!tables.length && (
-              <p>Create a table, copy its link, and send it to your friends.</p>
-            )}
-          </>
-        ) : (
-          <>
-            <p>
-              Create an account to host. Your friends only need the invite link
-              and a name.
+          )}
+        </header>
+        <main className="lib-main friends-main" aria-busy={loading}>
+          {error && (
+            <p role="alert" className="online-notice">
+              {error}
             </p>
-            <a className="primary" href="/auth">
-              Log in / Sign up
-            </a>
-          </>
-        )}
-        {error && (
-          <p role="alert" className="form-error">
-            {error}
-          </p>
-        )}
-      </main>
+          )}
+          {loading ? null : user ? (
+            <ul className="friends-tables">
+              <li>
+                <button
+                  className="friends-new"
+                  onClick={create}
+                  disabled={busy}
+                >
+                  <Plus aria-hidden="true" />
+                  <b>New table</b>
+                </button>
+              </li>
+              {tables.map((t) => {
+                // A lobby has no game yet; a running table shows its box.
+                const box =
+                  t.status === 'lobby' ? undefined : gameByLibraryId(t.gameId);
+                return (
+                  <li key={t.token}>
+                    <a
+                      className="friends-table"
+                      href={`/table/${t.token}`}
+                      aria-label={`Table with ${t.count} ${t.count === 1 ? 'player' : 'players'}${box ? `, playing ${box.name}` : ''}`}
+                    >
+                      {box ? (
+                        <GameBox game={box} width={96} sizes="120px" />
+                      ) : (
+                        <span className="friends-seats" aria-hidden="true">
+                          {Array.from(
+                            { length: Math.min(t.count, 6) },
+                            (_, i) => (
+                              <i key={i} />
+                            ),
+                          )}
+                        </span>
+                      )}
+                      <span>
+                        <Users aria-hidden="true" />
+                        {t.count}
+                        {box && <i className="friends-live" />}
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <section className="friends-signin">
+              <Users aria-hidden="true" />
+              <p>Host with an account. Friends only need the link.</p>
+              <a className="lib-friends" href="/auth">
+                Log in
+              </a>
+            </section>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

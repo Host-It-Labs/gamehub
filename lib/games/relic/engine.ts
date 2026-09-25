@@ -305,7 +305,7 @@ export type ActionResult = ScratchResult & {
   artifact?: string;
 };
 const MAX_COINS = 1e18;
-const DEV_COINS = 1e15;
+const DEV_COINS = 1e17;
 function devRefill(g: RelicGame) {
   if (g.devUnlimited) g.coins = Math.max(g.coins, DEV_COINS);
 }
@@ -637,7 +637,6 @@ export function actRelic(
       break;
     case 'scratch-open':
     case 'scratch-stroke':
-    case 'scratch-claim':
     case 'scratch-book':
     case 'scratch-upgrade':
       result = actScratch(g, action, actorId, now);

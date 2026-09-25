@@ -117,6 +117,28 @@ export class Expeditions {
       };
     });
   }
+  /**
+   * Delete a desk from the viewer's list. The viewer leaves it; the desk
+   * itself is deleted once nobody is left at it.
+   */
+  remove(invite: string, who: Identity) {
+    return this.transaction(() => {
+      this.member(invite, who);
+      this.db
+        .prepare(
+          'DELETE FROM expedition_members WHERE expedition=? AND actor=?',
+        )
+        .run(invite, who.id);
+      const left = this.db
+        .prepare(
+          'SELECT count(*) AS n FROM expedition_members WHERE expedition=?',
+        )
+        .get(invite) as { n: number };
+      if (!left.n)
+        this.db.prepare('DELETE FROM expeditions WHERE token=?').run(invite);
+      return { deleted: true };
+    });
+  }
   create(who: Identity, input: Record<string, unknown>, now = Date.now()) {
     check(
       this.list(who).length < 50,

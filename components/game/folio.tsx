@@ -10,12 +10,14 @@ import {
   Heart,
   Lock,
   Mountain,
+  Trash2,
   User,
   Users,
   Wand2,
 } from 'lucide-react';
 import {
   api,
+  returnPath,
   ApiError,
   rememberedName,
   rememberName,
@@ -32,12 +34,10 @@ import {
   type MapNode,
 } from '@/lib/games/folio/types';
 import {
-  ACTS,
   BOSS_EVERY,
   DIFFICULTY_NOTES,
   LEVEL_NAMES,
   PUZZLES,
-  ROUNDS,
   START_LIVES,
 } from '@/lib/games/folio/catalog';
 import { GameNavigation } from './game-navigation';
@@ -52,6 +52,7 @@ import {
 import { currentAct, FolioMap, nodeTitle } from './folio-map';
 import { KIND_VIEWS } from './folio-kinds/index';
 import { KindIcon } from './folio-icons';
+import { DeleteRunDialog, type SavedRun } from './setup-box';
 import './folio.css';
 
 type Panel = 'menu' | 'crew' | 'help' | 'leave' | 'give-up' | null;
@@ -224,7 +225,7 @@ function Run({ initial }: { initial: FolioView }) {
   }
   const leave = () => {
     allowLeave();
-    window.location.assign('/');
+    window.location.assign(returnPath());
   };
   const open =
     g.phase === 'map'
@@ -251,7 +252,7 @@ function Run({ initial }: { initial: FolioView }) {
     ? 'Practice'
     : g.phase === 'lobby'
       ? 'Lobby'
-      : `Act ${act + 1} · Round ${Math.min(ROUNDS, Math.max(1, g.phase === 'map' ? row + 1 : row))} / ${ROUNDS}`;
+      : `Act ${act + 1} · Round ${Math.max(1, g.phase === 'map' ? row + 1 : row)}`;
   const showSheet =
     !!p && !!View && ['puzzle', 'result', 'over'].includes(g.phase);
   const solvedCount = g.path.filter((s) => s.won).length;
@@ -268,7 +269,6 @@ function Run({ initial }: { initial: FolioView }) {
             : setPanel('leave')
         }
         onMenu={() => setPanel('menu')}
-        onOthers={() => setPanel('crew')}
       />
       <div className="folio-hud" aria-label="Crew and shared supplies">
         <span className="folio-crew">
@@ -290,38 +290,40 @@ function Run({ initial }: { initial: FolioView }) {
       >
         {g.phase === 'lobby' && (
           <section className="folio-card folio-lobby">
-            <span className="folio-eyebrow">
-              Table for {g.seats} · {view.members.length} seated
-            </span>
-            <h1>Gathering the crew</h1>
-            <p>
-              The run starts when every seat is taken. Then the table locks:
-              only these players can play it.
-            </p>
-            <Seats seats={g.seats} members={view.members} />
-            <div className="folio-invite-row">
-              <input
-                readOnly
-                aria-label="Invitation link"
-                value={inviteUrl(view.token)}
-                onFocus={(e) => e.target.select()}
-              />
-              <button onClick={() => void copy()}>
-                {copied ? <Check size={17} /> : <Copy size={17} />}
-                {copied ? 'Copied' : 'Copy link'}
-              </button>
+            <div className="folio-lobby-main">
+              <span className="folio-eyebrow">
+                Table for {g.seats} · {view.members.length} seated
+              </span>
+              <h1>Gathering the crew</h1>
+              <p>
+                The run starts when every seat is taken. Then the table locks:
+                only these players can play it.
+              </p>
+              <Seats seats={g.seats} members={view.members} />
+              <div className="folio-invite-row">
+                <input
+                  readOnly
+                  aria-label="Invitation link"
+                  value={inviteUrl(view.token)}
+                  onFocus={(e) => e.target.select()}
+                />
+                <button onClick={() => void copy()}>
+                  {copied ? <Check size={17} /> : <Copy size={17} />}
+                  {copied ? 'Copied' : 'Copy link'}
+                </button>
+              </div>
+              {view.members.length < g.seats && (
+                <button
+                  className="folio-text-button"
+                  disabled={busy}
+                  onClick={() => void send({ type: 'start' })}
+                >
+                  Start now with {view.members.length}{' '}
+                  {view.members.length === 1 ? 'player' : 'players'} and lock
+                  the table
+                </button>
+              )}
             </div>
-            {view.members.length < g.seats && (
-              <button
-                className="folio-text-button"
-                disabled={busy}
-                onClick={() => void send({ type: 'start' })}
-              >
-                Start now with {view.members.length}{' '}
-                {view.members.length === 1 ? 'player' : 'players'} and lock the
-                table
-              </button>
-            )}
             <div className="folio-lobby-map">
               <span className="folio-eyebrow">Your route</span>
               <FolioMap g={g} open={[]} act={0} />
@@ -332,8 +334,7 @@ function Run({ initial }: { initial: FolioView }) {
           <section className="folio-route">
             <header className="folio-route-head">
               <span className="folio-eyebrow">
-                Act {act + 1} of {ACTS} ·{' '}
-                {LEVEL_NAMES[Math.min(4, g.difficulty + act)]}
+                Act {act + 1} · {LEVEL_NAMES[Math.min(4, g.difficulty + act)]}
               </span>
               <h1>
                 {row === 0
@@ -533,6 +534,7 @@ function Run({ initial }: { initial: FolioView }) {
             <p>
               {solvedCount} {solvedCount === 1 ? 'puzzle' : 'puzzles'} solved
               over {g.path.length} rounds
+              {!g.victory && `, up to act ${act + 1}`}
               {g.victory
                 ? ` with ${g.lives} ${g.lives === 1 ? 'life' : 'lives'} to spare.`
                 : '.'}
@@ -636,7 +638,7 @@ function Run({ initial }: { initial: FolioView }) {
           {panel === 'menu' && (
             <>
               <RuleExplanation
-                outcome={`Beat all ${ACTS} bosses before losing ${START_LIVES} puzzles.`}
+                outcome={`Climb as far as you can. The run ends when the crew has lost ${START_LIVES} puzzles.`}
                 note="The crew shares two lives: one mistake is allowed. Nothing restores a life."
               >
                 <p>
@@ -652,8 +654,9 @@ function Run({ initial }: { initial: FolioView }) {
                 <p>
                   <b>Climb.</b> This run started at{' '}
                   {LEVEL_NAMES[g.difficulty].toLowerCase()}. Every boss beaten
-                  makes the next act one level harder, up to very hard. After a
-                  boss, you may change one thing on the trail ahead.
+                  makes the next act one level harder, up to very hard, and the
+                  trail goes on at very hard until you lose. After a boss, you
+                  may change one thing on the trail ahead.
                 </p>
               </RuleExplanation>
               {g.struck.length > 0 && (
@@ -661,6 +664,9 @@ function Run({ initial }: { initial: FolioView }) {
                   <h3>Struck from the trail</h3>
                   <p>{g.struck.map((k) => PUZZLES[k].name).join(', ')}</p>
                 </>
+              )}
+              {!g.practice && (
+                <button onClick={() => setPanel('crew')}>Your crew</button>
               )}
               <button onClick={() => setPanel('leave')}>Save & leave</button>
             </>
@@ -701,7 +707,7 @@ function runLabel(s: FolioSummary) {
     return `Waiting for ${s.seats - s.members.length} more`;
   if (s.phase === 'over')
     return s.victory ? 'Summit reached' : `Ended in round ${s.round}`;
-  return `${LEVEL_NAMES[s.difficulty]} · Round ${Math.max(1, s.round)} of ${ROUNDS}`;
+  return `${LEVEL_NAMES[s.difficulty]} · Round ${Math.max(1, s.round)}`;
 }
 function Hub({ invite }: { invite?: string }) {
   const [name, setName] = useState(rememberedName),
@@ -714,6 +720,7 @@ function Hub({ invite }: { invite?: string }) {
     [error, setError] = useState(''),
     [practice, setPractice] = useState(false),
     [showDone, setShowDone] = useState(false),
+    [doomed, setDoomed] = useState<SavedRun | null>(null),
     [joined, setJoined] = useState<FolioView | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -849,8 +856,8 @@ function Hub({ invite }: { invite?: string }) {
               <h1>Ten famous puzzles. One winding trail.</h1>
               <p>
                 Wordle, Connections, Sudoku, Minesweeper and more, each with its
-                own rules. Plan your route through four acts, beat the boss at
-                the end of each, and reach the summit. You can lose only once.
+                own rules. Plan your route, beat the boss at the end of each
+                act, and climb as far as you can. You can lose only once.
               </p>
               <form
                 className="folio-new"
@@ -916,30 +923,53 @@ function Hub({ invite }: { invite?: string }) {
                 <div className="folio-runs">
                   <span className="folio-eyebrow">Your runs</span>
                   {active.map((s) => (
-                    <a
-                      key={s.token}
-                      className="folio-saved"
-                      href={`/folio/${s.token}`}
-                    >
-                      <span className="folio-saved-seats" aria-hidden="true">
-                        {s.seats === 1 ? (
-                          <User size={16} />
-                        ) : (
-                          <Users size={16} />
-                        )}
-                      </span>
-                      <span>
-                        <strong>{s.members.join(', ')}</strong>
-                        <small>
-                          {runLabel(s)}
-                          {s.phase !== 'lobby' && ` · ${s.lives} ♥`}
-                        </small>
-                      </span>
-                      <ArrowRight size={18} />
-                    </a>
+                    <div key={s.token} className="folio-saved-row">
+                      <a className="folio-saved" href={`/folio/${s.token}`}>
+                        <span className="folio-saved-seats" aria-hidden="true">
+                          {s.seats === 1 ? (
+                            <User size={16} />
+                          ) : (
+                            <Users size={16} />
+                          )}
+                        </span>
+                        <span>
+                          <strong>{s.members.join(', ')}</strong>
+                          <small>
+                            {runLabel(s)}
+                            {s.phase !== 'lobby' && ` · ${s.lives} ♥`}
+                          </small>
+                        </span>
+                        <ArrowRight size={18} />
+                      </a>
+                      <button
+                        type="button"
+                        className="folio-saved-delete"
+                        aria-label={`Delete run: ${s.members.join(', ')}, ${runLabel(s)}`}
+                        onClick={() =>
+                          setDoomed({
+                            key: s.token,
+                            href: `/folio/${s.token}`,
+                            label: runLabel(s),
+                            title: s.members.join(', '),
+                            detail: runLabel(s),
+                          })
+                        }
+                      >
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
+              <DeleteRunDialog
+                run={doomed}
+                noun="run"
+                onClose={() => setDoomed(null)}
+                onDelete={async (token) => {
+                  await api(`/api/folio/${token}/delete`, {});
+                  setRuns((rows) => rows.filter((r) => r.token !== token));
+                }}
+              />
               <div className="folio-hub-links">
                 <button
                   className="folio-text-button"

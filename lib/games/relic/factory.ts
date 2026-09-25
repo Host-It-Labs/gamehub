@@ -105,7 +105,7 @@ export const MACHINES: Record<
   },
   charm: {
     name: 'Charm',
-    does: 'Touching printers print +5% star tickets (×3).',
+    does: 'Touching printers print +5% star tickets (×5).',
     base: 12_000_000,
     growth: 2.5,
     turns: false,
@@ -206,14 +206,14 @@ export function machineRefund(f: FactoryState, kind: MachineKind) {
   return machinePrice(f, kind, -1);
 }
 export function bestBook(s: ScratchState): PackId {
-  return [...PACKS].reverse().find((p) => packOpen(s, p.id))?.id ?? 'pocket';
+  return [...PACKS].reverse().find((p) => packOpen(s, p.id))?.id ?? 'seven';
 }
 export const PRINT_TICKS = 8;
 /** Bigger books take bots longer: more seals and finer foil. */
 export function scratchTicks(book: PackId) {
-  const p = packFor(book),
+  const l = packFor(book).levels[0],
     index = PACKS.findIndex((x) => x.id === book);
-  return Math.round(((12 * p.columns * p.rows) / 9) * 1.5 ** index);
+  return Math.round(((12 * l.cols * l.rows) / 9) * 1.5 ** index);
 }
 const key = (x: number, y: number) => y * 64 + x;
 export function machineAt(f: FactoryState, x: number, y: number) {
@@ -244,7 +244,7 @@ function boostWith(at: Map<number, Machine>, m: Machine) {
 }
 export function itemValue(s: ScratchState, item: Item) {
   return (
-    item.value ?? botReward(s, item.book) * item.mult * (item.star ? 3 : 1)
+    item.value ?? botReward(s, item.book) * item.mult * (item.star ? 5 : 1)
   );
 }
 function random(g: ScratchHost) {
@@ -264,15 +264,15 @@ function facing(m: Machine, other: Machine) {
 }
 function step(g: ScratchHost, s: ScratchState, f: FactoryState) {
   const at = new Map(f.machines.map((m) => [key(m.x, m.y), m]));
-  const printSpeed = 1 + level(s, 'printers') * 0.15,
-    botSpeed = 1 + level(s, 'bots') * 0.15;
+  const printSpeed = 1.5 ** level(s, 'printers'),
+    botSpeed = 1.5 ** level(s, 'bots');
   for (const m of f.machines) {
     if (m.kind === 'printer' && !m.output) {
       const b = boostWith(at, m);
       m.t += printSpeed * b.speed;
       if (m.t >= PRINT_TICKS) {
         m.t -= PRINT_TICKS;
-        const book = m.book && packOpen(s, m.book) ? m.book : 'pocket';
+        const book = m.book && packOpen(s, m.book) ? m.book : 'seven';
         m.output = {
           id: f.nextItem++,
           book,

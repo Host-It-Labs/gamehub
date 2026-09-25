@@ -481,6 +481,25 @@
 .folio-saved:hover {
   transform: translateX(3px);
 }
+.folio-saved-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+.folio-saved-delete {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: #f5ebc8;
+  color: var(--folio-ink-soft);
+  cursor: pointer;
+}
+.folio-saved-delete:hover {
+  background: #f7d8c9;
+  color: #b5321c;
+}
 .folio-saved.done {
   grid-template-columns: minmax(0, 1fr) auto;
   margin-top: 6px;
@@ -999,8 +1018,38 @@
 .folio-summary {
   width: min(100%, 560px);
   max-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   text-align: center;
+}
+/* Wide screens: the crew on the left, the whole route beside it at full
+ * height, so the map is never squeezed into a scrolling card. */
+@media (min-width: 900px) {
+  .folio-stage > .folio-lobby {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 28px;
+    width: min(100%, 1080px);
+    height: min(100%, 680px);
+    text-align: left;
+  }
+  .folio-lobby-main {
+    align-self: center;
+  }
+  .folio-lobby .folio-lobby-map {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0 0 0 28px;
+    border-top: 0;
+    border-left: 1.5px dashed #193d7930;
+  }
+  .folio-lobby .folio-lobby-map .folio-map-wrap {
+    height: 100%;
+  }
 }
 .folio-lobby .folio-seats,
 .folio-lobby .folio-invite-row {
@@ -1237,6 +1286,23 @@
   .folio-lobby-map,
   .folio-summary-map {
     height: 500px;
+  }
+  /* Room for the boss crown under the act tabs. */
+  .folio-lobby-map .folio-map-wrap,
+  .folio-summary-map .folio-map-wrap {
+    gap: 22px;
+  }
+  /* Narrow maps: the boss name sits under its seal instead of beside it,
+   * so nothing reaches past the card and scrolls it sideways. */
+  .folio-node.boss small {
+    position: static;
+    translate: none;
+    max-width: 120px;
+    text-align: center;
+  }
+  /* Anchor the boss by its seal, with the names hanging beneath it. */
+  .folio-world .folio-node.boss {
+    translate: -50% calc(clamp(46px, 8.4vh, 62px) / -2);
   }
   .folio-node small {
     max-width: 78px;

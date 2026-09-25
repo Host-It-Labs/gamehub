@@ -6,12 +6,13 @@ const coverSlugs: Record<string, string> = {
   midnight: 'yata',
   orin: 'know-me',
   miro: 'quiz',
-  relic: 'relic',
+  relic: 'lucky',
   folio: 'folio',
 };
 
 export function boxCover(id: string) {
-  if (id === 'relic') return '/art/optimized/box-relic-scratch-v2.webp';
+  // Relic was renamed Lucky on 25 September 2026; the ID stays.
+  if (id === 'relic') return '/art/optimized/box-lucky-v1.webp';
   // Yata's cover follows its flat toon table art (25 September 2026).
   if (id === 'midnight') return '/art/optimized/box-yata-toon-v1.webp';
   const slug = coverSlugs[id];

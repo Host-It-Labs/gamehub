@@ -253,7 +253,8 @@ await test('SSE sends only viewer state, tracks presence and reconnects; moves d
     assert.equal(end.status, 409);
     t = (await host.request(path)).data;
     assert.equal((await act(host, path, t, { type: 'close' })).status, 200);
-    assert.equal((await guest.request(path + '/join', {})).status, 410);
+    // Closing deletes the table, so its link no longer resolves.
+    assert.equal((await guest.request(path + '/join', {})).status, 404);
   } finally {
     controller.abort();
     await app.close();
@@ -421,6 +422,52 @@ await test('host ambience changes reach guests over SSE and guests cannot overri
   } finally {
     controller.abort();
     await reader?.cancel().catch(() => {});
+    await app.close();
+  }
+});
+
+await test('tables nobody is connected to are deleted after the grace period', async () => {
+  const { app, client } = await fixture();
+  const controller = new AbortController();
+  try {
+    const { host, path } = await hostTable(client);
+    const second = (await host.request('/api/tables', {})).data.token;
+    const stream = await host.events(path + '/events', controller.signal);
+    await stream.body.getReader().read();
+    const now = Date.now();
+    app.sweep(now);
+    app.sweep(now + 10 * 60_000);
+    // The watched table stays; the empty one is gone for good.
+    assert.equal((await host.request(path)).status, 200);
+    assert.equal((await host.request(`/api/tables/${second}`)).status, 404);
+    assert.equal((await host.request(`/api/tables/${second}/join`, {})).status, 404);
+    assert.deepEqual((await host.request('/api/tables')).data.map((t) => `/api/tables/${t.token}`), [path]);
+  } finally {
+    controller.abort();
+    await app.close();
+  }
+});
+
+await test('the host sends the whole table to Folio or Relic in one room', async () => {
+  const { app, client } = await fixture();
+  const controller = new AbortController();
+  try {
+    const { host, path } = await hostTable(client), guest = client();
+    await guest.request(path + '/join', { name: 'Guest' });
+    const stream = await guest.events(path + '/events', controller.signal);
+    await stream.body.getReader().read();
+    assert.equal((await guest.request(path + '/launch', { kind: 'relic', world: 'dunes' })).status, 403);
+    const relic = await host.request(path + '/launch', { kind: 'relic' });
+    assert.equal(relic.status, 200);
+    const room = relic.data.url.replace('/expedition/', '/api/expeditions/');
+    assert.equal((await guest.request(room)).status, 200);
+    assert.equal((await guest.request(path)).data.handoff.url, relic.data.url);
+    const folio = await host.request(path + '/launch', { kind: 'folio', difficulty: 1 });
+    assert.equal(folio.status, 200);
+    const run = (await guest.request(folio.data.url.replace('/folio/', '/api/folio/'))).data;
+    assert.equal(run.members.length, 2);
+  } finally {
+    controller.abort();
     await app.close();
   }
 });

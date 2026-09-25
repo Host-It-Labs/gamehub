@@ -5,13 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { KINDS } from '../lib/games/folio/types.ts';
-import {
-  ACTS,
-  ROUNDS,
-  BOSS_EVERY,
-  LANES,
-  START_LIVES,
-} from '../lib/games/folio/catalog.ts';
+import { BOSS_EVERY, LANES, START_LIVES } from '../lib/games/folio/catalog.ts';
 import {
   actFolio,
   choices,
@@ -54,10 +48,13 @@ function step(g, win) {
       now,
     );
 }
+/** The trail opens with two acts and grows by one after each boss. */
+const OPENING_ACTS = 2;
+const rowsOf = (map) => Math.max(...map.map((n) => n.row)) + 1;
 /** Map invariants that edits must keep too. */
 function assertMapSound(map) {
   const byId = new Map(map.map((n) => [n.id, n]));
-  for (let row = 0; row < ROUNDS; row++) {
+  for (let row = 0; row < rowsOf(map); row++) {
     const kinds = map.filter((n) => n.row === row).map((n) => n.kind);
     assert.equal(new Set(kinds).size, kinds.length, 'a row repeats a game');
   }
@@ -68,12 +65,13 @@ function assertMapSound(map) {
   }
 }
 
-await test('the route map: four acts of three lanes and a lone boss, no crossings, every node reachable', () => {
+await test('the route map: acts of three lanes and a lone boss, no crossings, every node reachable', () => {
   for (let seed = 1; seed <= 300; seed++) {
     const map = makeMap(seed);
     const byId = new Map(map.map((n) => [n.id, n]));
-    assert.equal(map.filter((n) => n.type === 'boss').length, ACTS);
-    for (let row = 0; row < ROUNDS; row++) {
+    assert.equal(map.filter((n) => n.type === 'boss').length, OPENING_ACTS);
+    assert.equal(rowsOf(map), OPENING_ACTS * BOSS_EVERY);
+    for (let row = 0; row < rowsOf(map); row++) {
       const nodes = map.filter((n) => n.row === row);
       const boss = (row + 1) % BOSS_EVERY === 0;
       assert.equal(nodes.length, boss ? 1 : LANES);
@@ -89,7 +87,7 @@ await test('the route map: four acts of three lanes and a lone boss, no crossing
     }
     assertMapSound(map);
     for (const n of map) {
-      if (n.row < ROUNDS - 1) assert.ok(n.next.length > 0);
+      if (n.row < rowsOf(map) - 1) assert.ok(n.next.length > 0);
       for (const id of n.next) {
         const m = byId.get(id);
         assert.equal(m.row, n.row + 1);
@@ -114,10 +112,10 @@ await test('the route map: four acts of three lanes and a lone boss, no crossing
 
 await test('difficulty: each act is one level harder, capped at very hard', () => {
   const acts = (d) =>
-    Array.from({ length: ACTS }, (_, a) => levelFor(a * BOSS_EVERY, d));
-  assert.deepEqual(acts(1), [1, 2, 3, 4]);
-  assert.deepEqual(acts(2), [2, 3, 4, 4]);
-  assert.deepEqual(acts(3), [3, 4, 4, 4]);
+    Array.from({ length: 7 }, (_, a) => levelFor(a * BOSS_EVERY, d));
+  assert.deepEqual(acts(1), [1, 2, 3, 4, 4, 4, 4]);
+  assert.deepEqual(acts(2), [2, 3, 4, 4, 4, 4, 4]);
+  assert.deepEqual(acts(3), [3, 4, 4, 4, 4, 4, 4]);
   const g = createFolio(5, 1, now, undefined, 3);
   assert.equal(g.difficulty, 3);
   for (const n of g.map)
@@ -125,15 +123,42 @@ await test('difficulty: each act is one level harder, capped at very hard', () =
   assert.throws(() => createFolio(5, 1, now, undefined, 4), /difficulty/);
 });
 
-await test('a perfect crew beats all four bosses on every difficulty; the route is public', () => {
+await test('the trail never ends: a perfect crew keeps climbing at very hard, one act always ahead', () => {
+  const ACTS = 8;
   for (let seed = 1; seed <= 30; seed++) {
-    const g = createFolio(seed, 1, now, undefined, 1 + (seed % 3));
-    for (let r = 0; r < ROUNDS; r++) step(g, true);
-    assert.equal(g.phase, 'over');
-    assert.equal(g.victory, true);
-    assert.equal(g.path.length, ROUNDS);
+    const d = 1 + (seed % 3);
+    const g = createFolio(seed, 1, now, undefined, d);
+    for (let r = 0; r < ACTS * BOSS_EVERY; r++) {
+      step(g, true);
+      assert.equal(g.phase, 'map', 'only losing ends a run');
+      const act = Math.floor(r / BOSS_EVERY);
+      assert.ok(
+        rowsOf(g.map) >= (act + 2) * BOSS_EVERY,
+        'the next act is drawn',
+      );
+    }
+    assert.equal(g.victory, false);
+    assert.equal(g.path.length, ACTS * BOSS_EVERY);
     assert.equal(g.lives, START_LIVES);
+    for (const n of g.map) assert.equal(n.level, levelFor(n.row, d));
+    assert.ok(
+      g.map.filter((n) => n.row >= 3 * BOSS_EVERY).every((n) => n.level === 4),
+    );
+    assert.ok(g.struck.length <= 4, 'strikes stop while enough games are left');
+    for (const n of g.map.filter((m) => m.row > g.path.length))
+      assert.ok(!g.struck.includes(n.kind), 'new acts skip struck games');
     assertMapSound(g.map);
+    const byId = new Map(g.map.map((n) => [n.id, n]));
+    const reached = new Set(g.map.filter((n) => n.row === 0).map((n) => n.id));
+    for (const n of [...g.map].sort((a, b) => a.row - b.row))
+      if (reached.has(n.id)) n.next.forEach((id) => reached.add(id));
+    assert.equal(reached.size, g.map.length, 'unreachable node');
+    for (const n of g.map)
+      for (const id of n.next) assert.equal(byId.get(id).row, n.row + 1);
+    // Losing twice still ends it.
+    step(g, false);
+    step(g, false);
+    assert.equal(g.phase, 'over');
     const visible = observeFolio(g);
     assert.ok(!('secret' in visible) && !('seed' in visible));
   }
@@ -206,10 +231,9 @@ await test('edits: offered only after a boss, balanced, optional and sound', () 
     const before = structuredClone(h.map);
     actFolio(h, { type: 'continue' }, now);
     assert.deepEqual(h.map, before, 'leaving the trail as it is');
-    // Keep striking through the run; the map stays sound to the summit.
-    while (g.phase !== 'over') step(g, true);
-    assert.equal(g.victory, true);
-    assert.deepEqual(g.edits, [], 'no edits after the final boss');
+    // Keep striking through the run; the map stays sound as it grows.
+    for (let r = 0; r < 5 * BOSS_EVERY; r++) step(g, true);
+    assert.equal(g.phase, 'map');
     assertMapSound(g.map);
   }
   assert.ok(strikes > 0 && swaps > 0);
@@ -582,5 +606,35 @@ await test('version four migration preserves existing expedition and account rec
   } finally {
     db?.close();
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await test('deleting a run takes it off your list; the run goes once nobody is left', () => {
+  const db = openDatabase(':memory:'),
+    runs = new FolioRuns(db);
+  try {
+    const a = actor('A'),
+      b = actor('B');
+    const solo = runs.create(a, { name: 'Ann' }, now);
+    assert.deepEqual(runs.remove(solo.token, a), { deleted: true });
+    assert.ok(!runs.list(a).some((r) => r.token === solo.token));
+    assert.throws(() => runs.get(solo.token, a, now), /could not be found/);
+    const table = runs.create(a, { seats: 2, name: 'Ann' }, now);
+    runs.join(table.token, b, { name: 'Bo' }, now);
+    assert.throws(
+      () => runs.remove(table.token, actor('C')),
+      /not in your list/,
+    );
+    runs.remove(table.token, a);
+    assert.equal(runs.list(a).length, 0);
+    assert.deepEqual(
+      runs.get(table.token, b, now).members.map((m) => m.name),
+      ['Bo'],
+      'the others keep playing',
+    );
+    runs.remove(table.token, b);
+    assert.throws(() => runs.get(table.token, b, now), /could not be found/);
+  } finally {
+    db.close();
   }
 });

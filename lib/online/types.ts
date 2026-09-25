@@ -1,6 +1,8 @@
 import type { StandaloneId } from '../games/standalone/types.ts';
 import type { AnyGame, AnyMove } from '../games/standalone/registry.ts';
 export type OnlineGameId = GameId | StandaloneId;
+/** Everything the table shelf offers: its own games plus Folio and Relic, which run in their own rooms. */
+export type ShelfGameId = OnlineGameId | 'folio' | 'relic';
 import type {
   Difficulty,
   GameOptions,
@@ -15,9 +17,12 @@ export type Member = {
   id: string;
   name: string;
   connected: boolean;
+  /** Leads the game on screen: the match's picked leader while it is played, the creator otherwise. */
   host: boolean;
-  /** Created the table; stays at it even after handing hosting over. */
+  /** Created the table and hosts it for good. */
   owner?: boolean;
+  /** Picked in the lobby to lead the next match. */
+  nextHost?: boolean;
   seat: number | null;
   bot: boolean;
 };
@@ -35,6 +40,7 @@ export type Table = GameOptions & {
   status: 'lobby' | 'playing' | 'finished' | 'closed';
   members: Member[];
   viewerId: string;
+  /** The viewer created the table: they set it up, start games and close it. */
   isHost: boolean;
   /** Whether this viewer may move reveals on: the host, or anyone seated while the host is away. */
   canAdvance: boolean;
@@ -44,9 +50,11 @@ export type Table = GameOptions & {
   adventure?: AnyGame | null;
   botError: boolean;
   setupOpen?: boolean;
-  votes?: Partial<Record<OnlineGameId, string[]>>;
+  votes?: Partial<Record<ShelfGameId, string[]>>;
   /** Open for ten seconds after a party match: member id → the game they want next. */
   nextVote?: { endsAt: number; ballots: Record<string, StandaloneId> } | null;
+  /** The table moved on to Folio or Relic, which run in their own rooms. */
+  handoff?: { kind: 'folio' | 'relic'; url: string; at: number } | null;
 };
 export type TableCommand =
   | {
@@ -71,7 +79,7 @@ export type TableCommand =
   | { type: 'ambience'; enabled: boolean }
   | { type: 'advance-practice' }
   | { type: 'setup'; open: boolean }
-  | { type: 'vote'; gameId: OnlineGameId }
+  | { type: 'vote'; gameId: ShelfGameId }
   | { type: 'next-game'; gameId: StandaloneId }
   | { type: 'lesson'; step: number }
   | { type: 'start'; learning?: boolean }

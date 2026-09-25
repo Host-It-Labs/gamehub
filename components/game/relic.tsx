@@ -1,6 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Ticket, Factory, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Ticket,
+  Factory,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import {
   api,
   ApiError,
@@ -12,6 +19,7 @@ import type {
   ExpeditionView,
 } from '@/lib/games/relic/types';
 import { RelicScratchSession } from './relic-scratch-session';
+import { DeleteRunDialog, type SavedRun } from './setup-box';
 import './relic.css';
 
 type Session = {
@@ -32,6 +40,7 @@ export default function Relic({ invite }: { invite?: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [doomed, setDoomed] = useState<SavedRun | null>(null);
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -89,8 +98,8 @@ export default function Relic({ invite }: { invite?: string }) {
       </a>
       <div className="relic-hub-content">
         <h1>
-          Relic
-          <span>Scratch tickets. Build a ticket factory.</span>
+          Lucky
+          <span>Scratch puzzle tickets. Build a ticket factory.</span>
         </h1>
         <div className="relic-hub-facts">
           <span>
@@ -114,23 +123,51 @@ export default function Relic({ invite }: { invite?: string }) {
               >
                 <h2>Your desks</h2>
                 {expeditions.map((e) => (
-                  <a
-                    key={e.token}
-                    href={`/expedition/${e.token}`}
-                    className={`relic-saved relic-${e.world}`}
-                  >
-                    <span className="relic-world-dot" />
-                    <span>
-                      <strong>{e.name}</strong>
-                      <small>
-                        {e.members.join(' · ')}
-                        <br />
-                        {e.tickets ?? 0} tickets finished
-                      </small>
-                    </span>
-                    <ArrowRight size={20} />
-                  </a>
+                  <div key={e.token} className="relic-saved-row">
+                    <a
+                      href={`/expedition/${e.token}`}
+                      className={`relic-saved relic-${e.world}`}
+                    >
+                      <span className="relic-world-dot" />
+                      <span>
+                        <strong>{e.name}</strong>
+                        <small>
+                          {e.members.join(' · ')}
+                          <br />
+                          {e.tickets ?? 0} tickets finished
+                        </small>
+                      </span>
+                      <ArrowRight size={20} />
+                    </a>
+                    <button
+                      type="button"
+                      className="relic-saved-delete"
+                      aria-label={`Delete desk: ${e.name}`}
+                      onClick={() =>
+                        setDoomed({
+                          key: e.token,
+                          href: `/expedition/${e.token}`,
+                          label: e.name,
+                          title: e.name,
+                          detail: `${e.members.join(' · ')} · ${e.tickets ?? 0} tickets`,
+                        })
+                      }
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 ))}
+                <DeleteRunDialog
+                  run={doomed}
+                  noun="desk"
+                  onClose={() => setDoomed(null)}
+                  onDelete={async (token) => {
+                    await api(`/api/expeditions/${token}/delete`, {});
+                    setExpeditions((rows) =>
+                      rows.filter((r) => r.token !== token),
+                    );
+                  }}
+                />
               </section>
             )}
             <form

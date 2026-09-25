@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError, requestId } from '@/lib/online/client';
+import { api, ApiError, requestId, returnPath } from '@/lib/online/client';
 import type { ActionResult, RelicAction } from '@/lib/games/relic/engine';
 import type { ExpeditionView } from '@/lib/games/relic/types';
 import { RelicScratch } from './relic-scratch';
@@ -96,7 +96,7 @@ export function RelicScratchSession({ initial }: { initial: ExpeditionView }) {
       onAct={dispatch}
       onView={accept}
       onBack={() => {
-        void chain.current.then(() => window.location.assign('/'));
+        void chain.current.then(() => window.location.assign(returnPath()));
       }}
     />
   );

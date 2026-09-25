@@ -9,7 +9,7 @@ import {
   type MapNode,
   type PublicGame,
 } from './types.ts';
-import { ACTS, BOSS_EVERY, LANES, ROUNDS, START_LIVES } from './catalog.ts';
+import { BOSS_EVERY, LANES, START_LIVES } from './catalog.ts';
 import { hash, requireThat, rng, shuffle } from './kind.ts';
 import { KIND_MODULES } from './kinds/index.ts';
 
@@ -30,15 +30,29 @@ function allowedKinds(map: MapNode[], n: MapNode, struck: Kind[]) {
   ]);
   return KINDS.filter((k) => !avoid.has(k));
 }
+/** Acts on the map at the start: the first, and the one after it. */
+const OPENING_ACTS = 2;
+/** A strike is only offered while this many games stay on the trail. */
+const MIN_KINDS = 6;
+/** Bosses avoid repeating any of the last few bosses. */
+const BOSS_MEMORY = 3;
 /**
- * A Slay-the-Spire style trail: four acts of three puzzle rounds, then a boss
- * every lane converges on. Every pair of neighbouring lanes is linked by one
- * diagonal, so paths never cross and no stop hangs off a single lane.
+ * Append the next act to a Slay-the-Spire style trail: three puzzle rounds,
+ * then a boss every lane converges on. Every pair of neighbouring lanes is
+ * linked by one diagonal, so paths never cross and no stop hangs off a single
+ * lane. The previous boss leads to every stop of the new act's first round.
  */
-export function makeMap(seed: number, difficulty: Difficulty = 1): MapNode[] {
-  const random = rng(hash(`map:${seed}`));
+export function extendMap(
+  map: MapNode[],
+  seed: number,
+  difficulty: Difficulty,
+  struck: Kind[] = [],
+) {
+  const act = map.length ? actOf(Math.max(...map.map((n) => n.row))) + 1 : 0;
+  const random = rng(hash(`map:${seed}:${act}`));
+  const first = act * BOSS_EVERY;
   const rows: MapNode[][] = [];
-  for (let row = 0; row < ROUNDS; row++) {
+  for (let row = first; row < first + BOSS_EVERY; row++) {
     const boss = isBossRow(row);
     rows.push(
       Array.from({ length: boss ? 1 : LANES }, (_, lane) => ({
@@ -52,9 +66,11 @@ export function makeMap(seed: number, difficulty: Difficulty = 1): MapNode[] {
       })),
     );
   }
-  for (let row = 0; row < ROUNDS - 1; row++) {
-    const here = rows[row],
-      there = rows[row + 1];
+  const before = map.filter((n) => n.row === first - 1);
+  for (const n of before) n.next = rows[0].map((b) => b.id);
+  for (let i = 0; i < rows.length - 1; i++) {
+    const here = rows[i],
+      there = rows[i + 1];
     if (here.length === 1 || there.length === 1) {
       for (const a of here) a.next = there.map((b) => b.id);
       continue;
@@ -65,24 +81,40 @@ export function makeMap(seed: number, difficulty: Difficulty = 1): MapNode[] {
       else here[lane + 1].next.push(there[lane].id);
     }
   }
+  map.push(...rows.flat());
   // Give every node a game that differs from its row and its parents.
-  const map = rows.flat();
-  const bossKinds = shuffle(KINDS, random).slice(0, ACTS);
+  const pastBosses = map
+    .filter((n) => n.type === 'boss' && n.row < first)
+    .sort((a, b) => b.row - a.row)
+    .slice(0, BOSS_MEMORY)
+    .map((n) => n.kind);
+  const bossKind = shuffle(
+    KINDS.filter((k) => !struck.includes(k)),
+    random,
+  ).find((k) => !pastBosses.includes(k));
   for (const row of rows) {
     const used = new Set<Kind>();
     for (const node of row) {
       const avoid = new Set([
+        ...struck,
         ...used,
         ...parentsOf(map, node).map((p) => p.kind),
       ]);
-      const wanted = node.type === 'boss' ? bossKinds[actOf(node.row)] : null;
+      const wanted = node.type === 'boss' ? bossKind : null;
       node.kind =
         wanted && !avoid.has(wanted)
           ? wanted
-          : shuffle(KINDS, random).find((k) => !avoid.has(k))!;
+          : (shuffle(KINDS, random).find((k) => !avoid.has(k)) ??
+            shuffle(KINDS, random).find((k) => !used.has(k))!);
       used.add(node.kind);
     }
   }
+  return map;
+}
+/** The opening trail: the first act and the one after it. */
+export function makeMap(seed: number, difficulty: Difficulty = 1): MapNode[] {
+  const map: MapNode[] = [];
+  for (let a = 0; a < OPENING_ACTS; a++) extendMap(map, seed, difficulty);
   return map;
 }
 /**
@@ -96,7 +128,8 @@ export function makeEdits(g: FolioGame, bossRow: number): Edit[] {
   const edits: Edit[] = [];
   const present = shuffle([...new Set(ahead.map((n) => n.kind))], random);
   for (const kind of present) {
-    if (edits.length === 2) break;
+    if (edits.length === 2 || KINDS.length - g.struck.length <= MIN_KINDS)
+      break;
     const map = structuredClone(g.map);
     const struck = [...g.struck, kind];
     const changes: { node: string; to: Kind }[] = [];
@@ -211,26 +244,30 @@ function finish(g: FolioGame, won: boolean) {
   if (!won) g.lives--;
   if (g.at) g.path.push({ id: g.at, won });
   const here = g.map.find((n) => n.id === g.at);
-  const last = here?.row === ROUNDS - 1;
   g.result = {
     won,
     answer,
     message: won
-      ? p.boss
-        ? last
-          ? 'All four bosses beaten.'
-          : 'The next act is one level harder.'
+      ? p.boss && here
+        ? levelFor(here.row + 1, g.difficulty) > p.level
+          ? 'The next act is one level harder.'
+          : 'Another act at very hard.'
         : 'Solved.'
       : g.lives > 0
         ? 'Lost. One life left: no more mistakes.'
         : 'Lost.',
   };
-  if (g.practice || !g.lives || last) {
+  if (g.practice || !g.lives) {
     g.phase = 'over';
-    g.victory = g.practice ? won : g.lives > 0;
+    g.victory = !!g.practice && won;
     return;
   }
   g.phase = 'result';
+  // Keep one act ahead on the map, so the crew can always look forward.
+  if (won && p.boss && here) {
+    while (actOf(Math.max(...g.map.map((n) => n.row))) <= actOf(here.row) + 1)
+      extendMap(g.map, g.seed, g.difficulty, g.struck);
+  }
   g.edits = won && p.boss && here ? makeEdits(g, here.row) : [];
 }
 function toMap(g: FolioGame) {
