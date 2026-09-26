@@ -223,8 +223,6 @@
     linear-gradient(180deg, #f6e8b0cc 0%, #f6e8b000 38%),
     url('/art/folio/folio-bg-landscape-1536.webp') center 70% / cover no-repeat,
     var(--folio-sky);
-  animation: folio-breathe 48s ease-in-out infinite alternate;
-  transform-origin: 50% 90%;
 }
 @media (orientation: portrait) {
   .folio-backdrop {
@@ -243,15 +241,6 @@
       var(--folio-sky);
   }
 }
-@keyframes folio-breathe {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.035);
-  }
-}
-
 /* ---------- Shared type ---------- */
 .folio-eyebrow {
   display: block;
@@ -712,42 +701,10 @@
 }
 .folio-map-wrap {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 6px;
   min-height: 0;
   height: 100%;
-}
-.folio-acts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-.folio-world .folio-acts button {
-  display: grid;
-  gap: 0;
-  min-height: 40px;
-  padding: 4px 6px;
-  border: 1.5px solid #193d7933;
-  border-radius: 8px;
-  background: #fffdf6;
-  box-shadow: none;
-  color: var(--folio-ink);
-  line-height: 1.15;
-}
-.folio-acts button[data-current] {
-  border-color: var(--folio-ink);
-}
-.folio-world .folio-acts button[aria-selected='true'] {
-  background: var(--folio-ink);
-  color: var(--folio-paper);
-}
-.folio-acts b {
-  font: 800 0.8rem var(--folio-serif);
-}
-.folio-acts small {
-  font-size: 0.66rem;
-  font-weight: 650;
-  opacity: 0.8;
 }
 .folio-difficulty {
   display: grid;
@@ -1352,4 +1309,18 @@
   .folio-lives svg {
     animation: none !important;
   }
+}
+
+.folio-crew > span {
+  flex: none;
+  overflow: visible;
+}
+.folio-crew .folio-member-initial {
+  display: none;
+}
+.folio-crew[data-fit='compact'] .folio-member-name {
+  display: none;
+}
+.folio-crew[data-fit='compact'] .folio-member-initial {
+  display: inline;
 }

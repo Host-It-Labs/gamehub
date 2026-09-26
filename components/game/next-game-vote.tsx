@@ -60,7 +60,12 @@ export function NextGameVote({
                 <strong className="next-game-name">
                   {standaloneGames[id].name}
                 </strong>
-                <span className="vote-count" aria-label={`${counts(id)} votes`}>
+                <span
+                  className="vote-count"
+                  aria-label={`${counts(id)} votes`}
+                  data-game-motion="change"
+                  data-game-motion-key={counts(id)}
+                >
                   {Array.from({ length: counts(id) }, (_, i) => (
                     <i key={i} />
                   ))}

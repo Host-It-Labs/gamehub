@@ -186,7 +186,11 @@ function Round({
         {visiblePins.length > 0 && (
           <div className="atlas-pin-legend">
             {visiblePins.map((p, i) => (
-              <span key={i}>
+              <span
+                key={i}
+                data-game-motion="piece"
+                data-game-motion-key={`${p.label}:${p.color}`}
+              >
                 <i style={{ background: p.color }} />
                 {p.label}
               </span>
@@ -208,7 +212,11 @@ function Round({
           }
           onSelect={revealed ? undefined : setSelected}
         />
-        <div className="atlas-clue">
+        <div
+          className="atlas-clue"
+          data-game-motion="change"
+          data-game-motion-key={`${prompt}:${revealed}`}
+        >
           {final && !revealed ? (
             <>
               {photo}
@@ -241,7 +249,11 @@ function Round({
           </Dialog>
         )}
         {!revealed && !discussing && !spectator && !mine.locked && (
-          <div className="sabi-actions">
+          <div
+            className="sabi-actions"
+            data-game-motion="change"
+            data-game-motion-key={allPinsPlaced ? 'lock' : 'next'}
+          >
             <button
               type="button"
               className="party-primary"

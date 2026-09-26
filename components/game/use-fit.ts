@@ -16,8 +16,17 @@ export function useBadgeFit(ref: RefObject<HTMLElement | null>) {
       if (row.scrollWidth > row.clientWidth + 1) row.dataset.fit = 'compact';
     };
     check();
-    const observer = new ResizeObserver(check);
+    // Name contraction can resize a shrink-wrapped badge row. Measure on the
+    // next frame instead of resizing it inside ResizeObserver's delivery loop.
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(check);
+    });
     observer.observe(row);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   });
 }

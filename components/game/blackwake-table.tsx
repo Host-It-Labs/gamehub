@@ -109,7 +109,7 @@ export function BlackwakeTable({
     >
       <div className="blackwake-surface" />
       {seatTags && g.phase !== 'over' && <DirectionRing clockwise={tableOrderStep(g) === 1} passing={g.phase === 'pass'} />}
-      <div className="blackwake-centre" aria-live="polite">
+      <div className="blackwake-centre" aria-live="polite" data-game-motion="change" data-game-motion-key={`${g.phase}:${reveal?.id ?? trick[0]?.card.id ?? 'empty'}`}>
         {!seatTags && <span className="table-direction" aria-label={tableOrderStep(g) === 1 ? "Clockwise" : "Counterclockwise"}>{tableOrderStep(g) === 1 ? "↻" : "↺"}</span>}
         {g.salvage && <Anchor aria-label="Salvage" />}
         <span>
@@ -149,7 +149,7 @@ export function BlackwakeTable({
               {player.name.slice(0, 1)}
             </span>
             <strong>{seat === viewer ? 'You' : player.name}</strong>
-            {totals && <b className="seat-score" aria-hidden="true">{totals[seat]}</b>}
+            {totals && <b className="seat-score" data-game-motion="change" data-game-motion-key={totals[seat]} aria-hidden="true">{totals[seat]}</b>}
             {seatTags && g.phase !== 'over' && (
               <PlayerStatus
                 state={canAct(g, seat) ? 'deciding' : simultaneous(g) && readySeats(g)[seat] ? 'ready' : 'waiting'}
@@ -194,6 +194,7 @@ export function BlackwakeTable({
           <div
             key={`${reveal?.id ?? 'live'}:${entry.card.id}`}
             className={`blackwake-played-card ${reveal ? 'captured' : ''} ${order === 0 ? 'lead' : ''}`}
+            data-game-motion={reveal ? undefined : 'piece'}
             // Upper-half cards carry their order tag underneath, clear of the top seat plates.
             data-tag-edge={position.y < 45 ? 'bottom' : undefined}
             style={

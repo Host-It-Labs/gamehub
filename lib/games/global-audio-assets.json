@@ -1,0 +1,34 @@
+[
+  {
+    "id": "shared-pickup-b-v1",
+    "category": "pickup",
+    "label": "Bright wood tick",
+    "src": "/audio/elevenlabs/shared-pickup-b-v1.mp3",
+    "duration": 0.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-place-f-v1",
+    "category": "place",
+    "label": "Gentle settle",
+    "src": "/audio/elevenlabs/shared-place-f-v1.mp3",
+    "duration": 0.8,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-turn-c-v1",
+    "category": "turn",
+    "label": "Rising chimes",
+    "src": "/audio/elevenlabs/shared-turn-c-v1.mp3",
+    "duration": 0.8,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-scores-b-v1",
+    "category": "scores",
+    "label": "Marimba flourish",
+    "src": "/audio/elevenlabs/shared-scores-b-v1.mp3",
+    "duration": 1.28,
+    "gain": 0.85
+  }
+]

@@ -16,6 +16,8 @@ export function GameProgress({
   return (
     <output
       className={`game-progress ${round ? 'is-round' : ''}`}
+      data-game-motion="change"
+      data-game-motion-key={label}
       aria-label={label}
     >
       {label}

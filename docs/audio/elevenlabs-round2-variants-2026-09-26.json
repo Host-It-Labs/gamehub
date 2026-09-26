@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-26",
+  "provider": "ElevenLabs",
+  "model": "eleven_text_to_sound_v2",
+  "flowId": "yCdXygqGZhOnXsnZMWmU",
+  "flowUrl": "https://elevenlabs.io/app/flows/yCdXygqGZhOnXsnZMWmU",
+  "scope": "Two new pickup choices inspired by liked pickup B, and two turn choices inspired by liked turn C, for Sound Lab audition only.",
+  "status": "Four single successful generations; decoded, envelope inspected, and peak measured. Subjective listening of these new takes remains pending.",
+  "notes": [
+    "The exact earlier B pickup and C turn prompts were read and adapted, preserving their liked wood and chime direction. Earlier audio was not supplied as a model reference and remains untouched.",
+    "Prompts describe intended musical contours and timbre, not listening-verified output semantics.",
+    "Original downloads are preserved. Mastering applies only short edge fades, silence-only tail trimming where justified, and measured peak normalization. No timbre filter is applied."
+  ],
+  "clips": [
+    {
+      "id": "shared-pickup-d-v1",
+      "category": "pickup",
+      "option": "d",
+      "label": "Crisp wood",
+      "src": "/audio/elevenlabs/shared-pickup-d-v1.mp3",
+      "duration": 0.6,
+      "gain": 0.85,
+      "basedOnLikedCandidate": "shared-pickup-b-v1",
+      "audioReferenceInputs": [],
+      "prompt": "One cheerful high marimba wood tick for picking up a game piece. A single clean pitched wooden note, a little lighter and crisper, with a friendly nimble attack and short natural resonance. Dry studio close-up, bright playful musical wood. One hit immediately, decay naturally, then quiet. No gritty foley, voice, piano, wobble, whoosh, hiss, bass thump, dark atmosphere or long reverb.",
+      "parameters": {
+        "duration_seconds": 0.6,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "nGouA2WwaiddG1hpMCOZ",
+      "sessionId": "Ets0Xcjt2GqArSFPweE9",
+      "generationId": "KSPUzEaw8yDRnzTUzmoT",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-pickup-d-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 0.6,
+        "samplePeakDbFS": -12.197,
+        "truePeakEstimateDbFS": -12.047,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -32.235,
+        "bytes": 27329,
+        "sha256": "1d6c8101d622008a741b8f6addd51367827980632600da34aa6e291ee0aa8dcc",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0:end=0.600000,asetpts=PTS-STARTPTS,afade=t=in:d=0.0007,afade=t=out:st=0.588000:d=0.012,volume=0.9620dB",
+        "gainAdjustmentDb": 0.962,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0.6,
+        "retainedSourceDurationPercent": 100.0,
+        "silenceThresholdDbFS": -75,
+        "minimumTrailingSilenceSeconds": 0.06,
+        "rmsEnvelopeWindowSeconds": 0.01,
+        "attackFadeSeconds": 0.0007,
+        "releaseFadeSeconds": 0.012,
+        "targetTruePeakDbFS": -12,
+        "equalization": "none",
+        "notes": "Full take retained unless its trailing envelope is below -75 dBFS for at least 60ms. Only a verified silent tail may be shortened, with 30ms extra padding; note tails remain intact."
+      },
+      "validation": {
+        "durationSeconds": 0.6,
+        "samplePeakDbFS": -12.248,
+        "truePeakEstimateDbFS": -12.248,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -31.619,
+        "bytes": 15716,
+        "sha256": "e720dd485cca6b172509211e068a5d820b19656cef62c429ef65303589f42187",
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-pickup-e-v1",
+      "category": "pickup",
+      "option": "e",
+      "label": "Warm wood",
+      "src": "/audio/elevenlabs/shared-pickup-e-v1.mp3",
+      "duration": 0.6,
+      "gain": 0.85,
+      "basedOnLikedCandidate": "shared-pickup-b-v1",
+      "audioReferenceInputs": [],
+      "prompt": "One cheerful marimba wood tick for picking up a game piece. A single clean rounded wooden note, softly full-bodied in the upper mid register, with a cushioned friendly attack and short natural resonance. Dry studio close-up, warm playful musical wood. One hit immediately, decay naturally, then quiet. No gritty foley, voice, piano, wobble, whoosh, hiss, bass thump, dark atmosphere or long reverb.",
+      "parameters": {
+        "duration_seconds": 0.6,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "P3BqRUCkaikzrAqgdqD9",
+      "sessionId": "kUedzPiPcVkONuOXDWmb",
+      "generationId": "VrrymJVwZpAld1bOX0cA",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-pickup-e-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 0.6,
+        "samplePeakDbFS": -16.957,
+        "truePeakEstimateDbFS": -16.954,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -29.981,
+        "bytes": 27329,
+        "sha256": "261c1b3dad14f4a8dae9350f6a1d437f6d247c200400c6bf0244048a3b612304",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0:end=0.600000,asetpts=PTS-STARTPTS,afade=t=in:d=0.0007,afade=t=out:st=0.588000:d=0.012,volume=5.2180dB",
+        "gainAdjustmentDb": 5.218,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0.6,
+        "retainedSourceDurationPercent": 100.0,
+        "silenceThresholdDbFS": -75,
+        "minimumTrailingSilenceSeconds": 0.06,
+        "rmsEnvelopeWindowSeconds": 0.01,
+        "attackFadeSeconds": 0.0007,
+        "releaseFadeSeconds": 0.012,
+        "targetTruePeakDbFS": -12,
+        "equalization": "none",
+        "notes": "Full take retained unless its trailing envelope is below -75 dBFS for at least 60ms. Only a verified silent tail may be shortened, with 30ms extra padding; note tails remain intact."
+      },
+      "validation": {
+        "durationSeconds": 0.6,
+        "samplePeakDbFS": -12.003,
+        "truePeakEstimateDbFS": -12.0,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -25.035,
+        "bytes": 15716,
+        "sha256": "7756f4170346266c83b777663d690bde2289f41bdb29a2675e2db68d72d7cb3e",
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-turn-d-v1",
+      "category": "turn",
+      "option": "d",
+      "label": "Bright steps",
+      "src": "/audio/elevenlabs/shared-turn-d-v1.mp3",
+      "duration": 1.2,
+      "gain": 0.85,
+      "basedOnLikedCandidate": "shared-turn-c-v1",
+      "audioReferenceInputs": [],
+      "prompt": "Three short rising friendly synth chimes for a player's turn: C, E, A, clear cheerful major notes. Clean rounded bell-like sine plinks with a light bright sparkle, quick evenly spaced notes. Playful dry centered arcade-lite UI. Complete all three notes in the first 0.5 seconds, let the gentle decay finish, then silence. No eerie ambience, wobble, clang, foley, piano, voices, whoosh, alarm or long echo.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.85,
+        "loop": false
+      },
+      "nodeId": "vz9pmZNLdtfwpQIDTlxD",
+      "sessionId": "uy5tqzIglPqJZAqWM7A6",
+      "generationId": "P2fhXhzTux8in4iUoH1K",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-turn-d-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 1.2,
+        "samplePeakDbFS": 0.229,
+        "truePeakEstimateDbFS": 0.314,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -14.135,
+        "bytes": 36942,
+        "sha256": "04116a1061efa090fdfb00dfade8791803a3290c681d2e477f8ed530ffe9de23",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0:end=1.200000,asetpts=PTS-STARTPTS,afade=t=in:d=0.0020,afade=t=out:st=1.180000:d=0.020,volume=-12.0630dB",
+        "gainAdjustmentDb": -12.063,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 1.2,
+        "retainedSourceDurationPercent": 100.0,
+        "silenceThresholdDbFS": -75,
+        "minimumTrailingSilenceSeconds": 0.06,
+        "rmsEnvelopeWindowSeconds": 0.01,
+        "attackFadeSeconds": 0.002,
+        "releaseFadeSeconds": 0.02,
+        "targetTruePeakDbFS": -12,
+        "equalization": "none",
+        "notes": "Full take retained unless its trailing envelope is below -75 dBFS for at least 60ms. Only a verified silent tail may be shortened, with 30ms extra padding; note tails remain intact."
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "samplePeakDbFS": -12.078,
+        "truePeakEstimateDbFS": -11.993,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -26.493,
+        "bytes": 30136,
+        "sha256": "a5d29dca23cb291e7281ae9d715755f7b42b4abdeab126fe717cf80dc3444e84",
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-turn-e-v1",
+      "category": "turn",
+      "option": "e",
+      "label": "Rounded rise",
+      "src": "/audio/elevenlabs/shared-turn-e-v1.mp3",
+      "duration": 1.15045,
+      "gain": 0.85,
+      "basedOnLikedCandidate": "shared-turn-c-v1",
+      "audioReferenceInputs": [],
+      "prompt": "Three short rising friendly synth chimes for a player's turn: C, D, G, a cheerful major-key question and answer. Clean rounded bell-like sine plinks, softer round attack, a little sparkle on the final note. Playful dry centered arcade-lite UI. Play all notes in the first 0.5 seconds, then natural gentle decay and silence. No eerie ambience, wobble, clang, foley, piano, voices, whoosh, alarm or long echo.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.85,
+        "loop": false
+      },
+      "nodeId": "nhGv1PQSSidiQsvYt7kB",
+      "sessionId": "eKyrreJLN47PmGuJKA8T",
+      "generationId": "30p83DAI2TnjUMLhrjPn",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-turn-e-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 1.2,
+        "samplePeakDbFS": -1.841,
+        "truePeakEstimateDbFS": -1.839,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -21.688,
+        "bytes": 36942,
+        "sha256": "ff2bbaa2b9661446b594895d69f9d6cf301f89dc795f3bd61df0baf3681b09f8",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0:end=1.150000,asetpts=PTS-STARTPTS,afade=t=in:d=0.0020,afade=t=out:st=1.130000:d=0.020,volume=-9.8670dB",
+        "gainAdjustmentDb": -9.867,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 1.1500000000000001,
+        "retainedSourceDurationPercent": 95.833,
+        "silenceThresholdDbFS": -75,
+        "minimumTrailingSilenceSeconds": 0.06,
+        "rmsEnvelopeWindowSeconds": 0.01,
+        "attackFadeSeconds": 0.002,
+        "releaseFadeSeconds": 0.02,
+        "targetTruePeakDbFS": -12,
+        "equalization": "none",
+        "notes": "Full take retained unless its trailing envelope is below -75 dBFS for at least 60ms. Only a verified silent tail may be shortened, with 30ms extra padding; note tails remain intact."
+      },
+      "validation": {
+        "durationSeconds": 1.150453514739229,
+        "samplePeakDbFS": -11.943,
+        "truePeakEstimateDbFS": -11.943,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -31.696,
+        "bytes": 29509,
+        "sha256": "40b6b74774aa41592897402fdf377da755a161e16c0ed3c2de1da5b8164b99cc",
+        "decodes": true
+      }
+    }
+  ]
+}

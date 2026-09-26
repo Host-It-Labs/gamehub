@@ -1,6 +1,6 @@
 import type { Table, TableCommand } from '@/lib/online/types';
 
-/** A table preference; local volume and mute remain under each listener's control. */
+/** The host controls ambience only; every listener controls their own effects. */
 export function TableAmbienceControl({
   table,
   disabled,
@@ -21,12 +21,12 @@ export function TableAmbienceControl({
             void dispatch({ type: 'ambience', enabled: event.target.checked })
           }
         />
-        Background sounds for everyone
+        Ambient sound for everyone
       </label>
       <p>
         {table.isHost
-          ? 'Off by default. Players can still mute their own device.'
-          : 'Controlled by the table host. You can still mute your own device.'}
+          ? 'Off by default. This does not change sound effects.'
+          : 'Controlled by the table host. Your sound effects stay separate.'}
       </p>
     </div>
   );

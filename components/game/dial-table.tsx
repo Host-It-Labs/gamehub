@@ -273,7 +273,11 @@ export function DialTable({
     <section
       className={`dial-stage phase-${g.phase} ${giver ? 'is-giver' : ''}`}
     >
-      <div className="dial-top">
+      <div
+        className="dial-top"
+        data-game-motion="change"
+        data-game-motion-key={`${g.card}:${g.phase}`}
+      >
         {g.phase === 'clue' && giver && g.offers.length > 1 && (
           <fieldset className="dial-switch" aria-label="Spectrum">
             {g.offers.map((id) => (
@@ -399,7 +403,12 @@ export function DialTable({
           })}
         </div>
       )}
-      <div className="party-dock" aria-live="polite">
+      <div
+        className="party-dock"
+        aria-live="polite"
+        data-game-motion="change"
+        data-game-motion-key={`${g.phase}:${locked}`}
+      >
         {g.phase === 'clue' && giver && (
           <form
             className="dial-clue-form"

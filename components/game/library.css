@@ -1,20 +1,20 @@
-/* Library: a quiet shelf of the games that ship, grouped by kind. Sections flow
-   side by side while they are short and wrap onto their own rows as they grow;
-   every box shares one tile size so the shelf reads as one set. */
+/* Library: a quiet shelf of the games that ship, grouped by kind. Each kind is
+   its own row, a carousel that pages sideways with the arrows on its right;
+   sealed boxes after the real ones leave room for games to come. Every box
+   shares one tile size so the shelf reads as one set. */
+/* Colours come from the menu theme (app/menu-theme.css). */
 .app:has(.night-library) {
-  --lib-bg: #efe9dd;
-  --lib-panel: #f8f4ea;
-  --lib-panel-2: #f2ecdf;
-  --lib-line: #ddd3c1;
-  --lib-ink: #2f2a24;
-  --lib-ink-2: #6b6255;
-  --lib-ink-3: #948a7a;
-  --lib-brass: #b8924a;
-  --lib-walnut: #6b4a2f;
-  --lib-walnut-2: #7d593a;
-  --lib-live: #4f9a5c;
   background:
-    repeating-linear-gradient(0deg, #ffffff10 0 1px, transparent 1px 4px),
+    radial-gradient(
+      ellipse 90% 60% at 50% -12%,
+      var(--lib-glow),
+      transparent 70%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      var(--lib-grain) 0 1px,
+      transparent 1px 4px
+    ),
     repeating-linear-gradient(90deg, #00000006 0 1px, transparent 1px 4px),
     var(--lib-bg);
   color: var(--lib-ink);
@@ -94,8 +94,47 @@
   height: 18px;
 }
 .lib-sound:hover {
-  background: #e9e1d1;
+  background: var(--lib-hover);
   color: var(--lib-ink);
+}
+/* Wide screens show the theme and sound buttons; phones fold both into one
+   menu that switches them in place. */
+.lib-phone-only {
+  display: none !important;
+}
+@media (max-width: 600px) {
+  .lib-wide-only {
+    display: none !important;
+  }
+  .lib-phone-only {
+    display: grid !important;
+  }
+}
+/* Portalled outside the shell; the theme tokens live on :root. */
+.lib-menu {
+  width: min(280px, calc(100vw - 32px));
+  padding: 6px;
+  gap: 6px;
+  border-radius: 16px;
+  background: var(--lib-panel);
+  color: var(--lib-ink);
+  box-shadow:
+    0 0 0 1px var(--lib-line),
+    0 18px 40px -12px color-mix(in srgb, var(--lib-shadow) 45%, transparent);
+  font-family:
+    ui-rounded, 'SF Pro Rounded', 'Avenir Next', system-ui, sans-serif;
+}
+.lib-menu .sound-settings {
+  gap: 6px;
+  padding: 0;
+}
+.lib-menu .sound-toggle {
+  min-height: 50px;
+  padding: 0 14px;
+  border-radius: 11px;
+}
+.lib-menu [data-slot='switch'][data-checked] {
+  background: var(--lib-brass);
 }
 .lib-friends {
   display: inline-flex;
@@ -168,7 +207,7 @@
 }
 .lib-search:focus-within {
   border-color: var(--lib-brass);
-  box-shadow: 0 0 0 3px #b8924a33;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lib-brass) 20%, transparent);
 }
 /* Sections and tiles */
 .lib-main {
@@ -177,45 +216,133 @@
 .lib-sections {
   container-type: inline-size;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 14px calc(var(--lib-gap) * 2.5);
-  /* Three tiles across a phone; a steady size from tablets up. */
-  --tile: calc((100cqw - 2 * var(--lib-gap)) / 3);
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  /* Three tiles and a peek of the next across a phone; a steady size from
+     tablets up. */
+  --tile: calc((100cqw - 3 * var(--lib-gap)) / 3.4);
 }
 .lib-section {
-  /* A short section asks only for its own tiles, so it can share a row. */
-  flex: 0 1 calc(var(--n) * var(--tile) + (var(--n) - 1) * var(--lib-gap));
-  max-width: 100%;
   min-width: 0;
 }
-.lib-section-title {
+.lib-section-head {
   display: flex;
   align-items: center;
   gap: 10px;
   padding-top: 8px;
   margin-bottom: 2px;
+}
+.lib-section-title {
+  flex: 1;
+  min-width: 0;
   font-size: 17px;
   font-weight: 700;
   color: var(--lib-ink);
-  border-top: 1px solid var(--lib-line);
 }
+.lib-arrows {
+  display: flex;
+  gap: 6px;
+}
+.lib-arrow {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--lib-panel);
+  border: 1px solid var(--lib-line);
+  color: var(--lib-ink-2);
+  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--lib-shadow, #2f2a24) 35%, transparent);
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+.lib-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+.lib-arrow:hover:not(:disabled) {
+  background: var(--lib-hover);
+  color: var(--lib-ink);
+}
+.lib-arrow:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.lib-arrow:disabled {
+  opacity: 0.35;
+  box-shadow: none;
+  cursor: default;
+}
+.lib-arrow:focus-visible {
+  outline: 3px solid var(--lib-brass);
+  outline-offset: 2px;
+}
+/* A row that fits without paging keeps its arrows' place but mutes them. */
+.lib-arrows.is-still {
+  visibility: hidden;
+}
+/* The track runs into the page gutter so boxes slide under its edge, and
+   leaves room above and below for a box to lift on hover. */
 .lib-grid {
   list-style: none;
-  margin: 0;
-  padding: 0;
+  margin: 0 calc(-1 * var(--lib-pad));
+  padding: 6px var(--lib-pad) 8px;
+  scroll-padding-inline: var(--lib-pad);
   display: grid;
-  grid-template-columns: repeat(auto-fill, var(--tile));
-  gap: 10px var(--lib-gap);
+  grid-auto-flow: column;
+  grid-auto-columns: var(--tile);
+  gap: var(--lib-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.lib-grid::-webkit-scrollbar {
+  display: none;
+}
+/* More boxes wait off an edge: the row fades out on that side. */
+.lib-grid {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent
+  );
+}
+.lib-grid.has-less {
+  --fade-start: calc(var(--lib-pad) + 32px);
+}
+.lib-grid.has-more {
+  --fade-end: calc(var(--lib-pad) + 48px);
 }
 .lib-tile {
   min-width: 0;
+  scroll-snap-align: start;
+}
+/* Sealed boxes: they pose and lift like the rest, but open nothing. */
+.lib-tile.is-sealed .lib-tile-button {
+  cursor: default;
+}
+.lib-tile.is-sealed .stat {
+  width: 44px;
+  opacity: 0.5;
+}
+.lib-tile.is-sealed .stat + .stat {
+  width: 32px;
 }
 .lib-tile-button {
   width: 100%;
-  gap: 2px;
+  gap: 4px;
   padding: 4px 0 6px;
   container-type: inline-size;
+  align-items: center;
+  text-align: center;
 }
 .lib-tile-button .gbox {
   /* The posed box's footprint is 1.0584 times its face width. */
@@ -223,42 +350,30 @@
   --h: var(--w);
   --d: calc(var(--w) * 0.24);
 }
-.lib-tile-name {
-  display: block;
-  width: 100%;
-  padding: 0 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font:
-    700 15px/1.2 Georgia,
-    serif;
-  color: var(--lib-ink);
-}
-.lib-tile-meta {
-  display: flex;
-  align-items: center;
+/* The same time and player chips as the setup lid, a size smaller. */
+.lib-tile-button .stat-strip {
+  justify-content: center;
   gap: 4px;
-  padding: 0 2px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--lib-ink-2);
-  white-space: nowrap;
-  overflow: hidden;
+  max-width: 100%;
 }
-.lib-tile-meta svg {
-  flex: none;
-  width: 13px;
-  height: 13px;
-  color: var(--lib-ink-3);
+.lib-tile-button .stat {
+  height: 22px;
+  padding: 0 6px;
+  gap: 3px;
+  border-radius: 7px;
+  font-size: 11px;
 }
-.lib-tile-dot {
-  flex: none;
-  width: 3px;
-  height: 3px;
-  margin: 0 3px;
-  border-radius: 50%;
-  background: var(--lib-ink-3);
+.lib-tile-button .stat svg {
+  width: 12px;
+  height: 12px;
+}
+/* A tile too narrow for both chips side by side stacks them, so every tile
+   on the shelf reads the same. */
+@container (max-width: 139px) {
+  .lib-tile-button .stat-strip {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 .lib-empty {
   padding: 24px 0;
@@ -290,7 +405,7 @@
 }
 @media (max-width: 359px) {
   .lib-sections {
-    --tile: calc((100cqw - var(--lib-gap)) / 2);
+    --tile: calc((100cqw - 2 * var(--lib-gap)) / 2.4);
   }
   .lib-friends {
     width: 40px;
@@ -325,22 +440,23 @@
     padding-top: 22px;
   }
   .lib-sections {
-    --tile: clamp(136px, 11vw, 188px);
-    gap: 26px calc(var(--lib-gap) * 2.4);
+    --tile: clamp(148px, 12vw, 188px);
+    gap: 18px;
+  }
+  .lib-section-head {
+    padding-top: 12px;
+    margin-bottom: 4px;
   }
   .lib-section-title {
     font-size: 20px;
-    padding-top: 12px;
-    margin-bottom: 6px;
   }
-  .lib-grid {
-    row-gap: 18px;
+  .lib-arrow {
+    width: 38px;
+    height: 38px;
   }
-  .lib-tile-name {
-    font-size: 17px;
-  }
-  .lib-tile-meta {
-    font-size: 12.5px;
+  .lib-tile-button .stat {
+    height: 24px;
+    font-size: 11.5px;
   }
 }
 @media (min-width: 1500px) {
@@ -389,7 +505,7 @@
   display: inline-grid;
   place-items: center;
   border-radius: 50%;
-  background: #e5dccb;
+  background: var(--lib-chip);
   color: var(--lib-ink-2);
   font-size: 11px;
   font-weight: 800;

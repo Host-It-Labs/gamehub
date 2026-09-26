@@ -1,0 +1,1832 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-26",
+  "provider": "ElevenLabs",
+  "model": "eleven_text_to_sound_v2",
+  "flowId": "X1cbXnOQzw8AY4D07H4V",
+  "flowUrl": "https://elevenlabs.io/app/flows/X1cbXnOQzw8AY4D07H4V",
+  "estimatedCredits": 2117.5,
+  "chargedCredits": 2192.5,
+  "scope": "One original take per prompt: 28 subtle effects across seven games, six ambience beds and nine sparse details for the three strategy worlds.",
+  "status": "Complete: 43 clips generated, downloaded, decoded and level-checked; subjective listening acceptance pending",
+  "notes": [
+    "Each clip was generated once successfully. An initial oversized dispatch returned explicit 429 rejection for unstarted nodes; accepted sessions were polled, and only unstarted nodes were dispatched later in bounded batches.",
+    "Original generation files are preserved under assets/audio/elevenlabs/2026-09-26/. Runtime copies have conservative peak normalization and short one-shot edge fades; looping beds retain their generated seams.",
+    "Prompts describe intended content; semantic and subjective listening acceptance has not been performed."
+  ],
+  "clips": [
+    {
+      "id": "nox-select-v1",
+      "game": "nox",
+      "kind": "effect",
+      "category": "select",
+      "label": "Nox \u00b7 select",
+      "src": "/audio/elevenlabs/nox-select-v1.mp3",
+      "duration": 0.64,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A single soft parchment card flick on a felt-lined wooden ship table, dry, close and quiet.",
+      "parameters": {
+        "duration_seconds": 0.65,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "3yjyyVu5j680xpxavz73",
+      "sessionId": "4wAQckFu1fjD0S01r4MY",
+      "generationId": "Z73Yif58rxNFZf6t8tUT",
+      "actualDuration": 0.64,
+      "price": {
+        "credits": 6.5,
+        "price_cents": 0.065,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-select-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -6.8,
+        "gainAdjustmentDb": -1.2000000000000002,
+        "targetPeakDb": -8,
+        "filter": "volume=-1.20dB,afade=t=in:d=0.005,afade=t=out:st=0.57500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.64,
+        "bytes": 11327,
+        "peakDbFS": -8.4,
+        "meanDbFS": -36.7,
+        "sourceSha256": "67bafd9b2430de0a364c2fc74bea373b3405ecf4137ae21f53c818669a6ffb30",
+        "runtimeSha256": "008e7ef46516f1e3d8615a93dbdaf3a7f95768929a196ea6ee559794a54f7013",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-move-v1",
+      "game": "nox",
+      "kind": "effect",
+      "category": "move",
+      "label": "Nox \u00b7 move",
+      "src": "/audio/elevenlabs/nox-move-v1.mp3",
+      "duration": 0.84,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small wooden game token placed gently on oak, a muted low knock with a tiny brass tick, quick decay.",
+      "parameters": {
+        "duration_seconds": 0.85,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "0AdS3qudHHXPpcvYbdXs",
+      "sessionId": "bAZwBAUb0iGq9hkPSn19",
+      "generationId": "GwD9zUxRSgoZbHBbasUA",
+      "actualDuration": 0.84,
+      "price": {
+        "credits": 8.5,
+        "price_cents": 0.08499999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-move-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -1.0,
+        "gainAdjustmentDb": -7.0,
+        "targetPeakDb": -8,
+        "filter": "volume=-7.00dB,afade=t=in:d=0.005,afade=t=out:st=0.77500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.84,
+        "bytes": 14671,
+        "peakDbFS": -8.5,
+        "meanDbFS": -34.7,
+        "sourceSha256": "3a633e188a92f8cac15966cc3761cb37cc529fa2ea8d692ec4bb12a89ae5d9ed",
+        "runtimeSha256": "834f1b91ecc466f5318547944affccf927b5372f31340172bbdcb3a1289f8304",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-reveal-v1",
+      "game": "nox",
+      "kind": "effect",
+      "category": "reveal",
+      "label": "Nox \u00b7 reveal",
+      "src": "/audio/elevenlabs/nox-reveal-v1.mp3",
+      "duration": 1.04,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A short gentle unrolling of parchment on a wooden desk, soft papery flutter, quiet and dry.",
+      "parameters": {
+        "duration_seconds": 1.05,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "x2u6HnrdJQlqJ1WcUfl4",
+      "sessionId": "5LfYtKMW1ZEcBgdvsi5S",
+      "generationId": "GonFq6NY4Ix1qZwDbaRC",
+      "actualDuration": 1.04,
+      "price": {
+        "credits": 10.500000000000002,
+        "price_cents": 0.10500000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-reveal-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -23.0,
+        "gainAdjustmentDb": 15.0,
+        "targetPeakDb": -8,
+        "filter": "volume=15.00dB,afade=t=in:d=0.005,afade=t=out:st=0.97500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.04,
+        "bytes": 17597,
+        "peakDbFS": -8.5,
+        "meanDbFS": -28.9,
+        "sourceSha256": "120767caaa1a3626615efe3eae22df279271ab69be502b492a02d156cc0f7ac0",
+        "runtimeSha256": "6070b98ab47157f3be20a876450dd1dfd4657b1f902ebb23a8b3e01a53593f6c",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-reward-v1",
+      "game": "nox",
+      "kind": "effect",
+      "category": "reward",
+      "label": "Nox \u00b7 reward",
+      "src": "/audio/elevenlabs/nox-reward-v1.mp3",
+      "duration": 1.2,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "Two tiny old brass coins gently touching on felt, warm restrained glints, no fanfare.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "rmsQk0cfCQYoa4cFB8pp",
+      "sessionId": "oaaF1FjEzZlbjMAzJnJY",
+      "generationId": "KdHletWsFKFEEK1ckoMY",
+      "actualDuration": 1.2,
+      "price": {
+        "credits": 12,
+        "price_cents": 0.12,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-reward-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -5.1,
+        "gainAdjustmentDb": -2.9000000000000004,
+        "targetPeakDb": -8,
+        "filter": "volume=-2.90dB,afade=t=in:d=0.005,afade=t=out:st=1.13500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "bytes": 20105,
+        "peakDbFS": -9.2,
+        "meanDbFS": -28.6,
+        "sourceSha256": "2496f3c94be94e839e5e3c381067766a10cbfc8b7120223c7659fc90563f9628",
+        "runtimeSha256": "2da531d6579577f139472fe3f9fe08b20a7eb9cc7dd634c6a10f381ea478086e",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-select-v1",
+      "game": "mora",
+      "kind": "effect",
+      "category": "select",
+      "label": "Mora \u00b7 select",
+      "src": "/audio/elevenlabs/mora-select-v1.mp3",
+      "duration": 0.64,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A tiny smooth pebble brushed across moss, delicate dry tick and soft leaf texture.",
+      "parameters": {
+        "duration_seconds": 0.65,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "pecXgx3d6AYjImLHpXeY",
+      "sessionId": "Xt9I6pTdMiI5GdP41FaM",
+      "generationId": "BRw0QywhJh2etBYD04RM",
+      "actualDuration": 0.64,
+      "price": {
+        "credits": 6.5,
+        "price_cents": 0.065,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-select-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -16.8,
+        "gainAdjustmentDb": 8.8,
+        "targetPeakDb": -8,
+        "filter": "volume=8.80dB,afade=t=in:d=0.005,afade=t=out:st=0.57500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.64,
+        "bytes": 11327,
+        "peakDbFS": -8.6,
+        "meanDbFS": -26.2,
+        "sourceSha256": "8f24886f81f1c2de07b18088796c96bea56073ef2547cb1f9f1ba9dcd62d3349",
+        "runtimeSha256": "1014f87cf4a05ae133798675e69e8b7db7ef0f027fdc2ed87368f7eda244a3fd",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-move-v1",
+      "game": "mora",
+      "kind": "effect",
+      "category": "move",
+      "label": "Mora \u00b7 move",
+      "src": "/audio/elevenlabs/mora-move-v1.mp3",
+      "duration": 0.84,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small stone token settling into a wooden groove, rounded gentle knock with short decay.",
+      "parameters": {
+        "duration_seconds": 0.85,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "OQyTn5cV7Cj4NMwNWeNQ",
+      "sessionId": "BJYm00DhLOMbPyXU0H0J",
+      "generationId": "UjtTotJuWY4j4yHPsrgF",
+      "actualDuration": 0.84,
+      "price": {
+        "credits": 8.5,
+        "price_cents": 0.08499999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-move-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -3.3,
+        "gainAdjustmentDb": -4.7,
+        "targetPeakDb": -8,
+        "filter": "volume=-4.70dB,afade=t=in:d=0.005,afade=t=out:st=0.77500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.84,
+        "bytes": 14671,
+        "peakDbFS": -15.0,
+        "meanDbFS": -38.1,
+        "sourceSha256": "495b952af3584137d5c35b34fae9766cdffb32747864780d3a8be1f4e5485287",
+        "runtimeSha256": "f6e398d52459310d66d95f459b5e74640def2c28cdece2e1aa094b97e6437293",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-reveal-v1",
+      "game": "mora",
+      "kind": "effect",
+      "category": "reveal",
+      "label": "Mora \u00b7 reveal",
+      "src": "/audio/elevenlabs/mora-reveal-v1.mp3",
+      "duration": 1.04,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A delicate leaf uncurling with a faint hollow wooden resonance, a short soft natural rustle.",
+      "parameters": {
+        "duration_seconds": 1.05,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "7bKToA5McKbobpzxNbbu",
+      "sessionId": "0WTssV21LCvuyk9SmioB",
+      "generationId": "tYyTH3V9XVDWbAtNERfH",
+      "actualDuration": 1.04,
+      "price": {
+        "credits": 10.500000000000002,
+        "price_cents": 0.10500000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-reveal-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -36.5,
+        "gainAdjustmentDb": 28.5,
+        "targetPeakDb": -8,
+        "filter": "volume=28.50dB,afade=t=in:d=0.005,afade=t=out:st=0.97500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.04,
+        "bytes": 17597,
+        "peakDbFS": -9.1,
+        "meanDbFS": -32.8,
+        "sourceSha256": "0cbbd521f4e7dbd4feee5d2f2020491a993156a073f7c468224c44553e6ec11b",
+        "runtimeSha256": "3315bcd120ee9946caf601aa2b6a5db6e544bf86d5701147f1b19ce73093909b",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-reward-v1",
+      "game": "mora",
+      "kind": "effect",
+      "category": "reward",
+      "label": "Mora \u00b7 reward",
+      "src": "/audio/elevenlabs/mora-reward-v1.mp3",
+      "duration": 1.2,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "Two small hollow bamboo chimes touched gently, low mellow notes with a very short soft tail.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "C2GYhnwS7YpChZ5nveiN",
+      "sessionId": "kzdnfdxbdU5rBunPNDt8",
+      "generationId": "O4CPKrA5aIOhkdLHT0HG",
+      "actualDuration": 1.2,
+      "price": {
+        "credits": 12,
+        "price_cents": 0.12,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-reward-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -32.7,
+        "gainAdjustmentDb": 24.700000000000003,
+        "targetPeakDb": -8,
+        "filter": "volume=24.70dB,afade=t=in:d=0.005,afade=t=out:st=1.13500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "bytes": 20105,
+        "peakDbFS": -9.0,
+        "meanDbFS": -24.6,
+        "sourceSha256": "24c39c1b96f4ffe2ca457966a9583b2b217c5726c4e97a9dda1af9fbb4746147",
+        "runtimeSha256": "a681c99a1c085f791db64538b6e0af345d9c0a9d83f822599df326dd82a65efc",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-select-v1",
+      "game": "yata",
+      "kind": "effect",
+      "category": "select",
+      "label": "Yata \u00b7 select",
+      "src": "/audio/elevenlabs/yata-select-v1.mp3",
+      "duration": 0.64,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A single soft wooden chopstick tap on a folded cloth, precise dry quiet click.",
+      "parameters": {
+        "duration_seconds": 0.65,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "BYo6fXV6Db63tdQtfY0I",
+      "sessionId": "6TLPGXuv2SnYcnb70TWh",
+      "generationId": "Wk4aDmnzRF8ZvhtrwkWh",
+      "actualDuration": 0.64,
+      "price": {
+        "credits": 6.5,
+        "price_cents": 0.065,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-select-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -1.3,
+        "gainAdjustmentDb": -6.7,
+        "targetPeakDb": -8,
+        "filter": "volume=-6.70dB,afade=t=in:d=0.005,afade=t=out:st=0.57500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.64,
+        "bytes": 11327,
+        "peakDbFS": -8.3,
+        "meanDbFS": -38.8,
+        "sourceSha256": "e894b0f9a50cf44b7a0416dc558d1cb40e596dedd0e96a32c461b774d5fbae37",
+        "runtimeSha256": "6f6822aa28325bdc6e6ac48bc302911d2198b10f0b03065ff0b0226b052b08c3",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-move-v1",
+      "game": "yata",
+      "kind": "effect",
+      "category": "move",
+      "label": "Yata \u00b7 move",
+      "src": "/audio/elevenlabs/yata-move-v1.mp3",
+      "duration": 0.84,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small ceramic bowl placed gently on a wooden food counter, rounded muted clink, short decay.",
+      "parameters": {
+        "duration_seconds": 0.85,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "7ibgHOEZvQcN0KH5S7h1",
+      "sessionId": "VbBUdTpAvr5AYYFdi702",
+      "generationId": "ej77bY7nFmAyl43qfNrt",
+      "actualDuration": 0.84,
+      "price": {
+        "credits": 8.5,
+        "price_cents": 0.08499999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-move-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": 0.0,
+        "gainAdjustmentDb": -8.0,
+        "targetPeakDb": -8,
+        "filter": "volume=-8.00dB,afade=t=in:d=0.005,afade=t=out:st=0.77500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.84,
+        "bytes": 14671,
+        "peakDbFS": -8.4,
+        "meanDbFS": -29.7,
+        "sourceSha256": "0fd2e0b0e34a5d615af988c639f698f90883fa16281edf4583cf6a6847a557ef",
+        "runtimeSha256": "2de34b7c4a33cfd51b7be7994afda5a449bad896953f9dc4f596105d57b6c9db",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-reveal-v1",
+      "game": "yata",
+      "kind": "effect",
+      "category": "reveal",
+      "label": "Yata \u00b7 reveal",
+      "src": "/audio/elevenlabs/yata-reveal-v1.mp3",
+      "duration": 1.04,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A paper food wrapper gently opened once, crisp but very soft dry rustle.",
+      "parameters": {
+        "duration_seconds": 1.05,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "h1x1uOO0ASq2CDo8xgzk",
+      "sessionId": "BVBTKdUkjc9XHkanylXf",
+      "generationId": "OKdtuHlNXthQ8kTMmait",
+      "actualDuration": 1.04,
+      "price": {
+        "credits": 10.500000000000002,
+        "price_cents": 0.10500000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-reveal-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -9.0,
+        "gainAdjustmentDb": 1.0,
+        "targetPeakDb": -8,
+        "filter": "volume=1.00dB,afade=t=in:d=0.005,afade=t=out:st=0.97500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.04,
+        "bytes": 17597,
+        "peakDbFS": -8.3,
+        "meanDbFS": -36.9,
+        "sourceSha256": "f861fd08a328d1353ea6530e6dc11d7f37301db2d75161e7d5be0e5d731a32ca",
+        "runtimeSha256": "00cddda425e5ab5406f7836024fbff444600f0e53c14a5adecc332ca2da26ff5",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-reward-v1",
+      "game": "yata",
+      "kind": "effect",
+      "category": "reward",
+      "label": "Yata \u00b7 reward",
+      "src": "/audio/elevenlabs/yata-reward-v1.mp3",
+      "duration": 1.2,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "Two tiny glazed ceramic cups touching softly, warm understated clinks, short decay.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "LRbajhT3rNKSQh53s6Wi",
+      "sessionId": "J7uHjlXtSk5v8wB6jXrF",
+      "generationId": "bbUsxPBcIy5yEl38qMKL",
+      "actualDuration": 1.2,
+      "price": {
+        "credits": 12,
+        "price_cents": 0.12,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-reward-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -5.8,
+        "gainAdjustmentDb": -2.2,
+        "targetPeakDb": -8,
+        "filter": "volume=-2.20dB,afade=t=in:d=0.005,afade=t=out:st=1.13500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "bytes": 20105,
+        "peakDbFS": -8.4,
+        "meanDbFS": -38.4,
+        "sourceSha256": "46e929423abf803f14bbdc11e1649bb255d9a78546a1ac10fac7ec5f6cf610f1",
+        "runtimeSha256": "2ae4691bfec62a921d31a60f62c77a4baad6e44df8ec0e3e2d3ce71be948d799",
+        "decodes": true
+      }
+    },
+    {
+      "id": "knowme-select-v1",
+      "game": "knowme",
+      "kind": "effect",
+      "category": "select",
+      "label": "Know Me \u00b7 select",
+      "src": "/audio/elevenlabs/knowme-select-v1.mp3",
+      "duration": 0.64,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A single thick paper card gently flicked over soft felt, light warm dry tap.",
+      "parameters": {
+        "duration_seconds": 0.65,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "oz6Tkt1c0tNEmzkYvalk",
+      "sessionId": "FPwGR4SRT9lichUNtSQR",
+      "generationId": "9MWuIk0DGTdZoRODYTcL",
+      "actualDuration": 0.64,
+      "price": {
+        "credits": 6.5,
+        "price_cents": 0.065,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/knowme-select-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -0.3,
+        "gainAdjustmentDb": -7.7,
+        "targetPeakDb": -8,
+        "filter": "volume=-7.70dB,afade=t=in:d=0.005,afade=t=out:st=0.57500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.64,
+        "bytes": 11327,
+        "peakDbFS": -8.7,
+        "meanDbFS": -36.2,
+        "sourceSha256": "e1e5f1ceb7ba9bd939ddc4f5d18ca587d2a8a01aa388d4778f87a2171a726824",
+        "runtimeSha256": "49a0b73ec664586ca0f916a599b61ffbd7cd438c4997215695725da16c9a7439",
+        "decodes": true
+      }
+    },
+    {
+      "id": "knowme-move-v1",
+      "game": "knowme",
+      "kind": "effect",
+      "category": "move",
+      "label": "Know Me \u00b7 move",
+      "src": "/audio/elevenlabs/knowme-move-v1.mp3",
+      "duration": 0.84,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small rounded wooden counter settling on a felt-covered table, soft friendly pop.",
+      "parameters": {
+        "duration_seconds": 0.85,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "6wDttgm0VlTfOKzqIhUs",
+      "sessionId": "hTHvLhIFf9C5tmrwFwlo",
+      "generationId": "FuZLTCAnLjdWZXC1LR1H",
+      "actualDuration": 0.84,
+      "price": {
+        "credits": 8.5,
+        "price_cents": 0.08499999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/knowme-move-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -0.4,
+        "gainAdjustmentDb": -7.6,
+        "targetPeakDb": -8,
+        "filter": "volume=-7.60dB,afade=t=in:d=0.005,afade=t=out:st=0.77500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.84,
+        "bytes": 14671,
+        "peakDbFS": -8.3,
+        "meanDbFS": -33.4,
+        "sourceSha256": "43908e8db7a7a56c902a95f64b65c9d2565da7aff5000e937d72bae35e4ca9cb",
+        "runtimeSha256": "d40cd2e1cd39aaff67944861d7c9c3efb48c28a9b8082bfacd6443c514689f2f",
+        "decodes": true
+      }
+    },
+    {
+      "id": "knowme-reveal-v1",
+      "game": "knowme",
+      "kind": "effect",
+      "category": "reveal",
+      "label": "Know Me \u00b7 reveal",
+      "src": "/audio/elevenlabs/knowme-reveal-v1.mp3",
+      "duration": 1.04,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A thick paper card turned face up once on soft felt, gentle swish with a quiet tap.",
+      "parameters": {
+        "duration_seconds": 1.05,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "Dl8qjYNGhcmBQQ49owti",
+      "sessionId": "AiZWDPuu25mqM94uhH08",
+      "generationId": "IDidHDgFQgZKo0SERwud",
+      "actualDuration": 1.04,
+      "price": {
+        "credits": 10.500000000000002,
+        "price_cents": 0.10500000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/knowme-reveal-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -19.1,
+        "gainAdjustmentDb": 11.100000000000001,
+        "targetPeakDb": -8,
+        "filter": "volume=11.10dB,afade=t=in:d=0.005,afade=t=out:st=0.97500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.04,
+        "bytes": 17597,
+        "peakDbFS": -8.5,
+        "meanDbFS": -33.6,
+        "sourceSha256": "531bc32c0818a105b1f7d0d4096828e0b86d399db22771c485b60975e71aecc6",
+        "runtimeSha256": "a56f7ea0bc1c5c41cee86fde7586449b762c331776e8f4d750baae7f4957c38e",
+        "decodes": true
+      }
+    },
+    {
+      "id": "knowme-reward-v1",
+      "game": "knowme",
+      "kind": "effect",
+      "category": "reward",
+      "label": "Know Me \u00b7 reward",
+      "src": "/audio/elevenlabs/knowme-reward-v1.mp3",
+      "duration": 1.2,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A very soft two-note glass button chime, warm rounded tones and short decay, understated.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "AiNTbm55Ox9mhfsJ7F8U",
+      "sessionId": "Qew2zXAwFKL5CgL9MKds",
+      "generationId": "5Y63BCRBupphE9tPDNe8",
+      "actualDuration": 1.2,
+      "price": {
+        "credits": 12,
+        "price_cents": 0.12,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/knowme-reward-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -28.2,
+        "gainAdjustmentDb": 20.2,
+        "targetPeakDb": -8,
+        "filter": "volume=20.20dB,afade=t=in:d=0.005,afade=t=out:st=1.13500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "bytes": 20105,
+        "peakDbFS": -8.8,
+        "meanDbFS": -22.1,
+        "sourceSha256": "53b9d9c4822ee88585f9a4a49b98c25c152c3b950df8461d131204365f92938a",
+        "runtimeSha256": "f2b336eeee39c3060695c07cbe46ac1c1065601a204202cc41730f9921ea66cd",
+        "decodes": true
+      }
+    },
+    {
+      "id": "quiz-select-v1",
+      "game": "quiz",
+      "kind": "effect",
+      "category": "select",
+      "label": "Quiz \u00b7 select",
+      "src": "/audio/elevenlabs/quiz-select-v1.mp3",
+      "duration": 0.64,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "One tiny precise brass instrument button pressed, restrained tactile click, dry and soft.",
+      "parameters": {
+        "duration_seconds": 0.65,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "WmROpKZF6UEwS45xMgEz",
+      "sessionId": "2BaMdH4JLbbWqW4iTzpM",
+      "generationId": "AXt65aOEobqcwDE4Fdfd",
+      "actualDuration": 0.64,
+      "price": {
+        "credits": 6.5,
+        "price_cents": 0.065,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/quiz-select-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -4.5,
+        "gainAdjustmentDb": -3.5,
+        "targetPeakDb": -8,
+        "filter": "volume=-3.50dB,afade=t=in:d=0.005,afade=t=out:st=0.57500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.64,
+        "bytes": 11327,
+        "peakDbFS": -8.1,
+        "meanDbFS": -38.3,
+        "sourceSha256": "8ad5ada856d4887b492ab1dd0499afe892fb920a84d3d015049678c6af82ec37",
+        "runtimeSha256": "8d553b9fa659786d1c688266b72b1302168b67e8bd96acb4acc9ab2e2b75f9e0",
+        "decodes": true
+      }
+    },
+    {
+      "id": "quiz-move-v1",
+      "game": "quiz",
+      "kind": "effect",
+      "category": "move",
+      "label": "Quiz \u00b7 move",
+      "src": "/audio/elevenlabs/quiz-move-v1.mp3",
+      "duration": 0.84,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small ruler stop clicked into position on a padded measuring desk, soft wood and brass tick.",
+      "parameters": {
+        "duration_seconds": 0.85,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "zdYxiAXa79d1X3zcCVie",
+      "sessionId": "8UUiXuquwz3vQqhQqoPa",
+      "generationId": "0bloFX0rg8coJ0uheUqV",
+      "actualDuration": 0.84,
+      "price": {
+        "credits": 8.5,
+        "price_cents": 0.08499999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/quiz-move-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -18.1,
+        "gainAdjustmentDb": 10.100000000000001,
+        "targetPeakDb": -8,
+        "filter": "volume=10.10dB,afade=t=in:d=0.005,afade=t=out:st=0.77500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.84,
+        "bytes": 14671,
+        "peakDbFS": -7.4,
+        "meanDbFS": -32.0,
+        "sourceSha256": "1beb681dfe259a0aa7a1fc94120584d05e4d6933cb3a0743ce33ae05d1d8db7a",
+        "runtimeSha256": "2681066e452e7926e574c2b93783961ea9e271f87275c828b97eac6de35ba44c",
+        "decodes": true
+      }
+    },
+    {
+      "id": "quiz-reveal-v1",
+      "game": "quiz",
+      "kind": "effect",
+      "category": "reveal",
+      "label": "Quiz \u00b7 reveal",
+      "src": "/audio/elevenlabs/quiz-reveal-v1.mp3",
+      "duration": 1.04,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A short careful unfurling of a small paper map, delicate quiet paper flutter.",
+      "parameters": {
+        "duration_seconds": 1.05,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "ZkGmxgxL17rc6DGcojJb",
+      "sessionId": "FKJvUEFWbkVwRuz0gmtb",
+      "generationId": "Sx2wTxEJ3A2eWSJTl75L",
+      "actualDuration": 1.04,
+      "price": {
+        "credits": 10.500000000000002,
+        "price_cents": 0.10500000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/quiz-reveal-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -12.2,
+        "gainAdjustmentDb": 4.199999999999999,
+        "targetPeakDb": -8,
+        "filter": "volume=4.20dB,afade=t=in:d=0.005,afade=t=out:st=0.97500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.04,
+        "bytes": 17597,
+        "peakDbFS": -8.3,
+        "meanDbFS": -32.0,
+        "sourceSha256": "4b08339904a7c407d3ae152ad13f3f7e4c805f25db4ceb069f55e41c092b1664",
+        "runtimeSha256": "64bf4696d6ec1e4f2fd7086d95a1c914712fdaaddfade1951a5014fa3e504f64",
+        "decodes": true
+      }
+    },
+    {
+      "id": "quiz-reward-v1",
+      "game": "quiz",
+      "kind": "effect",
+      "category": "reward",
+      "label": "Quiz \u00b7 reward",
+      "src": "/audio/elevenlabs/quiz-reward-v1.mp3",
+      "duration": 1.2,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "Two gently struck miniature brass tuning tines, soft warm ascending tones with short decay.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "BtF9u1hdfueCQNC73qSG",
+      "sessionId": "DyNTDmFDBiU25ofe1KBd",
+      "generationId": "kBQrc9VG2HDfcrkZlJ7R",
+      "actualDuration": 1.2,
+      "price": {
+        "credits": 12,
+        "price_cents": 0.12,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/quiz-reward-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": 0.0,
+        "gainAdjustmentDb": -8.0,
+        "targetPeakDb": -8,
+        "filter": "volume=-8.00dB,afade=t=in:d=0.005,afade=t=out:st=1.13500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "bytes": 20105,
+        "peakDbFS": -8.5,
+        "meanDbFS": -23.9,
+        "sourceSha256": "8f45ca40afac8d0d703acb102c7ff3877847f596616436681ffc51f53eb23639",
+        "runtimeSha256": "10ddd007b6e7bff8a259c2a672b40cffde8dd3b9c7712d6794162ec98aa3ce48",
+        "decodes": true
+      }
+    },
+    {
+      "id": "folio-select-v1",
+      "game": "folio",
+      "kind": "effect",
+      "category": "select",
+      "label": "Folio \u00b7 select",
+      "src": "/audio/elevenlabs/folio-select-v1.mp3",
+      "duration": 0.64,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A soft pencil tip tap on thick textured paper, very short dry papery tick.",
+      "parameters": {
+        "duration_seconds": 0.65,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "QsgW1foDCP0ItNDIPENQ",
+      "sessionId": "jWeE972bnZUIb1amEXcA",
+      "generationId": "1QEGMWFV9H6RaIMEK3XL",
+      "actualDuration": 0.64,
+      "price": {
+        "credits": 6.5,
+        "price_cents": 0.065,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/folio-select-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -13.1,
+        "gainAdjustmentDb": 5.1,
+        "targetPeakDb": -8,
+        "filter": "volume=5.10dB,afade=t=in:d=0.005,afade=t=out:st=0.57500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.64,
+        "bytes": 11327,
+        "peakDbFS": -8.1,
+        "meanDbFS": -34.9,
+        "sourceSha256": "f64a85be2f437bc6a265773da297f97067d9fce341ad15ad9ee47a44f72c0255",
+        "runtimeSha256": "4b9de11cc48d00c813ce12620169abc966da812ac41b454bdce0f30d8f1bfdfa",
+        "decodes": true
+      }
+    },
+    {
+      "id": "folio-move-v1",
+      "game": "folio",
+      "kind": "effect",
+      "category": "move",
+      "label": "Folio \u00b7 move",
+      "src": "/audio/elevenlabs/folio-move-v1.mp3",
+      "duration": 0.84,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small rubber stamp placed gently on paper over felt, satisfying muted thup, no echo.",
+      "parameters": {
+        "duration_seconds": 0.85,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "xT5eJuq8wQDcvVALCzTR",
+      "sessionId": "CuDMTcZaBjlinRjcZ0AL",
+      "generationId": "EAfRGRP25UlZurIYOUQ0",
+      "actualDuration": 0.84,
+      "price": {
+        "credits": 8.5,
+        "price_cents": 0.08499999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/folio-move-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": 0.0,
+        "gainAdjustmentDb": -8.0,
+        "targetPeakDb": -8,
+        "filter": "volume=-8.00dB,afade=t=in:d=0.005,afade=t=out:st=0.77500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.84,
+        "bytes": 14671,
+        "peakDbFS": -7.1,
+        "meanDbFS": -32.4,
+        "sourceSha256": "1515c6be7350929ac4b6d129e04b27349d39473ca627efea593c9fd098c59f05",
+        "runtimeSha256": "3372b4e7d204dce8da56d582c2416ddd4c9fd669e9de9aeeceff40f580fdf74f",
+        "decodes": true
+      }
+    },
+    {
+      "id": "folio-reveal-v1",
+      "game": "folio",
+      "kind": "effect",
+      "category": "reveal",
+      "label": "Folio \u00b7 reveal",
+      "src": "/audio/elevenlabs/folio-reveal-v1.mp3",
+      "duration": 1.04,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A single thick notebook page turned slowly, gentle close papery swish, short and quiet.",
+      "parameters": {
+        "duration_seconds": 1.05,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "EFjdJHYlJHUdGzGFYYBl",
+      "sessionId": "A6NHZKHVxKdxrJvQCorh",
+      "generationId": "l72zh53yEqy5nACrN23U",
+      "actualDuration": 1.04,
+      "price": {
+        "credits": 10.500000000000002,
+        "price_cents": 0.10500000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/folio-reveal-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -20.8,
+        "gainAdjustmentDb": 12.8,
+        "targetPeakDb": -8,
+        "filter": "volume=12.80dB,afade=t=in:d=0.005,afade=t=out:st=0.97500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.04,
+        "bytes": 17597,
+        "peakDbFS": -8.5,
+        "meanDbFS": -31.0,
+        "sourceSha256": "e3a17bb3cc30335026e3e1350ef834175bcb326602431f63ae6e6fb0754b434f",
+        "runtimeSha256": "af81425f635d4abcc89b5c84421ef2585087f0017f7fbc01f96899dbb111af7d",
+        "decodes": true
+      }
+    },
+    {
+      "id": "folio-reward-v1",
+      "game": "folio",
+      "kind": "effect",
+      "category": "reward",
+      "label": "Folio \u00b7 reward",
+      "src": "/audio/elevenlabs/folio-reward-v1.mp3",
+      "duration": 1.2,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "Two light wooden pencil taps on a closed notebook, a soft rising pair of dry warm knocks.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "5bSqRiP56yZphaFA1IN3",
+      "sessionId": "iuPMwYAjcAryls1fLuwW",
+      "generationId": "nUI8QjGBFFoIyynaAxi8",
+      "actualDuration": 1.2,
+      "price": {
+        "credits": 12,
+        "price_cents": 0.12,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/folio-reward-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -5.0,
+        "gainAdjustmentDb": -3.0,
+        "targetPeakDb": -8,
+        "filter": "volume=-3.00dB,afade=t=in:d=0.005,afade=t=out:st=1.13500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "bytes": 20105,
+        "peakDbFS": -8.5,
+        "meanDbFS": -39.6,
+        "sourceSha256": "c1b3ce8c38e031e44b605a0b92ca19b149330572e10b9ef9677f2106433e6266",
+        "runtimeSha256": "af0bf512657622aff56251b9f4bce4fc635a66ca9bac4605b9ba7de52e52f772",
+        "decodes": true
+      }
+    },
+    {
+      "id": "lucky-select-v1",
+      "game": "lucky",
+      "kind": "effect",
+      "category": "select",
+      "label": "Lucky \u00b7 select",
+      "src": "/audio/elevenlabs/lucky-select-v1.mp3",
+      "duration": 0.64,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small brass coin touched lightly to a paper scratch ticket, tiny muted metallic tick.",
+      "parameters": {
+        "duration_seconds": 0.65,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "j4Snv98e5tXdp8uoPmhw",
+      "sessionId": "8zuhVO7ZDRQZ3F4ghn2g",
+      "generationId": "E7xEWGnRqgpNISCT9kUt",
+      "actualDuration": 0.64,
+      "price": {
+        "credits": 6.5,
+        "price_cents": 0.065,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/lucky-select-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -1.3,
+        "gainAdjustmentDb": -6.7,
+        "targetPeakDb": -8,
+        "filter": "volume=-6.70dB,afade=t=in:d=0.005,afade=t=out:st=0.57500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.64,
+        "bytes": 11327,
+        "peakDbFS": -8.1,
+        "meanDbFS": -34.2,
+        "sourceSha256": "3843a61b88e782ff7a970a60194aaeb5f8b8e663e1176ff3ff563834f380c3a2",
+        "runtimeSha256": "d45bd2ba0c19749acb040e278bd2dc133ec40979f7e7c801fd1e9e3d9273c441",
+        "decodes": true
+      }
+    },
+    {
+      "id": "lucky-move-v1",
+      "game": "lucky",
+      "kind": "effect",
+      "category": "move",
+      "label": "Lucky \u00b7 move",
+      "src": "/audio/elevenlabs/lucky-move-v1.mp3",
+      "duration": 0.84,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "One short delicate scratch of a coin across coated paper, soft dry grain, no harsh scraping.",
+      "parameters": {
+        "duration_seconds": 0.85,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "DCrgGQWwig2z59Rscwof",
+      "sessionId": "QtyBdYEJy7WsUsDZGlT1",
+      "generationId": "xwTbZIA89eF9ZIwTDBdj",
+      "actualDuration": 0.84,
+      "price": {
+        "credits": 8.5,
+        "price_cents": 0.08499999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/lucky-move-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -8.9,
+        "gainAdjustmentDb": 0.9000000000000004,
+        "targetPeakDb": -8,
+        "filter": "volume=0.90dB,afade=t=in:d=0.005,afade=t=out:st=0.77500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 0.84,
+        "bytes": 14671,
+        "peakDbFS": -9.5,
+        "meanDbFS": -31.2,
+        "sourceSha256": "d121ef1df5c6ccde4646d285d6f1822e994ea9669e5f48cabf9797a4df35a8ee",
+        "runtimeSha256": "1363f3a7a4bef44d7ea900723bd4601cc43c45182cdcad74394020f61afa5002",
+        "decodes": true
+      }
+    },
+    {
+      "id": "lucky-reveal-v1",
+      "game": "lucky",
+      "kind": "effect",
+      "category": "reveal",
+      "label": "Lucky \u00b7 reveal",
+      "src": "/audio/elevenlabs/lucky-reveal-v1.mp3",
+      "duration": 1.04,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "A small paper ticket gently pulled from a dispenser, short soft paper slide and tiny mechanical click.",
+      "parameters": {
+        "duration_seconds": 1.05,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "wFk8xTQ34v7p2ZHRjPaE",
+      "sessionId": "AF8dW7XMwPPvPb2khuSO",
+      "generationId": "2DXJ5d8dNtxAVF7TNAPK",
+      "actualDuration": 1.04,
+      "price": {
+        "credits": 10.500000000000002,
+        "price_cents": 0.10500000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/lucky-reveal-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -5.6,
+        "gainAdjustmentDb": -2.4000000000000004,
+        "targetPeakDb": -8,
+        "filter": "volume=-2.40dB,afade=t=in:d=0.005,afade=t=out:st=0.97500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.04,
+        "bytes": 17597,
+        "peakDbFS": -8.5,
+        "meanDbFS": -41.5,
+        "sourceSha256": "339b5be72aeb1add067873d83b7bfb67b0b0006f2254f3b7b9f12ce52752c95c",
+        "runtimeSha256": "feb8cbf938c46140d929c9b6b2dee85f620b9e33757ad57ad4dab47322140c5a",
+        "decodes": true
+      }
+    },
+    {
+      "id": "lucky-reward-v1",
+      "game": "lucky",
+      "kind": "effect",
+      "category": "reward",
+      "label": "Lucky \u00b7 reward",
+      "src": "/audio/elevenlabs/lucky-reward-v1.mp3",
+      "duration": 1.2,
+      "loop": false,
+      "gain": 0.7,
+      "prompt": "Three small coins falling a very short distance into a felt-lined dish, warm muted tinkles, no jackpot fanfare.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.7,
+        "loop": false
+      },
+      "nodeId": "GfttSsW7LVzAYUp5aPDC",
+      "sessionId": "IbvvSgyGyx6NrASH5xOg",
+      "generationId": "jFGvMgrcVJJfGCqLQuPT",
+      "actualDuration": 1.2,
+      "price": {
+        "credits": 12,
+        "price_cents": 0.12,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/lucky-reward-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -6.4,
+        "gainAdjustmentDb": -1.5999999999999996,
+        "targetPeakDb": -8,
+        "filter": "volume=-1.60dB,afade=t=in:d=0.005,afade=t=out:st=1.13500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 1.2,
+        "bytes": 20105,
+        "peakDbFS": -8.7,
+        "meanDbFS": -27.0,
+        "sourceSha256": "73fcfa6df478e524a76d463b748518e05eb52ff39021896f4bc263ad608b7fdc",
+        "runtimeSha256": "30286d0fb40ae284d86113f70a264850a69dada635126524543ad5ecb7f51b55",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-bed-timber-v1",
+      "game": "nox",
+      "kind": "bed",
+      "category": "bed-timber",
+      "label": "Timber hold",
+      "src": "/audio/elevenlabs/nox-bed-timber-v1.mp3",
+      "duration": 24.0,
+      "loop": true,
+      "gain": 0.65,
+      "prompt": "Inside a calm old wooden sailing ship's lower hold: deep warm timber gently flexing and creaking at irregular intervals, quiet enclosed room tone, no wind, no voices, no music.",
+      "parameters": {
+        "duration_seconds": 24,
+        "prompt_influence": 0.8,
+        "loop": true
+      },
+      "nodeId": "Ei9BHuCzc8QsYAPGM2Qd",
+      "sessionId": "ANUTIH0zonAYqJT9hhjk",
+      "generationId": "VABkdDwZFk0jxmufn6zf",
+      "actualDuration": 24,
+      "price": {
+        "credits": 240.00000000000003,
+        "price_cents": 2.4000000000000004,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-bed-timber-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -35.5,
+        "gainAdjustmentDb": 19.5,
+        "targetPeakDb": -16,
+        "filter": "volume=19.50dB"
+      },
+      "validation": {
+        "durationSeconds": 24.0,
+        "bytes": 384983,
+        "peakDbFS": -16.5,
+        "meanDbFS": -31.7,
+        "sourceSha256": "8688598fef7108aec15ffcce71ba48b00f09574f5c4baa3cfbd0d47aa31b2f27",
+        "runtimeSha256": "b797fb6147d0dcd75e56d453b9fedf41c7f0beea16871b61d5299fbaf8464bdc",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-bed-hull-v1",
+      "game": "nox",
+      "kind": "bed",
+      "category": "bed-hull",
+      "label": "Quiet hull",
+      "src": "/audio/elevenlabs/nox-bed-hull-v1.mp3",
+      "duration": 24.0,
+      "loop": true,
+      "gain": 0.65,
+      "prompt": "Soft water moving against the outside of a thick wooden ship hull heard from the enclosed lower hold, muffled and gentle, almost no high frequency surf, no birds, no wind, no voices.",
+      "parameters": {
+        "duration_seconds": 24,
+        "prompt_influence": 0.8,
+        "loop": true
+      },
+      "nodeId": "a1HKb8Rx8esTg7fm7SZr",
+      "sessionId": "9QI8g0kB1nYwApimADf1",
+      "generationId": "JJFKnHC7DCfABS8Avbb4",
+      "actualDuration": 24,
+      "price": {
+        "credits": 240.00000000000003,
+        "price_cents": 2.4000000000000004,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-bed-hull-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -23.1,
+        "gainAdjustmentDb": 7.100000000000001,
+        "targetPeakDb": -16,
+        "filter": "volume=7.10dB"
+      },
+      "validation": {
+        "durationSeconds": 24.0,
+        "bytes": 384983,
+        "peakDbFS": -16.4,
+        "meanDbFS": -38.3,
+        "sourceSha256": "f51525a7bcfc132ea0e8ea758e0d49dbb5f72e1c5b3f4af9d42a5c95e6f87054",
+        "runtimeSha256": "eda66cd9d27b8e7147fa8e821b467d10ce1b4bda356a0b4f2d63ccf72e1e710a",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-detail-joinery-v1",
+      "game": "nox",
+      "kind": "detail",
+      "category": "detail-joinery",
+      "label": "Timber joints",
+      "src": "/audio/elevenlabs/nox-detail-joinery-v1.mp3",
+      "duration": 5.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "One slow irregular wooden ship beam creak in an enclosed lower hold, warm and low, easing naturally back to silence.",
+      "parameters": {
+        "duration_seconds": 5,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "Pn8OJ722qzCbUOXOs6pI",
+      "sessionId": "4Qv5l5UEVkALyh67OeFm",
+      "generationId": "836NwCXWYfTOxbrdIzOk",
+      "actualDuration": 5,
+      "price": {
+        "credits": 50,
+        "price_cents": 0.5,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-detail-joinery-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -0.4,
+        "gainAdjustmentDb": -13.6,
+        "targetPeakDb": -14,
+        "filter": "volume=-13.60dB,afade=t=in:d=0.005,afade=t=out:st=4.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 5.0,
+        "bytes": 81127,
+        "peakDbFS": -14.4,
+        "meanDbFS": -34.3,
+        "sourceSha256": "eab803b8829cee79d817f29f4494a67cd9fb703f59a60dd61e6b359769a35ae5",
+        "runtimeSha256": "1bf181b313f4fedaf74e6af738e8417f07c9362685233220c065f63bf5c85f08",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-detail-rigging-v1",
+      "game": "nox",
+      "kind": "detail",
+      "category": "detail-rigging",
+      "label": "Rope and pulley",
+      "src": "/audio/elevenlabs/nox-detail-rigging-v1.mp3",
+      "duration": 4.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "A distant old wooden pulley shifts once and a rope softly strains above a ship's lower hold, muted through the deck, no wind.",
+      "parameters": {
+        "duration_seconds": 4,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "9nyGWrUc9WD2YJpCNiRX",
+      "sessionId": "dtLkO0ISCEekBu3m9UJO",
+      "generationId": "cpZ1ZeZFArmngA58uj2X",
+      "actualDuration": 4,
+      "price": {
+        "credits": 40,
+        "price_cents": 0.4,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-detail-rigging-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -7.6,
+        "gainAdjustmentDb": -6.4,
+        "targetPeakDb": -14,
+        "filter": "volume=-6.40dB,afade=t=in:d=0.005,afade=t=out:st=3.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 4.0,
+        "bytes": 65244,
+        "peakDbFS": -14.3,
+        "meanDbFS": -37.7,
+        "sourceSha256": "6a36f623f38099acd49f78aaaaa9d8464b839946f0df0c89aa25c45670b32fc8",
+        "runtimeSha256": "1efd9705c78598b6f2aaaba731b9c5b7f5947649aa8cd2ae4fdf04219cbee8de",
+        "decodes": true
+      }
+    },
+    {
+      "id": "nox-detail-crew-v1",
+      "game": "nox",
+      "kind": "detail",
+      "category": "detail-crew",
+      "label": "Distant crew",
+      "src": "/audio/elevenlabs/nox-detail-crew-v1.mp3",
+      "duration": 9.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "Several sailors far above deck quietly humming one slow wordless shanty phrase, deeply muffled through wooden decking, gentle low voices, no words, no instruments, no shouting.",
+      "parameters": {
+        "duration_seconds": 9,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "bsLwNkGzzQtDZWxq7Q7T",
+      "sessionId": "3pSJ0SPLkb1sHbZYSfxX",
+      "generationId": "EeDcPBrVMlWiDuOKKqSh",
+      "actualDuration": 9,
+      "price": {
+        "credits": 89.99999999999999,
+        "price_cents": 0.8999999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/nox-detail-crew-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -13.2,
+        "gainAdjustmentDb": -0.8000000000000007,
+        "targetPeakDb": -14,
+        "filter": "volume=-0.80dB,afade=t=in:d=0.005,afade=t=out:st=8.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 9.0,
+        "bytes": 145074,
+        "peakDbFS": -14.4,
+        "meanDbFS": -32.9,
+        "sourceSha256": "4b6020bff97d42c1bce53eaffaa1f3629e39757eee1ef14ff90e49fe0290237e",
+        "runtimeSha256": "d72ec8efc50083ea01a564487ac456b571b1e36bce52cd12cdc9afec3c0c99ee",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-bed-canopy-v1",
+      "game": "mora",
+      "kind": "bed",
+      "category": "bed-canopy",
+      "label": "Still canopy",
+      "src": "/audio/elevenlabs/mora-bed-canopy-v1.mp3",
+      "duration": 24.0,
+      "loop": true,
+      "gain": 0.65,
+      "prompt": "Quiet sheltered woodland room tone, very soft irregular dry leaf rustling high overhead in nearly still air, no gusts, no whistling wind, no bird calls, no music.",
+      "parameters": {
+        "duration_seconds": 24,
+        "prompt_influence": 0.8,
+        "loop": true
+      },
+      "nodeId": "1dh4xDycpRVOwfqMOLuC",
+      "sessionId": "SsbBSyBNvlW4B5ALpe3g",
+      "generationId": "6bcBmGdgMvpzxHcxTOwW",
+      "actualDuration": 24,
+      "price": {
+        "credits": 240.00000000000003,
+        "price_cents": 2.4000000000000004,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-bed-canopy-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -19.8,
+        "gainAdjustmentDb": 3.8000000000000007,
+        "targetPeakDb": -16,
+        "filter": "volume=3.80dB"
+      },
+      "validation": {
+        "durationSeconds": 24.0,
+        "bytes": 384983,
+        "peakDbFS": -16.5,
+        "meanDbFS": -48.2,
+        "sourceSha256": "61c2664064576811beaee6cc65937eaf82658ec671dcb78c7dccb067e551dfe4",
+        "runtimeSha256": "c4f95be823d0b9eebc1535c4bd6451f028a72ab492ed2f3b392274ffe2d4b0b3",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-bed-evening-v1",
+      "game": "mora",
+      "kind": "bed",
+      "category": "bed-evening",
+      "label": "Evening grove",
+      "src": "/audio/elevenlabs/mora-bed-evening-v1.mp3",
+      "duration": 24.0,
+      "loop": true,
+      "gain": 0.65,
+      "prompt": "Very quiet spacious woodland at dusk with sparse delicate insect trills spread across a natural stereo field and long gaps, no continuous loud buzzing, no birds, no wind.",
+      "parameters": {
+        "duration_seconds": 24,
+        "prompt_influence": 0.8,
+        "loop": true
+      },
+      "nodeId": "6GvpTmNgIzdUsB9XGCZR",
+      "sessionId": "Qi4aMQmut9sIK9ptTQZI",
+      "generationId": "9J9hPbW5gITxWhc30fME",
+      "actualDuration": 24,
+      "price": {
+        "credits": 240.00000000000003,
+        "price_cents": 2.4000000000000004,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-bed-evening-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -6.9,
+        "gainAdjustmentDb": -9.1,
+        "targetPeakDb": -16,
+        "filter": "volume=-9.10dB"
+      },
+      "validation": {
+        "durationSeconds": 24.0,
+        "bytes": 384983,
+        "peakDbFS": -15.9,
+        "meanDbFS": -34.6,
+        "sourceSha256": "b2fc3e41d74ebb4646422e9ed874102a70da36a31c2038e1dedfec81c5c75e9c",
+        "runtimeSha256": "c42c55f785354b58584ec732e9ccb7d02584679892661767803f38c86040e544",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-detail-birds-v1",
+      "game": "mora",
+      "kind": "detail",
+      "category": "detail-birds",
+      "label": "Small woodland birds",
+      "src": "/audio/elevenlabs/mora-detail-birds-v1.mp3",
+      "duration": 6.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "Two different small woodland birds answer softly from far apart, one short liquid chirrup and one mellow warble with pauses, quiet natural distance, no gulls, no wind.",
+      "parameters": {
+        "duration_seconds": 6,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "ptnIMyMQSLnuAlXwJomg",
+      "sessionId": "VjtarWO28FcYpvSyVeYf",
+      "generationId": "1jliOT8gkkunCDIabH4y",
+      "actualDuration": 6,
+      "price": {
+        "credits": 60.00000000000001,
+        "price_cents": 0.6000000000000001,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-detail-birds-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -8.3,
+        "gainAdjustmentDb": -5.699999999999999,
+        "targetPeakDb": -14,
+        "filter": "volume=-5.70dB,afade=t=in:d=0.005,afade=t=out:st=5.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 6.0,
+        "bytes": 97009,
+        "peakDbFS": -14.4,
+        "meanDbFS": -37.5,
+        "sourceSha256": "ed809764ebf8276852c911f800febeb0eaa6b0f882e70a91829dd5de2fea2444",
+        "runtimeSha256": "b667068276c84fa42e7ca59680fee8c6078480fa70ec337176b100718f639b1b",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-detail-frogs-v1",
+      "game": "mora",
+      "kind": "detail",
+      "category": "detail-frogs",
+      "label": "Pond frogs",
+      "src": "/audio/elevenlabs/mora-detail-frogs-v1.mp3",
+      "duration": 5.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "A few soft low tree-frog croaks at irregular intervals from a distant woodland pond, gentle rounded natural tones with silence between, no birds, no wind.",
+      "parameters": {
+        "duration_seconds": 5,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "AbED4EjX5sP8ROCB4C5T",
+      "sessionId": "A9WUi5BuYyejVZIymjIz",
+      "generationId": "K5OQ116q1v2CPaHaoXB5",
+      "actualDuration": 5,
+      "price": {
+        "credits": 50,
+        "price_cents": 0.5,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-detail-frogs-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -11.8,
+        "gainAdjustmentDb": -2.1999999999999993,
+        "targetPeakDb": -14,
+        "filter": "volume=-2.20dB,afade=t=in:d=0.005,afade=t=out:st=4.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 5.0,
+        "bytes": 81127,
+        "peakDbFS": -14.4,
+        "meanDbFS": -35.5,
+        "sourceSha256": "26d319b9a2f244c97fc8ae2273f5b5067991e617ec98e6608b8ec2bd86a02822",
+        "runtimeSha256": "a3120137a0223804d71cef78fa7e9971ef13d27535efbd1f41e0d0c88e313a68",
+        "decodes": true
+      }
+    },
+    {
+      "id": "mora-detail-leaves-v1",
+      "game": "mora",
+      "kind": "detail",
+      "category": "detail-leaves",
+      "label": "Leaves and branches",
+      "src": "/audio/elevenlabs/mora-detail-leaves-v1.mp3",
+      "duration": 4.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "A small branch lightly shifts and a few dry leaves fall and rustle softly in quiet woodland, delicate and brief, no wind gust, no voices.",
+      "parameters": {
+        "duration_seconds": 4,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "4H4wd4x9mQ1dW9Ia8Is4",
+      "sessionId": "5bmmEK4yPkxGEPCvjYsZ",
+      "generationId": "lOLZf3D0UQoM0IDXcWZC",
+      "actualDuration": 4,
+      "price": {
+        "credits": 40,
+        "price_cents": 0.4,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/mora-detail-leaves-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -22.3,
+        "gainAdjustmentDb": 8.3,
+        "targetPeakDb": -14,
+        "filter": "volume=8.30dB,afade=t=in:d=0.005,afade=t=out:st=3.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 4.0,
+        "bytes": 65244,
+        "peakDbFS": -14.6,
+        "meanDbFS": -47.1,
+        "sourceSha256": "0f0058e15e4444716c401b966f372afec38921a8543f08f51aca70524ad3e405",
+        "runtimeSha256": "362bdb056290568b8f146926d1d67a0ae387dba20a539862305df03b6a2b3fec",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-bed-simmer-v1",
+      "game": "yata",
+      "kind": "bed",
+      "category": "bed-simmer",
+      "label": "Slow simmer",
+      "src": "/audio/elevenlabs/yata-bed-simmer-v1.mp3",
+      "duration": 24.0,
+      "loop": true,
+      "gain": 0.65,
+      "prompt": "Soft steady simmering broth inside a small food stall, gentle bubbles and quiet steam close by, even subdued texture, no voices, no traffic, no horns, no music.",
+      "parameters": {
+        "duration_seconds": 24,
+        "prompt_influence": 0.8,
+        "loop": true
+      },
+      "nodeId": "MPtPKkb6fAUjeabMoilQ",
+      "sessionId": "Cra7lHwclczUl3DfjtR5",
+      "generationId": "TdqTE4GGJgZDzS22VOck",
+      "actualDuration": 24,
+      "price": {
+        "credits": 240.00000000000003,
+        "price_cents": 2.4000000000000004,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-bed-simmer-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -18.8,
+        "gainAdjustmentDb": 2.8000000000000007,
+        "targetPeakDb": -16,
+        "filter": "volume=2.80dB"
+      },
+      "validation": {
+        "durationSeconds": 24.0,
+        "bytes": 384983,
+        "peakDbFS": -16.3,
+        "meanDbFS": -43.4,
+        "sourceSha256": "49587826c2203a8d47dcb4bca21c87f6d4139223274597068eff6dc94fb196ec",
+        "runtimeSha256": "2c8b7742036042361e449430902a86492560119eb881b814d7a092332f6df01e",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-bed-grill-v1",
+      "game": "yata",
+      "kind": "bed",
+      "category": "bed-grill",
+      "label": "Warm griddle",
+      "src": "/audio/elevenlabs/yata-bed-grill-v1.mp3",
+      "duration": 24.0,
+      "loop": true,
+      "gain": 0.65,
+      "prompt": "A food stall griddle gently sizzling at low heat, fine soft cooking crackle with subtle natural changes, no loud oil pops, no voices, no traffic, no horns, no music.",
+      "parameters": {
+        "duration_seconds": 24,
+        "prompt_influence": 0.8,
+        "loop": true
+      },
+      "nodeId": "uuGDyNTjfyPS8LjIR737",
+      "sessionId": "lWmhcOoIMgHzbMF2bKiy",
+      "generationId": "ZIqz1L5sEhquEX9MlNlo",
+      "actualDuration": 24,
+      "price": {
+        "credits": 240.00000000000003,
+        "price_cents": 2.4000000000000004,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-bed-grill-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -2.9,
+        "gainAdjustmentDb": -13.1,
+        "targetPeakDb": -16,
+        "filter": "volume=-13.10dB"
+      },
+      "validation": {
+        "durationSeconds": 24.0,
+        "bytes": 384983,
+        "peakDbFS": -16.6,
+        "meanDbFS": -48.4,
+        "sourceSha256": "b542740cef1ed468be2f9fb3ddb5319060260308aa01f51bb5227d385b3a84da",
+        "runtimeSha256": "40dd5fcf7366f9d7b3db1b60ebbf1fb02717dda499bc591c89b8f7c7990f1cdc",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-detail-dishes-v1",
+      "game": "yata",
+      "kind": "detail",
+      "category": "detail-dishes",
+      "label": "Bowls and dishes",
+      "src": "/audio/elevenlabs/yata-detail-dishes-v1.mp3",
+      "duration": 4.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "A vendor quietly stacks two ceramic bowls on a wooden food stall counter, soft round clinks and a tiny cloth rustle, no voices or traffic.",
+      "parameters": {
+        "duration_seconds": 4,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "SvC9rCgDJBEBbNW5rtJ9",
+      "sessionId": "b5s53DccOgJqPA0ymRMZ",
+      "generationId": "GKi1dKg8gwEiewHhmKog",
+      "actualDuration": 4,
+      "price": {
+        "credits": 40,
+        "price_cents": 0.4,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-detail-dishes-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -6.1,
+        "gainAdjustmentDb": -7.9,
+        "targetPeakDb": -14,
+        "filter": "volume=-7.90dB,afade=t=in:d=0.005,afade=t=out:st=3.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 4.0,
+        "bytes": 65244,
+        "peakDbFS": -14.5,
+        "meanDbFS": -49.0,
+        "sourceSha256": "e53b1870c649d0aa85763491d863365e11c62ab38774ff045814d5cd0c3ab0ce",
+        "runtimeSha256": "e3b91821ce305b0a1b63c7a848d03e42ec560e1ef0747873096bb05b54e03431",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-detail-market-v1",
+      "game": "yata",
+      "kind": "detail",
+      "category": "detail-market",
+      "label": "Distant market murmur",
+      "src": "/audio/elevenlabs/yata-detail-market-v1.mp3",
+      "duration": 8.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "Very distant indistinct relaxed conversations from a small pedestrian food market heard behind a cooking stall, soft low crowd murmur with no intelligible words, no calls, no shouting, no traffic, no horns.",
+      "parameters": {
+        "duration_seconds": 8,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "iIuzSHXfXntL5TgQHg9D",
+      "sessionId": "xtBZzmOKPihdwJc9nQ49",
+      "generationId": "DmK73uLpzWPuhXzdmkBt",
+      "actualDuration": 8,
+      "price": {
+        "credits": 80,
+        "price_cents": 0.8,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-detail-market-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -23.5,
+        "gainAdjustmentDb": 9.5,
+        "targetPeakDb": -14,
+        "filter": "volume=9.50dB,afade=t=in:d=0.005,afade=t=out:st=7.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 8.0,
+        "bytes": 129192,
+        "peakDbFS": -14.3,
+        "meanDbFS": -31.4,
+        "sourceSha256": "76c75036016336bac068adea589348d73129d991767fe4727e5469065f17676f",
+        "runtimeSha256": "51dec987cb8b51b9ac99652d366b45de404a7f54fc3f97a225a22a46a6a47abf",
+        "decodes": true
+      }
+    },
+    {
+      "id": "yata-detail-cooking-v1",
+      "game": "yata",
+      "kind": "detail",
+      "category": "detail-cooking",
+      "label": "Chopsticks and pan",
+      "src": "/audio/elevenlabs/yata-detail-cooking-v1.mp3",
+      "duration": 4.0,
+      "loop": false,
+      "gain": 0.5,
+      "prompt": "Wooden cooking chopsticks gently stir a small pan once at a quiet food stall, soft utensil taps and a brief delicate sizzle, no voices, no horns, no traffic.",
+      "parameters": {
+        "duration_seconds": 4,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "udAYR0TknIzorFlWZjaf",
+      "sessionId": "6yjCKy7EM54mJcRvLdmy",
+      "generationId": "4cvHe0H1ufzwn9aUMiud",
+      "actualDuration": 4,
+      "price": {
+        "credits": 40,
+        "price_cents": 0.4,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/yata-detail-cooking-v1.mp3",
+      "preparation": {
+        "sourcePeakDb": -5.8,
+        "gainAdjustmentDb": -8.2,
+        "targetPeakDb": -14,
+        "filter": "volume=-8.20dB,afade=t=in:d=0.005,afade=t=out:st=3.93500:d=0.065"
+      },
+      "validation": {
+        "durationSeconds": 4.0,
+        "bytes": 65244,
+        "peakDbFS": -14.6,
+        "meanDbFS": -48.4,
+        "sourceSha256": "0ee91266c4f629dc7f94e93a0abf05694909180d9f40204b1aed8477e5ea5e0d",
+        "runtimeSha256": "8d882a3a0d574b08b2d048c92876b843523c960b35a0c7683f522c2c22396eb3",
+        "decodes": true
+      }
+    }
+  ],
+  "validation": {
+    "clipCount": 43,
+    "totalBytes": 3550303,
+    "allDecoded": true,
+    "allPeaksBelowMinus5DbFS": true,
+    "subjectiveListeningPerformed": false
+  }
+}

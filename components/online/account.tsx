@@ -5,6 +5,7 @@ import type { User } from '@/lib/online/types';
 import { ArrowLeft, LogOut, Plus, Users } from 'lucide-react';
 import { gameByLibraryId } from '@/lib/games/library-fixtures';
 import { GameBox } from '../game/game-box';
+import { ThemeButton } from '../game/theme-control';
 import '../game/library.css';
 import './table-lobby.css';
 
@@ -154,20 +155,27 @@ export function MyTables() {
             <ArrowLeft aria-hidden="true" />
           </a>
           <h1 className="room-title">Play with friends</h1>
-          {user && (
-            <div className="lib-actions">
-              <span className="friends-me" title={user.name} aria-hidden="true">
-                {user.name.trim().charAt(0).toUpperCase()}
-              </span>
-              <button
-                className="lib-sound"
-                onClick={logout}
-                aria-label="Log out"
-              >
-                <LogOut aria-hidden="true" />
-              </button>
-            </div>
-          )}
+          <div className="lib-actions">
+            <ThemeButton className="lib-sound" />
+            {user && (
+              <>
+                <span
+                  className="friends-me"
+                  title={user.name}
+                  aria-hidden="true"
+                >
+                  {user.name.trim().charAt(0).toUpperCase()}
+                </span>
+                <button
+                  className="lib-sound"
+                  onClick={logout}
+                  aria-label="Log out"
+                >
+                  <LogOut aria-hidden="true" />
+                </button>
+              </>
+            )}
+          </div>
         </header>
         <main className="lib-main friends-main" aria-busy={loading}>
           {error && (

@@ -7,7 +7,7 @@ export function PlayerStatus({ state, roller = false }: {
 }) {
   const label = { deciding: 'Choosing a move', ready: 'Move locked', waiting: 'Waiting for turn', offline: 'Reconnecting' }[state];
   const Icon = state === 'ready' ? Check : state === 'deciding' ? Hourglass : Pause;
-  return <span className="player-status-icons">
+  return <span className="player-status-icons" data-game-motion="change" data-game-motion-key={`${state}:${roller}`}>
     <span className={`turn-state turn-state-${state}`} role="img" aria-label={label} title={label}><Icon size={14} aria-hidden="true" /></span>
     {roller && <span className="turn-roller" role="img" aria-label="Rolls the placement die" title="Rolls the placement die"><Dice5 size={14} aria-hidden="true" /></span>}
   </span>;

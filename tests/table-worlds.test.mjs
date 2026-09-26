@@ -9,6 +9,7 @@ import {
   tableWorldVariants,
   tallWorldQuery,
   cropPercent,
+  yataPhonePlateFits,
 } from '../lib/games/table-world.ts';
 import { paperWorldFor, paperWorldFrame } from '../lib/games/mora-world.ts';
 import { readFileSync } from 'node:fs';
@@ -125,9 +126,9 @@ await test('accepted Counter B and Floodline B override old candidate selections
     const counter = tableWorldFor('midnight', tall, 'yata-counter-a');
     assert.match(counter.image, /v2-b\.webp$/);
   }
-  // Floodline's accepted board is the three-round v5-b art; candidate ids never override it.
+  // Floodline's accepted board is the overgrown v2 art; candidate ids never override it.
   for (const [tall, id] of [[false, 'floodline-landscape-v2-b'], [true, 'floodline-portrait-v2-a']])
-    assert.match(paperWorldFor(tall, id, 'floodline').image, /-v5-b\.webp$/);
+    assert.match(paperWorldFor(tall, id, 'floodline').image, /overgrown-floodline-(landscape-v3-b|portrait-v3-f-tall)\.webp$/);
 });
 
 await test('Yata switches its plate and its layout at the same breakpoint', () => {
@@ -137,4 +138,28 @@ await test('Yata switches its plate and its layout at the same breakpoint', () =
   assert.ok(css.includes(`@media ${tall} {`), 'tall layout uses the plate query');
   assert.ok(css.includes('@media (min-aspect-ratio: 1301/1000) and (min-height: 501px) {'), 'counter layout is its complement');
   assert.equal(tallWorldQuery('undertow'), '(orientation: portrait)');
+});
+
+await test('Yata phones take the near-square counter only where it shows bigger, and it covers the screen', async () => {
+  const phone = tableWorldFor('midnight', true, undefined, true);
+  assert.notEqual(phone, tableWorldFor('midnight', true), 'a plate of its own');
+  const full = await sharp(`public${phone.image}`).metadata();
+  assert.equal(full.width, phone.width); assert.equal(full.height, phone.height);
+  const mini = await sharp(`public${phone.overviewImage}`).metadata();
+  assert.equal(mini.width, phone.overview.width); assert.equal(mini.height, phone.overview.height);
+  assert.ok(inside(phone.table, phone.crop), 'table inside crop');
+  // Stages measured in the browser (25 September 2026) with Customer Orders, Specialty Stalls
+  // and Market Seasons in the dock: the tall plate's stage starts at 104 px under the badges,
+  // the phone plate's 12 px higher (table-worlds.css, Yata phone plate).
+  for (const [w, h, height, wants] of [[390, 844, 312, true], [375, 812, 290, true], [430, 932, 395, true], [375, 667, 185, false], [360, 780, 226, false]]) {
+    const surface = { width: w, height: h };
+    assert.equal(yataPhonePlateFits(surface, { x: 0, y: 104, width: w, height }), wants, `${w}×${h}`);
+    const stage = { x: 0, y: 92, width: w, height: height + 12 };
+    if (!wants) continue;
+    assert.ok(yataPhonePlateFits(surface, stage), `${w}×${h} keeps the phone plate on its own stage`);
+    const f = tableWorldFrame(phone, surface, stage);
+    assert.ok(f.covers, `${w}×${h} covered edge to edge`);
+    assert.ok(f.x >= -1e-6 && f.x + f.width <= w + 1e-6, `${w}×${h} counter fits the width`);
+    assert.ok(f.y >= stage.y - 1e-6 && f.y + f.height <= stage.y + stage.height + 1e-6, `${w}×${h} counter between the badges and the dock`);
+  }
 });

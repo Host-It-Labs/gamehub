@@ -12,10 +12,12 @@ export type AmbienceBed = {
   src: string;
   /** Linear gain relative to the world's master level. */
   gain: number;
+  label?: string;
 };
 export type AmbienceEvent = {
   src: string;
   gain: number;
+  label?: string;
   /** Relative pick probability; 1 is common, 0.25 is rare. */
   weight: number;
   /** Random stereo placement range; omit for centre. */

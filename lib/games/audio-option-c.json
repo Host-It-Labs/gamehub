@@ -1,0 +1,38 @@
+[
+  {
+    "id": "shared-pickup-c-v1",
+    "category": "pickup",
+    "option": "c",
+    "label": "Bright plink",
+    "src": "/audio/elevenlabs/shared-pickup-c-v1.mp3",
+    "duration": 0.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-place-c-v1",
+    "category": "place",
+    "option": "c",
+    "label": "Warm plonk",
+    "src": "/audio/elevenlabs/shared-place-c-v1.mp3",
+    "duration": 0.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-turn-c-v1",
+    "category": "turn",
+    "option": "c",
+    "label": "Rising chimes",
+    "src": "/audio/elevenlabs/shared-turn-c-v1.mp3",
+    "duration": 0.8,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-scores-c-v1",
+    "category": "scores",
+    "option": "c",
+    "label": "Little victory",
+    "src": "/audio/elevenlabs/shared-scores-c-v1.mp3",
+    "duration": 1.36,
+    "gain": 0.85
+  }
+]

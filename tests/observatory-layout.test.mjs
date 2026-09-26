@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { paperWorldFor, paperWorldFrame, paperWorldPlayBox, paperWorldTarget } from '../lib/games/mora-world.ts';
 import { moraMapFor } from '../lib/games/trio/mora-map.ts';
 import { habitatsFor } from '../lib/games/trio/engine.ts';
+import { coverReport } from '../scripts/check-board-cover.mjs';
 const close = (a,b) => assert.ok(Math.abs(a-b)<1e-7, `${a} != ${b}`);
 const devices = [[320,568],[375,667],[390,844],[430,932],[768,1024],[568,320],[667,375],[844,390],[932,430],[1133,744],[1194,834],[1280,720],[1440,900],[1912,952],[3440,1440], ...[1.1,1.25,1.5].map(z=>[1512/z,850/z])];
 for (const [world,set] of [['observatory','beginner'],['floodline','intermediate']]) for (const tall of [false,true]) {
@@ -62,6 +63,12 @@ for (const world of ['observatory','floodline']) await test(`${world}: the crop 
     assert.equal(f.covers, target.x<=1e-6&&target.y<=1e-6&&target.x+target.width>=w-1e-6&&target.y+target.height>=h-1e-6);
   }
 });
+// Side borders on desktop came back more than once: every landscape board must
+// fill common browser windows edge to edge (scripts/check-board-cover.mjs).
+for (const world of ['observatory','floodline']) for (const tall of [false,true]) await test(`${world}: common ${tall?'phones':'desktop browser windows'} show no borders`,()=>{
+  const gaps=coverReport(paperWorldFor(tall,undefined,world)).filter(r=>!r.covers&&!r.informational).map(r=>`${r.w}x${r.h} needs play box <= ${Math.round(r.maxHeight)} tall${r.maxWidth?`, ${Math.round(r.maxWidth)} wide`:''}`);
+  assert.deepEqual(gaps,[]);
+});
 for (const world of ['observatory','floodline']) await test(`${world}: desktop and tablet screens are fully covered by the scenery`,()=>{
   for(const [w,h] of [[1440,900],[1512,982],[1194,834],[1133,744]]){
     const y=Math.min(h*.16,180);
@@ -85,14 +92,14 @@ await test('orientation and world select genuinely different geography and stati
 
 await test('accepted Floodline artwork and pad geometry are the same revision', () => {
   const landscape = paperWorldFor(false, 'floodline-landscape-v2-b', 'floodline');
-  assert.match(landscape.image, /landscape-v5-b/);
-  assert.deepEqual(landscape.habitats.find(h => h.zone === 1).slots, [[688,283],[761,284],[834,284],[725,332],[797,332]]);
-  assert.deepEqual(landscape.habitats.find(h => h.zone === 4).slots, [[203,549],[276,567],[351,568],[425,549]]);
+  assert.match(landscape.image, /overgrown-floodline-landscape-v3-b/);
+  assert.deepEqual(landscape.habitats.find(h => h.zone === 1).slots, [[619,163],[686,163],[753,162],[653,217],[720,217]]);
+  assert.deepEqual(landscape.habitats.find(h => h.zone === 4).slots, [[143,571],[212,577],[284,567],[352,544]]);
   for (const tall of [false, true]) {
     const art = paperWorldFor(tall, undefined, 'floodline');
     // Three rounds of six need room: 5 + 5 + 3 + 4 + 4 + 2 spaces.
     assert.deepEqual([0, 1, 2, 3, 4, 6].map(zone => art.habitats.find(h => h.zone === zone).slots.length), [5, 5, 3, 4, 4, 2]);
-    assert.match(art.source, /v5-b/);
-    assert.match(art.boardImage, /v5-b-board/);
+    assert.match(art.source, /overgrown-floodline-(landscape-v3-b|portrait-v3-f-tall)/);
+    assert.match(art.boardImage, /overgrown-floodline-(landscape-v3-b|portrait-v3-f-tall)-board/);
   }
 });

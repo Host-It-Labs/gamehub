@@ -14,6 +14,7 @@ import {
   User,
   Users,
   Wand2,
+  Volume2,
 } from 'lucide-react';
 import {
   api,
@@ -40,7 +41,15 @@ import {
   PUZZLES,
   START_LIVES,
 } from '@/lib/games/folio/catalog';
+import { RoomTableSettings, useRoomTable } from '../online/room-table';
+import { useBadgeFit } from './use-fit';
+import { FullscreenControl } from './fullscreen-control';
 import { GameNavigation } from './game-navigation';
+import { useGameMotion } from './game-motion';
+import { useGameSound } from './use-game-sound';
+import { useResultsFeedback, WinnerCelebration } from './results-feedback';
+import { SoundToggle } from './sound-settings';
+import { gameSound } from '@/lib/games/game-sound';
 import { RuleExplanation } from './extension-rules';
 import { useBoardLeave } from './use-board-leave';
 import {
@@ -54,8 +63,9 @@ import { KIND_VIEWS } from './folio-kinds/index';
 import { KindIcon } from './folio-icons';
 import { DeleteRunDialog, type SavedRun } from './setup-box';
 import './folio.css';
+import './party-table.css';
 
-type Panel = 'menu' | 'crew' | 'help' | 'leave' | 'give-up' | null;
+type Panel = 'rules' | 'sound' | 'menu' | 'crew' | 'help' | 'leave' | 'give-up' | null;
 const errorText = (e: unknown) =>
   e instanceof Error ? e.message : 'Could not reach the run. Please try again.';
 const inviteUrl = (token: string) =>
@@ -85,6 +95,8 @@ function Lives({ lives, max }: { lives: number; max: number }) {
   return (
     <span
       className="folio-lives"
+      data-game-motion="change"
+      data-game-motion-key={lives}
       aria-label={`${lives} of ${max} shared lives`}
     >
       {Array.from({ length: max }, (_, i) => (
@@ -137,6 +149,42 @@ function Run({ initial }: { initial: FolioView }) {
     p = g.puzzle,
     pending = useRef(false),
     alive = useRef(true);
+  const root = useRef<HTMLElement>(null);
+  const badges = useRef<HTMLSpanElement>(null);
+  useBadgeFit(badges);
+  useGameMotion(root, `${g.phase}:${g.at ?? 'practice'}:${p?.kind ?? ''}`);
+  const [volume, setVolume] = useState(() => {
+    try {
+      return localStorage.getItem('gamehub.folio.volume') === '0' ? 0 : 0.5;
+    } catch {
+      return 0.5;
+    }
+  });
+  useGameSound('folio', volume);
+  const isMember =
+    view.joined && view.members.some((member) => member.id === view.viewerId);
+  const finalResults = g.phase === 'over' && !g.practice;
+  useResultsFeedback('folio', finalResults, finalResults, volume);
+  // Server snapshots are authoritative; neither a retry nor an unchanged poll
+  // replays feedback. A teammate's accepted move is audible at the shared table.
+  const soundKey = JSON.stringify([g.phase, g.at, p?.status, p?.view, g.edits]);
+  const feedback = useRef({ key: soundKey, phase: g.phase, status: p?.status });
+  useEffect(() => {
+    const previous = feedback.current;
+    feedback.current = { key: soundKey, phase: g.phase, status: p?.status };
+    if (previous.key === soundKey || finalResults) return;
+    const cue =
+      p?.status !== previous.status && p?.status === 'won'
+        ? 'reward'
+        : p?.status !== previous.status && p?.status === 'lost'
+          ? 'invalid'
+          : isMember &&
+              g.phase !== previous.phase &&
+              (g.phase === 'map' || g.phase === 'puzzle')
+            ? 'turn'
+            : 'move';
+    gameSound('folio', cue, volume);
+  }, [soundKey, g.phase, p?.status, volume, finalResults, isMember]);
   const unresolved = useRef<{
     revision: number;
     requestId: string;
@@ -247,17 +295,18 @@ function Run({ initial }: { initial: FolioView }) {
       setError('Select and copy the invitation link.');
     }
   };
+  const room = useRoomTable((path) => { allowLeave(); window.location.assign(path); });
   const act = currentAct(g, open);
   const progress = g.practice
     ? 'Practice'
     : g.phase === 'lobby'
       ? 'Lobby'
-      : `Act ${act + 1} · Round ${Math.max(1, g.phase === 'map' ? row + 1 : row)}`;
+      : `${LEVEL_NAMES[Math.min(4, g.difficulty + act)]} · Round ${Math.max(1, g.phase === 'map' ? row + 1 : row)}`;
   const showSheet =
     !!p && !!View && ['puzzle', 'result', 'over'].includes(g.phase);
   const solvedCount = g.path.filter((s) => s.won).length;
   return (
-    <main className="folio-world" data-phase={g.phase}>
+    <main className="folio-world" data-phase={g.phase} ref={root}>
       <Backdrop />
       <GameNavigation
         name="Folio"
@@ -271,14 +320,15 @@ function Run({ initial }: { initial: FolioView }) {
         onMenu={() => setPanel('menu')}
       />
       <div className="folio-hud" aria-label="Crew and shared supplies">
-        <span className="folio-crew">
+        <span className="folio-crew" ref={badges}>
           {view.members.map((m) => (
             <span
               key={m.id}
               title={`${m.name} · ${m.online ? 'here' : 'away'}`}
             >
               <i data-online={m.online} />
-              {m.name}
+              <b className="folio-member-name">{m.name}</b>
+              <b className="folio-member-initial" aria-label={m.name}>{m.name.slice(0, 1).toUpperCase()}</b>
             </span>
           ))}
         </span>
@@ -286,6 +336,7 @@ function Run({ initial }: { initial: FolioView }) {
       </div>
       <div
         className="folio-stage"
+        data-game-motion="stage"
         data-over-summary={(g.phase === 'over' && !g.practice) || undefined}
       >
         {g.phase === 'lobby' && (
@@ -334,13 +385,13 @@ function Run({ initial }: { initial: FolioView }) {
           <section className="folio-route">
             <header className="folio-route-head">
               <span className="folio-eyebrow">
-                Act {act + 1} · {LEVEL_NAMES[Math.min(4, g.difficulty + act)]}
+                {LEVEL_NAMES[Math.min(4, g.difficulty + act)]}
               </span>
               <h1>
                 {row === 0
                   ? 'Choose your first path'
                   : row % BOSS_EVERY === 0
-                    ? 'A new act begins'
+                    ? 'Choose your path'
                     : 'Which way next?'}
               </h1>
             </header>
@@ -348,12 +399,17 @@ function Run({ initial }: { initial: FolioView }) {
               g={g}
               open={open}
               picked={pick?.id}
-              onPick={(n) => setPicked(n)}
+              onPick={(n) => {
+                if (picked?.id !== n.id) gameSound('folio', 'select', volume);
+                setPicked(n);
+              }}
               act={act}
             />
             {pick && (
               <div
                 className="folio-pick"
+                data-game-motion="change"
+                data-game-motion-key={pick.id}
                 data-dock={pick.row % BOSS_EVERY < 2 ? 'top' : 'bottom'}
                 aria-live="polite"
               >
@@ -521,7 +577,8 @@ function Run({ initial }: { initial: FolioView }) {
           </section>
         )}
         {g.phase === 'over' && !g.practice && (
-          <section className="folio-card folio-summary">
+          <section className="folio-card folio-summary results-surface">
+            <WinnerCelebration won={isMember && g.victory} />
             <span className="folio-stamp big">
               {g.victory ? <Flag size={40} /> : <Mountain size={40} />}
             </span>
@@ -570,7 +627,7 @@ function Run({ initial }: { initial: FolioView }) {
         <DialogContent className="folio-dialog">
           <DialogTitle>
             {panel === 'crew'
-              ? 'Your crew'
+              ? 'Players'
               : panel === 'help' && p
                 ? PUZZLES[p.kind].name
                 : panel === 'leave'
@@ -636,15 +693,25 @@ function Run({ initial }: { initial: FolioView }) {
             </RuleExplanation>
           )}
           {panel === 'menu' && (
+            <div className="party-menu">
+              <button onClick={() => setPanel('rules')}><BookOpen />Rules</button>
+              <button onClick={() => setPanel('sound')}><Volume2 />Sound</button>
+              <FullscreenControl />
+              <RoomTableSettings room={room} />
+              {!room.table && !g.practice && <button onClick={() => setPanel('crew')}><Users />Players</button>}
+              <button onClick={() => setPanel('leave')}>Save &amp; leave</button>
+            </div>
+          )}
+          {panel === 'rules' && (
             <>
               <RuleExplanation
                 outcome={`Climb as far as you can. The run ends when the crew has lost ${START_LIVES} puzzles.`}
                 note="The crew shares two lives: one mistake is allowed. Nothing restores a life."
               >
                 <p>
-                  <b>Choose.</b> Each act is three rounds and a boss. Pick the
-                  next stop among the paths leading on; the tabs show the acts
-                  ahead.
+                  <b>Choose.</b> Each stretch is three rounds and a boss. Pick the
+                  next stop among the paths leading on. Only the current stretch
+                  is shown.
                 </p>
                 <p>
                   <b>Play.</b> Each game keeps its original rules and its own
@@ -654,7 +721,7 @@ function Run({ initial }: { initial: FolioView }) {
                 <p>
                   <b>Climb.</b> This run started at{' '}
                   {LEVEL_NAMES[g.difficulty].toLowerCase()}. Every boss beaten
-                  makes the next act one level harder, up to very hard, and the
+                  makes the next stretch one level harder, up to very hard, and the
                   trail goes on at very hard until you lose. After a boss, you
                   may change one thing on the trail ahead.
                 </p>
@@ -665,11 +732,21 @@ function Run({ initial }: { initial: FolioView }) {
                   <p>{g.struck.map((k) => PUZZLES[k].name).join(', ')}</p>
                 </>
               )}
-              {!g.practice && (
-                <button onClick={() => setPanel('crew')}>Your crew</button>
-              )}
-              <button onClick={() => setPanel('leave')}>Save & leave</button>
             </>
+          )}
+          {panel === 'sound' && (
+              <SoundToggle
+                Icon={Volume2}
+                label="Sound effects"
+                on={volume > 0}
+                onChange={(on) => {
+                  const next = on ? 0.5 : 0;
+                  setVolume(next);
+                  try {
+                    localStorage.setItem('gamehub.folio.volume', String(next));
+                  } catch {}
+                }}
+              />
           )}
           {panel === 'leave' && (
             <div className="folio-inline">

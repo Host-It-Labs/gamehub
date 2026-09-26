@@ -1,8 +1,17 @@
 'use client';
-import { useState, type CSSProperties, type ReactNode } from 'react';
 import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Handshake,
+  Menu,
   Search,
   Swords,
   Users,
@@ -10,9 +19,11 @@ import {
   VolumeX,
   type LucideIcon,
 } from 'lucide-react';
-import { GameBox } from './game-box';
-import type { Game, GameId } from '@/lib/games/trio/engine';
-import type { AnyGame } from '@/lib/games/standalone/registry';
+import { GameBox, SealedBox } from './game-box';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { SoundSettings } from './sound-settings';
+import { ThemeButton, ThemeSwitch } from './theme-control';
+import type { GameId } from '@/lib/games/trio/engine';
 import type { StandaloneId } from '@/lib/games/standalone/types';
 import {
   friendById,
@@ -111,11 +122,8 @@ export function StatStrip({
 }) {
   return (
     <span className={`stat-strip ${full ? 'full' : ''}`}>
-      <Stat
-        icon={Clock}
-        label={game.durationLabel ?? `${game.minutes} minutes`}
-      >
-        {game.durationLabel ?? `${game.minutes} min`}
+      <Stat icon={Clock} label={game.durationSpoken}>
+        {game.duration}
       </Stat>
       <Stat icon={Users} label={`${playerRange(game.players)} players`}>
         {playerRange(game.players)}
@@ -138,76 +146,178 @@ export function StatStrip({
 /** The search field earns its place once the catalog outgrows a glance. */
 const SEARCH_FROM = 13;
 
-function inProgress(
-  game: LibraryGame,
-  saves: Partial<Record<GameId, Game>>,
-  own: Partial<Record<StandaloneId, AnyGame>>,
-) {
-  if (game.gameId) {
-    const save = saves[game.gameId];
-    return !!save && save.phase !== 'over';
-  }
-  if (game.standaloneId) {
-    const save = own[game.standaloneId];
-    return !!save && !save.over;
-  }
-  return false;
-}
-
-function GameTile({
+/**
+ * One box on a shelf and its time and player badges. The cover carries the
+ * name. The landing library and the table lobby both show games with this tile.
+ */
+export function ShelfTile({
   game,
-  saves,
-  own,
+  label,
+  className = '',
+  disabled,
+  pressed,
   onOpen,
+  children,
 }: {
   game: LibraryGame;
-  saves: Partial<Record<GameId, Game>>;
-  own: Partial<Record<StandaloneId, AnyGame>>;
+  /** What the button does, e.g. "Open" or "Set up"; the badges are added. */
+  label: string;
+  className?: string;
+  disabled?: boolean;
+  pressed?: boolean;
   onOpen: (game: LibraryGame) => void;
+  children?: ReactNode;
 }) {
-  const marked = inProgress(game, saves, own);
-  const time = game.durationLabel ?? `${game.minutes} min`;
   return (
-    <li className="lib-tile">
+    <li className={`lib-tile ${className}`}>
       <button
         type="button"
         className="gbox-button lib-tile-button"
+        disabled={disabled}
+        aria-pressed={pressed}
         onClick={() => onOpen(game)}
-        aria-label={`${game.name}. ${time}, ${playerRange(game.players)} players${marked ? ', match in progress' : ''}. Open`}
+        aria-label={`${game.name}. ${game.durationSpoken}, ${playerRange(game.players)} players. ${label}`}
       >
-        <GameBox game={game} width={150} sizes="(max-width: 700px) 34vw, 400px">
-          {marked && <span className="gbox-ribbon" />}
-        </GameBox>
-        <span className="lib-tile-name">{game.name}</span>
-        <span className="lib-tile-meta">
-          <Users aria-hidden="true" />
-          {playerRange(game.players)}
-          <span className="lib-tile-dot" aria-hidden="true" />
-          {time}
-        </span>
+        <GameBox
+          game={game}
+          width={150}
+          sizes="(max-width: 700px) 34vw, 400px"
+        />
+        <StatStrip game={game} />
+        {children}
       </button>
     </li>
   );
 }
 
+/** Every shelf row is at least this many boxes long; sealed boxes fill the
+ *  rest, so each kind of game reads as a shelf with room for more. */
+const ROW_LENGTH = 8;
+const MIN_SEALED = 3;
+
+/**
+ * One kind of game as a horizontal shelf: the title, arrows on the right that
+ * page through it, then the boxes followed by sealed boxes for games to come.
+ * The landing library and the table lobby share it.
+ */
+export function ShelfRow({
+  id,
+  title,
+  count,
+  sealed = true,
+  children,
+}: {
+  id: string;
+  title: string;
+  /** How many real boxes the row holds, to size the sealed run after them. */
+  count: number;
+  sealed?: boolean;
+  children: ReactNode;
+}) {
+  const track = useRef<HTMLUListElement>(null);
+  const [ends, setEnds] = useState({ start: true, end: true });
+  const measure = useCallback(() => {
+    const el = track.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setEnds({ start: el.scrollLeft <= 1, end: el.scrollLeft >= max - 1 });
+  }, []);
+  useEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
+  function page(direction: 1 | -1) {
+    const el = track.current;
+    if (!el) return;
+    const tile = el.querySelector('li')?.getBoundingClientRect().width ?? 0;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollBy({
+      left: direction * Math.max(tile, el.clientWidth - tile),
+      behavior: still ? 'auto' : 'smooth',
+    });
+  }
+  const filler = sealed ? Math.max(MIN_SEALED, ROW_LENGTH - count) : 0;
+  const scrolls = !(ends.start && ends.end);
+  return (
+    <section className="lib-section" aria-labelledby={id}>
+      <div className="lib-section-head">
+        <h2 id={id} className="lib-section-title">
+          {title}
+        </h2>
+        <div className={`lib-arrows ${scrolls ? '' : 'is-still'}`}>
+          <button
+            type="button"
+            className="lib-arrow"
+            aria-label={`Previous ${title} games`}
+            aria-controls={`${id}-track`}
+            disabled={ends.start}
+            onClick={() => page(-1)}
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="lib-arrow"
+            aria-label={`More ${title} games`}
+            aria-controls={`${id}-track`}
+            disabled={ends.end}
+            onClick={() => page(1)}
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+      <ul
+        ref={track}
+        id={`${id}-track`}
+        className={`lib-grid ${ends.start ? '' : 'has-less'} ${ends.end ? '' : 'has-more'}`}
+        onScroll={measure}
+      >
+        {children}
+        {Array.from({ length: filler }, (_, i) => (
+          <li
+            key={`sealed-${i}`}
+            className="lib-tile is-sealed"
+            aria-hidden="true"
+          >
+            <span className="gbox-button lib-tile-button">
+              <SealedBox width={150} />
+              <span className="stat-strip">
+                <span className="stat" />
+                <span className="stat" />
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function Library({
-  saves,
-  own,
   volume,
+  ambience,
   onSetup,
   onStandalone,
   onOpenPlaceholder,
   onSound,
+  onVolume,
+  onAmbience,
 }: {
-  saves: Partial<Record<GameId, Game>>;
-  /** Saved matches for the games that run on their own rules module. */
-  own: Partial<Record<StandaloneId, AnyGame>>;
   volume: number;
+  ambience: number;
   onSetup: (id: GameId) => void;
   onStandalone: (id: StandaloneId) => void;
   /** Games without an engine id (Folio, Relic) open their own box. */
   onOpenPlaceholder: (game: LibraryGame) => void;
+  /** Wide screens open the sound dialog; phones switch sounds in the menu. */
   onSound: () => void;
+  onVolume: (level: number) => void;
+  onAmbience: (level: number) => void;
 }) {
   const [query, setQuery] = useState('');
   const needle = query.trim().toLowerCase();
@@ -253,9 +363,10 @@ export function Library({
           </label>
         )}
         <div className="lib-actions">
+          <ThemeButton className="lib-sound lib-wide-only" />
           <button
             type="button"
-            className="lib-sound"
+            className="lib-sound lib-wide-only"
             onClick={onSound}
             aria-label="Sound settings"
           >
@@ -265,6 +376,23 @@ export function Library({
               <VolumeX aria-hidden="true" />
             )}
           </button>
+          <Popover>
+            <PopoverTrigger
+              className="lib-sound lib-phone-only"
+              aria-label="Menu"
+            >
+              <Menu aria-hidden="true" />
+            </PopoverTrigger>
+            <PopoverContent className="lib-menu" align="end" sideOffset={8}>
+              <SoundSettings
+                volume={volume}
+                ambience={ambience}
+                onVolume={onVolume}
+                onAmbience={onAmbience}
+              />
+              <ThemeSwitch />
+            </PopoverContent>
+          </Popover>
           <a className="lib-friends" href="/tables">
             <Users aria-hidden="true" />
             <span>Play with friends</span>
@@ -278,27 +406,22 @@ export function Library({
         {sections.length ? (
           <div className="lib-sections">
             {sections.map((section) => (
-              <section
-                className="lib-section"
+              <ShelfRow
                 key={section.id}
-                aria-labelledby={`lib-${section.id}`}
-                style={{ '--n': section.entries.length } as CSSProperties}
+                id={`lib-${section.id}`}
+                title={section.title}
+                count={section.entries.length}
+                sealed={!needle}
               >
-                <h2 id={`lib-${section.id}`} className="lib-section-title">
-                  {section.title}
-                </h2>
-                <ul className="lib-grid">
-                  {section.entries.map((game) => (
-                    <GameTile
-                      key={game.id}
-                      game={game}
-                      saves={saves}
-                      own={own}
-                      onOpen={open}
-                    />
-                  ))}
-                </ul>
-              </section>
+                {section.entries.map((game) => (
+                  <ShelfTile
+                    key={game.id}
+                    game={game}
+                    label="Open"
+                    onOpen={open}
+                  />
+                ))}
+              </ShelfRow>
             ))}
           </div>
         ) : (

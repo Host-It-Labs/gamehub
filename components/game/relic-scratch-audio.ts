@@ -1,4 +1,7 @@
-/** Procedural paper/metal sounds; no loop downloads, timers, or autoplay. */
+import { audioContext } from '@/lib/games/audio-context';
+import { gameSound, preloadGameSounds, stopGameSounds } from '@/lib/games/game-sound';
+
+/** Continuous scratching follows the gesture; discrete cues use shared quiet foley. */
 export class ScratchAudio {
   private context: AudioContext | null = null;
   private noise: AudioBufferSourceNode | null = null;
@@ -7,13 +10,14 @@ export class ScratchAudio {
   private muted = false;
   setMuted(value: boolean) {
     this.muted = value;
-    if (value) this.stop();
+    if (value) { this.stop(); stopGameSounds('relic'); }
   }
   async unlock() {
     if (this.muted || typeof window === 'undefined' || !window.AudioContext)
       return;
     try {
-      this.context ??= new AudioContext();
+      this.context ??= audioContext();
+      preloadGameSounds('relic');
       if (this.context.state === 'suspended') await this.context.resume();
     } catch {
       /* Sound is optional when the device disallows audio. */
@@ -64,42 +68,10 @@ export class ScratchAudio {
       this.volume.gain.setTargetAtTime(0, this.context.currentTime, 0.015);
     }
   }
-  cue(kind: 'reveal' | 'prize' | 'paper' | 'upgrade', rare = false) {
+  cue(_kind: 'reveal' | 'prize' | 'paper' | 'upgrade', _rare = false) {
     const c = this.context;
     if (this.muted || !c || c.state !== 'running') return;
-    const notes =
-      kind === 'prize'
-        ? [523, 659, 784, 1046]
-        : kind === 'upgrade'
-          ? [440, 554, 880]
-          : kind === 'paper'
-            ? [180, 130]
-            : [rare ? 1174 : 740];
-    notes.forEach((note, i) => {
-      const o = c.createOscillator(),
-        g = c.createGain(),
-        at = c.currentTime + i * 0.055;
-      o.type = kind === 'paper' ? 'triangle' : 'sine';
-      o.frequency.setValueAtTime(note, at);
-      o.frequency.exponentialRampToValueAtTime(
-        note * (kind === 'paper' ? 0.55 : 1.015),
-        at + 0.13,
-      );
-      g.gain.setValueAtTime(0, at);
-      g.gain.linearRampToValueAtTime(
-        kind === 'paper' ? 0.025 : 0.07,
-        at + 0.006,
-      );
-      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
-      o.connect(g);
-      g.connect(c.destination);
-      o.start(at);
-      o.stop(at + 0.24);
-      o.onended = () => {
-        o.disconnect();
-        g.disconnect();
-      };
-    });
+    gameSound('relic', 'place', 0.5);
   }
   dispose() {
     this.stop();
@@ -108,7 +80,7 @@ export class ScratchAudio {
     this.noise = null;
     this.filter?.disconnect();
     this.volume?.disconnect();
-    void this.context?.close();
+    stopGameSounds('relic');
     this.context = null;
   }
 }

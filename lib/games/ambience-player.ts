@@ -1,4 +1,4 @@
-import { audioContext } from './trio/sound';
+import { audioBuffer, audioContext } from './audio-context.ts';
 import {
   ambienceFor,
   bedPass,
@@ -7,17 +7,18 @@ import {
   type Ambience,
   type AmbienceBed,
   type AmbienceEvent,
-} from './ambience';
+} from './ambience.ts';
 import type { GameId as TrioGameId } from './trio/engine';
 type GameId = TrioGameId | 'orin' | 'miro' | 'dial' | 'size';
 
 /** Ambience sits under the cue sounds even at full volume. */
 const CEILING = 0.52;
-const buffers = new Map<string, Promise<AudioBuffer>>();
 let active: Session | undefined;
+let paused: { ambience: Ambience; volume: number } | undefined;
 
 type Session = {
   ambience: Ambience;
+  key: string;
   context: AudioContext;
   master: GainNode;
   timers: Set<ReturnType<typeof setTimeout>>;
@@ -25,22 +26,9 @@ type Session = {
   stopped: boolean;
   recent: AmbienceEvent[];
   volume: number;
+  releaseWake: () => void;
 };
 
-function load(context: AudioContext, src: string) {
-  let pending = buffers.get(src);
-  if (!pending) {
-    pending = fetch(src)
-      .then((response) => {
-        if (!response.ok) throw new Error(`${src}: ${response.status}`);
-        return response.arrayBuffer();
-      })
-      .then((data) => context.decodeAudioData(data));
-    pending.catch(() => buffers.delete(src));
-    buffers.set(src, pending);
-  }
-  return pending;
-}
 
 function later(session: Session, seconds: number, run: () => void) {
   const timer = setTimeout(() => {
@@ -126,47 +114,61 @@ function level(volume: number, ambience: Ambience) {
 }
 
 function wakeOnGesture(context: AudioContext) {
-  if (context.state !== 'suspended' || typeof window === 'undefined') return;
+  if (context.state !== 'suspended' || typeof window === 'undefined') return () => {};
   const wake = () => {
-    void context.resume();
+    void context.resume().catch(() => {});
     for (const type of ['pointerdown', 'keydown', 'touchend']) window.removeEventListener(type, wake, true);
   };
   for (const type of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(type, wake, true);
+  return () => { for (const type of ['pointerdown', 'keydown', 'touchend']) window.removeEventListener(type, wake, true); };
 }
 
 /** Start (or switch to) the soundscape for a game; a second call with the same game is a no-op. */
 export function startAmbience(id: GameId | null | undefined, volume: number, contentSet?: 'beginner' | 'intermediate') {
   const ambience = ambienceFor(id, contentSet);
-  if (!ambience || !volume || typeof window === 'undefined') {
+  if (!ambience) { stopAmbience(); return; }
+  void previewAmbience(ambience, volume);
+}
+
+/** Preview a supplied mix with the same scheduler used in play. */
+export async function previewAmbience(ambience: Ambience, volume: number): Promise<boolean> {
+  if (!Number.isFinite(volume) || volume <= 0 || typeof window === 'undefined') {
     stopAmbience();
-    return;
+    return false;
   }
-  if (active?.ambience === ambience) {
+  if (document.hidden) {
+    stopAmbience();
+    paused = { ambience, volume };
+    return true;
+  }
+  const key = JSON.stringify(ambience);
+  if (active?.key === key) {
     setAmbienceVolume(volume);
-    return;
+    return true;
   }
   stopAmbience();
   try {
     const context = audioContext();
-    wakeOnGesture(context);
+    const releaseWake = wakeOnGesture(context);
     const master = context.createGain();
     master.gain.value = 0.0001;
     master.connect(context.destination);
-    const session: Session = { ambience, context, master, timers: new Set(), sources: new Set(), stopped: false,
-    recent: [], volume };
+    const session: Session = { ambience, key, context, master, timers: new Set(), sources: new Set(), stopped: false,
+    recent: [], volume, releaseWake };
     active = session;
-    master.gain.setTargetAtTime(level(volume, ambience), context.currentTime, 1.2);
+    master.gain.setTargetAtTime(document.hidden ? 0.0001 : level(volume, ambience), context.currentTime, 1.2);
+    const pending: Promise<boolean>[] = [];
     let stagger = 0;
     for (const bed of ambience.beds) {
       const offset = stagger;
       stagger += 3;
-      void load(context, bed.src)
-        .then((buffer) => runBed(session, bed, buffer, context.currentTime + offset, true))
-        .catch(() => {});
+      pending.push(audioBuffer(context, bed.src)
+        .then((buffer) => { runBed(session, bed, buffer, context.currentTime + offset, true); return true; })
+        .catch(() => false));
     }
-    void Promise.all(
+    pending.push(Promise.all(
       ambience.events.map((event) =>
-        load(context, event.src)
+        audioBuffer(context, event.src)
           .then((buffer) => [event, buffer] as const)
           .catch(() => undefined),
       ),
@@ -174,27 +176,34 @@ export function startAmbience(id: GameId | null | undefined, volume: number, con
       const decoded = new Map<AmbienceEvent, AudioBuffer>();
       for (const entry of entries) if (entry) decoded.set(entry[0], entry[1]);
       runEvents(session, decoded);
-    });
+      return decoded.size > 0;
+    }));
+    const loaded = await Promise.all(pending);
+    return !session.stopped && (loaded.some(Boolean) || (!ambience.beds.length && !ambience.events.length));
   } catch {
     /* Ambience is optional. */
+    return false;
   }
 }
 
 export function setAmbienceVolume(volume: number) {
-  if (!active) return;
-  if (!volume) {
+  if (!Number.isFinite(volume) || volume <= 0) {
     stopAmbience();
     return;
   }
+  if (paused) paused.volume = volume;
+  if (!active) return;
   active.volume = volume;
-  active.master.gain.setTargetAtTime(level(volume, active.ambience), active.context.currentTime, 0.4);
+  active.master.gain.setTargetAtTime(document.hidden ? 0.0001 : level(volume, active.ambience), active.context.currentTime, 0.4);
 }
 
 export function stopAmbience() {
+  paused = undefined;
   const session = active;
   if (!session) return;
   active = undefined;
   session.stopped = true;
+  session.releaseWake();
   for (const timer of session.timers) clearTimeout(timer);
   const { context, master } = session;
   const end = context.currentTime + 1;
@@ -208,12 +217,18 @@ export function stopAmbience() {
 }
 
 /** Browsers keep playing hidden tabs; the table should fall silent when it is not in view. */
-export function pauseAmbienceWhenHidden() {
+export function pauseAmbienceWhenHidden(resumeWhenVisible = true) {
   if (typeof document === 'undefined') return () => {};
   const toggle = () => {
-    if (!active) return;
-    const target = document.hidden ? 0.0001 : level(active.volume, active.ambience);
-    active.master.gain.setTargetAtTime(target, active.context.currentTime, 0.3);
+    if (document.hidden) {
+      const previous = active ? { ambience: active.ambience, volume: active.volume } : paused;
+      stopAmbience();
+      if (resumeWhenVisible) paused = previous;
+    } else if (paused) {
+      const resume = paused;
+      paused = undefined;
+      void previewAmbience(resume.ambience, resume.volume);
+    }
   };
   document.addEventListener('visibilitychange', toggle);
   return () => document.removeEventListener('visibilitychange', toggle);

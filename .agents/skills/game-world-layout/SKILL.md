@@ -92,6 +92,15 @@ Observed on 19 September 2026: running the landscape and portrait v2 prompts as 
 
 When a generation misses the padding, do not regenerate from scratch. In the same thread, ask for an edit that only changes framing: "Pull the camera back so the whole sanctuary occupies only the central [55%] of the width and [50%] of the height, filling the new space on every side, especially above, with continuous forest in the same style. Keep every building, pad and path exactly as they are; do not add or remove any pad." Then count pads again.
 
+### Desktop side borders: a hard gate before "done" (25 September 2026)
+
+Blurred side bands on a normal 16:9 desktop (for example a 1920×969 browser window) came back several times, and zooming the browser out hid them, which proves the art can cover. The cause is always the play box's HEIGHT, not its width: on a wide window the scene reaches both side edges only at the cover scale (window width / source width), and at that scale every pad, rule label and Release must still fit between the top reserve (16% of the window, at most 180 px) and the 118 px hand reserve. A sanctuary drawn tall forces a smaller scale and the sides show.
+
+- **Brief landscape boards as a wide, shallow band.** Every pad and the plain ground below each group between about 22% and 70% of the image height; two rows of places close together; only building tops and treetops above; nothing playable below 72%. Accepted boards that passed: play box rows 228–750 (Observatory v5-a) and 223–728 (Floodline v5-b) of 1024. A play box taller than about 545 source px fails 1366×657 and 1536×730; above 624 px it fails 1920×969.
+- **Measure before integrating:** `node --experimental-strip-types scripts/check-board-cover.mjs lib/games/<world>-art.json` prints, per common browser window, the largest allowed play box and the source rows it must lie in, and marks `GAPS` wherever the scene would not reach the edges. `tests/observatory-layout.test.mjs` runs the same check and fails on any gap. Reject or regenerate a board that fails; never ship it and never widen reserves to hide it.
+- **Phones too.** Portrait boards are checked against phones (390×844 and friends, plus Safari with its bars at 390×664). At a phone's cover scale the visible source is a centred window about 640 px wide, so every pad and label must lie within the middle ~58% of the width and between ~17% and ~69% of the height; the old accepted portraits failed this too, their boxes were 630–670 wide but sat too low.
+- **Check in the browser at 1920×969 and 1536×730, and at 390×844 and 390×664**, not only 1280×800, and report the scene box against the window.
+
 ### Accept only with measured margins
 
 Before integrating, measure the landmark union and report, per side, `margin / source size`: top, bottom, left, right. Targets for the current framing: landscape at least 0.20 on every side; portrait at least 0.14 top, 0.30 bottom, 0.12 each side. Reject a source that misses any side even if the sanctuary itself is beautiful; the runtime will otherwise show a soft-copy margin on the affected devices.

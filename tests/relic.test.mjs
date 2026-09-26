@@ -416,13 +416,13 @@ await test('HTTP group invitations, simultaneous purchases, deduplication and pr
     });
     assert.equal(invalid.status, 400);
     assert.equal((await host(path)).data.game.helpers.brush, 1);
-    for (let i = 0; i < 4; i++)
+    for (let i = 0; i < 1; i++)
       assert.equal(
         (await client()(path + '/join', { name: `Explorer ${i}` })).status,
         200,
       );
     assert.equal(
-      (await client()(path + '/join', { name: 'Seventh' })).status,
+      (await client()(path + '/join', { name: 'Fourth' })).status,
       409,
     );
     assert.equal((await guest(path + '/join', {})).status, 200);

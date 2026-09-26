@@ -1,4 +1,5 @@
 'use client';
+import { RoomTableSettings, type useRoomTable } from '../online/room-table';
 import { useEffect, useRef, useState } from 'react';
 import {
   Coins,
@@ -15,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { GameNavigation } from './game-navigation';
+import { useGameMotion } from './game-motion';
 import {
   formatNumber,
   type ActionResult,
@@ -25,7 +27,7 @@ import { advanceFactory, TICK_MS } from '@/lib/games/relic/factory';
 import { PACKS, packOpen } from '@/lib/games/relic/scratch';
 import type { ExpeditionView } from '@/lib/games/relic/types';
 import { ScratchAudio } from './relic-scratch-audio';
-import { ScratchDesk } from './relic-scratch-desk';
+import { ScratchDesk, WatchTicket } from './relic-scratch-desk';
 import { ScratchFactory } from './relic-scratch-factory';
 import { ScratchUpgrades } from './relic-scratch-upgrades';
 import './relic-scratch.css';
@@ -81,6 +83,7 @@ function usePredicted(game: RelicGame) {
   return current.game;
 }
 export function RelicScratch({
+  room,
   view,
   busy,
   error,
@@ -88,6 +91,7 @@ export function RelicScratch({
   onView,
   onBack,
 }: {
+  room: ReturnType<typeof useRoomTable>;
   view: ExpeditionView;
   busy: boolean;
   error: string;
@@ -97,7 +101,7 @@ export function RelicScratch({
 }) {
   const game = view.game,
     state = game.scratch!,
-    table = state.tickets[view.viewerId] ?? [];
+    hand = state.hands?.[view.viewerId];
   const live = usePredicted(game),
     liveState = live.scratch!;
   const [tab, setTab] = useState<Tab>(() => {
@@ -108,7 +112,10 @@ export function RelicScratch({
       return 'tickets';
     }
   });
-  const [overlay, setOverlay] = useState<'menu' | 'others' | 'help' | null>(
+  const [watching, setWatching] = useState<string | null>(null);
+  const others = view.members.filter((m) => m.id !== view.viewerId);
+  const watched = others.find((m) => m.id === watching) ?? others[0];
+  const [overlay, setOverlay] = useState<'menu' | 'others' | 'players' | 'help' | null>(
     null,
   );
   const [muted, setMuted] = useState(() => {
@@ -123,8 +130,8 @@ export function RelicScratch({
   const [audio] = useState(() => new ScratchAudio());
   const root = useRef<HTMLElement>(null),
     dialog = useRef<HTMLDialogElement>(null),
-    booted = useRef(false),
     viewRef = useRef(onView);
+  useGameMotion(root, tab);
   useEffect(() => {
     viewRef.current = onView;
   }, [onView]);
@@ -144,15 +151,6 @@ export function RelicScratch({
   useEffect(() => {
     audio.setMuted(muted);
   }, [audio, muted]);
-  // A first desk starts with a few tickets on the table.
-  useEffect(() => {
-    if (booted.current || state.completed || table.length) return;
-    booted.current = true;
-    void (async () => {
-      for (let i = 0; i < 3; i++)
-        if (!(await onAct({ type: 'scratch-open', pack: 'seven' }))) break;
-    })();
-  }, [state.completed, table.length, onAct]);
   useEffect(() => {
     const sessionId = crypto.randomUUID();
     let stopped = false,
@@ -267,6 +265,8 @@ export function RelicScratch({
         name="Lucky"
         onBack={onBack}
         onMenu={() => setOverlay('menu')}
+        onOthers={view.members.length > 1 ? () => setOverlay('others') : undefined}
+        othersLabel="Watch"
         progress={`${state.completed} ${state.completed === 1 ? 'ticket' : 'tickets'} · ${PACKS.filter((p) => packOpen(state, p.id)).length}/${PACKS.length} books`}
       />
       <header className="rs-top">
@@ -283,7 +283,12 @@ export function RelicScratch({
             </button>
           ))}
         </div>
-        <output className="rs-wallet" aria-label="Coins">
+        <output
+          className="rs-wallet"
+          aria-label="Coins"
+          data-game-motion="change"
+          data-game-motion-key={state.completed}
+        >
           <Coins size={18} />
           <strong>{formatNumber(live.coins)}</strong>
           {rate >= 0.05 && <small>+{formatNumber(rate)}/s</small>}
@@ -317,15 +322,15 @@ export function RelicScratch({
           </button>
         )}
       </div>
-      <div className="rs-stage">
+      <div className="rs-stage" data-game-motion="stage">
         {tab === 'tickets' ? (
           <ScratchDesk
             state={state}
             coins={game.coins}
-            table={table}
+            hand={hand}
             busy={busy}
             audio={audio}
-            onTake={(pack, level) =>
+            onBuy={(pack, level) =>
               act({ type: 'scratch-open', pack, level }, 'paper')
             }
             onBuyBook={(id) => {
@@ -340,7 +345,9 @@ export function RelicScratch({
             state={liveState}
             coins={game.coins}
             busy={busy}
-            onAct={(action) => act(action, 'upgrade')}
+            onAct={(action) =>
+              act(action, action.type === 'factory-blueprint' ? 'upgrade' : 'paper')
+            }
           />
         ) : (
           <ScratchUpgrades
@@ -352,7 +359,12 @@ export function RelicScratch({
         )}
       </div>
       {error && (
-        <p className="scratch-error" role="alert">
+        <p
+          className="scratch-error"
+          role="alert"
+          data-game-motion="change"
+          data-game-motion-key={error}
+        >
           {error}
         </p>
       )}
@@ -361,13 +373,16 @@ export function RelicScratch({
           <dialog
             open
             ref={dialog}
-            className="scratch-modal"
+            className={`scratch-modal ${overlay === 'others' ? 'rs-watch-modal' : ''}`}
+            data-game-motion="piece"
+            data-game-motion-key={overlay}
             aria-modal="true"
             aria-label={
               overlay === 'help'
                 ? 'How to play'
                 : overlay === 'others'
-                  ? 'Others at your desk'
+                  ? 'Watch'
+                  : overlay === 'players' ? 'Players'
                   : 'Lucky menu'
             }
           >
@@ -383,30 +398,36 @@ export function RelicScratch({
                 <h2>How to play</h2>
                 <div className="scratch-help">
                   <p>
-                    <b>Tickets.</b> Tap a book to lay a ticket on your table,
-                    then tap the ticket to pick it up. Hold and rub the foil;
-                    keyboard: arrows to move, hold Space to scratch.
+                    <b>Tickets.</b> Buy a ticket from a book on the shelf; it
+                    opens in your hand. Hold and rub the foil; keyboard: arrows
+                    to move, hold Space to scratch. A ticket pays the moment it
+                    is over, and <b>Again</b> buys the same one.
                   </p>
                   <p>
-                    <b>Books.</b> Every book is a small puzzle with its rule on
-                    the shelf. A ticket pays the moment it is over; a perfect
-                    ticket pays the jackpot.
+                    <b>Price.</b> A ticket costs half of what a careful player
+                    wins with it. A perfect ticket pays the jackpot; a messy one
+                    can lose. With an empty purse Lucky Seven I is free.
                   </p>
                   <ul>
                     <li>
-                      <b>Lucky Seven:</b> every seal points toward the 7.
+                      <b>Lucky Seven:</b> each miss shows an arrow toward the
+                      nearest 7. Find every 7 before the misses run out; the
+                      misses left then scratch themselves.
                     </li>
                     <li>
-                      <b>Twins:</b> the arrow on each seal points to its twin;
-                      scratch twins one after the other.
+                      <b>Twins:</b> the ticket splits into side-by-side pairs
+                      printed with the same number, in exactly one way. Scratch
+                      a seal, then its twin; a wrong twin is a mistake.
                     </li>
                     <li>
                       <b>Garden:</b> start at 1 and draw one path through every
                       seal, numbers in order, never across a hedge.
                     </li>
                     <li>
-                      <b>Ladder:</b> every number must be higher than the last;
-                      the colour tells you roughly how high.
+                      <b>Ladder:</b> the card at the bottom is printed. On each
+                      rung scratch ▲ if you think the next card is higher, ▼ if
+                      lower. Every card appears once, so count what is left.
+                      Higher rungs pay more.
                     </li>
                     <li>
                       <b>Gold Mine:</b> numbers count the dynamite around them.
@@ -430,35 +451,39 @@ export function RelicScratch({
                     more. You can always go back to an easier one.
                   </p>
                   <p>
+                    <b>Upgrades.</b> Each branch opens as you buy the upgrade
+                    before it. Books get their own upgrades once they are on the
+                    shelf.
+                  </p>
+                  <p>
                     <b>Factory.</b> Printers make tickets, bots scratch them,
                     cashiers sell them. Link them with belts. Drag to draw
-                    belts, R to rotate, right-click to turn a machine. It runs
-                    while this page is open.
+                    belts, drag a machine to move it, R to rotate, right-click
+                    to turn a machine. It runs while this page is open.
                   </p>
                   <p>
                     <b>Together.</b> Coins, books, the factory and upgrades are
-                    shared. Everyone has their own table.
+                    shared. Everyone holds their own ticket.
                   </p>
                 </div>
               </>
-            ) : overlay === 'others' ? (
+            ) : overlay === 'others' || overlay === 'players' ? (
               <>
-                <h2>{game.name}</h2>
-                <div className="scratch-members">
-                  {view.members.map((m) => (
-                    <div key={m.id}>
-                      <i className={m.online ? 'is-online' : ''} />
-                      <b>{m.name}</b>
-                      <span>
-                        {m.id === view.viewerId
-                          ? 'You'
-                          : m.online
-                            ? 'Here'
-                            : 'Away'}
-                      </span>
-                    </div>
+                <h2>{overlay === 'others' ? 'Watch' : 'Players'}</h2>
+                {overlay === 'others' && <>
+                <div className="scratch-members rs-watch-players">
+                  {others.map((m) => (
+                    <button key={m.id} aria-pressed={watched?.id === m.id} onClick={() => setWatching(m.id)}>
+                      <i className={m.online ? 'is-online' : ''} />{m.name}
+                    </button>
                   ))}
                 </div>
+                {watched && state.hands?.[watched.id]
+                  ? <WatchTicket ticket={state.hands[watched.id]} state={state} audio={audio} />
+                  : <p>No ticket in hand.</p>}
+                </>}
+                {overlay === 'players' && <>
+                <ul>{view.members.map((m) => <li key={m.id}>{m.name}</li>)}</ul>
                 <label className="scratch-invite">
                   Invitation link
                   <input
@@ -479,10 +504,12 @@ export function RelicScratch({
                   <Copy size={17} />
                   {copied ? 'Copied' : 'Copy invitation'}
                 </button>
+                </>}
               </>
             ) : (
               <>
                 <h2>Lucky</h2>
+                <RoomTableSettings room={room} />
                 <div className="scratch-menu-stats">
                   <span>
                     <b>{state.completed}</b> tickets
@@ -512,7 +539,7 @@ export function RelicScratch({
                 </button>
                 <button
                   className="scratch-menu-item"
-                  onClick={() => setOverlay('others')}
+                  onClick={() => setOverlay('players')}
                 >
                   <Users />
                   Players and invitation

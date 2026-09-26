@@ -20,7 +20,10 @@ export function SabiSteps({
   const items = steps.map((step, i) => {
     const body = (
       <>
-        <b>
+        <b
+          data-game-motion="change"
+          data-game-motion-key={done(i) ? 'done' : 'open'}
+        >
           {done(i) ? (
             <Check size={13} strokeWidth={3} aria-label="Done" />
           ) : (

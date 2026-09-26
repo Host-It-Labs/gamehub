@@ -8,6 +8,7 @@ import {
   packOpen,
   scratchFor,
   starChance,
+  starPays,
   type PackId,
   type ScratchHost,
   type ScratchState,
@@ -176,6 +177,8 @@ export type FactoryAction =
     }
   | { type: 'factory-remove'; cells: { x: number; y: number }[] }
   | { type: 'factory-rotate'; x: number; y: number }
+  /** Drags a machine, with whatever it holds, to an empty cell. */
+  | { type: 'factory-move'; x: number; y: number; to: { x: number; y: number } }
   | { type: 'factory-book'; x: number; y: number; book: PackId };
 export function createFactory(): FactoryState {
   return {
@@ -197,13 +200,27 @@ export function kindOpen(f: FactoryState, kind: MachineKind) {
     (b) => b.kinds.includes(kind) && f.blueprints.includes(b.id),
   );
 }
-export function machinePrice(f: FactoryState, kind: MachineKind, extra = 0) {
+/** Wholesale takes a fifth off every machine per rank. */
+export function machinePrice(
+  f: FactoryState,
+  kind: MachineKind,
+  extra = 0,
+  s?: ScratchState,
+) {
   const n = f.machines.filter((m) => m.kind === kind).length + extra;
-  return Math.ceil(MACHINES[kind].base * MACHINES[kind].growth ** n);
+  return Math.ceil(
+    MACHINES[kind].base *
+      MACHINES[kind].growth ** n *
+      (1 - (s ? level(s, 'wholesale') : 0) * 0.2),
+  );
 }
-/** Removing gives back what the last one of that kind cost. */
-export function machineRefund(f: FactoryState, kind: MachineKind) {
-  return machinePrice(f, kind, -1);
+/** Removing gives back what the last one of that kind costs now. */
+export function machineRefund(
+  f: FactoryState,
+  kind: MachineKind,
+  s?: ScratchState,
+) {
+  return machinePrice(f, kind, -1, s);
 }
 export function bestBook(s: ScratchState): PackId {
   return [...PACKS].reverse().find((p) => packOpen(s, p.id))?.id ?? 'seven';
@@ -244,7 +261,8 @@ function boostWith(at: Map<number, Machine>, m: Machine) {
 }
 export function itemValue(s: ScratchState, item: Item) {
   return (
-    item.value ?? botReward(s, item.book) * item.mult * (item.star ? 5 : 1)
+    item.value ??
+    botReward(s, item.book) * item.mult * (item.star ? starPays(s) : 1)
   );
 }
 function random(g: ScratchHost) {
@@ -449,7 +467,7 @@ export function actFactory(g: ScratchHost, action: FactoryAction) {
       if (!cell(p.dir, 4)) throw new Error('Choose a direction.');
       if (taken.has(key(p.x, p.y))) throw new Error('That space is taken.');
       taken.add(key(p.x, p.y));
-      cost += machinePrice(f, p.kind, added[p.kind] ?? 0);
+      cost += machinePrice(f, p.kind, added[p.kind] ?? 0, s);
       added[p.kind] = (added[p.kind] ?? 0) + 1;
     }
     if (g.coins < cost) throw new Error('You need more coins for that.');
@@ -478,7 +496,7 @@ export function actFactory(g: ScratchHost, action: FactoryAction) {
     for (const c of action.cells) {
       const m = c && machineAt(f, c.x, c.y);
       if (!m) continue;
-      const refund = machineRefund(f, m.kind);
+      const refund = machineRefund(f, m.kind, s);
       f.machines.splice(f.machines.indexOf(m), 1);
       g.coins = Math.min(1e18, g.coins + refund);
     }
@@ -486,6 +504,17 @@ export function actFactory(g: ScratchHost, action: FactoryAction) {
   }
   const m = machineAt(f, action.x, action.y);
   if (!m) throw new Error('There is no machine there.');
+  if (action.type === 'factory-move') {
+    const to = action.to;
+    if (!to || !cell(to.x, width) || !cell(to.y, height))
+      throw new Error('Move it inside the factory floor.');
+    if (machineAt(f, to.x, to.y)) throw new Error('That space is taken.');
+    m.x = to.x;
+    m.y = to.y;
+    m.stuck = 0;
+    f.machines.sort((a, b) => a.y - b.y || a.x - b.x);
+    return;
+  }
   if (action.type === 'factory-rotate') {
     m.dir = ((m.dir + 1) % 4) as Dir;
     m.turn = 0;

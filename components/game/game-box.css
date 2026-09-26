@@ -4,7 +4,7 @@
   --h: var(--w);
   --d: calc(var(--w) * 0.24);
   --tilt: -26deg;
-  --lift: 7deg;
+  --lift: 0deg;
   --box-deep: #3a3630;
   --box-mid: #8a7a5a;
   --box-light: #f3ecdc;
@@ -254,16 +254,6 @@
   pointer-events: none;
   background: linear-gradient(180deg, #00000066, transparent 38%);
 }
-.gbox-ribbon {
-  position: absolute;
-  top: -2px;
-  right: 8%;
-  width: 14px;
-  height: 34px;
-  background: linear-gradient(180deg, #d8a84b, #b8862e);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
-  box-shadow: 0 2px 3px #0005;
-}
 /* Interaction: buttons wrapping a box lift it and turn it toward the viewer. */
 .gbox-button {
   display: inline-flex;
@@ -277,7 +267,7 @@
 }
 .gbox-button:hover .gbox-solid,
 .gbox-button:focus-visible .gbox-solid {
-  transform: translateY(-6px) rotateX(calc(var(--lift) - 2deg))
+  transform: translateY(-6px) rotateX(var(--lift))
     rotateY(calc(var(--tilt) + 10deg));
 }
 .gbox-button:hover .gbox-shadow,
@@ -303,10 +293,18 @@
   }
 }
 
-/* Complete printed boxes: the lower face closes the cuboid, with an inset lid seam. */
+/* Printed boxes: an even hairline lid seam. The pose is at eye level, so lid
+   and base stay out of sight; tipped either way they showed as slanted strips
+   a few pixels tall that stair-stepped. They remain to close the box if a
+   pose ever tips. */
 .gbox-face { outline: 1px solid transparent; }
-.gbox-bottom { height: var(--d); transform: translateY(calc(var(--h) - var(--d) / 2)) rotateX(-90deg); background: var(--box-deep); box-shadow: inset 0 0 0 1px #ffffff28; }
-.gbox-front::after { content: ''; position: absolute; inset: 0; border: 1px solid #ffffff35; border-bottom: 4px solid #0005; border-radius: inherit; pointer-events: none; }
+.gbox-bottom {
+  height: var(--d);
+  transform: translateY(calc(var(--h) - var(--d) / 2 - 1px)) rotateX(-90deg);
+  background: color-mix(in srgb, var(--box-deep) 70%, #000);
+  border-radius: 0;
+}
+.gbox-front::after { content: ''; position: absolute; inset: 0; border: 1px solid #ffffff35; border-radius: inherit; pointer-events: none; }
 .gbox-spine-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .gbox-side-title, .gbox-side-motif { position: relative; z-index: 1; opacity: 1; text-shadow: 0 1px 4px #000; }
 .gbox-side-title { font-size: max(9px, calc(var(--d) * .3)); }
@@ -322,3 +320,34 @@
 
 /* Printed title and contrast belong to the art; never tint or relabel it. */
 .gbox.printed-cover .gbox-front::after { background: none; }
+
+/* Sealed boxes hold a shelf's place for games still to come: plain board in
+   the library's own tones, with a pressed lid label and no art or title. */
+.gbox.sealed {
+  --box-deep: color-mix(in srgb, var(--lib-ink, #3a3630) 11%, var(--lib-panel, #f3ecdc));
+  --box-mid: color-mix(in srgb, var(--lib-ink, #3a3630) 5%, var(--lib-panel, #f3ecdc));
+}
+.gbox.sealed .gbox-front {
+  background:
+    radial-gradient(ellipse 120% 90% at 30% 0%, #ffffff30, transparent 60%),
+    var(--box-deep);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--lib-ink, #3a3630) 10%, transparent);
+}
+.gbox.sealed .gbox-side {
+  background:
+    linear-gradient(90deg, #00000030, #00000014 40%, #0000001c),
+    var(--box-deep);
+  box-shadow: none;
+}
+.gbox.sealed .gbox-top {
+  background: linear-gradient(180deg, #ffffff40, #ffffff10), var(--box-mid);
+}
+.gbox.sealed .gbox-front::after { border-color: #ffffff28; }
+.gbox-seal {
+  position: absolute;
+  inset: 30% 24%;
+  border-radius: calc(var(--w) * 0.05);
+  border: 1.5px dashed color-mix(in srgb, var(--lib-ink, #3a3630) 22%, transparent);
+  background: color-mix(in srgb, var(--lib-ink, #3a3630) 4%, transparent);
+}

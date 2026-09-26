@@ -116,7 +116,12 @@ export function TribuVote({
                 )}
               </span>
               <strong>{name}</strong>
-              <span className="vote-count" aria-hidden="true">
+              <span
+                className="vote-count"
+                aria-hidden="true"
+                data-game-motion="change"
+                data-game-motion-key={tally[choice]}
+              >
                 {Array.from({ length: tally[choice] }, (_, i) => (
                   <i key={i} />
                 ))}

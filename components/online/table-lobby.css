@@ -1,19 +1,7 @@
 /* Tables: the Play with friends page, the table lobby and its shelf. They
    sit inside the library shell (.night-library) and share its tokens, bar,
-   sections and boxes, so a table reads as the same warm home. */
-.table-room,
-.friends-page {
-  --lib-bg: #efe9dd;
-  --lib-panel: #f8f4ea;
-  --lib-line: #ddd3c1;
-  --lib-ink: #2f2a24;
-  --lib-ink-2: #6b6255;
-  --lib-ink-3: #948a7a;
-  --lib-brass: #b8924a;
-  --lib-walnut: #6b4a2f;
-  --lib-walnut-2: #7d593a;
-  --lib-live: #4f9a5c;
-}
+   sections and boxes, so a table reads as the same warm home. Colours come
+   from the menu theme (app/menu-theme.css). */
 .room-back {
   display: grid;
   place-items: center;
@@ -30,7 +18,7 @@
   height: 19px;
 }
 .room-back:hover {
-  background: #e9e1d1;
+  background: var(--lib-hover);
 }
 .room-title {
   min-width: 0;
@@ -119,7 +107,7 @@
   height: 52px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff8e6, #e8d6b0);
-  border: 2px solid #fffaf0;
+  border: 2px solid var(--lib-card);
   box-shadow:
     0 2px 0 #cdbb97,
     0 6px 14px #6b4a2f26;
@@ -159,7 +147,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid #fffaf0;
+  border: 2px solid var(--lib-card);
 }
 .room-mark svg {
   width: 12px;
@@ -176,14 +164,14 @@
   color: #f2f8fb;
 }
 
-/* Menus (portalled outside the shell, so colours are spelled out). */
+/* Menus (portalled outside the shell; the theme tokens live on :root). */
 .room-menu {
   width: auto;
   min-width: 200px;
   gap: 2px;
   padding: 6px;
-  background: #fbf8f1;
-  color: #2f2a24;
+  background: var(--lib-panel);
+  color: var(--lib-ink);
   border-radius: 12px;
 }
 .room-menu > button,
@@ -204,7 +192,7 @@
 }
 .room-menu > button:hover:not(:disabled),
 .room-menu > .room-toggle:hover {
-  background: #efe7d8;
+  background: var(--lib-hover);
 }
 .room-menu > button:disabled {
   opacity: 0.45;
@@ -214,33 +202,34 @@
   flex: none;
   width: 17px;
   height: 17px;
-  color: #6b6255;
+  color: var(--lib-ink-2);
 }
 .room-menu .is-danger,
 .room-menu .is-danger svg {
-  color: #a1402a;
+  color: var(--lib-danger);
 }
 .room-toggle input {
   margin-left: auto;
   width: 18px;
   height: 18px;
-  accent-color: #6b4a2f;
+  accent-color: var(--lib-walnut);
 }
 .room-rename {
   display: flex;
   gap: 6px;
   padding: 4px 4px 8px;
   margin-bottom: 4px;
-  border-bottom: 1px solid #e6dccb;
+  border-bottom: 1px solid var(--lib-line);
 }
 .room-rename input {
   flex: 1;
   min-width: 0;
   height: 38px;
   padding: 0 10px;
-  border: 1px solid #ddd3c1;
+  border: 1px solid var(--lib-line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--lib-field);
+  color: var(--lib-ink);
   font: inherit;
 }
 .room-rename button {
@@ -270,7 +259,7 @@
   padding: 0 9px;
   justify-content: center;
   border-radius: 999px;
-  background: #fbf8f1ee;
+  background: color-mix(in srgb, var(--lib-panel) 93%, transparent);
   border: 1px solid var(--lib-line);
   box-shadow: 0 2px 6px #2f2a2426;
   color: var(--lib-ink-2);
@@ -312,7 +301,7 @@
   border: 1px solid var(--lib-line);
   border-radius: 16px;
   background: var(--lib-panel);
-  box-shadow: 0 6px 18px #6b4a2f1a;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--lib-shadow) 10%, transparent);
   color: var(--lib-ink);
   text-decoration: none;
 }
@@ -346,7 +335,7 @@
   gap: 6px;
   padding: 4px 10px 4px 4px;
   border-radius: 999px;
-  background: #f2ecdf;
+  background: var(--lib-panel-2);
   font-size: 13px;
   font-weight: 800;
 }
@@ -359,7 +348,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #6b4a2f;
+  background: var(--lib-walnut);
   color: #fff4dd;
   font:
     700 13px/1 Georgia,
@@ -370,9 +359,9 @@
   gap: 4px;
   margin: 0;
   padding: 4px;
-  border: 1px solid #ddd3c1;
+  border: 1px solid var(--lib-line);
   border-radius: 12px;
-  background: #f2ecdf;
+  background: var(--lib-panel-2);
 }
 .launch-levels label {
   min-width: 76px;
@@ -381,16 +370,16 @@
   text-align: center;
   font-size: 13px;
   font-weight: 800;
-  color: #6b6255;
+  color: var(--lib-ink-2);
   cursor: pointer;
 }
 .launch-levels label:has(:checked) {
-  background: #fffaf0;
-  color: #2f2a24;
+  background: var(--lib-card);
+  color: var(--lib-ink);
   box-shadow: 0 1px 3px #2f2a2426;
 }
 .launch-levels label:has(:focus-visible) {
-  outline: 3px solid #b8924a;
+  outline: 3px solid var(--lib-brass);
 }
 .launch-modal .launch-play {
   width: 100%;
@@ -398,7 +387,7 @@
   height: 48px;
   border: 1px solid #56391f;
   border-radius: 11px;
-  background: linear-gradient(180deg, #7d593a, #6b4a2f);
+  background: linear-gradient(180deg, var(--lib-walnut-2), var(--lib-walnut));
   box-shadow:
     inset 0 1px 0 #ffffff30,
     0 3px 0 #4a3220;
@@ -442,7 +431,7 @@
   padding: 0 14px;
   border: 1px solid var(--lib-line);
   border-radius: 12px;
-  background: #fffdf8;
+  background: var(--lib-field);
   font: inherit;
   font-size: 16px;
   color: var(--lib-ink);
@@ -450,7 +439,7 @@
 .room-join input:focus-visible {
   outline: none;
   border-color: var(--lib-brass);
-  box-shadow: 0 0 0 3px #b8924a33;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lib-brass) 20%, transparent);
 }
 .room-join .lib-friends {
   justify-content: center;
@@ -538,8 +527,8 @@
   cursor: pointer;
 }
 .friends-new {
-  border: 2px dashed #cbb99a;
-  background: #f5efe3;
+  border: 2px dashed color-mix(in srgb, var(--lib-brass) 45%, var(--lib-line));
+  background: color-mix(in srgb, var(--lib-panel) 60%, var(--lib-bg));
   color: var(--lib-walnut);
 }
 .friends-new svg {
@@ -547,17 +536,17 @@
   height: 34px;
 }
 .friends-new:hover:not(:disabled) {
-  background: #efe6d4;
+  background: var(--lib-panel-2);
   border-color: var(--lib-brass);
 }
 .friends-table {
   border: 1px solid var(--lib-line);
   background: var(--lib-panel);
-  box-shadow: 0 6px 18px #6b4a2f14;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--lib-shadow) 8%, transparent);
 }
 .friends-table:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px #6b4a2f22;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--lib-shadow) 14%, transparent);
 }
 .friends-new b,
 .friends-table b {
@@ -655,6 +644,18 @@
 }
 .friends-auth .form-error {
   margin: 0;
+}
+
+/* After hours the cream pieces become walnut ones with brass letters. */
+:root[data-theme='dark'] .room-seat:not(.is-you, .is-empty) .room-avatar {
+  background: radial-gradient(circle at 35% 30%, #4d3f30, #2e261e);
+  box-shadow:
+    0 2px 0 #14110d,
+    0 6px 14px #0000004d;
+  color: var(--lib-brass);
+}
+:root[data-theme='dark'] .friends-new {
+  color: var(--lib-brass);
 }
 
 @media (max-width: 699px) {

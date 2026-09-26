@@ -78,7 +78,7 @@ export function joinTable<T>(invite: string, name: string): Promise<T> {
  *  otherwise home. A removed table sends its link home in turn. */
 export function returnPath() {
   try {
-    return sessionStorage.getItem('gamehub.return-table') ?? '/';
+    return sessionStorage.getItem(`gamehub.return-table.${window.location.pathname}`) ?? '/';
   } catch {
     return '/';
   }

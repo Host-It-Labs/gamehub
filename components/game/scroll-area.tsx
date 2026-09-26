@@ -70,7 +70,8 @@ export function ScrollArea({
       if (fitBoard && board) {
         if (board.dataset.paperWorld) {
           // The scene covers the whole table; the stage is only where gameplay must stay.
-          const tall = board.dataset.paperWorld === 'portrait';
+          const phone = board.dataset.paperWorld === 'phone';
+          const tall = phone || board.dataset.paperWorld === 'portrait';
           const world = board.dataset.world;
           const surface = el.closest<HTMLElement>('.table-layout') ?? el;
           const s = surface.getBoundingClientRect(),
@@ -85,7 +86,11 @@ export function ScrollArea({
           // Candidate variants share one geometry, so the frame needs no variant.
           const layout =
             world && isTableWorldGame(world)
-              ? tableWorldFrame(tableWorldFor(world, tall), size, stage)
+              ? tableWorldFrame(
+                  tableWorldFor(world, tall, undefined, phone),
+                  size,
+                  stage,
+                )
               : paperWorldFrame(
                   paperWorldFor(tall, undefined, (world as PaperWorldId | undefined) ?? 'observatory'),
                   size,

@@ -1,25 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Ticket,
-  Factory,
-  Sparkles,
-  Trash2,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import {
   api,
   ApiError,
   rememberedName,
   rememberName,
 } from '@/lib/online/client';
-import type {
-  ExpeditionSummary,
-  ExpeditionView,
-} from '@/lib/games/relic/types';
+import type { ExpeditionView } from '@/lib/games/relic/types';
 import { RelicScratchSession } from './relic-scratch-session';
-import { DeleteRunDialog, type SavedRun } from './setup-box';
 import './relic.css';
 
 type Session = {
@@ -31,58 +20,55 @@ function message(error: unknown) {
     ? error.message
     : 'Could not reach the scratch desk. Please try again.';
 }
+/**
+ * A Lucky desk link. Desks are opened from the library's box, so this page
+ * only loads the desk, or asks an invited player for a name, over the desk
+ * itself; it never shows a menu page of its own.
+ */
 export default function Relic({ invite }: { invite?: string }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [expeditions, setExpeditions] = useState<ExpeditionSummary[]>([]);
   const [view, setView] = useState<ExpeditionView | null>(null);
   const [name, setName] = useState(rememberedName);
-  const [title, setTitle] = useState('Our scratch desk');
-  const [loading, setLoading] = useState(true);
+  const [invited, setInvited] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [doomed, setDoomed] = useState<SavedRun | null>(null);
   useEffect(() => {
+    // The old hub address leads to the library, where Lucky's box lives.
+    if (!invite) {
+      window.location.replace('/');
+      return;
+    }
     let active = true;
     void (async () => {
       try {
-        const [s, list] = await Promise.all([
-          api<Session>('/api/session'),
-          api<ExpeditionSummary[]>('/api/expeditions'),
-        ]);
+        const s = await api<Session>('/api/session');
         if (!active) return;
         setSession(s);
-        setExpeditions(list);
         setName(s.user?.name ?? s.guest?.name ?? rememberedName());
-        if (invite) {
-          try {
-            const v = await api<ExpeditionView>(`/api/expeditions/${invite}`);
-            if (active) setView(v);
-          } catch (e) {
-            if (!(e instanceof ApiError && [401, 403].includes(e.status)))
-              throw e;
-          }
+        try {
+          const v = await api<ExpeditionView>(`/api/expeditions/${invite}`);
+          if (active) setView(v);
+        } catch (e) {
+          if (!(e instanceof ApiError && [401, 403].includes(e.status)))
+            throw e;
+          if (active) setInvited(true);
         }
       } catch (e) {
         if (active) setError(message(e));
-      } finally {
-        if (active) setLoading(false);
       }
     })();
     return () => {
       active = false;
     };
   }, [invite]);
-  async function enter() {
+  async function join() {
     setBusy(true);
     setError('');
     try {
       rememberName(name.trim());
-      const v = await api<ExpeditionView>(
-        invite ? `/api/expeditions/${invite}/join` : '/api/expeditions',
-        { name, title, world: 'dunes' },
+      setView(
+        await api<ExpeditionView>(`/api/expeditions/${invite}/join`, { name }),
       );
-      if (invite) setView(v);
-      else window.location.assign(`/expedition/${v.token}`);
     } catch (e) {
       setError(message(e));
     } finally {
@@ -90,155 +76,67 @@ export default function Relic({ invite }: { invite?: string }) {
     }
   }
   if (view) return <RelicScratchSession initial={view} />;
+  const known = !!(session?.user || session?.guest);
   return (
-    <main className="relic-hub">
-      <div className="relic-hub-art" aria-hidden="true" />
-      <a className="relic-home-link" href="/">
-        <ArrowLeft size={18} /> Game library
+    <main className="relic-door" aria-busy={!invited && !error}>
+      <picture className="relic-door-art">
+        <source
+          media="(orientation: portrait)"
+          srcSet="/art/relic/scratch-desk-portrait-v1.webp"
+        />
+        <img src="/art/relic/scratch-desk-landscape-v1.webp" alt="" />
+      </picture>
+      <a className="relic-door-back" href="/" aria-label="Game library">
+        <ArrowLeft size={18} />
       </a>
-      <div className="relic-hub-content">
-        <h1>
-          Lucky
-          <span>Scratch puzzle tickets. Build a ticket factory.</span>
-        </h1>
-        <div className="relic-hub-facts">
-          <span>
-            <Ticket size={16} /> 8 ticket books
-          </span>
-          <span>
-            <Factory size={16} /> Your own factory
-          </span>
-          <span>
-            <Sparkles size={16} /> Up to 6 players
-          </span>
+      {invited ? (
+        <form
+          className="relic-door-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void join();
+          }}
+        >
+          <img
+            className="relic-door-cover"
+            src="/art/lucky/ticket-seven-v1-small.webp"
+            alt=""
+          />
+          <h1>Lucky</h1>
+          {!known && (
+            <input
+              required
+              aria-label="Your name"
+              maxLength={30}
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+            />
+          )}
+          <button
+            className="relic-primary"
+            disabled={busy || (!known && !name.trim())}
+          >
+            Join <ArrowRight size={18} />
+          </button>
+          {error && <p role="alert">{error}</p>}
+        </form>
+      ) : error ? (
+        <div className="relic-door-card" role="alert">
+          <p>{error}</p>
+          <button
+            className="relic-primary"
+            onClick={() => window.location.reload()}
+          >
+            Try again
+          </button>
         </div>
-        {loading ? (
-          <output>Opening the scratch desk…</output>
-        ) : (
-          <>
-            {!invite && expeditions.length > 0 && (
-              <section
-                className="relic-expeditions"
-                aria-label="Your saved scratch desks"
-              >
-                <h2>Your desks</h2>
-                {expeditions.map((e) => (
-                  <div key={e.token} className="relic-saved-row">
-                    <a
-                      href={`/expedition/${e.token}`}
-                      className={`relic-saved relic-${e.world}`}
-                    >
-                      <span className="relic-world-dot" />
-                      <span>
-                        <strong>{e.name}</strong>
-                        <small>
-                          {e.members.join(' · ')}
-                          <br />
-                          {e.tickets ?? 0} tickets finished
-                        </small>
-                      </span>
-                      <ArrowRight size={20} />
-                    </a>
-                    <button
-                      type="button"
-                      className="relic-saved-delete"
-                      aria-label={`Delete desk: ${e.name}`}
-                      onClick={() =>
-                        setDoomed({
-                          key: e.token,
-                          href: `/expedition/${e.token}`,
-                          label: e.name,
-                          title: e.name,
-                          detail: `${e.members.join(' · ')} · ${e.tickets ?? 0} tickets`,
-                        })
-                      }
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
-                <DeleteRunDialog
-                  run={doomed}
-                  noun="desk"
-                  onClose={() => setDoomed(null)}
-                  onDelete={async (token) => {
-                    await api(`/api/expeditions/${token}/delete`, {});
-                    setExpeditions((rows) =>
-                      rows.filter((r) => r.token !== token),
-                    );
-                  }}
-                />
-              </section>
-            )}
-            <form
-              className="relic-new-expedition"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void enter();
-              }}
-            >
-              <h2>
-                {invite
-                  ? 'Your scratch desk is waiting'
-                  : expeditions.length
-                    ? 'New desk'
-                    : 'Open your first scratch desk'}
-              </h2>
-              {!session?.user && !session?.guest && (
-                <label>
-                  Your name
-                  <input
-                    required
-                    maxLength={30}
-                    autoComplete="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="What should we call you?"
-                  />
-                </label>
-              )}
-              {!invite && (
-                <>
-                  <label>
-                    Desk name
-                    <input
-                      required
-                      maxLength={40}
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </label>
-                </>
-              )}
-              <button
-                className="relic-primary"
-                disabled={
-                  busy || (!name.trim() && !session?.user && !session?.guest)
-                }
-              >
-                {busy
-                  ? 'Turning the key…'
-                  : invite
-                    ? 'Join the scratch desk'
-                    : 'Let’s play'}
-                <ArrowRight size={18} />
-              </button>
-              {!session?.user && (
-                <p className="relic-fine">
-                  Saved in this browser. <a href="/auth">Sign in</a> to play on
-                  other devices.
-                </p>
-              )}
-            </form>
-          </>
-        )}
-        {error && (
-          <div className="relic-error" role="alert">
-            {error}
-            <button onClick={() => window.location.reload()}>Try again</button>
-          </div>
-        )}
-      </div>
+      ) : (
+        <output className="relic-door-wait" aria-label="Opening the desk">
+          <img src="/art/lucky/ticket-seven-v1-small.webp" alt="" />
+        </output>
+      )}
     </main>
   );
 }

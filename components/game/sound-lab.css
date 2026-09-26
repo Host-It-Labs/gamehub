@@ -1,0 +1,79 @@
+.sound-lab { min-height: 100dvh; color: #392e27; background: radial-gradient(ellipse at 15% 0, #e8dac3, transparent 55%), #f6f1e9; padding: clamp(16px, 3vw, 42px); }
+.sound-lab button, .sound-lab a, .sound-lab input { touch-action: manipulation; }
+.sound-lab button, .sound-lab a { transition: background 160ms, color 160ms, box-shadow 160ms; }
+.sound-lab button:focus-visible, .sound-lab a:focus-visible, .sound-lab input:focus-visible { outline: 3px solid #8669bd; outline-offset: 4px; }
+.sound-lab-header { max-width: 1180px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.sound-lab-header h1 { display: flex; align-items: center; gap: 10px; font-size: clamp(20px, 3vw, 28px); margin: 0; letter-spacing: -.04em; }
+.sound-lab-back { display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 700; }
+.sound-lab-volume { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.sound-lab-volume input { width: 100px; }
+.sound-lab-volume output { min-width: 3ch; }
+.sound-lab input[type='range'] { accent-color: #7a5848; min-height: 32px; cursor: pointer; }
+.sound-lab-games { display: flex; flex-wrap: wrap; gap: 8px; max-width: 1180px; margin: 30px auto; }
+.sound-lab-games button, .sound-lab-options button { padding: 10px 18px; border-radius: 100px; background: #fff9; box-shadow: inset 0 0 0 1px #72554020; min-height: 44px; font-weight: 650; }
+.sound-lab-games button[aria-pressed='true'], .sound-lab-options button[aria-pressed='true'] { background: #48372e; color: #fff7e9; box-shadow: 0 3px 8px #4e342721; }
+.sound-lab-workspace { max-width: 1180px; margin: auto; display: grid; grid-template-columns: minmax(180px, 300px) minmax(0, 1fr); gap: clamp(20px, 4vw, 52px); align-items: start; }
+.sound-lab-cover { position: sticky; top: 25px; }
+.sound-lab-cover img { width: 100%; border-radius: 20px; box-shadow: 0 18px 38px #553a2b29, 0 3px 3px #553a2b1f; }
+.sound-lab-cover p { font-size: 18px; font-weight: 650; margin: 25px 0 4px; text-wrap: balance; }
+.sound-lab-cover > span { font-size: 12px; color: #7b6c61; }
+.sound-lab-desk { min-width: 0; }
+.sound-lab-panel { background: #fffdf8; padding: clamp(18px, 3vw, 28px); border: 1px solid #e5dbcc; border-radius: 22px; box-shadow: 0 8px 25px #64452e09; margin-bottom: 18px; }
+.sound-lab-shared { max-width: 1180px; margin: 24px auto 0; }
+.sound-lab-comparison { display: grid; grid-template-columns: 120px minmax(0, 1fr); align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid #f0e8dc; }
+.sound-lab-comparison h3 { font-size: 15px; margin: 0; }
+.sound-lab-effects.sound-lab-candidates { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+.sound-lab-candidates button { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sound-lab-candidates small { margin-left: auto; }
+.sound-lab-candidates button[data-preferred='true'] { box-shadow: inset 0 0 0 2px #a48649; }
+.sound-lab-current { margin-top: 20px; }
+.sound-lab-archive summary { cursor: pointer; font-size: 15px; font-weight: 650; min-height: 24px; }
+.sound-lab-archive summary:focus-visible { outline: 3px solid #8669bd; outline-offset: 4px; }
+.sound-lab h2 { font-size: 18px; margin: 0; letter-spacing: -.02em; }
+.sound-lab-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 20px; }
+.sound-lab-primary, .sound-lab-save button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; padding: 11px 15px; min-height: 44px; font-weight: 650; }
+.sound-lab-primary { background: #dfe9d5; color: #34492d; white-space: nowrap; }
+.sound-lab-primary[aria-pressed='true'] { background: #364b30; color: white; }
+.sound-lab-options { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.sound-lab-options button { font-size: 13px; padding: 8px 14px; background: #eee8dc; }
+.sound-lab-note { color: #7c7065; font-size: 13px; line-height: 1.5; margin: 16px 0; max-width: 55ch; }
+.sound-lab-layers { padding: 0; margin: 0; list-style: none; }
+.sound-lab-layer { display: grid; grid-template-columns: 38px minmax(90px, 1fr) minmax(80px, 160px); gap: 12px; align-items: center; border-bottom: 1px solid #f0e8dc; padding: 7px 0; }
+.sound-lab-play { height: 36px; width: 36px; display: grid; place-items: center; background: #f0eadf; border-radius: 50%; }
+.sound-lab-play[aria-pressed='true'] { background: #725546; color: white; }
+.sound-lab-layer label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; text-transform: capitalize; }
+.sound-lab-layer small { color: #8a7b6e; font-size: 11px; }
+.sound-lab-layer input { min-width: 0; width: 100%; }
+.sound-lab-spacing { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 15px; font-size: 12px; margin-top: 20px; }
+.sound-lab-spacing input { width: 110px; }
+.sound-lab-spacing output { color: #7c7065; }
+.sound-lab-save { display: flex; gap: 8px; margin-top: 20px; }
+.sound-lab-save button:first-child { background: #e9dfcf; }
+.sound-lab-save button:last-child { color: #827062; font-size: 13px; }
+.sound-lab-effects { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 20px; }
+.sound-lab-effects button { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 13px; background: #f3ebdf; text-align: left; box-shadow: inset 0 -3px 0 #d2c1a65c; }
+.sound-lab-effects button[aria-pressed='true'] { background: #695143; color: white; }
+.sound-lab-effects span { font-size: 13px; font-weight: 650; }
+.sound-lab-effects small { font-size: 11px; opacity: .6; }
+.sound-lab-status { min-height: 22px; font-size: 13px; color: #665449; }
+@media (max-width: 700px) {
+  .sound-lab-comparison { grid-template-columns: 1fr; gap: 10px; }
+  .sound-lab-candidates button { padding: 12px 10px; }
+  .sound-lab-candidates small { width: 100%; margin-left: 0; }
+  .sound-lab-header { flex-wrap: wrap; }
+  .sound-lab-header h1 { order: -1; flex: 1; }
+  .sound-lab-back { order: -2; font-size: 0; }
+  .sound-lab-volume { gap: 4px; }
+  .sound-lab-volume input { width: 70px; }
+  .sound-lab-games { gap: 6px; margin: 20px 0; }
+  .sound-lab-games button { padding: 8px 13px; font-size: 13px; }
+  .sound-lab-workspace { grid-template-columns: 1fr; gap: 18px; }
+  .sound-lab-cover { display: grid; position: static; grid-template-columns: 72px 1fr; gap: 0 18px; align-items: center; }
+  .sound-lab-cover img { grid-row: span 2; border-radius: 12px; }
+  .sound-lab-cover p { font-size: 17px; margin: 0; }
+  .sound-lab-section-heading h2 { font-size: 16px; }
+  .sound-lab-primary { padding: 9px 11px; font-size: 13px; }
+  .sound-lab-layer { grid-template-columns: 36px minmax(90px, 1fr) 95px; gap: 8px; }
+  .sound-lab-effects { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .sound-lab * { transition: none !important; } }

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "shared-pickup-a-v1",
+    "category": "pickup",
+    "option": "a",
+    "label": "A \u00b7 Digital pop",
+    "src": "/audio/elevenlabs/shared-pickup-a-v1.mp3",
+    "duration": 0.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-place-a-v1",
+    "category": "place",
+    "option": "a",
+    "label": "A \u00b7 Bouncy pop",
+    "src": "/audio/elevenlabs/shared-place-a-v1.mp3",
+    "duration": 0.14474,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-turn-a-v1",
+    "category": "turn",
+    "option": "a",
+    "label": "A \u00b7 Rising tones",
+    "src": "/audio/elevenlabs/shared-turn-a-v1.mp3",
+    "duration": 0.50889,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-scores-a-v1",
+    "category": "scores",
+    "option": "a",
+    "label": "A \u00b7 Happy flourish",
+    "src": "/audio/elevenlabs/shared-scores-a-v1.mp3",
+    "duration": 1.02272,
+    "gain": 0.85
+  }
+]

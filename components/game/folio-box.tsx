@@ -51,7 +51,21 @@ const shortDate = (at: number) =>
  * Folio's setup in the library's open-box modal. Starting a run still lands
  * on the run's own page, because a run is a shared, linkable table.
  */
-export function FolioSetupBox({ game }: { game: LibraryGame }) {
+export function FolioSetupBox({
+  game,
+  table,
+}: {
+  game: LibraryGame;
+  table?: {
+    players: string[];
+    disabled: boolean;
+    onLaunch: (choice: {
+      kind: 'folio';
+      difficulty?: Difficulty;
+      token?: string;
+    }) => Promise<void>;
+  };
+}) {
   const [name, setName] = useState(rememberedName),
     [seats, setSeats] = useState(1),
     [difficulty, setDifficulty] = useState<Difficulty>(1),
@@ -71,7 +85,7 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
   const trimmed = name.trim();
   async function enter(body: Record<string, unknown>) {
     if (busy) return;
-    if (!trimmed) {
+    if (!table && !trimmed) {
       setError('Enter your name first.');
       document.getElementById('folio-box-name')?.focus();
       return;
@@ -79,6 +93,15 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
     setBusy(true);
     setError('');
     try {
+      if (table) {
+        await table.onLaunch({
+          kind: 'folio',
+          difficulty,
+          ...(typeof body.token === 'string' ? { token: body.token } : {}),
+        });
+        setBusy(false);
+        return;
+      }
       const v = await api<FolioView>('/api/folio', { ...body, name: trimmed });
       rememberName(trimmed);
       window.location.assign(`/folio/${v.token}`);
@@ -92,17 +115,19 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
     <SetupShell game={game} className="online-box folio-box">
       <SetupIntro game={game} />
       <div className="setup-options">
-        <SetupRow label="Your name" className="setup-name">
-          <input
-            id="folio-box-name"
-            aria-label="Your name"
-            maxLength={30}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            placeholder="How the crew will see you"
-          />
-        </SetupRow>
+        {!table && (
+          <SetupRow label="Your name" className="setup-name">
+            <input
+              id="folio-box-name"
+              aria-label="Your name"
+              maxLength={30}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              placeholder="How the crew will see you"
+            />
+          </SetupRow>
+        )}
         {practice ? (
           <SetupRow label="Practise" className="folio-box-practice">
             <ul>
@@ -117,7 +142,7 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
                   </span>
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || table?.disabled}
                     aria-label={`Play ${PUZZLES[kind].name}`}
                     onClick={() =>
                       void enter({ practice: { kind, boss: false } })
@@ -127,7 +152,7 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
                   </button>
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || table?.disabled}
                     title={PUZZLES[kind].boss.rules}
                     aria-label={`${PUZZLES[kind].name} boss: ${PUZZLES[kind].boss.name}`}
                     onClick={() =>
@@ -143,16 +168,20 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
         ) : (
           <>
             <SetupRow label="Players" Icon={Users}>
-              <Segmented
-                label="Players"
-                className="seg-count"
-                value={seats}
-                onChange={setSeats}
-                options={[1, 2, 3].map((n) => ({
-                  value: n,
-                  label: <b>{n === 1 ? 'Solo' : n}</b>,
-                }))}
-              />
+              {table ? (
+                <span>{table.players.join(' · ')}</span>
+              ) : (
+                <Segmented
+                  label="Players"
+                  className="seg-count"
+                  value={seats}
+                  onChange={setSeats}
+                  options={[1, 2, 3].map((n) => ({
+                    value: n,
+                    label: <b>{n === 1 ? 'Solo' : n}</b>,
+                  }))}
+                />
+              )}
             </SetupRow>
             <SetupRow
               label="Difficulty"
@@ -189,21 +218,25 @@ export function FolioSetupBox({ game }: { game: LibraryGame }) {
         </p>
       )}
       <div className="setup-actions">
-        <LearnButton
-          label={practice ? 'Back' : 'Practise'}
-          Icon={Dumbbell}
-          expanded={practice}
-          onClick={() => setPractice((v) => !v)}
-        />
+        {!table && (
+          <LearnButton
+            label={practice ? 'Back' : 'Practise'}
+            Icon={Dumbbell}
+            expanded={practice}
+            onClick={() => setPractice((v) => !v)}
+          />
+        )}
         {!practice && (
           <>
             <PlayButton
-              disabled={busy}
+              disabled={busy || table?.disabled}
               onClick={() => void enter({ seats, difficulty })}
             >
               New run
             </PlayButton>
             <RunPicker
+              disabled={busy || table?.disabled}
+              onContinue={table ? (token) => void enter({ token }) : undefined}
               runs={active.map((s) => ({
                 key: s.token,
                 href: `/folio/${s.token}`,

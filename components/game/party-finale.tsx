@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { Crown } from 'lucide-react';
 import type { Outcome } from '@/lib/games/standalone/types';
 import { CountUp, stagger } from './reveal-motion';
+import { WinnerCelebration } from './results-feedback';
+import { viewerWon } from '@/lib/games/results-feedback';
 import './party-finale.css';
 
 const STEP = 260;
@@ -13,9 +15,11 @@ const STEP = 260;
  * motion. */
 export function PartyFinale({
   result,
+  viewerSeat,
   children,
 }: {
   result: Outcome;
+  viewerSeat?: number | null;
   /** The next-game vote, or Play again and Library. */
   children: ReactNode;
 }) {
@@ -25,7 +29,8 @@ export function PartyFinale({
   const delay = (i: number) => (rows.length - 1 - i) * STEP;
   const crowned = rows.length * STEP;
   return (
-    <section className="party-finale is-animated">
+    <section className="party-finale is-animated results-surface">
+      <WinnerCelebration won={viewerWon(viewerSeat, result.winners)} />
       <div
         className="finale-crown reveal-pop reveal-burst"
         style={stagger(0, crowned)}

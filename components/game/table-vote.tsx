@@ -74,7 +74,12 @@ export function RoundVotePanel({
     >
       <strong>{label}</strong>
       <small>{detail}</small>
-      <span className="vote-count" aria-label={`${count} votes`}>
+      <span
+        className="vote-count"
+        aria-label={`${count} votes`}
+        data-game-motion="change"
+        data-game-motion-key={count}
+      >
         {Array.from({ length: count }, (_, i) => (
           <i key={i} />
         ))}

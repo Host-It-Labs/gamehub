@@ -50,7 +50,10 @@ import {
   advancePractice,
   practice,
 } from '@/lib/games/adventures/lessons';
-import { adventureCue } from '@/lib/games/adventures/sound';
+import { gameSound } from '@/lib/games/game-sound';
+import { useGameMotion } from './game-motion';
+import { useGameSound } from './use-game-sound';
+import { useResultsFeedback } from './results-feedback';
 import {
   Dialog,
   DialogContent,
@@ -67,7 +70,7 @@ type Props = {
   onNew?: () => void;
   onSound?: () => void;
   volume: number;
-  viewerSeat?: number;
+  viewerSeat?: number | null;
   online?: boolean;
   disabled?: boolean;
   onMove?: (m: AnyMove) => void;
@@ -104,6 +107,23 @@ function awaitingAction(g: AnyGame, seat: number) {
     !g.guesses[guessSlot(g, seat)]?.locked
   );
 }
+/** Only observed choices can trigger feedback: hidden opponents' answers never
+ * enter this signature, and unchanged polling snapshots stay silent. */
+function choiceKey(g: AnyGame, seat: number) {
+  if (g.phase === 'vote') return JSON.stringify(g.vote?.choices);
+  if (g.kind === 'orin')
+    return JSON.stringify([g.ballots[seat]?.topic, g.offers[seat]]);
+  if (g.kind === 'dial') return JSON.stringify(g.card);
+  return '';
+}
+function moveKey(g: AnyGame, seat: number) {
+  if (g.phase === 'vote') return '';
+  if (g.kind === 'orin')
+    return JSON.stringify([g.ballots[seat], g.guesses[guessSlot(g, seat)]]);
+  if (g.kind === 'dial') return JSON.stringify([g.clue, g.guesses[seat]]);
+  if (g.kind === 'size') return JSON.stringify(g.guesses[seat]);
+  return JSON.stringify([g.guesses[seat], g.choices[g.teams[seat]]]);
+}
 export function StandaloneTable({
   g,
   onChange,
@@ -111,7 +131,7 @@ export function StandaloneTable({
   onNew,
   onSound,
   volume,
-  viewerSeat = 0,
+  viewerSeat: providedViewerSeat = 0,
   online = false,
   disabled = false,
   onMove,
@@ -125,17 +145,39 @@ export function StandaloneTable({
   viewerId,
   onNextGame,
 }: Props) {
+  const viewerSeat = providedViewerSeat ?? 0;
   const [panel, setPanel] = useState<'menu' | 'rules' | null>(null);
   const badges = useRef<HTMLElement>(null);
   useBadgeFit(badges);
   const entry = standaloneGames[g.kind],
     view = online ? g : observe(g, viewerSeat);
-  const oldPhase = useRef(g.phase);
+  const root = useRef<HTMLDivElement>(null);
+  const phase = `${g.kind}:${g.round}:${g.phase}:${g.over}:${g.kind === 'miro' ? `${g.challenge}:${g.turn}` : g.kind === 'size' ? g.step : g.target}`;
+  useGameMotion(root, phase);
+  useGameSound(g.kind, volume);
+  const choice = choiceKey(view, viewerSeat);
+  const move = moveKey(view, viewerSeat);
+  const actionable =
+    providedViewerSeat !== null &&
+    !disabled &&
+    entry.actingSeats(view).includes(viewerSeat);
+  const feedback = useRef({ phase, choice, move, actionable });
   useEffect(() => {
-    if (oldPhase.current !== g.phase)
-      adventureCue(g.kind, g.phase === 'reveal' ? 'win' : 'move', volume);
-    oldPhase.current = g.phase;
-  }, [g.kind, g.phase, volume]);
+    const previous = feedback.current;
+    feedback.current = { phase, choice, move, actionable };
+    // Final scores own their cue. Only a real local decision earns a turn alert.
+    if (g.over || providedViewerSeat === null) return;
+    if (actionable && (!previous.actionable || previous.phase !== phase))
+      gameSound(g.kind, 'turn', volume);
+    else if (previous.phase !== phase)
+      gameSound(
+        g.kind,
+        g.phase === 'reveal' ? 'reveal' : 'move',
+        volume,
+      );
+    else if (previous.choice !== choice) gameSound(g.kind, 'select', volume);
+    else if (previous.move !== move) gameSound(g.kind, 'move', volume);
+  }, [choice, move, phase, actionable, providedViewerSeat, g.kind, g.phase, g.over, volume]);
   function commit(m: AnyMove) {
     if (disabled) return;
     if (online) onMove?.(m);
@@ -167,6 +209,7 @@ export function StandaloneTable({
     return () => clearTimeout(timer);
   }, [g, online, onChange]);
   const result = g.over ? entry.outcome(g) : null;
+  useResultsFeedback(g.kind, g.over, !!result, volume);
   const tribu = g.tribu ? seatTotals(g) : null;
   function begin() {
     if (online) onBegin?.();
@@ -184,13 +227,11 @@ export function StandaloneTable({
   }
   function lesson(step: number) {
     if (online) onLesson?.(step);
-    else
-      onChange?.(
-        practice(g.kind, g.seats.length, g.difficulty, step),
-      );
+    else onChange?.(practice(g.kind, g.seats.length, g.difficulty, step));
   }
   return (
     <div
+      ref={root}
       className={`party-table party-${g.kind} mode-${g.mode} ${setOf(g.kind) === 'orin' ? 'is-tribu' : 'is-sabi'} ${g.tutorial ? 'is-practice' : ''} ${view.kind === 'dial' || (view.kind === 'orin' && (view.phase !== 'rank' || view.ballots[viewerSeat])) ? 'has-list' : ''}`}
     >
       <GameNavigation
@@ -220,7 +261,10 @@ export function StandaloneTable({
                 {name}
                 {s === viewerSeat ? ' · you' : ''}
               </b>
-              <small>
+              <small
+                data-game-motion="change"
+                data-game-motion-key={tribu ? tribu[s] : g.scores[g.teams[s]]}
+              >
                 {tribu
                   ? `${(g.kind === 'orin' || g.kind === 'miro') && g.mode === 'teams' ? `${groupName(g, g.teams[s])} · ` : ''}${Number(tribu[s].toFixed(2))} pts`
                   : `${groupName(g, g.teams[s])} · ${Number(g.scores[g.teams[s]].toFixed(2))} pts`}
@@ -228,6 +272,10 @@ export function StandaloneTable({
             </span>
             <output
               className="party-action-status"
+              data-game-motion="change"
+              data-game-motion-key={
+                awaitingAction(view, s) ? 'choosing' : 'ready'
+              }
               aria-label={awaitingAction(view, s) ? 'Choosing' : 'Ready'}
             >
               {awaitingAction(view, s) ? (
@@ -239,9 +287,9 @@ export function StandaloneTable({
           </div>
         ))}
       </header>
-      <main className="party-main">
+      <main className="party-main" data-game-motion="stage">
         {result ? (
-          <PartyFinale result={result}>
+          <PartyFinale result={result} viewerSeat={providedViewerSeat}>
             {nextVote && viewerId && onNextGame ? (
               <NextGameVote
                 vote={nextVote}
@@ -347,9 +395,7 @@ export function StandaloneTable({
           <DialogTitle>
             {panel === 'menu' ? entry.name : 'How to play'}
           </DialogTitle>
-          <DialogDescription>
-            {entry.progress(g).detail}
-          </DialogDescription>
+          <DialogDescription>{entry.progress(g).detail}</DialogDescription>
           {panel === 'menu' && (
             <div className="party-menu">
               <button onClick={() => setPanel('rules')}>
@@ -461,6 +507,7 @@ function RankingTable({
             <div
               key={id}
               className={`topic-option ${topic?.id === id ? 'chosen' : ''}`}
+              data-game-motion="piece"
             >
               <button
                 className={`topic-card ${topic?.id === id ? 'chosen' : ''}`}
@@ -516,7 +563,11 @@ function RankingTable({
         </div>
       )}
       {topic && (
-        <div className="tier-paper">
+        <div
+          className="tier-paper"
+          data-game-motion="piece"
+          data-game-motion-key={topic.id}
+        >
           <div className="tier-paper-heading">
             <h3>{topic.title}</h3>
             {canGuess && g.mode === 'teams' && guessSlot(g, viewer) < 2 && (
@@ -556,7 +607,12 @@ function RankingTable({
           )}
         </div>
       )}
-      <div className="party-dock" aria-live="polite">
+      <div
+        className="party-dock"
+        aria-live="polite"
+        data-game-motion="change"
+        data-game-motion-key={`${g.phase}:${locked}`}
+      >
         {((g.phase === 'rank' && ballot) || (canGuess && cap === viewer)) &&
           (locked ? (
             <button

@@ -114,6 +114,7 @@ export function Piece({
     <>
       <div
         className={`piece-wrap ${offset ? 'is-dragging' : ''}`}
+        data-game-motion={cardId === undefined ? undefined : 'piece'}
         data-card-id={cardId}
         data-coach={coachId}
         style={{

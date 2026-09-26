@@ -1,0 +1,38 @@
+[
+  {
+    "id": "shared-pickup-b-v1",
+    "category": "pickup",
+    "option": "b",
+    "label": "Bright wood tick",
+    "src": "/audio/elevenlabs/shared-pickup-b-v1.mp3",
+    "duration": 0.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-place-b-v1",
+    "category": "place",
+    "option": "b",
+    "label": "Warm wooden tok",
+    "src": "/audio/elevenlabs/shared-place-b-v1.mp3",
+    "duration": 0.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-turn-b-v1",
+    "category": "turn",
+    "option": "b",
+    "label": "Marimba invitation",
+    "src": "/audio/elevenlabs/shared-turn-b-v1.mp3",
+    "duration": 0.8,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-scores-b-v1",
+    "category": "scores",
+    "option": "b",
+    "label": "Marimba flourish",
+    "src": "/audio/elevenlabs/shared-scores-b-v1.mp3",
+    "duration": 1.28,
+    "gain": 0.85
+  }
+]

@@ -1,23 +1,23 @@
 'use client';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
-import { BookOpen, Play, ThumbsUp, Users } from 'lucide-react';
+import { BookOpen, Play, ThumbsUp } from 'lucide-react';
 import { isStandaloneId } from '@/lib/games/standalone/registry';
 import { lessons } from '@/lib/games/trio/lessons';
-import { LEVEL_NAMES } from '@/lib/games/folio/catalog';
+import { FolioSetupBox } from '../game/folio-box';
+import { RelicSetupBox } from '../game/relic-box';
 import type { ShelfGameId, Table, TableCommand } from '@/lib/online/types';
 import type { GameId } from '@/lib/games/trio/engine';
-import { GameBox } from '../game/game-box';
 import {
   gameByLibraryId,
-  librarySections,
-  playerRange,
   realGames,
   standaloneLibraryGames,
+  tableSections,
   type LibraryGame,
 } from '@/lib/games/library-fixtures';
+import { ShelfRow, ShelfTile } from '../game/library';
 import { SetupBox, StandaloneSetupBox } from '../game/setup-box';
-import { Dialog, DialogContent, DialogTitle } from '../ui/dialog';
-import { useState, type CSSProperties } from 'react';
+import { Dialog, DialogContent } from '../ui/dialog';
+import { useState } from 'react';
 import '../game/library.css';
 import './table-lobby.css';
 
@@ -27,7 +27,7 @@ type Props = {
   error?: string;
   dispatch: (action: TableCommand) => Promise<boolean>;
 };
-export type Launch = { kind: 'folio' | 'relic'; difficulty?: 1 | 2 | 3 };
+export type Launch = { kind: 'folio' | 'relic'; difficulty?: 1 | 2 | 3; token?: string; title?: string };
 
 /** Folio and Relic run in their own rooms; the rest are set up at the table. */
 const ownRoom = (id: string): id is 'folio' | 'relic' =>
@@ -75,7 +75,7 @@ export function LobbyGames({
       void dispatch({ type: 'start', learning });
   };
   const anyLeader = people.some((m) => m.nextHost);
-  const sections = librarySections.map((section) => ({
+  const sections = tableSections.map((section) => ({
     ...section,
     entries: section.games
       .map((id) => gameByLibraryId(id))
@@ -91,61 +91,42 @@ export function LobbyGames({
     <section className="lobby-library" aria-label="Games">
       <div className="lib-sections">
         {sections.map((section) => (
-          <section
-            className="lib-section"
+          <ShelfRow
             key={section.id}
-            aria-labelledby={`lobby-${section.id}`}
-            style={{ '--n': section.entries.length } as CSSProperties}
+            id={`lobby-${section.id}`}
+            title={section.title}
+            count={section.entries.length}
           >
-            <h2 id={`lobby-${section.id}`} className="lib-section-title">
-              {section.title}
-            </h2>
-            <ul className="lib-grid">
-              {section.entries.map((box) => {
-                const id = (box.gameId ??
-                  box.standaloneId ??
-                  box.id) as ShelfGameId;
-                const voters = table.votes?.[id] ?? [];
-                const voted = voters.includes(table.viewerId);
-                const fits = people.length <= box.players[1];
-                const names = voters
-                  .map((v) => table.members.find((m) => m.id === v)?.name)
-                  .filter(Boolean);
-                return (
-                  <li
-                    className={`lib-tile lobby-tile ${fits ? '' : 'is-full'} ${voted ? 'is-voted' : ''}`}
-                    key={box.id}
-                  >
-                    <button
-                      type="button"
-                      className="gbox-button lib-tile-button"
-                      disabled={disabled || (table.isHost && !fits)}
-                      aria-pressed={table.isHost ? undefined : voted}
-                      aria-label={`${table.isHost ? 'Set up' : voted ? 'Unsuggest' : 'Suggest'} ${box.name}, ${playerRange(box.players)} players${names.length ? `. Suggested by ${names.join(', ')}` : ''}`}
-                      onClick={() => open(box)}
-                    >
-                      <GameBox
-                        game={box}
-                        width={150}
-                        sizes="(max-width: 700px) 34vw, 400px"
-                      />
-                      <span className="lib-tile-name">{box.name}</span>
-                      <span className="lib-tile-meta">
-                        <Users aria-hidden="true" />
-                        {playerRange(box.players)}
-                      </span>
-                      {(voters.length > 0 || !table.isHost) && (
-                        <span className="lobby-votes" aria-hidden="true">
-                          <ThumbsUp />
-                          {voters.length > 0 && <b>{voters.length}</b>}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+            {section.entries.map((box) => {
+              const id = (box.gameId ??
+                box.standaloneId ??
+                box.id) as ShelfGameId;
+              const voters = table.votes?.[id] ?? [];
+              const voted = voters.includes(table.viewerId);
+              const fits = people.length <= box.players[1];
+              const names = voters
+                .map((v) => table.members.find((m) => m.id === v)?.name)
+                .filter(Boolean);
+              return (
+                <ShelfTile
+                  key={box.id}
+                  game={box}
+                  className={`lobby-tile ${fits ? '' : 'is-full'} ${voted ? 'is-voted' : ''}`}
+                  disabled={disabled || (table.isHost && !fits)}
+                  pressed={table.isHost ? undefined : voted}
+                  label={`${table.isHost ? 'Set up' : voted ? 'Unsuggest' : 'Suggest'}${names.length ? `. Suggested by ${names.join(', ')}` : ''}`}
+                  onOpen={open}
+                >
+                  {(voters.length > 0 || !table.isHost) && (
+                    <span className="lobby-votes" aria-hidden="true">
+                      <ThumbsUp />
+                      {voters.length > 0 && <b>{voters.length}</b>}
+                    </span>
+                  )}
+                </ShelfTile>
+              );
+            })}
+          </ShelfRow>
         ))}
       </div>
       {table.setupOpen && dismissed && (
@@ -289,70 +270,14 @@ function LaunchDialog({
   onClose: () => void;
   onLaunch: (launch: Launch) => Promise<void>;
 }) {
-  const [difficulty, setDifficulty] = useState<1 | 2 | 3>(1);
-  const [busy, setBusy] = useState(false);
-  const people = table.members.filter((m) => !m.bot);
-  const folio = box?.id === 'folio';
+  const players = table.members.filter((m) => !m.bot).map((m) => m.name);
+  const options = { players, disabled, onLaunch };
   return (
     <Dialog open={!!box} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="modal launch-modal">
-        {box && (
-          <>
-            <DialogTitle className="sr-only">{box.name}</DialogTitle>
-            <GameBox game={box} width={170} sizes="200px" />
-            <ul className="launch-players" aria-label="Players">
-              {people.map((m) => (
-                <li key={m.id} className={m.connected ? '' : 'away'}>
-                  <span aria-hidden="true">
-                    {m.name.trim().charAt(0).toUpperCase() || '?'}
-                  </span>
-                  {m.name}
-                </li>
-              ))}
-            </ul>
-            {folio && (
-              <fieldset className="launch-levels">
-                <legend className="sr-only">Difficulty</legend>
-                {([1, 2, 3] as const).map((level) => (
-                  <label key={level}>
-                    <input
-                      type="radio"
-                      name="folio-level"
-                      className="sr-only"
-                      checked={difficulty === level}
-                      onChange={() => setDifficulty(level)}
-                    />
-                    {LEVEL_NAMES[level]}
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            {error && (
-              <p className="online-notice" role="alert">
-                {error}
-              </p>
-            )}
-            <button
-              className="lib-friends launch-play"
-              data-starts-game
-              disabled={disabled || busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await onLaunch({
-                    kind: folio ? 'folio' : 'relic',
-                    ...(folio ? { difficulty } : {}),
-                  });
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <Play aria-hidden="true" />
-              Play
-            </button>
-          </>
-        )}
+      <DialogContent className="modal setup-modal">
+        {error && <p className="online-notice" role="alert">{error}</p>}
+        {box?.id === 'folio' && <FolioSetupBox game={box} table={options} />}
+        {box?.id === 'relic' && <RelicSetupBox game={box} table={options} />}
       </DialogContent>
     </Dialog>
   );

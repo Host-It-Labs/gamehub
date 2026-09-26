@@ -1,5 +1,10 @@
 'use client';
 import { GameProgress } from '../game/game-progress';
+import { useGameMotion } from '../game/game-motion';
+import { useGameSound } from '../game/use-game-sound';
+import { useResultsFeedback, WinnerCelebration } from '../game/results-feedback';
+import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
+import { CountUp, stagger } from '../game/reveal-motion';
 import { totalRounds } from '@/lib/games/trio/engine';
 import { dropTargetNear } from '../game/drag-preview';
 import { FullscreenControl, useFullscreen } from '../game/fullscreen-control';
@@ -63,6 +68,8 @@ export function OnlineMatch({
   send: (move: Move) => Promise<boolean>;
   onHome: () => void;
 }) {
+  const motionRoot = useRef<HTMLElement>(null);
+  useGameMotion(motionRoot, `${g.id}:${g.round}:${g.phase}`);
   const [selected, setSelected] = useState<number | null>(null),
     [preparedZone, setPreparedZone] = useState<number | null>(null),
     [passed, setPassed] = useState<number[]>([]),
@@ -82,6 +89,7 @@ export function OnlineMatch({
         return 0.5;
       }
     });
+  useGameSound(g.id, volume);
   const scope = preparationKey(g, viewer);
   const [preparationScope, setPreparationScope] = useState(scope);
   // A new packet invalidates only local choices; keep the table, die and dialogs mounted.
@@ -127,7 +135,7 @@ export function OnlineMatch({
         : undefined;
   const world = environment !== undefined;
   const [ambience] = useState(readAmbienceLevel);
-  useAmbience(g.phase === 'over' ? null : g.id, volume, ambienceEnabled ? ambience : 0, g.contentSet);
+  useAmbience(g.phase === 'over' ? null : g.id, 1, ambienceEnabled ? ambience : 0, g.contentSet);
   const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
@@ -202,7 +210,7 @@ export function OnlineMatch({
       const at = before === null ? ids.length : ids.indexOf(before);
       ids.splice(at < 0 ? ids.length : at, 0, c.id);
       setOrder(ids);
-      cue('drop', volume);
+      cue('drop', volume, 0, g.id);
       return;
     }
     const elements = document.elementsFromPoint(x, y),
@@ -270,8 +278,10 @@ export function OnlineMatch({
   }
   const sc = scores(g),
     winning = g.id === 'undertow' ? Math.min(...sc) : Math.max(...sc);
+  useResultsFeedback(g.id, g.phase === 'over', g.phase === 'over', volume);
   return (
     <main
+      ref={motionRoot}
       className={`table-layout ${g.id} ${world ? 'world-table' : ''}`}
       data-game={g.id}
       data-environment={environment}
@@ -300,7 +310,7 @@ export function OnlineMatch({
           onRules={() => setPanel('rules')}
           onCounts={() => setPanel('reference')}
           onScores={() => setPanel('log')}
-          soundLabel={volume ? 'Mute sound' : 'Unmute sound'}
+          soundLabel={volume ? 'Mute sound effects' : 'Unmute sound effects'}
           onSound={() => {
             const next = volume ? 0 : 0.5;
             setVolume(next);
@@ -356,7 +366,7 @@ export function OnlineMatch({
             />
           </ScrollArea>
 
-          <div className="hand-controls">
+          <div className="hand-controls" data-game-motion="stage">
             <div className="hand-abilities">
               {g.id !== 'midnight' && <DieControl g={g} viewer={viewer} />}
               <ExtensionControls
@@ -441,10 +451,13 @@ export function OnlineMatch({
             onTap={tap}
             onDrop={drop}
             onDragSelect={setSelected}
-            onLift={() => cue('pickup', volume)}
+            onLift={() => cue('pickup', volume, 0, g.id)}
           />
           {g.phase === 'over' && (
-            <div className="online-card">
+            <div className="online-card results-surface" data-game-motion="result">
+              <WinnerCelebration
+                won={viewerWon(viewer, winningSeats(sc, g.id === 'undertow'))}
+              />
               <h2>
                 {g.players
                   .filter((_, i) => sc[i] === winning)
@@ -455,8 +468,8 @@ export function OnlineMatch({
                   : 'wins'}
               </h2>
               {g.players.map((p, i) => (
-                <p key={i}>
-                  {p.name}: {sc[i]}{' '}
+                <p className="reveal-rise" style={stagger(i, 0, 70)} key={i}>
+                  {p.name}: <CountUp value={sc[i]} duration={600} delay={i * 70} />{' '}
                   {g.id === 'undertow' ? 'penalty points' : 'points'}
                 </p>
               ))}

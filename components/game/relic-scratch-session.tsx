@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, requestId, returnPath } from '@/lib/online/client';
 import type { ActionResult, RelicAction } from '@/lib/games/relic/engine';
 import type { ExpeditionView } from '@/lib/games/relic/types';
+import { useRoomTable } from '../online/room-table';
 import { RelicScratch } from './relic-scratch';
 export function RelicScratchSession({ initial }: { initial: ExpeditionView }) {
   const [view, setView] = useState(initial),
@@ -88,8 +89,10 @@ export function RelicScratchSession({ initial }: { initial: ExpeditionView }) {
     },
     [accept, path],
   );
+  const room = useRoomTable((path) => { void chain.current.then(() => window.location.assign(path)); });
   return (
     <RelicScratch
+      room={room}
       view={view}
       busy={busy}
       error={error}

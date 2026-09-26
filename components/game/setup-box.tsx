@@ -303,8 +303,12 @@ export function RunPicker({
   runs,
   noun = 'run',
   onDelete,
+  onContinue,
+  disabled = false,
 }: {
   runs: SavedRun[];
+  onContinue?: (key: string) => void;
+  disabled?: boolean;
   noun?: string;
   /** Deletes a run from the viewer's list; a confirmation comes first. */
   onDelete?: (key: string) => Promise<void>;
@@ -362,7 +366,7 @@ export function RunPicker({
     const [run] = runs;
     return (
       <div className="run-picker single">
-        <a className="resume-strip" href={run.href} aria-label={run.label}>
+        <a className="resume-strip" href={run.href} aria-label={run.label} aria-disabled={disabled} onClick={(e) => { if (onContinue || disabled) e.preventDefault(); if (!disabled) onContinue?.(run.key); }}>
           <span className="resume-copy">
             <strong>Continue</strong>
             <small>{run.title}</small>
@@ -395,7 +399,7 @@ export function RunPicker({
         <ul className="run-list" id={listId} aria-label={`Your ${noun}s`}>
           {runs.map((run) => (
             <li key={run.key}>
-              <a href={run.href} aria-label={run.label}>
+              <a href={run.href} aria-label={run.label} aria-disabled={disabled} onClick={(e) => { if (onContinue || disabled) e.preventDefault(); if (!disabled) onContinue?.(run.key); }}>
                 {run.icon && (
                   <span className="run-icon" aria-hidden="true">
                     {run.icon}
@@ -506,8 +510,8 @@ export function PlaceholderBox({ game }: { game: LibraryGame }) {
   return (
     <SetupShell game={game}>
       <DialogDescription className="setup-intro">
-        {game.world}. {game.genre} for {playerRange(game.players)} players,
-        about {game.minutes} minutes.
+        {game.world}. {game.genre} for {playerRange(game.players)} players,{' '}
+        {game.durationSpoken.toLowerCase()}.
       </DialogDescription>
       <p className="setup-soon">
         This box is not on the shelf yet. It stands in for a future game so the

@@ -190,6 +190,7 @@ export function MoveConfirmation({
     return canAct(g, viewer) ? (
       <div
         className="hand-confirmation salvage-decision"
+        data-game-motion="stage"
         aria-label="Secret Salvage decision"
       >
         <button
@@ -228,7 +229,7 @@ export function MoveConfirmation({
   )
     return null;
   return (
-    <div className="hand-confirmation" aria-label="Confirm prepared move">
+    <div className="hand-confirmation" data-game-motion="stage" aria-label="Confirm prepared move">
       <button
         className="primary confirm-action"
         disabled={disabled || !choice || !validMove(g, choice, viewer)}

@@ -1,0 +1,234 @@
+{
+  "date": "2026-09-26",
+  "family": "b",
+  "direction": "Cheerful clean marimba and woodblock: rounded pitched wooden notes, playful and restrained.",
+  "purpose": "Sound Lab alternatives for user selection; not applied to gameplay.",
+  "provider": "ElevenLabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationsPerCategory": 1,
+  "sourceReference": "Text-only; no prior image or audio reference.",
+  "notes": [
+    "Exactly one successful take per category. No regeneration or fallback source.",
+    "Full generated envelopes retained at their natural durations; no EQ, pitch shift or compositing.",
+    "Normalized to decoded MP3 peak around -12 dBFS for audible lab comparison. Gain 0.85 is a preview setting.",
+    "Decode, peak, RMS, envelope and hash checks are automated; subjective listening and user preference remain to be verified."
+  ],
+  "clips": [
+    {
+      "id": "shared-pickup-b-v1",
+      "category": "pickup",
+      "option": "b",
+      "label": "Bright wood tick",
+      "src": "/audio/elevenlabs/shared-pickup-b-v1.mp3",
+      "duration": 0.48,
+      "gain": 0.85,
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-pickup-b-v1.mp3",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "One cheerful high marimba wood tick for picking up a game piece, about half a second. A single clean rounded wooden note, crisp friendly attack, light and playful, short natural resonance. Dry studio close-up, clear pitched musical wood. Only one hit, then quiet. No gritty foley, voice, piano, wobble, whoosh, hiss, bass thump, dark atmosphere or long reverb.",
+      "parameters": {
+        "duration_seconds": 0.5,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "generation": {
+        "flowId": "5sHi2bhakGCdn7GkyCyJ",
+        "nodeId": "3BQc0oaXPK2bwGEOmlCw",
+        "generationId": "SmNQlvCTOfGWcnrZfZ2O"
+      },
+      "sourceValidation": {
+        "durationSeconds": 0.48,
+        "peakDbFS": -21.059,
+        "rmsDbFS": -35.459,
+        "sha256": "238d509a8e5cfcda95b0a412106a2d7a9597df084349ff9e21125a1770a40f65",
+        "bytes": 25657,
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "afade=t=in:d=0.0007,afade=t=out:st=0.468000:d=0.012,volume=9.516926dB",
+        "gainAdjustmentDb": 9.516926,
+        "targetPeakDbFS": -12,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0,
+        "attackFadeSeconds": 0.0007,
+        "releaseFadeSeconds": 0.012,
+        "equalization": "none",
+        "envelopeReview": {
+          "firstActiveTimeSeconds": 0.0,
+          "lastActiveTimeSeconds": 0.479977,
+          "retainedSourceDurationPercent": 100,
+          "note": "Full takes retained; sub-millisecond opening fade and 12ms quiet-tail fade remove edge discontinuities without cropping notes."
+        }
+      },
+      "validation": {
+        "durationSeconds": 0.48,
+        "peakDbFS": -11.979,
+        "rmsDbFS": -26.398,
+        "sha256": "45d808374b43f0f1620afd71d074baf1c12662f753d9d4f71e494176cd1f319e",
+        "bytes": 11015,
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-place-b-v1",
+      "category": "place",
+      "option": "b",
+      "label": "Warm wooden tok",
+      "src": "/audio/elevenlabs/shared-place-b-v1.mp3",
+      "duration": 0.48,
+      "gain": 0.85,
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-place-b-v1.mp3",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "One satisfying warm lower marimba woodblock tok for placing a game piece, about half a second. A single clean rounded wooden note with a small springy musical resonance, friendly and playful, slightly lower than a pickup tick. Dry studio close-up. Only one hit, then quiet. No gritty foley, voice, piano, wobble, whoosh, hiss, bass boom, dark atmosphere or long reverb.",
+      "parameters": {
+        "duration_seconds": 0.5,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "generation": {
+        "flowId": "5sHi2bhakGCdn7GkyCyJ",
+        "nodeId": "ff8mKkVeuihvUqZniTUM",
+        "generationId": "5YRsi3mH1EHreGsizydx"
+      },
+      "sourceValidation": {
+        "durationSeconds": 0.48,
+        "peakDbFS": -25.341,
+        "rmsDbFS": -39.39,
+        "sha256": "f99bd851fe3fa86d28921ec9660bf79d3958b6066582c7956d40adbbb5b5fef0",
+        "bytes": 25657,
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "afade=t=in:d=0.0007,afade=t=out:st=0.468000:d=0.012,volume=13.823956dB",
+        "gainAdjustmentDb": 13.823956,
+        "targetPeakDbFS": -12,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0,
+        "attackFadeSeconds": 0.0007,
+        "releaseFadeSeconds": 0.012,
+        "equalization": "none",
+        "envelopeReview": {
+          "firstActiveTimeSeconds": 0.0,
+          "lastActiveTimeSeconds": 0.479977,
+          "retainedSourceDurationPercent": 100,
+          "note": "Full takes retained; sub-millisecond opening fade and 12ms quiet-tail fade remove edge discontinuities without cropping notes."
+        }
+      },
+      "validation": {
+        "durationSeconds": 0.48,
+        "peakDbFS": -11.952,
+        "rmsDbFS": -26.019,
+        "sha256": "d1b9e1b163a37ce8a9dd6eb79177675970634f62d1cf2eab952f157fe6738478",
+        "bytes": 11015,
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-turn-b-v1",
+      "category": "turn",
+      "option": "b",
+      "label": "Marimba invitation",
+      "src": "/audio/elevenlabs/shared-turn-b-v1.mp3",
+      "duration": 0.8,
+      "gain": 0.85,
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-turn-b-v1.mp3",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "Exactly two cheerful rising marimba notes, E5 then G5, a friendly invitation that it is your turn in a game. Lasts 0.8 seconds total. Clean rounded musical wood tone, lightly bouncy clear attacks and short natural decays, dry close studio sound. Playful, warm and confident, comfortably audible. No background, voices, piano, gritty foley, wobble, noise, whoosh, bass thump or long reverb.",
+      "parameters": {
+        "duration_seconds": 0.8,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "generation": {
+        "flowId": "5sHi2bhakGCdn7GkyCyJ",
+        "nodeId": "LHW48Ve0dwWcpXbE19BA",
+        "generationId": "Fi1Tei2M8YK3rzFcM4kg"
+      },
+      "sourceValidation": {
+        "durationSeconds": 0.8,
+        "peakDbFS": -0.064,
+        "rmsDbFS": -9.751,
+        "sha256": "e447b224ef8fd73d0fd39380c5452cff50d6bc48bae49d4f3473bf2ef128ee7d",
+        "bytes": 30672,
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "afade=t=in:d=0.0007,afade=t=out:st=0.788000:d=0.012,volume=-11.548899dB",
+        "gainAdjustmentDb": -11.548899,
+        "targetPeakDbFS": -12,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0,
+        "attackFadeSeconds": 0.0007,
+        "releaseFadeSeconds": 0.012,
+        "equalization": "none",
+        "envelopeReview": {
+          "firstActiveTimeSeconds": 0.0,
+          "lastActiveTimeSeconds": 0.799977,
+          "retainedSourceDurationPercent": 100,
+          "note": "Full takes retained; sub-millisecond opening fade and 12ms quiet-tail fade remove edge discontinuities without cropping notes."
+        }
+      },
+      "validation": {
+        "durationSeconds": 0.8,
+        "peakDbFS": -12.001,
+        "rmsDbFS": -21.746,
+        "sha256": "0752374a4c2f68afd782c6d885040227a6b04b6f2f4846a4b5f6c8a912cc6813",
+        "bytes": 17284,
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-scores-b-v1",
+      "category": "scores",
+      "option": "b",
+      "label": "Marimba flourish",
+      "src": "/audio/elevenlabs/shared-scores-b-v1.mp3",
+      "duration": 1.28,
+      "gain": 0.85,
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-scores-b-v1.mp3",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "A bright friendly four-note marimba flourish, C5 E5 G5 C6, warmly resolving in C major for a game's final scores. Exactly four rounded musical wood notes over 1.3 seconds, lightly bouncy timing, clean crisp attacks and short natural resonance. Playful and satisfying, restrained celebratory energy, dry studio close-up. No voice, piano, gritty foley, wobble, noise, cinematic boom, drums, fanfare or long reverb.",
+      "parameters": {
+        "duration_seconds": 1.3,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "generation": {
+        "flowId": "5sHi2bhakGCdn7GkyCyJ",
+        "nodeId": "AoV7o7Fs1AIWmQbrpkFC",
+        "generationId": "32EAa0C3upwoYTu2ne9T"
+      },
+      "sourceValidation": {
+        "durationSeconds": 1.28,
+        "peakDbFS": -13.301,
+        "rmsDbFS": -34.075,
+        "sha256": "4434a0f591747d8b7bec865a1efe543bdaa4ae2633299a6c3e4753d4fb5c3365",
+        "bytes": 38195,
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "afade=t=in:d=0.0007,afade=t=out:st=1.268000:d=0.012,volume=1.751300dB",
+        "gainAdjustmentDb": 1.7513,
+        "targetPeakDbFS": -12,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0,
+        "attackFadeSeconds": 0.0007,
+        "releaseFadeSeconds": 0.012,
+        "equalization": "none",
+        "envelopeReview": {
+          "firstActiveTimeSeconds": 0.0,
+          "lastActiveTimeSeconds": 1.279977,
+          "retainedSourceDurationPercent": 100,
+          "note": "Full takes retained; sub-millisecond opening fade and 12ms quiet-tail fade remove edge discontinuities without cropping notes."
+        }
+      },
+      "validation": {
+        "durationSeconds": 1.28,
+        "peakDbFS": -12.001,
+        "rmsDbFS": -32.806,
+        "sha256": "e8c9b1a4db76284d49dc15d029aef88d0dcc18877f8d7d3c5439a7df8a105fca",
+        "bytes": 26688,
+        "decodes": true
+      }
+    }
+  ]
+}

@@ -36,14 +36,13 @@ export type Level = {
   rows: number;
   /** Mistakes allowed before the ticket ends (Lucky Seven: misses). */
   lives: number;
-  /** Sevens, numbers, bands, dynamite, spare givens: one count per book. */
+  /** Sevens, twin numbers, Garden numbers, the Ladder deck, dynamite, spare
+   * givens: one count per book. */
   count: number;
-  /** Twins: how far a twin may be; Garden: hedges; Sun & Moon: signs. */
+  /** Garden: hedges; Sun & Moon: signs. */
   extra?: number;
   /** Sea Chart fleets. */
   ships?: number[];
-  /** Ladder: steps for a perfect climb. */
-  goal?: number;
 };
 export const LEVEL_MULT = [1, 2, 4] as const;
 /** Tickets finished in a book before its next level opens. */
@@ -58,9 +57,9 @@ export const BOOKS = [
     color: '#c8363a',
     hint: 'Arrows point to the 7',
     levels: [
-      { cols: 3, rows: 3, lives: 3, count: 1 },
       { cols: 4, rows: 4, lives: 4, count: 1 },
       { cols: 5, rows: 5, lives: 5, count: 2 },
+      { cols: 6, rows: 5, lives: 5, count: 3 },
     ],
   },
   {
@@ -70,11 +69,11 @@ export const BOOKS = [
     value: 5,
     price: 4_000,
     color: '#6d58b0',
-    hint: 'Arrows point to each twin',
+    hint: 'Pair each seal with its twin',
     levels: [
-      { cols: 4, rows: 3, lives: 3, count: 0, extra: 1 },
-      { cols: 4, rows: 4, lives: 3, count: 0, extra: 2 },
-      { cols: 5, rows: 4, lives: 2, count: 0, extra: 4 },
+      { cols: 5, rows: 4, lives: 3, count: 3 },
+      { cols: 6, rows: 4, lives: 2, count: 3 },
+      { cols: 6, rows: 4, lives: 2, count: 2 },
     ],
   },
   {
@@ -86,9 +85,9 @@ export const BOOKS = [
     color: '#4f8a4b',
     hint: 'One path through every seal',
     levels: [
-      { cols: 3, rows: 3, lives: 1, count: 3 },
-      { cols: 4, rows: 4, lives: 1, count: 4 },
-      { cols: 5, rows: 5, lives: 1, count: 5, extra: 5 },
+      { cols: 4, rows: 4, lives: 2, count: 4, extra: 2 },
+      { cols: 5, rows: 5, lives: 2, count: 5, extra: 4 },
+      { cols: 6, rows: 6, lives: 1, count: 6, extra: 6 },
     ],
   },
   {
@@ -98,11 +97,11 @@ export const BOOKS = [
     value: 125,
     price: 80_000_000,
     color: '#e0702c',
-    hint: 'Always higher',
+    hint: 'Higher or lower?',
     levels: [
-      { cols: 2, rows: 4, lives: 1, count: 4, goal: 4 },
-      { cols: 3, rows: 4, lives: 1, count: 4, goal: 6 },
-      { cols: 3, rows: 5, lives: 1, count: 3, goal: 6 },
+      { cols: 3, rows: 6, lives: 3, count: 9 },
+      { cols: 3, rows: 8, lives: 3, count: 12 },
+      { cols: 3, rows: 10, lives: 2, count: 15 },
     ],
   },
   {
@@ -114,9 +113,9 @@ export const BOOKS = [
     color: '#9a6a36',
     hint: 'Numbers count the dynamite',
     levels: [
-      { cols: 4, rows: 4, lives: 1, count: 2 },
       { cols: 5, rows: 5, lives: 1, count: 4 },
       { cols: 6, rows: 6, lives: 1, count: 7 },
+      { cols: 7, rows: 7, lives: 1, count: 11 },
     ],
   },
   {
@@ -124,12 +123,12 @@ export const BOOKS = [
     name: 'Sun & Moon',
     mechanic: 'sunmoon',
     value: 3_125,
-    price: 1_500_000_000_000,
+    price: 3_000_000_000_000,
     color: '#2e4f93',
     hint: 'Scratch only the moons',
     levels: [
-      { cols: 4, rows: 4, lives: 3, count: 3 },
-      { cols: 6, rows: 6, lives: 2, count: 3 },
+      { cols: 6, rows: 6, lives: 3, count: 4 },
+      { cols: 6, rows: 6, lives: 2, count: 1, extra: 3 },
       { cols: 6, rows: 6, lives: 2, count: 0, extra: 8 },
     ],
   },
@@ -138,13 +137,13 @@ export const BOOKS = [
     name: 'Sea Chart',
     mechanic: 'chart',
     value: 15_625,
-    price: 400_000_000_000_000,
+    price: 3_000_000_000_000_000,
     color: '#2f7a86',
     hint: 'Edge numbers count the ships',
     levels: [
-      { cols: 5, rows: 5, lives: 5, count: 0, ships: [3, 2, 2] },
-      { cols: 6, rows: 6, lives: 5, count: 0, ships: [4, 3, 2, 2] },
-      { cols: 6, rows: 6, lives: 4, count: 0, ships: [3, 3, 2, 2, 1, 1] },
+      { cols: 6, rows: 6, lives: 4, count: 0, ships: [3, 2, 2, 1] },
+      { cols: 6, rows: 6, lives: 4, count: 0, ships: [4, 3, 2, 2, 1] },
+      { cols: 7, rows: 7, lives: 4, count: 0, ships: [4, 3, 3, 2, 2, 1, 1] },
     ],
   },
   {
@@ -152,13 +151,13 @@ export const BOOKS = [
     name: 'Crown Jewels',
     mechanic: 'crown',
     value: 78_125,
-    price: 4_000_000_000_000_000,
+    price: 150_000_000_000_000_000,
     color: '#a32638',
     hint: 'One crown per row, column and colour',
     levels: [
-      { cols: 5, rows: 5, lives: 3, count: 0 },
       { cols: 6, rows: 6, lives: 3, count: 0 },
       { cols: 7, rows: 7, lives: 2, count: 0 },
+      { cols: 8, rows: 8, lives: 2, count: 0 },
     ],
   },
 ] as const satisfies readonly {
@@ -183,13 +182,20 @@ export type Cell = {
   picked?: boolean;
   /** Counts toward the payout. */
   paid?: boolean;
-  /** Printed without foil (Sun & Moon givens, the mine entrance). */
+  /** Printed without foil (Sun & Moon givens, the mine entrance, helpers). */
   given?: boolean;
-  /** Ladder value, dynamite count, or the Garden checkpoint printed on foil. */
+  /** Scratched by the ticket itself: Lucky Seven's spare scratches. */
+  auto?: boolean;
+  /** A golden seal pays ten times its prize. */
+  gold?: boolean;
+  /** Dynamite marked by the metal detector: it cannot be scratched. */
+  flag?: boolean;
+  /** Ladder card, twin number, dynamite count, Garden checkpoint, or how far
+   * the nearest seven is. */
   n?: number;
-  /** 0–7 clockwise from east: printed toward a twin, found toward a seven. */
+  /** 0–7 clockwise from east: toward the nearest seven once found. */
   dir?: number;
-  /** Twin pair, ladder band, crown region. */
+  /** Twin pair, ladder column (0 higher, 1 card, 2 lower), crown region. */
   group?: number;
 };
 export type ScratchTicket = {
@@ -203,11 +209,16 @@ export type ScratchTicket = {
   sequence: number;
   lives: number;
   mistakes: number;
-  /** Garden: last seal on the path; Ladder: last number; Twins: open seal. */
+  /** Garden: last seal on the path; Ladder: last card; Twins: open seal. */
   last: number;
   /** Garden: next checkpoint number. */
   next: number;
+  /** Garden: seals on the path; Ladder: rungs climbed. */
   steps: number;
+  /** Lucky Seven: misses also say how far the nearest seven is. */
+  hot?: boolean;
+  /** Ladder: wrong guesses still forgiven by the safety rope. */
+  rope?: number;
   /** Sink bonuses and other prize units on top of the seals. */
   bonus: number;
   /** Garden hedges between cells, as a*64+b with a < b. */
@@ -223,6 +234,13 @@ export type ScratchTicket = {
   star: boolean;
   claimed: boolean;
   payout: number;
+  /** What the ticket cost; 0 for a free one. */
+  cost?: number;
+  /** When it was bought, for the quick-hands bonus. */
+  bornAt?: number;
+  /** The payout's extras, shown when it pays. */
+  quick?: boolean;
+  refund?: number;
   lastAt: number;
 };
 export const MASK_SIDE = 8;
@@ -329,27 +347,55 @@ function sevens(l: Level, r: Rand) {
     return blank(face, prize);
   });
 }
-/** Pairs twins along straight lines no further than `reach`. */
+/** Counts the ways (up to `limit`) to split the grid into side-by-side
+ * pairs of equal numbers. `mate` receives the first one found. */
+export function twinSolutions(
+  cols: number,
+  rows: number,
+  numbers: number[],
+  limit = 2,
+  fixed: number[] = [],
+  out?: number[],
+) {
+  const mate = Array<number>(cols * rows).fill(-1);
+  fixed.forEach((b, a) => {
+    if (b >= 0) mate[a] = b;
+  });
+  let found = 0;
+  const walk = () => {
+    if (found >= limit) return;
+    const a = mate.indexOf(-1);
+    if (a < 0) {
+      if (!found && out) mate.forEach((b, i) => (out[i] = b));
+      found++;
+      return;
+    }
+    for (const b of neighbours(cols, rows, a))
+      if (mate[b] < 0 && numbers[b] === numbers[a]) {
+        mate[a] = b;
+        mate[b] = a;
+        walk();
+        mate[a] = mate[b] = -1;
+      }
+  };
+  walk();
+  return found;
+}
+/** Twins: the grid splits into side-by-side pairs, each pair printed with
+ * the same number. With only a few numbers most seals have more than one
+ * possible twin, but the whole ticket splits exactly one way. */
 function twins(l: Level, r: Rand) {
-  const n = l.cols * l.rows,
-    reach = l.extra ?? 1;
-  for (let attempt = 0; attempt < 200; attempt++) {
+  const n = l.cols * l.rows;
+  let best: { numbers: number[]; mate: number[]; open: number } | null = null;
+  for (let attempt = 0; attempt < 400; attempt++) {
     const mate = Array<number>(n).fill(-1);
     const fill = (): boolean => {
       const a = mate.indexOf(-1);
       if (a < 0) return true;
-      const options: number[] = [];
-      const x = a % l.cols,
-        y = Math.floor(a / l.cols);
-      for (const [dx, dy] of DIR8)
-        for (let k = 1; k <= reach; k++) {
-          const nx = x + dx * k,
-            ny = y + dy * k;
-          if (nx < 0 || ny < 0 || nx >= l.cols || ny >= l.rows) break;
-          const b = ny * l.cols + nx;
-          if (mate[b] < 0 && b !== a) options.push(b);
-        }
-      for (const b of shuffle(options, r)) {
+      for (const b of shuffle(
+        neighbours(l.cols, l.rows, a).filter((b) => mate[b] < 0),
+        r,
+      )) {
         mate[a] = b;
         mate[b] = a;
         if (fill()) return true;
@@ -358,23 +404,30 @@ function twins(l: Level, r: Rand) {
       return false;
     };
     if (!fill()) continue;
-    const faces = shuffle([...TWIN_FACES], r),
-      cells: Cell[] = [];
-    let group = 0;
-    const groups = Array<number>(n).fill(-1);
+    const numbers = Array<number>(n).fill(0);
     for (let i = 0; i < n; i++)
-      if (groups[i] < 0) groups[i] = groups[mate[i]] = group++;
-    for (let i = 0; i < n; i++) {
-      const [face, prize] = faces[groups[i] % faces.length];
-      cells.push({
-        ...blank(face, prize),
-        group: groups[i],
-        dir: dirTo(l.cols, i, mate[i]),
-      });
-    }
-    return cells;
+      if (!numbers[i])
+        numbers[i] = numbers[mate[i]] = 1 + Math.floor(r() * l.count);
+    if (twinSolutions(l.cols, l.rows, numbers) !== 1) continue;
+    // Prefer tickets where many seals have more than one candidate twin.
+    const open = numbers.filter(
+      (v, i) =>
+        neighbours(l.cols, l.rows, i).filter((j) => numbers[j] === v).length >
+        1,
+    ).length;
+    if (!best || open > best.open) best = { numbers, mate, open };
+    if (open >= n * 0.45) break;
   }
-  throw new Error('Could not print a Twins ticket.');
+  if (!best) throw new Error('Could not print a Twins ticket.');
+  const faces = shuffle([...TWIN_FACES], r),
+    groups = Array<number>(n).fill(-1);
+  let group = 0;
+  for (let i = 0; i < n; i++)
+    if (groups[i] < 0) groups[i] = groups[best.mate[i]] = group++;
+  return best.numbers.map((v, i) => {
+    const [face, prize] = faces[groups[i] % faces.length];
+    return { ...blank(face, prize), group: groups[i], n: v };
+  });
 }
 /** A random Hamiltonian path by backbite moves on a serpentine start. */
 export function randomPath(cols: number, rows: number, r: Rand) {
@@ -415,18 +468,34 @@ function garden(l: Level, r: Rand) {
       if (i < j && !used.has(edge(i, j))) free.push(edge(i, j));
   return { cells, walls: shuffle(free, r).slice(0, l.extra ?? 0) };
 }
+/** Ladder: a column of cards from a small deck, bottom to top. The start
+ * card is printed; on every rung scratch ▲ if the next card is higher or ▼
+ * if it is lower. Rungs higher up pay more. */
 function ladder(l: Level, r: Rand) {
-  const n = l.cols * l.rows,
-    values = shuffle(
-      [...Array(n).keys()].map((i) => i + 1),
-      r,
-    ),
-    band = n / l.count;
-  return values.map((v) => ({
-    ...blank('number'),
-    n: v,
-    group: Math.floor((v - 1) / band),
-  }));
+  const deck = shuffle(
+    [...Array(l.count).keys()].map((i) => i + 1),
+    r,
+  );
+  const cells: Cell[] = [];
+  for (let row = 0; row < l.rows; row++) {
+    const rung = l.rows - 1 - row,
+      card = deck[rung];
+    for (let col = 0; col < 3; col++) {
+      const c: Cell = {
+        ...blank('number', col === 1 ? 0 : rung),
+        n: card,
+        group: col,
+      };
+      if (!rung) {
+        c.given = true;
+        c.revealed = true;
+        c.prize = 0;
+        c.mask = '1'.repeat(MASK_SIDE ** 2);
+      }
+      cells.push(c);
+    }
+  }
+  return cells;
 }
 function mine(l: Level, r: Rand) {
   const n = l.cols * l.rows,
@@ -587,15 +656,23 @@ function chart(l: Level, r: Rand) {
   }
   throw new Error('Could not print a Sea Chart ticket.');
 }
-/** Counts Crown Jewels answers (up to `limit`) for a region map. */
-export function crownSolutions(size: number, regions: number[], limit = 2) {
+/** Counts Crown Jewels answers (up to `limit`) for a region map; `out`
+ * receives each answer as the crown's column in every row. */
+export function crownSolutions(
+  size: number,
+  regions: number[],
+  limit = 2,
+  out?: number[][],
+) {
   let found = 0;
   const cols = new Set<number>(),
-    used = new Set<number>();
+    used = new Set<number>(),
+    picked: number[] = [];
   const walk = (y: number, prev: number) => {
     if (found >= limit) return;
     if (y === size) {
       found++;
+      out?.push([...picked]);
       return;
     }
     for (let x = 0; x < size; x++) {
@@ -604,7 +681,9 @@ export function crownSolutions(size: number, regions: number[], limit = 2) {
         continue;
       cols.add(x);
       used.add(g);
+      picked.push(x);
       walk(y + 1, x);
+      picked.pop();
       cols.delete(x);
       used.delete(g);
     }
@@ -612,11 +691,25 @@ export function crownSolutions(size: number, regions: number[], limit = 2) {
   walk(0, -9);
   return found;
 }
+/** Whether a region stays in one piece without the cell `gone`. */
+function connected(size: number, regions: number[], g: number, gone: number) {
+  const cells = regions.flatMap((v, i) => (v === g && i !== gone ? [i] : []));
+  if (!cells.length) return false;
+  const seen = new Set([cells[0]]),
+    stack = [cells[0]];
+  while (stack.length)
+    for (const j of neighbours(size, size, stack.pop()!))
+      if (j !== gone && regions[j] === g && !seen.has(j)) {
+        seen.add(j);
+        stack.push(j);
+      }
+  return seen.size === cells.length;
+}
 function crown(l: Level, r: Rand) {
   const size = l.cols,
     n = size * size;
   let best: { regions: number[]; queens: number[] } | null = null;
-  for (let attempt = 0; attempt < 400; attempt++) {
+  for (let attempt = 0; attempt < 60 && !best; attempt++) {
     const queens: number[] = [];
     const place = (y: number): boolean => {
       if (y === size) return true;
@@ -642,9 +735,33 @@ function crown(l: Level, r: Rand) {
       regions[i] = g;
       left--;
     }
-    best = { regions, queens: queens.map((x, y) => y * size + x) };
-    if (crownSolutions(size, regions) === 1) break;
+    // While another answer exists, hand one of its crowns' cells to a
+    // neighbouring region; the planted answer always survives.
+    for (let repair = 0; repair < 200; repair++) {
+      const answers: number[][] = [];
+      crownSolutions(size, regions, 2, answers);
+      const other = answers.find((a) => a.some((x, y) => x !== queens[y]));
+      if (!other) {
+        best = { regions, queens: queens.map((x, y) => y * size + x) };
+        break;
+      }
+      const moves: [number, number][] = [];
+      other.forEach((x, y) => {
+        const c = y * size + x;
+        if (x === queens[y]) return;
+        for (const j of neighbours(size, size, c))
+          if (
+            regions[j] !== regions[c] &&
+            connected(size, regions, regions[c], c)
+          )
+            moves.push([c, regions[j]]);
+      });
+      if (!moves.length) break;
+      const [c, g] = pick(moves, r);
+      regions[c] = g;
+    }
   }
+  if (!best) throw new Error('Could not print a Crown Jewels ticket.');
   const cells = Array.from({ length: n }, (_, i) => ({
     ...(best!.queens.includes(i) ? blank('crown', 6) : blank('blank')),
     group: best!.regions[i],
@@ -652,16 +769,36 @@ function crown(l: Level, r: Rand) {
   return cells;
 }
 
+/** What the desk's upgrades add to a freshly printed ticket. */
+export type PrintOptions = {
+  /** Extra mistakes allowed. */
+  lives?: number;
+  /** Chance that one prize seal is golden (×10). */
+  gold?: number;
+  /** Rank of this book's helper upgrade. */
+  helper?: number;
+};
+const open = (c: Cell) => {
+  c.revealed = true;
+  c.mask = '1'.repeat(MASK_SIDE ** 2);
+};
 export function printTicket(
   id: number,
   pack: PackId,
   level: number,
   r: Rand,
-  lives: number,
+  options: PrintOptions | number,
   now: number,
 ): ScratchTicket {
+  const o = typeof options === 'number' ? { lives: options } : options,
+    helper = o.helper ?? 0;
   const book = bookFor(pack),
-    l = levelFor(pack, level);
+    base = levelFor(pack, level);
+  // Helpers that print a clearer puzzle: more Garden numbers, more givens.
+  const l =
+    book.mechanic === 'path' || book.mechanic === 'sunmoon'
+      ? { ...base, count: base.count + helper }
+      : base;
   const t: ScratchTicket = {
     id,
     pack,
@@ -671,7 +808,7 @@ export function printTicket(
     cells: [],
     order: [],
     sequence: 0,
-    lives: l.lives + lives,
+    lives: l.lives + (o.lives ?? 0),
     mistakes: 0,
     last: -1,
     next: 1,
@@ -682,11 +819,13 @@ export function printTicket(
     star: false,
     claimed: false,
     payout: 0,
+    bornAt: now,
     lastAt: now,
   };
   switch (book.mechanic) {
     case 'seven':
       t.cells = sevens(l, r);
+      if (helper) t.hot = true;
       break;
     case 'twins':
       t.cells = twins(l, r);
@@ -699,7 +838,8 @@ export function printTicket(
     }
     case 'ladder':
       t.cells = ladder(l, r);
-      t.last = 0;
+      t.last = t.cells.at(-2)!.n!;
+      if (helper) t.rope = helper;
       break;
     case 'mine':
       t.cells = mine(l, r);
@@ -722,24 +862,68 @@ export function printTicket(
       t.cells = crown(l, r);
       break;
   }
+  // Helpers that open part of the answer: a pair, a flag, a ship or a crown.
+  const hidden = (test: (c: Cell) => boolean) =>
+    shuffle(
+      t.cells.flatMap((c, i) => (!c.revealed && test(c) ? [i] : [])),
+      r,
+    );
+  const mechanic = book.mechanic;
+  for (let k = 0; k < helper; k++) {
+    if (mechanic === 'twins') {
+      const a = hidden(() => true)[0];
+      if (a === undefined) break;
+      for (const c of t.cells.filter((c) => c.group === t.cells[a].group)) {
+        open(c);
+        c.given = c.paid = true;
+      }
+    } else if (mechanic === 'mine') {
+      const at = hidden((c) => c.face === 'dynamite' && !c.flag)[0];
+      if (at !== undefined) t.cells[at].flag = true;
+    } else if (mechanic === 'chart' || mechanic === 'crown') {
+      const at = hidden((c) => c.face === 'ship' || c.face === 'crown')[0];
+      if (at === undefined) break;
+      open(t.cells[at]);
+      t.cells[at].given = t.cells[at].paid = true;
+      const ship = t.ships?.find((s) => s.includes(at));
+      if (ship?.every((i) => t.cells[i].revealed)) t.bonus += ship.length * 2;
+    }
+  }
+  if (o.gold && r() < o.gold) {
+    const at = hidden((c) => c.prize > 0 && c.face !== 'number')[0];
+    if (at !== undefined) t.cells[at].gold = true;
+  }
   return t;
 }
-
 // ---- Rules ---------------------------------------------------------------
 
 const mechanicOf = (t: ScratchTicket) => bookFor(t.pack).mechanic;
+const chebyshev = (cols: number, a: number, b: number) =>
+  Math.max(
+    Math.abs((a % cols) - (b % cols)),
+    Math.abs(Math.floor(a / cols) - Math.floor(b / cols)),
+  );
 function nearestSeven(t: ScratchTicket, from: number) {
   let best = -1,
     distance = Infinity;
   t.cells.forEach((c, i) => {
     if (c.face !== 'seven' || c.revealed) return;
-    const d = Math.max(
-      Math.abs((i % t.cols) - (from % t.cols)),
-      Math.abs(Math.floor(i / t.cols) - Math.floor(from / t.cols)),
-    );
+    const d = chebyshev(t.cols, i, from);
     if (d < distance) [best, distance] = [i, d];
   });
   return best;
+}
+/** Ladder: the row of the rung being played, counted from the top. */
+export function ladderRow(t: ScratchTicket) {
+  return t.rows - 2 - t.steps;
+}
+/** Seals that cannot be scratched yet: Ladder cards and rungs above the one
+ * being played, and dynamite marked by the metal detector. */
+export function sealLocked(t: ScratchTicket, i: number) {
+  const cell = t.cells[i];
+  if (cell.flag) return true;
+  if (mechanicOf(t) !== 'ladder') return false;
+  return cell.group === 1 || Math.floor(i / t.cols) !== ladderRow(t);
 }
 /** Whether stepping from `a` to `b` is a legal Garden move. */
 export function pathStep(t: ScratchTicket, a: number, b: number) {
@@ -751,35 +935,68 @@ export function pathStep(t: ScratchTicket, a: number, b: number) {
     neighbours(t.cols, t.rows, a).includes(b) && !t.walls?.includes(edge(a, b))
   );
 }
+/** The same small generator on server and browser, seeded by the ticket. */
+function ticketRandom(t: ScratchTicket) {
+  let seed = (t.id * 2654435761 + t.order.length * 40503) >>> 0;
+  return () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
 /** Opens one seal and applies the book's rule. */
 export function openSeal(t: ScratchTicket, index: number) {
   const cell = t.cells[index];
-  if (t.ended || !cell || cell.revealed) return false;
+  if (t.ended || !cell || cell.revealed || sealLocked(t, index)) return false;
   const step = mechanicOf(t) === 'path' && pathStep(t, t.last, index);
-  cell.revealed = true;
+  open(cell);
   cell.picked = true;
-  cell.mask = '1'.repeat(MASK_SIDE ** 2);
   t.order.push(index);
   const miss = () => {
-    t.mistakes++;
+    if (t.rope) t.rope--;
+    else t.mistakes++;
   };
   switch (mechanicOf(t)) {
     case 'seven': {
       cell.paid = true;
       if (cell.face !== 'seven') {
         const to = nearestSeven(t, index);
-        if (to >= 0) cell.dir = dirTo(t.cols, index, to);
+        if (to >= 0) {
+          cell.dir = dirTo(t.cols, index, to);
+          if (t.hot) cell.n = chebyshev(t.cols, index, to);
+        }
         miss();
+      } else if (nearestSeven(t, index) < 0) {
+        // Every seven is found: the misses left scratch themselves.
+        const r = ticketRandom(t);
+        for (let left = t.lives - t.mistakes; left > 0; left--) {
+          const hidden = t.cells.flatMap((c, i) => (c.revealed ? [] : [i]));
+          if (!hidden.length) break;
+          const at = pick(hidden, r),
+            c = t.cells[at];
+          open(c);
+          c.picked = c.paid = c.auto = true;
+          t.order.push(at);
+        }
       }
       break;
     }
     case 'twins': {
-      const open = t.last >= 0 ? t.cells[t.last] : null;
-      if (!open) t.last = index;
-      else {
-        if (open.group === cell.group) open.paid = cell.paid = true;
-        else miss();
+      const mateOf = (i: number) =>
+        t.cells.findIndex((c, j) => j !== i && c.group === t.cells[i].group);
+      const lose = (i: number) => {
+        // A seal whose twin is spent shows what it hid and pays nothing.
+        const other = t.cells[mateOf(i)];
+        if (other && !other.revealed) open(other);
+      };
+      if (t.last < 0) {
+        if (t.cells[mateOf(index)]?.revealed) break;
+        t.last = index;
+      } else if (mateOf(t.last) === index) {
+        t.cells[t.last].paid = cell.paid = true;
         t.last = -1;
+      } else {
+        miss();
+        lose(index);
       }
       break;
     }
@@ -791,14 +1008,17 @@ export function openSeal(t: ScratchTicket, index: number) {
         t.steps++;
       } else miss();
       break;
-    case 'ladder':
-      if ((cell.n ?? 0) > t.last) {
-        t.last = cell.n ?? 0;
-        t.steps++;
-        cell.prize = t.steps;
-        cell.paid = true;
-      } else miss();
+    case 'ladder': {
+      const row = Math.floor(index / t.cols) * t.cols,
+        card = cell.n ?? 0,
+        right = cell.group === 0 ? card > t.last : card < t.last;
+      for (let k = 0; k < 3; k++) open(t.cells[row + k]);
+      if (right) cell.paid = true;
+      else miss();
+      t.last = card;
+      t.steps++;
       break;
+    }
     case 'mine':
       if (cell.face === 'dynamite') miss();
       else {
@@ -811,8 +1031,8 @@ export function openSeal(t: ScratchTicket, index: number) {
           for (const j of neighbours(t.cols, t.rows, at, true)) {
             const c = t.cells[j];
             if (c.revealed || c.face === 'dynamite') continue;
-            c.revealed = c.picked = c.paid = true;
-            c.mask = '1'.repeat(MASK_SIDE ** 2);
+            open(c);
+            c.picked = c.paid = true;
             t.order.push(j);
             flood.push(j);
           }
@@ -842,12 +1062,13 @@ export function settled(t: ScratchTicket) {
   if (!hidden.length) return true;
   switch (mechanicOf(t)) {
     case 'seven':
+      return !hidden.some((c) => c.face === 'seven');
     case 'twins':
       return false;
     case 'path':
       return !t.cells.some((_, i) => pathStep(t, t.last, i));
     case 'ladder':
-      return !hidden.some((c) => (c.n ?? 0) > t.last);
+      return ladderRow(t) < 0;
     case 'mine':
       return hidden.every((c) => c.face === 'dynamite');
     case 'sunmoon':
@@ -864,11 +1085,10 @@ export function isPerfect(t: ScratchTicket) {
     case 'seven':
       return cells.every((c) => c.face !== 'seven' || c.picked);
     case 'twins':
-      return cells.every((c) => c.paid);
     case 'path':
       return cells.every((c) => c.paid);
     case 'ladder':
-      return t.steps >= (levelFor(t.pack, t.level).goal ?? Infinity);
+      return cells.filter((c) => c.paid).length === t.rows - 1;
     case 'mine':
       return cells.every((c) => c.face === 'dynamite' || c.given || c.paid);
     case 'sunmoon':
@@ -880,18 +1100,19 @@ export function isPerfect(t: ScratchTicket) {
   }
 }
 /** The ticket is over: every other seal shows what it hid. */
-function end(t: ScratchTicket) {
+export function end(t: ScratchTicket) {
   t.ended = true;
   t.perfect = isPerfect(t);
-  for (const c of t.cells)
-    if (!c.revealed) {
-      c.revealed = true;
-      c.mask = '1'.repeat(MASK_SIDE ** 2);
-    }
+  for (const c of t.cells) if (!c.revealed) open(c);
 }
-/** Prize units that count: paid seals plus bonuses. */
+/** Prize units that count: paid seals (golden ones ×10) plus bonuses. */
 export function prizeUnits(t: ScratchTicket) {
-  return t.cells.reduce((n, c) => n + (c.paid ? c.prize : 0), 0) + t.bonus;
+  return (
+    t.cells.reduce(
+      (n, c) => n + (c.paid ? c.prize * (c.gold ? 10 : 1) : 0),
+      0,
+    ) + t.bonus
+  );
 }
 
 // ---- Players used by tests and the factory's averages --------------------
@@ -900,18 +1121,19 @@ export function prizeUnits(t: ScratchTicket) {
  * logic puzzles (Sun & Moon, Crown Jewels) have one answer, so a careful
  * player reads it; the others use the printed clues. */
 export function suggest(t: ScratchTicket, r: Rand): number {
-  const hidden = t.cells.flatMap((c, i) => (c.revealed ? [] : [i]));
+  const hidden = t.cells.flatMap((c, i) =>
+    c.revealed || sealLocked(t, i) ? [] : [i],
+  );
   const x = (i: number) => i % t.cols,
     y = (i: number) => Math.floor(i / t.cols);
   switch (mechanicOf(t)) {
     case 'seven': {
-      const candidates = hidden.filter((i) =>
-        t.order.every((j) => {
-          const c = t.cells[j];
-          return c.dir === undefined || dirTo(t.cols, j, i) === c.dir;
-        }),
-      );
-      if (!candidates.length) return pick(hidden, r);
+      // Score every seal by how many arrows point at it; aim at the best.
+      const misses = t.order.filter((j) => t.cells[j].dir !== undefined);
+      const score = (i: number) =>
+        misses.filter((j) => dirTo(t.cols, j, i) === t.cells[j].dir).length;
+      const top = Math.max(...hidden.map(score));
+      const candidates = hidden.filter((i) => score(i) === top);
       const cx = (t.cols - 1) / 2,
         cy = (t.rows - 1) / 2;
       // Scratch toward the middle of what is left: every arrow halves it.
@@ -920,37 +1142,28 @@ export function suggest(t: ScratchTicket, r: Rand): number {
       return candidates.sort(
         (a, b) =>
           Math.hypot(
-            x(a) - (t.order.length ? mx : cx),
-            y(a) - (t.order.length ? my : cy),
+            x(a) - (misses.length ? mx : cx),
+            y(a) - (misses.length ? my : cy),
           ) -
           Math.hypot(
-            x(b) - (t.order.length ? mx : cx),
-            y(b) - (t.order.length ? my : cy),
+            x(b) - (misses.length ? mx : cx),
+            y(b) - (misses.length ? my : cy),
           ),
       )[0];
     }
     case 'twins': {
-      const mateOf = (a: number) =>
-        hidden.filter((b) => {
-          if (b === a) return false;
-          const ca = t.cells[a],
-            cb = t.cells[b];
-          return (
-            dirTo(t.cols, a, b) === ca.dir &&
-            dirTo(t.cols, b, a) === cb.dir &&
-            Math.max(Math.abs(x(a) - x(b)), Math.abs(y(a) - y(b))) <=
-              (levelFor(t.pack, t.level).extra ?? 1) &&
-            (x(a) === x(b) ||
-              y(a) === y(b) ||
-              Math.abs(x(a) - x(b)) === Math.abs(y(a) - y(b)))
-          );
-        });
-      if (t.last >= 0) {
-        const options = mateOf(t.last);
-        return options.length ? pick(options, r) : pick(hidden, r);
-      }
-      const sure = hidden.find((a) => mateOf(a).length === 1);
-      return sure ?? pick(hidden, r);
+      // The ticket splits one way only; a careful player works it out.
+      const mate: number[] = [];
+      twinSolutions(
+        t.cols,
+        t.rows,
+        t.cells.map((c) => c.n ?? 0),
+        1,
+        [],
+        mate,
+      );
+      if (t.last >= 0 && !t.cells[mate[t.last]]?.revealed) return mate[t.last];
+      return hidden.find((i) => !t.cells[mate[i]].revealed) ?? hidden[0];
     }
     case 'path': {
       const legal = hidden.filter((i) => pathStep(t, t.last, i));
@@ -959,17 +1172,17 @@ export function suggest(t: ScratchTicket, r: Rand): number {
       return route ?? (legal.length ? pick(legal, r) : pick(hidden, r));
     }
     case 'ladder': {
-      // Stay in this band while a higher number is at least as likely as not.
-      const size = t.cells.length / levelFor(t.pack, t.level).count;
-      const band = t.steps ? Math.floor((t.last - 1) / size) : -1;
-      const here = hidden.filter((i) => t.cells[i].group === band);
-      const higher = here.filter((i) => (t.cells[i].n ?? 0) > t.last);
-      if (here.length && higher.length * 2 >= here.length) return pick(here, r);
-      const up = hidden
-        .filter((i) => (t.cells[i].group ?? 0) > band)
-        .sort((a, b) => (t.cells[a].group ?? 0) - (t.cells[b].group ?? 0));
-      const next = up.filter((i) => t.cells[i].group === t.cells[up[0]]?.group);
-      return next.length ? pick(next, r) : pick(hidden, r);
+      // Count the cards already seen and bet on the likelier side.
+      const seen = new Set(
+        t.cells.flatMap((c) => (c.revealed && c.group === 1 ? [c.n] : [])),
+      );
+      const left = [...Array(levelFor(t.pack, t.level).count).keys()]
+        .map((i) => i + 1)
+        .filter((v) => !seen.has(v));
+      const higher = left.filter((v) => v > t.last).length,
+        lower = left.length - higher;
+      const row = ladderRow(t) * t.cols;
+      return higher > lower || (higher === lower && r() < 0.5) ? row : row + 2;
     }
     case 'mine': {
       // Simple deduction: a number whose hidden neighbours all must be safe

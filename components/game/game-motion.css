@@ -1,0 +1,15 @@
+/* State changes stay local: no perpetual movement, camera transforms or layout
+   transitions. The shared controller handles entrances and changing values. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-game-motion-root] :is(.player-button, .table-seat, .turn-state, .turn-roller) {
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  }
+
+  [data-game-motion-root] :is(.hand-confirmation button, .undo-choice, .extension-action) {
+    transition: opacity 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  [data-game-motion-root] .mora-habitat::after {
+    transition: box-shadow 180ms ease, opacity 180ms ease;
+  }
+}

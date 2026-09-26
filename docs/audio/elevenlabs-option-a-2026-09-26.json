@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-26",
+  "provider": "ElevenLabs",
+  "model": "eleven_text_to_sound_v2",
+  "flowId": "waVhnjcbkzegOFLruro0",
+  "flowUrl": "https://elevenlabs.io/app/flows/waVhnjcbkzegOFLruro0",
+  "option": "a",
+  "family": "Digital pop",
+  "scope": "Four Sound Lab previews only; current live effects and ambience unchanged.",
+  "status": "Four successful single takes; decoded and measured. Subjective listening and semantic acceptance are pending.",
+  "notes": [
+    "Prompts express intended playful digital-pop sound identity and note counts; this is not a claim that human listening verified those traits.",
+    "Original downloads are preserved unchanged. Preview copies use envelope-aligned trimming, short edge fades and measured peak normalization to approximately -12 dBFS for audible comparison.",
+    "All four generations completed without retries. No signed download URLs are included in this record."
+  ],
+  "clips": [
+    {
+      "id": "shared-pickup-a-v1",
+      "category": "pickup",
+      "option": "a",
+      "label": "A \u00b7 Digital pop",
+      "src": "/audio/elevenlabs/shared-pickup-a-v1.mp3",
+      "duration": 0.48,
+      "gain": 0.85,
+      "prompt": "One polished playful digital UI pop for picking up a game piece. A clear rounded high synth plip, like a tiny glossy bubble popping. Pure clean electronic tone, crisp soft attack, compact cheerful bounce, quick dry decay, silent background. A single little pop.",
+      "parameters": {
+        "duration_seconds": 0.5,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "beclYlczarJpWRyFmU3D",
+      "sessionId": "tBaAQ3F057m7QTvwWioh",
+      "generationId": "lFlK7SwnvRuouMwgnfbm",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-pickup-a-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 0.48,
+        "samplePeakDbFS": -5.307,
+        "truePeakEstimateDbFS": -5.134,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -17.758,
+        "bytes": 25657,
+        "sha256": "b01506923ff447f848c9b609086b6bfe91b343f5121da9fd04ebdce190cb88b9",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0.000000:end=0.480000,asetpts=PTS-STARTPTS,afade=t=in:d=0.001,afade=t=out:st=0.474000:d=0.006,volume=-6.3140dB",
+        "gainAdjustmentDb": -6.314,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0.48,
+        "envelopeWindowSeconds": 0.004988662131519274,
+        "activeRmsThresholdDbFS": -63.17,
+        "tailPaddingSeconds": 0.025,
+        "attackFadeSeconds": 0.001,
+        "releaseFadeSeconds": 0.006,
+        "targetTruePeakDbFS": -12,
+        "notes": "Envelope-aligned trim preserves the sustained event; the final 10ms is excluded from silence detection to avoid isolated end-boundary discontinuities. No low-pass or timbre filtering was applied."
+      },
+      "validation": {
+        "durationSeconds": 0.48,
+        "samplePeakDbFS": -12.36,
+        "truePeakEstimateDbFS": -12.201,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -24.364,
+        "bytes": 13208,
+        "sha256": "181507354a1721639e38a37fd1a5bcac807eb4b1f971aa4c941d8d9bb668362d",
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-place-a-v1",
+      "category": "place",
+      "option": "a",
+      "label": "A \u00b7 Bouncy pop",
+      "src": "/audio/elevenlabs/shared-place-a-v1.mp3",
+      "duration": 0.14474,
+      "gain": 0.85,
+      "prompt": "One polished playful digital UI pop for placing a game piece. A clear rounded lower synth plop, pleasantly bouncy and satisfying. Pure clean electronic tone, crisp soft attack, compact cheerful bounce, quick dry decay, silent background. A single little plop.",
+      "parameters": {
+        "duration_seconds": 0.5,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "d1P3dZWr1nhaKIN9dITc",
+      "sessionId": "3L3jgcbgE52E5aAX6KV0",
+      "generationId": "OHPDuCvFy6Tky5zI5flQ",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-place-a-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 0.48,
+        "samplePeakDbFS": -0.245,
+        "truePeakEstimateDbFS": -0.239,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -15.495,
+        "bytes": 25657,
+        "sha256": "d53278928f65fe5964327bbf3fa11948f931f1d1dad1bcfba4d6f213829f8ea7",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0.000000:end=0.144728,asetpts=PTS-STARTPTS,afade=t=in:d=0.001,afade=t=out:st=0.138728:d=0.006,volume=-11.5130dB",
+        "gainAdjustmentDb": -11.513,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0.1447278911564626,
+        "envelopeWindowSeconds": 0.004988662131519274,
+        "activeRmsThresholdDbFS": -52.633,
+        "tailPaddingSeconds": 0.025,
+        "attackFadeSeconds": 0.001,
+        "releaseFadeSeconds": 0.006,
+        "targetTruePeakDbFS": -12,
+        "notes": "Envelope-aligned trim preserves the sustained event; the final 10ms is excluded from silence detection to avoid isolated end-boundary discontinuities. No low-pass or timbre filtering was applied."
+      },
+      "validation": {
+        "durationSeconds": 0.14473922902494332,
+        "samplePeakDbFS": -12.047,
+        "truePeakEstimateDbFS": -12.042,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -22.205,
+        "bytes": 5058,
+        "sha256": "112ec3a9236d3c198530a09f7bed37e7cf5592b15c40d67a7cb59ddf8893bda3",
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-turn-a-v1",
+      "category": "turn",
+      "option": "a",
+      "label": "A \u00b7 Rising tones",
+      "src": "/audio/elevenlabs/shared-turn-a-v1.mp3",
+      "duration": 0.50889,
+      "gain": 0.85,
+      "prompt": "A polished playful digital UI turn notification. Exactly two clean rounded synth tones stepping upward in a bright major interval, plip plop. Clear pure electronic notes with soft crisp attacks and quick dry decays. Friendly, cheerful and compact. Silent background.",
+      "parameters": {
+        "duration_seconds": 0.75,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "FFQ8RZrDAoIqtQR7xQRI",
+      "sessionId": "Ok7DRYI8LDOegduJgsTm",
+      "generationId": "2yK6GSERP7Caa0VNi6xZ",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-turn-a-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 0.72,
+        "samplePeakDbFS": -26.622,
+        "truePeakEstimateDbFS": -26.407,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -45.938,
+        "bytes": 29418,
+        "sha256": "cd45e6af2f906dd26808ddb3ca46085d5d18cccee89dfadfee212d598f1e844d",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0.000000:end=0.508900,asetpts=PTS-STARTPTS,afade=t=in:d=0.001,afade=t=out:st=0.502900:d=0.006,volume=18.6880dB",
+        "gainAdjustmentDb": 18.688,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 0.5089002267573696,
+        "envelopeWindowSeconds": 0.004988662131519274,
+        "activeRmsThresholdDbFS": -70,
+        "tailPaddingSeconds": 0.025,
+        "attackFadeSeconds": 0.001,
+        "releaseFadeSeconds": 0.006,
+        "targetTruePeakDbFS": -12,
+        "notes": "Envelope-aligned trim preserves the sustained event; the final 10ms is excluded from silence detection to avoid isolated end-boundary discontinuities. No low-pass or timbre filtering was applied."
+      },
+      "validation": {
+        "durationSeconds": 0.5088888888888888,
+        "samplePeakDbFS": -12.009,
+        "truePeakEstimateDbFS": -12.009,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -26.123,
+        "bytes": 13835,
+        "sha256": "aea3f9d4e91662d149334fd0d001fb1e74dabaf365fba717d4c964f5d6facdf9",
+        "decodes": true
+      }
+    },
+    {
+      "id": "shared-scores-a-v1",
+      "category": "scores",
+      "option": "a",
+      "label": "A \u00b7 Happy flourish",
+      "src": "/audio/elevenlabs/shared-scores-a-v1.mp3",
+      "duration": 1.02272,
+      "gain": 0.85,
+      "prompt": "A polished upbeat digital UI final-score cue. Exactly four clean rounded synth notes in a bright ascending major phrase, resolving happily. A tidy playful little flourish, clear pure electronic notes, soft crisp attacks, quick dry decays. Cheerful and satisfying. Silent background.",
+      "parameters": {
+        "duration_seconds": 1.2,
+        "prompt_influence": 0.8,
+        "loop": false
+      },
+      "nodeId": "o62cTbhH3xYsK9AglWKR",
+      "sessionId": "llsSjXLMahy6DDoAh9Je",
+      "generationId": "rXAN7y0NTRejYVD5DFOP",
+      "source": "assets/audio/elevenlabs/2026-09-26/shared-scores-a-v1.mp3",
+      "sourceValidation": {
+        "durationSeconds": 1.2,
+        "samplePeakDbFS": -7.233,
+        "truePeakEstimateDbFS": -6.788,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -26.24,
+        "bytes": 36942,
+        "sha256": "c332ed9862bb61400c3feba0240975a8cbe6880d67e4642fa4bab94bd5af9328",
+        "decodes": true
+      },
+      "preparation": {
+        "filter": "atrim=start=0.000000:end=1.022732,asetpts=PTS-STARTPTS,afade=t=in:d=0.001,afade=t=out:st=1.016732:d=0.006,volume=-3.5570dB",
+        "gainAdjustmentDb": -3.557,
+        "trimStartSeconds": 0,
+        "trimEndSeconds": 1.0227324263038549,
+        "envelopeWindowSeconds": 0.004988662131519274,
+        "activeRmsThresholdDbFS": -62.961,
+        "tailPaddingSeconds": 0.025,
+        "attackFadeSeconds": 0.001,
+        "releaseFadeSeconds": 0.006,
+        "targetTruePeakDbFS": -12,
+        "notes": "Envelope-aligned trim preserves the sustained event; the final 10ms is excluded from silence detection to avoid isolated end-boundary discontinuities. No low-pass or timbre filtering was applied."
+      },
+      "validation": {
+        "durationSeconds": 1.0227210884353741,
+        "samplePeakDbFS": -12.015,
+        "truePeakEstimateDbFS": -12.003,
+        "truePeakMethod": "4x oversampling to 176400Hz via ffmpeg libswresample",
+        "rmsDbFS": -29.416,
+        "bytes": 26374,
+        "sha256": "3b2d243afce810d3cc25faa5a0ae1e063b0a3d5636bff2bba799f73660cc5eb7",
+        "decodes": true
+      }
+    }
+  ]
+}

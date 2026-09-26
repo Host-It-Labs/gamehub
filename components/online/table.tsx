@@ -14,11 +14,12 @@ import {
   Flag,
   Link2,
   LogOut,
+  Moon,
   Play,
   Settings2,
+  Trees,
   UserPlus,
   UserX,
-  Volume2,
   X,
 } from 'lucide-react';
 import {
@@ -37,6 +38,7 @@ import {
   type TableCommand,
 } from '@/lib/online/types';
 import { OnlineMatch } from './match';
+import { setTheme, useTheme } from '@/lib/theme';
 import { LobbyGames, SharedLesson, type Launch } from './lobby-games';
 import { GameBox } from '../game/game-box';
 import {
@@ -58,10 +60,10 @@ function goHome() {
   window.location.replace('/');
 }
 /** Folio and Relic link back to the table that sent the players there. */
-function followHandoff(invite: string, url: string) {
+function followHandoff(invite: string, url: string, at?: number) {
   try {
-    sessionStorage.setItem('gamehub.return-table', `/table/${invite}`);
-    sessionStorage.setItem(`gamehub.handoff.${url}`, '1');
+    sessionStorage.setItem(`gamehub.return-table.${url}`, `/table/${invite}`);
+    if (at) sessionStorage.setItem(`gamehub.handoff.${url}`, String(at));
   } catch {
     /* The room still opens without the way back. */
   }
@@ -172,11 +174,11 @@ export function SharedTable({ invite }: { invite: string }) {
   useEffect(() => {
     if (!handoff || Date.now() - handoff.at > 60_000) return;
     try {
-      if (sessionStorage.getItem(`gamehub.handoff.${handoff.url}`)) return;
+      if (sessionStorage.getItem(`gamehub.handoff.${handoff.url}`) === String(handoff.at)) return;
     } catch {
       return;
     }
-    followHandoff(invite, handoff.url);
+    followHandoff(invite, handoff.url, handoff.at);
   }, [invite, handoff]);
   async function join(event: SyntheticEvent) {
     event.preventDefault();
@@ -261,11 +263,11 @@ export function SharedTable({ invite }: { invite: string }) {
   async function launch(choice: Launch) {
     setError('');
     try {
-      const { url } = await api<{ url: string }>(
+      const { url, at } = await api<{ url: string; at: number }>(
         `/api/tables/${invite}/launch`,
         choice,
       );
-      followHandoff(invite, url);
+      followHandoff(invite, url, at);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -571,7 +573,8 @@ export function SharedTable({ invite }: { invite: string }) {
   );
 }
 
-/** The people at the table, as seats; empty seats show who fills them. */
+/** The people at the table, as seats; empty seats all look alike, whether a
+ *  bot or a friend will fill them. */
 function Seats({
   table,
   disabled,
@@ -603,7 +606,7 @@ function Seats({
           aria-label={bots ? 'Bot seat' : 'Open seat'}
         >
           <span className="room-avatar" aria-hidden="true">
-            {bots ? <Bot /> : <UserPlus />}
+            <UserPlus />
           </span>
         </li>
       ))}
@@ -701,6 +704,7 @@ function RoomMenu({
   onTestPlayer: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const dark = useTheme() === 'dark';
   async function rename(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = new FormData(event.currentTarget).get('name') as string;
@@ -730,8 +734,8 @@ function RoomMenu({
         </form>
         {table.isHost && (
           <label className="room-toggle">
-            <Volume2 aria-hidden="true" />
-            Sounds
+            <Trees aria-hidden="true" />
+            Ambient sound
             <input
               type="checkbox"
               checked={table.ambienceEnabled === true}
@@ -745,6 +749,17 @@ function RoomMenu({
             />
           </label>
         )}
+        <label className="room-toggle">
+          <Moon aria-hidden="true" />
+          Dark mode
+          <input
+            type="checkbox"
+            checked={dark}
+            onChange={(event) =>
+              setTheme(event.target.checked ? 'dark' : 'light')
+            }
+          />
+        </label>
         {process.env.NODE_ENV === 'development' &&
           table.isHost &&
           table.status === 'lobby' && (

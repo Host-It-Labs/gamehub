@@ -24,7 +24,21 @@ const errorText = (e: unknown) =>
  * Relic's desk picker in the library's open-box modal. Opening a desk lands
  * on its own page, because a desk is shared through its link.
  */
-export function RelicSetupBox({ game }: { game: LibraryGame }) {
+export function RelicSetupBox({
+  game,
+  table,
+}: {
+  game: LibraryGame;
+  table?: {
+    players: string[];
+    disabled: boolean;
+    onLaunch: (choice: {
+      kind: 'relic';
+      title?: string;
+      token?: string;
+    }) => Promise<void>;
+  };
+}) {
   const [session, setSession] = useState<Session | null>(null),
     [desks, setDesks] = useState<ExpeditionSummary[]>([]),
     [name, setName] = useState(rememberedName),
@@ -51,11 +65,16 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
     };
   }, []);
   const known = !!(session?.user || session?.guest);
-  async function open() {
+  async function open(token?: string) {
     if (busy) return;
     setBusy(true);
     setError('');
     try {
+      if (table) {
+        await table.onLaunch({ kind: 'relic', title, token });
+        setBusy(false);
+        return;
+      }
       rememberName(name.trim());
       const v = await api<ExpeditionView>('/api/expeditions', {
         name,
@@ -79,7 +98,7 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
           <Factory aria-hidden="true" /> A factory you build
         </li>
         <li>
-          <Sparkles aria-hidden="true" /> Up to 6 at one desk
+          <Sparkles aria-hidden="true" /> Up to 3 at one desk
         </li>
       </ul>
       <form
@@ -90,7 +109,12 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
         }}
       >
         <div className="setup-options">
-          {!known && (
+          {table && (
+            <SetupRow label="Players">
+              <span>{table.players.join(' · ')}</span>
+            </SetupRow>
+          )}
+          {!known && !table && (
             <SetupRow label="Your name" className="setup-name">
               <input
                 required
@@ -133,11 +157,18 @@ export function RelicSetupBox({ game }: { game: LibraryGame }) {
         <div className="setup-actions">
           <PlayButton
             type="submit"
-            disabled={loading || busy || (!known && !name.trim())}
+            disabled={
+              loading ||
+              busy ||
+              table?.disabled ||
+              (!table && !known && !name.trim())
+            }
           >
             {busy ? 'Opening…' : 'New desk'}
           </PlayButton>
           <RunPicker
+            disabled={busy || table?.disabled}
+            onContinue={table ? (token) => void open(token) : undefined}
             noun="desk"
             runs={desks.map((d) => ({
               key: d.token,

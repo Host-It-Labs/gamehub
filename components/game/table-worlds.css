@@ -1179,3 +1179,31 @@
   html .at-table .world-table[data-environment='market'] .festival-orders > .piece-wrap { flex: 1 1 0; min-width: 0; }
   html .at-table .world-table[data-environment='market'] .festival-orders .festival-order { width: 100%; min-width: 0; }
 }
+
+/* ===== Yata phone plate (25 September 2026) =====
+   Portrait phones take their own near-square counter (lib/games/yata-world-phone.json,
+   phoneWorldQuery), which starts right under the badges and ends at the dock row.
+   The six plates stay round: each is the largest circle its third of the width and
+   half of the height holds (cq units read the counter's content box), and the score
+   rides on the plate's lower rim so the dish gets the whole plate. */
+/* The painted counter starts 11.5% down the plate, so its stage starts 12 px
+   higher than the tall plate's and the badges rest on its far rim; the plate then
+   reaches the top edge at the cover scale. */
+html .world-table[data-environment='market'] .board-frame:has(.market-world[data-paper-world='phone']) {
+  margin-top: calc(max(8px, env(safe-area-inset-top)) + 84px);
+}
+.market-world[data-paper-world='phone'] .market-board.counter-board {
+  padding: 18px 14px 20px; gap: 0; justify-items: center; align-items: center;
+}
+.market-world[data-paper-world='phone'] .counter-board .serving-dish {
+  --cell: calc(min(100cqw / 3, 50cqh) - 16px);
+  width: var(--cell); height: var(--cell); border-radius: 50%;
+  box-shadow: 0 0 0 5px var(--plate-ring), 0 0 0 7px #1d1a1f, 0 6px 0 7px #7a1410, 0 12px 14px #0008;
+}
+.market-world[data-paper-world='phone'] .counter-board .serving-dish > .piece-wrap > .piece { padding: 9%; grid-template-rows: minmax(0, 1fr); }
+.market-world[data-paper-world='phone'] .counter-board .stack-layer { width: calc(var(--cell) * .72); height: calc(var(--cell) * .72); max-height: none; }
+.market-world[data-paper-world='phone'] .counter-board .serving-dish .collection-score {
+  position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); z-index: 11;
+  white-space: nowrap; font-size: 13px; line-height: 16px;
+}
+.market-world[data-paper-world='phone'] .counter-board .quantity { top: 2px; right: 2px; }

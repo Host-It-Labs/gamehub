@@ -11,7 +11,7 @@ import {
   type ScratchState,
   type ScratchTicket,
 } from '@/lib/games/relic/scratch';
-import { levelFor, type Face } from '@/lib/games/relic/books';
+import { sealLocked, type Face } from '@/lib/games/relic/books';
 import { formatNumber } from '@/lib/games/relic/engine';
 import type { ScratchAudio } from './relic-scratch-audio';
 import { SYMBOL_SHEET } from './relic-scratch-art';
@@ -35,7 +35,7 @@ const SPRITES: Partial<Record<Face, number>> = {
   crown: 14,
   horseshoe: 15,
 };
-/** Region colours for Crown Jewels, band colours for Ladder (cool to hot). */
+/** Region colours for Crown Jewels. */
 const REGIONS = [
   '#e7a7a1',
   '#a9c9e8',
@@ -44,15 +44,15 @@ const REGIONS = [
   '#cdb4e4',
   '#f2b98c',
   '#a8dcd6',
+  '#e3b7cf',
 ];
-const BANDS = ['#7fc6c4', '#a6d38c', '#f2d36b', '#f2a65a', '#e9725a'];
-/** A ladder band's colour, spread from cool to hot whatever the band count. */
-function bandColour(t: ScratchTicket, group = 0) {
-  const bands = levelFor(t.pack, t.level).count;
-  return BANDS[
-    Math.round((group * (BANDS.length - 1)) / Math.max(1, bands - 1))
-  ];
-}
+/** Twins foil by printed number, so equal numbers read at a glance. */
+const TWIN_FOILS = [
+  ['#efe4fb', '#a992d6', '#6f58a8'],
+  ['#e0f3ef', '#86c3b5', '#3f8a7a'],
+  ['#fbeed6', '#e0b56b', '#a8772c'],
+  ['#fde3e3', '#e39a9a', '#a85454'],
+];
 export function Prize({
   face,
   className = '',
@@ -72,7 +72,6 @@ export function Prize({
     />
   );
 }
-const ARROWS = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'];
 type Foil = {
   from: string;
   mid: string;
@@ -87,14 +86,11 @@ function foilFor(t: ScratchTicket, i: number): Foil {
   switch (mechanic) {
     case 'seven':
       return { from: '#f1e6c8', mid: '#c9ad6e', to: '#9c7b3c' };
-    case 'twins':
-      return {
-        from: '#ebe6f5',
-        mid: '#aea3c9',
-        to: '#7f73a3',
-        clue: ARROWS[cell.dir ?? 0],
-        strong: true,
-      };
+    case 'twins': {
+      const [from, mid, to] =
+        TWIN_FOILS[((cell.n ?? 1) - 1) % TWIN_FOILS.length];
+      return { from, mid, to, clue: String(cell.n ?? ''), strong: true };
+    }
     case 'path':
       return {
         from: '#e5eed6',
@@ -103,12 +99,34 @@ function foilFor(t: ScratchTicket, i: number): Foil {
         clue: cell.n !== undefined ? String(cell.n) : undefined,
         strong: true,
       };
-    case 'ladder': {
-      const band = bandColour(t, cell.group);
-      return { from: '#f6f2e8', mid: band, to: band };
-    }
+    case 'ladder':
+      return cell.group === 1
+        ? { from: '#f6f2e8', mid: '#d9d2c2', to: '#b9b09c', clue: '?' }
+        : cell.group === 0
+          ? {
+              from: '#e6f4ec',
+              mid: '#7fc6a4',
+              to: '#3f8f6b',
+              clue: '▲',
+              strong: true,
+            }
+          : {
+              from: '#fbe5dc',
+              mid: '#e9927a',
+              to: '#b8523d',
+              clue: '▼',
+              strong: true,
+            };
     case 'mine':
-      return { from: '#8c8375', mid: '#5c554b', to: '#3e3a34' };
+      return cell.flag
+        ? {
+            from: '#c9523c',
+            mid: '#8f2c1f',
+            to: '#5e1a12',
+            clue: '⚑',
+            strong: true,
+          }
+        : { from: '#8c8375', mid: '#5c554b', to: '#3e3a34' };
     case 'sunmoon':
       return { from: '#e9edf5', mid: '#aab4c8', to: '#7d8aa6' };
     case 'chart':
@@ -173,14 +191,22 @@ function SealFace({
 }) {
   const cell = t.cells[i],
     mechanic = packFor(t.pack).mechanic;
-  const amount = cell.paid && cell.prize ? formatNumber(cell.prize * unit) : '';
-  if (mechanic === 'ladder')
+  const amount =
+    cell.paid && cell.prize
+      ? formatNumber(cell.prize * (cell.gold ? 10 : 1) * unit)
+      : '';
+  if (mechanic === 'ladder') {
+    if (cell.group === 1) return <b className="seal-number">{cell.n}</b>;
+    if (cell.given) return null;
     return (
       <>
-        <b className="seal-number">{cell.n}</b>
+        <b className={`seal-bet ${cell.group === 0 ? 'is-up' : 'is-down'}`}>
+          {cell.group === 0 ? '▲' : '▼'}
+        </b>
         {amount && <span className="seal-amount">{amount}</span>}
       </>
     );
+  }
   if (mechanic === 'chart' && cell.face === 'water')
     return <b className="seal-water">≈</b>;
   if (mechanic === 'crown' && cell.face === 'blank') return null;
@@ -192,6 +218,10 @@ function SealFace({
           →
         </b>
       )}
+      {mechanic === 'seven' && cell.n !== undefined && (
+        <b className="seal-stop seal-far">{cell.n}</b>
+      )}
+      {mechanic === 'twins' && <b className="seal-stop seal-twin">{cell.n}</b>}
       {mechanic === 'mine' && cell.face !== 'dynamite' && !!cell.n && (
         <b className={`seal-count count-${cell.n}`}>{cell.n}</b>
       )}
@@ -268,12 +298,14 @@ function Overlay({ t }: { t: ScratchTicket }) {
   );
 }
 export function ScratchSurface({
+  readOnly = false,
   ticket,
   state,
   audio,
   onStroke,
   onStatus,
 }: {
+  readOnly?: boolean;
   ticket: ScratchTicket;
   state: ScratchState;
   audio: ScratchAudio;
@@ -309,6 +341,7 @@ export function ScratchSurface({
   const model = useRef(structuredClone(ticket)),
     authoritative = useRef(ticket),
     stateRef = useRef(state);
+  const settlement = useRef({ id: ticket.id, claimed: ticket.claimed });
   const callback = useRef(onStroke),
     status = useRef(onStatus);
   const queue = useRef<Batch[]>([]),
@@ -321,6 +354,14 @@ export function ScratchSurface({
     frame = useRef(0),
     keyboard = useRef({ x: 0.5, y: 0.5, down: false });
   const [display, setDisplay] = useState(ticket);
+  useEffect(() => {
+    const previous = settlement.current;
+    settlement.current = { id: ticket.id, claimed: ticket.claimed };
+    // Only this mounted ticket's confirmed settlement is audible. Prediction,
+    // reloads and repeated snapshots never replay a payout or reveal hidden data.
+    if (previous.id === ticket.id && !previous.claimed && ticket.claimed)
+      audio.cue(ticket.payout > (ticket.cost ?? 0) ? 'prize' : 'paper');
+  }, [ticket.id, ticket.claimed, ticket.payout, ticket.cost, audio]);
   useEffect(() => {
     authoritative.current = ticket;
     stateRef.current = state;
@@ -376,6 +417,11 @@ export function ScratchSurface({
       gradient.addColorStop(1, foil.to);
       c.fillStyle = gradient;
       c.fillRect(x, y, width, height);
+      // Seals that cannot be scratched yet sit under a darker, matte foil.
+      if (sealLocked(t, index) && !cell.flag) {
+        c.fillStyle = '#10251f8c';
+        c.fillRect(x, y, width, height);
+      }
       c.strokeStyle = '#ffffff30';
       c.lineWidth = dpr;
       for (let stripe = -height; stripe < width + height; stripe += 6 * dpr) {
@@ -475,6 +521,21 @@ export function ScratchSurface({
       if (element && c) {
         c.save();
         c.setTransform(element.width, 0, 0, element.height, 0, 0);
+        // Locked seals keep their foil: the coin only cuts the open ones.
+        const m = model.current;
+        if (m.cells.some((_, i) => sealLocked(m, i))) {
+          c.beginPath();
+          m.cells.forEach((_, i) => {
+            if (!sealLocked(m, i))
+              c.rect(
+                (i % m.cols) / m.cols,
+                Math.floor(i / m.cols) / m.rows,
+                1 / m.cols,
+                1 / m.rows,
+              );
+          });
+          c.clip();
+        }
         c.globalCompositeOperation = 'destination-out';
         c.lineCap = 'round';
         c.lineJoin = 'round';
@@ -498,10 +559,11 @@ export function ScratchSurface({
               );
           });
         c.restore();
+        // A Ladder rung that opens unlocks the next: draw its foil anew.
+        if (count && packFor(t.pack).mechanic === 'ladder') paint();
       }
       if (model.current.ended) {
         finish();
-        audio.cue('prize');
       }
       report();
       if (current.current.length >= 48) flush(true);
@@ -511,7 +573,7 @@ export function ScratchSurface({
         cursor.current.style.opacity = '1';
       }
     },
-    [audio, finish, flush, report, scatter],
+    [audio, finish, flush, paint, report, scatter],
   );
   useEffect(() => {
     alive.current = true;
@@ -590,14 +652,14 @@ export function ScratchSurface({
           const region =
             mechanic === 'crown'
               ? REGIONS[(cell.group ?? 0) % REGIONS.length]
-              : mechanic === 'ladder'
-                ? bandColour(display, cell.group)
-                : undefined;
+              : undefined;
           const waiting =
             mechanic === 'twins' && display.last === i && !display.ended;
           const state = cell.given
             ? 'is-given'
-            : !cell.revealed || waiting
+            : !cell.revealed ||
+                waiting ||
+                (mechanic === 'ladder' && cell.group === 1)
               ? ''
               : cell.paid
                 ? 'is-paid'
@@ -606,7 +668,7 @@ export function ScratchSurface({
                   : 'is-missed';
           return (
             <div
-              className={`scratch-seal face-${cell.face} ${state} ${waiting ? 'is-open' : ''}`}
+              className={`scratch-seal face-${cell.face} ${state} ${waiting ? 'is-open' : ''} ${cell.gold && cell.revealed ? 'is-gold' : ''} ${cell.auto ? 'is-auto' : ''} ${mechanic === 'ladder' ? `rung-${cell.group}` : ''}`}
               style={
                 region
                   ? ({ '--region': region } as React.CSSProperties)
@@ -622,12 +684,13 @@ export function ScratchSurface({
       <Overlay t={display} />
       <canvas
         ref={canvas}
-        tabIndex={display.ended ? -1 : 0}
-        role="application"
+        tabIndex={readOnly || display.ended ? -1 : 0}
+        role={readOnly ? 'img' : 'application'}
         aria-label={`${pack.name} scratch ticket`}
-        aria-describedby="scratch-keyboard-help"
+        aria-describedby={readOnly ? undefined : 'scratch-keyboard-help'}
         onPointerDown={(event) => {
           if (
+            readOnly ||
             event.button !== 0 ||
             held.current !== null ||
             model.current.ended
@@ -656,6 +719,7 @@ export function ScratchSurface({
         onLostPointerCapture={finish}
         onContextMenu={(event) => event.preventDefault()}
         onKeyDown={(event) => {
+          if (readOnly) return;
           if (
             ![
               'ArrowLeft',
@@ -718,10 +782,10 @@ export function ScratchSurface({
           height: `${brushRadius(state) * 200}%`,
         }}
       />
-      <span id="scratch-keyboard-help" className="sr-only">
+      {!readOnly && <span id="scratch-keyboard-help" className="sr-only">
         Hold the mouse button or your finger and rub the foil. Keyboard: move
         with arrow keys; hold Space while moving to scratch.
-      </span>
+      </span>}
     </div>
   );
 }

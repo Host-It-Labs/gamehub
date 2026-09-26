@@ -13,8 +13,10 @@ One image per Codex invocation, from the project directory:
 
 ```bash
 CODEX=$(command -v codex || echo /Users/williamguinaudie/.nvm/versions/node/v22.22.0/bin/codex)
-"$CODEX" exec --skip-git-repo-check --sandbox workspace-write '$imagegen Generate this image using the built-in image generation tool. Save the final image to the exact absolute path: <ABSOLUTE_OUTPUT_PATH>. Prompt: <PROMPT>'
+"$CODEX" exec --skip-git-repo-check --sandbox workspace-write '$imagegen Generate this image using the built-in image generation tool. Save the final image to the exact absolute path: <ABSOLUTE_OUTPUT_PATH>. Prompt: <PROMPT>' < /dev/null
 ```
+
+Always close stdin (`< /dev/null`): a background run otherwise can hang for good after "Reading additional input from stdin..." (25 September 2026).
 
 Resolve `codex` from `PATH`; the nvm path is only a fallback for shells that do not have it. If neither resolves, tell the user instead of guessing another path.
 

@@ -1,391 +1,165 @@
 {
-  "source": "/art/mora-floodline-portrait-v5-b.png",
-  "image": "/art/optimized/mora-floodline-portrait-v5-b.webp",
-  "boardImage": "/art/optimized/mora-floodline-portrait-v5-b-board.webp",
+  "source": "/art/mora-overgrown-floodline-portrait-v3-f-tall.png",
+  "image": "/art/optimized/mora-overgrown-floodline-portrait-v3-f-tall.webp",
+  "boardImage": "/art/optimized/mora-overgrown-floodline-portrait-v3-f-tall-board.webp",
   "width": 1024,
-  "height": 1536,
+  "height": 1780,
   "crop": {
-    "left": 50,
-    "top": 90,
-    "width": 950,
-    "height": 1160
+    "left": 154,
+    "top": 179,
+    "width": 768,
+    "height": 1195
   },
   "landmarks": {
-    "roofTop": 110,
+    "roofTop": 213,
     "protectedBounds": [
       {
         "name": "lighthouse",
-        "bounds": [
-          235,
-          150,
-          160,
-          215
-        ]
-      },
-      {
-        "name": "field station hut",
-        "bounds": [
-          250,
-          505,
-          200,
-          150
-        ]
+        "bounds": [120, 248, 400, 370]
       },
       {
         "name": "pier",
-        "bounds": [
-          600,
-          110,
-          230,
-          440
-        ]
+        "bounds": [590, 213, 260, 420]
       },
       {
-        "name": "mangroves",
-        "bounds": [
-          580,
-          500,
-          380,
-          310
-        ]
+        "name": "nesting beach",
+        "bounds": [100, 628, 430, 310]
+      },
+      {
+        "name": "mangrove",
+        "bounds": [540, 618, 420, 340]
       },
       {
         "name": "rock pools",
-        "bounds": [
-          70,
-          830,
-          460,
-          390
-        ]
+        "bounds": [70, 1003, 450, 390]
       },
       {
         "name": "sea cave",
-        "bounds": [
-          555,
-          860,
-          430,
-          290
-        ]
+        "bounds": [540, 1028, 470, 360]
       }
     ]
   },
   "habitats": [
     {
       "zone": 0,
-      "bounds": [
-        216,
-        930,
-        212,
-        108
-      ],
-      "label": [
-        322,
-        1077
-      ],
+      "bounds": [184, 1150, 209, 136],
+      "label": [288, 1310],
       "slots": [
-        [
-          256,
-          957
-        ],
-        [
-          322,
-          957
-        ],
-        [
-          387,
-          958
-        ],
-        [
-          286,
-          1011
-        ],
-        [
-          352,
-          1011
-        ]
+        [217, 1189],
+        [288, 1189],
+        [359, 1189],
+        [251, 1254],
+        [326, 1254]
       ],
       "tokenWidth": 54,
-      "summary": "*Exact* pairs 7 · lone 1"
+      "summary": "*Exact* pairs 7 \u00b7 lone 1"
     },
     {
       "zone": 1,
-      "bounds": [
-        230,
-        654,
-        206,
-        110
-      ],
-      "label": [
-        333,
-        803
-      ],
+      "bounds": [216, 745, 213, 133],
+      "label": [322, 900],
       "slots": [
-        [
-          271,
-          691
-        ],
-        [
-          333,
-          686
-        ],
-        [
-          396,
-          681
-        ],
-        [
-          308,
-          737
-        ],
-        [
-          370,
-          733
-        ]
+        [249, 784],
+        [322, 784],
+        [395, 784],
+        [277, 846],
+        [353, 846]
       ],
       "tokenWidth": 54,
-      "summary": "All *different* 3 each · repeat 1 each"
+      "summary": "All *different* 3 each \u00b7 repeat 1 each"
     },
     {
       "zone": 2,
-      "bounds": [
-        654,
-        647,
-        201,
-        62
-      ],
-      "label": [
-        756,
-        748
-      ],
+      "bounds": [609, 795, 224, 71],
+      "label": [721, 888],
       "slots": [
-        [
-          695,
-          682
-        ],
-        [
-          756,
-          677
-        ],
-        [
-          815,
-          674
-        ]
+        [642, 834],
+        [721, 834],
+        [799, 834]
       ],
       "tokenWidth": 54,
-      "summary": "Three *alike* 12 · else 1 each"
+      "summary": "Three *alike* 12 \u00b7 else 1 each"
     },
     {
       "zone": 3,
-      "bounds": [
-        670,
-        279,
-        82,
-        229
-      ],
-      "label": [
-        711,
-        547
-      ],
+      "bounds": [651, 230, 81, 286],
+      "label": [698, 540],
       "slots": [
-        [
-          710,
-          481
-        ],
-        [
-          711,
-          420
-        ],
-        [
-          711,
-          362
-        ],
-        [
-          711,
-          306
-        ]
+        [698, 484],
+        [694, 409],
+        [689, 335],
+        [684, 269]
       ],
       "tokenWidth": 54,
-      "summary": "2 each · *A–B–A–B* +6"
+      "summary": "2 each \u00b7 *A\u2013B\u2013A\u2013B* +6"
     },
     {
       "zone": 4,
-      "bounds": [
-        650,
-        1024,
-        236,
-        79
-      ],
-      "label": [
-        768,
-        1142
-      ],
+      "bounds": [635, 1184, 258, 107],
+      "label": [764, 1312],
       "slots": [
-        [
-          690,
-          1076
-        ],
-        [
-          740,
-          1051
-        ],
-        [
-          797,
-          1051
-        ],
-        [
-          845,
-          1075
-        ]
+        [668, 1223],
+        [726, 1249],
+        [796, 1259],
+        [859, 1246]
       ],
       "tokenWidth": 54,
       "summary": "*Echo*: 1 per same species elsewhere"
     },
     {
       "zone": 6,
-      "bounds": [
-        278,
-        344,
-        147,
-        60
-      ],
-      "label": [
-        351,
-        443
-      ],
+      "bounds": [237, 405, 127, 71],
+      "label": [300, 498],
       "slots": [
-        [
-          318,
-          377
-        ],
-        [
-          384,
-          371
-        ]
+        [270, 444],
+        [330, 444]
       ],
       "tokenWidth": 54,
       "summary": "4 each if its species lives *only* here"
     }
   ],
-  "release": [
-    545,
-    862
-  ],
+  "release": [510, 993],
   "animation": {
     "water": {
       "polygon": [
-        [
-          300,
-          1260
-        ],
-        [
-          480,
-          1240
-        ],
-        [
-          660,
-          1250
-        ],
-        [
-          800,
-          1290
-        ],
-        [
-          780,
-          1380
-        ],
-        [
-          600,
-          1420
-        ],
-        [
-          400,
-          1410
-        ],
-        [
-          280,
-          1340
-        ]
+        [380, 1448],
+        [520, 1438],
+        [620, 1478],
+        [600, 1548],
+        [460, 1568],
+        [370, 1528]
       ]
     },
     "foliage": [
       {
         "polygon": [
-          [
-            0,
-            1290
-          ],
-          [
-            110,
-            1280
-          ],
-          [
-            190,
-            1340
-          ],
-          [
-            200,
-            1440
-          ],
-          [
-            130,
-            1520
-          ],
-          [
-            20,
-            1530
-          ],
-          [
-            0,
-            1440
-          ]
+          [540, 628],
+          [700, 608],
+          [880, 648],
+          [880, 718],
+          [700, 738],
+          [540, 718]
         ],
-        "pivot": [
-          100,
-          1536
-        ]
+        "pivot": [710, 758]
       },
       {
         "polygon": [
-          [
-            590,
-            500
-          ],
-          [
-            760,
-            490
-          ],
-          [
-            930,
-            520
-          ],
-          [
-            950,
-            590
-          ],
-          [
-            840,
-            610
-          ],
-          [
-            660,
-            610
-          ],
-          [
-            580,
-            560
-          ]
+          [100, 1408],
+          [200, 1388],
+          [260, 1428],
+          [240, 1488],
+          [150, 1498],
+          [90, 1458]
         ],
-        "pivot": [
-          760,
-          660
-        ]
+        "pivot": [175, 1508]
       }
     ]
   },
   "overview": {
-    "left": 20,
-    "top": 60,
-    "width": 990,
-    "height": 1220
+    "left": 58,
+    "top": 197,
+    "width": 964,
+    "height": 1208
   },
-  "overviewImage": "/art/optimized/mora-floodline-portrait-v5-b-overview.webp"
+  "overviewImage": "/art/optimized/mora-overgrown-floodline-portrait-v3-f-tall-overview.webp"
 }

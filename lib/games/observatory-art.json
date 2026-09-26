@@ -1,367 +1,159 @@
 {
- "source": "/art/mora-paper-world-landscape-v5-a.png",
- "image": "/art/optimized/mora-paper-world-landscape-v5-a.webp",
- "boardImage": "/art/optimized/mora-paper-world-landscape-v5-a-board.webp",
- "width": 1536,
- "height": 1024,
- "crop": {
-  "left": 80,
-  "top": 90,
-  "width": 1350,
-  "height": 650
- },
- "landmarks": {
-  "roofTop": 100,
-  "protectedBounds": [
-   {
-    "name": "root hollow",
-    "bounds": [
-     90,
-     280,
-     300,
-     240
-    ]
-   },
-   {
-    "name": "roof garden",
-    "bounds": [
-     455,
-     190,
-     270,
-     230
-    ]
-   },
-   {
-    "name": "observatory",
-    "bounds": [
-     790,
-     100,
-     300,
-     360
-    ]
-   },
-   {
-    "name": "glasshouse",
-    "bounds": [
-     520,
-     480,
-     560,
-     240
-    ]
-   },
-   {
-    "name": "dry channel",
-    "bounds": [
-     1150,
-     400,
-     180,
-     320
-    ]
-   },
-   {
-    "name": "watchpost",
-    "bounds": [
-     1230,
-     180,
-     190,
-     220
-    ]
-   }
-  ]
- },
- "habitats": [
-  {
-   "zone": 0,
-   "bounds": [
-    806,
-    290,
-    181,
-    139
-   ],
-   "label": [
-    897,
-    445
-   ],
-   "slots": [
-    [
-     863,
-     347
-    ],
-    [
-     930,
-     347
-    ],
-    [
-     863,
-     387
-    ],
-    [
-     930,
-     387
-    ]
-   ],
-   "tokenWidth": 60,
-   "summary": "*Same* species: 2 · 6 · 11 · 17"
+  "source": "/art/mora-overgrown-observatory-landscape-v3-b.png",
+  "image": "/art/optimized/mora-overgrown-observatory-landscape-v3-b.webp",
+  "boardImage": "/art/optimized/mora-overgrown-observatory-landscape-v3-b-board.webp",
+  "width": 1536,
+  "height": 1024,
+  "crop": {
+    "left": 104,
+    "top": 92,
+    "width": 1377,
+    "height": 622
   },
-  {
-   "zone": 1,
-   "bounds": [
-    501,
-    233,
-    176,
-    134
-   ],
-   "label": [
-    590,
-    398
-   ],
-   "slots": [
-    [
-     558,
-     290
-    ],
-    [
-     620,
-     290
-    ],
-    [
-     558,
-     325
-    ],
-    [
-     620,
-     325
+  "landmarks": {
+    "roofTop": 0,
+    "protectedBounds": [
+      {
+        "name": "root hollow",
+        "bounds": [0, 0, 440, 360]
+      },
+      {
+        "name": "roof garden",
+        "bounds": [440, 60, 370, 330]
+      },
+      {
+        "name": "observatory",
+        "bounds": [800, 0, 410, 395]
+      },
+      {
+        "name": "watchpost",
+        "bounds": [1240, 40, 230, 370]
+      },
+      {
+        "name": "glasshouse",
+        "bounds": [330, 390, 510, 300]
+      },
+      {
+        "name": "dry channel",
+        "bounds": [985, 440, 530, 270]
+      }
     ]
-   ],
-   "tokenWidth": 60,
-   "summary": "*Pair* 7 · two pairs 16"
   },
-  {
-   "zone": 2,
-   "bounds": [
-    181,
-    378,
-    179,
-    99
-   ],
-   "label": [
-    270,
-    515
-   ],
-   "slots": [
-    [
-     238,
-     435
-    ],
-    [
-     303,
-     435
+  "habitats": [
+    {
+      "zone": 0,
+      "bounds": [921, 227, 188, 129],
+      "label": [1016, 392],
+      "slots": [
+        [975, 272],
+        [1057, 272],
+        [974, 318],
+        [1057, 319]
+      ],
+      "tokenWidth": 62,
+      "summary": "*Same* species: 2 \u00b7 6 \u00b7 11 \u00b7 17"
+    },
+    {
+      "zone": 1,
+      "bounds": [510, 146, 180, 123],
+      "label": [600, 296],
+      "slots": [
+        [563, 191],
+        [637, 191],
+        [563, 232],
+        [638, 232]
+      ],
+      "tokenWidth": 62,
+      "summary": "*Pair* 7 \u00b7 two pairs 16"
+    },
+    {
+      "zone": 2,
+      "bounds": [134, 214, 188, 82],
+      "label": [229, 352],
+      "slots": [
+        [187, 259],
+        [270, 259]
+      ],
+      "tokenWidth": 62,
+      "summary": "*Pair* 9 \u00b7 single 1"
+    },
+    {
+      "zone": 3,
+      "bounds": [390, 520, 312, 127],
+      "label": [400, 652],
+      "slots": [
+        [443, 565],
+        [539, 598],
+        [650, 610]
+      ],
+      "tokenWidth": 62,
+      "summary": "*Echo*: 3 each if its species lives elsewhere"
+    },
+    {
+      "zone": 4,
+      "bounds": [1042, 483, 408, 82],
+      "label": [1246, 600],
+      "slots": [
+        [1095, 528],
+        [1246, 528],
+        [1398, 528]
+      ],
+      "tokenWidth": 62,
+      "summary": "*Full* channel: 6"
+    },
+    {
+      "zone": 6,
+      "bounds": [1307, 152, 105, 82],
+      "label": [1352, 262],
+      "slots": [[1360, 197]],
+      "tokenWidth": 62,
+      "summary": "2 per *other* area with its species"
+    }
+  ],
+  "release": [873, 575],
+  "animation": {
+    "water": {
+      "polygon": [
+        [20, 470],
+        [120, 445],
+        [250, 460],
+        [285, 540],
+        [250, 620],
+        [140, 650],
+        [40, 630],
+        [10, 560]
+      ]
+    },
+    "foliage": [
+      {
+        "polygon": [
+          [300, 760],
+          [380, 740],
+          [450, 770],
+          [450, 840],
+          [380, 870],
+          [300, 840]
+        ],
+        "pivot": [375, 880]
+      },
+      {
+        "polygon": [
+          [1100, 760],
+          [1180, 740],
+          [1250, 770],
+          [1250, 840],
+          [1180, 870],
+          [1100, 840]
+        ],
+        "pivot": [1175, 880]
+      }
     ]
-   ],
-   "tokenWidth": 60,
-   "summary": "*Pair* 9 · single 1"
   },
-  {
-   "zone": 3,
-   "bounds": [
-    783,
-    548,
-    284,
-    164
-   ],
-   "label": [
-    925,
-    722
-   ],
-   "slots": [
-    [
-     840,
-     670
-    ],
-    [
-     940,
-     652
-    ],
-    [
-     1010,
-     605
-    ]
-   ],
-   "tokenWidth": 60,
-   "summary": "*Echo*: 3 each if its species lives elsewhere"
+  "overview": {
+    "left": 0,
+    "top": 0,
+    "width": 1527,
+    "height": 722
   },
-  {
-   "zone": 4,
-   "bounds": [
-    1163,
-    408,
-    161,
-    294
-   ],
-   "label": [
-    1250,
-    715
-   ],
-   "slots": [
-    [
-     1220,
-     465
-    ],
-    [
-     1267,
-     560
-    ],
-    [
-     1267,
-     660
-    ]
-   ],
-   "tokenWidth": 60,
-   "summary": "*Full* channel: 6"
-  },
-  {
-   "zone": 6,
-   "bounds": [
-    1268,
-    228,
-    114,
-    99
-   ],
-   "label": [
-    1325,
-    365
-   ],
-   "slots": [
-    [
-     1325,
-     285
-    ]
-   ],
-   "tokenWidth": 60,
-   "summary": "2 per *other* area with its species"
-  }
- ],
- "release": [
-  876,
-  522
- ],
- "animation": {
-  "water": {
-   "polygon": [
-    [
-     250,
-     600
-    ],
-    [
-     300,
-     575
-    ],
-    [
-     370,
-     585
-    ],
-    [
-     420,
-     620
-    ],
-    [
-     415,
-     675
-    ],
-    [
-     365,
-     705
-    ],
-    [
-     290,
-     700
-    ],
-    [
-     245,
-     660
-    ]
-   ]
-  },
-  "foliage": [
-   {
-    "polygon": [
-     [
-      190,
-      840
-     ],
-     [
-      250,
-      810
-     ],
-     [
-      315,
-      835
-     ],
-     [
-      330,
-      895
-     ],
-     [
-      295,
-      945
-     ],
-     [
-      225,
-      950
-     ],
-     [
-      185,
-      905
-     ]
-    ],
-    "pivot": [
-     255,
-     955
-    ]
-   },
-   {
-    "polygon": [
-     [
-      1290,
-      790
-     ],
-     [
-      1350,
-      760
-     ],
-     [
-      1415,
-      785
-     ],
-     [
-      1430,
-      845
-     ],
-     [
-      1395,
-      895
-     ],
-     [
-      1325,
-      900
-     ],
-     [
-      1285,
-      855
-     ]
-    ],
-    "pivot": [
-     1355,
-     905
-    ]
-   }
-  ]
- },
- "overview": {
-  "left": 60,
-  "top": 70,
-  "width": 1400,
-  "height": 700
- },
- "overviewImage": "/art/optimized/mora-paper-world-landscape-v5-a-overview.webp"
+  "overviewImage": "/art/optimized/mora-overgrown-observatory-landscape-v3-b-overview.webp"
 }

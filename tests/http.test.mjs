@@ -2,6 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { makeServer } from '../server/index.ts';
+
+await test('generated and retained sound files have playable audio content types', async () => {
+  const app = await makeServer({ database: ':memory:', staticDir: 'public', bots: false });
+  try {
+    await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
+    const base = `http://127.0.0.1:${app.server.address().port}`;
+    for (const [path, type] of [
+      ['/audio/elevenlabs/nox-select-v1.mp3', 'audio/mpeg'],
+      ['/audio/ambience/ship/creak-1.m4a', 'audio/mp4'],
+    ]) {
+      const response = await fetch(base + path, { method: 'HEAD' });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('content-type'), type);
+      assert.ok(Number(response.headers.get('content-length')) > 2000);
+    }
+  } finally { await app.close(); }
+});
 const origin = 'http://localhost:3017';
 async function fixture(bots = false) {
   const app = await makeServer({ database: ':memory:', origin, bots });
@@ -470,4 +487,97 @@ await test('the host sends the whole table to Folio or Relic in one room', async
     controller.abort();
     await app.close();
   }
+});
+
+await test('saved solo games continue at a table without resetting progress; the host returns everyone to the lobby', async () => {
+  const { app, client } = await fixture();
+  const controller = new AbortController();
+  try {
+    const { host, path } = await hostTable(client);
+    const solo = (await host.request('/api/folio', { seats: 1, difficulty: 2 })).data;
+    const folioPath = `/api/folio/${solo.token}`;
+    const node = solo.game.map.find((n) => n.row === 0);
+    const played = await host.request(`${folioPath}/commands`, {
+      requestId: randomUUID(), revision: solo.game.revision, action: { type: 'node', id: node.id },
+    });
+    assert.equal(played.status, 200);
+    const desk = (await host.request('/api/expeditions', { title: 'Saved desk', world: 'dunes' })).data;
+    const deskPath = `/api/expeditions/${desk.token}`;
+    const bought = await host.request(`${deskPath}/commands`, {
+      requestId: randomUUID(), action: { type: 'scratch-open', pack: 'seven', level: 0 },
+    });
+    assert.equal(bought.status, 200);
+    const guest = client();
+    await guest.request(path + '/join', { name: 'Guest' });
+    const stream = await guest.events(path + '/events', controller.signal);
+    const reader = stream.body.getReader();
+    await reader.read();
+    const resumed = await host.request(path + '/launch', { kind: 'folio', token: solo.token });
+    assert.equal(resumed.status, 200);
+    assert.equal(resumed.data.url, `/folio/${solo.token}`);
+    const shared = (await guest.request(folioPath)).data;
+    assert.equal(shared.joined, true);
+    assert.equal(shared.members.length, 2);
+    assert.equal(shared.game.seats, 2);
+    assert.equal(shared.game.at, played.data.game.at);
+    assert.deepEqual(shared.game.puzzle, played.data.game.puzzle);
+    assert.deepEqual(shared.game.path, played.data.game.path);
+    assert.equal(shared.game.lives, played.data.game.lives);
+    const t = (await host.request(path)).data;
+    assert.equal((await act(guest, path, t, { type: 'abandon' })).status, 403);
+    const lobby = await act(host, path, t, { type: 'abandon' });
+    assert.equal(lobby.status, 200);
+    assert.equal(lobby.data.handoff, null);
+    assert.deepEqual((await host.request(folioPath)).data.game.puzzle, shared.game.puzzle);
+    const again = await host.request(path + '/launch', { kind: 'folio', token: solo.token });
+    assert.equal(again.status, 200);
+    assert.ok(again.data.at > resumed.data.at);
+    const lucky = await host.request(path + '/launch', { kind: 'relic', token: desk.token });
+    assert.equal(lucky.status, 200);
+    assert.equal(lucky.data.url, `/expedition/${desk.token}`);
+    const watching = (await guest.request(deskPath)).data;
+    assert.deepEqual(watching.game.scratch.hands, bought.data.game.scratch.hands);
+    assert.equal(watching.game.coins, bought.data.game.coins);
+    // Watching is read-only: a player cannot scratch somebody else's ticket.
+    const ownerTicket = Object.values(watching.game.scratch.hands)[0];
+    const attempted = await guest.request(`${deskPath}/commands`, {
+      requestId: randomUUID(), action: { type: 'scratch-stroke', ticket: ownerTicket.id, sequence: 0, points: [{ x: .1, y: .1 }] },
+    });
+    assert.deepEqual((await host.request(deskPath)).data.game.scratch.hands, watching.game.scratch.hands);
+    assert.equal(attempted.status, 400);
+    const closed = await act(host, path, (await host.request(path)).data, { type: 'close' });
+    assert.equal(closed.status, 200);
+    assert.equal((await host.request(deskPath)).status, 200);
+  } finally { controller.abort(); await app.close(); }
+});
+
+await test('saved-game table attachment checks membership and the combined three-player cap atomically', async () => {
+  const { app, client } = await fixture();
+  const controller = new AbortController();
+  try {
+    const { host, path } = await hostTable(client);
+    const guest = client(), outsider = client(), third = client(), fourth = client();
+    await guest.request(path + '/join', { name: 'Guest' });
+    const stream = await guest.events(path + '/events', controller.signal);
+    await stream.body.getReader().read();
+    const privateDesk = (await outsider.request('/api/expeditions', { name: 'Other', title: 'Private', world: 'dunes' })).data;
+    assert.equal((await host.request(path + '/launch', { kind: 'relic', token: privateDesk.token })).status, 403);
+    const privateRun = (await outsider.request('/api/folio', { seats: 1 })).data;
+    assert.equal((await host.request(path + '/launch', { kind: 'folio', token: privateRun.token })).status, 403);
+    const fullDesk = (await host.request('/api/expeditions', { title: 'Full', world: 'dunes' })).data;
+    const dp = `/api/expeditions/${fullDesk.token}`;
+    await third.request(dp + '/join', { name: 'Third' });
+    await fourth.request(dp + '/join', { name: 'Fourth' });
+    assert.equal((await guest.request(dp + '/join', {})).status, 409);
+    assert.equal((await host.request(path + '/launch', { kind: 'relic', token: fullDesk.token })).status, 409);
+    assert.equal((await guest.request(dp)).status, 403);
+    assert.equal((await host.request(path)).data.handoff, null);
+    const fullRun = (await host.request('/api/folio', { seats: 3 })).data;
+    const fp = `/api/folio/${fullRun.token}`;
+    await third.request(fp + '/join', {});
+    await fourth.request(fp + '/join', {});
+    assert.equal((await host.request(path + '/launch', { kind: 'folio', token: fullRun.token })).status, 409);
+    assert.equal((await guest.request(fp)).data.joined, false);
+    assert.equal((await host.request(fp)).data.members.length, 3);
+  } finally { controller.abort(); await app.close(); }
 });

@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-26",
+  "provider": "ElevenLabs",
+  "model": "eleven_text_to_sound_v2",
+  "flowId": "6kpUyf1OVvgrhXZoTfTa",
+  "flowUrl": "https://elevenlabs.io/app/flows/6kpUyf1OVvgrhXZoTfTa",
+  "scope": "Four gentle shared interaction sounds: pickup, placement, your turn, final scores. Ambience untouched.",
+  "status": "Four single successful takes downloaded, decoded, filtered and level checked; subjective listening acceptance pending.",
+  "successfulGenerationCreditsReported": 28.0,
+  "failedValidationCreditsReported": 28.0,
+  "notes": [
+    "The provider rejected the first four prompts before producing audio because its prompt maximum is 450 characters; this limit was not included in the returned model schema.",
+    "Those explicitly failed sessions were replaced with shortened prompts. One successful take was generated per action. Provider price metadata is recorded for failed and successful sessions; actual billing/refund state was not independently verified.",
+    "Original downloaded files are unchanged. Game copies are shortened where appropriate, high-pass and low-pass filtered, and faded at both edges. Encoded MP3 peaks were measured below -18 dBFS. Envelope analysis identified clear action onsets at time zero; a 2ms fade preserves the foley attack. Pickup receives a bounded positive gain after filtering because its measured event is over 15dB above the late tail; no near-silent source or tail is normalized.",
+    "No subjective listening or speaker/headphone balance acceptance has been performed. Prompts express intended content, not verified semantic claims.",
+    "Second preparation pass reviewed original and filtered envelopes in 5ms, 10ms and 20ms windows. Pickup and place retain their complete early actions; turn and final-scores audio bytes are unchanged from the first preparation pass."
+  ],
+  "failedValidationAttempts": [
+    {
+      "id": "global-pickup-v1",
+      "prompt": "A tiny natural soft fingertip lifting a small felt-backed wooden board-game token. A single light, low soft tactile 'pup', almost a muted felt tap, lasting about 0.18 seconds. Very quiet, intimate, rounded and reassuring, designed for many repetitions in a relaxed tabletop game. One isolated sound on a silent background. Soft onset and short dry decay. No voices, breath, squeaks, rattles, metal, high pitched sparkle, whoosh, ominous texture, distortion, heavy bass, crash or reverberant tail.",
+      "nodeId": "oPN3v0E0mpDF6erkNYGg",
+      "sessionId": "goDRbEALcTiKvRoFdCqK",
+      "generationId": "kg2XarWKlkEBvscLdbEt",
+      "status": "failed",
+      "error": "Prompt must be at most 450 characters, got 496.",
+      "priceCreditsReported": 5.0
+    },
+    {
+      "id": "global-place-v1",
+      "prompt": "A small smooth wooden board-game token gently set down on a thick felt mat. One compact warm muted 'tok' with a padded landing, lasting about 0.25 seconds. Slightly lower and fuller than a pickup tick, never a hard knock. Very quiet, intimate, rounded and reassuring, designed for many repetitions in a relaxed tabletop game. One isolated sound on a silent background. Soft onset and short dry decay. No voices, breath, squeaks, rattles, metal, high pitched sparkle, whoosh, ominous texture, distortion, heavy bass, crash or reverberant tail.",
+      "nodeId": "NE8l14bE6idqQ0vlzlNe",
+      "sessionId": "NLX11gMGPgONYFkKBMaI",
+      "generationId": "XOzS7MtmYBJQjZOB9EKZ",
+      "status": "failed",
+      "error": "Prompt must be at most 450 characters, got 542.",
+      "priceCreditsReported": 5.0
+    },
+    {
+      "id": "global-turn-v1",
+      "prompt": "A tiny friendly your-turn notification: two rounded muted felt-piano notes in a comfortable mid register, a gentle ascending major third, soft attack, the second slightly quieter, over 0.6 seconds. A simple warm musical nudge with no urgency. Very quiet, intimate, rounded and reassuring, designed for many repetitions in a relaxed tabletop game. One isolated sound on a silent background. Soft onset and short dry decay. No voices, breath, squeaks, rattles, metal, high pitched sparkle, whoosh, ominous texture, distortion, heavy bass, crash or reverberant tail.",
+      "nodeId": "9rBNaIqzFSsTCucfMaVg",
+      "sessionId": "Tev2AITQam0Rlks6rOvL",
+      "generationId": "G0ivijextgNsZZjFjv7V",
+      "status": "failed",
+      "error": "Prompt must be at most 450 characters, got 563.",
+      "priceCreditsReported": 7.0
+    },
+    {
+      "id": "global-scores-v1",
+      "prompt": "A very understated end-of-game scores cue: three sparse warm muted felt-piano notes resolving gently to a peaceful major chord, in a comfortable mid register. Calm satisfaction, delicate soft touch, short dry decay ending within one second. No fanfare, no orchestral flourish, no victory blast. Very quiet, intimate, rounded and reassuring, designed for many repetitions in a relaxed tabletop game. One isolated sound on a silent background. Soft onset and short dry decay. No voices, breath, squeaks, rattles, metal, high pitched sparkle, whoosh, ominous texture, distortion, heavy bass, crash or reverberant tail.",
+      "nodeId": "bp1XkoKh3tRDspZZ0YUG",
+      "sessionId": "CBVQG8FYyYDRmSe50OcR",
+      "generationId": "KYB5f0V25aIQxnx9AFuQ",
+      "status": "failed",
+      "error": "Prompt must be at most 450 characters, got 615.",
+      "priceCreditsReported": 11.0
+    }
+  ],
+  "clips": [
+    {
+      "id": "global-pickup-v1",
+      "category": "pickup",
+      "label": "Pick up \u00b7 felt",
+      "src": "/audio/elevenlabs/global-pickup-v1.mp3",
+      "duration": 0.3,
+      "gain": 0.6,
+      "prompt": "Tiny fingertip gently lifting a felt-backed wooden token. One light soft tactile 'pup', a muted felt tap lasting about 0.18 seconds. Quiet and intimate for frequent use in a relaxed tabletop game; rounded soft onset, dry short decay, silent background. No voices, squeak, rattle, metal, whoosh, darkness, distortion, heavy bass, crash, sparkle or reverb.",
+      "parameters": {
+        "duration_seconds": 0.5,
+        "prompt_influence": 0.85,
+        "loop": false
+      },
+      "nodeId": "oPN3v0E0mpDF6erkNYGg",
+      "sessionId": "Bga2u3xKh3yB11ZozyBk",
+      "generationId": "xJnBy1Z1ZCXIWqyPucFe",
+      "priceReported": {
+        "credits": 5,
+        "price_cents": 0.05,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/global-pickup-v1.mp3",
+      "sourceValidation": {
+        "peakDbFS": -10.3,
+        "meanDbFS": -31.3,
+        "durationSeconds": 0.48,
+        "bytes": 25657,
+        "sha256": "bb81b83fbc270933c3d7b481bcd364e52e32d6b3d2a3278b580d70241e42cff2",
+        "decodes": true
+      },
+      "filteredPeakBeforeAttenuationDbFS": -25.66,
+      "preparation": {
+        "filter": "atrim=start=0:duration=0.30000,asetpts=PTS-STARTPTS,highpass=f=80,lowpass=f=2800,afade=t=in:d=0.002,afade=t=out:st=0.23000:d=0.070,volume=3.16dB",
+        "gainAdjustmentDb": 3.16,
+        "targetPeakDbFS": -22.5,
+        "maximumEncodedPeakDbFS": -18,
+        "boostAllowed": true,
+        "maximumPositiveGainDb": 4,
+        "attackFadeSeconds": 0.002,
+        "trimStartSeconds": 0,
+        "envelopeReview": {
+          "sourcePeakTimeSeconds": 4.5e-05,
+          "lowpassPeakTimeSeconds": 0.000476,
+          "filteredEnergyRetainedBeforeFadesPercent": 99.781,
+          "first120msFilteredRmsDbFS": -38.62,
+          "300to450msFilteredRmsDbFS": -67.09,
+          "eventToTailRmsDifferenceDb": 28.46,
+          "finding": "Action begins immediately. Trim preserves its full main event. Initial 12ms attack fade suppressed the pickup transient; 2ms fade now preserves its attack. A bounded boost is applied only to the distinct pickup event, never to a silent tail."
+        }
+      },
+      "validation": {
+        "peakDbFS": -23.02,
+        "meanDbFS": -40.35,
+        "durationSeconds": 0.3,
+        "bytes": 7358,
+        "sha256": "907b4ce3e4819116a735bf92896b19226eb5ac09dd92684504860e1ad7525014",
+        "decodes": true,
+        "predictedPeakAtDefaultGain0195DbFS": -37.22
+      }
+    },
+    {
+      "id": "global-place-v1",
+      "category": "place",
+      "label": "Place \u00b7 soft wood",
+      "src": "/audio/elevenlabs/global-place-v1.mp3",
+      "duration": 0.26,
+      "gain": 0.6,
+      "prompt": "A small smooth wooden token gently placed on thick felt. One warm low muted 'tok' with a padded landing, lasting 0.25 seconds. Soft, never a hard knock. Quiet and intimate for frequent use in a relaxed tabletop game; rounded soft onset, dry short decay, silent background. No voices, squeak, rattle, metal, whoosh, darkness, distortion, heavy bass, crash, sparkle or reverb.",
+      "parameters": {
+        "duration_seconds": 0.5,
+        "prompt_influence": 0.85,
+        "loop": false
+      },
+      "nodeId": "NE8l14bE6idqQ0vlzlNe",
+      "sessionId": "TKnvJLkdWusVsrkVGjzO",
+      "generationId": "KqdyEyF7eyxhe7Ae5CRc",
+      "priceReported": {
+        "credits": 5,
+        "price_cents": 0.05,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/global-place-v1.mp3",
+      "sourceValidation": {
+        "peakDbFS": -10.3,
+        "meanDbFS": -27.2,
+        "durationSeconds": 0.48,
+        "bytes": 25657,
+        "sha256": "931d75e40887f3441e4f10c9434dbdc43ebdcdb3c72e2695e3ca42ef64b16056",
+        "decodes": true
+      },
+      "filteredPeakBeforeAttenuationDbFS": -15.38,
+      "preparation": {
+        "filter": "atrim=start=0:duration=0.26000,asetpts=PTS-STARTPTS,highpass=f=80,lowpass=f=2800,afade=t=in:d=0.002,afade=t=out:st=0.19000:d=0.070,volume=-5.12dB",
+        "gainAdjustmentDb": -5.12,
+        "targetPeakDbFS": -20.5,
+        "maximumEncodedPeakDbFS": -18,
+        "boostAllowed": false,
+        "maximumPositiveGainDb": 4,
+        "attackFadeSeconds": 0.002,
+        "trimStartSeconds": 0,
+        "envelopeReview": {
+          "sourcePeakTimeSeconds": 0.016247,
+          "lowpassPeakTimeSeconds": 0.009388,
+          "filteredEnergyRetainedBeforeFadesPercent": 99.911,
+          "first120msFilteredRmsDbFS": -26.68,
+          "300to450msFilteredRmsDbFS": -62.28,
+          "eventToTailRmsDifferenceDb": 35.59,
+          "finding": "Action begins immediately. Trim preserves its full main event. Initial 12ms attack fade suppressed the pickup transient; 2ms fade now preserves its attack. A bounded boost is applied only to the distinct pickup event, never to a silent tail."
+        }
+      },
+      "validation": {
+        "peakDbFS": -20.94,
+        "meanDbFS": -35.6,
+        "durationSeconds": 0.26,
+        "bytes": 6313,
+        "sha256": "58f89068295da6377c69fe3fba7123e3ba82d81004c838716d69962e63c573d6",
+        "decodes": true,
+        "predictedPeakAtDefaultGain0195DbFS": -35.14
+      }
+    },
+    {
+      "id": "global-turn-v1",
+      "category": "turn",
+      "label": "Your turn \u00b7 warm notes",
+      "src": "/audio/elevenlabs/global-turn-v1.mp3",
+      "duration": 0.68025,
+      "gain": 0.6,
+      "prompt": "A friendly your-turn nudge: two warm muted felt-piano notes in a comfortable mid register, a gentle ascending major third. Soft attack, second note quieter; done within 0.6 seconds. Quiet and intimate for frequent use in a relaxed tabletop game; rounded soft onset, dry short decay, silent background. No voices, squeak, rattle, metal, whoosh, darkness, distortion, heavy bass, crash, sparkle or reverb.",
+      "parameters": {
+        "duration_seconds": 0.7,
+        "prompt_influence": 0.85,
+        "loop": false
+      },
+      "nodeId": "9rBNaIqzFSsTCucfMaVg",
+      "sessionId": "qIlyiiU8Jf4EcKDnxK7J",
+      "generationId": "0bSqQ47jjyPcWDMvbQzt",
+      "priceReported": {
+        "credits": 6.999999999999999,
+        "price_cents": 0.06999999999999999,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/global-turn-v1.mp3",
+      "sourceValidation": {
+        "peakDbFS": -19.2,
+        "meanDbFS": -32.2,
+        "durationSeconds": 0.6802494331065759,
+        "bytes": 29000,
+        "sha256": "ea82e7441e860731ce1b9ff15e1b522d3423524ef45be4dfc42fc931e349b9c6",
+        "decodes": true
+      },
+      "filteredPeakBeforeAttenuationDbFS": -23.4,
+      "preparation": {
+        "filter": "atrim=duration=0.68000,asetpts=PTS-STARTPTS,highpass=f=80,lowpass=f=2800,afade=t=in:d=0.018,afade=t=out:st=0.56000:d=0.120,volume=0.00dB",
+        "gainAdjustmentDb": 0,
+        "targetPeakDbFS": -19,
+        "maximumEncodedPeakDbFS": -18,
+        "boostAllowed": false
+      },
+      "validation": {
+        "peakDbFS": -23.8,
+        "meanDbFS": -37.8,
+        "durationSeconds": 0.6802494331065759,
+        "bytes": 15195,
+        "sha256": "c0a6623e00f42da374e37b61392b428c2d4a51f405414053e604bf76e3ad4d63",
+        "decodes": true
+      }
+    },
+    {
+      "id": "global-scores-v1",
+      "category": "scores",
+      "label": "Final scores \u00b7 mellow chime",
+      "src": "/audio/elevenlabs/global-scores-v1.mp3",
+      "duration": 1.08,
+      "gain": 0.6,
+      "prompt": "A very understated final-scores cue: three sparse warm muted felt-piano notes resolving gently to a peaceful major chord. Comfortable mid register, calm satisfaction. No fanfare; ends within one second. Quiet and intimate for frequent use in a relaxed tabletop game; rounded soft onset, dry short decay, silent background. No voices, squeak, rattle, metal, whoosh, darkness, distortion, heavy bass, crash, sparkle or reverb.",
+      "parameters": {
+        "duration_seconds": 1.1,
+        "prompt_influence": 0.85,
+        "loop": false
+      },
+      "nodeId": "bp1XkoKh3tRDspZZ0YUG",
+      "sessionId": "ocekHerxUpVgkPmgkS6Q",
+      "generationId": "9B6gJlIxj4CzzTe0BBKu",
+      "priceReported": {
+        "credits": 11,
+        "price_cents": 0.11,
+        "cost_fiat_currency": "usd"
+      },
+      "source": "assets/audio/elevenlabs/2026-09-26/global-scores-v1.mp3",
+      "sourceValidation": {
+        "peakDbFS": -21.1,
+        "meanDbFS": -36.3,
+        "durationSeconds": 1.08,
+        "bytes": 35270,
+        "sha256": "00d0fded21e5713b751b60f7c35d38aca3baea87d35a715197fdf52cf44b2c80",
+        "decodes": true
+      },
+      "filteredPeakBeforeAttenuationDbFS": -24.5,
+      "preparation": {
+        "filter": "atrim=duration=1.08000,asetpts=PTS-STARTPTS,highpass=f=80,lowpass=f=2800,afade=t=in:d=0.018,afade=t=out:st=0.96000:d=0.120,volume=0.00dB",
+        "gainAdjustmentDb": 0,
+        "targetPeakDbFS": -19,
+        "maximumEncodedPeakDbFS": -18,
+        "boostAllowed": false
+      },
+      "validation": {
+        "peakDbFS": -24.9,
+        "meanDbFS": -41.1,
+        "durationSeconds": 1.08,
+        "bytes": 23031,
+        "sha256": "e244278798bf8ed4f0751e9b0c294672b9811647c3f3bf4ab1f1cb9042c92548",
+        "decodes": true
+      }
+    }
+  ]
+}

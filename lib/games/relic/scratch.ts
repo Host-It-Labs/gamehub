@@ -8,6 +8,7 @@ import {
   openSeal,
   prizeUnits,
   printTicket,
+  sealLocked,
   type Cell,
   type Pack,
   type PackId,
@@ -32,6 +33,8 @@ export const PATHS = [
   { id: 'scratch', name: 'Scratching', color: '#75bcbe' },
   { id: 'luck', name: 'Luck', color: '#e9bb66' },
   { id: 'payout', name: 'Payouts', color: '#d98d75' },
+  { id: 'shop', name: 'Shop', color: '#c792d8' },
+  { id: 'books', name: 'Books', color: '#8fb7e6' },
   { id: 'factory', name: 'Factory', color: '#91b282' },
 ] as const;
 export type PathId = (typeof PATHS)[number]['id'];
@@ -45,6 +48,10 @@ export type Upgrade = {
   /** The price of each rank, spread over the whole game. */
   prices: readonly number[];
   requires?: string;
+  /** Book upgrades need their book on the shelf. */
+  book?: PackId;
+  /** Where the node sits in its path's little tree: column, row. */
+  at: [number, number];
   show: (rank: number) => string;
 };
 export const FLOOR_SIZES = [
@@ -54,31 +61,101 @@ export const FLOOR_SIZES = [
   [14, 8],
   [16, 9],
 ] as const;
-export const COIN_SIZES = [1, 1.35, 1.75, 2.2] as const;
+export const COIN_SIZES = [1, 1.35, 1.75, 2.2, 2.8] as const;
 export const FOIL_OPENS = [0.72, 0.5, 0.3, 0.04] as const;
+export const QUICK_BONUS = [0, 0.25, 0.5, 1] as const;
 export const JACKPOTS = [3, 5, 8, 12, 20] as const;
+export const STAR_PAYS = [5, 8, 12] as const;
 export const STREAK_STEPS = [0, 0.1, 0.25, 0.5] as const;
-/** Tickets waiting on one player's table. */
-export const TABLE_MAX = 12;
-const times = (n: number) => `×${n}`;
+export const GOLD_CHANCE = [0, 0.15, 0.3, 0.5, 0.8] as const;
+export const HEART_BONUS = [0, 0.05, 0.1, 0.2, 0.35] as const;
+export const DISCOUNTS = [0, 0.1, 0.2, 0.3, 0.4] as const;
+export const INSURANCE = [0, 0.25, 0.5, 0.75] as const;
+export const FREE_CHANCE = [0, 0.05, 0.1, 0.15, 0.25] as const;
+export const EARLY = [1, 0.7, 0.5, 0.3] as const;
+/** A book's own prize upgrade, per rank; factory sales, per rank. */
+export const BOOK_BOOST = 1.5;
+export const SALES = 1.4;
+/** A ticket costs this share of what a careful player wins on average. */
+export const PRICE_SHARE = 0.5;
+const times = (n: number) => `×${Math.round(n * 100) / 100}`;
 const pct = (n: number) => `${Math.round(n * 100)}%`;
-/** Every upgrade names the one number it changes, and every rank is a big
- * step. Within a path each upgrade needs one rank of the upgrade before it. */
 const K = 1e3,
   M = 1e6,
   B = 1e9,
   T = 1e12;
+const Qa = 1e15;
+/** `n` prices from `first` to `last`, each the same big step up, rounded to
+ * two significant figures. */
+const span = (first: number, last: number, n: number) =>
+  Array.from({ length: n }, (_, i) => {
+    const v = first * (last / first) ** (n > 1 ? i / (n - 1) : 0),
+      unit = 10 ** Math.floor(Math.log10(v) - 1);
+    return Math.round(v / unit) * unit;
+  });
 const upgrade = (u: Omit<Upgrade, 'max'>): Upgrade => ({
   ...u,
   max: u.prices.length,
 });
+/** Each book's helper: how many ranks, what it is called and what it shows. */
+const HELPERS: Record<
+  PackId,
+  { name: string; label: string; ranks: number; show: (r: number) => string }
+> = {
+  seven: {
+    name: 'Hot and cold',
+    label: 'Misses show distance',
+    ranks: 1,
+    show: (r) => (r ? 'on' : 'off'),
+  },
+  twins: {
+    name: 'Matchmaker',
+    label: 'Pairs printed open',
+    ranks: 2,
+    show: String,
+  },
+  path: {
+    name: 'Garden map',
+    label: 'Extra numbers',
+    ranks: 2,
+    show: (r) => `+${r}`,
+  },
+  ladder: {
+    name: 'Safety rope',
+    label: 'Wrong guesses forgiven',
+    ranks: 2,
+    show: String,
+  },
+  mine: {
+    name: 'Metal detector',
+    label: 'Dynamite marked',
+    ranks: 3,
+    show: String,
+  },
+  sunmoon: {
+    name: 'Almanac',
+    label: 'Extra printed seals',
+    ranks: 2,
+    show: (r) => `+${r}`,
+  },
+  chart: { name: 'Sonar', label: 'Ship parts shown', ranks: 2, show: String },
+  crown: {
+    name: 'Royal decree',
+    label: 'Crowns shown',
+    ranks: 1,
+    show: String,
+  },
+};
+/** Every upgrade names the one number it changes, and every rank is a big
+ * step. An upgrade opens once one rank of the upgrade before it is bought. */
 export const UPGRADES: Upgrade[] = [
   upgrade({
     id: 'coin',
     path: 'scratch',
     name: 'Bigger coin',
     label: 'Coin size',
-    prices: [200, 80 * K, 50 * M],
+    at: [0.5, 0],
+    prices: span(150, 5 * B, 4),
     show: (r) => times(COIN_SIZES[r]),
   }),
   upgrade({
@@ -86,28 +163,89 @@ export const UPGRADES: Upgrade[] = [
     path: 'scratch',
     name: 'Thin foil',
     label: 'Seal opens at',
-    prices: [5 * K, 10 * M, 20 * B],
+    at: [0.5, 1],
+    prices: span(2 * K, 50 * B, 3),
     requires: 'coin',
     show: (r) => (r === FOIL_OPENS.length - 1 ? 'a touch' : pct(FOIL_OPENS[r])),
+  }),
+  upgrade({
+    id: 'quick',
+    path: 'scratch',
+    name: 'Quick hands',
+    label: 'Fast ticket bonus',
+    at: [0.5, 2],
+    prices: span(40 * K, 500 * T, 3),
+    requires: 'foil',
+    show: (r) => `+${pct(QUICK_BONUS[r])}`,
+  }),
+  upgrade({
+    id: 'extra',
+    path: 'luck',
+    name: 'Second chance',
+    label: 'Extra mistakes',
+    at: [0.5, 0],
+    prices: span(1 * K, 50 * T, 3),
+    show: (r) => `+${r}`,
+  }),
+  upgrade({
+    id: 'star',
+    path: 'luck',
+    name: 'Star tickets',
+    label: 'Star chance',
+    at: [0, 1],
+    prices: span(10 * K, 1 * Qa, 5),
+    requires: 'extra',
+    show: (r) => pct(starChance(r)),
+  }),
+  upgrade({
+    id: 'goldseal',
+    path: 'luck',
+    name: 'Golden seal',
+    label: 'Golden seal (×10) chance',
+    at: [1, 1],
+    prices: span(25 * K, 100 * T, 4),
+    requires: 'extra',
+    show: (r) => pct(GOLD_CHANCE[r]),
+  }),
+  upgrade({
+    id: 'starpower',
+    path: 'luck',
+    name: 'Bright stars',
+    label: 'A star ticket pays',
+    at: [0, 2],
+    prices: span(50 * M, 50 * Qa, 2),
+    requires: 'star',
+    show: (r) => times(STAR_PAYS[r]),
+  }),
+  upgrade({
+    id: 'streak',
+    path: 'luck',
+    name: 'Hot streak',
+    label: 'Per perfect in a row',
+    at: [1, 2],
+    prices: span(5 * M, 5 * Qa, 3),
+    requires: 'goldseal',
+    show: (r) => `+${pct(STREAK_STEPS[r])}`,
   }),
   upgrade({
     id: 'value',
     path: 'payout',
     name: 'Richer prizes',
-    label: 'Every prize',
+    label: 'Prizes and prices',
+    at: [0.5, 0],
     prices: [
-      500,
-      12.5 * K,
-      300 * K,
-      8 * M,
-      200 * M,
-      5 * B,
-      120 * B,
-      3 * T,
-      80 * T,
-      2000 * T,
-      50_000 * T,
-      1_200_000 * T,
+      400,
+      10 * K,
+      250 * K,
+      6 * M,
+      150 * M,
+      4 * B,
+      100 * B,
+      2.5 * T,
+      60 * T,
+      1500 * T,
+      40_000 * T,
+      1_000_000 * T,
     ],
     show: (r) => times(2 ** r),
   }),
@@ -115,52 +253,128 @@ export const UPGRADES: Upgrade[] = [
     id: 'jackpot',
     path: 'payout',
     name: 'Jackpot',
-    label: 'Perfect ticket',
-    prices: [20 * K, 5 * M, 2 * B, 1 * T],
+    label: 'A perfect ticket pays',
+    at: [0, 1],
+    prices: span(5 * K, 5 * Qa, 4),
     requires: 'value',
     show: (r) => times(JACKPOTS[r]),
+  }),
+  upgrade({
+    id: 'hearts',
+    path: 'payout',
+    name: 'Heart bonus',
+    label: 'Per heart left',
+    at: [1, 1],
+    prices: span(15 * K, 10 * Qa, 4),
+    requires: 'value',
+    show: (r) => `+${pct(HEART_BONUS[r])}`,
   }),
   upgrade({
     id: 'golden',
     path: 'payout',
     name: 'Golden touch',
-    label: 'All earnings',
-    prices: [2 * M, 2 * B, 2 * T, 2000 * T],
+    label: 'Everything won',
+    at: [0, 2],
+    prices: span(1 * M, 10 * Qa, 4),
     requires: 'jackpot',
     show: (r) => times(2 ** r),
   }),
   upgrade({
-    id: 'extra',
-    path: 'luck',
-    name: 'Second chance',
-    label: 'Extra mistakes',
-    prices: [3 * K, 5 * M, 10 * B],
-    show: (r) => `+${r}`,
+    id: 'mastery',
+    path: 'payout',
+    name: 'Mastery',
+    label: 'Level III pays',
+    at: [1, 2],
+    prices: span(50 * M, 50 * Qa, 3),
+    requires: 'hearts',
+    show: (r) => times(levelMult(r, 2)),
   }),
   upgrade({
-    id: 'star',
-    path: 'luck',
-    name: 'Star tickets',
-    label: 'Star (×5) chance',
-    prices: [30 * K, 5 * M, 1 * B, 200 * B, 40 * T],
-    requires: 'extra',
-    show: (r) => pct(starChance(r)),
+    id: 'collector',
+    path: 'payout',
+    name: 'Collector',
+    label: 'Per book on the shelf',
+    at: [0.5, 3],
+    prices: span(1 * T, 100 * Qa, 3),
+    requires: 'golden',
+    show: (r) => `+${r * 5}%`,
   }),
   upgrade({
-    id: 'streak',
-    path: 'luck',
-    name: 'Hot streak',
-    label: 'Per perfect in a row',
-    prices: [1 * M, 2 * B, 5 * T],
-    requires: 'star',
-    show: (r) => `+${pct(STREAK_STEPS[r])}`,
+    id: 'discount',
+    path: 'shop',
+    name: 'Bulk discount',
+    label: 'Ticket prices',
+    at: [0.5, 0],
+    prices: span(600, 1 * T, 4),
+    show: (r) => (r ? `−${pct(DISCOUNTS[r])}` : 'full'),
+  }),
+  upgrade({
+    id: 'insurance',
+    path: 'shop',
+    name: 'Insurance',
+    label: 'A losing ticket refunds',
+    at: [0, 1],
+    prices: span(8 * K, 10 * T, 3),
+    requires: 'discount',
+    show: (r) => pct(INSURANCE[r]),
+  }),
+  upgrade({
+    id: 'freebie',
+    path: 'shop',
+    name: 'Lucky draw',
+    label: 'Free ticket chance',
+    at: [1, 1],
+    prices: span(20 * K, 1 * Qa, 4),
+    requires: 'discount',
+    show: (r) => pct(FREE_CHANCE[r]),
+  }),
+  upgrade({
+    id: 'early',
+    path: 'shop',
+    name: 'Early print',
+    label: 'Levels open after',
+    at: [0.5, 2],
+    prices: span(100 * K, 100 * T, 3),
+    requires: 'insurance',
+    show: (r) =>
+      `${Math.ceil(LEVEL_AT[1] * EARLY[r])}/${Math.ceil(LEVEL_AT[2] * EARLY[r])}`,
+  }),
+  ...BOOKS.flatMap((b, i) => {
+    const base = Math.max(500, b.price),
+      help = HELPERS[b.id];
+    return [
+      upgrade({
+        id: `${b.id}-prize`,
+        path: 'books',
+        name: b.name,
+        label: `${b.name} prizes`,
+        at: [0, i],
+        book: b.id,
+        prices: [base, base * 30, base * 900].filter((p) => p < 1e18),
+        show: (r) => times(BOOK_BOOST ** r),
+      }),
+      upgrade({
+        id: `${b.id}-help`,
+        path: 'books',
+        name: help.name,
+        label: help.label,
+        at: [1, i],
+        book: b.id,
+        requires: `${b.id}-prize`,
+        prices: [base * 2, base * 60, base * 1800]
+          .slice(0, help.ranks)
+          .filter((p) => p < 1e18),
+        show: help.show,
+      }),
+    ];
   }),
   upgrade({
     id: 'printers',
     path: 'factory',
     name: 'Fast printers',
     label: 'Print speed',
-    prices: [3 * K, 90 * K, 2.7 * M, 80 * M, 2.4 * B, 72 * B, 2 * T, 65 * T],
+    at: [0.5, 0],
+    prices: span(3 * K, 1 * Qa, 8),
     show: (r) => times(Math.round(1.5 ** r * 10) / 10),
   }),
   upgrade({
@@ -168,44 +382,58 @@ export const UPGRADES: Upgrade[] = [
     path: 'factory',
     name: 'Fast bots',
     label: 'Bot speed',
-    prices: [
-      5 * K,
-      150 * K,
-      4.5 * M,
-      135 * M,
-      4 * B,
-      120 * B,
-      3.6 * T,
-      110 * T,
-    ],
+    at: [0, 1],
+    prices: span(5 * K, 2 * Qa, 8),
     requires: 'printers',
     show: (r) => times(Math.round(1.5 ** r * 10) / 10),
+  }),
+  upgrade({
+    id: 'sales',
+    path: 'factory',
+    name: 'Salesmanship',
+    label: 'Factory sales',
+    at: [1, 1],
+    prices: span(100 * K, 10 * Qa, 4),
+    requires: 'printers',
+    show: (r) => times(SALES ** r),
   }),
   upgrade({
     id: 'cashiers',
     path: 'factory',
     name: 'Clever bots',
     label: 'Bot skill',
-    prices: [50 * K, 10 * M, 2 * B, 400 * B, 80 * T],
+    at: [0, 2],
+    prices: span(50 * K, 100 * T, 5),
     requires: 'bots',
     show: (r) => pct(botSkill(r)),
+  }),
+  upgrade({
+    id: 'wholesale',
+    path: 'factory',
+    name: 'Wholesale',
+    label: 'Machine prices',
+    at: [1, 2],
+    prices: span(200 * K, 1 * Qa, 3),
+    requires: 'sales',
+    show: (r) => (r ? `−${r * 20}%` : 'full'),
   }),
   upgrade({
     id: 'floor',
     path: 'factory',
     name: 'Bigger floor',
     label: 'Floor size',
-    prices: [20 * K, 5 * M, 1 * B, 300 * B],
+    at: [0.5, 3],
+    prices: span(20 * K, 1 * T, 4),
     requires: 'cashiers',
     show: (r) => FLOOR_SIZES[r].join(' × '),
   }),
 ];
 export type ScratchState = {
-  version: 3;
+  version: 4;
   upgrades: Record<string, number>;
   unlocked: PackId[];
-  /** Each player's table of tickets, oldest first. */
-  tickets: Record<string, ScratchTicket[]>;
+  /** The ticket each player holds: being scratched, or just paid out. */
+  hands: Record<string, ScratchTicket>;
   /** Perfect tickets in a row, per player. */
   streaks: Record<string, number>;
   nextId: number;
@@ -227,6 +455,7 @@ export type ScratchHost = {
 };
 export type ScratchPoint = { x: number; y: number };
 export type ScratchAction =
+  /** Buys a ticket into your hand. */
   | { type: 'scratch-open'; pack: PackId; level?: number }
   | {
       type: 'scratch-stroke';
@@ -238,6 +467,8 @@ export type ScratchAction =
   | { type: 'scratch-book'; pack: PackId }
   | { type: 'scratch-upgrade'; id: string };
 export type ScratchResult = {
+  scratchCost?: number;
+  scratchFree?: boolean;
   scratchCoins?: number;
   scratchComplete?: boolean;
   scratchPerfect?: boolean;
@@ -245,10 +476,10 @@ export type ScratchResult = {
 };
 export function createScratch(): ScratchState {
   return {
-    version: 3,
+    version: 4,
     upgrades: {},
     unlocked: ['seven'],
-    tickets: {},
+    hands: {},
     streaks: {},
     nextId: 1,
     completed: 0,
@@ -392,6 +623,14 @@ export function scratchFor(g: ScratchHost): ScratchState {
   const version = (g.scratch as { version?: number } | undefined)?.version;
   if (version === 1 || version === 2)
     g.scratch = migrate(g, g.scratch as unknown as OldScratch);
+  if (version === 3) {
+    // Tables of free tickets became one bought ticket in hand; the free
+    // tickets still on the tables are retired and nothing else changes.
+    const old = g.scratch as unknown as ScratchState & { tickets?: unknown };
+    delete old.tickets;
+    old.hands = {};
+    old.version = 4;
+  }
   if (!g.scratch) {
     g.scratch = createScratch();
     // Keep the shared purse and refund the old room investments once. Old saved
@@ -445,6 +684,7 @@ export function upgradeCost(s: ScratchState, u: Upgrade) {
 export function upgradeReady(s: ScratchState, u: Upgrade) {
   return (
     (!u.requires || level(s, u.requires) > 0) &&
+    (!u.book || packOpen(s, u.book)) &&
     (u.path !== 'factory' || s.factory.blueprints.includes('starter'))
   );
 }
@@ -455,10 +695,19 @@ export function packOpen(s: ScratchState, id: PackId) {
 export function nextBook(s: ScratchState) {
   return BOOKS.find((p) => !packOpen(s, p.id));
 }
+/** Tickets finished in a book before level `k` opens. */
+export function levelAt(s: ScratchState, k: number) {
+  return Math.ceil(
+    LEVEL_AT[k] * EARLY[Math.min(level(s, 'early'), EARLY.length - 1)],
+  );
+}
 /** The highest level of a book this desk has played its way into. */
 export function levelOpen(s: ScratchState, id: PackId) {
   const played = s.books[id] ?? 0;
-  return LEVEL_AT.filter((n) => played >= n).length - 1;
+  return LEVEL_AT.filter((_, k) => played >= levelAt(s, k)).length - 1;
+}
+export function levelMult(mastery: number, lvl: number) {
+  return (LEVEL_MULT[1] + mastery * 0.5) ** Math.max(0, Math.min(2, lvl));
 }
 export function brushRadius(s: ScratchState) {
   return 0.03 * COIN_SIZES[Math.min(level(s, 'coin'), COIN_SIZES.length - 1)];
@@ -468,6 +717,9 @@ export function foilOpens(s: ScratchState) {
 }
 export function starChance(rank: number) {
   return rank ? 0.02 + rank * 0.04 : 0.02;
+}
+export function starPays(s: ScratchState) {
+  return STAR_PAYS[Math.min(level(s, 'starpower'), STAR_PAYS.length - 1)];
 }
 export function jackpot(s: ScratchState) {
   return JACKPOTS[Math.min(level(s, 'jackpot'), JACKPOTS.length - 1)];
@@ -479,66 +731,112 @@ export function botSkill(rank: number) {
 export function prizeUnit(s: ScratchState, id: PackId, lvl: number) {
   return (
     bookFor(id).value *
-    LEVEL_MULT[Math.max(0, Math.min(2, lvl))] *
+    levelMult(level(s, 'mastery'), lvl) *
     2 ** level(s, 'value') *
-    2 ** level(s, 'golden')
+    2 ** level(s, 'golden') *
+    BOOK_BOOST ** level(s, `${id}-prize`) *
+    (1 + level(s, 'collector') * 0.05 * s.unlocked.length)
   );
 }
 export function streakBonus(s: ScratchState, streak: number) {
   return 1 + streak * STREAK_STEPS[Math.min(level(s, 'streak'), 3)];
 }
+/** A careful player's prize units on average, with the plain ×3 jackpot. */
+function expectedUnits(id: PackId, lvl: number) {
+  const [units, perfect] = AVERAGES[id]?.[lvl] ?? [10, 0];
+  return units * (1 + perfect * (JACKPOTS[0] - 1));
+}
+/** What a ticket costs: half of what a careful player wins with it on
+ * average, so a careless or unlucky ticket can lose. Richer prizes raise the
+ * stakes; the jackpot, stars, streaks and the shop tilt the odds. */
+export function ticketPrice(s: ScratchState, id: PackId, lvl: number) {
+  return Math.max(
+    1,
+    Math.round(
+      prizeUnit(s, id, lvl) *
+        expectedUnits(id, lvl) *
+        PRICE_SHARE *
+        (1 - DISCOUNTS[Math.min(level(s, 'discount'), DISCOUNTS.length - 1)]),
+    ),
+  );
+}
+/** The house gives a Lucky Seven I when the purse cannot pay for one. */
+export function houseTicket(
+  s: ScratchState,
+  coins: number,
+  id: PackId,
+  lvl: number,
+) {
+  return id === 'seven' && lvl === 0 && coins < ticketPrice(s, id, 0);
+}
+/** Seconds a ticket may take for the quick-hands bonus. */
+export function quickSeconds(t: ScratchTicket) {
+  return 8 + t.cells.length * 0.8;
+}
+/** Hearts still left when a ticket ends. */
+export function heartsLeft(t: ScratchTicket) {
+  return Math.max(0, t.lives - t.mistakes);
+}
 /** A finished ticket's coins. */
 export function ticketReward(t: ScratchTicket, s: ScratchState, streak = 0) {
+  const quick =
+    t.quick && level(s, 'quick')
+      ? 1 + QUICK_BONUS[Math.min(level(s, 'quick'), 3)]
+      : 1;
+  const hearts =
+    1 + heartsLeft(t) * HEART_BONUS[Math.min(level(s, 'hearts'), 4)];
   return Math.floor(
     prizeUnit(s, t.pack, t.level) *
       prizeUnits(t) *
       (t.perfect ? jackpot(s) : 1) *
-      (t.star ? 5 : 1) *
-      streakBonus(s, streak),
+      (t.star ? starPays(s) : 1) *
+      streakBonus(s, streak) *
+      quick *
+      hearts,
   );
 }
 /** Average prize units and perfect rate per book level for a careful player,
- * measured with `suggest` over 2 000 tickets each (scripts/lucky-averages). */
+ * measured with `suggest` over 2 000 tickets each. */
 export const AVERAGES: Record<PackId, [number, number][]> = {
   seven: [
-    [16, 1],
     [18, 1],
-    [22, 0.2],
+    [29, 0.92],
+    [32.5, 0.35],
   ],
   twins: [
-    [28, 1],
-    [38, 1],
-    [45, 0.7],
+    [48, 1],
+    [57.5, 1],
+    [57.5, 1],
   ],
   path: [
-    [15, 1],
     [26, 1],
     [41, 1],
+    [53, 0.82],
   ],
   ladder: [
-    [21, 1],
-    [20, 0.5],
-    [12, 0.2],
+    [12, 0.27],
+    [21, 0.14],
+    [22, 0.07],
   ],
   mine: [
-    [21, 0.75],
-    [29, 0.55],
-    [36, 0.4],
+    [29.5, 0.6],
+    [36, 0.38],
+    [40, 0.19],
   ],
   sunmoon: [
-    [13, 1],
-    [36, 1],
+    [34.5, 1],
+    [41.5, 1],
     [47, 1],
   ],
   chart: [
-    [28, 1],
-    [44, 1],
-    [44, 0.85],
+    [31, 0.95],
+    [45.5, 0.9],
+    [49, 0.58],
   ],
   crown: [
-    [30, 1],
     [36, 1],
     [42, 1],
+    [48, 1],
   ],
 };
 /** What a factory bot's ticket pays on average: a bot plays the book's
@@ -551,7 +849,8 @@ export function botReward(s: ScratchState, id: PackId) {
     prizeUnit(s, id, lvl) *
     units *
     skill *
-    (1 + perfect * skill * (jackpot(s) - 1))
+    (1 + perfect * skill * (jackpot(s) - 1)) *
+    SALES ** level(s, 'sales')
   );
 }
 function random(g: ScratchHost) {
@@ -570,7 +869,8 @@ export function earn(g: ScratchHost, amount: number) {
 /** The foil is an 8x8 bitmap per seal. Both ends of every movement segment are
  * sampled geometrically, so fast strokes never leave holes or teleport
  * scratches. A seal that comes open applies its book's rule at once; once the
- * ticket is over the rest of the stroke does nothing. */
+ * ticket is over the rest of the stroke does nothing. Locked seals keep their
+ * foil. */
 export function rubTicket(
   ticket: ScratchTicket,
   s: ScratchState,
@@ -588,7 +888,7 @@ export function rubTicket(
       length = dx * dx + dy * dy;
     const candidates: { index: number; along: number }[] = [];
     ticket.cells.forEach((cell, index) => {
-      if (cell.revealed) return;
+      if (cell.revealed || sealLocked(ticket, index)) return;
       const col = index % cols,
         row = Math.floor(index / cols),
         mask = cell.mask.split('');
@@ -637,18 +937,24 @@ function settle(
   s: ScratchState,
   t: ScratchTicket,
   actor: string,
+  now: number,
 ) {
   const streak = s.streaks[actor] ?? 0;
+  t.quick = now - (t.bornAt ?? now) <= quickSeconds(t) * 1000;
   t.payout = ticketReward(t, s, streak);
+  // Insurance gives back part of what a losing ticket lost.
+  const lost = (t.cost ?? 0) - t.payout,
+    cover = INSURANCE[Math.min(level(s, 'insurance'), 3)];
+  t.refund = lost > 0 && cover ? Math.floor(lost * cover) : 0;
   t.claimed = true;
   s.streaks[actor] = t.perfect ? Math.min(10, streak + 1) : 0;
   s.completed++;
   s.books[t.pack] = (s.books[t.pack] ?? 0) + 1;
   s.best = Math.max(s.best, t.payout);
-  earn(g, t.payout);
+  earn(g, t.payout + t.refund);
 }
-export function tableFor(s: ScratchState, actor: string) {
-  return (s.tickets[actor] ??= []);
+export function handFor(s: ScratchState, actor: string) {
+  return s.hands[actor] as ScratchTicket | undefined;
 }
 export function actScratch(
   g: ScratchHost,
@@ -678,34 +984,44 @@ export function actScratch(
     s.unlocked.push(next.id);
     return {};
   }
-  const table = tableFor(s, actorId);
+  const hand = handFor(s, actorId);
   if (action.type === 'scratch-open') {
     if (!BOOKS.some((p) => p.id === action.pack) || !packOpen(s, action.pack))
       throw new Error('Unlock that ticket book first.');
     const lvl = action.level ?? levelOpen(s, action.pack);
     if (!Number.isInteger(lvl) || lvl < 0 || lvl > levelOpen(s, action.pack))
       throw new Error('Play that book more to open this level.');
-    if (table.filter((t) => !t.claimed).length >= TABLE_MAX)
-      throw new Error('Your table is full. Scratch a ticket first.');
+    if (hand && !hand.ended)
+      throw new Error('Finish the ticket in your hand first.');
+    const free = houseTicket(s, g.coins, action.pack, lvl),
+      price = ticketPrice(s, action.pack, lvl);
+    if (!free && g.coins < price)
+      throw new Error('You need more coins for that ticket.');
+    const lucky =
+      !free &&
+      level(s, 'freebie') > 0 &&
+      random(g) < FREE_CHANCE[Math.min(level(s, 'freebie'), 4)];
+    const cost = free || lucky ? 0 : price;
+    g.coins -= cost;
     const ticket = printTicket(
       s.nextId++,
       action.pack,
       lvl,
       () => random(g),
-      level(s, 'extra'),
+      {
+        lives: level(s, 'extra'),
+        gold: GOLD_CHANCE[Math.min(level(s, 'goldseal'), 4)],
+        helper: level(s, `${action.pack}-help`),
+      },
       now,
     );
     ticket.star = random(g) < starChance(level(s, 'star'));
-    table.push(ticket);
-    // Finished tickets stay briefly so their result can be shown.
-    const done = table.filter((t) => t.claimed);
-    for (const t of done.slice(0, Math.max(0, done.length - 3)))
-      table.splice(table.indexOf(t), 1);
-    return {};
+    ticket.cost = cost;
+    s.hands[actorId] = ticket;
+    return { scratchCost: cost, scratchFree: lucky || free };
   }
-  const ticket = table.find((t) => t.id === action.ticket);
-  if (!ticket)
-    throw new Error('Your ticket changed. Your table is refreshing.');
+  const ticket = hand?.id === action.ticket ? hand : undefined;
+  if (!ticket) throw new Error('Your ticket changed. Your desk is refreshing.');
   if (action.type === 'scratch-stroke') {
     if (ticket.claimed) return { scratchComplete: true };
     if (action.tool !== undefined && action.tool !== 'coin')
@@ -735,7 +1051,7 @@ export function actScratch(
     ticket.sequence++;
     ticket.lastAt = now;
     if (!ticket.ended) return { scratchReveals: revealed };
-    settle(g, s, ticket, actorId);
+    settle(g, s, ticket, actorId, now);
     return {
       scratchReveals: revealed,
       scratchComplete: true,

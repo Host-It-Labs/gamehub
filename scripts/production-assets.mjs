@@ -13,6 +13,9 @@ import {
 import { paperWorldFor } from '../lib/games/mora-world.ts';
 import { tableWorldFor } from '../lib/games/table-world.ts';
 import { ambiences } from '../lib/games/ambience.ts';
+import { labAmbiences } from '../lib/games/lab-ambiences.ts';
+import { audioAssets, sharedAudioAssets } from '../lib/games/audio-catalog.ts';
+import { audioOptions, earlierAudioOptions } from '../lib/games/audio-options.ts';
 
 const assets = new Set([
   '/favicon.svg',
@@ -56,9 +59,12 @@ for (const tall of [false, true]) {
   for (const game of ['undertow', 'midnight']) {
     const art = tableWorldFor(game, tall);
     for (const key of ['image', 'overviewImage']) add(art[key]);
+    const phone = tableWorldFor(game, tall, undefined, true);
+    for (const key of ['image', 'overviewImage']) add(phone[key]);
   }
 }
-for (const ambience of ambiences)
+for (const asset of [...audioAssets, ...sharedAudioAssets, ...audioOptions, ...earlierAudioOptions]) add(asset.src);
+for (const ambience of [...ambiences, ...labAmbiences])
   for (const sound of [...ambience.beds, ...ambience.events]) add(sound.src);
 // Sizes builds its sheet URLs from each silhouette's sheet name.
 const silhouettes = JSON.parse(

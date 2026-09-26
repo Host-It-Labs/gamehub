@@ -2,6 +2,7 @@ import noxLandscape from './nox-world-landscape.json' with { type: 'json' };
 import noxPortrait from './nox-world-portrait.json' with { type: 'json' };
 import yataLandscape from './yata-world-landscape.json' with { type: 'json' };
 import yataPortrait from './yata-world-portrait.json' with { type: 'json' };
+import yataPhone from './yata-world-phone.json' with { type: 'json' };
 import registry from './table-world-variants.json' with { type: 'json' };
 import { frameScene, sceneTarget, type Box } from './mora-world.ts';
 
@@ -33,13 +34,20 @@ export const isTableWorldGame = (id: string): id is TableWorldGame => id === 'un
 export const tallWorldQuery = (game?: string) =>
   game === 'midnight' ? '(orientation: portrait), (max-aspect-ratio: 13/10) and (min-height: 501px)' : '(orientation: portrait)';
 
+/** Yata's phone plate (25 September 2026): portrait phones get a near-square
+ *  counter right under the badges instead of the tablet plate's wide one, so
+ *  the dishes take the height the kitchen band used to. The query matches the
+ *  phone dock in table-worlds.css; within it, yataPhonePlateFits decides. */
+export const phoneWorldQuery = '(orientation: portrait) and (max-width: 600px)';
+
 /** Alternative renderings of the same measured geometry (candidate generations). */
 export const tableWorldVariants = (game: TableWorldGame, tall = false): TableWorldVariant[] =>
   variants.filter((v) => v.game === game && v.orientation === (tall ? 'portrait' : 'landscape'));
 
 const cache = new Map<string, TableWorld>();
 /** Stable object identity per (game, orientation, variant), so scene effects keyed on it do not rerun. */
-export function tableWorldFor(game: TableWorldGame, tall = false, variant?: string | null): TableWorld {
+export function tableWorldFor(game: TableWorldGame, tall = false, variant?: string | null, phone = false): TableWorld {
+  if (game === 'midnight' && tall && phone) return yataPhone as unknown as TableWorld;
   const base = bases[game][tall ? 'portrait' : 'landscape'];
   const accepted = game === 'midnight' ? 'yata-counter-b' : variant;
   const v = accepted ? tableWorldVariants(game, tall).find((x) => x.id === accepted) : undefined;
@@ -82,4 +90,12 @@ export function cropPercent(art: { crop: TableWorld['crop'] }, box: { left: numb
     width: `${(box.width / c.width) * 100}%`,
     height: `${(box.height / c.height) * 100}%`,
   };
+}
+
+/** Whether the phone plate shows a bigger counter than the tall plate on this
+ *  stage. Short phones (a tall dock over a wide, shallow stage) keep the wide
+ *  counter; taller ones get the near-square one. */
+export function yataPhonePlateFits(surface: { width: number; height: number }, stage: Box) {
+  const area = (art: TableWorld) => tableWorldFrame(art, surface, stage).scale ** 2 * art.table.width * art.table.height;
+  return area(yataPhone as unknown as TableWorld) > area(tableWorldFor('midnight', true));
 }

@@ -1,5 +1,10 @@
 'use client';
 import { GameProgress } from './game-progress';
+import { useGameMotion } from './game-motion';
+import { useGameSound } from './use-game-sound';
+import { useResultsFeedback, WinnerCelebration } from './results-feedback';
+import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
+import { CountUp, stagger } from './reveal-motion';
 import { totalRounds } from '@/lib/games/trio/engine';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import { useBoardLeave } from './use-board-leave';
@@ -65,7 +70,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { Slider } from '@/components/ui/slider';
+import { SoundSettings } from './sound-settings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Library } from '@/components/game/library';
 import { Board, Hand, Players } from '@/components/game/boards';
@@ -143,6 +148,9 @@ export default function SoloGame() {
     if (openOwn) leaveOwn(); else { rememberPanel('leave'); setPanelOpen(true); }
   });
   const festival = useFestivalChoice(g, 0);
+  const motionRoot = useRef<HTMLElement>(null);
+  useGameMotion(motionRoot, g ? `${g.id}:${g.round}:${g.phase}` : 'library');
+  useGameSound(openOwn ?? g?.id, volume);
   function setPanel(value: typeof panel) {
     if (value) rememberPanel(value);
     setPanelOpen(!!value);
@@ -247,7 +255,7 @@ export default function SoloGame() {
     storeOwn(learning?practice(id,ownSeats,difficulty,0):standaloneGames[id].create(ownSeats, seed(), difficulty));
     setOwnSetup(null);
     setOpenOwn(id);
-    cue('shuffle', volume);
+    cue('shuffle', volume, 0, id);
   }
 
   function progress(_action: string, next: Game) { return next; }
@@ -272,7 +280,8 @@ export default function SoloGame() {
         : undefined;
   const world = environment !== undefined;
   // The world's soundscape runs while a table is open, and stops on the shelf.
-  useAmbience(openOwn ?? (g && !showResults ? g.id : null), volume, ambience, g?.contentSet);
+  // Effects and ambience are switched on and off separately.
+  useAmbience(openOwn ?? (g && !showResults ? g.id : null), 1, ambience, g?.contentSet);
   const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g?.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
@@ -393,7 +402,7 @@ export default function SoloGame() {
     setBotError(false);
     setShowResults(false);
     setCapturesSettled(-1);
-    cue('shuffle', volume);
+    cue('shuffle', volume, 0, id);
   }
   function resume(game: Game) {
     store(game);
@@ -490,7 +499,7 @@ export default function SoloGame() {
       const at = before === null ? ids.length : ids.indexOf(before);
       ids.splice(at < 0 ? ids.length : at, 0, c.id);
       setOrder(ids);
-      cue('drop', volume);
+      cue('drop', volume, 0, g.id);
       return;
     }
     const elements = document.elementsFromPoint(x, y),
@@ -526,7 +535,7 @@ export default function SoloGame() {
         : ids.length;
       ids.splice(index < 0 ? ids.length : index, 0, c.id);
       setOrder(ids);
-      cue('drop', volume);
+      cue('drop', volume, 0, g.id);
       return;
     }
     if (g.phase === 'over') return;
@@ -562,15 +571,13 @@ export default function SoloGame() {
         card: c.id,
         ...(ward ? { ward: true } : {}),
       });
-    else cue('drop', volume);
+    else cue('drop', volume, 0, g.id);
   }
-  function ambienceChange(v: number | readonly number[]) {
-    const value = Array.isArray(v) ? v[0] : (v as number);
+  function ambienceChange(value: number) {
     setAmbience(value);
     saveAmbienceLevel(value);
   }
-  function volumeChange(v: number | readonly number[]) {
-    const value = Array.isArray(v) ? v[0] : (v as number);
+  function volumeChange(value: number) {
     setVolume(value);
     try {
       localStorage.setItem('gamehub.volume.v3', String(value));
@@ -582,6 +589,12 @@ export default function SoloGame() {
     sc = g ? scores(g) : [],
     bestScore = g?.id === 'undertow' ? Math.min(...sc) : Math.max(...sc),
     winners = g?.players.filter((_, i) => sc[i] === bestScore) ?? [];
+  useResultsFeedback(
+    g?.id ?? '',
+    g?.phase === 'over',
+    showResults && !openOwn,
+    volume,
+  );
   const ownGame = openOwn ? (ownPractice && (ownPractice.tribu ? setOf(ownPractice.kind) : ownPractice.kind)===openOwn?ownPractice:own[openOwn]) : undefined;
   if (openOwn && ownGame && !requiresHumanPlayers(openOwn))
     return (
@@ -602,37 +615,15 @@ export default function SoloGame() {
         >
           <DialogContent className="modal help-modal">
             <DialogTitle>Sound</DialogTitle>
-            <DialogDescription>
-              Volume applies to all games. Ambience is the world around the
-              table.
+            <DialogDescription className="sr-only">
+              Applies to every game on this device.
             </DialogDescription>
-            <div className="sound-settings">
-              <Slider
-                value={[volume]}
-                onValueChange={volumeChange}
-                min={0}
-                max={1}
-                step={0.05}
-                aria-label="Sound volume"
-              />
-              <div className="ambience-setting">
-                <span>Ambience</span>
-                <Slider
-                  value={[ambience]}
-                  onValueChange={ambienceChange}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  aria-label="Ambience level"
-                />
-              </div>
-              <button
-                className="secondary"
-                onClick={() => volumeChange(volume ? 0 : 0.5)}
-              >
-                {volume ? 'Mute' : 'Unmute'}
-              </button>
-            </div>
+            <SoundSettings
+              volume={volume}
+              ambience={ambience}
+              onVolume={volumeChange}
+              onAmbience={ambienceChange}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -665,16 +656,18 @@ export default function SoloGame() {
       )}
       {!g ? (
         <Library
-          saves={saves}
-          own={own}
           volume={volume}
+          ambience={ambience}
           onSetup={openSetup}
           onStandalone={openOwnSetup}
           onOpenPlaceholder={setPreview}
           onSound={() => setPanel('sound')}
+          onVolume={volumeChange}
+          onAmbience={ambienceChange}
         />
       ) : (
         <main
+          ref={motionRoot}
           className={`table-layout ${world ? 'world-table' : ''}`}
           data-game={g.id}
           data-environment={environment}
@@ -752,7 +745,7 @@ export default function SoloGame() {
                 />
               </ScrollArea>
 
-              <div className="hand-controls">
+              <div className="hand-controls" data-game-motion="stage">
                 <div className="hand-abilities">
                   {g.id !== 'midnight' && <DieControl g={g} viewer={0} />}
                   <ExtensionControls
@@ -785,7 +778,7 @@ export default function SoloGame() {
                         }
                         onTap={() => {
                           setWard(!ward);
-                          cue('ward', volume);
+                          cue('ward', volume, 0, g.id);
                           const next = progress('arm', g);
                           if (next !== g) store(next);
                         }}
@@ -838,7 +831,7 @@ export default function SoloGame() {
                 onDrop={drop}
                 onDragSelect={setSelected}
                 onLift={() => {
-                  cue('pickup', volume);
+                  cue('pickup', volume, 0, g.id);
                 }}
               />
               {botError && (
@@ -857,6 +850,7 @@ export default function SoloGame() {
               {g.phase === 'over' && (
                 <button
                   className="primary results-button"
+                  data-game-motion="result"
                   onClick={() => setShowResults(true)}
                 >
                   Final scores
@@ -959,7 +953,8 @@ export default function SoloGame() {
           if (!open) setPanel(null);
         }}
       >
-        <DialogContent className="modal help-modal">
+        {/* From the library it is a menu dialog and follows the menu theme. */}
+        <DialogContent className={`modal help-modal ${g ? '' : 'menu-modal'}`}>
           <DialogTitle>
             {panel === 'rules'
               ? 'How to play'
@@ -973,47 +968,18 @@ export default function SoloGame() {
           </DialogTitle>
           <DialogDescription>
             {panel === 'sound'
-              ? 'Volume applies to all games. Ambience is the world around the table.'
+              ? 'Applies to every game on this device.'
               : panel === 'leave'
                 ? 'Your match is saved on this device.'
                 : meta?.name}
           </DialogDescription>
           {panel === 'sound' ? (
-            <div className="sound-settings">
-              <Slider
-                value={[volume]}
-                onValueChange={volumeChange}
-                min={0}
-                max={1}
-                step={0.05}
-                aria-label="Sound volume"
-              />
-              <div className="ambience-setting">
-                <span>Ambience</span>
-                <Slider
-                  value={[ambience]}
-                  onValueChange={ambienceChange}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  aria-label="Ambience level"
-                />
-              </div>
-              <div>
-                <button
-                  className="secondary"
-                  onClick={() => volumeChange(volume ? 0 : 0.5)}
-                >
-                  {volume ? 'Mute' : 'Unmute'}
-                </button>
-                <button
-                  className="primary"
-                  onClick={() => cue('combo', volume)}
-                >
-                  Test sound
-                </button>
-              </div>
-            </div>
+            <SoundSettings
+              volume={volume}
+              ambience={ambience}
+              onVolume={volumeChange}
+              onAmbience={ambienceChange}
+            />
           ) : panel === 'leave' ? (
             <>
               <button className="primary" onClick={home}>
@@ -1091,7 +1057,10 @@ export default function SoloGame() {
         open={showResults && !!g && g.phase === 'over'}
         onOpenChange={setShowResults}
       >
-        <DialogContent className="modal results">
+        <DialogContent className="modal results results-surface">
+          <WinnerCelebration
+            won={viewerWon(0, winningSeats(sc, g?.id === 'undertow'))}
+          />
           <DialogTitle>
             {winners.length > 1 ? 'Shared victory' : `${winners[0]?.name} wins`}
           </DialogTitle>
@@ -1099,9 +1068,9 @@ export default function SoloGame() {
             {bestScore} {g?.id === 'undertow' ? 'penalty points' : 'points'}
           </DialogDescription>
           {g?.players.map((p, i) => (
-            <div className="score-row" key={p.name}>
+            <div className="score-row reveal-rise" style={stagger(i, 0, 70)} key={p.name}>
               <span>{p.name}</span>
-              <b>{sc[i]}</b>
+              <b><CountUp value={sc[i]} duration={600} delay={i * 70} /></b>
             </div>
           ))}
           <button className="primary" onClick={() => g && start(g.id)}>

@@ -538,23 +538,29 @@ export async function makeServer(
           sessionHash: '',
           expires: 0,
         });
-        const others = t.members.filter((m) => m.id !== who.id);
+        check(t.members.length <= 3, 409, 'Solo and co-op games seat up to three players.');
+        check(input.token === undefined || (typeof input.token === 'string' && /^[A-Za-z0-9_-]{32}$/.test(input.token)), 400, 'Choose a saved game.');
+        const players = t.members.map(guest);
         let url: string;
         if (input.kind === 'folio') {
           check(t.members.length <= 3, 409, 'Folio seats one to three players.');
-          const run = folio.create(who, { seats: t.members.length, difficulty: input.difficulty ?? 1 }) as { token: string };
-          for (const m of others) folio.join(run.token, guest(m), {});
+          const run = input.token
+            ? folio.seatTable(input.token as string, who, players)
+            : folio.create(who, { seats: t.members.length, difficulty: input.difficulty ?? 1 }) as { token: string };
+          if (!input.token) folio.seatTable(run.token, who, players);
           url = `/folio/${run.token}`;
         } else {
           check(input.kind === 'relic', 400, 'Unknown game.');
           const owner = t.members.find((m) => m.id === t.owner)?.name ?? who.name;
-          const room = expeditions.create(who, { title: `${owner}’s table`.slice(0, 40), world: input.world ?? 'dunes' }) as { token: string };
-          for (const m of others) expeditions.join(room.token, guest(m));
+          const room = input.token
+            ? expeditions.seatTable(input.token as string, who, players)
+            : expeditions.create(who, { title: input.title ?? `${owner}’s table`.slice(0, 40), world: input.world ?? 'dunes' }) as { token: string };
+          if (!input.token) expeditions.seatTable(room.token, who, players);
           url = `/expedition/${room.token}`;
         }
-        tables.handOff(invite, { kind: input.kind, url });
+        const launched = tables.handOff(invite, { kind: input.kind, url });
         publish(invite);
-        send(res, 200, { url });
+        send(res, 200, { url, at: launched.handoff!.at });
         return;
       }
       if (action === 'commands' && req.method === 'POST') {
@@ -640,6 +646,7 @@ export async function makeServer(
       path === '/tables' ||
       path === '/relic' ||
       path === '/folio' ||
+      path === '/sound-lab' ||
       /^\/folio\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/expedition\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/table\/[A-Za-z0-9_-]{32}$/.test(path)
@@ -674,6 +681,8 @@ export async function makeServer(
       '.woff2': 'font/woff2',
       '.json': 'application/json',
       '.ico': 'image/x-icon',
+      '.mp3': 'audio/mpeg',
+      '.m4a': 'audio/mp4',
     };
     res.writeHead(200, {
       'Content-Type': mime[extname(file)] ?? 'application/octet-stream',

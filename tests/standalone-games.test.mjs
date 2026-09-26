@@ -12,6 +12,7 @@ import {
   libraryGames,
   playableGame,
   standaloneLibraryGames,
+  tableSections,
 } from '../lib/games/library-fixtures.ts';
 
 const source = (path) =>
@@ -152,6 +153,41 @@ await test('the library shows only games that play, each in exactly one section'
     );
   for (const id of publicStandaloneIds)
     assert.ok(listed.includes(id), `${id} is on the library page`);
+});
+
+await test('strategy then solo lead the landing page, party games lead a table', () => {
+  assert.deepEqual(
+    librarySections.map((s) => s.id),
+    ['strategy', 'solo', 'party'],
+  );
+  assert.deepEqual(
+    tableSections.map((s) => s.id),
+    ['party', 'strategy', 'solo'],
+  );
+  assert.deepEqual(
+    tableSections.map((s) => s.id).sort(),
+    librarySections.map((s) => s.id).sort(),
+    'a table shows the same sections as the landing page',
+  );
+});
+
+await test('every box shows its match length on the time badge', () => {
+  const length = Object.fromEntries(
+    libraryGames.map((g) => [g.id, g.duration]),
+  );
+  assert.deepEqual(length, {
+    undertow: '5–10 min',
+    wildgrove: '5–10 min',
+    midnight: '5 min',
+    orin: '5–60 min+',
+    miro: '5–60 min+',
+    folio: '5–60 min+',
+    relic: '60 min+',
+  });
+  for (const game of libraryGames) {
+    assert.doesNotMatch(game.duration, /\bh\b/, `${game.id} counts minutes`);
+    assert.ok(game.durationSpoken, `${game.id} reads its length aloud`);
+  }
 });
 
 await test('the shelf and the table agree about which games open', async () => {

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "shared-scores-d-v1",
+    "category": "scores",
+    "option": "d",
+    "label": "Bright victory",
+    "src": "/audio/elevenlabs/shared-scores-d-v1.mp3",
+    "duration": 3.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-scores-e-v1",
+    "category": "scores",
+    "option": "e",
+    "label": "Bouncy finish",
+    "src": "/audio/elevenlabs/shared-scores-e-v1.mp3",
+    "duration": 3.48,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-scores-f-v1",
+    "category": "scores",
+    "option": "f",
+    "label": "Pocket arcade",
+    "src": "/audio/elevenlabs/shared-scores-f-v1.mp3",
+    "duration": 3.48,
+    "gain": 0.85
+  }
+]

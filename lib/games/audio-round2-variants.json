@@ -1,0 +1,38 @@
+[
+  {
+    "id": "shared-pickup-d-v1",
+    "category": "pickup",
+    "option": "d",
+    "label": "Crisp wood",
+    "src": "/audio/elevenlabs/shared-pickup-d-v1.mp3",
+    "duration": 0.6,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-pickup-e-v1",
+    "category": "pickup",
+    "option": "e",
+    "label": "Warm wood",
+    "src": "/audio/elevenlabs/shared-pickup-e-v1.mp3",
+    "duration": 0.6,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-turn-d-v1",
+    "category": "turn",
+    "option": "d",
+    "label": "Bright steps",
+    "src": "/audio/elevenlabs/shared-turn-d-v1.mp3",
+    "duration": 1.2,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-turn-e-v1",
+    "category": "turn",
+    "option": "e",
+    "label": "Rounded rise",
+    "src": "/audio/elevenlabs/shared-turn-e-v1.mp3",
+    "duration": 1.15045,
+    "gain": 0.85
+  }
+]

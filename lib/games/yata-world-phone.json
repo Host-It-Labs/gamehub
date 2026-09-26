@@ -1,0 +1,57 @@
+{
+  "game": "midnight",
+  "source": "/art/yata-counter-phone-v5-a.png",
+  "image": "/art/optimized/yata-counter-phone-v5-a.webp",
+  "width": 1024,
+  "height": 1536,
+  "crop": {
+    "left": 187,
+    "top": 177,
+    "width": 650,
+    "height": 532
+  },
+  "table": {
+    "left": 187,
+    "top": 177,
+    "width": 650,
+    "height": 532
+  },
+  "signboards": [],
+  "landmarks": {
+    "protectedBounds": [
+      {
+        "name": "counter",
+        "bounds": [187, 177, 650, 532]
+      }
+    ]
+  },
+  "animation": {
+    "glows": [
+      {
+        "x": 512,
+        "y": 40,
+        "radius": 380,
+        "color": "255, 150, 80",
+        "alpha": 0.14,
+        "period": 4100
+      },
+      {
+        "x": 960,
+        "y": 1400,
+        "radius": 120,
+        "color": "255, 120, 60",
+        "alpha": 0.16,
+        "period": 3400
+      }
+    ],
+    "water": [],
+    "motes": false
+  },
+  "overview": {
+    "left": 187,
+    "top": 177,
+    "width": 650,
+    "height": 532
+  },
+  "overviewImage": "/art/optimized/yata-counter-phone-v5-a-overview.webp"
+}

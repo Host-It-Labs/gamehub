@@ -58,17 +58,42 @@ const motifs: Record<string, LucideIcon> = {
   moth: Bug,
 };
 
-export function boxStyle(game: LibraryGame, width: number): CSSProperties {
-  const [deep, mid, light] = game.palette;
-  // Sizes travel as --gw/--gh/--gd so stylesheets can still resize boxes per breakpoint.
-  return {
+// Sizes travel as --gw/--gh/--gd so stylesheets can still resize boxes per breakpoint.
+const sizeStyle = (width: number) =>
+  ({
     '--gw': `${width}px`,
     '--gh': `${width}px`,
     '--gd': `${Math.round(width * 0.24)}px`,
+  }) as CSSProperties;
+
+export function boxStyle(game: LibraryGame, width: number): CSSProperties {
+  const [deep, mid, light] = game.palette;
+  return {
+    ...sizeStyle(width),
     '--box-deep': deep,
     '--box-mid': mid,
     '--box-light': light,
   } as CSSProperties;
+}
+
+/**
+ * A plain, sealed box with no art or title: it holds a shelf's place for games
+ * still to come. It poses and lifts exactly like a real box.
+ */
+export function SealedBox({ width }: { width: number }) {
+  return (
+    <span className="gbox sealed" style={sizeStyle(width)} aria-hidden="true">
+      <span className="gbox-solid">
+        <span className="gbox-face gbox-top" />
+        <span className="gbox-face gbox-bottom" />
+        <span className="gbox-face gbox-side" />
+        <span className="gbox-face gbox-front">
+          <span className="gbox-seal" />
+        </span>
+      </span>
+      <span className="gbox-shadow" />
+    </span>
+  );
 }
 
 /**
@@ -104,8 +129,17 @@ export function GameBox({
         <span className="gbox-face gbox-top" />
         <span className="gbox-face gbox-bottom" />
         <span className="gbox-face gbox-side">
-          {spine && <img className="gbox-spine-art" src={spine} alt="" draggable={false} />}
-          {!game.coverIncludesTitle && <span className="gbox-side-title">{game.name}</span>}
+          {spine && (
+            <img
+              className="gbox-spine-art"
+              src={spine}
+              alt=""
+              draggable={false}
+            />
+          )}
+          {!game.coverIncludesTitle && (
+            <span className="gbox-side-title">{game.name}</span>
+          )}
           {!game.coverIncludesTitle && <Motif className="gbox-side-motif" />}
         </span>
         <span className="gbox-face gbox-front">
@@ -123,7 +157,9 @@ export function GameBox({
               <Motif className="gbox-motif" strokeWidth={1.4} />
             </span>
           )}
-          {!game.coverIncludesTitle && <span className="gbox-title">{game.name}</span>}
+          {!game.coverIncludesTitle && (
+            <span className="gbox-title">{game.name}</span>
+          )}
           {children}
         </span>
       </span>

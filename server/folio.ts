@@ -234,6 +234,44 @@ export class FolioRuns {
   get(invite: string, who: Identity | null, now = Date.now()) {
     return this.view(invite, who, this.load(invite), now);
   }
+  /** Explicitly bring a saved run to a table without resetting its progress. */
+  seatTable(
+    invite: string,
+    who: Identity,
+    players: Identity[],
+    now = Date.now(),
+  ) {
+    return this.transaction(() => {
+      check(
+        this.isMember(invite, who),
+        403,
+        'Choose a run from your saved games.',
+      );
+      const g = this.load(invite);
+      check(
+        !g.practice && g.phase !== 'over',
+        409,
+        'Choose an unfinished run.',
+      );
+      const newcomers = players.filter((p) => !this.isMember(invite, p));
+      const count = this.count(invite) + newcomers.length;
+      check(
+        count <= 3,
+        409,
+        'This run and table together have more than three players.',
+      );
+      for (const player of newcomers)
+        this.seat(invite, player, player.name, now);
+      g.seats = count;
+      if (g.phase === 'lobby') startFolio(g, count, now);
+      else if (newcomers.length) {
+        g.revision++;
+        g.updatedAt = now;
+      }
+      this.save(invite, g);
+      return this.view(invite, who, g, now);
+    });
+  }
   command(
     invite: string,
     who: Identity,

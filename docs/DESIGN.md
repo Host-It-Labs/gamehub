@@ -1,6 +1,82 @@
 # Gamehub design direction
 
-## Lucky: puzzle tickets on a table (25 September 2026)
+## Motion, original foley and Sound Lab (26 September 2026)
+
+All seven games use small, finite transitions for stage changes and settled
+actions: newly dealt pieces, placement, readiness, scores, votes, puzzle
+stages, tickets and upgrades. `game-motion.tsx` observes explicit markers on
+the existing elements. It never remounts a stage to animate it, moves a board's
+hit targets, or restarts a stage for a draft keystroke or an unchanged poll.
+The shared party reveal kit remains in use. Reduced motion cancels the added
+motion immediately.
+
+Sound effects share four gentle ElevenLabs cues across games: picking up,
+placing or locking, the local player's next turn, and final scores. Short,
+soft attacks and conservative levels keep repeated actions unobtrusive.
+The shared player limits concurrent sounds and rapid repeats, abandons stale
+downloads, and stops pending and active effects on mute, exit or backgrounding.
+Nox trick captures are silent; the final-score cue belongs to the results
+presentation. Winners see a brief glitter burst, with a static ornament for
+reduced motion. Tied winners count, spectators do not. Lucky retains its
+continuous gesture-driven foil sound and uses the shared cues for discrete
+actions; it has no match-ending celebration.
+
+Strategy games retain their original ambient recordings, levels and timing:
+Nox's hull and swell, Mora's forest, and Yata's market. Floodline keeps its
+separate coastal environment. The generated alternatives remain available
+only in Sound Lab. No background music is added to the other games.
+
+**Sound → Sound Lab** opens `/sound-lab`: compare backgrounds, audition each
+layer or effect, and try the four shared cues at their gameplay levels.
+The selected live cues are pickup B (Bright wood tick), place F (Gentle settle),
+turn C (Rising chimes), and the earlier final-score B (Marimba flourish, 1.28 s).
+The longer final-score candidates remain available for comparison. Letters
+identify individual sounds rather than fixed instrument families. Unchosen
+candidates stay preview-only; earlier comparisons and per-game effects remain
+in collapsed sections. Change
+ambient layer levels and spacing, then **Save preview** to
+save that world's audition settings on this device. Saved previews do not
+change game ambience. Full previews use the same
+scheduler as play. Previewing is explicit, switching sounds stops the previous
+preview, and leaving or hiding the page stops it. Online ambience still needs
+the table host's permission.
+Exact generation prompts, files and validation: [sound library](audio/README.md).
+
+## Mora: overgrown paper boards (25 September 2026)
+
+Both Mora boards were regenerated as painted 2D plates in the look of the box
+cover: places that nature has taken back, still a handmade cut-paper diorama.
+The Observatory is a ruined hilltop observatory (broken dome and rusted
+telescope, a roof garden on a mossy arched ruin, a tree that swallowed a stone
+arch, a rusted glasshouse, a stone aqueduct for the dry channel, an iron and
+timber watchpost). Floodline Station is a railway station flooded by the sea
+and taken back by sea life only: seaweed, kelp, algae, barnacles, coral and sea
+grass on the ruins, a railway viaduct for the pier, a carriage grown through by
+mangroves, a flooded tunnel for the sea cave, a stone signal lighthouse. No
+forest plants at sea. Each place stands apart on its own terrace or island with
+its own material, so the six places read at a glance. Creatures are unchanged
+paper standees. Framing, orientation sizes and place arrangement follow the
+previous accepted boards in spirit, but the landscape boards are now a wide
+shallow band (gameplay between about 22% and 70% of the height, no station
+building on Floodline) and the portrait boards a compact central column, so
+the scenery reaches every edge of common desktop windows and phones; see the
+game-world-layout skill, "Desktop side borders", and
+`scripts/check-board-cover.mjs`. A 3D stage experiment the same day was
+rejected and removed; boards stay painted plates. Prompts and choices:
+[mora overgrown 2D](concepts/2026-09-25-mora-overgrown-2d/README.md).
+
+## Lucky: bought tickets in hand, harder books, a tree of upgrades (25 September 2026, later)
+
+William found the first level of every book "brain dead", did not understand Ladder, saw the old full-page menu flash, and wanted tickets to cost something, no table, far more upgrades and a factory that is nice to look at.
+
+- **Tickets are bought.** A ticket costs half of what a careful player wins with it, so a perfect ticket about doubles its price and a messy one loses; the payout shows the net. An empty purse always gets a free Lucky Seven I.
+- **One ticket in hand, always open.** The table is gone: the shelf buys a ticket straight into your hand, the shelf waits while it is scratched, and **Again** buys the same one when it has paid.
+- **Every level I is a real puzzle.** Lucky Seven starts at 4×4 and, once every 7 is found, scratches the misses left by itself. Twins is now a deduction puzzle: side-by-side pairs share a number and the ticket splits one way only. Ladder is now higher-or-lower on a column of cards from a small deck. Every other book starts one step harder, up to 8×8 Crown Jewels.
+- **Forty upgrades in six branches** (Scratching, Luck, Payouts, Shop, Books, Factory), drawn as little trees of medallions with "?" for what is not yet in reach; every book on the shelf gets its own prize upgrade and a helper.
+- **The factory is painted**: enamel-and-brass top-down machines, a tiled floor in a brass frame, running belts carrying the books' own tickets, and machines that can be dragged to a new cell.
+- A desk link shows the desk while it loads and a small name card for an invited player; there is no Lucky menu page. Rules: `docs/relic.md`.
+
+## Lucky: puzzle tickets on a table (25 September 2026, superseded)
 
 Relic is now **Lucky** (internal ID `relic`): the old name no longer fit a scratch-ticket game, and a plain word says what it is and reads the same in every language. William asked for books that each feel like a little game, in the manner of LinkedIn's daily puzzles; for upgrades that feel like big steps; for exciting, real-looking ticket symbols; and for no collect-then-next routine.
 
@@ -607,7 +683,9 @@ Candidates `yata-counter-{landscape,portrait}-v2-{a,b}.png` all came back in tru
 
 ## Night library and open-box setup (19 September 2026)
 
-**Superseded for the library page (24 September 2026):** the library is now only the games that play. At William's request the Direction D filler was removed: the icon rail and its dead items, filter chips, grid/list and filters tools, the fake account, the "Tonight" hero with friend avatars, tables open now, weekly leaders, friends-playing stacks and all twenty-two placeholder games. `components/game/library.tsx` is a compact sticky top bar (brand left; sound settings and Play with friends, which creates a table at `/tables`, right) above equal square boxes grouped by kind — Strategy (Nox, Mora, Yata), Party (Know Me, Quiz), Solo & co-op (Folio, Lucky). Each tile shows its box (in-progress ribbon kept), name, players and time, and opens the same setup modal as before. The grouping is data: `librarySections` in `lib/games/library-fixtures.ts`; a new game goes into `libraryGames` and one section, a new kind gets a new section. Short sections share a row and longer ones wrap onto their own rows, all at one tile size (three across a phone, two below 360px, about 140–190px from 700px up). A search field appears in the bar once the catalog reaches 13 games (`SEARCH_FROM`). The fixtures no longer carry fake friends, so no game shows anyone playing. The paragraphs below describe the earlier front page.
+**Shelf rows (26 September 2026):** at William's request every kind of game is its own row on the landing page and in the table lobby: `ShelfRow` in `components/game/library.tsx`, a sideways carousel with previous/next arrows on the right of the row title (muted at either end, hidden when the row fits). Each row runs to at least eight boxes; plain sealed boxes (`SealedBox` in `game-box.tsx`, no art, no title, no chips text) fill it after the real games, at least three per row, and pose and lift like real boxes but open nothing, so the shelf reads as room for more games. Phones show three boxes and a peek of the fourth. The in-progress ribbon was removed. Boxes now pose at eye level (`--lift: 0deg` in `game-box.css`, was 7deg, and hover no longer tips them): tipped up or down, the base or the lid showed as a two-to-three-pixel slanted strip that stair-stepped however it was drawn. The cover also lost its 4px dark bottom border. Time badges count only minutes and top out at `60 min+`: party sets and Folio read `5–60 min+`, Lucky `60 min+`.
+
+**Superseded for the library page (24 September 2026):** the library is now only the games that play. At William's request the Direction D filler was removed: the icon rail and its dead items, filter chips, grid/list and filters tools, the fake account, the "Tonight" hero with friend avatars, tables open now, weekly leaders, friends-playing stacks and all twenty-two placeholder games. `components/game/library.tsx` is a compact sticky top bar (brand left; sound settings and Play with friends, which creates a table at `/tables`, right) above equal square boxes grouped by kind — Strategy (Nox, Mora, Yata), then Solo & co-op (Folio, Lucky), then Party (Know Me, Quiz); a table lobby leads with Party, then Strategy, then Solo & co-op. Each tile shows its box (in-progress ribbon kept), name, players and time, and opens the same setup modal as before. The grouping is data: `librarySections` in `lib/games/library-fixtures.ts`; a new game goes into `libraryGames` and one section, a new kind gets a new section. Short sections share a row and longer ones wrap onto their own rows, all at one tile size (three across a phone, two below 360px, about 140–190px from 700px up). A search field appears in the bar once the catalog reaches 13 games (`SEARCH_FROM`). The fixtures no longer carry fake friends, so no game shows anyone playing. The paragraphs below describe the earlier front page.
 
 The user chose Direction D from the library concepts (`concepts/2026-09-19-library-directions`, queue 04 landscape and queue 13 portrait; the images live in the art archive). `components/game/library.tsx` is now a magazine front page: a slim icon rail, a search-and-filter bar, a "Tonight" hero with stat chips, six friend avatars and the only Play button, a live column (open tables, weekly leaders) and four horizontal shelves. Boxes no longer carry Play or Resume; each shows player count and play time and opens the setup modal. Phones stack the hero and live column and show shelves as two-column tiles under section dividers.
 
@@ -833,4 +911,3 @@ and right in even rounds. The shared die face Empty is now Emptiest (least
 crowded habitat with room), which removed forced releases late in a long game.
 Details, prompts and measurements:
 [floodline three rounds](concepts/2026-09-23-floodline-three-rounds/README.md).
-

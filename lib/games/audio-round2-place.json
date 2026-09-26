@@ -1,0 +1,29 @@
+[
+  {
+    "id": "shared-place-d-v1",
+    "category": "place",
+    "option": "d",
+    "label": "Soft ceramic",
+    "src": "/audio/elevenlabs/shared-place-d-v1.mp3",
+    "duration": 0.8,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-place-e-v1",
+    "category": "place",
+    "option": "e",
+    "label": "Spring pluck",
+    "src": "/audio/elevenlabs/shared-place-e-v1.mp3",
+    "duration": 0.8,
+    "gain": 0.85
+  },
+  {
+    "id": "shared-place-f-v1",
+    "category": "place",
+    "option": "f",
+    "label": "Gentle settle",
+    "src": "/audio/elevenlabs/shared-place-f-v1.mp3",
+    "duration": 0.8,
+    "gain": 0.85
+  }
+]

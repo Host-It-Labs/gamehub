@@ -802,12 +802,6 @@
 .at-table .table-layout[data-environment='observatory'] .observatory-board[data-world='floodline'] .mora-habitat:is(.mora-habitat-3,.mora-habitat-4):is(.legal-region,.prepared-region,.drag-target)::after {
   border-radius: 999px;
 }
-@media (orientation: landscape) {
-  .at-table .table-layout[data-environment='observatory'] .observatory-board[data-world='floodline'] .mora-habitat-3:is(.legal-region,.prepared-region,.drag-target)::after {
-    inset: auto; left: 50%; top: 50%; width: 110%; height: 70%;
-    transform: translate(-50%, -50%) rotate(-24deg);
-  }
-}
 
 /* Fill more of each existing placement space without resizing its hit target. */
 .mora-board .mora-nest .token-art img {

@@ -32,14 +32,17 @@ export type LibraryGame = {
   /** Set for games with their own rules module and their own table. */
   standaloneId?: StandaloneId;
   href?: string;
-  durationLabel?: string;
+  /** How long a match runs, as shown on the time badge: '5–10 min', '60 min+'.
+   * Always in minutes; 60 min+ is the longest a badge ever reads. */
+  duration: string;
+  /** The same length read aloud. */
+  durationSpoken: string;
   name: string;
   cover?: string;
   /** The cover image contains its own generated, styled game title. */
   coverIncludesTitle?: boolean;
   spine?: string;
   world: string;
-  minutes: number;
   players: [number, number];
   mode: Mode;
   weight: 1 | 2 | 3 | 4;
@@ -71,7 +74,8 @@ const real = (
 export const realGames: Record<GameId, LibraryGame> = {
   undertow: real('undertow', 'Nox', {
     world: 'A smugglers’ cabin, a lantern, and a table of tricks nobody wants',
-    minutes: 25,
+    duration: '5–10 min',
+    durationSpoken: '5 to 10 minutes',
     players: [2, 6],
     mode: 'Competitive',
     weight: 2,
@@ -83,7 +87,8 @@ export const realGames: Record<GameId, LibraryGame> = {
   }),
   wildgrove: real('wildgrove', 'Mora', {
     world: 'A paper observatory where wild creatures move back in',
-    minutes: 30,
+    duration: '5–10 min',
+    durationSpoken: '5 to 10 minutes',
     players: [2, 6],
     mode: 'Competitive',
     weight: 2,
@@ -96,7 +101,8 @@ export const realGames: Record<GameId, LibraryGame> = {
   midnight: real('midnight', 'Yata', {
     world:
       'Lantern-lit night market, a red drum table, orders shouted over the canal',
-    minutes: 20,
+    duration: '5 min',
+    durationSpoken: '5 minutes',
     players: [2, 6],
     mode: 'Competitive',
     weight: 1,
@@ -126,7 +132,8 @@ const own = (
 const partyBoxes = {
   orin: own('orin', {
     world: 'Party games about how well your group really knows each other',
-    minutes: 20,
+    duration: '5–60 min+',
+    durationSpoken: '5 to 60 minutes or more',
     players: [2, 6],
     mode: 'Competitive',
     weight: 1,
@@ -138,7 +145,8 @@ const partyBoxes = {
   }),
   miro: own('miro', {
     world: 'Quick trivia rounds: pin places on the globe, size things up',
-    minutes: 20,
+    duration: '5–60 min+',
+    durationSpoken: '5 to 60 minutes or more',
     players: [2, 6],
     mode: 'Competitive',
     weight: 1,
@@ -165,8 +173,8 @@ export const libraryGames: LibraryGame[] = [
     ...printedBoxArt('folio'),
     world:
       'Ten famous daily puzzles on one endless branching trail. Beat the bosses and climb as far as you can together.',
-    minutes: 25,
-    durationLabel: '15–25 min',
+    duration: '5–60 min+',
+    durationSpoken: '5 to 60 minutes or more',
     players: [1, 3],
     mode: 'Co-op',
     weight: 1,
@@ -183,9 +191,9 @@ export const libraryGames: LibraryGame[] = [
     ...printedBoxArt('relic'),
     world:
       'Scratch tickets that are little puzzles, and build a factory that prints more',
-    minutes: 0,
-    durationLabel: 'At your pace',
-    players: [1, 6],
+    duration: '60 min+',
+    durationSpoken: '60 minutes or more',
+    players: [1, 3],
     mode: 'Co-op',
     weight: 1,
     genre: 'Puzzle scratch tickets & factory',
@@ -210,14 +218,27 @@ export const gameByLibraryId = (id: string) =>
  * id in one section here; a new kind of game gets a new section.
  */
 export type LibrarySection = { id: string; title: string; games: string[] };
-export const librarySections: LibrarySection[] = [
-  {
+const sectionsById = {
+  strategy: {
     id: 'strategy',
     title: 'Strategy',
     games: ['undertow', 'wildgrove', 'midnight'],
   },
-  { id: 'party', title: 'Party', games: ['orin', 'miro'] },
-  { id: 'solo', title: 'Solo & co-op', games: ['folio', 'relic'] },
+  party: { id: 'party', title: 'Party', games: ['orin', 'miro'] },
+  solo: { id: 'solo', title: 'Solo & co-op', games: ['folio', 'relic'] },
+} satisfies Record<string, LibrarySection>;
+/** On the landing page strategy leads, then the games you can start by
+ * yourself. */
+export const librarySections: LibrarySection[] = [
+  sectionsById.strategy,
+  sectionsById.solo,
+  sectionsById.party,
+];
+/** At a table, the games made for a group lead. */
+export const tableSections: LibrarySection[] = [
+  sectionsById.party,
+  sectionsById.strategy,
+  sectionsById.solo,
 ];
 
 export const initials = (name: string) =>

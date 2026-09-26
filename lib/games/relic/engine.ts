@@ -645,6 +645,7 @@ export function actRelic(
     case 'factory-build':
     case 'factory-remove':
     case 'factory-rotate':
+    case 'factory-move':
     case 'factory-book':
       actFactory(g, action);
       break;

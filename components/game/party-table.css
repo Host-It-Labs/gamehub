@@ -923,6 +923,14 @@
 
 .party-action-status { display: grid; place-items: center; margin-left: auto; color: #327653; flex-shrink: 0; }
 .party-action-spinner { color: #8762a2; animation: party-action-spin 1.2s linear infinite; }
+@media (prefers-reduced-motion: no-preference) {
+  .party-table :is(.party-player, .topic-card, .tribu-tile, .vote-option, .dial-switch button, .sabi-steps button, .sabi-steps li, .party-lock-count i, .ranking-count i) {
+    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  }
+  .party-table .vote-check {
+    animation: reveal-rise 180ms ease both;
+  }
+}
 @keyframes party-action-spin { to { transform: rotate(360deg); } }
 @media(prefers-reduced-motion: reduce) { .party-action-spinner { animation: none; } }
 .ranking-stage.phase-reveal .tier-paper { overflow-y: auto; overscroll-behavior: contain; }

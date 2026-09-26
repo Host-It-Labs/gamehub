@@ -1,26 +1,6 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import {
-  Bot,
-  ChevronsRight,
-  Clover,
-  Coins,
-  Droplet,
-  Eraser,
-  Factory,
-  Lamp,
-  Lock,
-  MousePointer2,
-  Package,
-  Printer,
-  RotateCw,
-  Sparkles,
-  Split,
-  Stamp,
-  Store,
-  Trash2,
-  type LucideIcon,
-} from 'lucide-react';
+import { Coins, Eraser, Hand, Lock, RotateCw, Trash2 } from 'lucide-react';
 import { formatNumber, type RelicAction } from '@/lib/games/relic/engine';
 import {
   BLUEPRINTS,
@@ -35,6 +15,7 @@ import {
   machineRefund,
   scratchTicks,
   type Dir,
+  type FactoryState,
   type Item,
   type Machine,
   type MachineKind,
@@ -45,23 +26,30 @@ import {
   packOpen,
   type ScratchState,
 } from '@/lib/games/relic/scratch';
+import { TICKET_ART } from './relic-scratch-art';
 
-export const MACHINE_ICONS: Record<MachineKind, LucideIcon> = {
-  belt: ChevronsRight,
-  printer: Printer,
-  bot: Bot,
-  cashier: Store,
-  splitter: Split,
-  lamp: Lamp,
-  ink: Droplet,
-  stamper: Stamp,
-  gilder: Sparkles,
-  charm: Clover,
-  bundler: Package,
+/** Painted top-down machines (scripts/optimize-lucky-factory-art.mjs); each
+ * faces right, so a machine turns by its direction. Literal paths keep them
+ * in the production asset list. */
+export const MACHINE_ART: Record<MachineKind, string> = {
+  belt: '/art/lucky/factory/belt.webp',
+  printer: '/art/lucky/factory/printer.webp',
+  bot: '/art/lucky/factory/bot.webp',
+  cashier: '/art/lucky/factory/cashier.webp',
+  splitter: '/art/lucky/factory/splitter.webp',
+  lamp: '/art/lucky/factory/lamp.webp',
+  ink: '/art/lucky/factory/ink.webp',
+  stamper: '/art/lucky/factory/stamper.webp',
+  gilder: '/art/lucky/factory/gilder.webp',
+  charm: '/art/lucky/factory/charm.webp',
+  bundler: '/art/lucky/factory/bundler.webp',
 };
+const FLOOR_ART = '/art/lucky/factory/floor.webp';
 type Tool = { mode: 'build'; kind: MachineKind } | { mode: 'select' | 'erase' };
 type Cell = { x: number; y: number };
 const ORDER = BLUEPRINTS.flatMap((b) => b.kinds);
+const same = (a: Cell | null | undefined, b: Cell | null | undefined) =>
+  !!a && !!b && a.x === b.x && a.y === b.y;
 
 export function ScratchFactory({
   state,
@@ -82,14 +70,20 @@ export function ScratchFactory({
     [hover, setHover] = useState<Cell | null>(null),
     [ghost, setGhostState] = useState<(Cell & { dir: Dir })[]>([]),
     [erasing, setErasingState] = useState<Cell[]>([]),
+    [moving, setMovingState] = useState<{ from: Cell; to: Cell } | null>(null),
     [cell, setCell] = useState(48),
     [turned, setTurned] = useState(false);
   const wrap = useRef<HTMLDivElement>(null),
     floor = useRef<HTMLDivElement>(null),
     drag = useRef<{ last: Cell; pointer: number } | null>(null),
-    pending = useRef<{ ghost: (Cell & { dir: Dir })[]; erasing: Cell[] }>({
+    pending = useRef<{
+      ghost: (Cell & { dir: Dir })[];
+      erasing: Cell[];
+      moving: { from: Cell; to: Cell; pointer: number } | null;
+    }>({
       ghost: [],
       erasing: [],
+      moving: null,
     });
   // The pointer handlers read the latest drag through a ref; state only draws it.
   const setGhost = (
@@ -106,6 +100,12 @@ export function ScratchFactory({
       typeof next === 'function' ? next(pending.current.erasing) : next;
     setErasingState(pending.current.erasing);
   };
+  const setMoving = (
+    next: { from: Cell; to: Cell; pointer: number } | null,
+  ) => {
+    pending.current.moving = next;
+    setMovingState(next && { from: next.from, to: next.to });
+  };
   const selectedMachine = selected
     ? machineAt(f, selected.x, selected.y)
     : undefined;
@@ -113,9 +113,16 @@ export function ScratchFactory({
     const element = wrap.current;
     if (!element) return;
     const measure = () => {
-      const r = element.getBoundingClientRect(),
-        flat = Math.min(r.width / width, r.height / height),
-        upright = Math.min(r.width / height, r.height / width);
+      // The brass frame adds 0.14 of a cell on every side; the wrap pads 10px.
+      const style = getComputedStyle(element),
+        w = element.clientWidth - parseFloat(style.paddingLeft) * 2,
+        h = element.clientHeight - parseFloat(style.paddingTop) * 2,
+        r = { width: w, height: h },
+        flat = Math.min(r.width / (width + 0.28), r.height / (height + 0.28)),
+        upright = Math.min(
+          r.width / (height + 0.28),
+          r.height / (width + 0.28),
+        );
       // Tall screens show the same floor turned a quarter clockwise.
       setTurned(upright > flat * 1.15);
       setCell(Math.max(22, Math.floor(Math.max(flat, upright))));
@@ -126,7 +133,8 @@ export function ScratchFactory({
     return () => observer.disconnect();
   }, [width, height, f.blueprints.length]);
   const rotate = () => {
-    if (tool.mode === 'build') setDir((d) => ((d + 1) % 4) as Dir);
+    if (tool.mode === 'build' && !selectedMachine)
+      setDir((d) => ((d + 1) % 4) as Dir);
     else if (selectedMachine && MACHINES[selectedMachine.kind].turns)
       void onAct({ type: 'factory-rotate', ...selected! });
   };
@@ -151,9 +159,14 @@ export function ScratchFactory({
     const price = BLUEPRINTS[0].price;
     return (
       <div className="rs-factory-closed">
-        <Factory size={54} strokeWidth={1.3} />
+        <div className="rs-factory-preview" aria-hidden="true">
+          {(['printer', 'belt', 'bot', 'belt', 'cashier'] as const).map(
+            (kind, i) => (
+              <img key={i} src={MACHINE_ART[kind]} alt="" />
+            ),
+          )}
+        </div>
         <h2>Ticket factory</h2>
-        <p>Print, scratch and sell tickets automatically.</p>
         <button
           className="rs-primary"
           disabled={busy || coins < price}
@@ -178,7 +191,7 @@ export function ScratchFactory({
   const occupied = (c: Cell) => !!machineAt(f, c.x, c.y);
   function extend(to: Cell) {
     const d = drag.current;
-    if (!d || (d.last.x === to.x && d.last.y === to.y)) return;
+    if (!d || same(d.last, to)) return;
     // Walk cell by cell so a fast drag still draws a connected line.
     let { x, y } = d.last;
     const steps: (Cell & { dir: Dir })[] = [];
@@ -192,9 +205,7 @@ export function ScratchFactory({
     if (tool.mode === 'erase') {
       setErasing((list) => [
         ...list,
-        ...steps.filter(
-          (s) => occupied(s) && !list.some((c) => c.x === s.x && c.y === s.y),
-        ),
+        ...steps.filter((s) => occupied(s) && !list.some((c) => same(c, s))),
       ]);
       return;
     }
@@ -207,7 +218,7 @@ export function ScratchFactory({
         // The previous belt now points toward this one.
         if (prev && Math.abs(prev.x - s.x) + Math.abs(prev.y - s.y) === 1)
           prev.dir = s.dir;
-        if (!occupied(s) && !next.some((c) => c.x === s.x && c.y === s.y)) {
+        if (!occupied(s) && !next.some((c) => same(c, s))) {
           prev = { ...s };
           next.push(prev);
         } else prev = undefined;
@@ -217,10 +228,19 @@ export function ScratchFactory({
   }
   function commit() {
     const pieces = pending.current.ghost,
-      removed = pending.current.erasing;
+      removed = pending.current.erasing,
+      move = pending.current.moving;
     drag.current = null;
     setGhost([]);
     setErasing([]);
+    setMoving(null);
+    if (move) {
+      if (!same(move.from, move.to) && !occupied(move.to)) {
+        void onAct({ type: 'factory-move', ...move.from, to: move.to });
+        setSelected(move.to);
+      } else setSelected(move.from);
+      return;
+    }
     if (pieces.length && tool.mode === 'build')
       void onAct({
         type: 'factory-build',
@@ -230,26 +250,38 @@ export function ScratchFactory({
   }
   const ghostCost =
     tool.mode === 'build'
-      ? ghost.reduce((n, _, i) => n + machinePrice(f, tool.kind, i), 0)
+      ? ghost.reduce((n, _, i) => n + machinePrice(f, tool.kind, i, state), 0)
       : 0;
   const items: { item: Item; x: number; y: number; slot: number }[] = [];
   for (const m of f.machines) {
+    if (same(m, moving?.from)) continue;
     if (m.item) items.push({ item: m.item, x: m.x, y: m.y, slot: 0 });
     if (m.output) items.push({ item: m.output, x: m.x, y: m.y, slot: 1 });
     m.hold?.forEach((item, i) => items.push({ item, x: m.x, y: m.y, slot: i }));
   }
   items.sort((a, b) => a.item.id - b.item.id);
+  const movingMachine = moving
+    ? machineAt(f, moving.from.x, moving.from.y)
+    : undefined;
+  const placing =
+    tool.mode === 'build' && !moving
+      ? ghost.length
+        ? ghost
+        : hover && !occupied(hover)
+          ? [{ ...hover, dir }]
+          : []
+      : [];
   return (
     <div className="rs-factory">
       <aside className="rs-palette" aria-label="Machines">
         <div className="rs-palette-tools">
           <button
             aria-pressed={tool.mode === 'select'}
-            aria-label="Select"
-            title="Select"
+            aria-label="Select and move"
+            title="Select and move"
             onClick={() => setTool({ mode: 'select' })}
           >
-            <MousePointer2 size={17} />
+            <Hand size={17} />
           </button>
           <button
             aria-pressed={tool.mode === 'erase'}
@@ -271,14 +303,15 @@ export function ScratchFactory({
         </div>
         <div className="rs-palette-list">
           {ORDER.map((kind) => {
-            const Icon = MACHINE_ICONS[kind],
-              open = kindOpen(f, kind),
+            const open = kindOpen(f, kind),
               blueprint = BLUEPRINTS.find((b) => b.kinds.includes(kind))!,
-              price = open ? machinePrice(f, kind) : blueprint.price;
+              price = open ? machinePrice(f, kind, 0, state) : blueprint.price;
             return (
               <button
                 key={kind}
                 className={`rs-part ${open ? '' : 'is-locked'}`}
+                data-game-motion="change"
+                data-game-motion-key={open ? 'open' : 'locked'}
                 aria-pressed={
                   open ? tool.mode === 'build' && tool.kind === kind : undefined
                 }
@@ -293,12 +326,12 @@ export function ScratchFactory({
                   }
                 }}
               >
-                <span className={`rs-part-icon kind-${kind}`}>
-                  {open ? <Icon size={18} /> : <Lock size={15} />}
+                <span className={`rs-part-art kind-${kind}`}>
+                  <img src={MACHINE_ART[kind]} alt="" draggable={false} />
+                  {!open && <Lock size={14} className="rs-part-lock" />}
                 </span>
                 <b>{MACHINES[kind].name}</b>
                 <small className={coins < price ? 'is-short' : ''}>
-                  {!open && 'Unlock '}
                   <Coins size={10} />
                   {formatNumber(price)}
                 </small>
@@ -310,118 +343,139 @@ export function ScratchFactory({
       <section className="rs-floor-area">
         <div className="rs-floor-wrap" ref={wrap}>
           <div
-            ref={floor}
-            className={`rs-floor mode-${tool.mode}`}
+            className="rs-floor-frame"
             style={
               {
-                width: cell * (turned ? height : width),
-                height: cell * (turned ? width : height),
                 '--cell': `${cell}px`,
               } as React.CSSProperties
             }
-            onContextMenu={(event) => {
-              event.preventDefault();
-              const c = cellAt(event);
-              const m = c && machineAt(f, c.x, c.y);
-              if (m && MACHINES[m.kind].turns)
-                void onAct({ type: 'factory-rotate', x: m.x, y: m.y });
-            }}
-            onPointerDown={(event) => {
-              if (event.button !== 0) return;
-              const c = cellAt(event);
-              if (!c) return;
-              const m = machineAt(f, c.x, c.y);
-              if (tool.mode === 'erase') {
-                drag.current = { last: c, pointer: event.pointerId };
-                event.currentTarget.setPointerCapture(event.pointerId);
-                setErasing(m ? [c] : []);
-                return;
-              }
-              if (m || tool.mode === 'select') {
-                setSelected(m ? c : null);
-                return;
-              }
-              setSelected(null);
-              drag.current = { last: c, pointer: event.pointerId };
-              event.currentTarget.setPointerCapture(event.pointerId);
-              setGhost([{ ...c, dir }]);
-            }}
-            onPointerMove={(event) => {
-              const c = cellAt(event);
-              setHover(c);
-              if (drag.current?.pointer === event.pointerId && c) extend(c);
-            }}
-            onPointerLeave={() => setHover(null)}
-            onPointerUp={(event) => {
-              if (drag.current?.pointer === event.pointerId) commit();
-            }}
-            onPointerCancel={() => {
-              drag.current = null;
-              setGhost([]);
-              setErasing([]);
-            }}
           >
-            {f.machines.map((m) => (
-              <MachineTile
-                key={`${m.x}-${m.y}`}
-                m={m}
-                view={view}
-                selected={selected?.x === m.x && selected?.y === m.y}
-                erasing={erasing.some((c) => c.x === m.x && c.y === m.y)}
-              />
-            ))}
-            {tool.mode === 'build' &&
-              (ghost.length
-                ? ghost
-                : hover && !occupied(hover)
-                  ? [{ ...hover, dir }]
-                  : []
-              ).map((g) => {
-                const Icon = MACHINE_ICONS[tool.kind];
+            <div
+              ref={floor}
+              className={`rs-floor mode-${tool.mode} ${moving ? 'is-moving' : ''}`}
+              style={{
+                width: cell * (turned ? height : width),
+                height: cell * (turned ? width : height),
+                backgroundImage: `url(${FLOOR_ART})`,
+              }}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                const c = cellAt(event);
+                const m = c && machineAt(f, c.x, c.y);
+                if (m && MACHINES[m.kind].turns)
+                  void onAct({ type: 'factory-rotate', x: m.x, y: m.y });
+              }}
+              onPointerDown={(event) => {
+                if (event.button !== 0) return;
+                const c = cellAt(event);
+                if (!c) return;
+                const m = machineAt(f, c.x, c.y);
+                try {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                } catch {
+                  /* A pointer the browser no longer tracks: no capture. */
+                }
+                if (tool.mode === 'erase') {
+                  drag.current = { last: c, pointer: event.pointerId };
+                  setErasing(m ? [c] : []);
+                  return;
+                }
+                if (m) {
+                  // Press on a machine: a tap selects it, a drag moves it.
+                  setMoving({ from: c, to: c, pointer: event.pointerId });
+                  return;
+                }
+                setSelected(null);
+                if (tool.mode === 'select') return;
+                drag.current = { last: c, pointer: event.pointerId };
+                setGhost([{ ...c, dir }]);
+              }}
+              onPointerMove={(event) => {
+                const c = cellAt(event);
+                setHover(c);
+                const move = pending.current.moving;
+                if (move?.pointer === event.pointerId) {
+                  if (c && !same(c, move.to)) setMoving({ ...move, to: c });
+                  return;
+                }
+                if (drag.current?.pointer === event.pointerId && c) extend(c);
+              }}
+              onPointerLeave={() => setHover(null)}
+              onPointerUp={(event) => {
+                if (
+                  drag.current?.pointer === event.pointerId ||
+                  pending.current.moving?.pointer === event.pointerId
+                )
+                  commit();
+              }}
+              onPointerCancel={() => {
+                drag.current = null;
+                setGhost([]);
+                setErasing([]);
+                setMoving(null);
+              }}
+            >
+              {f.machines.map((m) =>
+                same(m, moving?.from) &&
+                !same(moving?.from, moving?.to) ? null : (
+                  <MachineTile
+                    key={`${m.x}-${m.y}`}
+                    m={m}
+                    view={view}
+                    selected={same(selected, m)}
+                    erasing={erasing.some((c) => same(c, m))}
+                    stuck={deadEnd(f, m)}
+                  />
+                ),
+              )}
+              {movingMachine && moving && !same(moving.from, moving.to) && (
+                <MachineTile
+                  m={{ ...movingMachine, ...moving.to }}
+                  view={view}
+                  selected
+                  erasing={false}
+                  ghost
+                  blocked={occupied(moving.to)}
+                />
+              )}
+              {placing.map((g) => (
+                <div
+                  key={`g${g.x}-${g.y}`}
+                  className={`rs-machine is-ghost kind-${(tool as { kind: MachineKind }).kind}`}
+                  style={{
+                    left: screen(view, g).x * cell,
+                    top: screen(view, g).y * cell,
+                  }}
+                >
+                  <MachineArt
+                    kind={(tool as { kind: MachineKind }).kind}
+                    rotate={screenDir(view, g.dir)}
+                  />
+                </div>
+              ))}
+              {items.map(({ item, x, y, slot }) => {
+                const at = screen(view, { x, y });
                 return (
-                  <div
-                    key={`g${g.x}-${g.y}`}
-                    className={`rs-machine is-ghost kind-${tool.kind}`}
-                    style={{
-                      left: screen(view, g).x * cell,
-                      top: screen(view, g).y * cell,
-                    }}
+                  <span
+                    key={item.id}
+                    className={`rs-item ${item.done ? 'is-done' : ''} ${item.star ? 'is-star' : ''} ${item.value ? 'is-bundle' : ''} ${item.gilded ? 'is-gilded' : ''} ${item.stamped ? 'is-stamped' : ''}`}
+                    style={
+                      {
+                        '--book': packFor(item.book).color,
+                        '--tilt': `${((item.id * 37) % 13) - 6}deg`,
+                        transform: `translate(${(at.x + 0.22 + slot * 0.1) * cell}px, ${(at.y + 0.2 - slot * 0.06) * cell}px)`,
+                      } as React.CSSProperties
+                    }
                   >
-                    <span
-                      className="rs-machine-face"
-                      style={{
-                        rotate:
-                          tool.kind === 'belt'
-                            ? `${screenDir(view, g.dir) * 90}deg`
-                            : undefined,
-                      }}
-                    >
-                      <Icon />
-                    </span>
-                    {MACHINES[tool.kind].turns && tool.kind !== 'belt' && (
-                      <i
-                        className="rs-machine-dir"
-                        style={{ rotate: `${screenDir(view, g.dir) * 90}deg` }}
-                      />
-                    )}
-                  </div>
+                    <img
+                      src={TICKET_ART[item.book].small}
+                      alt=""
+                      draggable={false}
+                    />
+                  </span>
                 );
               })}
-            {items.map(({ item, x, y, slot }) => {
-              const at = screen(view, { x, y });
-              return (
-                <span
-                  key={item.id}
-                  className={`rs-item ${item.done ? 'is-done' : ''} ${item.star ? 'is-star' : ''} ${item.value ? 'is-bundle' : ''}`}
-                  style={
-                    {
-                      '--book': packFor(item.book).color,
-                      transform: `translate(${(at.x + 0.3 + slot * 0.12) * cell}px, ${(at.y + 0.3 - slot * 0.08) * cell}px)`,
-                    } as React.CSSProperties
-                  }
-                />
-              );
-            })}
+            </div>
           </div>
         </div>
         <Inspector
@@ -447,55 +501,100 @@ function screen(view: View, c: Cell): Cell {
 function screenDir(view: { turned: boolean }, dir: Dir) {
   return view.turned ? (dir + 1) % 4 : dir;
 }
+function MachineArt({ kind, rotate }: { kind: MachineKind; rotate: number }) {
+  if (kind === 'belt')
+    return (
+      <span
+        className="rs-belt"
+        style={{ rotate: `${rotate * 90}deg` }}
+        aria-hidden="true"
+      />
+    );
+  return (
+    <img
+      className="rs-machine-art"
+      src={MACHINE_ART[kind]}
+      alt=""
+      draggable={false}
+      style={{
+        rotate: MACHINES[kind].turns ? `${rotate * 90}deg` : undefined,
+      }}
+    />
+  );
+}
+/** A machine holding a ticket it can never pass on: nothing in front, a
+ * machine that takes no tickets, or a belt pointing back at it. A queue
+ * behind a slow bot is not stuck. */
+function deadEnd(f: FactoryState, m: Machine) {
+  if ((m.stuck ?? 0) <= 20 || m.kind === 'splitter') return false;
+  const [dx, dy] = DIRS[m.dir],
+    next = machineAt(f, m.x + dx, m.y + dy);
+  if (!next) return true;
+  if (['printer', 'lamp', 'ink', 'charm'].includes(next.kind)) return true;
+  const [bx, by] = DIRS[next.dir];
+  return (
+    MACHINES[next.kind].turns && next.x + bx === m.x && next.y + by === m.y
+  );
+}
 function MachineTile({
   m,
   view,
   selected,
   erasing,
+  stuck = false,
+  ghost = false,
+  blocked = false,
 }: {
   m: Machine;
   view: View;
+  stuck?: boolean;
   selected: boolean;
   erasing: boolean;
+  ghost?: boolean;
+  blocked?: boolean;
 }) {
-  const Icon = MACHINE_ICONS[m.kind];
   const progress =
     m.kind === 'printer'
       ? m.t / PRINT_TICKS
       : m.kind === 'bot' && m.item
         ? m.t / scratchTicks(m.item.book)
         : 0;
+  const at = screen(view, m);
   return (
     <div
-      className={`rs-machine kind-${m.kind} ${selected ? 'is-selected' : ''} ${erasing ? 'is-erasing' : ''} ${(m.stuck ?? 0) > 20 ? 'is-stuck' : ''}`}
+      className={`rs-machine kind-${m.kind} ${selected ? 'is-selected' : ''} ${erasing ? 'is-erasing' : ''} ${stuck ? 'is-stuck' : ''} ${ghost ? 'is-ghost is-lifted' : ''} ${blocked ? 'is-blocked' : ''} ${progress > 0 ? 'is-working' : ''}`}
+      data-game-motion={ghost ? undefined : 'piece'}
       style={
         {
-          left: `calc(var(--cell) * ${screen(view, m).x})`,
-          top: `calc(var(--cell) * ${screen(view, m).y})`,
+          left: `calc(var(--cell) * ${at.x})`,
+          top: `calc(var(--cell) * ${at.y})`,
           '--book': m.book ? packFor(m.book).color : undefined,
         } as React.CSSProperties
       }
     >
-      <span
-        className="rs-machine-face"
-        style={{
-          rotate:
-            m.kind === 'belt' ? `${screenDir(view, m.dir) * 90}deg` : undefined,
-        }}
-      >
-        <Icon />
-      </span>
-      {MACHINES[m.kind].turns && m.kind !== 'belt' && (
-        <i
-          className="rs-machine-dir"
-          style={{ rotate: `${screenDir(view, m.dir) * 90}deg` }}
+      <MachineArt kind={m.kind} rotate={screenDir(view, m.dir)} />
+      {m.kind === 'printer' && m.book && (
+        <img
+          className="rs-machine-book"
+          src={TICKET_ART[m.book].small}
+          alt=""
+          draggable={false}
         />
       )}
       {progress > 0 && (
-        <b
+        <svg
           className="rs-machine-progress"
-          style={{ width: `${Math.min(1, progress) * 80}%` }}
-        />
+          viewBox="0 0 36 36"
+          aria-hidden="true"
+        >
+          <circle
+            r="15"
+            cx="18"
+            cy="18"
+            pathLength="1"
+            strokeDasharray={`${Math.min(1, progress)} 1`}
+          />
+        </svg>
       )}
     </div>
   );
@@ -524,12 +623,15 @@ function Inspector({
 }) {
   const f = state.factory;
   if (machine) {
-    const Icon = MACHINE_ICONS[machine.kind],
-      b = boost(f, machine);
+    const b = boost(f, machine);
     return (
-      <div className="rs-inspector">
-        <span className={`rs-part-icon kind-${machine.kind}`}>
-          <Icon size={18} />
+      <div
+        className="rs-inspector"
+        data-game-motion="change"
+        data-game-motion-key={`${machine.kind}:${machine.x}:${machine.y}:${machine.book ?? ''}`}
+      >
+        <span className={`rs-part-art kind-${machine.kind}`}>
+          <img src={MACHINE_ART[machine.kind]} alt="" />
         </span>
         <div className="rs-inspector-text">
           <b>{MACHINES[machine.kind].name}</b>
@@ -547,7 +649,6 @@ function Inspector({
                 title={p.name}
                 aria-label={p.name}
                 aria-pressed={machine.book === p.id}
-                style={{ '--book': p.color } as React.CSSProperties}
                 disabled={busy}
                 onClick={() =>
                   void onAct({
@@ -557,7 +658,9 @@ function Inspector({
                     book: p.id,
                   })
                 }
-              />
+              >
+                <img src={TICKET_ART[p.id].small} alt="" />
+              </button>
             ))}
           </div>
         )}
@@ -578,18 +681,21 @@ function Inspector({
           }
         >
           <Trash2 size={16} />
-          <span>+{formatNumber(machineRefund(f, machine.kind))}</span>
+          <span>+{formatNumber(machineRefund(f, machine.kind, state))}</span>
         </button>
       </div>
     );
   }
   if (tool.mode === 'build') {
-    const Icon = MACHINE_ICONS[tool.kind],
-      price = ghostCount ? ghostCost : machinePrice(f, tool.kind);
+    const price = ghostCount ? ghostCost : machinePrice(f, tool.kind, 0, state);
     return (
-      <div className="rs-inspector">
-        <span className={`rs-part-icon kind-${tool.kind}`}>
-          <Icon size={18} />
+      <div
+        className="rs-inspector"
+        data-game-motion="change"
+        data-game-motion-key={tool.kind}
+      >
+        <span className={`rs-part-art kind-${tool.kind}`}>
+          <img src={MACHINE_ART[tool.kind]} alt="" />
         </span>
         <div className="rs-inspector-text">
           <b>{MACHINES[tool.kind].name}</b>
@@ -606,13 +712,17 @@ function Inspector({
     );
   }
   return (
-    <div className="rs-inspector">
+    <div
+      className="rs-inspector"
+      data-game-motion="change"
+      data-game-motion-key={tool.mode}
+    >
       <div className="rs-inspector-text">
         <b>{tool.mode === 'erase' ? 'Remove' : 'Select'}</b>
         <small>
           {tool.mode === 'erase'
             ? 'Drag over machines to remove them. You get their price back.'
-            : 'Tap a machine to rotate it, remove it or change its book.'}
+            : 'Tap a machine to turn, remove or change it; drag it to move it.'}
         </small>
       </div>
       <span className="rs-inspector-price">

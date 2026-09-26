@@ -443,7 +443,7 @@ function Comparison({
   const tpx = { w: target.real.w * scale, h: target.real.h * scale };
 
   return (
-    <section className="sabi-stage size-stage">
+    <section className="sabi-stage size-stage" data-game-motion="change">
       <div ref={boardRef} className="sabi-board size-board">
         {board.w > 0 && (
           <>
@@ -509,7 +509,11 @@ function Comparison({
         {steps}
         <Legend q={q} />
         {!spectator && (
-          <div className="sabi-actions">
+          <div
+            className="sabi-actions"
+            data-game-motion="change"
+            data-game-motion-key={locked ? 'locked' : canLock ? 'lock' : 'next'}
+          >
             <output className="size-readout">
               {formatSize(value, tarM.unit)}
             </output>

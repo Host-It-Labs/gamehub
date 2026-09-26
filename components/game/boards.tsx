@@ -1,7 +1,13 @@
 'use client';
 import { BlackwakeTable, type TableGeometry } from './blackwake-table';
 import { paperWorldFor, paperWorldIdFor } from '@/lib/games/mora-world';
-import { cropPercent, tableWorldFor, tallWorldQuery } from '@/lib/games/table-world';
+import {
+  cropPercent,
+  phoneWorldQuery,
+  tableWorldFor,
+  tallWorldQuery,
+  yataPhonePlateFits,
+} from '@/lib/games/table-world';
 import { WorldScene } from './world-scene';
 import { useArtVariant } from '@/lib/games/art-variant';
 import { ObservatoryScene } from './observatory-scene';
@@ -289,6 +295,7 @@ export function Board({
   onMigrate?: (migration?: { card: number; from: number; to: number }) => void;
 }) {
   const [portrait, setPortrait] = useState(false);
+  const [phone, setPhone] = useState(false);
   const [resident, setResident] = useState<{
     card: number;
     from: number;
@@ -302,6 +309,40 @@ export function Board({
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
   }, [mini, g.id]);
+  // Yata's portrait phones take the near-square counter when their stage
+  // (the space between the badges and the dock) shows it bigger.
+  const marketScene = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const stage = marketScene.current?.parentElement;
+    if (mini || g.id !== 'midnight' || !stage) return;
+    const surface = stage.closest<HTMLElement>('.table-layout') ?? stage;
+    const small = window.matchMedia(phoneWorldQuery);
+    const update = () => {
+      if (!small.matches) return setPhone(false);
+      const s = surface.getBoundingClientRect(),
+        r = stage.getBoundingClientRect();
+      setPhone(
+        yataPhonePlateFits(
+          { width: s.width, height: s.height },
+          {
+            x: r.left - s.left,
+            y: r.top - s.top,
+            width: stage.clientWidth,
+            height: stage.clientHeight,
+          },
+        ),
+      );
+    };
+    const resize = new ResizeObserver(update);
+    resize.observe(stage);
+    resize.observe(surface);
+    small.addEventListener('change', update);
+    update();
+    return () => {
+      resize.disconnect();
+      small.removeEventListener('change', update);
+    };
+  }, [mini, g.id, portrait]);
   // Mora's two worlds keep separate candidate picks; the Observatory uses the legacy key.
   const worldId = paperWorldIdFor(g.contentSet);
   const [variant] = useArtVariant(
@@ -471,6 +512,8 @@ export function Board({
               <strong>
                 <span className="habitat-name">{h.name}</span>{' '}
                 <b
+                  data-game-motion="change"
+                  data-game-motion-key={zoneScore(p.zones, z, g.contentSet)}
                   aria-label={`${zoneScore(p.zones, z, g.contentSet)} out of ${h.maxScore} points`}
                 >
                   {zoneScore(p.zones, z, g.contentSet)}
@@ -710,7 +753,9 @@ export function Board({
       g.contentSet,
     );
   // The night market: the collection board stands on the painted counter.
-  const market = mini ? null : tableWorldFor('midnight', portrait, variant);
+  const market = mini
+    ? null
+    : tableWorldFor('midnight', portrait, variant, phone);
   const marketBoard = (
     <div
       className={`market-board ${g.customerOrders || g.specialtyStalls ? 'festival-board' : ''} ${mini ? 'mini-board' : ''} ${market ? 'counter-board' : ''}`}
@@ -725,7 +770,7 @@ export function Board({
           : undefined;
         const content = (
           <>
-            <div className={`dish-stack ${c[k] ? 'has-dish' : ''}`}>
+            <div className={`dish-stack ${c[k] ? 'has-dish' : ''}`} data-game-motion="piece" data-game-motion-key={c[k]}>
               {Array.from(
                 { length: Math.max(1, Math.min(c[k], 6)) },
                 (_, i) => (
@@ -746,7 +791,7 @@ export function Board({
               <b className="quantity">×{c[k]}</b>
             </div>
             <strong>{f.name}</strong>
-            <span className="collection-score">{sc[k]} pts</span>
+            <span className="collection-score" data-game-motion="change" data-game-motion-key={sc[k]}>{sc[k]} pts</span>
             {stall && (
               <span
                 className="dish-permit"
@@ -795,8 +840,9 @@ export function Board({
   if (!market) return marketBoard;
   return (
     <div
+      ref={marketScene}
       className="market-world"
-      data-paper-world={portrait ? 'portrait' : 'landscape'}
+      data-paper-world={phone ? 'phone' : portrait ? 'portrait' : 'landscape'}
       data-world="midnight"
     >
       <WorldScene art={market} tint="rgba(14, 18, 48, 0.45)" />
@@ -844,10 +890,10 @@ export function Players({
   const lastCue = useRef(actionable ? turn : null);
   useEffect(() => {
     if (actionable && g.phase !== 'roll' && lastCue.current !== turn) {
-      cue('turn', volume);
+      cue('turn', volume, 0, g.id);
       lastCue.current = turn;
     }
-  }, [turn, actionable, volume, g.phase]);
+  }, [turn, actionable, volume, g.phase, g.id]);
   const waiting = g.players.flatMap((player, seat) =>
     canAct(g, seat) ? [seat === viewer ? 'you' : player.name] : [],
   );
@@ -932,7 +978,7 @@ export function Players({
           >
             <span className={`avatar avatar-${i}`}>{p.name.slice(0, 1)}</span>
             <span>{p.name}</span>
-            <b>{sc[i]}</b>
+            <b data-game-motion="change" data-game-motion-key={sc[i]}>{sc[i]}</b>
             {g.phase !== 'over' && (
               <PlayerStatus
                 state={

@@ -1,0 +1,103 @@
+/* Menu theme: the library, the tables pages, their menus and the setup box
+   read these tokens. lib/theme.ts puts data-theme on <html> (the system's look
+   unless the player picked the other one). Games keep their own worlds, so
+   nothing here reaches a playing table. */
+:root {
+  --lib-bg: #efe9dd;
+  --lib-panel: #f8f4ea;
+  --lib-panel-2: #f2ecdf;
+  --lib-card: #ffffff;
+  --lib-field: #fffdf8;
+  --lib-hover: #e9e1d1;
+  --lib-chip: #e5dccb;
+  --lib-line: #ddd3c1;
+  --lib-ink: #2f2a24;
+  --lib-ink-2: #6b6255;
+  --lib-ink-3: #948a7a;
+  --lib-brass: #b8924a;
+  --lib-walnut: #6b4a2f;
+  --lib-walnut-2: #7d593a;
+  --lib-live: #4f9a5c;
+  --lib-danger: #a1402a;
+  --lib-shadow: #6b4a2f;
+  --lib-glow: #ffffff00;
+  --lib-grain: #ffffff10;
+}
+/* After hours in the same room: walnut and lamplight, brass a touch brighter. */
+:root[data-theme='dark'] {
+  --lib-bg: #1b1713;
+  --lib-panel: #26211b;
+  --lib-panel-2: #2e2821;
+  --lib-card: #2b251f;
+  --lib-field: #1f1b17;
+  --lib-hover: #352e26;
+  --lib-chip: #3a3229;
+  --lib-line: #3e362d;
+  --lib-ink: #f1e8d8;
+  --lib-ink-2: #c1b4a0;
+  --lib-ink-3: #8f8473;
+  --lib-brass: #d4ad62;
+  --lib-walnut: #74502f;
+  --lib-walnut-2: #86603c;
+  --lib-live: #66b574;
+  --lib-danger: #e2876f;
+  --lib-shadow: #000000;
+  --lib-glow: #e6a95a1f;
+  --lib-grain: #ffffff04;
+}
+:root[data-theme='dark']
+  :is(
+    .night-library,
+    .room-menu,
+    .lib-menu,
+    .menu-modal,
+    .launch-modal,
+    .setup-modal
+  ) {
+  color-scheme: dark;
+}
+:root[data-theme='dark'] body:has(.night-library) {
+  background: var(--lib-bg);
+}
+
+/* Library dialogs (sound, Folio and Relic launch) sit on the menu paper. */
+:root[data-theme='dark'] .modal:is(.menu-modal, .launch-modal) {
+  background: var(--lib-panel) !important;
+  border-color: var(--lib-line) !important;
+  color: var(--lib-ink);
+  box-shadow: 0 18px 65px #0000008c !important;
+}
+:root[data-theme='dark']
+  .modal:is(.menu-modal, .launch-modal)
+  [data-slot='dialog-description'] {
+  color: var(--lib-ink-3);
+}
+:root[data-theme='dark']
+  :is(.night-library, .room-menu, .launch-modal)
+  .secondary {
+  background: var(--lib-card);
+  border-color: var(--lib-line);
+  color: var(--lib-ink);
+}
+:root[data-theme='dark']
+  :is(.night-library, .room-menu, .launch-modal)
+  .secondary:hover {
+  background: var(--lib-hover);
+}
+:root[data-theme='dark']
+  :is(.night-library, .online-box)
+  :is(.online-notice, .form-error, .online-error) {
+  background: #3a211a;
+  color: #f0b7a4;
+}
+
+/* The page before the app starts shares the library's look. */
+:root[data-theme='dark'] .startup-loading {
+  background: var(--lib-bg);
+  color: var(--lib-ink-2);
+}
+:root[data-theme='dark'] .startup-tiles i {
+  background: var(--lib-panel);
+  border-color: var(--lib-line);
+  box-shadow: 0 5px 0 var(--lib-line);
+}

@@ -58,7 +58,7 @@ try {
     requestId: randomUUID(),
     action: { type: 'scratch-open', pack: 'seven' },
   });
-  const ticket = opened.game.scratch.tickets[opened.viewerId][0];
+  const ticket = opened.game.scratch.hands[opened.viewerId];
   // One sweep over the whole ticket: the ticket ends and pays by itself.
   const points = Array.from({ length: 66 }, (_, i) => ({
     x: i % 4 < 2 ? 0.005 : 0.995,

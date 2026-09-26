@@ -10,6 +10,7 @@ const FolioLab =
   process.env.NODE_ENV === 'development'
     ? lazy(() => import('@/components/game/folio-lab'))
     : null;
+const SoundLab = lazy(() => import('@/components/game/sound-lab'));
 const subscribe = () => () => {};
 export default function Gamehub() {
   const path = useSyncExternalStore(
@@ -31,6 +32,7 @@ export default function Gamehub() {
         </output>
       </main>
     );
+  if (path === '/sound-lab') return <Suspense fallback={<main className="startup-loading" aria-busy="true">Sound Lab</main>}><SoundLab /></Suspense>;
   if (path === '/auth') return <Account />;
   if (path === '/tables') return <MyTables />;
   if (path === '/relic') return <Relic />;

@@ -189,9 +189,9 @@ export class Expeditions {
           )
           .get(invite) as { n: number };
         check(
-          count.n < 6,
+          count.n < 3,
           409,
-          'This expedition already has six explorers. Start a new expedition for this group.',
+          'Lucky seats up to three players. This desk is full.',
         );
         this.db
           .prepare('INSERT INTO expedition_members VALUES (?,?,?,?,?)')
@@ -209,6 +209,33 @@ export class Expeditions {
       advanceRelic(g, now);
       this.save(invite, g);
       return this.view(invite, who, g, now);
+    });
+  }
+  /** Seat the whole table atomically, keeping the same desk and purchases. */
+  seatTable(
+    invite: string,
+    who: Identity,
+    players: Identity[],
+    now = Date.now(),
+  ) {
+    return this.transaction(() => {
+      this.member(invite, who);
+      const members = this.db
+        .prepare('SELECT actor FROM expedition_members WHERE expedition=?')
+        .all(invite) as { actor: string }[];
+      const newcomers = players.filter(
+        (p) => !members.some((m) => m.actor === p.id),
+      );
+      check(
+        members.length + newcomers.length <= 3,
+        409,
+        'This desk and table together have more than three players.',
+      );
+      for (const player of newcomers)
+        this.db
+          .prepare('INSERT INTO expedition_members VALUES (?,?,?,?,?)')
+          .run(invite, player.id, player.name, now, now);
+      return this.view(invite, who, this.load(invite), now);
     });
   }
   activity(

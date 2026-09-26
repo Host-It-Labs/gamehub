@@ -1953,7 +1953,8 @@ export function placementDieRule(face: number, set?: ContentSet) {
     : die.rule;
 }
 export function tokenImage(kind: number, food = false, set?: ContentSet) {
-  const version = 2;
+  // Yata's dishes follow the toon cover style since 25 September 2026 (v3).
+  const version = food ? 3 : 2;
   return `/art/optimized/${food ? (set === 'intermediate' ? 'yata-counter-alley' : 'yata-counter-lane') : set === 'intermediate' ? 'mora-paper-coast' : 'mora-paper-inland'}-${kind}-v${version}.webp`;
 }
 export function sanctuaryGoalsFor(set?: ContentSet) {

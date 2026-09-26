@@ -11,7 +11,7 @@ const worlds = [
   ['lib/games/observatory-portrait-art.json', paperVariants('observatory')],
   ['lib/games/floodline-art.json', paperVariants('floodline')],
   ['lib/games/floodline-portrait-art.json', paperVariants('floodline')],
-  ...['nox-world-landscape', 'nox-world-portrait', 'yata-world-landscape', 'yata-world-portrait'].map((name) => [
+  ...['nox-world-landscape', 'nox-world-portrait', 'yata-world-landscape', 'yata-world-portrait', 'yata-world-phone'].map((name) => [
     `lib/games/${name}.json`,
     (art) => tableVariants.filter((v) => v.game === art.game && v.orientation === (art.height > art.width ? 'portrait' : 'landscape')),
   ]),
