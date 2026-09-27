@@ -150,6 +150,25 @@ export default function Waffle({
         ],
         { duration: 420, delay, easing: 'ease-in-out', fill: 'backwards' },
       );
+      // A block that just turned green locks up with one stamp of the press
+      // (the win has its own wave, so it skips this).
+      const tile = tiles.current[i];
+      if (m !== 2 || lost || won || !tile) return;
+      tile.animate(
+        [
+          {
+            transform: 'scale(1)',
+            boxShadow: `0 0 0 0 color-mix(in srgb, ${colour(2)} 60%, transparent)`,
+          },
+          { transform: 'scale(0.92)', offset: 0.3 },
+          { transform: 'scale(1.02)', offset: 0.65 },
+          {
+            transform: 'scale(1)',
+            boxShadow: `0 0 0 ${Math.round(tile.offsetWidth * 0.16)}px transparent`,
+          },
+        ],
+        { duration: 340, delay: delay + 420, easing: 'ease-out' },
+      );
     });
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -337,8 +356,15 @@ export default function Waffle({
             <>Out of swaps</>
           ) : (
             <>
-              <b>{p.remaining}</b> {p.remaining === 1 ? 'swap' : 'swaps'}{' '}
-              remaining
+              <b
+                key={p.remaining}
+                className={
+                  p.remaining < p.allowance ? 'fk-waffle-tick' : undefined
+                }
+              >
+                {p.remaining}
+              </b>{' '}
+              {p.remaining === 1 ? 'swap' : 'swaps'} remaining
             </>
           )}
         </output>

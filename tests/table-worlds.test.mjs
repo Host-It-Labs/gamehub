@@ -126,9 +126,9 @@ await test('accepted Counter B and Floodline B override old candidate selections
     const counter = tableWorldFor('midnight', tall, 'yata-counter-a');
     assert.match(counter.image, /v2-b\.webp$/);
   }
-  // Floodline's accepted board is the overgrown v2 art; candidate ids never override it.
+  // Floodline's accepted boards (overgrown landscape, phone v4-f); candidate ids never override them.
   for (const [tall, id] of [[false, 'floodline-landscape-v2-b'], [true, 'floodline-portrait-v2-a']])
-    assert.match(paperWorldFor(tall, id, 'floodline').image, /overgrown-floodline-(landscape-v3-b|portrait-v3-f-tall)\.webp$/);
+    assert.match(paperWorldFor(tall, id, 'floodline').image, /(overgrown-floodline-landscape-v3-b|phone-floodline-v4-f-tall)\.webp$/);
 });
 
 await test('Yata switches its plate and its layout at the same breakpoint', () => {

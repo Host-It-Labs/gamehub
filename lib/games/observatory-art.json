@@ -64,7 +64,7 @@
         [638, 232]
       ],
       "tokenWidth": 62,
-      "summary": "*Pair* 7 \u00b7 two pairs 16"
+      "summary": "8 per *pair*"
     },
     {
       "zone": 2,
@@ -75,7 +75,7 @@
         [270, 259]
       ],
       "tokenWidth": 62,
-      "summary": "*Pair* 9 \u00b7 single 1"
+      "summary": "*Pair*: 9"
     },
     {
       "zone": 3,
@@ -87,7 +87,7 @@
         [650, 610]
       ],
       "tokenWidth": 62,
-      "summary": "*Echo*: 3 each if its species lives elsewhere"
+      "summary": "3 each if found *elsewhere*"
     },
     {
       "zone": 4,
@@ -99,7 +99,7 @@
         [1398, 528]
       ],
       "tokenWidth": 62,
-      "summary": "*Full* channel: 6"
+      "summary": "2 per *creature*"
     },
     {
       "zone": 6,

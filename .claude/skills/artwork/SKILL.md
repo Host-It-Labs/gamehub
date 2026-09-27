@@ -13,14 +13,19 @@ One image per Codex invocation, from the project directory:
 
 ```bash
 CODEX=$(command -v codex || echo /Users/williamguinaudie/.nvm/versions/node/v22.22.0/bin/codex)
-"$CODEX" exec --skip-git-repo-check --sandbox workspace-write '$imagegen Generate this image using the built-in image generation tool. Save the final image to the exact absolute path: <ABSOLUTE_OUTPUT_PATH>. Prompt: <PROMPT>' < /dev/null
+LUNA=$(node .claude/skills/artwork/newest-luna.mjs)
+"$CODEX" exec --skip-git-repo-check --sandbox workspace-write -m "$LUNA" -c model_reasoning_effort='"low"' '$imagegen Call the built-in image generation tool exactly once with the prompt below, exactly as written. It is final: do not rewrite, restructure, expand or shorten it, and do not ask questions. The output_hint field of the result names the saved PNG: print only that field, never the image data, then copy that file to the exact absolute path: <ABSOLUTE_OUTPUT_PATH>. Never call the image tool a second time. Prompt: <PROMPT>' < /dev/null
 ```
+
+A run must make **one** image. Without the `output_hint` instruction Luna printed nothing on its first call, called the tool again to find the file and so paid for two images (26 September 2026). After a run, `ls ~/.codex/generated_images/<session id>/` (the id is in the log header) should hold a single PNG; if it holds more, report it.
 
 Always close stdin (`< /dev/null`): a background run otherwise can hang for good after "Reading additional input from stdin..." (25 September 2026).
 
 Resolve `codex` from `PATH`; the nvm path is only a fallback for shells that do not have it. If neither resolves, tell the user instead of guessing another path.
 
-Since 25 September 2026 the configured default model (`gpt-6-sol`) is refused for this ChatGPT account ("not supported when using Codex with a ChatGPT account"); pass `-m gpt-6-astra` after `exec`. Codex needs network access, so run it outside the command sandbox.
+**Model: the newest Luna, at low reasoning effort.** The prompt is written here in full, so the Codex model only hands it to the image tool; a small, fast model with little thinking is right, and the image quality comes from the image model, not from Codex. `newest-luna.mjs` reads the model list Codex caches (`~/.codex/models_cache.json`) and prints the highest-numbered `gpt-*-luna` slug, so a new Luna is picked up without editing this file. Never use Astra or Sol for image runs.
+
+If the newest Luna is refused with "not supported when using Codex with a ChatGPT account", the Codex CLI is usually too old for it: `gpt-6-luna` failed on 0.154.0 and worked on 0.157.1 (26 September 2026). Update with `npm i -g @openai/codex@latest` and retry; only if it is still refused, take the next slug from `node .claude/skills/artwork/newest-luna.mjs --all` and tell the user. Codex needs network access, so run it outside the command sandbox.
 
 - Run generations **in parallel** — there is no three-at-a-time cap. Launch them as background Bash calls and collect the results as they land. A dozen at once is fine; the practical limit is the user's Codex allowance and patience, not the harness. Each generation can take several minutes.
 - Still **one image per invocation**: never ask a single call for two variants or two orientations.
@@ -56,7 +61,7 @@ When the user wants to *imagine* how a game could look rather than produce a boa
 
 - The deliverable is a **complete playable-looking screen**, one image per direction per orientation, "use case: ui-mockup". Landscape 1536×1024 for desktop, portrait 1024×1536 for phone, as separate fresh prompts.
 - Name the **fixed elements** that must appear where the running game has them (for Nox since 19 September 2026: a flat, face-on rectangular play surface with a calm rim for seat tags, no chairs or seats, the hand at the bottom). Everything else may be reinvented. Allowed baked text is the game title and one confirm word; any other text is illustrative only and the README must say so.
-- Give each direction **one style paragraph first**, then the layout, then the negatives. Include a "not like" clause naming the materials of the other two Gamehub games (cut paper and kraft for Mora, ink printmaking and risograph for Nox, whatever the food game currently is). Differentiation between games is a hard requirement, not taste.
+- Give each direction **one style paragraph first**, then the layout, then the negatives. Include a "not like" clause naming the materials of the other two Gamehub games (cut paper and kraft for Mora, flat mid-century treasure-map poster for Nox, whatever the food game currently is). Differentiation between games is a hard requirement, not taste.
 - Ask the portrait prompt to **propose a card presentation that needs no horizontal scrolling** and to draw it, since that is the open problem on phones.
 - Self-check here is visual and structural, not pad counting: actual pixel size, no baked text beyond the allowed words, the named fixed elements present, and whether the cards read at a glance. Record in the README which elements the model invented.
 

@@ -1,0 +1,271 @@
+{
+ "source": "/art/mora-phone-observatory-v4-b-tall.png",
+ "image": "/art/optimized/mora-phone-observatory-v4-b-tall.webp",
+ "out": "lib/games/observatory-portrait-art.json",
+ "width": 1024,
+ "height": 1536,
+ "extendTop": 140,
+ "extendBottom": 230,
+ "tokenWidth": 86,
+ "labelGap": 56,
+ "roofTop": 4,
+ "zones": [
+  {
+   "zone": 0,
+   "slots": [
+    [
+     684,
+     297
+    ],
+    [
+     789,
+     297
+    ],
+    [
+     684,
+     378
+    ],
+    [
+     790,
+     378
+    ]
+   ],
+   "summary": "*Same* species: 2 \u00b7 6 \u00b7 11 \u00b7 17"
+  },
+  {
+   "zone": 1,
+   "slots": [
+    [
+     255,
+     211
+    ],
+    [
+     349,
+     210
+    ],
+    [
+     255,
+     287
+    ],
+    [
+     350,
+     288
+    ]
+   ],
+   "summary": "8 per *pair*"
+  },
+  {
+   "zone": 2,
+   "slots": [
+    [
+     252,
+     732
+    ],
+    [
+     348,
+     733
+    ]
+   ],
+   "summary": "*Pair*: 9"
+  },
+  {
+   "zone": 3,
+   "slots": [
+    [
+     197,
+     1122
+    ],
+    [
+     294,
+     1143
+    ],
+    [
+     392,
+     1143
+    ]
+   ],
+   "summary": "3 each if found *elsewhere*"
+  },
+  {
+   "zone": 4,
+   "slots": [
+    [
+     646,
+     1063
+    ],
+    [
+     754,
+     1063
+    ],
+    [
+     863,
+     1063
+    ]
+   ],
+   "summary": "2 per *creature*"
+  },
+  {
+   "zone": 6,
+   "slots": [
+    [
+     753,
+     672
+    ]
+   ],
+   "summary": "2 per *other* area with its species"
+  }
+ ],
+ "release": [
+  521,
+  893
+ ],
+ "landmarks": [
+  {
+   "name": "roof garden",
+   "bounds": [
+    79,
+    29,
+    414,
+    407
+   ]
+  },
+  {
+   "name": "observatory",
+   "bounds": [
+    550,
+    4,
+    379,
+    475
+   ]
+  },
+  {
+   "name": "root hollow",
+   "bounds": [
+    57,
+    486,
+    471,
+    357
+   ]
+  },
+  {
+   "name": "watchpost",
+   "bounds": [
+    579,
+    493,
+    350,
+    371
+   ]
+  },
+  {
+   "name": "glasshouse",
+   "bounds": [
+    86,
+    879,
+    407,
+    357
+   ]
+  },
+  {
+   "name": "dry channel",
+   "bounds": [
+    550,
+    957,
+    407,
+    271
+   ]
+  }
+ ],
+ "water": [
+  [
+   0,
+   1210
+  ],
+  [
+   90,
+   1215
+  ],
+  [
+   150,
+   1260
+  ],
+  [
+   155,
+   1350
+  ],
+  [
+   110,
+   1410
+  ],
+  [
+   0,
+   1415
+  ]
+ ],
+ "foliage": [
+  {
+   "polygon": [
+    [
+     943,
+     1000
+    ],
+    [
+     990,
+     985
+    ],
+    [
+     1024,
+     1000
+    ],
+    [
+     1024,
+     1130
+    ],
+    [
+     990,
+     1145
+    ],
+    [
+     943,
+     1120
+    ]
+   ],
+   "pivot": [
+    985,
+    1160
+   ]
+  },
+  {
+   "polygon": [
+    [
+     0,
+     357
+    ],
+    [
+     40,
+     345
+    ],
+    [
+     60,
+     370
+    ],
+    [
+     60,
+     460
+    ],
+    [
+     30,
+     475
+    ],
+    [
+     0,
+     465
+    ]
+   ],
+   "pivot": [
+    30,
+    490
+   ]
+  }
+ ],
+ "extendSide": 90
+}

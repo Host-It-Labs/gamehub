@@ -29,6 +29,57 @@ const WORDS: Record<string, string> = {
   NW: 'north-west',
 };
 const CONFETTI = Array.from({ length: 18 }, (_, i) => i);
+/**
+ * Atlas water-lining: distance from the coast and strength of each ring.
+ * Outlines keep a 6-unit margin in their 200-unit box, so the rings fit inside.
+ */
+const COAST = [
+  [5.7, 0.3],
+  [3.7, 0.55],
+  [1.9, 0.85],
+] as const;
+
+/** The angle equal to `to` (mod 360) nearest `from`, so the rose never spins the long way. */
+function nearest(from: number, to: number) {
+  return from + ((((to - from) % 360) + 540) % 360) - 180;
+}
+const headingOf = (g?: CountryGuess) => (g?.dir ? ANGLE[g.dir] : 0);
+
+/** A small engraved compass rose in the stage's corner, under the ink. */
+function Rose({ angle, nudge }: { angle: number; nudge: boolean }) {
+  return (
+    <svg
+      className={`fk-country-rose ${nudge ? 'nudge' : ''}`}
+      viewBox="-12 -12 24 24"
+      aria-hidden="true"
+    >
+      <circle className="fk-country-rose-rim" r="11.3" />
+      <circle className="fk-country-rose-ticks" r="10.3" pathLength={32} />
+      <g
+        className="fk-country-rose-card"
+        style={{ '--rose': `${angle}deg` } as React.CSSProperties}
+      >
+        <g className="fk-country-rose-sway">
+          {[45, 135, 225, 315, 90, 180, 270, 0].map((a) => {
+            const r = a % 90 ? 6.4 : 10;
+            const w = a % 90 ? 1.2 : 1.9;
+            return (
+              <g
+                key={a}
+                transform={`rotate(${a})`}
+                className={a === 0 ? 'north' : undefined}
+              >
+                <path className="light" d={`M0 0V-${r}L-${w}-${w}z`} />
+                <path className="dark" d={`M0 0V-${r}L${w}-${w}z`} />
+              </g>
+            );
+          })}
+          <circle className="fk-country-rose-hub" r="1" />
+        </g>
+      </g>
+    </svg>
+  );
+}
 
 /** Worldle's autocomplete: names starting with the text first, then containing it. */
 function suggest(text: string, taken: Set<string>) {
@@ -71,6 +122,15 @@ export default function Country({
   const lost = done && !won;
   const rows = Math.max(p.allowance, view.guesses.length);
   const active = picked ? options.indexOf(picked) : -1;
+  // The compass rose turns toward the latest guess's direction (north once
+  // found); a guess that keeps the same heading just jiggles it.
+  const heading = headingOf(view.guesses.at(-1));
+  const [rose, setRose] = useState({ heading, angle: heading });
+  if (rose.heading !== heading)
+    setRose({ heading, angle: nearest(rose.angle, heading) });
+  const turning = fresh < view.guesses.length;
+  const nudge = turning && headingOf(view.guesses.at(-2)) === heading;
+  const rotate = view.rotate ? `rotate(${view.rotate} 100 100)` : undefined;
 
   useEffect(() => {
     list.current
@@ -132,6 +192,7 @@ export default function Country({
         className="fk-country-stage"
         aria-label="Country outline to identify"
       >
+        <Rose angle={rose.angle} nudge={nudge} />
         <svg
           key={view.shape}
           className="fk-country-shape"
@@ -158,12 +219,49 @@ export default function Country({
               <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.55 1.12" />
               <feComposite in="SourceGraphic" operator="in" />
             </filter>
+            {/* Rings drawn round the coast, as on an engraved atlas. */}
+            <mask id={`${uid}-coast`}>
+              <g className="fk-country-coast-rings">
+                {COAST.map(([d, o]) => (
+                  <g key={d} style={{ '--d': d } as React.CSSProperties}>
+                    <path
+                      className="fk-country-coast-ring"
+                      d={view.shape}
+                      stroke="#fff"
+                      strokeOpacity={o}
+                    />
+                    <path
+                      className="fk-country-coast-gap"
+                      d={view.shape}
+                      stroke="#000"
+                    />
+                  </g>
+                ))}
+              </g>
+            </mask>
+            {/* Engraver's hatching, kept level even when the outline is turned. */}
+            <pattern
+              id={`${uid}-hatch`}
+              width="2.6"
+              height="2.6"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(-38)"
+            >
+              <line className="fk-country-hatch-line" x1="0" x2="0" y2="2.6" />
+            </pattern>
+            <clipPath id={`${uid}-clip`}>
+              <path d={view.shape} transform={rotate} />
+            </clipPath>
           </defs>
-          <g
-            transform={
-              view.rotate ? `rotate(${view.rotate} 100 100)` : undefined
-            }
-          >
+          <g transform={rotate}>
+            <rect
+              className="fk-country-coast"
+              x="-12"
+              y="-12"
+              width="224"
+              height="224"
+              mask={`url(#${uid}-coast)`}
+            />
             <path
               className="fk-country-fill"
               d={view.shape}
@@ -171,6 +269,13 @@ export default function Country({
             />
             <path className="fk-country-line" d={view.shape} pathLength={1} />
           </g>
+          <rect
+            className="fk-country-hatch"
+            width="200"
+            height="200"
+            fill={`url(#${uid}-hatch)`}
+            clipPath={`url(#${uid}-clip)`}
+          />
         </svg>
         {won && (
           <div className="fk-country-confetti" aria-hidden="true">

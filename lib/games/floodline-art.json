@@ -52,7 +52,7 @@
         [800, 630]
       ],
       "tokenWidth": 52,
-      "summary": "*Exact* pairs 7 \u00b7 lone 1"
+      "summary": "7 per *pair*"
     },
     {
       "zone": 1,
@@ -66,7 +66,7 @@
         [720, 217]
       ],
       "tokenWidth": 52,
-      "summary": "All *different* 3 each \u00b7 repeat 1 each"
+      "summary": "3 per *different* species"
     },
     {
       "zone": 2,
@@ -78,7 +78,7 @@
         [1375, 538]
       ],
       "tokenWidth": 52,
-      "summary": "Three *alike* 12 \u00b7 else 1 each"
+      "summary": "Three *alike*: 12"
     },
     {
       "zone": 3,
@@ -104,7 +104,7 @@
         [352, 544]
       ],
       "tokenWidth": 52,
-      "summary": "*Echo*: 1 per same species elsewhere"
+      "summary": "3 each if found *elsewhere*"
     },
     {
       "zone": 6,
@@ -115,7 +115,7 @@
         [257, 204]
       ],
       "tokenWidth": 52,
-      "summary": "4 each if its species lives *only* here"
+      "summary": "4 each if found *only* here"
     }
   ],
   "release": [740, 378],

@@ -358,6 +358,21 @@
   .dial-switch button span:first-child,
   .dial-switch button span:last-child { text-align: center; }
   .dial-switch button i { width: 60%; justify-self: center; height: 3px; }
+  .dial-face {
+    --dial-w: min(88cqw, 340px, calc((100cqh - 54px) * 428 / 260));
+    padding-bottom: 20px;
+  }
+  .dial-slider {
+    width: min(280px, 76%);
+    height: 44px;
+    touch-action: none;
+    margin-bottom: 24px;
+  }
+  .dial-stage .party-dock {
+    position: relative;
+    z-index: 1;
+    margin-top: 0;
+  }
   .dial-clue q { font-size: 24px; }
   .dial-ends span { font-size: 15px; }
 }

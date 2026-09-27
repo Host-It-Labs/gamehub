@@ -20,7 +20,7 @@ const zones = (...areas) =>
     (areas[i] ?? []).map((k, j) => card(k, i * 20 + j)),
   );
 
-await test('Floodline habitats reward exact pairs, an all-different beach, the Pier alternation and exclusivity', () => {
+await test('Floodline habitats reward pairs, different species on the beach, the Pier alternation and exclusivity', () => {
   const z = zones(
     [0, 0, 1, 1, 2],
     [0, 1, 2, 3, 4],
@@ -32,17 +32,17 @@ await test('Floodline habitats reward exact pairs, an all-different beach, the P
   );
   assert.deepEqual(
     [0, 1, 2, 3, 4, 6].map((i) => zoneScore(z, i, 'intermediate')),
-    // Pools 7+7+1; beach 5×3; mangrove trio; pier 8+6; each cave 5 echoes the Pier's two, the cave 2 is capped at three; the lighthouse 3 lives elsewhere too.
-    [15, 15, 12, 14, 7, 0],
+    // Pools 7+7, the lone 2 earns nothing; beach 5×3; mangrove trio; pier 8+6; all three cave creatures live elsewhere; the lighthouse 3 lives on the beach too.
+    [14, 15, 12, 14, 9, 0],
   );
-  // One repeat collapses the Nesting beach to a point per creature.
+  // The Beach counts different species; a repeat adds nothing.
   z[1] = [card(0), card(1), card(2), card(2)];
-  assert.equal(zoneScore(z, 1, 'intermediate'), 4);
+  assert.equal(zoneScore(z, 1, 'intermediate'), 9);
   z[1] = [card(0), card(1), card(2)];
   assert.equal(zoneScore(z, 1, 'intermediate'), 9);
-  // A third creature of a species spoils its pair.
+  // Three of a species make one pair; the third earns nothing.
   z[0] = [card(0), card(0), card(0), card(1)];
-  assert.equal(zoneScore(z, 0, 'intermediate'), 1);
+  assert.equal(zoneScore(z, 0, 'intermediate'), 7);
   assert.equal(zoneScore(z, 0), 11);
   // The Pier bonus needs the full A–B–A–B run, in order.
   z[3] = [card(4), card(5), card(5), card(4)];
@@ -52,21 +52,21 @@ await test('Observatory habitats ask one plain question each', () => {
   const z = zones([], [0, 0, 1, 1], [], [2, 2, 2], [3, 4, 5], [], []);
   assert.equal(zoneScore(z, 1), 16);
   z[1] = [card(0), card(0), card(1), card(2)];
-  assert.equal(zoneScore(z, 1), 7);
+  assert.equal(zoneScore(z, 1), 8);
   z[1] = [card(0), card(0), card(0), card(0)];
   assert.equal(zoneScore(z, 1), 16);
-  // The Glasshouse trail echoes species kept in another habitat.
+  // The Glasshouse scores species kept in another habitat.
   assert.equal(zoneScore(z, 3), 0);
   z[3] = [card(0), card(3)];
   assert.equal(zoneScore(z, 3), 6);
-  // The Dry channel only needs to be full.
+  // The Channel earns 2 per creature.
   assert.equal(zoneScore(z, 4), 6);
   z[4] = [card(3), card(3)];
-  assert.equal(zoneScore(z, 4), 0);
+  assert.equal(zoneScore(z, 4), 4);
   z[2] = [card(0), card(0)];
   assert.equal(zoneScore(z, 2), 9);
   z[2] = [card(0), card(1)];
-  assert.equal(zoneScore(z, 2), 3);
+  assert.equal(zoneScore(z, 2), 0);
 });
 await test('intermediate dishes have independent scoring and explicit downside', () => {
   const cards = [0, 0, 0, 1, 2, 2, 2, 2, 3, 3, 3, 4, 5].map((k, i) =>
@@ -80,7 +80,7 @@ await test('intermediate dishes have independent scoring and explicit downside',
   assert.equal(cardName('midnight', card(0), 'intermediate'), 'Bao');
   // Goals never name a species; habitat-specific ones use the coastal habitat names.
   assert.ok(sanctuaryGoalsFor('intermediate').every((goal) => goal.kind === undefined));
-  assert.doesNotMatch(sanctuaryGoalsFor('intermediate')[3].rule, /Courtyard|Roof garden/);
+  assert.doesNotMatch(sanctuaryGoalsFor('intermediate')[3].rule, /Courtyard|Garden/);
   assert.match(sanctuaryGoalsFor('intermediate')[8].rule, /Lighthouse/);
 });
 await test('Roam enforces die, capacity and private locking', () => {
@@ -328,9 +328,9 @@ await test('strategic bots finish intermediate games with both extensions', () =
 
 await test('Floodline cave, mangrove and lighthouse offer distinct risks', () => {
   const z = zones([1, 1, 1, 2], [], [0, 0], [], [1, 2], [], [3]);
-  assert.equal(zoneScore(z, 2, 'intermediate'), 2);
-  // Each cave creature echoes its species elsewhere, capped at three.
-  assert.equal(zoneScore(z, 4, 'intermediate'), 3 + 1);
+  assert.equal(zoneScore(z, 2, 'intermediate'), 0);
+  // Each Cave creature earns 3 when its species lives in another habitat.
+  assert.equal(zoneScore(z, 4, 'intermediate'), 3 + 3);
   assert.equal(zoneScore(z, 6, 'intermediate'), 4);
   z[2] = [card(0), card(0), card(0)];
   z[6] = [card(3), card(3)];

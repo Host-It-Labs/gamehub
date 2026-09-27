@@ -78,6 +78,11 @@ export const BOOK_BOOST = 1.5;
 export const SALES = 1.4;
 /** A ticket costs this share of what a careful player wins on average. */
 export const PRICE_SHARE = 0.5;
+/** After difficulty III opens, each level needs 15 more hard tickets than
+ * the previous one (15, 30, 45, ...), reduced by Early print. */
+export const BOOK_LEVEL_STEP = 15;
+/** Additive prize/price bonus per book level beyond 3, avoiding exponential inflation. */
+export const BOOK_LEVEL_GAIN = 0.5;
 const times = (n: number) => `×${Math.round(n * 100) / 100}`;
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const K = 1e3,
@@ -442,10 +447,38 @@ export type ScratchState = {
   activeMs: number;
   /** Tickets finished per book; they open the book's levels. */
   books: Partial<Record<PackId, number>>;
+  /** Difficulty III tickets finished per book; these keep raising its level. */
+  top?: Partial<Record<PackId, number>>;
+  /** Recent purchases, level-ups and payouts, newest last, for the other
+   * players' notifications. */
+  feed?: FeedEntry[];
+  feedId?: number;
   best: number;
   migrationCredit: number;
   factory: FactoryState;
 };
+export type FeedEntry = {
+  id: number;
+  at: number;
+  /** The member who did it. */
+  by: string;
+  kind: 'book' | 'upgrade' | 'blueprint' | 'machine' | 'win' | 'level' | 'max';
+  /** A book, upgrade, blueprint or machine id. */
+  what: string;
+  /** The upgrade's new rank, the level opened, or how many machines. */
+  n?: number;
+  /** What a ticket paid, refund included, and what it cost. */
+  amount?: number;
+  cost?: number;
+};
+/** Keeps the last few entries: enough for everyone polling to see each one. */
+export function announce(
+  s: ScratchState,
+  entry: Omit<FeedEntry, 'id'>,
+) {
+  s.feedId = (s.feedId ?? 0) + 1;
+  s.feed = [...(s.feed ?? []), { id: s.feedId, ...entry }].slice(-24);
+}
 export type ScratchHost = {
   scratch?: ScratchState;
   arcade?: unknown;
@@ -463,6 +496,8 @@ export type ScratchAction =
       sequence: number;
       tool?: 'coin';
       points: ScratchPoint[];
+      /** Points that start a new stroke (see `rubTicket`). */
+      breaks?: number[];
     }
   | { type: 'scratch-book'; pack: PackId }
   | { type: 'scratch-upgrade'; id: string };
@@ -486,6 +521,9 @@ export function createScratch(): ScratchState {
     earned: 0,
     activeMs: 0,
     books: {},
+    top: {},
+    feed: [],
+    feedId: 0,
     best: 0,
     migrationCredit: 0,
     factory: createFactory(),
@@ -706,6 +744,34 @@ export function levelOpen(s: ScratchState, id: PackId) {
   const played = s.books[id] ?? 0;
   return LEVEL_AT.filter((_, k) => played >= levelAt(s, k)).length - 1;
 }
+/** Shared book experience, separate from the three puzzle difficulties.
+ * The original books/top counters keep old saves, including maxed books,
+ * progressing without a reset. There is no gameplay level cap. */
+export function bookExperience(s: ScratchState, id: PackId) {
+  const difficulty = levelOpen(s, id);
+  if (difficulty < 2) {
+    const from = levelAt(s, difficulty), to = levelAt(s, difficulty + 1);
+    return { level: difficulty + 1, current: (s.books[id] ?? 0) - from, needed: to - from };
+  }
+  const step = Math.ceil(BOOK_LEVEL_STEP * EARLY[Math.min(level(s, 'early'), EARLY.length - 1)]);
+  const played = s.top?.[id] ?? 0;
+  // Invert the triangular total in constant time, even for very old saves.
+  let ranks = Math.floor((Math.sqrt(1 + 8 * played / step) - 1) / 2);
+  const threshold = (rank: number) => step * rank * (rank + 1) / 2;
+  if (threshold(ranks + 1) <= played) ranks++;
+  if (threshold(ranks) > played) ranks--;
+  return { level: 3 + ranks, current: played - threshold(ranks), needed: step * (ranks + 1) };
+}
+export function bookLevel(s: ScratchState, id: PackId) {
+  return bookExperience(s, id).level;
+}
+export function bookBonus(s: ScratchState, id: PackId) {
+  return 1 + Math.max(0, bookLevel(s, id) - 3) * BOOK_LEVEL_GAIN;
+}
+export function levelProgress(s: ScratchState, id: PackId) {
+  const { current, needed } = bookExperience(s, id);
+  return Math.max(0, Math.min(1, current / needed));
+}
 export function levelMult(mastery: number, lvl: number) {
   return (LEVEL_MULT[1] + mastery * 0.5) ** Math.max(0, Math.min(2, lvl));
 }
@@ -731,6 +797,7 @@ export function botSkill(rank: number) {
 export function prizeUnit(s: ScratchState, id: PackId, lvl: number) {
   return (
     bookFor(id).value *
+    bookBonus(s, id) *
     levelMult(level(s, 'mastery'), lvl) *
     2 ** level(s, 'value') *
     2 ** level(s, 'golden') *
@@ -804,7 +871,7 @@ export const AVERAGES: Record<PackId, [number, number][]> = {
     [32.5, 0.35],
   ],
   twins: [
-    [48, 1],
+    [57.5, 1],
     [57.5, 1],
     [57.5, 1],
   ],
@@ -866,32 +933,68 @@ export function earn(g: ScratchHost, amount: number) {
 
 // ---- Scratching ----------------------------------------------------------
 
+/** Most points one stroke command may carry; the browser merges queued
+ * batches up to this, so a slow connection never builds a backlog. */
+export const STROKE_POINTS = 300;
 /** The foil is an 8x8 bitmap per seal. Both ends of every movement segment are
  * sampled geometrically, so fast strokes never leave holes or teleport
  * scratches. A seal that comes open applies its book's rule at once; once the
  * ticket is over the rest of the stroke does nothing. Locked seals keep their
- * foil. */
+ * foil. `breaks` lists the points that start a new stroke: the coin was
+ * lifted before them, so no segment joins them to the point before. */
 export function rubTicket(
   ticket: ScratchTicket,
   s: ScratchState,
   points: ScratchPoint[],
+  breaks: readonly number[] = [],
 ) {
   const radius = brushRadius(s),
     threshold = Math.ceil(MASK_SIDE ** 2 * foilOpens(s)),
     { cols, rows } = ticket;
+  // The centres of a seal's foil bits span this much of its cell.
+  const inset = 0.1 + 0.4 / MASK_SIDE;
   let reveals = 0;
   for (let p = 0; p < points.length && !ticket.ended; p++) {
-    const a = points[p ? p - 1 : p],
+    const a = points[p && !breaks.includes(p) ? p - 1 : p],
       b = points[p],
       dx = b.x - a.x,
       dy = b.y - a.y,
       length = dx * dx + dy * dy;
+    const left = Math.min(a.x, b.x),
+      right = Math.max(a.x, b.x),
+      top = Math.min(a.y, b.y),
+      bottom = Math.max(a.y, b.y);
     const candidates: { index: number; along: number }[] = [];
     ticket.cells.forEach((cell, index) => {
       if (cell.revealed || sealLocked(ticket, index)) return;
       const col = index % cols,
-        row = Math.floor(index / cols),
-        mask = cell.mask.split('');
+        row = Math.floor(index / cols);
+      // A seal beyond the coin's reach keeps its foil; it only needs counting.
+      const gapX = Math.max(
+          0,
+          (col + inset) / cols - right,
+          left - (col + 1 - inset) / cols,
+        ),
+        gapY = Math.max(
+          0,
+          (row + inset) / rows - bottom,
+          top - (row + 1 - inset) / rows,
+        );
+      if (gapX * gapX + gapY * gapY > radius * radius) {
+        let rubbed = 0;
+        for (let bit = 0; bit < cell.mask.length; bit++)
+          if (cell.mask.charCodeAt(bit) === 49) rubbed++;
+        if (rubbed >= threshold) {
+          const cx = (col + 0.5) / cols,
+            cy = (row + 0.5) / rows;
+          candidates.push({
+            index,
+            along: length ? ((cx - a.x) * dx + (cy - a.y) * dy) / length : 0,
+          });
+        }
+        return;
+      }
+      const mask = cell.mask.split('');
       let rubbed = 0;
       for (let bit = 0; bit < mask.length; bit++) {
         if (mask[bit] === '1') {
@@ -949,9 +1052,23 @@ function settle(
   t.claimed = true;
   s.streaks[actor] = t.perfect ? Math.min(10, streak + 1) : 0;
   s.completed++;
+  const opened = bookLevel(s, t.pack);
   s.books[t.pack] = (s.books[t.pack] ?? 0) + 1;
+  if (t.level === LEVEL_AT.length - 1)
+    (s.top ??= {})[t.pack] = (s.top[t.pack] ?? 0) + 1;
   s.best = Math.max(s.best, t.payout);
   earn(g, t.payout + t.refund);
+  announce(s, {
+    at: now,
+    by: actor,
+    kind: 'win',
+    what: t.pack,
+    n: t.level,
+    amount: t.payout + t.refund,
+    cost: t.cost ?? 0,
+  });
+  if (bookLevel(s, t.pack) > opened)
+    announce(s, { at: now, by: actor, kind: 'level', what: t.pack, n: bookLevel(s, t.pack) - 1 });
 }
 export function handFor(s: ScratchState, actor: string) {
   return s.hands[actor] as ScratchTicket | undefined;
@@ -973,6 +1090,7 @@ export function actScratch(
     if (g.coins < cost) throw new Error('You need more coins for that.');
     g.coins -= cost;
     s.upgrades[u.id] = level(s, u.id) + 1;
+    announce(s, { at: now, by: actorId, kind: 'upgrade', what: u.id, n: s.upgrades[u.id] });
     return {};
   }
   if (action.type === 'scratch-book') {
@@ -982,6 +1100,7 @@ export function actScratch(
     if (g.coins < next.price) throw new Error('You need more coins for that.');
     g.coins -= next.price;
     s.unlocked.push(next.id);
+    announce(s, { at: now, by: actorId, kind: 'book', what: next.id });
     return {};
   }
   const hand = handFor(s, actorId);
@@ -1034,7 +1153,7 @@ export function actScratch(
     if (
       !Array.isArray(action.points) ||
       action.points.length < 1 ||
-      action.points.length > 80 ||
+      action.points.length > STROKE_POINTS ||
       action.points.some(
         (p) =>
           !p ||
@@ -1047,7 +1166,22 @@ export function actScratch(
       )
     )
       throw new Error('Scratch inside the ticket.');
-    const revealed = ticket.ended ? 0 : rubTicket(ticket, s, action.points);
+    const breaks = action.breaks ?? [];
+    if (
+      !Array.isArray(breaks) ||
+      breaks.length > action.points.length ||
+      breaks.some(
+        (b, i) =>
+          !Number.isInteger(b) ||
+          b < 1 ||
+          b >= action.points.length ||
+          (i > 0 && b <= breaks[i - 1]),
+      )
+    )
+      throw new Error('Scratch inside the ticket.');
+    const revealed = ticket.ended
+      ? 0
+      : rubTicket(ticket, s, action.points, breaks);
     ticket.sequence++;
     ticket.lastAt = now;
     if (!ticket.ended) return { scratchReveals: revealed };

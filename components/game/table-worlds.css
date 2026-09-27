@@ -1,4 +1,4 @@
-/* Full-table worlds for the two card games: Nox in the captain's cabin,
+/* Full-table worlds for the two card games: Nox on its treasure chart,
    Yata at the night-market counter. One environment plate covers the table;
    the controls float over it in the same order as the Observatory (islands
    top, fixed hand dock bottom, confirm beside the hand), each in its own
@@ -85,44 +85,83 @@
   .at-table .world-table:is([data-environment='cabin'], [data-environment='market']) .hand-confirmation .confirm-action { min-width: 0; width: 100%; }
 }
 
-/* ===== 2. The captain's cabin (Nox): iron, brass, rope and ink on dark planks ===== */
+/* ===== 2. The Chart (Nox): a flat 1950s treasure-map poster (26 September 2026) =====
+   The painted plate is a pirate sea chart; the playing surface is the calm navy
+   sea inside its red-and-cream rope rim. Every piece the app draws is a flat
+   poster shape in the chart's inks: navy, cream card stock, treasure red, teal
+   and palm green, one heavy geometric sans, and flat offset shadows that fall
+   to the lower right, away from the moon at the chart's upper left. No
+   gradients, glows or bevels. The environment keeps its old name, `cabin`. */
+:root {
+  --nox-deep: #03111f; --nox-navy: #041c33; --nox-sea: #08546d; --nox-teal: #1e9194;
+  --nox-cream: #f4ddb0; --nox-paper: #f8ecd2; --nox-red: #da3431; --nox-red-deep: #a8221f;
+  --nox-green: #3f8a4c; --nox-black: #0d1116;
+  --nox-font: Futura, 'Futura PT', Jost, 'Century Gothic', 'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
+  --nox-drop: 4px 5px 0 #01091299;
+}
 .at-table .table-layout.world-table[data-environment='cabin'] {
   --world-hand-height: 196px;
-  --game-ink: #e9dcb8; --game-paper: #2a3033;
-  background: #0d1216; color: #e9dcb8;
+  --game-ink: var(--nox-paper); --game-paper: var(--nox-navy);
+  background: var(--nox-deep); color: var(--nox-paper); font-family: var(--nox-font);
 }
-/* The painted chart table is the board. The DOM table only anchors seats and played cards. */
+/* The painted rope rim frames the board. The DOM table only anchors seat tags and played cards. */
 .nox-board .blackwake-table {
   position: absolute; aspect-ratio: auto; min-height: 0; max-height: none; width: auto; height: auto; overflow: visible;
 }
 .nox-board .blackwake-table .blackwake-surface { inset: 0; background: none; border: 0; box-shadow: none; }
-.nox-board .blackwake-centre { color: #dfd2ad; font: 700 clamp(11px, 1.9cqw, 15px)/1.2 Georgia, serif; letter-spacing: .12em; text-shadow: 0 1px 0 #00000088; }
+.nox-board .blackwake-centre {
+  color: var(--nox-cream); font: 700 clamp(10px, 1.5cqw, 13px)/1.2 var(--nox-font); letter-spacing: .16em; text-transform: uppercase; opacity: .78;
+}
 .nox-board .table-direction { opacity: 0; }
-.nox-board .blackwake-centre > svg { color: #d9b46a; }
+.nox-board .blackwake-centre > svg { color: var(--nox-teal); }
 .nox-board .blackwake-played-card { width: clamp(46px, 13cqw, 92px); }
-.nox-board .blackwake-played-card .static-face { box-shadow: 0 3px 0 #0b0f12, 0 8px 12px #000c; }
-.nox-board .played-order { background: #2a3033; color: #e9dcb8; border-color: #8a7a52; }
-/* The lead card wears the same brass as the seat LEAD tag, so the suit to follow reads at a glance. */
-.nox-board .blackwake-played-card.lead .static-face { outline: 2px solid #e2b96a; outline-offset: 2px; box-shadow: 0 0 0 5px #e2b96a33, 0 0 18px #ffcc7099, 0 3px 0 #0b0f12, 0 8px 12px #000c; }
-.nox-board .blackwake-played-card.lead .played-order { background: #d9b46a; color: #1f1c14; border-color: #1f1c14; }
-/* Seat tags: tin name plates hung at each stool, with the score punched in rust. */
+.nox-board .blackwake-played-card .static-face { box-shadow: var(--nox-drop); border-radius: 10px; }
+.nox-board .played-order {
+  background: var(--nox-paper); color: var(--nox-deep); border: 0; border-radius: 999px; padding: 3px 7px; min-width: 0;
+  font: 800 10px/1 var(--nox-font); letter-spacing: .06em; box-shadow: 2px 3px 0 #01091299;
+}
+/* The lead card wears a treasure-red ring, like the seat LEAD tag, so the suit to follow reads at a glance. */
+.nox-board .blackwake-played-card.lead .static-face { outline: 3px solid var(--nox-red); outline-offset: 3px; box-shadow: var(--nox-drop); }
+.nox-board .blackwake-played-card.lead .played-order { background: var(--nox-red); color: var(--nox-paper); letter-spacing: .12em; }
+/* Seat tags: navy pills edged in cream lying on the rope, each with its own
+   pirate-flag emblem on a black disc, the name and the penalty score. */
 .nox-board .table-seat {
-  max-width: 34%; gap: 6px; padding: 5px 9px 5px 6px; z-index: 4;
-  background: linear-gradient(180deg, #3c4346, #23292c); color: #efe5c8; border: 1px solid #8a7a52; border-radius: 3px;
-  box-shadow: 0 2px 0 #0b0f12, 0 5px 8px #000a, inset 0 1px 0 #ffffff22; font: 700 12px/1.1 Georgia, serif; cursor: pointer;
+  max-width: 34%; gap: 8px; padding: 4px 14px 4px 4px; z-index: 4;
+  background: var(--nox-deep); color: var(--nox-paper); border: 2px solid var(--nox-cream); border-radius: 999px;
+  box-shadow: var(--nox-drop); font: 700 14px/1.1 var(--nox-font); cursor: pointer;
 }
-.nox-board .table-seat:focus-visible { outline: 3px solid #e2b96a; outline-offset: 3px; }
-.nox-board .table-seat .avatar { width: 22px; height: 22px; font-size: 12px; border-radius: 3px; }
+.nox-board .table-seat:focus-visible { outline: 3px solid var(--nox-teal); outline-offset: 3px; }
+.nox-board .table-seat .avatar {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 30px; height: 30px; border-radius: 50%; background: var(--nox-black); color: var(--nox-paper);
+  box-shadow: 0 0 0 2px var(--nox-cream); font-size: 12px;
+}
+.nox-board .table-seat .seat-emblem { width: 68%; height: 68%; }
+/* The player to act: a treasure-red ring round the emblem and a red edge. */
+.nox-board .table-seat.active { border-color: var(--nox-red); }
+.nox-board .table-seat.active .avatar { box-shadow: 0 0 0 3px var(--nox-red); }
 .nox-board .table-seat .seat-score {
-  padding: 1px 7px; border-radius: 10px; background: #a8552d; color: #fff3dc; font-size: 12px; font-variant-numeric: tabular-nums;
+  padding: 0; margin-left: 2px; border-radius: 0; background: none; color: var(--nox-paper);
+  font: 800 15px/1 var(--nox-font); font-variant-numeric: tabular-nums;
 }
-.nox-board .table-seat small { bottom: -14px; background: #d9b46a; color: #1f1c14; border-radius: 2px; font-weight: 800; letter-spacing: .08em; }
-.nox-board .table-seat.active { outline: 2px solid #e2b96a; outline-offset: 2px; box-shadow: 0 0 0 5px #e2b96a33, 0 0 18px #ffcc7080, 0 2px 0 #0b0f12; }
-.nox-board .table-seat .player-status-icons { margin-left: 2px; }
-.nox-board .table-seat > svg { color: #d9b46a; }
-.nox-board .capture-score { background: #e9dcb8; color: #4a2a20; border: 1px solid #8a7a52; }
-.nox-board .capture-score.reward { background: #d9b46a; color: #1f1c14; }
-/* The shared top row keeps only the spoken turn status and connection warning; the crew are tagged at their seats. */
+.nox-board .table-seat small {
+  bottom: -15px; padding: 2px 7px; border-radius: 999px; background: var(--nox-red); color: var(--nox-paper);
+  font: 800 9px/1.2 var(--nox-font); letter-spacing: .14em;
+}
+.nox-board .table-seat .player-status-icons { margin-left: 0; color: var(--nox-cream); }
+.nox-board .table-seat > svg { color: var(--nox-teal); }
+/* Side rims: tall capsules standing along the rope, emblem over name over score. */
+.nox-board .table-seat:is([data-seat-edge='left'], [data-seat-edge='right']) {
+  flex-direction: column; min-width: 0; max-width: 78px; gap: 5px; padding: 4px 6px 9px;
+}
+.nox-board .table-seat:is([data-seat-edge='left'], [data-seat-edge='right']) > strong { max-width: 66px; font-size: 12px; }
+.nox-board .table-seat:is([data-seat-edge='left'], [data-seat-edge='right']) .seat-score { margin: 0; }
+.nox-board .capture-score {
+  background: var(--nox-paper); color: var(--nox-red-deep); border: 0; border-radius: 999px;
+  font: 800 17px/1 var(--nox-font); box-shadow: var(--nox-drop);
+}
+.nox-board .capture-score.reward { background: var(--nox-green); color: var(--nox-paper); }
+/* The shared top row keeps only the spoken turn status and connection warning; players are tagged at their seats. */
 .world-table[data-environment='cabin'] .table-players {
   position: absolute; inset: var(--world-top) 0 auto; z-index: 5; padding: 0; background: none; box-shadow: none; pointer-events: none;
 }
@@ -130,50 +169,73 @@
 .world-table[data-environment='cabin'] .table-players .table-second-line { display: none; }
 .world-table[data-environment='cabin'] .table-players .players { padding: 0; }
 .world-table[data-environment='cabin'] .player-turn-status.connection-warning {
-  pointer-events: auto; margin: 0 auto; width: max-content; padding: 6px 12px; border-radius: 4px;
-  background: #2a3033f0; color: #ffd9a8; border: 1px solid #a8552d;
+  pointer-events: auto; margin: 0 auto; width: max-content; padding: 6px 14px; border-radius: 999px;
+  background: var(--nox-deep); color: var(--nox-paper); border: 2px solid var(--nox-red); font-family: var(--nox-font); box-shadow: var(--nox-drop);
 }
-/* Toolbar islands: iron plates with brass edges. */
-.at-table .world-table[data-environment='cabin'] :is(.table-back, .table-progress.table-round, .table-menu-trigger, .game-fullscreen) {
-  background: #1d2224ee; color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px; padding: 6px 10px;
-  box-shadow: 0 2px 0 #0b0f12, 0 4px 8px #000a; font-family: Georgia, serif;
+/* Navigation: the round cream back button and the Nox wordmark share one navy
+   pill (it reads over the moon and any other part of the chart), a round cream
+   menu button, and the round count on a cream pill. */
+.at-table .world-table[data-environment='cabin'] .table-back {
+  gap: 10px; padding: 3px 20px 3px 3px; min-height: 44px; background: var(--nox-deep); border: 2px solid var(--nox-cream);
+  border-radius: 999px; box-shadow: var(--nox-drop); color: var(--nox-paper); font: 800 26px/1 var(--nox-font); letter-spacing: .01em;
 }
-/* The round note sits top centre like Mora's paper label, struck in iron and brass here. */
-.at-table .world-table[data-environment='cabin'] .table-toolbar > .table-progress.table-round {
-  position: absolute; left: 50%; top: 0; transform: translateX(-50%); flex-direction: row; align-items: center; gap: 7px; height: 36px; padding: 0 5px 0 12px;
-  border-radius: 2px 9px 2px 6px; font: 600 12px/1 Georgia, serif; letter-spacing: .02em;
+.at-table .world-table[data-environment='cabin'] .table-back > svg {
+  width: 38px; height: 38px; padding: 9px; box-sizing: border-box; flex-shrink: 0; border-radius: 50%;
+  background: var(--nox-paper); color: var(--nox-deep); stroke-width: 2.6;
 }
-.at-table .world-table[data-environment='cabin'] .table-progress.table-round span { color: #b6a98a; }
-.at-table .world-table[data-environment='cabin'] .table-progress.table-round b {
-  display: inline-flex; align-items: baseline; padding: .18em .55em; border-radius: 1em; background: #e9dcb8; color: #1d2224;
-  border: 1px solid #d9b46a; font: 700 13px/1.1 Georgia, serif;
+.at-table .world-table[data-environment='cabin'] .table-back:focus-visible { outline: 3px solid var(--nox-teal); outline-offset: 3px; border-radius: 22px; }
+.at-table .world-table[data-environment='cabin'] :is(.table-menu-trigger, .game-fullscreen) {
+  position: relative; width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center;
+  background: var(--nox-paper); color: var(--nox-deep); border: 0; border-radius: 50%; box-shadow: var(--nox-drop); font-family: var(--nox-font);
 }
-.at-table .world-table[data-environment='cabin'] .table-progress.table-round b small { font-size: .78em; font-weight: 600; opacity: .75; }
-/* Direction ring: brass arrows chased into the table rim. */
-.nox-board .table-direction-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; color: #d9b46a; opacity: .78; }
-.nox-board .table-direction-ring path { fill: none; stroke: currentColor; stroke-width: 9; stroke-linecap: round; }
-.nox-board .table-direction-ring polygon { fill: currentColor; }
-/* The hand: a plank shelf exactly as long as the cards on it. The shelf shrinks
-   and grows with the hand and stays centred; the cards overlap by a step
-   computed from their count, so a full hand still fits the shelf's maximum
-   length (--shelf-max, set per layout below) in one row. On phones the shelf
+/* Three flat bars instead of the shared dots: the chart's menu mark. */
+.at-table .world-table[data-environment='cabin'] .table-menu-trigger > :is(svg, span) { display: none; }
+.at-table .world-table[data-environment='cabin'] .table-menu-trigger::before {
+  content: ''; width: 18px; height: 14px;
+  background: linear-gradient(currentColor 0 0) top / 100% 2.6px no-repeat, linear-gradient(currentColor 0 0) center / 100% 2.6px no-repeat, linear-gradient(currentColor 0 0) bottom / 100% 2.6px no-repeat;
+}
+/* Nox has no badge row on top (the tags lie on the rope), so the pill sits on
+   the top line itself, level with Back and Menu and clear of every seat tag. */
+.at-table .world-table[data-environment='cabin'] .game-progress.is-round {
+  top: 10px; padding: 6px 16px; border: 0; border-radius: 999px; box-shadow: var(--nox-drop); backdrop-filter: none;
+  font: 800 14px/1.1 var(--nox-font); letter-spacing: .02em; font-variant-numeric: tabular-nums;
+}
+/* Direction: four chevrons just inside the rope, chasing each other round the table. */
+.nox-board .table-direction-marks { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.nox-board .direction-mark {
+  --turn: 0deg; position: absolute; width: 14px; height: 16px; margin: -8px 0 0 -7px; background: var(--nox-teal);
+  clip-path: polygon(0 0, 100% 50%, 0 100%); transform: rotate(var(--turn));
+}
+.nox-board .direction-mark[data-side='top'] { left: 50%; top: 9%; }
+.nox-board .direction-mark[data-side='right'] { left: 95%; top: 50%; --turn: 90deg; }
+.nox-board .direction-mark[data-side='bottom'] { left: 50%; top: 91%; --turn: 180deg; }
+.nox-board .direction-mark[data-side='left'] { left: 5%; top: 50%; --turn: 270deg; }
+.nox-board .table-direction-marks[data-clockwise='false'] .direction-mark { transform: rotate(calc(var(--turn) + 180deg)); }
+/* The hand: a rope-edged navy tray exactly as long as the cards in it. The tray
+   shrinks and grows with the hand and stays centred; the cards overlap by a
+   step computed from their count, so a full hand still fits the tray's maximum
+   length (--shelf-max, set per layout below) in one row. On phones the tray
    folds into two or three overlapping rows and the step is computed per row.
-   The play area is the size reference (100cqw) for every shelf measure. */
+   The play area is the size reference (100cqw) for every tray measure. */
 .world-table[data-environment='cabin'] .play-area { container-type: inline-size; z-index: 1; }
-.at-table .table-layout.world-table[data-environment='cabin'] { --shelf-max: min(640px, 100cqw - 520px); }
+.at-table .table-layout.world-table[data-environment='cabin'] {
+  --shelf-max: min(640px, 100cqw - 520px);
+  /* The tray: a navy fill inside a twisted cream-and-tan rope edge. */
+  --nox-tray: linear-gradient(var(--nox-deep), var(--nox-deep)) padding-box,
+    repeating-linear-gradient(-45deg, var(--nox-cream) 0 5px, #b59a6a 5px 8px) border-box;
+}
 .at-table .world-table[data-environment='cabin'] .hand-frame {
   display: flex; flex-direction: column; justify-content: flex-end; align-items: center; pointer-events: none;
 }
 .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand {
-  --hand-card-width: 88px; --hand-card-height: 122px; --shelf-pad-x: 18px; --shelf-pad-y: 16px; --row-overlap: 0px; --shelf-rows: var(--count, 1);
+  --hand-card-width: 88px; --hand-card-height: 122px; --shelf-pad-x: 18px; --shelf-pad-y: 14px; --row-overlap: 0px; --shelf-rows: var(--count, 1);
   --hand-step: clamp(20px, (var(--shelf-max) - 2 * var(--shelf-pad-x) - var(--hand-card-width) - 3px) / max(1, var(--shelf-rows) - 1), 44px);
   width: fit-content; max-width: 100%; height: auto; min-height: 0; max-height: none; flex: 0 0 auto; pointer-events: auto;
   padding: var(--shelf-pad-y) var(--shelf-pad-x); gap: 0; row-gap: 0; align-content: flex-end; justify-content: center;
   /* Each slot is one step wide and the card overhangs it to the right, so the
-     wrap breaks rows exactly; the shelf reserves the last card's overhang. */
+     wrap breaks rows exactly; the tray reserves the last card's overhang. */
   padding-right: calc(var(--shelf-pad-x) + var(--hand-card-width) - var(--hand-step));
-  background: linear-gradient(180deg, #3d2f22, #281e16 70%, #1e1610); border: 1px solid #6b4f34; border-top-color: #8a6a44; border-radius: 6px;
-  box-shadow: inset 0 2px 0 #5a4531, inset 0 -6px 12px #0006, 0 8px 0 #12100c, 0 14px 20px #000c;
+  background: var(--nox-tray); border: 4px solid transparent; border-radius: 30px; box-shadow: 6px 8px 0 #01091299;
   scroll-padding-inline: 0; touch-action: auto;
 }
 .at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap {
@@ -181,79 +243,75 @@
   margin-right: 0; margin-bottom: calc(-1 * var(--row-overlap));
 }
 .at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap > .piece { width: var(--hand-card-width); height: var(--hand-card-height); }
-/* When the shelf wraps, the second row tucks under the first like a fanned hand. */
+/* When the tray wraps, the second row tucks under the first like a fanned hand. */
 .at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap:nth-child(n + 2) { margin-top: 0; }
 .at-table .world-table[data-environment='cabin'] .tide-hand { row-gap: 0; }
-.at-table .world-table[data-environment='cabin'] .tide-hand .piece { border-radius: 8px; box-shadow: 0 2px 0 #0b0f12, 0 6px 10px #000a; }
+.at-table .world-table[data-environment='cabin'] .tide-hand .piece { border-radius: 10px; box-shadow: 3px 4px 0 #01091280; }
 /* Selection: cards overlap, so nothing may change their stacking order (a card pulled to the front hides its neighbour)
-   and nothing may sit on the covered right edge. The chosen card is pulled up out of the fan in place, its whole face
-   takes a brass wash, and the tick sits on the top-left corner, which stays visible for every card. */
+   and nothing may sit on the covered right edge. The chosen card is pulled up out of the fan in place, it takes a
+   treasure-red ring, and the tick sits on the top-left corner, which stays visible for every card. */
 .at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap { transition: transform .18s ease; }
-.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap:has(.selected) { transform: translateY(-12px); }
+.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap:has(.selected) { transform: translateY(-16px); }
 .at-table .world-table[data-environment='cabin'] .tide-hand .piece.selected {
-  outline: 2px solid #e2b96a; outline-offset: -2px;
-  box-shadow: inset 0 0 0 200px #d9b46a3d, 0 2px 0 #0b0f12, 0 10px 14px #000d;
+  outline: 3px solid var(--nox-red); outline-offset: -3px;
 }
-.at-table .world-table[data-environment='cabin'] .tide-hand .piece.selected .tide-face { background: #e9dcb0; }
+/* Only a card nothing overlaps shows its big suit mark; the others show their index. */
+.at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap:not(:last-child) .tide-mark { visibility: hidden; }
 .at-table .world-table[data-environment='cabin'] .card-hand > .piece-wrap:has(.selected)::after {
-  background: #a8552d; border-color: #e9dcb8; top: -8px; right: auto; left: -6px; z-index: 6;
+  background: var(--nox-red); color: var(--nox-paper); border-color: var(--nox-paper); top: -8px; right: auto; left: -6px; z-index: 6;
 }
 .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand { overflow: visible; }
 @media (prefers-reduced-motion: reduce) {
   .at-table .world-table[data-environment='cabin'] .tide-hand > .piece-wrap { transition: none; }
 }
-.at-table .world-table[data-environment='cabin'] .tide-face { background: #efe6d1; border-color: #c9bb9a; }
-/* Lightning: the only black cards on the shelf, so the penalty suit reads at a glance. */
-.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 { background: #14161a; color: #f3e8c6; border-color: #45403a; }
-.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 .tide-suit,
-.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 .tide-pips,
-.at-table .world-table[data-environment='cabin'] .tide-face.suit-4 .tide-bottom span { color: #e2b96a; }
-.at-table .world-table[data-environment='cabin'] .tide-hand .piece.selected .tide-face.suit-4 { background: #262119; }
-/* Actions: a bone die, a hung shield and an anchor, the tide arrow chalked on slate. */
+/* Actions: the shared cube in cream card stock, round navy tokens edged in cream. */
 .at-table .world-table[data-environment='cabin'] .dice-token {
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 84px; height: 96px; min-height: 0; box-sizing: border-box;
-  background: linear-gradient(180deg, #2a3033, #1d2224); color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px; padding: 10px 6px 6px;
-  box-shadow: 0 2px 0 #0b0f12, 0 5px 8px #000a;
+  background: var(--nox-deep); color: var(--nox-paper); border: 2px solid var(--nox-cream); border-radius: 22px; padding: 10px 6px 6px;
+  box-shadow: var(--nox-drop);
 }
-/* The dock column wraps into a second column when the die and three hung objects outgrow the shelf height. */
+.at-table .world-table[data-environment='cabin'] .dice-token .die-caption { font: 800 11px/1.15 var(--nox-font); letter-spacing: .02em; color: var(--nox-paper); }
+/* The dock column wraps into a second column when the die and three tokens outgrow the tray height. */
 .at-table .world-table[data-environment='cabin'] .hand-abilities { flex-wrap: wrap; align-content: flex-start; height: 100%; column-gap: 8px; }
 .at-table .world-table[data-environment='cabin'] .hand-abilities > * { flex-shrink: 0; }
-/* The shared cube (die.css), its faces cut with playing-card suits. */
-.at-table .world-table[data-environment='cabin'] .die-cube-scene { --die-ink: #2b2f33; --die-shadow: #000000aa; }
-.at-table .world-table[data-environment='cabin'] .die-face .suit-1, .at-table .world-table[data-environment='cabin'] .die-face .suit-3 { color: #a8352d; }
+/* The shared cube (die.css): cream faces, the four suits in their card inks. */
+.at-table .world-table[data-environment='cabin'] .die-cube-scene {
+  --die-face: #f8ecd2; --die-face-light: #fdf5e2; --die-face-dark: #e3cfa4; --die-face-side: #efdcb6;
+  --die-edge: #fff8e8; --die-shade: #d8c193; --die-ink: #14181c; --die-shadow: #01091299;
+}
+.at-table .world-table[data-environment='cabin'] .die-face { font-family: var(--nox-font); }
+.at-table .world-table[data-environment='cabin'] .die-face .suit-1 { color: var(--nox-red); }
+.at-table .world-table[data-environment='cabin'] .die-face .suit-2 { color: var(--nox-teal); }
+.at-table .world-table[data-environment='cabin'] .die-face .suit-3 { color: var(--nox-green); }
 .at-table .world-table[data-environment='cabin'] .extension-action,
 .at-table .world-table[data-environment='cabin'] .forecast-tide {
-  width: 58px; height: 58px; flex-basis: 58px; color: #e9dcb8;
-  background: radial-gradient(circle at 35% 30%, #4b5254, #23282a 70%); border: 1px solid #8a7a52; border-radius: 50% 50% 46% 46% / 40% 40% 60% 60%;
-  box-shadow: 0 3px 0 #0b0f12, 0 6px 10px #000a, inset 0 1px 0 #ffffff22;
+  width: 58px; height: 58px; flex-basis: 58px; color: var(--nox-paper);
+  background: var(--nox-deep); border: 2px solid var(--nox-cream); border-radius: 50%; box-shadow: var(--nox-drop);
 }
-.at-table .world-table[data-environment='cabin'] .extension-action-shield { border-radius: 42% 42% 50% 50% / 30% 30% 70% 70%; }
 .at-table .world-table[data-environment='cabin'] .extension-action.selected,
 .at-table .world-table[data-environment='cabin'] .extension-action[aria-pressed='true'] {
-  background: radial-gradient(circle at 35% 30%, #7a6a3f, #4b3f22 70%); outline: 2px solid #e2b96a; outline-offset: 3px; transform: none;
+  background: var(--nox-red); border-color: var(--nox-paper); outline: 0; transform: none;
 }
-.at-table .world-table[data-environment='cabin'] .extension-count { background: #a8552d; color: #fff3dc; border-color: #e9dcb8; }
-.at-table .world-table[data-environment='cabin'] .forecast-tide { color: #cfe3ea; }
-/* Passing and sort: chalk on a slate. */
-.at-table .world-table[data-environment='cabin'] .passing-control,
-.at-table .world-table[data-environment='cabin'] .sort-button,
-.at-table .world-table[data-environment='cabin'] .hand-controls > span:not(:empty) {
-  background: #23282ae6; color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px; padding: 6px 10px; font-family: Georgia, serif;
-  box-shadow: 0 2px 0 #0b0f12;
+.at-table .world-table[data-environment='cabin'] .extension-count {
+  background: var(--nox-red); color: var(--nox-paper); border: 2px solid var(--nox-deep); font-family: var(--nox-font); font-weight: 800;
 }
-.at-table .world-table[data-environment='cabin'] .passing-control { flex-direction: column; text-align: center; gap: 6px; width: 124px; }
-.at-table .world-table[data-environment='cabin'] .passing-control .seating-trigger { background: #3c4346; color: #e9dcb8; border-color: #6d5a3a; }
-/* Confirm: a brass plate screwed to the shelf. */
+.at-table .world-table[data-environment='cabin'] .extension-action.selected .extension-count { background: var(--nox-paper); color: var(--nox-red-deep); }
+.at-table .world-table[data-environment='cabin'] .forecast-tide { color: var(--nox-teal); }
+.at-table .world-table[data-environment='cabin'] .forecast-tide b { color: var(--nox-paper); font-family: var(--nox-font); }
+/* Confirm: a flat treasure-red plate beside the hand; Clear and the other choices are cream-edged navy. */
 .at-table .world-table[data-environment='cabin'] .hand-confirmation .confirm-action,
 .at-table .world-table[data-environment='cabin'] .hand-confirmation .primary {
-  background: linear-gradient(180deg, #2f4a4a, #1f3535); color: #efe5c8; border: 2px solid #b08d4b; border-radius: 4px;
-  box-shadow: 0 3px 0 #6b552c, 0 6px 10px #000c, inset 0 1px 0 #ffffff22; font: 800 15px/1 Georgia, serif; letter-spacing: .08em; text-transform: uppercase;
+  background: var(--nox-red); color: var(--nox-paper); border: 0; border-radius: 14px; box-shadow: var(--nox-drop);
+  font: 800 17px/1 var(--nox-font); letter-spacing: .02em; text-transform: none;
 }
+/* Disabled plates stay solid, so the chart never shows through them. */
+.at-table .world-table[data-environment='cabin'] .hand-confirmation .primary:disabled { opacity: 1; background: #6e2f33; color: #f8ecd28c; box-shadow: none; }
 .at-table .world-table[data-environment='cabin'] .hand-confirmation .secondary {
-  background: #23282ae6; color: #e9dcb8; border: 1px solid #6d5a3a; border-radius: 4px;
+  background: var(--nox-deep); color: var(--nox-paper); border: 2px solid var(--nox-cream); border-radius: 14px;
+  box-shadow: var(--nox-drop); font: 700 14px/1 var(--nox-font);
 }
-.at-table .world-table[data-environment='cabin'] .hand-confirmation .secondary:disabled { opacity: .55; }
-.at-table .world-table[data-environment='cabin'] .fullscreen-message { background: #1d2224; color: #e9dcb8; }
+.at-table .world-table[data-environment='cabin'] .hand-confirmation .secondary:disabled { opacity: 1; color: #f8ecd280; border-color: #f4ddb066; box-shadow: none; }
+.at-table .world-table[data-environment='cabin'] .fullscreen-message { background: var(--nox-deep); color: var(--nox-paper); border: 2px solid var(--nox-cream); font-family: var(--nox-font); }
 
 /* Wide screens: the dock is one centred row. The die column and the confirm plate
    take fixed side columns, so the shelf stays centred whatever the hand holds and
@@ -276,19 +334,30 @@
     grid-area: 2 / 2; position: static; inset: auto; height: 100%; width: auto; justify-content: flex-end; align-items: flex-end;
   }
   .at-table .world-table[data-environment='cabin'] .hand-frame {
-    grid-area: 2 / 3; position: static; transform: none; width: auto; max-width: var(--shelf-max); height: 100%; min-height: 0; max-height: none;
+    grid-area: 2 / 3; position: relative; inset: auto; transform: none; width: auto; max-width: var(--shelf-max); height: 100%; min-height: 0; max-height: none;
   }
   .at-table .world-table[data-environment='cabin'] .hand-confirmation {
     grid-area: 2 / 4; position: static; transform: none; height: 100%; width: auto; max-width: none;
     flex-direction: column; flex-wrap: nowrap; justify-content: center; align-items: stretch; gap: 8px;
   }
   .at-table .world-table[data-environment='cabin'] .hand-confirmation .confirm-action { min-width: 0; width: 100%; min-height: 52px; }
-  .at-table .world-table[data-environment='cabin'] .hand-abilities { height: 100%; column-gap: 8px; row-gap: 6px; }
+  /* The die and tokens stand right beside the cards, not at the tray's far end. */
+  .at-table .world-table[data-environment='cabin'] .hand-abilities { height: 100%; column-gap: 8px; row-gap: 6px; margin: 0 0 0 auto; }
   .at-table .world-table[data-environment='cabin'] .dice-token { height: 100%; width: 92px; padding: 12px 6px 8px; justify-content: center; }
+  /* One rope-edged tray holds the die, the hand, the confirm plate and Undo, as on the chart poster. */
+  .world-table[data-environment='cabin'] .play-area::before {
+    content: ''; grid-area: 2 / 2 / 3 / 5; align-self: stretch; justify-self: stretch; z-index: 0; margin: 0 -16px; pointer-events: none;
+    background: var(--nox-tray); border: 4px solid transparent; border-radius: 40px; box-shadow: 6px 8px 0 #01091299;
+  }
+  .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand { background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .at-table .world-table[data-environment='cabin'] .dice-token { background: none; border: 0; box-shadow: none; }
+  /* The confirm column keeps Undo's round slot at the tray's right end (placed in §4). */
+  .at-table .world-table[data-environment='cabin'] .hand-confirmation { box-sizing: border-box; padding-right: 60px; }
   .at-table .world-table[data-environment='cabin'] .die-cube-scene { --die-size: 44px; }
   .at-table .world-table[data-environment='cabin'] .dice-token .die-display:has(.die-cube-scene) .die-caption { margin-top: 18px; font-size: 11px; }
   .at-table .world-table[data-environment='cabin'] .extension-action,
-  .at-table .world-table[data-environment='cabin'] .forecast-tide { width: 46px; height: 46px; min-height: 46px; flex-basis: 46px; padding: 4px; }
+  .at-table .world-table[data-environment='cabin'] .forecast-tide { width: 42px; height: 42px; min-height: 42px; flex-basis: 42px; padding: 4px; }
+  .at-table .world-table[data-environment='cabin'] .hand-abilities { justify-content: center; row-gap: 5px; }
   /* Two-player hands (more than twenty cards) fold into two tucked rows of
      smaller cards rather than a fan too tight to read; the shelf grows upward. */
   .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand.deep-hand {
@@ -440,7 +509,6 @@
     --hand-step: clamp(18px, (var(--shelf-max) - 2 * var(--shelf-pad-x) - var(--hand-card-width) - 3px) / max(1, var(--shelf-rows) - 1), 36px);
     padding-bottom: calc(var(--shelf-pad-y) + var(--row-overlap)); align-content: flex-start;
   }
-  .at-table .world-table[data-environment='cabin'] .tide-hand .tide-pips { display: none; }
   .nox-board .table-seat { max-width: 46%; }
   /* The viewer sits on the lower-left stool; the confirm plate takes the lower right. */
   .at-table .world-table[data-environment='cabin'] .hand-confirmation { left: auto; right: 8px; transform: none; max-width: 60%; }
@@ -483,7 +551,6 @@
     --hand-step: clamp(16px, (var(--shelf-max) - 2 * var(--shelf-pad-x) - var(--hand-card-width) - 3px) / max(1, var(--shelf-rows) - 1), 32px);
     padding-bottom: calc(var(--shelf-pad-y) + var(--row-overlap)); align-content: flex-start;
   }
-  .at-table .world-table[data-environment='cabin'] .tide-hand .tide-pips { display: none; }
   .at-table .world-table[data-environment='market'] .hand-frame > .hand.card-hand { --hand-card-width: 92px; --hand-card-height: 118px; gap: 8px; padding: 6px; }
   .world-table[data-environment='market'] .table-players { inset: 8px 240px auto 112px; }
   .world-table[data-environment='cabin'] .table-players { inset: 8px 240px auto 112px; }
@@ -534,24 +601,17 @@
   .at-table .world-table .table-players .player-button > span:nth-child(2) { display: none; }
   .at-table .world-table .table-players .player-button { min-width: 0; padding-inline: 5px; }
 }
-/* A single chalk mark follows the table plane, away from every played card. */
-.nox-board .table-direction-ring {
-  inset: auto; left: 50%; top: 50%; width: 70px; height: 70px;
-  transform: translate(-50%, -50%); margin: 0; color: #d4bb89; opacity: .5;
-  mix-blend-mode: screen; filter: none;
-}
-.nox-board .table-direction-ring path { stroke-width: 3; stroke-linecap: round; }
-.nox-board .blackwake-centre { top: 63%; font-size: 11px; letter-spacing: .03em; }
+/* The led suit reads below the trick, away from every played card. */
+.nox-board .blackwake-centre { top: 63%; }
 .nox-board .blackwake-played-card { width: clamp(58px, 15cqw, 112px); }
-.nox-board .table-seat { min-width: 82px; padding: 7px 12px; font-size: 14px; }
-.nox-board .table-seat .avatar { width: 30px; height: 30px; }
 
-/* Compact tin tags retain readable scores and a usable inspection target. */
+/* Compact tags keep readable scores and a usable inspection target. */
 @media (max-width: 1100px), (max-height: 600px) {
-  .nox-board .table-seat { min-width: 0; min-height: 36px; max-width: 32%; gap: 3px; padding: 3px 5px; font-size: 11px; }
-  .nox-board .table-seat .avatar { width: 18px; height: 18px; font-size: 10px; flex-shrink: 0; }
-  .nox-board .table-seat .seat-score { padding: 2px 4px; font-size: 11px; flex-shrink: 0; }
+  .nox-board .table-seat { min-width: 0; min-height: 34px; max-width: 32%; gap: 5px; padding: 3px 10px 3px 3px; font-size: 12px; }
+  .nox-board .table-seat .avatar { width: 24px; height: 24px; }
+  .nox-board .table-seat .seat-score { font-size: 13px; flex-shrink: 0; }
   .nox-board .table-seat strong { min-width: 0; }
+  .nox-board .table-seat:is([data-seat-edge='left'], [data-seat-edge='right']) { padding: 3px 4px 7px; gap: 4px; }
 }
 
 /* Keep Pass immediately above the shelf; abilities occupy the next row up. */
@@ -592,7 +652,6 @@
   .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand {
     --hand-card-width: 56px; --hand-card-height: 78px; --row-overlap: 32px;
   }
-  .app:has(.playing-session) .world-table[data-environment='cabin'] .hand-controls { top: 104px; }
 }
 @media (orientation: landscape) and (max-height: 360px) {
   .at-table .world-table[data-environment='cabin'] .hand-frame > .hand.tide-hand {
@@ -611,7 +670,18 @@
 .at-table .world-table .undo-choice { position: absolute; left: calc(100% + 12px); bottom: 0; width: 94px; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; z-index: 6; border: 1px solid #8b7754; border-radius: 10px; background: #f8efd9; color: #483d2b; font: 600 14px Georgia, serif; box-shadow: 0 3px 0 #998060; }
 .at-table .world-table .undo-choice > span { font-size: 23px; line-height: 1; }
 .at-table .world-table .undo-choice:disabled { opacity: .48; cursor: default; }
-.at-table .world-table[data-environment='cabin'] .undo-choice { left: auto; right: calc(100% + 12px); bottom: calc(100% + 10px); background: #253034; color: #e4c78e; border-radius: 3px; }
+.at-table .world-table[data-environment='cabin'] .undo-choice {
+  left: auto; right: calc(100% + 12px); bottom: calc(100% + 10px); width: 50px; height: 50px; min-height: 50px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--nox-paper); color: var(--nox-deep); box-shadow: var(--nox-drop); font: 800 0/1 var(--nox-font);
+}
+.at-table .world-table[data-environment='cabin'] .undo-choice > span { font-size: 27px; }
+.at-table .world-table[data-environment='cabin'] .undo-choice:focus-visible { outline: 3px solid var(--nox-teal); outline-offset: 3px; }
+/* Wide screens: Undo takes the round slot at the right end of the tray, after the confirm plate. */
+@media (orientation: landscape) and (min-width: 1100px) and (min-height: 501px) {
+  .at-table .world-table[data-environment='cabin'] .undo-choice {
+    left: calc(100% + var(--dock-gap) + var(--dock-side) - 50px); right: auto; top: 50%; bottom: auto; transform: translateY(-50%);
+  }
+}
 .at-table .world-table[data-environment='market'] .undo-choice { background: #ffe4a5; color: #492b1a; border: 2px solid #492b1a; box-shadow: 0 3px 0 #492b1a; }
 @media (max-width: 900px) {
   .at-table .world-table .undo-choice { left: auto; right: 0; bottom: calc(100% + 10px); width: 82px; }
@@ -621,14 +691,14 @@
     left: 8px; transform: none; max-width: calc(100% - 104px);
   }
   .at-table .world-table[data-environment='cabin'] .undo-choice {
-    right: 0; bottom: calc(100% + 16px); width: 82px;
+    right: 0; bottom: calc(100% + 16px); width: 48px; height: 48px; min-height: 48px;
   }
 }
 @media (orientation: landscape) and (max-height: 500px) {
   .at-table .world-table[data-environment='cabin'] .hand-confirmation { right: 74px; width: 150px; }
   .at-table .world-table[data-environment='cabin'] .hand-confirmation button { padding-inline: 6px; }
   .at-table .world-table[data-environment='cabin'] .undo-choice {
-    right: 0; top: -52px; bottom: auto; width: 60px; min-height: 40px; font-size: 11px; gap: 2px;
+    right: 0; top: -52px; bottom: auto; width: 44px; height: 44px; min-height: 44px;
   }
 }
 .at-table .world-table[data-environment='observatory'] .table-others-slot .table-board-button { color: #3e412d; background: #f4eed9f2; }
@@ -637,11 +707,9 @@
 /* The fixed header stays consistent with Yata and Mora; shipboard seat labels
    remain the larger, spatial labels for the cards played around the table. */
 
-.at-table .world-table[data-environment='cabin'] .table-toolbar > .table-progress.table-round { position: absolute; left: 94px; right: auto; top: 0; transform: none; }
-
 /* Nox cards fill their wrappers: no pale mat around the printed face. */
 .at-table .world-table[data-environment='cabin'] :is(.tide-hand .piece, .blackwake-played-card .static-face) {
-  padding: 0; border: 0; background: transparent; border-radius: 12px;
+  padding: 0; border: 0; background: transparent; border-radius: 10px;
 }
 .at-table .world-table[data-environment='cabin'] .playing-face.tide-face {
   border: 0; box-shadow: none;
@@ -676,32 +744,18 @@
 /* Keep the Nox menu island stacked above its separate hand rail. */
 @media (max-width: 600px), (max-width: 950px) and (max-height: 500px) {
   .at-table .world-table[data-environment='cabin'] .table-toolbar-actions { display: grid; }
-  .app:has(.playing-session) .table-layout.world-table:not([data-environment='cabin']) .table-players { left: 108px; }
 }
 
-/* Portrait side plates follow the vertical rim; end plates stay horizontal. */
+/* Portrait: names give way to the emblem; side tags stay upright capsules along the rope. */
 @media (orientation: portrait) {
   .nox-board .table-seat {
-    min-width: 0; min-height: 36px; padding: 4px 6px; gap: 4px;
+    min-width: 0; min-height: 34px; padding: 3px 10px 3px 3px; gap: 6px;
   }
   .nox-board .table-seat > strong { display: none; }
-  .nox-board .table-seat .avatar {
-    display: inline-flex; width: 20px; height: 20px; flex-shrink: 0;
-    align-items: center; justify-content: center; font-size: 11px;
-  }
-  .nox-board .table-seat:is([data-seat-edge='left'], [data-seat-edge='right']) {
-    width: max-content; max-width: 132px;
-  }
-  .nox-board .table-seat[data-seat-edge='left'] {
-    --seat-offset-x: -12px;
-    transform: translate(-50%, -50%) rotate(-90deg);
-  }
-  .nox-board .table-seat[data-seat-edge='right'] {
-    --seat-offset-x: 12px;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-  .nox-board .table-seat[data-seat-edge='top'] { --seat-offset-y: -8px; }
-  .nox-board .table-seat[data-seat-edge='bottom'] { --seat-offset-y: 8px; }
+  .nox-board .table-seat .avatar { width: 24px; height: 24px; }
+  .nox-board .table-seat:is([data-seat-edge='left'], [data-seat-edge='right']) { padding: 3px 3px 7px; gap: 4px; }
+  .nox-board .table-seat[data-seat-edge='top'] { --seat-offset-y: -4px; }
+  .nox-board .table-seat[data-seat-edge='bottom'] { --seat-offset-y: 4px; }
   /* Reserve room for the outward bottom tag and its LEAD marker above the die. */
   .world-table[data-environment='cabin'] .board-frame {
     bottom: calc(var(--world-hand-height) + var(--world-bottom-gap) + var(--world-dock-reserve) + 32px);
@@ -902,6 +956,12 @@
   .market-world .counter-board .serving-dish strong { display: block; }
 }
 
+/* Phones: the top bar hides the wordmark, so Back is just the round cream button. */
+@media (max-width: 600px) {
+  .at-table .world-table[data-environment='cabin'] .table-back { background: none; border: 0; box-shadow: none; }
+  .at-table .world-table[data-environment='cabin'] .table-back > svg { width: 44px; height: 44px; padding: 11px; box-shadow: var(--nox-drop); }
+}
+
 /* ===== Nox phone dock (24 September 2026) =====
    One control row rests directly on the shelf whatever the hand holds: the die
    tile, the confirm plate (Pass, Clear) and Undo. A one-row hand no longer
@@ -997,7 +1057,7 @@
     transform: none;
     width: auto;
     max-width: none;
-    margin: 0 78px 0 0;
+    margin: 0 56px 0 0;
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -1039,12 +1099,11 @@
     right: 0;
     top: auto;
     bottom: calc(100% + 14px);
-    width: 72px;
+    transform: none;
+    width: 48px;
     min-height: 48px;
     height: 48px;
-    padding: 0 4px;
-    gap: 3px;
-    font-size: 13px;
+    padding: 0;
   }
   /* With extension tokens beside the die the row splits: die and tokens on
      top, then Pass and Clear with Undo on the line resting on the shelf. */
@@ -1138,9 +1197,26 @@
     --hand-card-height: clamp(110px, 16dvh, 136px);
     gap: 6px;
     padding: 4px;
-    height: auto;
+    /* Reserve both rows even with three, one or zero tickets. The camera
+       measures the space above this tray, so its height must never collapse. */
+    height: calc(2 * var(--hand-card-height) + 14px);
+    min-height: calc(2 * var(--hand-card-height) + 14px);
+    align-content: start;
+    box-sizing: border-box;
   }
-  html .at-table .world-table[data-environment='market'] .card-hand .token-art { height: clamp(46px, 7dvh, 60px); }
+  html .at-table .world-table[data-environment='market'] .card-hand .food-card {
+    grid-template-rows: 17px minmax(0, 1fr) 30px;
+    gap: 2px;
+  }
+  html .at-table .world-table[data-environment='market'] .card-hand .food-card .dish-formula {
+    height: 30px; font-size: 10px; line-height: 12px;
+  }
+  html .at-table .world-table[data-environment='market'] .card-hand .food-card .token-art {
+    height: 100%; max-width: 100%;
+  }
+  html .at-table .world-table[data-environment='market'] .card-hand .food-card .token-art img {
+    inset: 0; width: 100%; height: 100%;
+  }
   /* Undo: the right end of the dock row, never under a menu or the plate. */
   html .at-table .world-table[data-environment='market'] .undo-choice {
     position: absolute;
@@ -1207,3 +1283,28 @@ html .world-table[data-environment='market'] .board-frame:has(.market-world[data
   white-space: nowrap; font-size: 13px; line-height: 16px;
 }
 .market-world[data-paper-world='phone'] .counter-board .quantity { top: 2px; right: 2px; }
+
+/* Hand-lettered market-sign character, kept as sharp, accessible text. */
+.at-table .world-table[data-environment='market'] .food-card .dish-name,
+.market-world .counter-board .serving-dish strong {
+  font-family: 'Avenir Next Condensed', 'Arial Narrow', Impact, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: .025em;
+  text-shadow: 1px 1px 0 #e0a52a;
+}
+/* Portrait tablets keep the badge row between the two navigation islands. */
+@media (min-width: 601px) {
+  html .at-table .world-table[data-environment='market'] .table-players { left: 110px; right: 125px; width: auto; }
+}
+@media (min-width: 601px) {
+@container (max-width: 650px) {
+  .at-table .world-table[data-environment='market'] .table-players .player-button {
+    display: grid; grid-template-columns: auto auto; grid-template-rows: 13px 13px;
+    justify-content: center; gap: 1px 3px; padding: 3px; min-height: 38px;
+  }
+  .at-table .world-table[data-environment='market'] .table-players .player-button .avatar { grid-row: 1 / 3; width: 22px; height: 22px; font-size: 11px; }
+  .at-table .world-table[data-environment='market'] .table-players .player-button > b { font-size: 11px; line-height: 13px; }
+  .at-table .world-table[data-environment='market'] .table-players .player-status-icons { justify-self: center; }
+}
+}

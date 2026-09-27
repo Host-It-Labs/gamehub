@@ -1,6 +1,8 @@
 'use client';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import { useBoardLeave } from '../game/use-board-leave';
+import { LeaveDialog, useLeaveDialog } from '../game/leave-dialog';
+import { TableManager } from '../game/table-manager';
 import { AdventureMatch } from './adventure-match';
 import { onlineCatalog } from '@/lib/online/catalog';
 import { decisionKey } from '@/lib/games/trio/engine';
@@ -8,7 +10,6 @@ import { gameByLibraryId } from '@/lib/games/library-fixtures';
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import {
   ArrowLeft,
-  Bot,
   Crown,
   EllipsisVertical,
   Flag,
@@ -16,7 +17,6 @@ import {
   LogOut,
   Moon,
   Play,
-  Settings2,
   Trees,
   UserPlus,
   UserX,
@@ -42,12 +42,6 @@ import { setTheme, useTheme } from '@/lib/theme';
 import { LobbyGames, SharedLesson, type Launch } from './lobby-games';
 import { GameBox } from '../game/game-box';
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -70,13 +64,25 @@ function followHandoff(invite: string, url: string, at?: number) {
   window.location.assign(url);
 }
 const initial = (name: string) => name.trim().charAt(0).toUpperCase() || '?';
+/** Each game's menu tint, shared by its leave dialog and the Table panel. */
+function menuTheme(gameId: string) {
+  return gameId === 'undertow'
+    ? 'nox'
+    : gameId === 'wildgrove'
+      ? 'mora'
+      : gameId === 'midnight'
+        ? 'yata'
+        : gameId === 'orin' || gameId === 'miro'
+          ? 'party'
+          : undefined;
+}
 
 export function SharedTable({ invite }: { invite: string }) {
-  const [leaving, setLeaving] = useState(false);
-  const returnFocus = useRef<HTMLElement | null>(null);
+  const leaving = useLeaveDialog();
+  // Back always leaves, for the admin too; managing the table has its own
+  // Table button at the top left.
   function requestLeave() {
-    returnFocus.current = document.activeElement as HTMLElement | null;
-    setLeaving(true);
+    leaving.ask();
   }
   const [table, setTable] = useState<Table | null>(null),
     [needsName, setNeedsName] = useState(false),
@@ -395,87 +401,13 @@ export function SharedTable({ invite }: { invite: string }) {
       ) : (
         <>
           {notice}
-          {table.isHost && (
-            <details
-              className="online-session table-session playing-session host-session"
-              key={table.status}
-            >
-              <summary>
-                <span className="playing-session-trigger">
-                  <Settings2 size={16} aria-hidden="true" />
-                  Table
-                  <span
-                    className={`table-connection-dot ${connected ? 'is-connected' : ''}`}
-                    aria-label={connected ? 'Connected' : 'Reconnecting'}
-                  />
-                </span>
-              </summary>
-              <section className="online-card table-lobby">
-                <ul className="member-list">
-                  {table.members.map((m) => (
-                    <li key={`${m.id}-${m.bot}`}>
-                      <span
-                        className={`presence ${m.connected ? 'present' : ''}`}
-                      />
-                      <span>
-                        {m.name}
-                        {m.host && !m.bot && <small>Leads</small>}
-                      </span>
-                      {!m.host &&
-                        !m.bot &&
-                        !m.connected &&
-                        m.seat !== null &&
-                        table.status === 'playing' &&
-                        !requiresHumanPlayers(table.gameId) && (
-                          <button
-                            className="secondary"
-                            disabled={disabled}
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Replace ${m.name} with a bot for this match?`,
-                                )
-                              )
-                                void dispatch({
-                                  type: 'replace',
-                                  memberId: m.id,
-                                });
-                            }}
-                          >
-                            <Bot size={15} aria-hidden="true" /> Bot
-                          </button>
-                        )}
-                    </li>
-                  ))}
-                </ul>
-                <div className="online-actions">
-                  <button
-                    className="primary"
-                    disabled={disabled}
-                    onClick={() => {
-                      if (
-                        table.status === 'finished' ||
-                        window.confirm('End this match for everyone?')
-                      )
-                        void dispatch({ type: 'abandon' });
-                    }}
-                  >
-                    Back to lobby
-                  </button>
-                  <button
-                    className="text-button"
-                    disabled={disabled}
-                    onClick={() => {
-                      if (window.confirm('Close this table for everyone?'))
-                        void dispatch({ type: 'close' });
-                    }}
-                  >
-                    Close table
-                  </button>
-                </div>
-              </section>
-            </details>
-          )}
+          <TableManager
+            table={table}
+            connected={connected}
+            disabled={disabled}
+            theme={menuTheme(table.gameId)}
+            dispatch={dispatch}
+          />
           {table.botError && (
             <p className="online-notice" role="alert">
               A bot paused.
@@ -522,6 +454,7 @@ export function SharedTable({ invite }: { invite: string }) {
                         : undefined
               }
               ambienceEnabled={table.ambienceEnabled}
+              turnSound={table.members.some((member) => !member.bot && member.seat !== null && member.seat !== table.viewerSeat)}
               g={table.game}
               viewer={table.viewerSeat}
               disabled={disabled}
@@ -551,24 +484,17 @@ export function SharedTable({ invite }: { invite: string }) {
           )}
         </>
       )}
-      <Dialog open={leaving} onOpenChange={setLeaving}>
-        <DialogContent className="modal help-modal" finalFocus={returnFocus}>
-          <DialogTitle>Leave the match?</DialogTitle>
-          <DialogDescription>Your seat stays yours.</DialogDescription>
-          <button className="primary" onClick={() => setLeaving(false)}>
-            Stay
-          </button>
-          <button
-            className="secondary"
-            onClick={() => {
-              allowLeave();
-              window.location.href = home;
-            }}
-          >
-            Leave
-          </button>
-        </DialogContent>
-      </Dialog>
+      <LeaveDialog
+        state={leaving}
+        title="Leave the match?"
+        saved="The match is saved and your seat stays yours."
+        onLeave={() => {
+          allowLeave();
+          window.location.href = home;
+        }}
+        leavesPage
+        theme={table ? menuTheme(table.gameId) : undefined}
+      />
     </div>
   );
 }
@@ -676,6 +602,10 @@ function Seat({
             <Flag aria-hidden="true" />
             {m.nextHost ? 'Don’t lead' : 'Lead next game'}
           </button>
+          <button onClick={() => act({ type: 'owner', memberId: m.id })}>
+            <Crown aria-hidden="true" />
+            Make admin
+          </button>
           <button
             className="is-danger"
             onClick={() => act({ type: 'remove', memberId: m.id })}
@@ -774,7 +704,19 @@ function RoomMenu({
               Test player
             </button>
           )}
-        {table.isHost ? (
+        {/* The admin leaving hands the table to the next player. */}
+        {table.status === 'lobby' &&
+          (!table.isHost || table.members.some((m) => !m.bot && !m.owner)) && (
+            <button
+              className="is-danger"
+              disabled={disabled}
+              onClick={() => void dispatch({ type: 'leave' })}
+            >
+              <LogOut aria-hidden="true" />
+              Leave table
+            </button>
+          )}
+        {table.isHost && (
           <button
             className="is-danger"
             disabled={disabled}
@@ -786,31 +728,20 @@ function RoomMenu({
             <X aria-hidden="true" />
             Close table
           </button>
-        ) : (
-          table.status === 'lobby' && (
-            <button
-              className="is-danger"
-              disabled={disabled}
-              onClick={() => void dispatch({ type: 'leave' })}
-            >
-              <LogOut aria-hidden="true" />
-              Leave table
-            </button>
-          )
         )}
       </PopoverContent>
     </Popover>
   );
 }
 
-/** The table went on to Folio or Relic; anyone arriving later can follow. */
+/** The table went on to Folio, Relic or Arena; anyone arriving later can follow. */
 function Handoff({
   url,
   kind,
   onJoin,
 }: {
   url: string;
-  kind: 'folio' | 'relic';
+  kind: 'folio' | 'relic' | 'arena';
   onJoin: () => void;
 }) {
   const box = gameByLibraryId(kind);

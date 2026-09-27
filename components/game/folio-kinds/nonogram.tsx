@@ -64,7 +64,9 @@ function settled(clue: number[], marks: number[]) {
 function Cross() {
   return (
     <svg viewBox="0 0 10 10" aria-hidden="true">
-      <path d="M2.4 2.4 7.6 7.6M7.6 2.4 2.4 7.6" />
+      {/* Two strokes, so a fresh cross can be drawn one pen line at a time. */}
+      <path d="M2.4 2.4 7.6 7.6" />
+      <path d="M7.6 2.4 2.4 7.6" />
     </svg>
   );
 }
@@ -356,6 +358,8 @@ export default function Nonogram({
                     '--k': st ?? 0,
                     '--s': fx?.rows.includes(r) ? c : r,
                     '--d': r + c,
+                    // A steady per-square variance for stamps and pen crosses.
+                    '--v': (Math.imul(i + 1, 0x9e3779b1) >>> 0) % 11,
                   } as CSSProperties
                 }
                 aria-label={`Row ${r + 1}, column ${c + 1}: ${state === 'empty' ? 'empty' : state === 'fill' ? 'filled' : 'crossed'}${bad ? ', mistake' : ''}`}

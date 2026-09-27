@@ -87,7 +87,9 @@ export function FolioSetupBox({
     if (busy) return;
     if (!table && !trimmed) {
       setError('Enter your name first.');
-      document.getElementById('folio-box-name')?.focus();
+      requestAnimationFrame(() =>
+        document.getElementById('folio-box-name')?.focus(),
+      );
       return;
     }
     setBusy(true);

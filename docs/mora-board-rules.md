@@ -4,14 +4,31 @@ Six illustrated scoring habitats occupy two groups of woodland terraces. The die
 side or occupancy; the roller ignores the die but never capacity. Each illustrated
 space holds exactly one creature. New creatures fill the spaces in a fixed order; Trail spaces are numbered, shared by the main board and opponent previews.
 
-| Area / position | Capacity | Scoring |
+Scoring as of 27 September 2026 (simplified: no lone-creature points, no "echo" wording).
+
+The Observatory (two rounds, 17 spaces):
+
+| Place | Capacity | Scoring |
 | --- | --- | --- |
-| Herd / top left | 4 | Largest matching group: 2 / 6 / 11 / 17 points for 1 / 2 / 3 / 4 creatures. |
-| Variety / top middle | 4 | 3 per different species, plus 2 for four different species. |
-| Pairs / top right | 2 | Matching pair: 8 points. Single: 1. Two different creatures: 2. |
-| Trail / bottom left | 3 | 2 per creature, plus 3 for each adjacent pair of spaces containing different species. A–B–A and A–B–C score 12; A–A–B scores 9; A–A–A scores 6. |
-| Shared / bottom middle | 3 | 4 per different species also present in another scoring habitat. |
-| Lookout / bottom right | 1 | One creature scores 2 per other scoring habitat containing its species, up to 10 points. Repeated matches within one habitat count once. |
+| Courtyard | 4 | Largest group of one species: 2 / 6 / 11 / 17 for 1 / 2 / 3 / 4. |
+| Garden | 4 | 8 per matching pair. |
+| Hollow | 2 | Matching pair: 9. Anything else: 0. |
+| Glasshouse | 3 | 3 each if its species lives in another habitat. |
+| Channel | 3 | 2 per creature, any species. |
+| Watchpost | 1 | 2 per other habitat holding its species, up to 10. |
+
+Floodline Station (three rounds, 23 spaces):
+
+| Place | Capacity | Scoring |
+| --- | --- | --- |
+| Pools | 5 | 7 per matching pair. |
+| Beach | 5 | 3 per different species. |
+| Mangroves | 3 | Three of one species: 12. Anything else: 0. |
+| Pier | 4 | 2 each, +6 for A–B–A–B in placement order. |
+| Cave | 4 | 3 each if its species lives in another habitat. |
+| Lighthouse | 2 | 4 each if its species lives nowhere else on your board. |
+
+The paragraphs below describe the earlier Herd/Variety/Trail board and are kept for history.
 
 Trail replaces Exclusive: there is no need to reserve species from a pool of six.
 Lookout replaces Mixed Trio: its resident watches for its own species across the map, making the chosen creature matter. All placements remain legal within die and

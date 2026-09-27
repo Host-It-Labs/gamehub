@@ -2,22 +2,27 @@ import { MoraDieSymbol } from './mora-symbols';
 import { NewExtensionRules } from './new-extensions';
 import { WildTrailsRules } from './mora-extension';
 import { AbilityRules, CustomerOrderRules } from './extension-rules';
+import { Rules, RuleSection, RuleList } from './rules';
 import {
   foodsFor,
-  creaturesFor,
   habitatsFor,
+  habitatOrder,
   dice,
   placementDieRule,
   suits,
   handSize,
+  tideDeck,
   tideRanks,
   tidePenaltyRank,
   tidePenaltyValue,
+  tokenImage,
   passCount,
   totalRounds,
   supplyPerKind,
   type PublicGame as Game,
 } from '@/lib/games/trio/engine';
+
+/** How to play Nox, Mora or Yata (goal, turn, scoring, end, then reference lists), or the card counts. */
 export function Help({
   g,
   reference = false,
@@ -25,68 +30,273 @@ export function Help({
   g: Game;
   reference?: boolean;
 }) {
+  if (reference) return <Counts g={g} />;
+  if (g.id === 'undertow') return <NoxRules g={g} />;
+  if (g.id === 'wildgrove') return <MoraRules g={g} />;
+  return <YataRules g={g} />;
+}
+
+function NoxRules({ g }: { g: Game }) {
+  const pass = passCount(g),
+    rank = tidePenaltyRank(g),
+    value = tidePenaltyValue(g);
+  // Two-player games keep only some ranks, always including the penalty rank.
+  const ranks = [...new Set(tideDeck(g).map((card) => card.rank))].sort(
+    (a, b) => a - b,
+  );
+  return (
+    <Rules>
+      <RuleSection title="Avoid penalty points">
+        <p>
+          Tricks you win can bring <b>penalty points</b>. After{' '}
+          <b>{totalRounds(g)} rounds</b>, one per player, the{' '}
+          <b>fewest points</b> wins. Tied players share the win.
+        </p>
+      </RuleSection>
+      <RuleSection title={`Pass ${pass} cards`}>
+        <p>
+          Each round deals <b>{handSize(g)} cards</b> each. Choose{' '}
+          <b>{pass}</b> to pass, then press <b>Pass</b> to lock them. Everyone
+          passes at once, and the direction changes each round.
+        </p>
+      </RuleSection>
+      <RuleSection
+        title="Follow the suit"
+        note="There are no trumps: a card off the led suit never wins."
+      >
+        <p>
+          The leader plays any card. Everyone else must play{' '}
+          <b>the same suit</b> if they can. <b>Tap a card</b> to play it, or
+          drag it to the table.
+        </p>
+        <p>
+          {g.turningTide ? (
+            <>
+              The <b>highest</b> card of the led suit wins odd tricks, the{' '}
+              <b>lowest</b> wins even tricks.
+            </>
+          ) : (
+            <>
+              The <b>highest card of the led suit</b> wins the trick.
+            </>
+          )}{' '}
+          The winner takes its points and leads the next trick.
+        </p>
+      </RuleSection>
+      <RuleSection
+        title="Penalty points"
+        note={
+          g.duelDeck
+            ? `With two players the deck holds only the ${ranks.slice(0, -1).join(', ')} and ${ranks.at(-1)} of each suit.`
+            : undefined
+        }
+      >
+        <p>
+          Five suits of cards 1 to {tideRanks(g)}: {suits.slice(0, 4).join(' ')}{' '}
+          and Storm {suits[4]}. After the pass, the <b>die</b> picks one of the
+          four plain suits.
+        </p>
+        <RuleList
+          items={[
+            {
+              key: 'storm',
+              mark: suits[4],
+              name: 'Storm',
+              text: 'Each card adds its number.',
+            },
+            {
+              key: 'die',
+              mark: suits.slice(0, 4).join(''),
+              name: `${rank} of the die’s suit`,
+              text: `Adds ${value}.`,
+            },
+            { key: 'rest', name: 'Every other card', text: 'Adds nothing.' },
+          ]}
+        />
+      </RuleSection>
+      {g.shields && <AbilityRules kind="shield" title="Shields" />}
+      {g.turningTide && (
+        <NewExtensionRules kind="turningTide" title="Turning Tide" />
+      )}
+      {g.salvage && <NewExtensionRules kind="salvage" title="Salvage" />}
+    </Rules>
+  );
+}
+
+function MoraRules({ g }: { g: Game }) {
+  const areas = habitatsFor(g.contentSet);
+  return (
+    <Rules>
+      <RuleSection title="Build a sanctuary">
+        <p>
+          Place creatures in your habitats. Each habitat <b>scores</b> in its
+          own way. After <b>{totalRounds(g)} rounds</b> of 6 picks, the{' '}
+          <b>most points</b> wins. Tied players share the win.
+        </p>
+      </RuleSection>
+      <RuleSection
+        title="Roll, pick, place"
+        note={
+          <>
+            The <b>roller</b>, marked with a die, may use any habitat with
+            space. <b>Release</b> is always allowed and scores 0.
+          </>
+        }
+      >
+        <p>
+          Before each pick the <b>die</b> rolls and limits where you may place.
+          Everyone picks at once: <b>tap a creature, then a lit habitat</b>, or
+          drag it there.
+        </p>
+      </RuleSection>
+      <RuleSection title="Pass the rest">
+        <p>
+          Each hand then passes to the next player. After <b>6 picks</b> a new
+          round deals 6 more creatures and passes the other way. Your board
+          stays.
+        </p>
+      </RuleSection>
+      {g.roamEnabled && <NewExtensionRules kind="roamEnabled" title="Roam" />}
+      {g.migration && <NewExtensionRules kind="migration" title="Migration" />}
+      {g.sanctuaryGoalsEnabled && (
+        <WildTrailsRules
+          title="Sanctuary Goals"
+          goals={g.sanctuaryGoals}
+          contentSet={g.contentSet}
+        />
+      )}
+      <RuleSection title="Habitats">
+        <RuleList
+          items={habitatOrder.map((zone) => ({
+            key: String(zone),
+            name:
+              zone === 5
+                ? areas[zone].name
+                : `${areas[zone].name} · ${areas[zone].cap} ${areas[zone].cap === 1 ? 'space' : 'spaces'}`,
+            text: areas[zone].rule,
+          }))}
+        />
+      </RuleSection>
+      <RuleSection title="Die faces">
+        <RuleList
+          items={dice.map((face, i) => ({
+            key: face.name,
+            mark: <MoraDieSymbol face={i} />,
+            name: face.name,
+            text: placementDieRule(i, g.contentSet),
+          }))}
+        />
+      </RuleSection>
+    </Rules>
+  );
+}
+
+function YataRules({ g }: { g: Game }) {
+  return (
+    <Rules>
+      <RuleSection title="Collect dishes">
+        <p>
+          Each kind of dish <b>scores</b> in its own way. After <b>{totalRounds(g)} rounds</b> of 6 picks, the{' '}
+          <b>most points</b> wins. Tied players share the win.
+        </p>
+      </RuleSection>
+      <RuleSection title="Keep one, pass the rest">
+        <p>
+          Everyone picks at once. <b>Tap a dish</b> to keep it, or drag it
+          onto your board. Each hand then passes to the next player.
+        </p>
+        <p>
+          After <b>6 picks</b> a new round deals 6 more dishes and passes the
+          other way. Your dishes stay.
+        </p>
+      </RuleSection>
+      {g.customerOrders && <CustomerOrderRules title="Customer Orders" />}
+      {g.specialtyStalls && <AbilityRules kind="stall" title="Specialty Stalls" />}
+      {g.marketSeasons && (
+        <NewExtensionRules kind="marketSeasons" title="Market Seasons" />
+      )}
+      <RuleSection title="Dishes">
+        <RuleList
+          items={foodsFor(g.contentSet).map((food, kind) => ({
+            key: food.name,
+            mark: (
+              <img
+                src={tokenImage(kind, true, g.contentSet)}
+                alt=""
+                width={40}
+                height={40}
+                draggable={false}
+              />
+            ),
+            name: food.name,
+            text: food.rule,
+          }))}
+        />
+      </RuleSection>
+    </Rules>
+  );
+}
+
+/** Card and piece counts: public facts about this match, never what a hand holds. */
+function Counts({ g }: { g: Game }) {
   const tide = g.id === 'undertow',
     grove = g.id === 'wildgrove';
-  const tideUsed = handSize(g) * g.players.length;
-  const ranksInDeck = g.duelDeck ? (g.fastMode ? 3 : 5) : tideRanks(g);
-  const tideTotal = 5 * ranksInDeck;
+  const tideTotal = tideDeck(g).length,
+    tideUsed = handSize(g) * g.players.length;
   const perKind = supplyPerKind(g),
     supply = perKind * 6,
-    kept = totalRounds(g) * 6,
-    used = g.players.length * kept,
-    omitted = supply - used;
-  if (reference) {
-    const inHands = g.players.reduce((n, p) => n + p.hand.length, 0);
-    const placed = g.players.reduce((n, p) => n + p.zones.flat().length, 0);
-    return (
-      <div className="reference readable-reference">
-        {g.id === 'wildgrove' && g.sanctuaryGoalsEnabled && (
-          <WildTrailsRules goals={g.sanctuaryGoals} contentSet={g.contentSet} />
-        )}
-        {g.customerOrders && <CustomerOrderRules />}
-        {g.specialtyStalls && <AbilityRules kind="stall" />}
-        {g.migration && <NewExtensionRules kind="migration" />}
-        {g.salvage && <NewExtensionRules kind="salvage" />}
-        {g.roamEnabled && <NewExtensionRules kind="roamEnabled" />}
-        {g.turningTide && <NewExtensionRules kind="turningTide" />}
-        {g.marketSeasons && <NewExtensionRules kind="marketSeasons" />}
-        <h3>Cards and pieces in this game</h3>
+    used = g.players.length * totalRounds(g) * 6;
+  const inHands = g.players.reduce((n, p) => n + p.hand.length, 0);
+  const placed = g.players.reduce((n, p) => n + p.zones.flat().length, 0);
+  // Released creatures leave the game, so count the rounds still to come.
+  const toDeal =
+    g.phase === 'over'
+      ? 0
+      : (totalRounds(g) - g.round) * 6 * g.players.length;
+  const items = tide ? 'cards' : grove ? 'creatures' : 'dishes';
+  return (
+    <Rules>
+      <RuleSection title="This game">
         <dl className="match-facts">
           <dt>Players</dt>
           <dd>{g.players.length}</dd>
-          <dt>{grove ? 'Full creature supply' : 'Full deck'}</dt>
+          <dt>{tide ? 'Full deck' : 'Full supply'}</dt>
           <dd>
             {tide
-              ? `${tideTotal} cards · 5 suits × ${ranksInDeck} ranks`
-              : `${supply} ${grove ? 'creatures' : 'cards'} · 6 types × ${perKind}`}
+              ? `${tideTotal} cards · 5 suits × ${tideTotal / 5}`
+              : `${supply} ${items} · 6 kinds × ${perKind}`}
           </dd>
-          <dt>Used in this game</dt>
+          <dt>{tide ? 'Dealt each round' : 'Used this game'}</dt>
           <dd>{tide ? tideUsed : used}</dd>
-          <dt>Not used (hidden)</dt>
-          <dd>{tide ? tideTotal - tideUsed : omitted}</dd>
+          <dt>Set aside, hidden</dt>
+          <dd>{tide ? tideTotal - tideUsed : supply - used}</dd>
           <dt>Round</dt>
           <dd>
             {g.round} / {totalRounds(g)}
           </dd>
-          <dt>Still in players’ hands</dt>
+          <dt>In hands</dt>
           <dd>{inHands}</dd>
           {tide ? (
             <>
-              <dt>Cards in current trick</dt>
+              <dt>In the current trick</dt>
               <dd>{g.trick.length}</dd>
-              <dt>Cards played this round</dt>
+              <dt>Played this round</dt>
               <dd>{tideUsed - inHands}</dd>
             </>
           ) : (
             <>
-              <dt>Placed on boards</dt>
+              <dt>On boards</dt>
               <dd>{placed}</dd>
               <dt>Still to be dealt</dt>
-              <dd>{Math.max(0, used - inHands - placed)}</dd>
+              <dd>{toDeal}</dd>
             </>
           )}
         </dl>
-        <h3>Each player’s collection</h3>
+      </RuleSection>
+      <RuleSection
+        title="Each player"
+        note={`Hands and unused ${items} stay hidden.`}
+      >
         <div className="public-counts">
           {g.players.map((p, i) => (
             <p key={i}>
@@ -98,188 +308,7 @@ export function Help({
             </p>
           ))}
         </div>
-        <p className="reference-note">
-          You can see how many cards or pieces each player has, but not what is
-          in their hand. Unused cards and pieces also stay hidden.
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="reference readable-reference">
-      {g.id === 'wildgrove' && g.sanctuaryGoalsEnabled && (
-        <WildTrailsRules goals={g.sanctuaryGoals} contentSet={g.contentSet} />
-      )}
-      {g.customerOrders && <CustomerOrderRules />}
-      {g.specialtyStalls && <AbilityRules kind="stall" />}
-      {g.migration && <NewExtensionRules kind="migration" />}
-      {g.salvage && <NewExtensionRules kind="salvage" />}
-      {g.roamEnabled && <NewExtensionRules kind="roamEnabled" />}
-      {g.turningTide && <NewExtensionRules kind="turningTide" />}
-      {g.marketSeasons && <NewExtensionRules kind="marketSeasons" />}
-      <section className="reference-goal">
-        <h3>
-          {tide
-            ? 'Win with the fewest penalty points'
-            : 'Win with the most points'}
-        </h3>
-        <p>
-          {tide
-            ? `Play ${totalRounds(g)} rounds. Each Storm card adds penalty points equal to its number. The ${tidePenaltyRank(g)} of the suit shown on the die adds ${tidePenaltyValue(g)} points. Other cards add no penalty points. Tied players share the win.`
-            : `Keep one ${grove ? 'creature' : 'dish'} per turn. After ${totalRounds(g) === 3 ? 'three' : 'two'} rounds you will have kept ${kept === 18 ? 'eighteen' : 'twelve'}. Your collection stays between rounds. Tied players share the win.`}
-        </p>
-      </section>
-      <h3>Your turn, in order</h3>
-      <ol className="rule-sequence">
-        {tide ? (
-          <>
-            <li>
-              <b>Pass {passCount(g)} cards.</b> {g.duelDeck && <>Two-player games use a shorter deck while keeping the penalty rank. </>} Everyone chooses at the same
-              time. Select your cards, then confirm. Cards are exchanged once
-              everyone is ready. Everyone exchanges left in odd rounds and right
-              in even rounds.
-            </li>
-            <li>
-              <b>The die rolls automatically.</b> The {tidePenaltyRank(g)} of
-              the suit shown is worth {tidePenaltyValue(g)} penalty points for
-              this round.
-            </li>
-            <li>
-              <b>Play one card.</b> Follow the first card’s suit if you have it.
-              Otherwise play any card. Select or drag your card, then confirm if
-              confirmation is on. No suit beats the others: only cards matching
-              the first suit can win the trick.
-            </li>
-            <li>
-              <b>Collect the trick.</b> A trick is one card from each player.
-              The player who played{' '}
-              {g.turningTide
-                ? 'the highest led-suit card on odd tricks or lowest on even tricks wins it,'
-                : 'the highest card of the first suit wins it,'}
-              takes its penalty points, and plays first in the next trick.
-            </li>
-          </>
-        ) : (
-          <>
-            {grove && (
-              <li>
-                <b>The die rolls automatically before each pick.</b> Its rule
-                applies to everyone except the player marked ROLLER. That player
-                may use any habitat with space. No one can place in a full
-                habitat.
-              </li>
-            )}
-            <li>
-              <b>Choose one {grove ? 'creature' : 'dish'}.</b>{' '}
-              {grove
-                ? 'Select a creature and tap a highlighted habitat, or drag the creature there. Confirm your move if confirmation is on.'
-                : 'Select a card, then confirm to keep it. With confirmation off, tap a card or drag it onto your board to keep it immediately.'}
-            </li>
-            <li>
-              <b>Pass the rest.</b> After everyone chooses, hands move to the
-              next player. The name above your hand shows who receives it. Tap
-              the seating icon to see the passing direction.
-            </li>
-            <li>
-              <b>Round two starts after six picks.</b> Everyone receives six new
-              cards or creatures. Passing changes direction. Keep everything
-              already on your board.
-            </li>
-          </>
-        )}
-      </ol>
-      {tide && g.shields && <AbilityRules kind="shield" />}
-      {!reference && (
-        <>
-          <h3>
-            {grove
-              ? 'How each habitat scores'
-              : tide
-                ? 'Know your cards'
-                : 'What each dish earns'}
-          </h3>
-          {grove ? (
-            habitatsFor(g.contentSet).map((h, i) => (
-              <section className="reference-rule" key={h.name}>
-                <b>
-                  {i + 1}. {h.name} · {h.cap} spaces
-                </b>
-                <span>{h.rule}</span>
-              </section>
-            ))
-          ) : tide ? (
-            <p>
-              Five suits, with cards numbered 1–{tideRanks(g)} in each:{' '}
-              {suits.join(' ')}. Storm is a separate suit, so follow it when it
-              is led. Each of the four ordinary suits is equally likely on the
-              die.
-            </p>
-          ) : (
-            foodsFor(g.contentSet).map((f) => (
-              <section className="reference-rule" key={f.name}>
-                <b>{f.name}</b>
-                <span>{f.rule}</span>
-                <small className="example">{f.example}</small>
-              </section>
-            ))
-          )}
-          {grove && (
-            <>
-              <h3>What each die face means</h3>
-              {dice.map((d) => (
-                <section className="reference-rule" key={d.name}>
-                  <b>
-                    <MoraDieSymbol face={dice.indexOf(d)} /> {d.name}
-                  </b>
-                  <span>{placementDieRule(dice.indexOf(d), g.contentSet)}</span>
-                </section>
-              ))}
-              <p>
-                Each face is equally likely. Release is always available:
-                release a creature from your hand for zero points. It leaves
-                your board and never counts in any scoring area.
-              </p>
-            </>
-          )}
-        </>
-      )}
-      <h3>What is in this match?</h3>
-      {tide ? (
-        <p>
-          Each round, deal <b>{handSize(g)} cards each</b> for{' '}
-          {g.players.length} players. {tideTotal - tideUsed} cards are set aside
-          face down. Shuffle and deal again next round.
-        </p>
-      ) : (
-        <>
-          <p>
-            The full supply contains <b>{supply} {grove ? 'creatures' : 'cards'}</b>:
-            {perKind} of each of the six types. Each player receives six per round and
-            keeps {kept} across the whole game.
-          </p>
-          <p>
-            With {g.players.length} players,{' '}
-            <b>
-              {used} are played and {omitted} stay out of this match
-            </b>
-            . The shuffled supply is drawn without replacement. Unused items
-            stay hidden and never join a hand; you cannot assume all {perKind} of a
-            type will appear.
-          </p>
-          {grove && (
-            <p>
-              The species are {creaturesFor(g.contentSet).join(', ')}. They
-              share the same placement rules; their arrangement earns the
-              points.
-            </p>
-          )}
-        </>
-      )}
-      <p className="reference-note">
-        Swipe sideways through your hand. Tap to choose; press and hold a card
-        or habitat for details. Other players’ collections are public; their
-        hands stay hidden.
-      </p>
-    </div>
+      </RuleSection>
+    </Rules>
   );
 }

@@ -58,8 +58,7 @@
 .relic-scratch-room:not([data-tab='tickets'])::after {
   background: #061f1ae0;
 }
-.relic-scratch-room .game-navigation button,
-.rs-quick button {
+.relic-scratch-room .game-navigation button {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -109,16 +108,350 @@
   background: var(--cream);
   color: #173a33;
 }
-.rs-wallet {
+/* Where the other players are: their colour dots on the tab's corner. */
+.rs-tabs button {
+  position: relative;
+}
+.rs-tab-here {
+  position: absolute;
+  top: -6px;
+  right: -4px;
   display: flex;
+  pointer-events: none;
+}
+.rs-tab-here i {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--player);
+  border: 1.5px solid #10251f;
+  color: #10251f;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 4px #02110e80;
+}
+.rs-tab-here i:first-child {
+  margin-left: 0;
+}
+/* The purse keeps one size whatever it holds; notifications hang below it. */
+.rs-purse {
+  position: relative;
+}
+.rs-wallet {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 76px;
   align-items: baseline;
   gap: 7px;
-  padding: 8px 14px;
+  box-sizing: border-box;
+  width: 214px;
+  padding: 8px 12px;
   border-radius: 14px;
   background: var(--panel);
   border: 1px solid var(--panel-line);
   color: var(--gold);
   white-space: nowrap;
+}
+.rs-wallet strong {
+  overflow: hidden;
+}
+.rs-wallet small {
+  overflow: hidden;
+  text-align: right;
+}
+.rs-toasts {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  width: max-content;
+  max-width: min(320px, 90vw);
+  translate: -50% 0;
+  pointer-events: none;
+}
+.rs-toast {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 4px 11px 4px 6px;
+  border-radius: 999px;
+  background: #0d2b25f2;
+  border: 1px solid #e7bd6f55;
+  box-shadow: 0 8px 20px #02110e90;
+  color: var(--cream);
+  font-size: 12px;
+  white-space: nowrap;
+  animation: rs-toast 4.4s ease both;
+}
+.rs-toast > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rs-toast small {
+  color: var(--muted);
+  font-weight: 700;
+}
+.rs-toast strong {
+  color: var(--gold);
+  font:
+    700 14px/1 Georgia,
+    serif;
+  font-variant-numeric: tabular-nums;
+}
+.rs-toast.is-loss strong {
+  color: #d99a88;
+}
+.rs-toast-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+.rs-toast-name::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--player);
+}
+.rs-toast-book,
+.rs-toast-machine {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px #0008);
+}
+.rs-toast.is-level {
+  border-color: #e7bd6f;
+  background: linear-gradient(90deg, #3a2a10f2, #0d2b25f2);
+}
+.rs-toast-level {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--gold);
+  color: #3b2512;
+  font:
+    700 11px/1.2 Georgia,
+    serif;
+}
+.rs-toast.is-max svg {
+  color: #f6d06a;
+}
+@keyframes rs-toast {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  6%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+/* The other players' pointers, and the Watch TV in its corner. */
+.rs-cursors {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rs-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  transition: transform 90ms linear;
+  pointer-events: none;
+}
+.rs-cursor svg {
+  fill: var(--player);
+  stroke: #10251f;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 3px #02110e90);
+}
+.rs-cursor b {
+  margin-top: 14px;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: var(--player);
+  color: #10251f;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px #02110e70;
+}
+.rs-cursor.is-mirror {
+  position: fixed;
+  z-index: 60;
+  opacity: 0;
+}
+/* Big enough to follow once the TV scales their screen down. */
+.rs-cursor.is-mirror svg {
+  width: clamp(24px, 4vw, 64px);
+  height: auto;
+}
+.rs-tv {
+  position: fixed;
+  z-index: 35;
+  display: grid;
+  gap: 5px;
+  padding: 7px 7px 9px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #6b3f1f, #3a200e 60%, #57331a);
+  border: 1px solid #c9924a;
+  box-shadow:
+    inset 0 1px 0 #f3c98a70,
+    inset 0 -2px 0 #1e0f05,
+    0 18px 40px #02110ec0;
+}
+.rs-tv.is-br {
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+}
+.rs-tv.is-bl {
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(14px, env(safe-area-inset-bottom));
+}
+.rs-tv.is-tr {
+  right: max(14px, env(safe-area-inset-right));
+  top: calc(max(10px, env(safe-area-inset-top)) + 96px);
+}
+.rs-tv.is-tl {
+  left: max(14px, env(safe-area-inset-left));
+  top: calc(max(10px, env(safe-area-inset-top)) + 96px);
+}
+@media (max-width: 600px) {
+  /* Below the shelf strip, clear of the ticket's rail and the palette. */
+  .rs-tv.is-tr,
+  .rs-tv.is-tl {
+    top: calc(var(--stage-top) + 66px);
+  }
+  .rs-tv.is-br,
+  .rs-tv.is-bl {
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 96px);
+  }
+  .rs-tv {
+    padding: 5px 5px 6px;
+    border-radius: 14px;
+  }
+}
+.rs-tv.is-dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+}
+.rs-tv-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  cursor: grab;
+  touch-action: none;
+}
+.rs-tv-players {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.rs-tv-players button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 150px;
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid #f3c98a40;
+  border-radius: 9px;
+  background: #00000030;
+  color: #f5e7c7;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rs-tv-players button[aria-pressed='true'] {
+  border-color: var(--player);
+  background: color-mix(in srgb, var(--player) 28%, #00000030);
+}
+.rs-tv-players i {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8a7a66;
+}
+.rs-tv-players i.is-online {
+  background: #9fe09a;
+  box-shadow: 0 0 6px #9fe09a;
+}
+.rs-tv-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #f3c98a40;
+  border-radius: 9px;
+  background: #00000030;
+  color: #f5e7c7;
+}
+.rs-tv-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #0b1a17;
+  box-shadow:
+    inset 0 0 0 2px #1e0f05,
+    inset 0 0 18px #000c;
+}
+.rs-tv-screen::after {
+  /* A soft glass sheen over the picture. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(155deg, #ffffff14, transparent 42%);
+  pointer-events: none;
+}
+.rs-tv-screen.is-static {
+  background:
+    repeating-linear-gradient(0deg, #ffffff08 0 2px, transparent 2px 4px),
+    #0b1a17;
+}
+.rs-tv-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.relic-scratch-room.is-mirror {
+  pointer-events: none;
 }
 .rs-wallet svg {
   align-self: center;
@@ -133,20 +466,6 @@
   font-size: 11px;
   color: #b7d99c;
   font-variant-numeric: tabular-nums;
-}
-.rs-quick {
-  position: absolute;
-  top: max(8px, env(safe-area-inset-top));
-  right: calc(max(10px, env(safe-area-inset-right)) + 104px);
-  z-index: 10;
-  display: flex;
-  gap: 5px;
-}
-.rs-quick button {
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
 }
 .rs-stage {
   position: absolute;
@@ -206,6 +525,7 @@
   padding: 2px;
 }
 .rs-book {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -269,6 +589,10 @@
   background: #365a50;
 }
 .rs-book-cover img {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  max-height: 100%;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -335,6 +659,47 @@
   opacity: 0.55;
 }
 
+/* Book level and exact progress stay distinct from the I/II/III controls. */
+.rs-book:has(.rs-book-xp) { padding-bottom: 23px; }
+.rs-book-xp {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gold);
+  font: 700 10px/1.1 var(--font-sans, sans-serif);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rs-book-progress {
+  appearance: none;
+  border: 0;
+  flex: 1;
+  width: 0;
+  min-width: 24px;
+  height: 6px;
+  border-radius: 4px;
+  background: #0005;
+  box-shadow: inset 0 1px 2px #0008, 0 0 0 1px #ffffff1c;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rs-book-progress::-webkit-progress-bar { background: #0005; }
+.rs-book-progress::-webkit-progress-value {
+  border-radius: 4px;
+  background: linear-gradient(90deg, #b48b48, #ffe1a1);
+  transition: width 0.4s ease;
+}
+.rs-book-progress::-moz-progress-bar {
+  border-radius: 4px;
+  background: linear-gradient(90deg, #b48b48, #ffe1a1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-book-progress::-webkit-progress-value { transition: none; }
+}
 .rs-book.is-held {
   border-color: color-mix(in srgb, var(--book) 60%, var(--gold));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--book) 60%, var(--gold));
@@ -989,6 +1354,7 @@
   padding: 2px;
 }
 .rs-part {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 2px;
@@ -1113,7 +1479,9 @@
 }
 .rs-machine {
   position: absolute;
-  z-index: 1;
+  left: 0;
+  top: 0;
+  z-index: 3;
   display: grid;
   place-items: center;
   width: var(--cell);
@@ -1134,7 +1502,7 @@
 }
 @keyframes rs-hum {
   to {
-    transform: scale(1.03);
+    scale: 1.03;
   }
 }
 .rs-machine.kind-lamp::before {
@@ -1148,39 +1516,84 @@
 .rs-machine.kind-belt {
   z-index: 0;
 }
+/* The belt runs one cell per factory tick, as fast as the tickets on it. The
+   strip slides on the compositor, so a running floor never repaints. */
 .rs-belt {
+  position: relative;
   width: 100%;
   height: 100%;
-  background: url('/art/lucky/factory/belt.webp') 0 50% / var(--cell)
-    var(--cell) repeat-x;
-  animation: rs-belt 1s linear infinite;
+  overflow: hidden;
+}
+.rs-belt::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -100%;
+  width: 200%;
+  background: url('/art/lucky/factory/belt.webp') 0 50% / 50% 100% repeat-x;
+  animation: rs-belt 0.5s linear infinite;
 }
 @keyframes rs-belt {
   to {
-    background-position: var(--cell) 50%;
+    transform: translateX(50%);
   }
 }
 .rs-machine-book {
+  /* On the printer's closed back corner, clear of its output chute. */
   position: absolute;
-  right: 4%;
-  bottom: 4%;
-  width: 32%;
-  rotate: 8deg;
+  left: 2%;
+  bottom: 2%;
+  width: 30%;
+  rotate: -8deg;
   filter: drop-shadow(0 1px 2px #0009);
 }
 .rs-machine-progress {
   position: absolute;
   top: 2%;
   left: 2%;
-  width: 28%;
-  height: 28%;
+  width: 26%;
+  height: 26%;
   rotate: -90deg;
+  /* Its own layer: a filling ring repaints only itself, never the floor. */
+  will-change: transform;
 }
-.rs-machine-progress circle {
+.rs-progress-track {
   fill: #10251fcc;
+  stroke: #ffffff22;
+  stroke-width: 5;
+}
+.rs-progress-fill {
+  fill: none;
   stroke: #ffe39a;
   stroke-width: 5;
-  transition: stroke-dasharray 0.5s linear;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: var(--from);
+  animation: rs-progress linear forwards;
+}
+@keyframes rs-progress {
+  from {
+    stroke-dashoffset: var(--from);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.rs-bundle-count {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  display: flex;
+  gap: 3px;
+  translate: -50% 0;
+}
+.rs-bundle-count i {
+  width: calc(var(--cell) * 0.1);
+  height: calc(var(--cell) * 0.1);
+  border-radius: 50%;
+  background: #f5e7c7;
+  box-shadow: 0 1px 2px #0009;
 }
 .rs-machine.is-ghost {
   opacity: 0.6;
@@ -1229,15 +1642,85 @@
     box-shadow: 0 0 10px #d9563f;
   }
 }
+/* Tickets ride above the belts and beneath the machines, so a machine
+   swallows the ticket it takes and the one it made peeks out of its output. */
 .rs-item {
   position: absolute;
   left: 0;
   top: 0;
-  z-index: 3;
-  width: calc(var(--cell) * 0.56);
-  height: calc(var(--cell) * 0.56);
+  z-index: 2;
+  width: calc(var(--cell) * 0.34);
+  height: calc(var(--cell) * 0.34);
   pointer-events: none;
-  transition: transform 0.5s linear;
+}
+.rs-floor[data-settled] .rs-item {
+  transition:
+    transform 0.5s linear,
+    opacity 0.2s,
+    scale 0.2s;
+}
+@starting-style {
+  .rs-floor[data-settled] .rs-item {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+.rs-item.is-sold {
+  animation: rs-sold 0.5s ease-in forwards;
+}
+@keyframes rs-sold {
+  60% {
+    opacity: 1;
+    scale: 0.9;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+.rs-sale-coin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.rs-sale-coin::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--cell) * -0.13);
+  top: calc(var(--cell) * -0.13);
+  width: calc(var(--cell) * 0.26);
+  height: calc(var(--cell) * 0.26);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff5c8, #e7b04a 55%, #9a6516);
+  box-shadow: 0 0 10px #f6d06acc;
+  opacity: 0;
+  animation: rs-sale-coin 0.8s 0.35s ease-out forwards;
+}
+@keyframes rs-sale-coin {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(calc(var(--cell) * -0.35)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--cell) * -0.7)) scale(0.8);
+  }
+}
+.rs-marquee {
+  position: absolute;
+  z-index: 6;
+  border: 2px dashed var(--gold);
+  border-radius: 8px;
+  background: #e7bd6f18;
+  pointer-events: none;
 }
 .rs-item img {
   width: 100%;
@@ -1253,10 +1736,10 @@
   /* A scratched ticket carries a gold coin: it is ready to sell. */
   content: '';
   position: absolute;
-  right: -4%;
-  bottom: 2%;
-  width: 40%;
-  height: 40%;
+  right: -10%;
+  bottom: -4%;
+  width: 50%;
+  height: 50%;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff1b8, #e3a93c 55%, #9a6516);
   box-shadow: 0 1px 2px #0008;
@@ -1271,10 +1754,10 @@
   content: '★';
   position: absolute;
   z-index: 1;
-  left: 0;
-  top: -6%;
+  left: -8%;
+  top: -14%;
   color: #c8363a;
-  font-size: calc(var(--cell) * 0.2);
+  font-size: calc(var(--cell) * 0.16);
   text-shadow: 0 1px 0 #fff;
 }
 .rs-item.is-bundle img {
@@ -1341,6 +1824,90 @@
 .rs-inspector-books button[aria-pressed='true'] {
   border-color: var(--gold);
   background: #e7bd6f22;
+}
+.rs-inspector-books button {
+  position: relative;
+}
+/* The shared book level, separate from the printer's puzzle difficulty. */
+.rs-book-level {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 15px;
+  padding: 1px 3px;
+  border-radius: 6px;
+  background: #10251f;
+  border: 1px solid #b3b89855;
+  color: var(--cream);
+  font: 700 9px/1.2 Georgia, serif;
+  font-style: normal;
+}
+.rs-book-level.is-max {
+  background: linear-gradient(#f6d99a, #c98f3a);
+  border-color: #fff1c8;
+  color: #3b2512;
+}
+/* Keyboard hints, only with a mouse and keyboard. */
+.rs-palette-tools button,
+.rs-part {
+  position: relative;
+}
+.rs-palette-tools kbd,
+.rs-part kbd {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  min-width: 13px;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: #ffffff14;
+  color: var(--muted);
+  font: 700 9px/13px var(--font-sans), sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+.rs-palette-tools button[aria-pressed='true'] kbd {
+  background: #173a3322;
+  color: #173a33;
+}
+.rs-part.is-previewed {
+  border-style: solid;
+  border-color: #e7bd6f99;
+  background:
+    radial-gradient(ellipse at 50% 30%, #e7bd6f30, transparent 70%), #1c4a3ff0;
+}
+.rs-inspector.is-locked .rs-part-art img {
+  filter: grayscale(0.4) brightness(0.8);
+}
+.rs-inspector .rs-unlock {
+  flex: 0 0 auto;
+  min-height: 42px;
+  margin-left: auto;
+}
+.rs-inspector-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  color: var(--gold);
+  font:
+    700 20px/1 Georgia,
+    serif;
+}
+.rs-inspector-kinds {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+.rs-inspector-kinds img {
+  width: 34px;
+  height: 34px;
+  margin-right: -8px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px #02110e90);
+}
+.rs-inspector > .rs-icon-button:first-of-type {
+  margin-left: auto;
 }
 
 /* Upgrades: six branches of medallions; the chosen one is bought below. */
@@ -1434,7 +2001,6 @@
 }
 .rs-branch-links line.is-lit {
   stroke: var(--path);
-  filter: drop-shadow(0 0 4px var(--path));
 }
 .rs-node-slot {
   position: absolute;
@@ -1500,15 +2066,53 @@
       border-box;
   color: #10251f;
 }
+/* An upgrade the purse can pay for glows: a gold ring, a warm halo, a lit
+   icon, name and price. Steady, no pulsing. Other prices go quiet, so gold
+   reads as "you can buy this". */
 .rs-node.is-affordable .rs-node-disc {
-  animation: rs-node-ready 1.4s ease-in-out infinite alternate;
+  box-shadow:
+    0 0 0 3px var(--gold),
+    0 0 18px 3px color-mix(in srgb, var(--gold) 60%, transparent),
+    0 0 40px 8px color-mix(in srgb, var(--gold) 24%, transparent),
+    0 6px 14px #02110e80,
+    inset 0 0 16px color-mix(in srgb, var(--gold) 40%, transparent);
 }
-@keyframes rs-node-ready {
-  to {
-    box-shadow:
-      0 0 18px color-mix(in srgb, var(--path) 80%, transparent),
-      0 6px 14px #02110e80;
-  }
+.rs-node.is-affordable[aria-pressed='true'] .rs-node-disc {
+  box-shadow:
+    0 0 0 3px #f5e7c7,
+    0 0 0 6px var(--gold),
+    0 0 24px 6px color-mix(in srgb, var(--gold) 55%, transparent),
+    0 6px 14px #02110e80,
+    inset 0 0 16px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.rs-node.is-affordable:not(.is-owned) .rs-node-disc > svg {
+  color: #ffe9a8;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 80%, transparent));
+}
+.rs-node.is-affordable .rs-node-name {
+  color: #fff3cc;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.rs-node.is-affordable .rs-node-price {
+  color: #ffd76a;
+  font-weight: 800;
+}
+.rs-node:not(.is-affordable) .rs-node-price {
+  color: var(--muted);
+}
+.rs-node-ready {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff5c8, #e7b04a 60%, #a8741f);
+  border: 1.5px solid #10251f;
+  color: #3b2512;
+  box-shadow: 0 2px 4px #02110e90;
 }
 .rs-node.is-max .rs-node-disc {
   background:
@@ -1708,18 +2312,6 @@
   background: #15392fe8;
   color: #e9ddbd;
 }
-.scratch-help {
-  display: grid;
-  gap: 14px;
-}
-.scratch-help p {
-  font-size: 13px;
-  line-height: 1.7;
-  color: #c5ceb0;
-}
-.scratch-help b {
-  color: #f1dfb9;
-}
 .scratch-members {
   display: grid;
   gap: 8px;
@@ -1787,19 +2379,6 @@
     26px Georgia,
     serif;
   color: #e0c089;
-}
-.scratch-menu-item {
-  display: flex;
-  gap: 13px;
-  align-items: center;
-  width: 100%;
-  min-height: 54px;
-  padding: 12px;
-  background: #afc39c0e;
-  border: 1px solid #afc39c30;
-  border-radius: 10px;
-  font-size: 14px;
-  text-align: left;
 }
 @keyframes scratch-reveal {
   from {
@@ -1872,13 +2451,6 @@
   .relic-scratch-room {
     --stage-top: 116px;
   }
-  .rs-quick {
-    right: calc(max(10px, env(safe-area-inset-right)) + 90px);
-    gap: 4px;
-  }
-  .rs-quick button {
-    width: 36px;
-  }
   .rs-top {
     top: calc(max(8px, env(safe-area-inset-top)) + 58px);
     left: calc(max(10px, env(safe-area-inset-left)) + 116px);
@@ -1899,6 +2471,8 @@
     padding: 0 8px;
   }
   .rs-wallet {
+    grid-template-columns: 16px minmax(0, 1fr);
+    width: 104px;
     padding: 8px 10px;
   }
   .rs-wallet strong {
@@ -2036,19 +2610,13 @@
     transform: translateX(-50%);
     gap: 6px;
   }
-  .rs-quick {
-    right: calc(max(10px, env(safe-area-inset-right)) + 90px);
-    gap: 4px;
-  }
-  .rs-quick button {
-    width: 36px;
-  }
   .rs-tabs button {
     min-height: 34px;
     padding: 0 10px;
     font-size: 12px;
   }
   .rs-wallet {
+    width: 188px;
     padding: 6px 10px;
   }
   .rs-wallet strong {
@@ -2137,9 +2705,6 @@
   .rs-lives svg {
     transition: color 180ms ease, fill 180ms ease, opacity 180ms ease;
   }
-  .rs-machine:not(.is-ghost) {
-    transition: left 180ms ease, top 180ms ease;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .relic-scratch-room * {
@@ -2148,10 +2713,11 @@
   }
 }
 
-.rs-watch-modal { width: min(620px, calc(100vw - 24px)); }
-.rs-watch-players { display: flex; flex-wrap: wrap; gap: 8px; }
-.rs-watch-players button { max-width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #f4e7c244; border-radius: 12px; background: #ffffff0c; overflow-wrap: anywhere; }
-.rs-watch-players button[aria-pressed='true'] { border-color: #e6c981; background: #e6c98122; }
-.rs-watch-ticket { display: grid; justify-items: center; gap: 12px; margin: 12px auto; }
-.rs-watch-ticket .rs-big { width: min(100%, 350px, calc((100dvh - 270px) * var(--aspect))); height: auto; }
-.rs-watch-ticket canvas { cursor: default; }
+
+/* The shared rules layout (rules.tsx) on Lucky's green felt. */
+.scratch-modal {
+  --rules-heading: #f1dfb9;
+  --rules-muted: #b8c2a3;
+  --rules-accent: #c9a6ff;
+  --rules-note-ink: #efe6ff;
+}

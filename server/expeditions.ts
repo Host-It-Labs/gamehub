@@ -1,7 +1,9 @@
+import { seedLuckyWorkshop } from './dev-lucky.ts';
 import { scratchFor } from '../lib/games/relic/scratch.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { randomBytes } from 'node:crypto';
 import { check, HttpError, token, type Identity } from './auth.ts';
+import type { DeskPresence } from './desk-presence.ts';
 import {
   actRelic,
   advanceRelic,
@@ -21,8 +23,10 @@ export class Expeditions {
   // Ephemeral, per-tab activity. Restarting a server never resumes an idle clock.
   private activitySessions = new Map<string, number>();
   private activityPaid = new Map<string, number>();
-  constructor(db: DatabaseSync) {
+  private readonly presence?: DeskPresence;
+  constructor(db: DatabaseSync, presence?: DeskPresence) {
     this.db = db;
+    this.presence = presence;
   }
   private transaction<T>(work: () => T): T {
     this.db.exec('BEGIN IMMEDIATE');
@@ -52,6 +56,9 @@ export class Expeditions {
     this.db
       .prepare('UPDATE expeditions SET state=? WHERE token=?')
       .run(JSON.stringify(game), invite);
+  }
+  assertMember(invite: string, who: Identity) {
+    this.member(invite, who);
   }
   private member(invite: string, who: Identity) {
     check(
@@ -157,6 +164,10 @@ export class Expeditions {
     );
     const world = WORLDS.find((w) => w.id === input.world);
     check(world, 400, 'Choose a landscape.');
+    if (input.devPreset !== undefined) {
+      check(process.env.NODE_ENV === 'development', 403, 'Dev saves are only available in development.');
+      check(input.devPreset === 'workshop', 400, 'Unknown dev save.');
+    }
     const invite = token();
     const game = createRelic(
       input.title.trim(),
@@ -164,6 +175,7 @@ export class Expeditions {
       randomBytes(4).readUInt32LE(),
       now,
     );
+    if (input.devPreset === 'workshop') seedLuckyWorkshop(game);
     return this.transaction(() => {
       this.db
         .prepare('INSERT INTO expeditions VALUES (?,?)')
@@ -355,6 +367,20 @@ export class Expeditions {
           body,
           JSON.stringify(result),
         );
+      const action = input.action as RelicAction;
+      // Tell the others live. A stroke carries its points so a Watch TV can
+      // scratch along; a finished ticket or any other change asks for a fetch.
+      if (action.type === 'scratch-stroke')
+        this.presence?.changed(invite, {
+          stroke: true,
+          by: who.id,
+          ticket: action.ticket,
+          sequence: action.sequence,
+          points: action.points,
+          breaks: action.breaks,
+        });
+      if (action.type !== 'scratch-stroke' || result.scratchComplete)
+        this.presence?.changed(invite, { revision: g.revision, by: who.id });
       return { ...this.view(invite, who, g, now), result };
     });
   }

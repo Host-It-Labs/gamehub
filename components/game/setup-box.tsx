@@ -55,7 +55,6 @@ import { ContentChoice, GameExtensionChoices } from './expansions';
 import { StatStrip } from './library';
 import { boxStyle } from './game-box';
 import {
-  scores,
   totalRounds,
   type Difficulty,
   type Game,
@@ -155,7 +154,7 @@ export function SetupIntro({ game }: { game: LibraryGame }) {
 const levels = ['easy', 'medium', 'hard'] as const;
 
 /** Bot strength as one to three bars, so the three read as a scale. */
-function BotLevels({
+export function BotLevels({
   value,
   onChange,
   disabled,
@@ -259,29 +258,44 @@ export function PlayButton({
   );
 }
 
-/** A single saved match: one plain Continue button with its progress underneath. */
-function ContinueButton({
-  label,
+/** Keep the start actions in the setup footer, with Play as the primary action. */
+export function StartGameButton({
+  name,
+  saved,
   detail,
-  onClick,
+  disabled,
+  onPlay,
+  onLearn,
+  onResume,
 }: {
-  label: string;
-  detail: string;
-  onClick: () => void;
+  name: string;
+  saved: boolean;
+  detail?: string;
+  disabled?: boolean;
+  onPlay: () => void;
+  onLearn: () => void;
+  onResume: () => void;
 }) {
   return (
-    <button
-      type="button"
-      className="resume-strip"
-      data-starts-game
-      onClick={onClick}
-      aria-label={label}
-    >
-      <span className="resume-copy">
-        <strong>Continue</strong>
-        <small>{detail}</small>
-      </span>
-    </button>
+    <>
+      <LearnButton disabled={disabled} onClick={onLearn} />
+      <PlayButton disabled={disabled} data-starts-game onClick={onPlay} />
+      {saved && (
+        <button
+          type="button"
+          className="resume-strip"
+          data-starts-game
+          disabled={disabled}
+          aria-label={`Continue your ${name} game${detail ? `, ${detail}` : ''}`}
+          onClick={onResume}
+        >
+          <span className="resume-copy">
+            <strong>Continue</strong>
+            {detail && <small>{detail}</small>}
+          </span>
+        </button>
+      )}
+    </>
   );
 }
 
@@ -366,7 +380,16 @@ export function RunPicker({
     const [run] = runs;
     return (
       <div className="run-picker single">
-        <a className="resume-strip" href={run.href} aria-label={run.label} aria-disabled={disabled} onClick={(e) => { if (onContinue || disabled) e.preventDefault(); if (!disabled) onContinue?.(run.key); }}>
+        <a
+          className="resume-strip"
+          href={run.href}
+          aria-label={run.label}
+          aria-disabled={disabled}
+          onClick={(e) => {
+            if (onContinue || disabled) e.preventDefault();
+            if (!disabled) onContinue?.(run.key);
+          }}
+        >
           <span className="resume-copy">
             <strong>Continue</strong>
             <small>{run.title}</small>
@@ -399,7 +422,15 @@ export function RunPicker({
         <ul className="run-list" id={listId} aria-label={`Your ${noun}s`}>
           {runs.map((run) => (
             <li key={run.key}>
-              <a href={run.href} aria-label={run.label} aria-disabled={disabled} onClick={(e) => { if (onContinue || disabled) e.preventDefault(); if (!disabled) onContinue?.(run.key); }}>
+              <a
+                href={run.href}
+                aria-label={run.label}
+                aria-disabled={disabled}
+                onClick={(e) => {
+                  if (onContinue || disabled) e.preventDefault();
+                  if (!disabled) onContinue?.(run.key);
+                }}
+              >
                 {run.icon && (
                   <span className="run-icon" aria-hidden="true">
                     {run.icon}
@@ -658,10 +689,6 @@ export function StandaloneSetupBox({
         )}
       </div>
       <div className="setup-actions">
-        <LearnButton
-          onClick={onLearn}
-          disabled={disabled || startDisabled || unavailable}
-        />
         {unavailable ? (
           <a
             className="play-plate"
@@ -673,17 +700,16 @@ export function StandaloneSetupBox({
             Online
           </a>
         ) : (
-          <PlayButton
-            data-starts-game
+          <StartGameButton
+            name={game.name}
+            saved={!!resumable}
+            detail={progress?.label}
             disabled={disabled || startDisabled}
-            onClick={onPlay}
-          />
-        )}
-        {resumable && progress && (
-          <ContinueButton
-            label={`Continue your ${game.name} match, ${progress.label}`}
-            detail={progress.label}
-            onClick={() => onResume(save)}
+            onPlay={onPlay}
+            onLearn={onLearn}
+            onResume={() => {
+              if (save) onResume(save);
+            }}
           />
         )}
       </div>
@@ -736,7 +762,6 @@ export function SetupBox({
 }) {
   const id = game.gameId!;
   const resumable = save && save.phase !== 'over';
-  const saveScores = resumable ? scores(save) : [];
   return (
     <SetupShell game={game}>
       <SetupIntro game={game} />
@@ -776,21 +801,21 @@ export function SetupBox({
         />
       </div>
       <div className="setup-actions">
-        <LearnButton onClick={onLearn} disabled={disabled || startDisabled} />
-        <PlayButton
-          data-starts-game
+        <StartGameButton
+          name={game.name}
+          saved={!!resumable}
+          detail={
+            resumable
+              ? `Round ${save.round} of ${totalRounds(save)}`
+              : undefined
+          }
           disabled={disabled || startDisabled}
-          onClick={onPlay}
+          onPlay={onPlay}
+          onLearn={onLearn}
+          onResume={() => {
+            if (save) onResume(save);
+          }}
         />
-        {resumable && (
-          <ContinueButton
-            label={`Continue your ${game.name} match, round ${save.round} of ${totalRounds(save)}, ${save.players
-              .map((p, i) => `${p.name} ${saveScores[i]}`)
-              .join(', ')}`}
-            detail={`Round ${save.round} of ${totalRounds(save)}`}
-            onClick={() => onResume(save)}
-          />
-        )}
       </div>
     </SetupShell>
   );

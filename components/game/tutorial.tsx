@@ -43,11 +43,7 @@ export function Tutorial({
         </span>
       </div>
       <h3>{lesson?.title ?? 'Ready to play'}</h3>
-      <p>{lesson?.text ?? 'Your practice scores will be cleared.'}</p>
-      <small>
-        Try any legal move. The clock waits for you; saved matches are
-        untouched.
-      </small>
+      <p>{lesson?.text ?? 'Practice scores are not kept.'}</p>
       <div className="sandbox-controls">
         <button disabled={step === 0} onClick={() => onStep(step - 1)}>
           Back

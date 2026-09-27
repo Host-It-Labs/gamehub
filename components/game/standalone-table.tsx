@@ -1,12 +1,10 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   LockKeyhole,
   LoaderCircle,
   Check,
-  Volume2,
   RotateCcw,
-  BookOpen,
   RefreshCw,
 } from 'lucide-react';
 import {
@@ -60,15 +58,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from '../ui/dialog';
-import { RuleExplanation } from './extension-rules';
-import { FullscreenControl } from './fullscreen-control';
+import { PartyRules } from './party-rules';
 import './party-table.css';
 type Props = {
   g: AnyGame;
   onChange?: (g: AnyGame) => void;
   onHome: () => void;
   onNew?: () => void;
-  onSound?: () => void;
+  /** Sound switches, shown inline in the menu. */
+  sound?: ReactNode;
   volume: number;
   viewerSeat?: number | null;
   online?: boolean;
@@ -93,7 +91,7 @@ function awaitingAction(g: AnyGame, seat: number) {
   if (g.phase === 'vote') return !g.vote?.choices[seat];
   if (g.kind === 'dial')
     return g.phase === 'clue'
-      ? seat === g.target
+      ? !g.cards[seat].locked
       : seat !== g.target && !g.guesses[seat]?.locked;
   if (g.kind === 'size') return g.phase === 'guess' && !g.guesses[seat].locked;
   if (g.kind === 'miro')
@@ -113,14 +111,15 @@ function choiceKey(g: AnyGame, seat: number) {
   if (g.phase === 'vote') return JSON.stringify(g.vote?.choices);
   if (g.kind === 'orin')
     return JSON.stringify([g.ballots[seat]?.topic, g.offers[seat]]);
-  if (g.kind === 'dial') return JSON.stringify(g.card);
+  if (g.kind === 'dial') return JSON.stringify(g.cards[seat]?.card);
   return '';
 }
 function moveKey(g: AnyGame, seat: number) {
   if (g.phase === 'vote') return '';
   if (g.kind === 'orin')
     return JSON.stringify([g.ballots[seat], g.guesses[guessSlot(g, seat)]]);
-  if (g.kind === 'dial') return JSON.stringify([g.clue, g.guesses[seat]]);
+  if (g.kind === 'dial')
+    return JSON.stringify([g.cards[seat]?.locked, g.guesses[seat]]);
   if (g.kind === 'size') return JSON.stringify(g.guesses[seat]);
   return JSON.stringify([g.guesses[seat], g.choices[g.teams[seat]]]);
 }
@@ -129,7 +128,7 @@ export function StandaloneTable({
   onChange,
   onHome,
   onNew,
-  onSound,
+  sound,
   volume,
   viewerSeat: providedViewerSeat = 0,
   online = false,
@@ -146,7 +145,7 @@ export function StandaloneTable({
   onNextGame,
 }: Props) {
   const viewerSeat = providedViewerSeat ?? 0;
-  const [panel, setPanel] = useState<'menu' | 'rules' | null>(null);
+  const [panel, setPanel] = useState<'rules' | null>(null);
   const badges = useRef<HTMLElement>(null);
   useBadgeFit(badges);
   const entry = standaloneGames[g.kind],
@@ -237,7 +236,15 @@ export function StandaloneTable({
       <GameNavigation
         name={entry.name}
         onBack={onHome}
-        onMenu={() => setPanel('menu')}
+        menu={{
+          theme: 'party',
+          onRules: () => setPanel('rules'),
+          items: onNew
+            ? [{ label: 'New game', icon: RotateCcw, onSelect: onNew }]
+            : [],
+          sound,
+          onLeave: onHome,
+        }}
         onAdvance={
           g.tutorial && canTeach
             ? () =>
@@ -392,56 +399,9 @@ export function StandaloneTable({
         onOpenChange={(open) => !open && setPanel(null)}
       >
         <DialogContent className="party-dialog">
-          <DialogTitle>
-            {panel === 'menu' ? entry.name : 'How to play'}
-          </DialogTitle>
-          <DialogDescription>{entry.progress(g).detail}</DialogDescription>
-          {panel === 'menu' && (
-            <div className="party-menu">
-              <button onClick={() => setPanel('rules')}>
-                <BookOpen />
-                Rules
-              </button>
-              <button
-                onClick={() => {
-                  setPanel(null);
-                  onSound?.();
-                }}
-              >
-                <Volume2 />
-                Sound
-              </button>
-              <FullscreenControl />
-              <button onClick={onHome}>Library</button>
-              {onNew && (
-                <button onClick={onNew}>
-                  <RotateCcw />
-                  New game
-                </button>
-              )}
-            </div>
-          )}
-          {panel === 'rules' && (
-            <RuleExplanation
-              outcome={adventureLessons[g.kind][0].title}
-              note={
-                g.kind === 'miro'
-                  ? 'Everyone freezes all three private pins before discussion. Each team chooses all three in one turn before switching teams. Both teams confirm before any place is revealed.'
-                  : g.kind === 'size'
-                    ? 'Sizes are typical adult or standard figures. Country outlines come from Natural Earth, each drawn at true relative scale.'
-                    : g.kind === 'dial'
-                      ? 'The clue-giver stays quiet while everyone turns their dial.'
-                      : 'Discuss with your team outside the app. The list owner must stay silent while teams guess.'
-              }
-            >
-              {adventureLessons[g.kind].map((l) => (
-                <p key={l.title}>
-                  <b>{l.title}. </b>
-                  {l.text}
-                </p>
-              ))}
-            </RuleExplanation>
-          )}
+          <DialogTitle>How to play</DialogTitle>
+          <DialogDescription>{entry.name}</DialogDescription>
+          {panel === 'rules' && <PartyRules kind={g.kind} />}
         </DialogContent>
       </Dialog>
     </div>

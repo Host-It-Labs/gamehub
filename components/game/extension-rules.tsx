@@ -1,88 +1,53 @@
 import type { ReactNode } from 'react';
+import { RuleSection } from './rules';
 
-/** Inspection convention: one prominent action or requirement callout, short named steps, then limits. */
-export function RuleExplanation({
-  outcome,
-  children,
-  note,
+/** Shields (Nox) and Specialty Stalls (Yata). `title` only where no dialog title names it. */
+export function AbilityRules({
+  kind,
+  title,
 }: {
-  outcome: ReactNode;
-  children: ReactNode;
-  note?: ReactNode;
+  kind: 'shield' | 'stall';
+  title?: ReactNode;
 }) {
-  return (
-    <div className="rule-explanation">
-      <div className="rule-outcome">{outcome}</div>
-      <div className="rule-steps">{children}</div>
-      {note && <p className="rule-note">{note}</p>}
-    </div>
-  );
-}
-export function AbilityRules({ kind }: { kind: 'shield' | 'stall' }) {
   if (kind === 'shield')
     return (
-      <RuleExplanation
-        outcome={<>Win the trick: halve its penalty points, rounded up.</>}
-        note="Two Shields refresh each round. Salvage adjustments apply afterward."
+      <RuleSection
+        title={title}
+        note="A Shield is spent even if you lose the trick."
       >
         <p>
-          <b>Prepare.</b> Select a Shield before playing your card.
+          You get <b>2 Shields</b> each round. Tap one, then play your card. If
+          you <b>win the trick</b>, its penalty points are <b>halved</b>,
+          rounded up.
         </p>
-        <p>
-          <b>Spend.</b> The Shield is used even if you lose the trick.
-        </p>
-        <p>
-          <b>Cancel.</b> Tap again before playing.
-        </p>
-      </RuleExplanation>
+      </RuleSection>
     );
   return (
-    <RuleExplanation
-      outcome="Open a stall, then collect more dishes of that type."
-      note="Two permits for the whole game. Stalls persist across rounds and must be different dish types."
+    <RuleSection
+      title={title}
+      note="The opening dish and earlier ones earn nothing. Your two stalls must be different dishes."
     >
       <p>
-        <b>Open.</b> Select this button, then draft a dish to open a stall of
-        that type. Both choices lock and reveal together.
+        You have <b>2 permits</b> for the whole game. Tap <b>Open a stall</b>,
+        then keep a dish: that dish becomes your stall.
       </p>
       <p>
-        <b>Reward.</b> Each later matching dish earns +2, up to +6 per stall.
+        Each <b>later</b> dish of that kind, in any round, earns <b>+2</b>, up
+        to <b>+6</b> per stall.
       </p>
-      <p>
-        <b>Collect.</b> Only later dishes count. The opening dish and earlier
-        dishes earn no stall bonus.
-      </p>
-      <p>
-        <b>Example.</b> Open a stall, then draft two more matching dishes for +4
-        on top of their normal score.
-      </p>
-      <p>
-        <b>Cancel.</b> Tap again before playing.
-      </p>
-    </RuleExplanation>
+    </RuleSection>
   );
 }
-export function CustomerOrderRules() {
+export function CustomerOrderRules({ title }: { title?: ReactNode }) {
   return (
-    <RuleExplanation
-      outcome={<>Collect all three requested dishes this round.</>}
-      note="An unfinished order earns +0, with no penalty."
+    <RuleSection
+      title={title}
+      note="Only that round’s dishes count, and they still score as usual. An unfinished order earns nothing."
     >
       <p>
-        <b>Reward.</b> A completed order earns +7.
+        Each round, choose <b>one of three orders</b> with your first dish.
+        Collect its <b>3 dishes</b> in that round for <b>+7</b>.
       </p>
-      <p>
-        <b>Choose.</b> Pick one of three orders with your first dish each round.
-        They lock and reveal together.
-      </p>
-      <p>
-        <b>Collect.</b> Green checks mark the dishes you have collected.
-        Previous rounds do not count.
-      </p>
-      <p>
-        <b>Keep your dishes.</b> Orders never consume food. Everyone can choose
-        the same order.
-      </p>
-    </RuleExplanation>
+    </RuleSection>
   );
 }

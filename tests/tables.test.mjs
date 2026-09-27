@@ -488,3 +488,66 @@ await test('shared lobby setup persists, follows the host, and rejects guest cha
     assert.equal(tables.view(t, guest).setupOpen, false);
   } finally { db.close(); }
 });
+
+await test('the admin role passes on: an explicit leave, a hand-over, and staying away', () => {
+  const { db, tables, host, online } = setup();
+  try {
+    const guest = actor('guest'),
+      late = actor('late');
+    let t = tables.create(host);
+    t = tables.join(t.token, guest);
+    t = tables.join(t.token, late);
+    // Handing the table over by hand.
+    t = command(tables, t, host, { type: 'owner', memberId: 'guest' });
+    assert.equal(t.owner, 'guest');
+    assert.equal(tables.view(t, guest).isHost, true);
+    assert.equal(tables.view(t, host).isHost, false);
+    assert.throws(
+      () => command(tables, t, host, { type: 'owner', memberId: 'host' }),
+      { status: 403 },
+    );
+    t = command(tables, t, guest, { type: 'owner', memberId: 'host' });
+    // The admin leaving the lobby hands it to the earliest joiner still here.
+    online.delete('guest');
+    t = command(tables, t, host, { type: 'leave' });
+    assert.equal(t.owner, 'late');
+    assert.equal(t.members.some((m) => m.id === 'host'), false);
+    db.prepare('INSERT INTO users VALUES (?,?,?,?)').run('ann', 'ann@example.com', 'ann', 'unused');
+    const ann = actor('ann', true);
+    t = tables.join(t.token, ann);
+    t = command(tables, t, late, { type: 'owner', memberId: 'ann' });
+    assert.equal(
+      db.prepare('SELECT owner FROM tables WHERE token=?').get(t.token).owner,
+      'ann',
+      'a signed-in admin finds it among their tables',
+    );
+    assert.equal(tables.list(ann).length, 1);
+    t = command(tables, t, ann, { type: 'owner', memberId: 'late' });
+    t = command(tables, t, late, { type: 'remove', memberId: 'ann' });
+    // Away long enough, the admin gives way to a player who is still here.
+    t = command(tables, t, late, {
+      type: 'configure',
+      gameId: 'midnight',
+      difficulty: 'easy',
+      capacity: 2,
+    });
+    online.add('guest');
+    t = command(tables, t, late, { type: 'start' });
+    online.delete('late');
+    online.delete('guest');
+    assert.equal(tables.handOverIfAway(t.token), null, 'nobody else is here');
+    online.add('guest');
+    t = tables.handOverIfAway(t.token);
+    assert.equal(t.owner, 'guest');
+    assert.equal(tables.view(t, guest).canAdvance, true);
+    online.add('late');
+    assert.equal(tables.handOverIfAway(t.token), null, 'the admin is here');
+    // The last player out of the lobby closes the table.
+    t = command(tables, t, guest, { type: 'abandon' });
+    t = command(tables, t, guest, { type: 'remove', memberId: 'late' });
+    t = command(tables, t, guest, { type: 'leave' });
+    assert.equal(t.status, 'closed');
+  } finally {
+    db.close();
+  }
+});

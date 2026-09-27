@@ -8,6 +8,7 @@ const coverSlugs: Record<string, string> = {
   miro: 'quiz',
   relic: 'lucky',
   folio: 'folio',
+  arena: 'arena',
 };
 
 export function boxCover(id: string) {
@@ -15,8 +16,11 @@ export function boxCover(id: string) {
   if (id === 'relic') return '/art/optimized/box-lucky-v1.webp';
   // Yata's cover follows its flat toon table art (25 September 2026).
   if (id === 'midnight') return '/art/optimized/box-yata-toon-v1.webp';
+  // Mora's cover shows the game's own world and animals (27 September 2026).
+  if (id === 'wildgrove') return '/art/optimized/box-mora-game-v2.webp';
   const slug = coverSlugs[id];
-  const version = id === 'folio' ? 2 : 1;
+  // Nox moved to its flat treasure-map poster cover on 26 September 2026.
+  const version = id === 'folio' || id === 'undertow' ? 2 : 1;
   return slug ? `/art/optimized/box-${slug}-blind-v${version}.webp` : undefined;
 }
 
@@ -24,8 +28,9 @@ export function boxCover(id: string) {
  * Games without one fall back to their square cover. */
 const wideCovers = new Set(Object.keys(coverSlugs));
 export function wideCover(id: string) {
+  if (id === 'wildgrove') return '/art/optimized/box-mora-game-wide-v2.webp';
   return wideCovers.has(id)
-    ? `/art/optimized/box-${coverSlugs[id]}-wide-v1.webp`
+    ? `/art/optimized/box-${coverSlugs[id]}-wide-v${id === 'undertow' ? 2 : 1}.webp`
     : undefined;
 }
 

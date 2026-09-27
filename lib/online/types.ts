@@ -2,7 +2,7 @@ import type { StandaloneId } from '../games/standalone/types.ts';
 import type { AnyGame, AnyMove } from '../games/standalone/registry.ts';
 export type OnlineGameId = GameId | StandaloneId;
 /** Everything the table shelf offers: its own games plus Folio and Relic, which run in their own rooms. */
-export type ShelfGameId = OnlineGameId | 'folio' | 'relic';
+export type ShelfGameId = OnlineGameId | 'folio' | 'relic' | 'arena';
 import type {
   Difficulty,
   GameOptions,
@@ -19,7 +19,7 @@ export type Member = {
   connected: boolean;
   /** Leads the game on screen: the match's picked leader while it is played, the creator otherwise. */
   host: boolean;
-  /** Created the table and hosts it for good. */
+  /** The table's admin: its creator until they leave or stay away, then the next player. */
   owner?: boolean;
   /** Picked in the lobby to lead the next match. */
   nextHost?: boolean;
@@ -40,7 +40,8 @@ export type Table = GameOptions & {
   status: 'lobby' | 'playing' | 'finished' | 'closed';
   members: Member[];
   viewerId: string;
-  /** The viewer created the table: they set it up, start games and close it. */
+  /** The viewer is the table's admin: they set it up, start games and close it.
+   *  The creator holds it until they leave or stay away; then it passes on. */
   isHost: boolean;
   /** Whether this viewer may move reveals on: the host, or anyone seated while the host is away. */
   canAdvance: boolean;
@@ -53,8 +54,8 @@ export type Table = GameOptions & {
   votes?: Partial<Record<ShelfGameId, string[]>>;
   /** Open for ten seconds after a party match: member id → the game they want next. */
   nextVote?: { endsAt: number; ballots: Record<string, StandaloneId> } | null;
-  /** The table moved on to Folio or Relic, which run in their own rooms. */
-  handoff?: { kind: 'folio' | 'relic'; url: string; at: number } | null;
+  /** The table moved on to Folio, Relic or Arena, which run in their own rooms. */
+  handoff?: { kind: 'folio' | 'relic' | 'arena'; url: string; at: number } | null;
 };
 export type TableCommand =
   | {
@@ -85,7 +86,7 @@ export type TableCommand =
   | { type: 'start'; learning?: boolean }
   | { type: 'begin-match' }
   | { type: 'abandon' | 'close' | 'leave' | 'retry-bot' }
-  | { type: 'replace' | 'remove' | 'host'; memberId: string }
+  | { type: 'replace' | 'remove' | 'host' | 'owner'; memberId: string }
   | { type: 'rename'; name: string }
   | { type: 'move'; move: Move; decision?: string };
 export type Command = {

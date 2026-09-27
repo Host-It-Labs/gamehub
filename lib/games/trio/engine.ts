@@ -113,6 +113,8 @@ export type PublicGame = Omit<
   'rngState' | 'reserve' | 'memory' | 'passes' | 'pending'
 >;
 export type Observation = PublicGame & {
+  /** Only this viewer's unrevealed placement, for their private board preview. */
+  ownMove?: Move;
   reserveCount: number;
   knownPackets: Record<number, Card[]>;
 };
@@ -131,39 +133,38 @@ export const foods = [
   {
     name: 'Gyoza',
     formula: '2 → 7',
-    rule: 'Each pair of portions earns 7 points. A portion left without a partner earns 0.',
-    example: 'Five portions = two pairs = 14 points.',
+    rule: 'Each pair earns 7. A portion without a partner earns 0.',
+    example: '5 portions make 2 pairs: 14 points.',
   },
   {
     name: 'Ramen',
     formula: '1 · 4 · 8 · 13 · 19',
-    rule: 'Your total is 1, 4, 8, 13 or 19 points for one, two, three, four or five portions. Each portion after the fifth adds 2 points.',
-    example: 'Four portions earn 13. Six earn 21.',
+    rule: '1 to 5 portions earn 1, 4, 8, 13 or 19 in total. Each portion after the fifth adds 2.',
+    example: '4 portions earn 13. 6 earn 21.',
   },
   {
     name: 'Yakitori',
     formula: '4 + 4 + 1…',
-    rule: 'Your first two portions earn 4 points each. Each additional portion earns 1 point.',
-    example: 'Four portions earn 4 + 4 + 1 + 1 = 10.',
+    rule: 'Your first 2 portions earn 4 each. Each one after that earns 1.',
+    example: '4 portions earn 4 + 4 + 1 + 1 = 10.',
   },
   {
     name: 'Pickles',
     formula: '1 + variety · max 5',
-    rule: 'Each portion earns 1 plus your number of different dish types, up to 5 points per portion.',
-    example: 'Two portions with three dish types earn 2 × 4 = 8.',
+    rule: 'Each portion earns 1 plus the number of dish types you have, up to 5 each.',
+    example: '2 portions with 3 dish types earn 2 × 4 = 8.',
   },
   {
     name: 'Sesame',
     formula: '2 each · most +6',
-    rule: 'Each portion earns 2 points. The player with the most portions earns 6 bonus points. If players tie for the most, each earns 3 bonus points. You need at least one portion to earn a bonus.',
-    example:
-      'Three portions earn 6 points, plus 6 if you have more portions than every other player: 12 points.',
+    rule: 'Each portion earns 2. Having the most at the table earns +6, or +3 each when tied. You need at least 1.',
+    example: '3 portions, more than anyone else: 6 + 6 = 12.',
   },
   {
     name: 'Pudding',
     formula: '3 → 12 · extra 1',
-    rule: 'Each group of three portions earns 12 points. Leftover portions earn 1 point each.',
-    example: 'Five portions earn 12 + 2 = 14.',
+    rule: 'Each set of 3 earns 12. Leftover portions earn 1 each.',
+    example: '5 portions earn 12 + 2 = 14.',
   },
 ];
 export const habitats = [
@@ -173,49 +174,49 @@ export const habitats = [
     maxScore: 17,
     formula:
       'Largest same-species group: 1 → 2 pts; 2 → 6 pts; 3 → 11 pts; 4 → 17 pts',
-    rule: 'Only your largest group of matching creatures scores. One earns 2 points, two earn 6, three earn 11, and four earn 17. Other species here add no points.',
+    rule: 'Only your biggest group of one species scores: 1, 2, 3 or 4 alike earn 2, 6, 11 or 17.',
   },
   {
-    name: 'Roof garden',
+    name: 'Garden',
     cap: 4,
     maxScore: 16,
-    formula: 'Matching pair: 7 points; two pairs: 16 points',
-    rule: 'Every two matching creatures form a pair worth 7 points. Two pairs earn 16 points in total. A creature without a partner adds nothing.',
+    formula: '8 points per matching pair',
+    rule: 'Each matching pair earns 8. A creature without a partner earns 0.',
   },
   {
-    name: 'Root hollows',
+    name: 'Hollow',
     cap: 2,
     maxScore: 9,
-    formula: 'Matching pair: 9 points; a single: 1 point',
-    rule: 'The two root hollows hold one creature each. Two matching creatures earn 9 points. A single creature earns 1 point; two different creatures earn 3 points.',
+    formula: 'Matching pair: 9 points',
+    rule: 'Two alike earn 9. Anything else earns 0.',
   },
   {
-    name: 'Glasshouse trail',
+    name: 'Glasshouse',
     cap: 3,
     maxScore: 9,
-    formula: 'Echo: 3 points each if its species lives in another habitat',
-    rule: 'Each creature here earns 3 points if its species also lives in one of your other habitats. Other creatures on the trail and released creatures do not count.',
+    formula: '3 points each if its species lives in another habitat',
+    rule: 'Each creature here earns 3 if its species also lives in another of your habitats.',
   },
   {
-    name: 'Dry channel',
+    name: 'Channel',
     cap: 3,
     maxScore: 6,
-    formula: 'Full channel: 6 points',
-    rule: 'Fill all three spaces, with any species, to earn 6 points. A channel that is not full earns nothing.',
+    formula: '2 points per creature',
+    rule: 'Each creature here earns 2, whatever its species.',
   },
   {
     name: 'Release',
     cap: 12,
     maxScore: 0,
     formula: 'Release creature · 0 points',
-    rule: 'Remove a creature from your hand instead of placing it. It earns no points, never counts in any area, and uses your turn. Always available, regardless of the die.',
+    rule: 'Let a creature go instead of placing it. It scores 0 and never counts anywhere. Always allowed, whatever the die.',
   },
   {
     name: 'Watchpost',
     cap: 1,
     maxScore: 10,
     formula: '2 points per other habitat with this species',
-    rule: 'Your watchpost creature earns 2 points for each other scoring habitat containing its own species, up to 10 points. Several matches in one habitat still count only once. For example, a Rust Fox watching Rust Foxes in Courtyard and Roof garden earns 4 points. The Watchpost itself and released creatures do not count.',
+    rule: 'The creature here earns 2 for each other habitat that holds its species, up to 10. Each habitat counts once.',
   },
 ];
 export const habitatOrder = [0, 1, 2, 3, 4, 6, 5];
@@ -233,42 +234,42 @@ export const dice: DieFace[] = [
     symbol: '□',
     kind: 'zones',
     zones: [0, 1, 2],
-    rule: 'Place in a habitat with square placement spaces.',
+    rule: 'Place in a habitat with square spaces.',
   },
   {
     name: 'Round spaces',
     symbol: '●',
     kind: 'zones',
     zones: [3, 4, 6],
-    rule: 'Place in a habitat with round placement spaces.',
+    rule: 'Place in a habitat with round spaces.',
   },
   {
     name: 'Big homes',
     symbol: '⁝',
     kind: 'zones',
     zones: [0, 1, 3, 4],
-    rule: 'Place in a habitat with three or more spaces.',
+    rule: 'Place in one of your four biggest habitats.',
   },
   {
     name: 'Company',
     symbol: '◉',
     kind: 'company',
     zones: [],
-    rule: 'Place in a habitat that already holds a creature. While every habitat of yours is still empty, place anywhere.',
+    rule: 'Place in a habitat that already has a creature. While all your habitats are empty, place anywhere.',
   },
   {
     name: 'Emptiest',
     symbol: '○',
     kind: 'empty',
     zones: [],
-    rule: 'Place in one of your habitats with the fewest creatures. Any empty habitat qualifies; once none is empty, use the least crowded one that still has room.',
+    rule: 'Place in a habitat with the fewest creatures, among those with room.',
   },
   {
     name: 'New species',
     symbol: '✦',
     kind: 'new',
     zones: [],
-    rule: 'Place in a habitat that does not already contain this species.',
+    rule: 'Place in a habitat without this species.',
   },
 ];
 export const catalog = [
@@ -539,12 +540,12 @@ export function zoneScore(
     c = counts(cards),
     unique = c.filter(Boolean).length;
   if (contentSet === 'intermediate') {
-    // Rock pools: exact pairs; a third of a species spoils its pair.
-    if (zone === 0) return c.reduce((sum, n) => sum + (n === 2 ? 7 : n === 1 ? 1 : 0), 0);
-    // Nesting beach: rich only while no species repeats.
-    if (zone === 1) return cards.length * (unique === cards.length ? 3 : 1);
-    // Mangrove roots: three of one species or bust.
-    if (zone === 2) return cards.length === 3 && unique === 1 ? 12 : cards.length;
+    // Pools: every matching pair scores the same.
+    if (zone === 0) return c.reduce((sum, n) => sum + Math.floor(n / 2), 0) * 7;
+    // Beach: one score per different species.
+    if (zone === 1) return unique * 3;
+    // Mangroves: three of one species or nothing.
+    if (zone === 2) return cards.length === 3 && unique === 1 ? 12 : 0;
     // Pier: filled in order; a full A–B–A–B alternation earns the bonus.
     if (zone === 3)
       return (
@@ -556,10 +557,10 @@ export function zoneScore(
           ? 6
           : 0)
       );
-    // Sea cave: each creature echoes its own species elsewhere on the board.
+    // Cave: a creature scores when its species also lives in another habitat.
     if (zone === 4) {
       const elsewhere = counts(zones.filter((_, i) => i !== 4 && i !== 5).flat());
-      return cards.reduce((sum, card) => sum + Math.min(3, elsewhere[card.kind]), 0);
+      return cards.filter((card) => elsewhere[card.kind] > 0).length * 3;
     }
     // Lighthouse: a lamp keeper scores only if its species lives nowhere else.
     if (zone === 6) {
@@ -569,19 +570,17 @@ export function zoneScore(
     return 0;
   }
   if (zone === 0) return [0, 2, 6, 11, 17][Math.max(...c)] ?? 0;
-  if (zone === 1) {
-    const pairs = c.reduce((s, n) => s + Math.floor(n / 2), 0);
-    return pairs >= 2 ? 16 : pairs * 7;
-  }
-  if (zone === 2)
-    return cards.length === 2 ? (unique === 1 ? 9 : 3) : cards.length;
-  // Glasshouse trail echoes species kept in your other habitats.
+  // Garden: every matching pair scores the same.
+  if (zone === 1) return c.reduce((s, n) => s + Math.floor(n / 2), 0) * 8;
+  // Hollow: a matching pair or nothing.
+  if (zone === 2) return cards.length === 2 && unique === 1 ? 9 : 0;
+  // Glasshouse: a creature scores when its species also lives in another habitat.
   if (zone === 3) {
     const elsewhere = counts(zones.filter((_, i) => i !== 3 && i !== 5).flat());
     return cards.filter((card) => elsewhere[card.kind] > 0).length * 3;
   }
-  // Dry channel only asks to be full.
-  if (zone === 4) return cards.length >= 3 ? 6 : 0;
+  // Channel: any creature, 2 each.
+  if (zone === 4) return cards.length * 2;
   if (zone === 6)
     return cards.length
       ? 2 *
@@ -750,28 +749,28 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     min: 3,
     target: 2,
     points: 4,
-    rule: 'Completely fill two habitats that have three or more spaces.',
+    rule: 'Fill 2 habitats that have 3 or more spaces.',
   },
   {
     name: 'Square country',
     type: 'squares',
     target: 8,
     points: 3,
-    rule: 'Shelter eight creatures on square spaces: Courtyard, Roof garden and Root hollows together.',
+    rule: 'Have 8 creatures in Courtyard, Garden and Hollow together.',
   },
   {
     name: 'Round country',
     type: 'rounds',
     target: 5,
     points: 4,
-    rule: 'Shelter five creatures on round spaces: Glasshouse trail, Dry channel and Watchpost together.',
+    rule: 'Have 5 creatures in Glasshouse, Channel and Watchpost together.',
   },
   {
     name: 'Mirror terraces',
     type: 'herd',
     target: 4,
     points: 4,
-    rule: 'Shelter four creatures of one species across Courtyard and Roof garden together: a herd below, pairs above.',
+    rule: 'Have 4 creatures of one species in Courtyard and Garden together.',
   },
   {
     name: 'Channel colours',
@@ -779,7 +778,7 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     zone: 4,
     target: 3,
     points: 3,
-    rule: 'Place three different species in Dry channel.',
+    rule: 'Have 3 different species in Channel.',
   },
   {
     name: 'Hollow twins',
@@ -787,21 +786,21 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     zone: 2,
     target: 1,
     points: 3,
-    rule: 'Fill Root hollows with a matching pair.',
+    rule: 'Fill Hollow with a matching pair.',
   },
   {
     name: 'Every species',
     type: 'diversity',
     target: 6,
     points: 4,
-    rule: 'Shelter all six species anywhere in your sanctuary.',
+    rule: 'Have all 6 species on your board.',
   },
   {
     name: 'Lively sanctuary',
     type: 'habitats',
     target: 6,
     points: 4,
-    rule: 'Place at least one creature in each of the six scoring habitats.',
+    rule: 'Have at least 1 creature in each of the 6 scoring habitats.',
   },
   {
     name: 'Four families',
@@ -809,7 +808,7 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     min: 2,
     target: 4,
     points: 4,
-    rule: 'Shelter at least two creatures of each of four different species, anywhere on your board.',
+    rule: 'Have at least 2 creatures of each of 4 species.',
   },
   {
     name: 'Rooftop pairs',
@@ -817,7 +816,7 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     zone: 1,
     target: 2,
     points: 3,
-    rule: 'Fill Roof garden with two matching pairs.',
+    rule: 'Fill Garden with 2 matching pairs.',
   },
   {
     name: 'Glass walk',
@@ -825,7 +824,7 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     zone: 3,
     target: 3,
     points: 3,
-    rule: 'Fill all three spaces of Glasshouse trail, with any species.',
+    rule: 'Fill all 3 spaces of Glasshouse.',
   },
   {
     name: 'Watchpost friends',
@@ -833,7 +832,7 @@ export const sanctuaryGoals: SanctuaryGoal[] = [
     zone: 6,
     target: 3,
     points: 6,
-    rule: 'Place a creature in Watchpost and shelter its species in three other habitats.',
+    rule: 'Have a creature in Watchpost and its species in 3 other habitats.',
   },
 ];
 export function sanctuaryGoalProgress(
@@ -861,15 +860,15 @@ export function sanctuaryGoalProgress(
       progress = [3, 4, 6].reduce((n, zone) => n + (zones[zone]?.length ?? 0), 0);
       break;
     case 'herd': {
-      // Courtyard's herd and Roof garden's pairs both want one species in numbers.
+      // Courtyard's herd and Garden's pairs both want one species in numbers.
       const court = inZone(0), roof = inZone(1);
       progress = Math.max(...court.map((n, kind) => n + roof[kind]));
       break;
     }
     case 'mirror': {
-      // Floodline: a species with an exact Rock pools pair that also nests on the beach.
+      // Floodline: a species with a pair in Pools that also lives on the Beach.
       const pools = inZone(0), beach = inZone(1);
-      progress = pools.filter((n, kind) => n === 2 && beach[kind] > 0).length;
+      progress = pools.filter((n, kind) => n >= 2 && beach[kind] > 0).length;
       break;
     }
     case 'family':
@@ -1323,6 +1322,49 @@ export function play(state: Game, m: Move, actor = state.active): Game {
   }
   return g;
 }
+/** Apply only a drafter's pieces/resources; never reveal or rotate the packet. */
+function placeDraftCard(g: PublicGame, p: Player, m: Extract<Move, { type: 'play' }>) {
+  if (g.id === 'wildgrove') while (p.zones.length < 7) p.zones.push([]);
+  if (m.migration) {
+    p.zones = migratedZones(p.zones, m.migration);
+    p.migrations!--;
+  }
+  const card = p.hand.splice(
+    p.hand.findIndex((c) => c.id === m.card),
+    1,
+  )[0];
+  if (m.roam) p.roams!--;
+  if (
+    g.marketSeasons &&
+    card.kind === g.seasonForecast?.[(g.round - 1) * 6 + g.pick - 1]
+  )
+    p.seasonPoints = (p.seasonPoints ?? 0) + 2;
+  if (g.id === 'midnight' && (g.customerOrders || g.specialtyStalls)) {
+    if (m.order !== undefined) {
+      p.festival!.orders.push(m.order);
+    }
+    if (m.stall) {
+      p.festival!.stalls.push({
+        kind: card.kind,
+        from: p.zones[0].length + 1,
+      });
+    }
+  }
+  if (g.id !== 'wildgrove' || m.zone !== 5) p.zones[m.zone ?? 0].push(card);
+  return card;
+}
+
+/** A private presentation copy. Authoritative state and other seats stay untouched. */
+export function previewPlacement<T extends PublicGame>(g: T, viewer: number, move?: Move): T {
+  if (g.phase !== 'play' || g.id === 'undertow' || move?.type !== 'play' || !g.players[viewer]) return g;
+  const ready = readySeats(g).map((value, seat) => seat === viewer ? false : value);
+  if (!validMove({ ...g, ready }, move, viewer)) return g;
+  const player = structuredClone(g.players[viewer]);
+  placeDraftCard(g, player, move);
+  ready[viewer] = true;
+  return { ...g, ready, players: g.players.map((p, seat) => seat === viewer ? player : p) };
+}
+
 function applyMove(state: Game, m: Move, increment = true): Game {
   if (!validMove(state, m)) return state;
   const g = structuredClone(state),
@@ -1380,14 +1422,9 @@ function applyMove(state: Game, m: Move, increment = true): Game {
     return g;
   }
   if (m.type !== 'play') return state;
-  if (m.migration) {
-    p.zones = migratedZones(p.zones, m.migration);
-    p.migrations!--;
-  }
-  const card = p.hand.splice(
-    p.hand.findIndex((c) => c.id === m.card),
-    1,
-  )[0];
+  const card = g.id === 'undertow'
+    ? p.hand.splice(p.hand.findIndex((c) => c.id === m.card), 1)[0]
+    : placeDraftCard(g, p, m);
   g.seen.push(card);
   emit(
     g,
@@ -1460,24 +1497,6 @@ function applyMove(state: Game, m: Move, increment = true): Game {
     if (!g.players[0].hand.length) finishRound(g);
     else beginTrick(g);
   } else {
-    if (m.roam) p.roams!--;
-    if (
-      g.marketSeasons &&
-      card.kind === g.seasonForecast?.[(g.round - 1) * 6 + g.pick - 1]
-    )
-      p.seasonPoints = (p.seasonPoints ?? 0) + 2;
-    if (g.id === 'midnight' && (g.customerOrders || g.specialtyStalls)) {
-      if (m.order !== undefined) {
-        p.festival!.orders.push(m.order);
-      }
-      if (m.stall) {
-        p.festival!.stalls.push({
-          kind: card.kind,
-          from: p.zones[0].length + 1,
-        });
-      }
-    }
-    if (g.id !== 'wildgrove' || m.zone !== 5) p.zones[m.zone ?? 0].push(card);
     g.active++;
     if (g.active === n) {
       g.active = 0;
@@ -1523,6 +1542,7 @@ export function observe(g: Game, viewer = g.active): Observation {
   });
   return {
     ...rest,
+    ...(g.pending?.[viewer]?.type === 'play' ? { ownMove: structuredClone(g.pending[viewer]!) } : {}),
     ready: readySeats(g),
     passCards: passCount(g),
     reserveCount: reserve.length,
@@ -1840,77 +1860,75 @@ export const intermediateFoods = [
   {
     name: 'Bao',
     formula: 'Pair 8 · leftover −1',
-    rule: 'Each pair earns 8 points. An unpaired portion loses 1 point.',
-    example: 'Three portions earn 8 − 1 = 7.',
+    rule: 'Each pair earns 8. A portion without a partner loses 1.',
+    example: '3 portions earn 8 − 1 = 7.',
   },
   {
     name: 'Roti',
     formula: '2 each · sole least +7',
-    rule: 'Each portion earns 2. Earn 7 extra if you have at least one and strictly fewer portions than every other player. A player with zero prevents this bonus.',
-    example:
-      'Your one portion against two and three earns 9. Against zero and three it earns 2.',
+    rule: 'Each portion earns 2. Have at least 1 and fewer than every other player for +7.',
+    example: '1 portion against 2 and 3 earns 9. Against 0 and 3 it earns 2.',
   },
   {
     name: 'Chilli',
     formula: '6 · 10 · 6 · 4 · 2…',
-    rule: 'One portion earns 6, two earn 10, three earn 6. Each portion beyond three removes another 2 points.',
-    example: 'Four portions earn 4. Seven earn −2.',
+    rule: '1 portion earns 6, 2 earn 10, 3 earn 6. Each portion after the third takes away 2.',
+    example: '4 portions earn 4. 7 earn −2.',
   },
   {
     name: 'Rice',
     formula: 'Bao or Coconut pair: 5',
-    rule: 'Each portion earns 5 if paired with one Bao or Coconut. Each Bao or Coconut supports only one Rice; both paired dishes still score normally.',
-    example:
-      'Three Rice with one Bao and one Coconut earn 10 for the Rice.',
+    rule: 'Each Rice earns 5 if it has its own Bao or Coconut. That dish still scores as usual.',
+    example: '3 Rice with 1 Bao and 1 Coconut earn 10.',
   },
   {
     name: 'Corn',
     formula: '2 each · 5 types: 4 each',
-    rule: 'Each portion earns 2, or 4 if your collection contains at least five different dish types.',
-    example: 'Three portions with five dish types earn 12.',
+    rule: 'Each portion earns 2, or 4 if you have at least 5 dish types.',
+    example: '3 portions with 5 dish types earn 12.',
   },
   {
     name: 'Coconut',
     formula: '3 → 15 · leftovers 0',
-    rule: 'Each complete group of three earns 15. Leftovers earn nothing.',
-    example: 'Five portions earn 15; six earn 30.',
+    rule: 'Each set of 3 earns 15. Leftover portions earn 0.',
+    example: '5 portions earn 15. 6 earn 30.',
   },
 ];
 /** Floodline Station: the same pad shapes and die groups, more room and sharper questions over three rounds. */
 const coastalRules = [
   [
-    'Rock pools',
-    'Each species here exactly twice earns 7 points. A lone creature earns 1. A third creature of a species spoils its pair: that species earns nothing.',
-    'Exact pair 7 · lone 1 · three or more 0',
+    'Pools',
+    'Each matching pair earns 7. A creature without a partner earns 0.',
+    '7 per matching pair',
   ],
   [
-    'Nesting beach',
-    'Each creature earns 3 points while every species on the beach is different. As soon as one species repeats, the whole beach earns only 1 point per creature.',
-    'All different: 3 each · any repeat: 1 each',
+    'Beach',
+    'Each different species here earns 3. Repeats earn nothing more.',
+    '3 per different species',
   ],
   [
-    'Mangrove roots',
-    'Three creatures of one species earn 12 points. Anything else earns 1 point per creature.',
-    'Three of a kind 12 · otherwise 1 each',
+    'Mangroves',
+    '3 of one species earn 12. Anything else earns 0.',
+    'Three of a kind: 12',
   ],
   [
     'Pier',
-    'Fill the numbered spaces in order. Each creature earns 2 points. Alternate two species all the way out, A–B–A–B, for 6 extra points.',
+    'Spaces fill in order. Each creature earns 2. Alternate two species all the way, A–B–A–B, for +6.',
     '2 each · A–B–A–B +6',
   ],
   [
-    'Sea cave',
-    'Each creature echoes its own kind: it earns 1 point for each creature of its species in your other habitats, up to 3.',
-    '1 per same species elsewhere · max 3 each',
+    'Cave',
+    'Each creature here earns 3 if its species also lives in another of your habitats.',
+    '3 each if its species lives in another habitat',
   ],
   [
     'Release',
-    'Release a creature for zero points. It leaves your board.',
+    'Let a creature go instead of placing it. It scores 0 and never counts anywhere. Always allowed, whatever the die.',
     '0 points',
   ],
   [
     'Lighthouse',
-    'Each lighthouse creature earns 4 points if its species lives nowhere else on your board, the other lighthouse space included. Released creatures do not count.',
+    'Each creature here earns 4 if its species lives nowhere else on your board, the other lighthouse space included.',
     '4 each if its species lives only here',
   ],
 ];
@@ -1921,23 +1939,24 @@ export const intermediateHabitats = habitats.map((h, i) => ({
   rule: coastalRules[i][1],
   formula: coastalRules[i][2],
   cap: coastalCaps[i],
-  maxScore: [15, 15, 12, 14, 12, 0, 8][i],
+  maxScore: [14, 15, 12, 14, 12, 0, 8][i],
 }));
 const coastal = (...zones: number[]) => zones.map((zone) => coastalRules[zone][0]);
+const andList = (names: string[]) => `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 /** Same twelve ids as the Observatory goals, so saved matches keep a valid draw. */
 export const coastalGoals: SanctuaryGoal[] = [
-  { name: 'Full houses', type: 'full', min: 4, target: 2, points: 4, rule: 'Completely fill two habitats that have four or more spaces.' },
-  { name: 'Square country', type: 'squares', target: 10, points: 4, rule: `Shelter ten creatures on square spaces: ${coastal(0, 1, 2).join(', ')} together.` },
-  { name: 'Round country', type: 'rounds', target: 8, points: 3, rule: `Shelter eight creatures on round spaces: ${coastal(3, 4, 6).join(', ')} together.` },
-  { name: 'Mirror shores', type: 'mirror', target: 2, points: 6, rule: `Two species that each have an exact pair in ${coastal(0)[0]} and also nest on the ${coastal(1)[0]}.` },
-  { name: 'Mangrove trio', type: 'family', zone: 2, target: 3, points: 3, rule: `Shelter three creatures of one species in ${coastal(2)[0]}.` },
-  { name: 'Big family', type: 'family', target: 6, points: 4, rule: 'Shelter six creatures of one species anywhere on your board.' },
-  { name: 'Five families', type: 'pairs', min: 2, target: 5, points: 4, rule: 'Shelter at least two creatures of each of five different species.' },
-  { name: 'Crowded coast', type: 'habitats', min: 3, target: 4, points: 5, rule: 'Shelter at least three creatures in each of four scoring habitats.' },
-  { name: 'Twin lights', type: 'lighthouse', target: 2, points: 3, rule: `Both ${coastal(6)[0]} creatures score: two species that live nowhere else on your board.` },
-  { name: 'Beach parade', type: 'variety', zone: 1, target: 5, points: 5, rule: `Fill the ${coastal(1)[0]} with five different species.` },
-  { name: 'Pier pattern', type: 'trail', zone: 3, target: 4, points: 4, rule: `Complete the ${coastal(3)[0]} alternating two species: A–B–A–B.` },
-  { name: 'Tideline', type: 'spread', target: 4, points: 3, rule: 'Shelter one species in four different habitats.' },
+  { name: 'Full houses', type: 'full', min: 4, target: 2, points: 4, rule: 'Fill 2 habitats that have 4 or more spaces.' },
+  { name: 'Square country', type: 'squares', target: 10, points: 4, rule: `Have 10 creatures in ${andList(coastal(0, 1, 2))} together.` },
+  { name: 'Round country', type: 'rounds', target: 8, points: 3, rule: `Have 8 creatures in ${andList(coastal(3, 4, 6))} together.` },
+  { name: 'Mirror shores', type: 'mirror', target: 2, points: 6, rule: `Have 2 species that each make a pair in ${coastal(0)[0]} and also live on the ${coastal(1)[0]}.` },
+  { name: 'Mangrove trio', type: 'family', zone: 2, target: 3, points: 3, rule: `Fill ${coastal(2)[0]} with 3 of one species.` },
+  { name: 'Big family', type: 'family', target: 6, points: 4, rule: 'Have 6 creatures of one species on your board.' },
+  { name: 'Five families', type: 'pairs', min: 2, target: 5, points: 4, rule: 'Have at least 2 creatures of each of 5 species.' },
+  { name: 'Crowded coast', type: 'habitats', min: 3, target: 4, points: 5, rule: 'Have at least 3 creatures in each of 4 scoring habitats.' },
+  { name: 'Twin lights', type: 'lighthouse', target: 2, points: 3, rule: `Fill the ${coastal(6)[0]} with 2 species that live nowhere else on your board.` },
+  { name: 'Beach parade', type: 'variety', zone: 1, target: 5, points: 5, rule: `Fill the ${coastal(1)[0]} with 5 different species.` },
+  { name: 'Pier pattern', type: 'trail', zone: 3, target: 4, points: 4, rule: `Fill the ${coastal(3)[0]} with two species taking turns: A–B–A–B.` },
+  { name: 'Tideline', type: 'spread', target: 4, points: 3, rule: 'Have one species in 4 different habitats.' },
 ];
 export const creaturesFor = (set?: ContentSet) =>
   set === 'intermediate' ? coastalCreatures : creatures;
@@ -1945,11 +1964,12 @@ export const foodsFor = (set?: ContentSet) =>
   set === 'intermediate' ? intermediateFoods : foods;
 export const habitatsFor = (set?: ContentSet) =>
   set === 'intermediate' ? intermediateHabitats : habitats;
+const orList = (names: string[]) => `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`;
 /** Name the actual destinations; habitat labels no longer carry die-group glyphs. */
 export function placementDieRule(face: number, set?: ContentSet) {
   const die = dice[face];
   return die.kind === 'zones'
-    ? `Place in ${die.zones.map((zone) => habitatsFor(set)[zone].name).join(', ')}.`
+    ? `Place in ${orList(die.zones.map((zone) => habitatsFor(set)[zone].name))}.`
     : die.rule;
 }
 export function tokenImage(kind: number, food = false, set?: ContentSet) {

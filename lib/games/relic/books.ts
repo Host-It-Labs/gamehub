@@ -47,6 +47,8 @@ export type Level = {
 export const LEVEL_MULT = [1, 2, 4] as const;
 /** Tickets finished in a book before its next level opens. */
 export const LEVEL_AT = [0, 8, 25] as const;
+/** Book values step up about ×4–6 from one book to the next at every level
+ * (ticket prices follow), and book prices keep the pacing test's milestones. */
 export const BOOKS = [
   {
     id: 'seven',
@@ -71,16 +73,16 @@ export const BOOKS = [
     color: '#6d58b0',
     hint: 'Pair each seal with its twin',
     levels: [
-      { cols: 5, rows: 4, lives: 3, count: 3 },
       { cols: 6, rows: 4, lives: 2, count: 3 },
       { cols: 6, rows: 4, lives: 2, count: 2 },
+      { cols: 6, rows: 4, lives: 1, count: 2 },
     ],
   },
   {
     id: 'path',
     name: 'Garden',
     mechanic: 'path',
-    value: 25,
+    value: 35,
     price: 300_000,
     color: '#4f8a4b',
     hint: 'One path through every seal',
@@ -94,7 +96,7 @@ export const BOOKS = [
     id: 'ladder',
     name: 'Ladder',
     mechanic: 'ladder',
-    value: 125,
+    value: 800,
     price: 80_000_000,
     color: '#e0702c',
     hint: 'Higher or lower?',
@@ -108,8 +110,8 @@ export const BOOKS = [
     id: 'mine',
     name: 'Gold Mine',
     mechanic: 'mine',
-    value: 625,
-    price: 3_000_000_000,
+    value: 1_450,
+    price: 1_100_000_000_000,
     color: '#9a6a36',
     hint: 'Numbers count the dynamite',
     levels: [
@@ -122,8 +124,8 @@ export const BOOKS = [
     id: 'sunmoon',
     name: 'Sun & Moon',
     mechanic: 'sunmoon',
-    value: 3_125,
-    price: 3_000_000_000_000,
+    value: 3_500,
+    price: 400_000_000_000_000,
     color: '#2e4f93',
     hint: 'Scratch only the moons',
     levels: [
@@ -136,8 +138,8 @@ export const BOOKS = [
     id: 'chart',
     name: 'Sea Chart',
     mechanic: 'chart',
-    value: 15_625,
-    price: 3_000_000_000_000_000,
+    value: 12_500,
+    price: 9_700_000_000_000_000,
     color: '#2f7a86',
     hint: 'Edge numbers count the ships',
     levels: [
@@ -151,7 +153,7 @@ export const BOOKS = [
     name: 'Crown Jewels',
     mechanic: 'crown',
     value: 78_125,
-    price: 150_000_000_000_000_000,
+    price: 960_000_000_000_000_000,
     color: '#a32638',
     hint: 'One crown per row, column and colour',
     levels: [

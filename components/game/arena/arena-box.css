@@ -1,0 +1,106 @@
+/* Arena's setup: the eight cards of the deck as a row of small portraits. */
+.arena-box-deck {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arena-box-deck li {
+  position: relative;
+  aspect-ratio: 0.8;
+  min-width: 0;
+}
+.arena-box-deck img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #d6ad62;
+  border-radius: 8px;
+  background: #1b2231;
+  object-fit: cover;
+}
+.arena-box-deck span {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #ffc3f6,
+    #ff7be9 30%,
+    #d04cff 60%,
+    #6a17b8
+  );
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+}
+@media (max-width: 420px) {
+  .arena-box-deck {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* At a table: who plays blue and who plays red. Tap a name to swap sides;
+   bots fill the empty seats. */
+.arena-box-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.arena-box-sides ul {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  margin: 0;
+  padding: 6px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #d8382c 16%, transparent);
+  list-style: none;
+}
+.arena-box-sides ul.team-0 {
+  background: color-mix(in srgb, #2f63e0 16%, transparent);
+}
+.arena-box-sides li {
+  min-width: 0;
+}
+.arena-box-sides button {
+  width: 100%;
+  min-height: 34px;
+  padding: 4px 10px;
+  overflow: hidden;
+  border: 1.5px solid #d8382c;
+  border-radius: 9px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.arena-box-sides .team-0 button {
+  border-color: #2f63e0;
+}
+.arena-box-sides button:disabled {
+  cursor: default;
+}
+.arena-box-sides li.bot {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border: 1.5px dashed color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 9px;
+  opacity: 0.6;
+}
+.arena-box-sides li.bot svg {
+  width: 18px;
+  height: 18px;
+}

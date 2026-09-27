@@ -33,7 +33,8 @@ type Participant = { id: string; name: string };
 type Seat = Participant & { bot: boolean };
 export type StoredTable = {
   token: string;
-  /** Created the table and hosts it for good: configures, starts, closes. */
+  /** The table's admin: configures, starts, closes. The creator until they
+   *  leave or stay away, then the earliest joiner still here. */
   owner: string;
   /** Member picked in the lobby to lead the next match only; cleared when it ends. */
   host?: string;
@@ -64,10 +65,10 @@ export type StoredTable = {
   votes?: Partial<Record<ShelfGameId, string[]>>;
   /** After a party match: ten seconds to vote which party game comes next. */
   nextVote?: NextVote | null;
-  /** The table moved on to a game with its own online room (Folio, Relic). */
+  /** The table moved on to a game with its own online room (Folio, Relic, Arena). */
   handoff?: Handoff | null;
 };
-export type Handoff = { kind: 'folio' | 'relic'; url: string; at: number };
+export type Handoff = { kind: 'folio' | 'relic' | 'arena'; url: string; at: number };
 export type NextVote = { endsAt: number; ballots: Record<string, StandaloneId> };
 export const nextGameMs = 10_000;
 export const partyGames: StandaloneId[] = ['orin', 'miro'];
@@ -165,6 +166,20 @@ export function nextHostOf(t: StoredTable) {
 /** A finished match hands the lead back to the table's creator. */
 function endMatch(t: StoredTable) {
   t.host = undefined;
+}
+/** How long the table's admin may stay away before a player still here takes over. */
+export const handOverMs = 30_000;
+/** Who takes the table when its admin goes: the earliest joiner still here,
+ *  otherwise (for an explicit leave) the earliest joiner at all. */
+export function successorOf(
+  t: StoredTable,
+  connected: (member: string) => boolean,
+  mustBeHere = false,
+) {
+  const others = t.members.filter((m) => m.id !== t.owner);
+  return (
+    others.find((m) => connected(m.id)) ?? (mustBeHere ? undefined : others[0])
+  );
 }
 /** Match-running commands the picked leader may use alongside the creator. */
 const leaderCommands = ['lesson', 'advance-practice', 'begin-match', 'retry-bot'];
@@ -283,6 +298,31 @@ export class Tables {
   }
   exists(invite: string) {
     return !!this.db.prepare('SELECT 1 FROM tables WHERE token=?').get(invite);
+  }
+  /** Makes another member the table's admin. A signed-in admin finds it
+   *  among their tables from now on; guests have no such list. */
+  private transfer(t: StoredTable, to: string) {
+    t.owner = to;
+    // The picked leader of the next match only differs from the admin.
+    if (t.host === to) t.host = undefined;
+    this.db
+      .prepare(
+        'UPDATE tables SET owner=? WHERE token=? AND EXISTS (SELECT 1 FROM users WHERE id=?)',
+      )
+      .run(to, t.token, to);
+  }
+  /** The admin has been away too long: hand the table to a player still here.
+   *  Returns the table when it changed hands. */
+  handOverIfAway(invite: string) {
+    if (!this.exists(invite)) return null;
+    const t = this.get(invite);
+    if (t.status === 'closed' || this.connected(t.token, t.owner)) return null;
+    const next = successorOf(t, (id) => this.connected(t.token, id), true);
+    if (!next) return null;
+    this.transfer(t, next.id);
+    t.revision++;
+    this.save(t);
+    return t;
   }
   /** Deletes a table outright, so its invite link stops resolving. */
   remove(invite: string) {
@@ -500,7 +540,11 @@ export class Tables {
           check(standaloneGames[game.kind].validMove(game,a.move,seat),409,'That action is unavailable.');
           // Players only lock in their own choices; moving the table on belongs to the host.
           check(a.move.type!=='next'||mayAdvance(t,who.id,id=>this.connected(t.token,id)),403,'The host moves the table on.');
-          t.adventure=standaloneGames[game.kind].play(game,a.move,seat);check(t.adventure!==game,409,'Action could not be applied.');
+          // Development: the host's pick in a party game's opening vote is final, so every other seat takes it.
+          const pick=a.move.type==='vote'?a.move.choice:null;
+          const played:AnyGame=process.env.NODE_ENV==='development'&&pick&&'vote' in game&&game.vote?.opening&&who.id===hostOf(t)
+            ?{...game,vote:{...game.vote,choices:game.vote.choices.map((_,i)=>i===seat?null:pick)}} as AnyGame:game;
+          t.adventure=standaloneGames[game.kind].play(played,a.move,seat);check(t.adventure!==played,409,'Action could not be applied.');
           finishAdventure(t);break;
         }
         case 'advance-practice': {
@@ -516,6 +560,7 @@ export class Tables {
             (catalog.some((c) => c.id === a.gameId) ||
               a.gameId === 'folio' ||
               a.gameId === 'relic' ||
+              a.gameId === 'arena' ||
               (typeof a.gameId === 'string' && isStandaloneId(a.gameId))),
             400,
             'Unknown game.',
@@ -760,6 +805,12 @@ export class Tables {
           t.host = next.id === t.owner || next.id === t.host ? undefined : next.id;
           break;
         }
+        case 'owner': {
+          const next = t.members.find((m) => m.id === a.memberId);
+          check(next && next.id !== t.owner, 404, 'That player is not at this table.');
+          this.transfer(t, next.id);
+          break;
+        }
         case 'remove':
           check(
             t.status === 'lobby' && a.memberId !== t.owner,
@@ -771,19 +822,27 @@ export class Tables {
           for (const id of Object.keys(t.votes ?? {}) as ShelfGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== a.memberId);
           break;
-        case 'leave':
+        case 'leave': {
           check(
-            t.status === 'lobby' && who.id !== t.owner,
+            t.status === 'lobby',
             409,
-            who.id === t.owner
-              ? 'The host closes the table instead.'
-              : 'Your seat is reserved until this match ends.',
+            'Your seat is reserved until this match ends.',
           );
+          // The admin leaving hands the table on; the last one out closes it.
+          if (who.id === t.owner) {
+            const next = successorOf(t, (id) => this.connected(t.token, id));
+            if (!next) {
+              t.status = 'closed';
+              break;
+            }
+            this.transfer(t, next.id);
+          }
           t.members = t.members.filter((m) => m.id !== who.id);
           if (t.host === who.id) t.host = undefined;
           for (const id of Object.keys(t.votes ?? {}) as ShelfGameId[])
             t.votes![id] = t.votes![id]!.filter((v) => v !== who.id);
           break;
+        }
         case 'rename': {
           const name = displayName(a.name);
           t.members.find((m) => m.id === who.id)!.name = name;

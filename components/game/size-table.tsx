@@ -1,4 +1,5 @@
 'use client';
+import { sizeCameraZoom } from '@/lib/games/party/size-camera';
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- The silhouette itself is the size control: dragged, pinched, or stepped with the arrow keys. */
 import {
   type RefObject,
@@ -309,8 +310,7 @@ function Comparison({
   const mine = spectator ? null : g.guesses[viewer];
   const locked = !!mine?.locked,
     live = !disabled && !spectator && !locked;
-  const refM = measure(q.kind, q.ref),
-    tarM = measure(q.kind, q.target);
+  const refM = measure(q.kind, q.ref);
   const boardRef = useRef<HTMLDivElement>(null);
   const board = useBoardSize(boardRef);
   const refShape = shape(q.kind, q.ref, refM.real);
@@ -348,7 +348,7 @@ function Comparison({
   const gesture = useRef<
     | null
     | { type: 'move'; x: number; left: number }
-    | { type: 'resize'; value: number }
+    | { type: 'resize'; value: number; scale: number }
     | { type: 'pinch'; d: number; value: number }
   >(null);
   const latest = useRef(value);
@@ -357,17 +357,32 @@ function Comparison({
   }, [value]);
   const clamp = (v: number) =>
     tidy(Math.min(guessRange[1], Math.max(guessRange[0], v)));
+  /** Follow resizing in both directions, up to the initial camera scale. */
+  function keepInView(v: number) {
+    if (!board.w || !board.h) return;
+    const s = shape(q.kind, q.target, v).real;
+    setZoom(
+      sizeCameraZoom(
+        base,
+        {
+          w: board.w - PAD * 2,
+          h: board.h - GROUND - PAD * 1.6,
+        },
+        refShape.real,
+        s,
+        left,
+      ),
+    );
+  }
+  function resize(v: number) {
+    setValue(v);
+    keepInView(v);
+  }
   function settle(v: number) {
     const c = clamp(v);
     setValue(c);
     latest.current = c;
-    // A silhouette pulled past the mat's edge zooms the mat out to keep it.
-    const s = shape(q.kind, q.target, c).real;
-    const room = Math.min(
-      (board.h - GROUND - PAD) / (s.h * scale),
-      (board.w - PAD - toPx(left)) / (s.w * scale),
-    );
-    if (room < 1) setZoom((z) => Math.max(1 / 40, z * room * 0.9));
+    keepInView(c);
     if (live) {
       onDraft(c);
       commit({ type: 'guess', step, value: c });
@@ -394,7 +409,7 @@ function Comparison({
       gesture.current =
         type === 'move'
           ? { type, x: p.x, left }
-          : { type, value: latest.current };
+          : { type, value: latest.current, scale };
   }
   function move(e: ReactPointerEvent) {
     const gst = gesture.current;
@@ -404,16 +419,18 @@ function Comparison({
     if (gst.type === 'pinch' && pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (gst.d > 0) setValue(clamp((gst.value * d) / gst.d));
+      if (gst.d > 0) resize(clamp((gst.value * d) / gst.d));
     } else if (gst.type === 'move') {
       setOffset(Math.max(0, gst.left + (p.x - gst.x) / scale));
     } else if (gst.type === 'resize') {
-      // Scale so the corner follows the pointer, keeping the shape.
+      // Scale so the corner follows the pointer, keeping the shape. The
+      // pointer reads against the zoom the drag began at, so zooming out
+      // mid-drag never feeds back into the size.
       const unit = shape(q.kind, q.target, gst.value).real;
-      const fx = (p.x - toPx(left)) / (unit.w * scale),
-        fy = (groundY - p.y) / (unit.h * scale);
+      const fx = (p.x - PAD - left * gst.scale) / (unit.w * gst.scale),
+        fy = (groundY - p.y) / (unit.h * gst.scale);
       const f = Math.max(0.02, Math.max(fx, fy));
-      setValue(clamp(gst.value * f));
+      resize(clamp(gst.value * f));
     }
   }
   function up(e: ReactPointerEvent) {
@@ -466,7 +483,8 @@ function Comparison({
                 aria-label={`${name(q.kind, q.target)} size`}
                 aria-disabled={!live}
                 aria-valuenow={value}
-                aria-valuetext={formatSize(value, tarM.unit)}
+                // Sizes are judged by eye: no real units while guessing.
+                aria-valuetext={`${Math.round((Math.max(target.real.w, target.real.h) / Math.max(refShape.real.w, refShape.real.h)) * 100)}% of the ${name(q.kind, q.ref)}`}
                 onKeyDown={key}
                 onPointerDown={(e) => down(e, 'move')}
                 onPointerMove={move}
@@ -492,7 +510,8 @@ function Comparison({
           <button
             type="button"
             aria-label="Zoom in"
-            onClick={() => setZoom((z) => Math.min(8, z * 1.5))}
+            disabled={zoom >= 1}
+            onClick={() => setZoom((z) => Math.min(1, z * 1.5))}
           >
             <Plus size={18} />
           </button>
@@ -514,9 +533,6 @@ function Comparison({
             data-game-motion="change"
             data-game-motion-key={locked ? 'locked' : canLock ? 'lock' : 'next'}
           >
-            <output className="size-readout">
-              {formatSize(value, tarM.unit)}
-            </output>
             {locked ? (
               <button
                 type="button"
@@ -626,7 +642,7 @@ function Reveal({
   const guesses = rows.flatMap((r) =>
     r.value ? [{ ...r, shape: shape(q.kind, q.target, r.value) }] : [],
   );
-  // A wild guess is cropped to its slot; the lineup fits the rest.
+  // Limit the space reserved for wild guesses, not their visible silhouettes.
   const cap = (b: Box) => ({
     w: Math.min(b.w, answer.real.w * 3.5),
     h: Math.min(b.h, answer.real.h * 3.5),
@@ -735,21 +751,12 @@ function Reveal({
                   onClick={() => toggle(r.s)}
                   {...hover(r.s)}
                 >
-                  <span
-                    className={`size-clip ${capped[i + 2].w < r.shape.real.w || capped[i + 2].h < r.shape.real.h ? 'is-over' : ''}`}
-                    style={{ height: groundY }}
-                  >
+                  <span className="size-clip" style={{ height: groundY }}>
                     <span
                       className="size-thing is-guess"
                       style={{ top: groundY - r.shape.real.h * scale }}
                     >
                       <Silhouette s={r.shape} scale={scale} />
-                    </span>
-                    <span
-                      className="size-thing is-ghost"
-                      style={{ top: groundY - answer.real.h * scale }}
-                    >
-                      <Silhouette s={answer} scale={scale} />
                     </span>
                   </span>
                   <small style={{ top: groundY + 8 }}>

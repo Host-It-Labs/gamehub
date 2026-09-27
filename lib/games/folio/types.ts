@@ -20,9 +20,10 @@ export type Level = 1 | 2 | 3 | 4;
 /** The level a run starts at; each boss beaten raises it by one, up to 4. */
 export type Difficulty = 1 | 2 | 3;
 export type NodeType = 'puzzle' | 'boss';
-/** A small change to the trail, offered after each boss but the last. */
+/** A change to the trail ahead, offered after each boss. */
 export type Edit = {
-  /** Strike removes `kind` from every later stop; swap changes one stop. */
+  /** Strike removes `kind` from every later stop. Swaps (one stop changed)
+   * are no longer offered but may still sit in a saved result. */
   type: 'strike' | 'swap';
   kind: Kind;
   changes: { node: string; to: Kind }[];
@@ -48,6 +49,14 @@ export type Puzzle = {
   status: 'playing' | 'won' | 'lost';
   view: unknown;
 };
+/** A teammate's move, waiting for the host to play it or turn it down. The
+ * same move from several players is one suggestion with several names. */
+export type Suggestion = {
+  id: string;
+  by: string[];
+  move: Record<string, unknown>;
+  at: number;
+};
 export type FolioGame = {
   version: 3;
   revision: number;
@@ -69,7 +78,19 @@ export type FolioGame = {
   secret?: unknown;
   /** Edits on offer after a boss; empty otherwise. */
   edits: Edit[];
+  /** Acts whose boss the crew has already rerolled (one reroll per act). */
+  rerolled?: number[];
+  /** What each member would pick: a node id on the map, `edit:<index>` or
+   * `keep` after a boss. Only the host's choice moves the crew. */
+  votes?: Record<string, string>;
   result?: { won: boolean; message: string; answer: string };
+  /** The member who plays the shared board and moves the crew on; the
+   * first member until the server hands the run to someone else. */
+  host?: string;
+  /** The others' moves for the puzzle in play, open to the whole crew. */
+  suggestions?: Suggestion[];
+  /** Counts suggestions ever made, for their ids. */
+  suggested?: number;
   victory: boolean;
   startedAt: number;
   updatedAt: number;
@@ -78,7 +99,13 @@ export type PublicGame = Omit<FolioGame, 'secret' | 'seed'>;
 export type Action =
   | { type: 'node'; id: string }
   | { type: 'move'; move: Record<string, unknown> }
-  | { type: 'give-up' | 'continue' | 'start' }
+  | { type: 'give-up' | 'continue' | 'start' | 'reroll' }
+  /** A teammate's pick, shown to everyone; `null` takes it back. */
+  | { type: 'vote'; target: string | null }
+  /** A teammate's move, offered to the host instead of played. */
+  | { type: 'suggest'; move: Record<string, unknown> }
+  /** The host plays a suggestion, or anyone takes their own name off one. */
+  | { type: 'accept' | 'dismiss'; id: string }
   /** Development only: the server refuses it outside `npm run dev`. */
   | { type: 'dev-win' }
   | { type: 'edit'; index: number };
@@ -90,6 +117,14 @@ export type FolioView = {
   /** Present only for someone who can see the run but has not joined it. */
   joined: boolean;
   members: FolioMember[];
+  /** The host plays the board, picks the path and moves the crew on. They
+   * start as the table's first member; if they stay away, the next member
+   * still here takes over. */
+  hostId: string;
+  /** The viewer is the host: they play, the others suggest. */
+  canLead: boolean;
+  /** The boss node the crew may reroll right now, if any. */
+  reroll: string | null;
 };
 export type FolioSummary = {
   token: string;

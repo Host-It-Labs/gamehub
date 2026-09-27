@@ -20,6 +20,27 @@ const calm = () =>
   matchMedia('(prefers-reduced-motion: reduce)').matches;
 const VERDICTS = ['Perfect!', 'Great!', 'Solid!', 'Phew!'];
 const clock = () => Date.now();
+const INK_MS = 360;
+
+/**
+ * Selecting a word prints it: a vermilion pass lands off register, then snaps
+ * in. Run from the tap itself, so tiles that Shuffle moves never replay it.
+ */
+function inkIn(tile: HTMLElement | undefined) {
+  const word = tile?.firstElementChild as HTMLElement | null | undefined;
+  if (!word || calm()) return;
+  const red =
+    getComputedStyle(word).getPropertyValue('--folio-red').trim() || '#c5472c';
+  const off = { textShadow: `3px 2px 0 ${red}`, transform: 'scale(1.05)' };
+  word.animate(
+    [
+      off,
+      { ...off, offset: 0.3 },
+      { textShadow: `0 0 0 ${red}`, transform: 'none' },
+    ],
+    { duration: INK_MS, easing: 'ease-in-out' },
+  );
+}
 
 /** Timers that all die with the component (and only then). */
 function useLater() {
@@ -207,6 +228,7 @@ function Board({ p, view, busy, done, move }: KindProps<GroupsView>) {
   const locked = done || busy || !!pending;
   function toggle(w: string) {
     if (locked || !onBoard.has(w)) return;
+    if (!sel.includes(w) && sel.length < 4) inkIn(tiles.current.get(w));
     setSelected(
       sel.includes(w)
         ? sel.filter((x) => x !== w)

@@ -10,7 +10,13 @@ const FolioLab =
   process.env.NODE_ENV === 'development'
     ? lazy(() => import('@/components/game/folio-lab'))
     : null;
+const ArenaLab =
+  process.env.NODE_ENV === 'development'
+    ? lazy(() => import('@/components/game/arena/arena-lab'))
+    : null;
 const SoundLab = lazy(() => import('@/components/game/sound-lab'));
+// An online battle loads three.js with the rest of Arena, only when opened.
+const ArenaRoom = lazy(() => import('@/components/game/arena/arena-room'));
 const subscribe = () => () => {};
 export default function Gamehub() {
   const path = useSyncExternalStore(
@@ -43,10 +49,29 @@ export default function Gamehub() {
         <FolioLab />
       </Suspense>
     );
+  if (path === '/arena/lab' && ArenaLab)
+    return (
+      <Suspense fallback={null}>
+        <ArenaLab />
+      </Suspense>
+    );
   const folio = /^\/folio\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (folio) return <Folio invite={folio[1]} />;
   const expedition = /^\/expedition\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (expedition) return <Relic invite={expedition[1]} />;
+  const battle = /^\/arena\/([A-Za-z0-9_-]{32})$/.exec(path);
+  if (battle)
+    return (
+      <Suspense
+        fallback={
+          <main className="startup-loading" aria-busy="true">
+            Arena
+          </main>
+        }
+      >
+        <ArenaRoom token={battle[1]} />
+      </Suspense>
+    );
   const match = /^\/table\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (match) return <SharedTable invite={match[1]} />;
   return <SoloGame />;

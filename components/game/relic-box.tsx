@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Factory, Sparkles, Ticket } from 'lucide-react';
 import { api, rememberedName, rememberName } from '@/lib/online/client';
 import type {
@@ -7,7 +7,13 @@ import type {
   ExpeditionView,
 } from '@/lib/games/relic/types';
 import type { LibraryGame } from '@/lib/games/library-fixtures';
-import { PlayButton, RunPicker, SetupIntro, SetupShell } from './setup-box';
+import {
+  LearnButton,
+  PlayButton,
+  RunPicker,
+  SetupIntro,
+  SetupShell,
+} from './setup-box';
 import { SetupRow } from './setup-row';
 import './online-boxes.css';
 
@@ -39,6 +45,7 @@ export function RelicSetupBox({
     }) => Promise<void>;
   };
 }) {
+  const formId = useId();
   const [session, setSession] = useState<Session | null>(null),
     [desks, setDesks] = useState<ExpeditionSummary[]>([]),
     [name, setName] = useState(rememberedName),
@@ -87,6 +94,27 @@ export function RelicSetupBox({
       setBusy(false);
     }
   }
+  async function openWorkshop() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      rememberName(name.trim());
+      const v = await api<ExpeditionView>('/api/expeditions', {
+        name,
+        title: 'Lucky workshop (Dev)',
+        world: 'dunes',
+        devPreset: 'workshop',
+      });
+      if (table) {
+        await table.onLaunch({ kind: 'relic', token: v.token });
+        setBusy(false);
+      } else window.location.assign(`/expedition/${v.token}`);
+    } catch (e) {
+      setError(errorText(e));
+      setBusy(false);
+    }
+  }
   return (
     <SetupShell game={game} className="online-box relic-box">
       <SetupIntro game={game} />
@@ -102,6 +130,7 @@ export function RelicSetupBox({
         </li>
       </ul>
       <form
+        id={formId}
         className="relic-box-new"
         onSubmit={(e) => {
           e.preventDefault();
@@ -157,8 +186,10 @@ export function RelicSetupBox({
         <div className="setup-actions">
           <PlayButton
             type="submit"
+            form={formId}
             disabled={
               loading ||
+              !title.trim() ||
               busy ||
               table?.disabled ||
               (!table && !known && !name.trim())
@@ -166,6 +197,19 @@ export function RelicSetupBox({
           >
             {busy ? 'Opening…' : 'New desk'}
           </PlayButton>
+          {process.env.NODE_ENV === 'development' && (
+            <LearnButton
+              label="Dev workshop"
+              Icon={Factory}
+              onClick={() => void openWorkshop()}
+              disabled={
+                loading ||
+                busy ||
+                table?.disabled ||
+                (!table && !known && !name.trim())
+              }
+            />
+          )}
           <RunPicker
             disabled={busy || table?.disabled}
             onContinue={table ? (token) => void open(token) : undefined}

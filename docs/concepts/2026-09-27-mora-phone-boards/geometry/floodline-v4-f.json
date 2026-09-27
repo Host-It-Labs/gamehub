@@ -1,0 +1,296 @@
+{
+ "source": "/art/mora-phone-floodline-v4-f-tall.png",
+ "image": "/art/optimized/mora-phone-floodline-v4-f-tall.webp",
+ "out": "lib/games/floodline-portrait-art.json",
+ "width": 1024,
+ "height": 1536,
+ "extendTop": 240,
+ "extendBottom": 340,
+ "tokenWidth": 74,
+ "labelGap": 64,
+ "roofTop": 36,
+ "zones": [
+  {
+   "zone": 0,
+   "slots": [
+    [
+     164,
+     992
+    ],
+    [
+     260,
+     992
+    ],
+    [
+     357,
+     992
+    ],
+    [
+     201,
+     1081
+    ],
+    [
+     303,
+     1081
+    ]
+   ],
+   "summary": "7 per *pair*"
+  },
+  {
+   "zone": 1,
+   "slots": [
+    [
+     148,
+     570
+    ],
+    [
+     241,
+     570
+    ],
+    [
+     334,
+     570
+    ],
+    [
+     188,
+     652
+    ],
+    [
+     288,
+     652
+    ]
+   ],
+   "summary": "3 per *different* species"
+  },
+  {
+   "zone": 2,
+   "slots": [
+    [
+     652,
+     656
+    ],
+    [
+     738,
+     656
+    ],
+    [
+     824,
+     656
+    ]
+   ],
+   "summary": "Three *alike*: 12",
+   "labelX": 778
+  },
+  {
+   "zone": 3,
+   "slots": [
+    [
+     306,
+     234
+    ],
+    [
+     395,
+     234
+    ],
+    [
+     485,
+     235
+    ],
+    [
+     574,
+     235
+    ]
+   ],
+   "summary": "2 each \u00b7 *A\u2013B\u2013A\u2013B* +6"
+  },
+  {
+   "zone": 4,
+   "slots": [
+    [
+     733,
+     1026
+    ],
+    [
+     818,
+     1026
+    ],
+    [
+     734,
+     1095
+    ],
+    [
+     820,
+     1095
+    ]
+   ],
+   "summary": "3 each if found *elsewhere*"
+  },
+  {
+   "zone": 6,
+   "slots": [
+    [
+     836,
+     251
+    ],
+    [
+     911,
+     251
+    ]
+   ],
+   "summary": "4 each if found *only* here"
+  }
+ ],
+ "release": [
+  521,
+  779
+ ],
+ "landmarks": [
+  {
+   "name": "lighthouse",
+   "bounds": [
+    743,
+    36,
+    257,
+    364
+   ]
+  },
+  {
+   "name": "pier",
+   "bounds": [
+    136,
+    200,
+    614,
+    150
+   ]
+  },
+  {
+   "name": "nesting beach",
+   "bounds": [
+    14,
+    414,
+    464,
+    336
+   ]
+  },
+  {
+   "name": "mangrove roots",
+   "bounds": [
+    514,
+    371,
+    486,
+    379
+   ]
+  },
+  {
+   "name": "rock pools",
+   "bounds": [
+    0,
+    779,
+    507,
+    443
+   ]
+  },
+  {
+   "name": "sea cave",
+   "bounds": [
+    557,
+    779,
+    429,
+    436
+   ]
+  }
+ ],
+ "water": [
+  [
+   543,
+   1260
+  ],
+  [
+   640,
+   1250
+  ],
+  [
+   743,
+   1270
+  ],
+  [
+   743,
+   1390
+  ],
+  [
+   640,
+   1400
+  ],
+  [
+   543,
+   1390
+  ]
+ ],
+ "foliage": [
+  {
+   "polygon": [
+    [
+     929,
+     400
+    ],
+    [
+     980,
+     392
+    ],
+    [
+     1024,
+     405
+    ],
+    [
+     1024,
+     535
+    ],
+    [
+     980,
+     545
+    ],
+    [
+     929,
+     530
+    ]
+   ],
+   "pivot": [
+    975,
+    560
+   ]
+  },
+  {
+   "polygon": [
+    [
+     0,
+     1114
+    ],
+    [
+     45,
+     1106
+    ],
+    [
+     86,
+     1120
+    ],
+    [
+     86,
+     1250
+    ],
+    [
+     45,
+     1258
+    ],
+    [
+     0,
+     1248
+    ]
+   ],
+   "pivot": [
+    45,
+    1275
+   ]
+  }
+ ],
+ "extendSide": 90
+}

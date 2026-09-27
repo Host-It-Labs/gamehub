@@ -23,39 +23,11 @@
 .at-table [data-game='wildgrove'] .mora-migration-action.piece { background: #b57c4d; color: #fff5d9; border: 2px solid #644a32; border-radius: 5px 18px 5px 18px; box-shadow: 2px 3px 0 #644a32; }
 .at-table [data-game='wildgrove'] .sanctuary-goal-medal { background: #d1b36d; color: #473c27; border: 3px double #796634; border-radius: 50%; box-shadow: 0 3px 0 #78603a; }
 .at-table [data-game='wildgrove'] .sanctuary-goal.complete .sanctuary-goal-medal { background: #ecce78; border-color: #3b6040; }
-/* Table inspection never changes the live world's camera or available width. */
-.all-boards-modal[data-slot='dialog-content'] {
-  width: calc(100vw - 24px);
-  max-width: none;
-  height: calc(100dvh - 24px);
-  grid-template-rows: auto auto minmax(0, 1fr);
-  padding: 24px;
-  gap: 12px;
-  background: #f0ecdf;
-  color: #293b32;
-}
-.all-boards-modal > [data-slot='dialog-title'],
-.all-boards-modal > [data-slot='dialog-description'] { padding-right: 64px; }
+/* Others keeps a large close control; the panel itself lives in others-panel.css. */
 .all-boards-modal > [data-slot='dialog-close'] { width: 52px; height: 52px; border: 2px solid currentColor; border-radius: 50%; }
 .all-boards-modal > [data-slot='dialog-close'] svg { width: 28px; height: 28px; }
-.all-boards-grid { overflow: auto; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 20px; padding: 8px; }
-.all-boards-grid.seats-1 { grid-template-columns: 1fr; }
-.table-board-card { min-width: 0; padding: 16px; border: 2px solid #bbb9a6; border-radius: 18px; background: #fffdf5; }
-.table-board-card.is-selected { outline: 3px solid #54705a; outline-offset: 2px; }
-.table-board-card.is-you { border-color: #54705a; }
-.table-board-card h3 { display: flex; justify-content: space-between; gap: 12px; margin: 0; }
-.table-board-card h3 b { white-space: nowrap; }
-.table-board-card h3 em { font-size: .8em; padding: 3px 10px; border-radius: 20px; background: #dce7cb; }
-.table-seat-label { margin: 6px 0 12px; color: #586453; }
-.table-board-card .mora-board { width: 100%; max-width: none; }
 .mora-ground-label > strong { white-space: nowrap; }
 .mora-ground-label > strong > b { display: inline-flex; white-space: nowrap; }
-@media (min-width: 1800px) { .all-boards-grid:not(.seats-1):not(.seats-2) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 700px) {
-  .all-boards-modal[data-slot='dialog-content'] { padding: 16px 8px; width: calc(100vw - 12px); height: calc(100dvh - 12px); }
-  .all-boards-grid { grid-template-columns: 1fr; }
-  .table-board-card { padding: 10px; }
-}
 
 /* A shared, nonverbal state vocabulary. Shape remains meaningful without motion. */
 .player-status-icons { display: inline-flex; gap: 3px; align-items: center; }
@@ -100,10 +72,6 @@
 .at-table .table-layout[data-game='wildgrove'] .mora-ground-label { background: var(--mora-paper), #f5ecd5; border: 1px solid #b7a37e; border-radius: 2px 9px 2px 5px; box-shadow: 1px 3px 0 #857c5144; padding: .3cqw .7cqw; }
 .at-table .table-layout[data-game='wildgrove'] .mora-ground-label > strong { display: flex; flex-wrap: nowrap; align-items: baseline; gap: .4em; white-space: nowrap; }
 .at-table .table-layout[data-game='wildgrove'] .mora-ground-label > strong > b { display: inline-flex; align-items: baseline; white-space: nowrap; font-size: inherit; padding: 0; }
-.table-passing-order { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 12px; border-bottom: 1px dashed #a69c7e; }
-.table-passing-order > span { display: inline-flex; align-items: center; gap: 8px; }
-.table-passing-order b, .passing-return { padding: 8px 12px; background: #e7e8d6; border-radius: 6px; }
-.table-passing-order .your-seat b, .table-passing-order .passing-return { background: #37533f; color: #fff6df; }
 .player-resources { margin-top: 12px; }
 .nature-reserves { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
 .nature-reserves > div { display: flex; align-items: center; gap: 12px; background: #ede8d4; border: 1px dashed #8d9271; padding: 8px 12px; border-radius: 5px; }
@@ -112,7 +80,6 @@
 .goal-progress-ledger { list-style: none; padding: 0; margin: 8px 0; font-size: 13px; }
 .goal-progress-ledger li { display: flex; gap: 12px; padding: 4px; border-bottom: 1px dashed #c2bea7; }
 .goal-progress-ledger li > span:first-child { flex: 1; }
-.all-boards-modal .sanctuary-goals { position: static; transform: none; justify-content: center; }
 @media (orientation: landscape) and (min-height: 501px) {
   .at-table .table-layout[data-environment='observatory'] .hand-frame { max-width: min(580px, calc(100% - 510px)); }
   .at-table .table-layout[data-environment='observatory'] .hand-controls { inset-inline: 18px; }
@@ -162,8 +129,6 @@
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) { aspect-ratio: auto; }
 .mora-board .mora-ground-label > strong { display: flex; align-items: baseline; flex-wrap: nowrap; gap: .35em; white-space: nowrap; }
 .at-table .table-layout[data-game='wildgrove'] .player-button > span:nth-child(2) { min-width: 0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.all-boards-modal[data-game='wildgrove'] { background: url('/art/optimized/mora-paper-fibers-v1.webp'), #efe6ce; }
-.all-boards-modal[data-game='wildgrove'] .table-board-card { background: #faf2dd; border: 1px dashed #9b8c69; border-radius: 5px 18px 5px 10px; box-shadow: 2px 4px 0 #bbaa85; }
 @media (orientation: portrait) {
   .at-table .table-layout[data-environment='observatory'] .players { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
   .at-table .table-layout[data-environment='observatory'] .player-button { width: 100%; }

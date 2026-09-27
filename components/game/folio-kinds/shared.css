@@ -68,6 +68,10 @@
 }
 .fk-tile.filled {
   border-color: #193d79a0;
+}
+/* Only a letter being typed pops; a graded row must not pop again when its
+ * flip class is dropped. */
+.fk-tile.filled[data-grade='-1'] {
   animation: fk-pop 0.12s ease;
 }
 .fk-tile[data-grade='2'] {
@@ -136,9 +140,17 @@
     transform: translateX(7px);
   }
 }
+/* The winning row flips like any other, then bounces. The bounce has no
+ * backwards fill, or it would hold the tiles flat through their flip. */
 .fk-row.win .fk-tile {
-  animation: fk-bounce 0.8s ease both;
+  animation: fk-bounce 0.8s ease;
   animation-delay: calc(1.5s + var(--i) * 0.1s);
+}
+.fk-row.win .fk-tile.reveal {
+  animation:
+    fk-flip 0.5s ease both,
+    fk-bounce 0.8s ease;
+  animation-delay: calc(var(--i) * 0.28s), calc(1.5s + var(--i) * 0.1s);
 }
 @keyframes fk-bounce {
   0%,
@@ -246,8 +258,10 @@
 @media (prefers-reduced-motion: reduce) {
   .fk-tile.reveal,
   .fk-tile.filled,
+  .fk-tile.filled[data-grade='-1'],
   .fk-row.shake,
   .fk-row.win .fk-tile,
+  .fk-row.win .fk-tile.reveal,
   .fk-toast {
     animation: none;
   }

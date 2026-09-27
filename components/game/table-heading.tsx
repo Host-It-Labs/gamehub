@@ -35,6 +35,10 @@ export function TableProgress({
 export const gameName = (g: PublicGame) =>
   catalog.find((game) => game.id === g.id)?.name;
 
+/** The world palette of a board game's menu and saving screen. */
+export const worldTheme = (id: PublicGame['id']) =>
+  id === 'undertow' ? 'nox' : id === 'wildgrove' ? 'mora' : 'yata';
+
 export function TableHeading({ g }: { g: PublicGame }) {
   return (
     <div className="table-heading">

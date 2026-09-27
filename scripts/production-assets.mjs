@@ -36,6 +36,7 @@ for (const id of [
   'miro',
   'relic',
   'folio',
+  'arena',
 ]) {
   const cover = boxCover(id);
   add(cover);
@@ -66,6 +67,19 @@ for (const tall of [false, true]) {
 for (const asset of [...audioAssets, ...sharedAudioAssets, ...audioOptions, ...earlierAudioOptions]) add(asset.src);
 for (const ambience of [...ambiences, ...labAmbiences])
   for (const sound of [...ambience.beds, ...ambience.events]) add(sound.src);
+// Arena's 3D art: every tile, model and card portrait its loader lists.
+const arena = JSON.parse(await readFile('lib/games/arena/assets.json', 'utf8'));
+for (const set of Object.values(arena.textures))
+  for (const file of [set.albedo.hq, set.albedo.lite, set.normal, set.orm])
+    add(file.path);
+for (const file of [...Object.values(arena.models), ...Object.values(arena.cards)])
+  add(file.path);
+// Arena's music and effects.
+const arenaAudio = JSON.parse(
+  await readFile('lib/games/arena/audio.json', 'utf8'),
+);
+for (const sound of Object.values(arenaAudio))
+  for (const src of sound.srcs) add(src);
 // Sizes builds its sheet URLs from each silhouette's sheet name.
 const silhouettes = JSON.parse(
   await readFile('lib/games/party/size-silhouettes.json', 'utf8'),

@@ -1,5 +1,429 @@
 # Gamehub design direction
 
+## Arena: smaller towers, full-size archers (27 September 2026)
+
+Both side towers and the central castle are drawn 30% smaller on both teams.
+Their archers keep the approved size and stand on the lowered platforms.
+Rubble, health-bar positions and projectile heights follow the smaller
+buildings. The camera, troop sizes and gameplay remain as approved.
+
+## Arena: quieter effects and more visible figures (27 September 2026)
+
+The effects bus is about 10 dB quieter; the music mix stays at its existing
+level. Wide views lower the camera from 50° to 42°, retaining the fitted
+whole field; portrait keeps its 70° view. Troops grow 18% on every device,
+with another 12% across both horizontal model axes so their silhouettes
+read from either team's end. Placement previews use the same proportions.
+The existing portrait size boost remains, and tower guards follow the shared
+figure proportions. This updates the higher-camera direction below.
+
+## Lucky: unlimited book levels (27 September 2026)
+
+Book levels now continue indefinitely, distinct from the three puzzle difficulties.
+The shelf shows the numeric level, a gold progress bar and exact ticket counts.
+After difficulty III opens, each new level needs 15 more hard tickets than the
+previous one (reduced by Early print); each adds 50% of the level 3 value to both
+prizes and prices, including factory sales. Existing progress is retained.
+Twins I uses the former II puzzle, II uses the former III, and III allows one mistake.
+A development-only **Dev workshop** creates a separate late-game save for solo or
+a table, with high book levels and a large, busy, deliberately inefficient factory.
+This replaces the maxed-book endpoint described below.
+
+## Immediate private placement (27 September 2026)
+
+Mora and Yata show your submitted creature or dish on your own board immediately,
+including its extension effects, and remove it from your hand. Online placement
+previews before acknowledgement; a failed submission restores the authoritative
+board. Reloading restores your accepted pending placement. Undo withdraws it while
+another player is still choosing. Other seats see only the resolved board until
+all choices are ready; previews never rotate packets or reveal other decisions.
+Placement sounds play when you act. Strategy matches with only bot opponents
+omit the next-turn cue; human multiplayer keeps it.
+
+## Arena: cartoony, a higher camera, fair lanes and sound (27 September 2026, later)
+
+William's review of Arena against the classic cartoon tower-battle game,
+all decided by him:
+
+- **Cartoony, brighter, everywhere.** The board read too dark and too
+  realistic, most of all on phones and in the woods. The graphite studio
+  void is gone: the valley sits under a clear bright sky with a light haze
+  in the distance, lit by a stronger sun and sky, with a tone curve that
+  keeps colours saturated and bright blue water. The surface tiles are
+  regenerated as stylised cartoon textures, high quality but with less
+  detail (v4). This supersedes the realistic miniature materials of the
+  Collector's Diorama; the models and their shapes stay.
+- **Cartoony cards that show the count.** The card portraits were too
+  perfect and too AI-looking; the new set (v5) is drawn as cartoon
+  characters, and each shows how many troops it brings: two Cadets, three
+  Robots.
+- **A higher camera, the same angle everywhere.** 70° on phones, 50° on
+  wide screens (it was 59° and 33°), so troops coming at you read all the
+  way up the field. Phones always show the whole field with both side walls,
+  level on both sides; wide screens let the valley fill the sides and let
+  the near wall ends drop beside the hand so the field is as big as it can
+  be. The valley's slab is wider so no edge of the screen shows the void.
+- **Troops keep their lane.** A card's troops walk the lane of the spot it
+  was dropped on, whatever their formation or shoves; they change lanes only
+  by chasing an enemy troop over the middle. A lane whose small tower fell
+  leads to the king over its own bridge. The Dino goes for its lane's tower,
+  not whichever tower is nearest.
+- **A warning while placing.** Holding a troop card shows, as red dashed
+  rings, the reach of every enemy tower and troop that would shoot it where
+  it would land.
+- **Elixir visibly refills** on every browser: each bead's fill is set
+  directly every frame.
+- **Natural walks.** Ground troops plant each foot and sweep it back at the
+  ground's speed, then lift and swing it through; the body dips on each
+  step, rolls onto the planted foot and the arms swing with the opposite
+  leg (the Robots and the Biplane were already fine).
+- **Phones adapt, strong phones match the desktop.** Every device starts at
+  its best; if frames slip the pacer steps down a ladder (60 fps cap,
+  shadows every other frame, resolution, shadow size) only as far as that
+  device needs, climbs back when there is room, and never hunts up and
+  down. This reverses the earlier "never lower quality" rule for weak
+  devices only.
+- **Sound in the style of the genre.** A whoosh and thump as a card lands,
+  a cue for each troop arriving, its attacks and its fall, arrows, cannon,
+  collapsing towers, the Meteor, horns, a countdown tick and end stings,
+  all generated with ElevenLabs (sound.ts). Original orchestral battle music
+  now replaces woodland ambience: relaxed and cheerful near 96 BPM, rising
+  to about 144 BPM for the final minute and overtime, with crossfades and
+  music ducking for major cues. Overtime elixir generation is **2.5×**;
+  the final regulation minute stays **2×**.
+
+## Mobile library and Yata refinements (27 September 2026)
+
+- On phones the library's multiplayer action is a compact icon immediately
+  before Menu, and each shelf shows two larger covers with a peek of the next.
+- Setup keeps **Learn**, **Play** and, when progress exists, **Continue** in
+  its bottom row. Play is the largest action and starts directly, with no
+  second choice modal. Learn stays available regardless of completed games.
+  Folio and Lucky keep their existing run pickers in that same footer.
+- Quiz Sizes follows a growing or shrinking silhouette with its camera,
+  zooming back in as it shrinks but never closer than the initial comparison.
+- Yata's phone tray reserves two rows even with a partial or empty hand, so
+  drafting from four tickets to three cannot move the board or dock. Tickets
+  give food more space and scoring text two more pixels. Dish names use bold
+  slanted market-sign lettering rendered as text.
+- Others reuses the public Market Seasons route: a tick replaces each matched
+  dish, unmatched dishes fade, and private pending choices never count. Phone
+  routes run horizontally like the main phone board.
+
+
+## Arena: Collector's Diorama, a Medieval board (26 September 2026, night)
+
+William tried the Toybox direction (toys on a child's bedroom floor) and
+stopped it: keep the collectible feel, but grown-up, never childlike and
+never in a room. From two new mockups
+([concepts](concepts/2026-09-26-arena-retheme/README.md)) he chose
+**Collector's Diorama** (`arena-collector-desktop-v1.png`, brief
+[diorama.md](concepts/2026-09-26-arena-retheme/diorama.md)):
+
+- **The battlefield is a premium collector's diorama**: a master
+  model-maker's miniature landscape on a slim bevelled graphite plinth,
+  floating in a soft graphite studio void and lit like a luxury product shot
+  (a large warm key light up to the left, a cool rim light behind, studio
+  reflections). The landscape ends at the plinth in a clean cut showing turf,
+  earth and rock.
+- **A genre per side, Medieval for now.** Later each side's half and towers
+  take a genre of their own (two to choose from, more after). For now both
+  sides are Medieval, as the mockup's near half: a cobbled field with moss
+  and grass in the gaps, moss-covered dry-stone walls, a stone-embanked
+  river of dark glossy water, an old stone arch bridge (left) and a
+  timber-decked bridge (right); stone keeps with slate roofs and big team
+  banners, round stone watchtowers with pennants, tumbled stone for rubble.
+- **The first Arena's forest is back round the board**, rebuilt at diorama
+  quality (clump-foam oaks and pines, fractured rocks and cliffs, tufts),
+  with camp dressing (wells, carts, hay, a tent per side, torches and team
+  banner posts). Materials are realistic miniature tiles (v3), team colour
+  only in heraldry.
+- **The HUD is the display case**: dark matte smoked glass with thin brass
+  edges, collector cards with a holographic foil border, faceted violet cost
+  crystals and a slim segmented elixir bar. On phones the top right holds
+  only a square with the time (the crowns and pause button give way; the
+  time opens the menu) and the field rises to just below the top edge.
+- **This round is the board only.** The troops, their card art and their
+  animation are the next round. Kept from the Toybox work for it: the
+  Meteor replacing the Knight (rules in [arena.md](arena.md)), the troop
+  names, the springy animation system and the finished figure models (in
+  `assets/arena/blender/troop_*.py`, not yet built into the game).
+- **Phones, a bigger field and full sharpness** (same night, after his
+  review). The phone view tilts to 63° and crops the meadow outside the
+  fence, so the field fills more of the height and the far king's turrets
+  reach almost to the top edge (its bar is held on screen over its roof).
+  Phones draw at their screen's full density with desktop shadows; they
+  had looked soft at 1.6×. Trees keep their models (fine on desktop).
+- **Figures in the mockup's collector style**: hand-painted miniatures,
+  grown-up and sculpted, in `figures.py` (review shots in
+  `concepts/2026-09-26-arena-retheme/figures-v1/`). Built: the watchtower
+  guard (a hooded, bearded longbowman in a team tabard who turns side-on,
+  draws to the cheek and looses arrows; the towers now shoot arrows), the
+  Samurai (navy lacquered lames laced in cream, gold kuwagata, a two-handed
+  katana) and the Dino (a navy-hided rex with gold-edged armour plates and
+  a cream belly). They await William's verdict before the rest follow; the
+  card portraits are still the Toybox ones.
+
+## Arena: every figure built, era cards, x-ray and fair placement (27 September 2026)
+
+- **All eight collector figures are in the game** (`figures.py`): the Cadets
+  (1960s pressure suits, retro ray guns), the Robots (1950s enamelled tin,
+  the key turning on the back), the Cowboy (an 1880s duster and a
+  lever-action rifle held in both hands), the Biplane (a 1917 doped-linen
+  model with a wooden propeller and a pilot), the Wizard (a cobalt robe, a
+  charcoal mantle, a staff with a glowing crystal kept upright as he casts),
+  beside the Samurai, the Dino (now with muscled legs and flank scales) and
+  the tower guard. Cadets and Robots are plainer than the Samurai.
+- **Cards show each character close up, in its own era**, in the game's own
+  clean 3D look: William found the first era set (detailed product shots
+  of painted miniatures on bases) too detailed and the characters too small,
+  so the chosen set (v4) crops in so the character fills the card, keeps the
+  surfaces smooth and the detail to what reads, and blurs a simple backdrop
+  of its era (a lunar landing, a Cretaceous jungle, an atomic-age lab, a
+  castle courtyard, a frontier town, a 1917 airfield, a tower library, a
+  dusk valley for the Meteor). The library box and the setup lid follow the
+  same look: the diorama on its plinth, figures of several eras over the
+  bridges and a brass "Arena".
+- **Hidden troops show through** as soft silhouettes in their team's colour
+  as you see it, where towers, keeps, bridges or scenery cover them; the
+  placement ghost too. The tower guards never do.
+- **A card is never lost to a bad drop.** While you drag, the tray fades so
+  the field beneath it (behind your king) takes the card; a drop on the
+  river, the enemy half or a tower goes to the nearest legal spot, which the
+  ghost shows as you drag with a faint line back to your finger. Letting go
+  over the cards themselves still cancels.
+- **Troops never get stuck on their own towers** (they walk round them) and
+  wide troops queue at bridges; two Dinos meeting head-on pass.
+- **Lower cameras**: 33° on wide screens, so the valley reads deep; 59° on
+  phones, so the view is not a flat map. **Phones draw figures larger**
+  (2.3 times their footprint instead of 1.75), with their rings, shots and
+  bars; towers keep their size.
+- **The valley is full**: dense woods of pines and oaks (far trees use
+  lighter models), hedges, rocks, deadwood, paddock fences and camp
+  clutter, with lanes, river and the near end kept clear.
+
+## Others and leaving, reworked (26 September 2026, evening)
+
+William's direction for Mora and Yata's Others and for leaving a game, all
+decided by him:
+
+- **Others looks like Menu.** The Others button wears the same island as
+  Menu in each world. Hovering lifts it a touch; nothing lights up behind
+  the word.
+- **Mats look like your own board.** Each opponent's mat in Others is drawn
+  the way this screen draws your board: Mora's landscape or portrait map
+  (habitat labels cut to their scores, creatures a little larger), Yata's
+  wide counter, or the phone's near-square counter with round plates.
+  Phones show two mats to a row and wide screens up to three; the panel is
+  only as tall as it needs, and nothing sits under the close button.
+- **The passing loop.** The passing order is one row of avatars in the order
+  the cards travel this round, with a line back to you underneath. Tapping
+  an avatar jumps to that player's mat, and the mats follow the same order.
+  Names show on wide screens; phones keep the avatars only.
+- **Yata's resources are icons.** Stall permits are the stall icon with the
+  number left; Market Seasons stays written out. The list of open stalls is
+  gone: the stall sign on the plate shows where each one opened, and it is
+  bigger on the mats (icon only on phone plates).
+- **Leaving asks once, and says the game is saved.** The Saving screen is
+  gone. Leaving a saved board-game match, an online match or a Folio run
+  opens one shared dialog (`components/game/leave-dialog.tsx`): a check
+  mark, the question, a line saying the game is already saved, then
+  **Leave** above **Keep playing**, the same order everywhere, solo or
+  online. Lucky leaves directly once its scratches have landed, as it did
+  before the Saving screen.
+
+## One menu, plain rules, a saving beat (26 September 2026)
+
+William's direction, all decided by him:
+
+- **Nothing can be selected or copied.** Text, rules and images cannot be
+  selected, copied, long-pressed for a callout or dragged out, on any device.
+  Fields you type into still work normally; invitation links are shared with
+  their copy buttons.
+- **Arena's How to play is the model for every explanation.** Every game's
+  rules now use the same few pieces (`components/game/rules.tsx`): short
+  sections with a plain two-to-four word heading, one or two short
+  paragraphs with the key words in bold, one purple note for limits, and
+  compact name-and-line lists for cards, dishes, habitats, books and
+  puzzles. All the explanation text was rewritten simpler: the board games
+  and their extensions (Nox's especially), Know Me, Quiz, Folio and Lucky
+  (whose How to play was the worst). The old purple "outcome" callout is
+  gone.
+- **One menu for every game.** The Menu button drops a panel down the right
+  side (`components/game/game-menu.tsx`) instead of opening a modal over the
+  table; a tap outside only closes it. Every game lists the same things in
+  the same order: How to play, the game's own entries, sound switches
+  inline, fullscreen, extra content such as Lucky's totals or the host's
+  table settings, and Leave. Arena's pause button opens it too, led by
+  Resume, and the battle stays paused while it is open. Lucky's separate
+  mute, help and fullscreen buttons moved into it.
+- **No Confirm moves, no Advanced view.** Both settings and the account
+  preference behind Confirm moves were removed: tapping or dropping a card
+  plays it at once. Nox's pass and Secret Salvage keep their lock plate.
+- **Leaving shows that the game is saved.** (Superseded the same evening:
+  the Saving screen was replaced by one leave dialog that says the game is
+  saved; see the section above.)
+
+## Nox: the Chart, a flat treasure-map poster (26 September 2026, latest)
+
+William found the painted Gilt Hold the one Gamehub world that looked AI
+generated, and asked for Nox to be redesigned. After two rounds of desktop
+mockups (`docs/concepts/2026-09-26-nox-redesign/`) he chose the flat graphic
+poster style, kept pirate themed, and picked **Chart**: the table is the open
+sea at the centre of a 1950s pictorial treasure map, drawn by a great graphic
+designer. He asked for the interface to follow the mockup as closely as
+possible, not only the board.
+
+- **Plates.** `nox-chart-landscape-v1-b.png` and `nox-chart-portrait-v2-a.png`
+  (production notes and measurements in the concept folder's `production/`).
+  The playing surface is a flat, even navy rectangle inside a cream-and-red
+  twisted-rope rim; around it the chart: compass rose, crescent moon, volcano,
+  an X island at the end of a red dotted route, a galleon, a sea serpent, a
+  skull island and a whirlpool, in flat shapes. The moon at the upper left is
+  the one light: its translucent wedge breathes, the open sea's wave marks
+  drift, and the X, the compass and the flag glint. The geometry keeps the old
+  footprint, so the camera framing is unchanged; `table` is the rope's outer
+  edge and the seat anchors sit on the rope.
+- **Materials of every app-drawn piece** (table-worlds.css §2, the Nox tokens
+  `--nox-*`): navy fills, cream edges, treasure red for action and turn, teal
+  for direction, one heavy geometric sans (Futura first) and flat offset
+  shadows falling to the lower right. No gradients, glows or bevels.
+- **Cards.** Cream card stock with a thin inner line, a heavy index (rank and
+  small suit) at the top left and one big flat suit mark in the middle, which
+  shows only where no card overlaps it. Spades black, hearts red, clubs teal,
+  diamonds palm green; Storm cards are split red and black with a cream bolt.
+  A costly card's penalty sits on a small red tab. The face lives in
+  globals.css, sized in container units, so the hand, the table, the
+  inspection dialog and the drag ghost share it.
+- **Seats.** Navy pills edged in cream lying on the rope: a black flag disc
+  with the seat's own emblem (a pierced heart, crossed cutlasses, a skull and
+  crossbones, an hourglass, a crescent and star, a compass star;
+  `nox-emblems.tsx`), the name and the score. Side seats are upright capsules
+  along the rope. The player to act gets a red ring and a red edge; LEAD is a
+  red tab. On portrait screens the name gives way to the emblem.
+- **Direction.** Four teal chevrons just inside the rope, one per side, chase
+  each other clockwise or counterclockwise (this supersedes the single centred
+  arrow of 19 September).
+- **Dock.** On wide screens one rope-edged navy tray holds the die, the tokens,
+  the hand, the confirm plate and Undo, which is a round cream button at the
+  tray's right end (it had been drawn off-screen on wide desktops). Elsewhere
+  the hand's own tray takes the rope edge. The die is the shared cube in cream
+  stock; Shields, Salvage and Turning Tide are round navy tokens edged in
+  cream, red when selected. Pass, Lock and Play are flat red plates; Clear and
+  the other choices are cream-edged navy; disabled plates stay solid.
+- **Navigation.** Back and the Nox wordmark share one navy pill (it reads over
+  the moon), Menu is a round cream button with three bars, and the round pill
+  is cream. Nox has no top badge row, so on wide screens the round pill sits on
+  the top line, level with Back and Menu, clear of the seat tags. Phones keep
+  the shared top bar.
+- **Covers.** New square and wide covers in the same poster style
+  (`box-nox-blind-v2`, `box-nox-wide-v2`); the lid sentence now reads "A pirate
+  treasure map at night".
+- **Known limit, unchanged from the Gilt Hold.** On short wide windows (for
+  example 1536x730) and portrait tablets the table cannot be large enough to
+  cover the full width, so a soft copy of the chart fills thin side bands.
+
+## Arena: online, two against two, a bigger field (26 September 2026, later)
+
+William's first round of feedback on Arena, all decided by him:
+
+- **Online and 2 v 2.** Arena now runs at tables as well as solo. The host
+  opens Arena's box at a table, picks **1 v 1** or **2 v 2**, arranges who
+  plays blue and red (tap a name to swap; bots fill empty seats) and presses
+  Play; everyone lands in an online room at `/arena/<token>` and Back returns
+  to the table. Solo also offers 2 v 2 (you and a bot ally against two bots).
+  In a team battle every player keeps their own hand and elixir, teammates
+  share their half, and towers have 1.7 times the hit points and hit 1.25
+  times harder, because twice the troops come at them. The host starts the
+  next battle; nobody else is asked to confirm. A player who drops out is
+  covered by a bot after five seconds and takes the seat back on return.
+- **Lockstep, not video.** The server owns the clock and the one true match
+  and streams every tick with the cards played on it; every device runs the
+  same deterministic simulation on the same cards (the engine avoids
+  Math.hypot and trigonometry in anything that decides the battle, so every
+  browser computes identical numbers). A checksum every second catches any
+  drift, and a drifted device takes a fresh snapshot. A card you play online
+  waits as a pulsing ring until the server echoes it; the one-second deploy
+  hides the round trip.
+- **Top of the screen: back and the clock, nothing else.** An exception to the
+  shared navigation contract, by decision: no game name, no player names or
+  badges and no Menu button. A back button at the top left (asks before
+  leaving); at the top right the clock with the two crown counts beneath it,
+  and beside it a small pause button (a settings button online, where the
+  battle cannot pause) that opens Resume, How to play, Sound and Restart. The
+  clock warms and ticks each second in the last minute, flares red in the
+  last ten seconds and burns in overtime. The freed height goes to the field.
+- **A wider, lower view on wide screens.** Tall screens keep the steep view
+  (57 degrees, which William liked on phones). As the free area gets wider
+  the camera drops to 38 degrees with a 40 degree lens, so on a laptop the
+  field spans most of the width and recedes into the woods; the strip behind
+  your king may sit under the hand. A player on the red side sees the same
+  framing from the other end, with their own team drawn blue.
+- **Bigger troops.** Troops are drawn 35% larger (the guards on the towers
+  follow), which reads much better on phones; flyers fly higher to match.
+- **Tower guards stop spinning.** With nothing in range the guards and the
+  king's cannon now look calmly out over the field; before, the red side's
+  guards turned half a circle every frame.
+- **Smooth at 60 and above without lowering quality.** Every troop part on the
+  field is drawn through one batch per material, so a crowded 2 v 2 costs
+  the same few draw calls as an empty field; walls, towers and scenery are
+  merged or instanced and culled. A frame pacer settles a fast (120 Hz)
+  screen on a steady 60 when it cannot keep up, and only lowers the drawing
+  resolution a little if even 60 slips, stepping back up once there is room.
+
+## Arena: a real-time battle in 3D (26 September 2026)
+
+At William's request Gamehub gains its first real-time game and its first real
+3D world: **Arena** (id `arena`, provisional plain name), a Clash Royale-style
+battle against a bot, listed first under Strategy. This is a deliberate
+exception to the 25 September decision that board games stay painted 2D
+plates: Nox, Mora and Yata are unchanged, and the painted-plate rules of the
+game-world-layout skill still apply to them.
+
+**Rules** (`lib/games/arena/engine.ts`, `bot.ts`, `cards.ts`; details in
+[arena.md](arena.md)): an 18 × 32 tile field, a river with two bridges, a king
+and two smaller towers a side. Both sides hold the same eight-card deck, four
+in hand and the next one shown; a played card goes to the back. Elixir starts
+at 5, refills one per 2.8 s up to 10, twice as fast in the last minute and 2.5× as fast in
+overtime. Three minutes; more crowns wins; level crowns go to a one-minute
+sudden-death overtime, then to the weaker tower. The king sleeps until hit or
+until one of its towers falls; a fallen small tower opens a pocket a few rows
+past the river. Eight original troops: Knight, Archers, Ogre (towers only),
+Imps, Duelist, Ranger, Drake (flying, splash) and Mage (splash). The
+simulation is a fixed 30 Hz step, deterministic from its seed. The bot uses
+the same rules and elixir; it lets attackers walk into tower range, answers
+with a cheap fitting counter, ignores what its troops already cover, builds
+pushes behind a tank and backs up survivors. Easy, Medium and Hard differ in
+reaction, counter choice and placement (hard beats medium beats easy in
+bot-against-bot tests). (Online and 2 v 2 followed the same day; see above.)
+
+**Why the textures are sharp this time.** The rejected 3D stages baked a whole
+scene into one small atlas and flat colours. Arena instead dresses every
+surface with high-resolution painted tiles (generated, made seamless, with
+derived normal and roughness maps; 2048 px on desktops, 1024 on phones),
+applied at a fixed real-world density, so detail stays crisp at any zoom.
+Ambient occlusion is baked per vertex in Blender. Everything else is modelled:
+towers, bridge, wall, troops (jointed parts animated in code: walk cycles
+driven by distance, swings timed to the engine's hits) and scenery.
+
+**Loading and caching.** The first battle downloads about 25 MB with a
+progress bar over the cover art; files carry content hashes, live in Cache
+Storage and are served `immutable`, so later visits open from the device.
+Opening Arena's box starts fetching in the background.
+
+**Screen** (the top bar is superseded above). One full-screen 3D field fitted
+between the top bar and the hand tray. The hand is four portrait cards with the
+next card smaller at the left and a violet elixir tube beneath; drag a card
+onto the field, or tap it then tap the field; the drop zone shades itself
+while a card is held. There is no Undo: moves are real-time. Menu pauses.
+Health bars float over towers (with numbers) and over damaged troops.
+
+**Art.** Stylized hand-painted fantasy miniature in warm late-morning sun;
+blue for you, red for the bot. Prompts, picks and the texture list:
+[arena concepts](concepts/2026-09-26-arena/README.md). Models are code in
+`assets/arena/blender/` (run `node scripts/arena-assets.mjs`); the runtime is
+`components/game/arena/`.
+
 ## Motion, original foley and Sound Lab (26 September 2026)
 
 All seven games use small, finite transitions for stage changes and settled
@@ -65,6 +489,51 @@ game-world-layout skill, "Desktop side borders", and
 rejected and removed; boards stay painted plates. Prompts and choices:
 [mora overgrown 2D](concepts/2026-09-25-mora-overgrown-2d/README.md).
 
+## Mora: phone boards, short names, plain scoring and true covers (27 September 2026)
+
+William found the phone boards spent too much room on scenery: the spaces
+and creatures were small, the habitat text too small, and phones hid the
+place names. He also asked for simpler scoring on both boards and covers
+that show the game as it looks.
+
+- **Scoring.** No more lone-creature points and no "echo" wording.
+  Observatory: Courtyard unchanged (2 / 6 / 11 / 17), Garden 8 per pair,
+  Hollow a pair for 9 or nothing, Glasshouse 3 each if its species lives in
+  another habitat, Channel 2 per creature, Watchpost unchanged. Floodline:
+  Pools 7 per pair, Beach 3 per different species, Mangroves three alike
+  for 12 or nothing, Pier unchanged, Cave 3 each if its species lives in
+  another habitat, Lighthouse unchanged. Mirror shores now asks for a pair
+  in Pools (not an exact pair). Table in `docs/mora-board-rules.md`.
+- **Short names.** Courtyard, Garden, Hollow, Glasshouse, Channel,
+  Watchpost; Pools, Beach, Mangroves, Pier, Cave, Lighthouse. Area indices
+  and saves are unchanged.
+- **Phone boards.** New dedicated portrait plates with the places packed
+  together and larger pads (`mora-phone-observatory-v4-b`,
+  `mora-phone-floodline-v4-f`). On a 390×844 phone creatures grow from about
+  29 to 38 px (Observatory) and 26 to 30 px (Floodline, whose 23 spaces set
+  the limit). The plates are extended with their own mirrored scenery above,
+  below and at the sides so phones and portrait tablets are covered.
+- **Portrait labels.** The short name rides in the score pill again on
+  phones and portrait tablets, and the scoring line reads at 12 px (up from
+  about 9), in cards at most 128 px wide so neighbours never collide.
+- **Covers.** The square box and the setup lid now show the overgrown
+  observatory and the flooded station in the board's cut-paper style, with
+  the game's own animals as cream-edged paper stickers (fox, barn owl, hare,
+  frog, pine marten, crab, sea turtle) instead of invented moss creatures.
+
+Prompts, attempts and measurements:
+[mora phone boards](concepts/2026-09-27-mora-phone-boards/README.md).
+
+## Lucky: playing together, maxed books and a smoother factory (26 September 2026)
+
+William's friend, playing on his own PC while William hosted, waited about ten seconds for every payout; William wanted to see his friend play, to hear what others buy and win, a factory that runs and reads better, and prices that make sense book to book.
+
+- **Payouts are immediate on any connection.** Scratch points are thinned to what the coin can cut and everything queued while a command is in flight goes as one (`breaks` mark lifted coins), so a fast mouse over the internet no longer queues seconds of strokes.
+- **Watch is a little TV** in a corner (drag it to another): another player's whole screen, their tab, ticket, factory tool and upgrade, drawn at their own screen size and scaled down, with their pointer. With a mouse, players on the same tab see each other's named pointers. Purchases (books, upgrades, machines), what a ticket just paid and levels opened show as short notes under the purse, which keeps one size.
+- **Levels feed the factory**, and a book whose level III has been played through is **maxed** (★): its factory tickets sell for ×1.5. Each book on the shelf shows how far it is toward its next level, then toward being maxed.
+- **Every book costs about four to six times the one above it at every level**; book prices keep the old pacing.
+- **The factory**: the select tool is the default and a picked machine can be put down again; a locked machine is explained, then bought with **Unlock**; keys V, E, R, 1–0, Delete and Esc; mouse users select several machines and move or turn them together. Tickets are small, slide under a machine that takes them, peek out of its output and slide into the cashier, which flips a coin. Upgrades that can be bought wear a still gold arrow instead of pulsing.
+
 ## Lucky: bought tickets in hand, harder books, a tree of upgrades (25 September 2026, later)
 
 William found the first level of every book "brain dead", did not understand Ladder, saw the old full-page menu flash, and wanted tickets to cost something, no table, far more upgrades and a factory that is nice to look at.
@@ -91,7 +560,7 @@ William liked the setup lid (cover plus stat chips) but not the tray under it, a
 
 Yata's cover was too realistic and detailed next to its flat toon table, so both its square and wide covers were regenerated in the table's cel-shaded toon paragraph (`box-yata-toon-v1`); the gouache cover moved to the art archive.
 
-The tray is rebuilt in `components/game/setup-box.tsx` and `setup-row.tsx`: calm paper, small uppercase labels, and the game's own palette (`--box-deep` as the accent) on every selected state and on Play. Players and bot strength are segmented tracks (bots carry one to three bars). The content set is a pair of picture cards that show what you will play on: Mora's **Board** shows each board (`mora-*-preview-v1.webp`, the middle of the overview plates), Yata's **Menu** its six dishes, Nox's **Deck** a fan of cards. Extensions are rows with a visible on/off switch and an info mark (three tiles in a row on phones), still opening the shared `RuleExplanation` modal by long-press, I or the mark. Learn, Play and Continue close the tray. Folio and Relic reuse the same shell, rows and buttons. On a 375px phone every setup fits without scrolling.
+The tray is rebuilt in `components/game/setup-box.tsx` and `setup-row.tsx`: calm paper, small uppercase labels, and the game's own palette (`--box-deep` as the accent) on every selected state and on Play. Players and bot strength are segmented tracks (bots carry one to three bars). The content set is a pair of picture cards that show what you will play on: Mora's **Board** shows each board (`mora-*-preview-v1.webp`, the middle of the overview plates), Yata's **Menu** its six dishes, Nox's **Deck** a fan of cards. Extensions are rows with a visible on/off switch and an info mark (three tiles in a row on phones), still opening the shared rules modal by long-press, I or the mark. Learn, Play and Continue close the tray. Folio and Relic reuse the same shell, rows and buttons. On a 375px phone every setup fits without scrolling.
 
 ## Tribu refinements: closer scoring, finite spectrums, changeable votes (23 September 2026, later)
 
@@ -148,8 +617,9 @@ Supersedes the Mundo section below where they differ.
   language.
 - **Scores share one scale.** Both games give up to 100 points per prompt,
   so neither dominates the carried totals: a Sizes comparison scores 0–100,
-  and an Atlas place gives 50 to the closest pin plus 50 to every pin within
-  100 km (the old 1 + 1, times fifty).
+  and every Atlas pin scores 0–100 by its own distance (26 September 2026:
+  100 within 25 km, falling steadily to nothing at 4,000 km; the old
+  closest-pin-takes-it scoring left everyone else on zero).
 - **Sizes is Magnitudle's Size It Up, nearly one to one.** A cream reference
   silhouette stands at true scale on a ground line; players drag a tomato
   silhouette to move it, pull its corner handle (or pinch) to resize it,
@@ -157,9 +627,9 @@ Supersedes the Mundo section below where they differ.
   freely between the tabs, and lock once at the end (changed 23 September
   2026; a lock per comparison was dropped). The host then reveals the three
   one at a time. A reveal lines up on the mat the reference, the true size in
-  gold, and every player's guess in their colour, best first, with the true
-  size laid over each; a guess far past three and a half times the truth is
-  cropped to its slot with a fade. Hovering or tapping a player, on the mat or
+  gold, and every player's guess in their colour, best first. The gold answer
+  appears only once. Oversized guesses keep their full silhouette, overflowing
+  their reserved slot and clipping only at the mat edge, without a fade. Hovering or tapping a player, on the mat or
   in the list, dims the rest. It counts a "52 / 100" up with *Off by*, prints
   a one-line fact, and lists everyone's points. Scoring is
   Size It Up's curve on relative error (6% off or less scores 100; 12% → 90,
@@ -240,7 +710,7 @@ Supersedes the Mundo section below where they differ.
   cream with chunky dark-brown ink outlines and hard offset shadows in tomato
   red, mustard and teal, under a heavy rounded display face. The Dial is a
   game-show wheel: a teal→mustard→orange→tomato band inside a tomato rim of
-  marquee bulbs that chase while the clue is written, with the clue-giver's
+  marquee bulbs that chase while the clues are written, with each author's
   two spectrums above it as large segmented options. Top Five uses cream
   contestant cards with a coloured header band. Never dark, never neon, no
   bare sunburst, no close-up grinning faces.
@@ -277,9 +747,11 @@ Supersedes the Mundo section below where they differ.
   starts at once with the same players; a tie is settled at random; nobody
   voting leaves the table on the results with Play again and Library.
 - **Dial** (internal id `dial`, provisional name) is our Wavelength-style
-  game. Each round every player gives one clue: they pick one of two
-  spectrums, see a hidden point, and type a short clue. Everyone else turns
-  their own dial privately and locks. Within 2 scores 4, within 6 scores 3,
+  game. Each round every player gives one clue, all at once like Top Five's
+  lists (26 September 2026): each picks one of two spectrums, sees their own
+  hidden point, types a short clue and locks. Then the clues are read one
+  after the other; everyone but the author turns their own dial privately and
+  locks, and the host moves on. Within 2 scores 4, within 6 scores 3,
   within 10 scores 2; the clue-giver earns the average. Individual play only.
   Its look is an old radio tuner: teal enamel, cream face, amber bands.
 - **My Top Five reveal.** One row per rank: the author's real answer, the
@@ -326,6 +798,18 @@ human players in every seat, including learning sessions; online starts cannot f
 empty seats with bots, and disconnected humans cannot be replaced by bots.
 
 
+## Folio: host picks, boss reroll, removing a game, one top bar (26 September 2026)
+
+At William's request: Folio's top bar is the phone layout on every screen,
+difficulty and round in the centre of the bar and the crew with the hearts
+beneath it (an exception to the round-pill rule below). The host alone picks
+the path, rerolls a boss (once per act, after round 2, a die beside the boss)
+and moves the crew on; the others' taps are votes shown as initials in seat
+colours. After a boss the crew may remove any one of the ten games still in
+the run, down to six. Each game keeps its original look and gets a few small
+printed touches (stamps, letterpress, halftone, pen strokes). Details in
+`docs/folio.md`.
+
 ## Mobile navigation refinement (21 September 2026)
 
 On phones (including short landscape), back/name and icon-only Menu (vertical dots) and Others share the first row. Player badges occupy a horizontally scrollable second row. Desktop keeps the existing stacked Menu/Others layout. Nox is the exception: only its table-rim player badges are rendered, with no Others control. Online Table administration is host-only during play and sits below the navigation and player rows. Nox's centered arrow shows alternating exchange direction during passing and clockwise order during tricks, using the engine's seat-order calculation.
@@ -370,13 +854,13 @@ This is the visual and interaction contract for future work. Mechanics are the s
 
 ## Mora cleanup and future-game requirements
 
-This requirement supersedes historical sidebar and portrait-pan guidance below. Each game's entire UI—not only its board—needs its own material and shape language: hand tray, die, extension actions, habitat indicators, player badges and goals. Within a game those roles must also be visually distinct, not identical rounded panels recoloured. Preserve shared accessible interactions and `RuleExplanation` presentation.
+This requirement supersedes historical sidebar and portrait-pan guidance below. Each game's entire UI—not only its board—needs its own material and shape language: hand tray, die, extension actions, habitat indicators, player badges and goals. Within a game those roles must also be visually distinct, not identical rounded panels recoloured. Preserve shared accessible interactions and the shared rules presentation (`components/game/rules.tsx`).
 
 Design dedicated landscape and tall portrait boards with independent measured coordinates but identical gameplay. Portrait play must expose every area on one screen without board scrolling. Establish readable shape/pattern correspondence between die restrictions and placement sites; names and colour alone are insufficient. Preserve existing rule memberships.
 
 Brief new boards with localized animation layers/masks and foliage pivots so water and trees can move without moving targets or text. Respect reduced motion and visibility suspension; sound effects are deferred. See the shared world-layout skill for acceptance requirements. These are requirements, not a claim that the new artwork is already integrated.
 
-Advanced view opens an adaptive full-screen all-player board inspection from player badges, with your own seat in the passing-order diagram and a prominent close button. Omit the duplicate self board; show each opponent’s goal progress and remaining extension uses, even when spent. It must never push or shrink the live board.
+(Advanced view was removed on 26 September 2026; the Others control still opens this inspection, reworked the same evening as described at the top of this file.) The all-player board inspection is adaptive and never taller than the screen, with your own seat in the passing loop and a prominent close button. Omit the duplicate self board; show each opponent’s goal progress and remaining extension uses, even when spent. It must never push or shrink the live board.
 
 ## Required naming and identity rules
 
@@ -408,7 +892,7 @@ Internal IDs remain stable for routes, account preferences and records. Subject 
 
 ## Artwork
 
-Nox retains printmaking and independent zines as its visual language: imperfect ink edges, simplified expressive silhouettes, a restrained pigment palette, visible paper and occasional deliberate misregistration. Use maritime woodcuts and radio ephemera for Nox. Elsewild and Nightshift must explore independent visual languages; their former field-note and gig-poster treatments are not constraints. Cultural references should contribute an idea or silhouette, not overwhelm recognition with decoration.
+Nox's visual language is the Chart (26 September 2026, see the section at the top of this file): confident mid-century flat poster graphics on a pirate treasure map at night, built from a few large clean shapes in navy, teal, cream, palm green, black and treasure red, with flat offset shadows and no texture. It replaced the earlier printmaking and painted-hold looks. Elsewild and Nightshift must explore independent visual languages; their former field-note and gig-poster treatments are not constraints. Cultural references should contribute an idea or silhouette, not overwhelm recognition with decoration.
 
 Avoid glossy plastic, hyper-detailed rendering, uniform soft lighting, stock fantasy cuteness and tiny decorative detail that disappears at play size. Mature means assured graphic decisions, not obligatory darkness or violence. Keep each species and food visually distinct at thumbnail size.
 
@@ -428,7 +912,7 @@ One extension means one mechanic. Content sets are independent of extensions. Ev
 
 Setup has one Extensions heading. Tiles contain the same emblem used in-game, a short title, an unmistakable enabled state, and a separate information button within the tile boundary. Never nest interactive controls. Opening rules must not change selection.
 
-All overview and individual rules use `RuleExplanation`: action/requirement in the shared purple callout, rewards and examples in supporting paragraphs, limits in the separated note. Reuse these components in setup and match help. Show setup rules in a larger viewport-constrained modal with scrolling, accessible title, keyboard and long-press access, and restored focus. Do not append explanatory blocks below tiles.
+All overview and individual rules use the shared rules pieces (`Rules`, `RuleSection`, `RuleList`) in Arena's pattern: a short heading, a short paragraph with bold key words, limits in the one purple note. Reuse these components in setup and match help. Show setup rules in a larger viewport-constrained modal with scrolling, accessible title, keyboard and long-press access, and restored focus. Do not append explanatory blocks below tiles.
 
 Game actions are tactile graphical pieces with clear available, selected, waiting and spent states. Larger controls may use reclaimed interface space, but must never cover card slots or inflate the illustrated board. Short labels and counters are useful; rules prose belongs in inspection. Stalls are a prominent action, not an inconspicuous utility icon.
 
@@ -436,7 +920,7 @@ Game actions are tactile graphical pieces with clear available, selected, waitin
 
 The top player display is the source of turn and readiness information. Identify who can act and who is still deciding, including simultaneous exchanges, drafting and Salvage. Do not restore the bottom status strip. Use the shared animated, nonverbal status indicators for deciding, committed and waiting, plus a separate die-roller indicator. Shapes and accessible labels remain meaningful with reduced motion. Connection problems must remain visible near these states.
 
-Use a brief animation and a distinct sound when a player becomes actionable, respecting mute and reduced motion. Do not loop attention effects or replay cues on ordinary rerenders. Place confirmation immediately beside the hand in every game. Preserve the user's confirmation preference; exchanges and secret Salvage commitments always have an explicit lock action.
+Use a brief animation and a distinct sound when a player becomes actionable, respecting mute and reduced motion. Do not loop attention effects or replay cues on ordinary rerenders. Place confirmation immediately beside the hand in every game. There is no move-confirmation preference (removed 26 September 2026): moves play at once, and only exchanges and secret Salvage commitments have an explicit lock action.
 
 Nox seats players around a table, anchored to the viewer. Card position communicates ownership; a clockwise marker and lead badge communicate order. Reveal completed tricks before gathering them toward the winner. Display ordinary penalties and Salvage adjustments distinctly. Process capture events once and in sequence; do not infer captures from current cards after a round reset.
 
@@ -669,7 +1153,7 @@ Yata is the toon night market. The collection board stands on the painted red co
 
 The plates are the closest of the generated candidates (`production-README.md` in the concepts folder records every attempt); all missed the strict band targets, so the framing metadata absorbs the difference. `tests/table-worlds.test.mjs` checks source and derived sizes, the play box inside the stage across the device set, edge coverage on desktops and stable variant identity. `scripts/optimize-paper-worlds.mjs` now derives WebP plates and overviews for every world; `scripts/measure-table-bounds.mjs` reports a plate's table bounds. The `ArtVariantSwitcher` takes a game and flips Nox between its two landscape cabins; remove it once one is chosen. Browser checks covered desktop and portrait for both games in solo play; online tables share the same components.
 
-## Nox: the Gilt Hold (19 September 2026, night)
+## Nox: the Gilt Hold (19 September 2026, night; superseded by the Chart, 26 September 2026)
 
 The captain's cabin plates are replaced by the **Gilt Hold**: the treasure hold below the waterline, drawn as a straight-down plan so the flat cards lie on a flat surface (see the "Flat pieces on a painted world" section of the game-world-layout skill). The playing surface is the black oilcloth lid of an iron-banded chest with a riveted rim; loot, a skull in a tricorn, a rat and an open grating over black water fill the room around it. Chosen plates: `nox-gilthold-landscape-v2-a.png` and `nox-gilthold-portrait-v2-a.png`, the two that passed the band measurements (`docs/concepts/2026-09-19-nox-cabins/README.md`). The Poison Lantern direction was not selected.
 
@@ -911,3 +1395,34 @@ and right in even rounds. The shared die face Empty is now Emptiest (least
 crowded habitat with room), which removed forced releases late in a long game.
 Details, prompts and measurements:
 [floodline three rounds](concepts/2026-09-23-floodline-three-rounds/README.md).
+
+## Table admin, hand-over and Folio suggestions (26 September 2026)
+
+- **The Table button.** During any game played at a table, the admin alone
+  has a Table button at the top left. It stands alone in the back control's
+  slot: for the admin the back arrow and game name are hidden, so the top
+  left never holds two controls. It wears the game's menu tokens, so it reads
+  as part of each world. Its panel drops along the left side like the Menu
+  does on the right: the players (tap one for Make admin, or a bot for an
+  away seat in Nox, Mora and Yata), then Leave (what the back control would
+  do, its leave dialog included), Back to lobby and Close table. Ending the
+  game or closing the table asks once, inside the panel, never in a browser
+  dialog. Table settings left Folio's and Lucky's menus.
+- **The admin passes on.** The creator is the admin until they hand it over,
+  leave the lobby, or stay away for thirty seconds; then the earliest joiner
+  still here takes it for good, even if the old admin returns. The last one
+  to leave an empty lobby closes the table. A Folio run launched from the
+  table takes the table's admin as its host.
+- **No board previews on hover.** Player badges open nothing on hover or tap;
+  Others is the one way to look at another board.
+- **Folio suggestions.** The host plays the shared board. Everyone else plays
+  on their own board, and each move they enter (a word, a code, a swap, a
+  square) becomes a suggestion under the board, with their initial, for the
+  whole crew to see. The host plays it with the tick or turns it down with
+  the cross; its author can take it back. Suggestions are checked the way the
+  original game checks a move, so a word not in the list is refused at once.
+  The same move from two players is one suggestion; each player may have
+  three open; a move that no longer fits the board drops away, and all of
+  them clear when the puzzle ends. Suggesting never makes the host's move
+  stale. A host who stays away thirty seconds hands the run to the next
+  player still here.

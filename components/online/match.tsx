@@ -5,24 +5,18 @@ import { useGameSound } from '../game/use-game-sound';
 import { useResultsFeedback, WinnerCelebration } from '../game/results-feedback';
 import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
 import { CountUp, stagger } from '../game/reveal-motion';
-import { totalRounds } from '@/lib/games/trio/engine';
+import { decisionKey, previewPlacement, totalRounds } from '@/lib/games/trio/engine';
 import { dropTargetNear } from '../game/drag-preview';
-import { FullscreenControl, useFullscreen } from '../game/fullscreen-control';
 import {
   ExtensionControls,
   useNatureChoice,
 } from '@/components/game/new-extensions';
-import { useAdvancedView } from '@/components/game/advanced-view';
 import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
-import { ArrowLeft } from 'lucide-react';
-import { TableHeading, gameName } from '../game/table-heading';
-import {
-  useAutoRoll,
-  MoveConfirmation,
-  UndoChoice,
-  useMoveConfirmation,
-} from '../game/confirmation';
-import { TableMenu } from '../game/table-menu';
+import { ArrowLeft, List, Trophy } from 'lucide-react';
+import { TableHeading, gameName, worldTheme } from '../game/table-heading';
+import { useAutoRoll, MoveConfirmation, UndoChoice } from '../game/confirmation';
+import { GameMenu } from '../game/game-menu';
+import { SoundSettings } from '../game/sound-settings';
 import { ArtworkLoading } from '../game/artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { SanctuaryBadges } from '@/components/game/mora-extension';
@@ -49,7 +43,11 @@ import {
 } from '@/lib/games/trio/engine';
 import type { GameView } from '@/lib/online/types';
 import { cue, eventCue } from '@/lib/games/trio/sound';
-import { readAmbienceLevel, useAmbience } from '@/components/game/use-ambience';
+import {
+  readAmbienceLevel,
+  saveAmbienceLevel,
+  useAmbience,
+} from '@/components/game/use-ambience';
 
 export function OnlineMatch({
   g,
@@ -57,6 +55,7 @@ export function OnlineMatch({
   disabled,
   connectionStatus,
   ambienceEnabled = false,
+  turnSound = true,
   send,
   onHome,
 }: {
@@ -65,9 +64,13 @@ export function OnlineMatch({
   disabled: boolean;
   connectionStatus?: string;
   ambienceEnabled?: boolean;
+  turnSound?: boolean;
   send: (move: Move) => Promise<boolean>;
   onHome: () => void;
 }) {
+  const [submitted, setSubmitted] = useState<{ key: string; move: Move } | null>(null);
+  const localMove = submitted?.key === decisionKey(g) ? submitted.move : undefined;
+  const display = previewPlacement(g, viewer, localMove ?? g.ownMove);
   const motionRoot = useRef<HTMLElement>(null);
   useGameMotion(motionRoot, `${g.id}:${g.round}:${g.phase}`);
   const [selected, setSelected] = useState<number | null>(null),
@@ -113,16 +116,14 @@ export function OnlineMatch({
   useEffect(() => {
     if (lastRevision.current !== g.revision) {
       for (const e of g.events.filter(
-        (e) => e.id >= (lastRevision.current + 1) * 10,
+        (e) => e.id >= (lastRevision.current + 1) * 10 && !(e.type === 'play' && e.player === viewer),
       ))
         eventCue(e, g.id, volume);
       lastRevision.current = g.revision;
     }
-  }, [g.revision, g.events, g.id, volume]);
-  const mine = canAct(g, viewer) && !disabled;
+  }, [g.revision, g.events, g.id, volume, viewer]);
+  const mine = canAct(g, viewer) && !disabled && !localMove;
   const nature = useNatureChoice(g, viewer);
-  const [advanced, setAdvanced] = useAdvancedView(g.id);
-  const fullscreen = useFullscreen();
   // Both Mora worlds (Observatory and Floodline Station) share the paper-table environment.
   const observatory = g.id === 'wildgrove';
   // Full-table worlds float their controls over one environment plate.
@@ -134,9 +135,8 @@ export function OnlineMatch({
         ? 'market'
         : undefined;
   const world = environment !== undefined;
-  const [ambience] = useState(readAmbienceLevel);
+  const [ambience, setAmbience] = useState(readAmbienceLevel);
   useAmbience(g.phase === 'over' ? null : g.id, 1, ambienceEnabled ? ambience : 0, g.contentSet);
-  const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g.id);
 
   function inspect(item: Inspection, source?: HTMLElement) {
     origin.current =
@@ -151,7 +151,17 @@ export function OnlineMatch({
     move = nature.withChoice(festival.withChoice(move));
     if (disabled || (move.type !== 'undo' && !mine) || !validMove(g, festival.withChoice(move), viewer)) return;
 
-    if ((await send(move)) && move.type !== 'roll') {
+    if (move.type === 'play') {
+      setSubmitted({ key: decisionKey(g), move });
+      cue('place', volume, 0, g.id);
+    }
+    let accepted = false;
+    try {
+      accepted = await send(move);
+    } finally {
+      setSubmitted(null);
+    }
+    if (accepted && move.type !== 'roll') {
       setSelected(null);
       setPreparedZone(null);
       setPassed([]);
@@ -188,13 +198,12 @@ export function OnlineMatch({
       card: c.id,
       ...(ward ? { ward: true } : {}),
     };
-    if (!confirmMoves && validMove(g, festival.withChoice(move), viewer))
-      void commit(move);
+    if (validMove(g, festival.withChoice(move), viewer)) void commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
   }
   function place(zone: number) {
     if (selected === null || g.phase === 'over') return;
-    if (!confirmMoves && mine && g.phase === 'play') {
+    if (mine && g.phase === 'play') {
       void commit({ type: 'play', card: selected, zone });
     } else setPreparedZone(zone);
   }
@@ -241,7 +250,7 @@ export function OnlineMatch({
       return;
     }
     if (g.phase === 'over') return;
-    if (confirmMoves || !mine || g.phase === 'roll') {
+    if (!mine || g.phase === 'roll') {
       const destination = target?.dataset.drop;
       if (g.phase === 'pass') return;
       if (
@@ -300,25 +309,41 @@ export function OnlineMatch({
             <GameProgress round label={`Round ${g.round} / ${totalRounds(g)}`} />
         <div className="table-toolbar-actions">
               <div className="table-others-slot" />
-              {!world && <FullscreenControl />}
-            <TableMenu
-              fullscreen={world ? fullscreen : undefined}
-          advanced={advanced}
-          onAdvanced={g.id !== 'undertow' && !observatory ? setAdvanced : undefined}
-          confirmMoves={confirmMoves}
-          onConfirmMoves={setConfirmMoves}
-          onRules={() => setPanel('rules')}
-          onCounts={() => setPanel('reference')}
-          onScores={() => setPanel('log')}
-          soundLabel={volume ? 'Mute sound effects' : 'Unmute sound effects'}
-          onSound={() => {
-            const next = volume ? 0 : 0.5;
-            setVolume(next);
-            try {
-              localStorage.setItem('gamehub.volume.v3', String(next));
-            } catch {}
-          }}
-        />
+            <GameMenu
+              name={gameName(g) ?? ''}
+              theme={worldTheme(g.id)}
+              triggerClassName="table-menu-trigger"
+              onRules={() => setPanel('rules')}
+              items={[
+                {
+                  label: 'Card and piece counts',
+                  icon: List,
+                  onSelect: () => setPanel('reference'),
+                },
+                {
+                  label: 'Scores and activity',
+                  icon: Trophy,
+                  onSelect: () => setPanel('log'),
+                },
+              ]}
+              sound={
+                <SoundSettings
+                  volume={volume}
+                  ambience={ambience}
+                  onVolume={(next) => {
+                    setVolume(next);
+                    try {
+                      localStorage.setItem('gamehub.volume.v3', String(next));
+                    } catch {}
+                  }}
+                  onAmbience={(next) => {
+                    setAmbience(next);
+                    saveAmbienceLevel(next);
+                  }}
+                />
+              }
+              onLeave={onHome}
+            />
             </div>
       </div>
       <div
@@ -327,14 +352,14 @@ export function OnlineMatch({
         <section className="play-area">
           <div className="table-players">
             <Players
-              g={g}
+              g={display}
               viewer={viewer}
               volume={volume}
+              turnSound={turnSound}
               inspect={inspect}
               disabled={disabled}
               boardButton
               connectionStatus={connectionStatus}
-              advanced={advanced}
             />
           </div>
           {g.id === 'wildgrove' &&
@@ -342,7 +367,7 @@ export function OnlineMatch({
               <div className="observatory-achievements">
                 <span className="achievements-heading">Sanctuary goals</span>
                 <SanctuaryBadges
-                  zones={g.players[viewer].zones}
+                  zones={display.players[viewer].zones}
                   goals={g.sanctuaryGoals}
                   contentSet={g.contentSet}
                   inspect={inspect}
@@ -354,8 +379,8 @@ export function OnlineMatch({
             fitBoard={g.id}
           >
             <Board
-              natureChoice={nature.choice}
-              g={g}
+              natureChoice={display.ready?.[viewer] ? {} : nature.choice}
+              g={display}
               player={viewer}
               viewer={viewer}
               selected={selected}
@@ -371,7 +396,7 @@ export function OnlineMatch({
               {g.id !== 'midnight' && <DieControl g={g} viewer={viewer} />}
               <ExtensionControls
                 key={`${g.round}:${g.pick}:${g.phase}`}
-                g={g}
+                g={display}
                 viewer={viewer}
                 choice={nature.choice}
                 onChange={nature.setChoice}
@@ -379,7 +404,7 @@ export function OnlineMatch({
                 disabled={disabled}
               />
               <FestivalControls
-                g={g}
+                g={display}
                 viewer={viewer}
                 choice={festival.choice}
                 onChange={festival.setChoice}
@@ -423,16 +448,7 @@ export function OnlineMatch({
           <MoveConfirmation
             g={g}
             viewer={viewer}
-            selected={selected}
             passed={passed}
-            zone={preparedZone}
-            ward={ward}
-
-            festivalChoice={festival.choice}
-            natureChoice={nature.choice}
-
-            enabled={confirmMoves}
-
             onConfirm={commit}
             disabled={disabled}
             onClear={() => {
@@ -442,7 +458,7 @@ export function OnlineMatch({
             }}
           />
           <Hand
-            g={g}
+            g={display}
             viewer={viewer}
             order={order}
             selected={selected}

@@ -7,15 +7,13 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import type { Pin } from '@/lib/games/party/geography';
 export type MapPin = Pin & { label: string; color: string; answer?: boolean };
-const vector = (p: Pin, radius = 1) => {
-  const lat = THREE.MathUtils.degToRad(p.lat),
-    lng = THREE.MathUtils.degToRad(p.lng);
-  return new THREE.Vector3(
-    Math.cos(lat) * Math.cos(lng),
-    Math.sin(lat),
-    -Math.cos(lat) * Math.sin(lng),
-  ).multiplyScalar(radius);
-};
+import {
+  vector,
+  tileGeometry,
+  polarGeometry,
+  mercatorLimit,
+  imageryZoom,
+} from './geo-globe-geometry';
 const location = (v: THREE.Vector3): Pin => ({
   lat: THREE.MathUtils.radToDeg(
     Math.asin(THREE.MathUtils.clamp(v.y / v.length(), -1, 1)),
@@ -35,39 +33,6 @@ const minTileZoom = 4,
   maxLoading = 8;
 /** Closest camera: about 60 km above the ground. */
 const minAltitude = 0.0095;
-const mercatorLat = (y: number, n: number) =>
-  THREE.MathUtils.radToDeg(Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))));
-function tileGeometry(z: number, x: number, y: number) {
-  const n = 2 ** z,
-    segs = z < 7 ? 16 : 8;
-  const positions: number[] = [],
-    uvs: number[] = [],
-    index: number[] = [];
-  for (let j = 0; j <= segs; j++) {
-    // Rows are even in Mercator space, so the image maps without warping.
-    const lat = mercatorLat(y + j / segs, n);
-    for (let i = 0; i <= segs; i++) {
-      const lng = ((x + i / segs) / n) * 360 - 180;
-      const v = vector({ lat, lng });
-      positions.push(v.x, v.y, v.z);
-      uvs.push(i / segs, 1 - j / segs);
-    }
-  }
-  for (let j = 0; j < segs; j++)
-    for (let i = 0; i < segs; i++) {
-      const a = j * (segs + 1) + i,
-        b = a + segs + 1;
-      index.push(a, b, a + 1, b, b + 1, a + 1);
-    }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(positions, 3),
-  );
-  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.setIndex(index);
-  return geometry;
-}
 /** A map pin: a round head on a short stem, its tip on the spot. */
 function pinTexture(pin: MapPin) {
   const c = document.createElement('canvas');
@@ -149,7 +114,7 @@ export function GeoPinMap({
       'Satellite globe. Drag to rotate; pinch or scroll to zoom. Arrow keys rotate, plus and minus zoom, Enter places a pin at the crosshair. Home resets the globe.',
     );
     container.appendChild(canvas);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
     const controls = new OrbitControls(camera, canvas);
     controls.enablePan = false;
     controls.enableDamping = false;
@@ -161,7 +126,15 @@ export function GeoPinMap({
     const material = new THREE.MeshBasicMaterial({ color: '#ffffff' });
     const geometry = new THREE.SphereGeometry(1, 128, 96);
     const earth = new THREE.Mesh(geometry, material);
+    // The far-off globe sits just under the close-up tiles, so their facets
+    // never fight it for depth and it never flickers through them.
+    earth.scale.setScalar(0.997);
     scene.add(earth);
+    const polarCaps = [true, false].map((north) => {
+      const cap = new THREE.Mesh(polarGeometry(north), material);
+      scene.add(cap);
+      return cap;
+    });
     // A thin sky-blue rim so the globe reads as a planet on the desk.
     const haloGeometry = new THREE.SphereGeometry(1.045, 64, 48);
     const halo = new THREE.Mesh(
@@ -275,13 +248,13 @@ export function GeoPinMap({
     const ray = new THREE.Raycaster(),
       ball = new THREE.Sphere(new THREE.Vector3(), 1),
       hit = new THREE.Vector3();
-    function tileZoom() {
-      const altitude = camera.position.length() - 1;
-      const pxPerRadian =
-        renderer.domElement.height / 2 / Math.tan(halfFov()) / altitude;
-      return Math.min(
-        maxTileZoom,
-        Math.floor(Math.log2((pxPerRadian * 2 * Math.PI) / 256) + 0.3),
+    function tileZoom(distance: number, lat = 0, slant = 1) {
+      return imageryZoom(
+        renderer.domElement.height,
+        camera.fov,
+        distance,
+        lat,
+        slant,
       );
     }
     function loadTile(z: number, x: number, y: number) {
@@ -335,16 +308,14 @@ export function GeoPinMap({
       cache.delete(key);
     }
     function refreshTiles() {
-      const z = tileZoom();
       for (const t of cache.values()) t.mesh.visible = false;
-      if (!loaded || z < minTileZoom) {
+      if (!loaded || tileZoom(camera.position.length() - 1) < minTileZoom) {
         queue = [];
         setTiled(false);
         return;
       }
-      const n = 2 ** z,
-        wanted = new Map<string, [number, number, number, number]>(),
-        grid = 12,
+      const wanted = new Map<string, [number, number, number, number]>(),
+        grid = 20,
         point = new THREE.Vector2();
       for (let gy = 0; gy <= grid; gy++)
         for (let gx = 0; gx <= grid; gx++) {
@@ -352,16 +323,35 @@ export function GeoPinMap({
           ray.setFromCamera(point, camera);
           if (!ray.ray.intersectSphere(ball, hit)) continue;
           const p = location(hit);
-          if (Math.abs(p.lat) > 85) continue;
+          if (Math.abs(p.lat) >= mercatorLimit) continue;
+          // Each sample picks its own zoom, so far and polar ground asks for
+          // bigger tiles instead of slipping between the samples.
+          const z = THREE.MathUtils.clamp(
+            tileZoom(
+              hit.distanceTo(camera.position),
+              p.lat,
+              -hit.dot(ray.ray.direction),
+            ),
+            minTileZoom - 1,
+            maxTileZoom,
+          );
+          const n = 2 ** z;
           const x = Math.floor(((p.lng + 180) / 360) * n) % n;
           const s = Math.sin(THREE.MathUtils.degToRad(p.lat));
-          const y = Math.floor(
-            (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n,
+          const y = THREE.MathUtils.clamp(
+            Math.floor((0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n),
+            0,
+            n - 1,
           );
           const d = Math.hypot(gx / grid - 0.5, gy / grid - 0.5);
-          const key = `${z}/${x}/${y}`;
-          const prev = wanted.get(key);
-          if (!prev || prev[3] > d) wanted.set(key, [z, x, y, d]);
+          // Towards the poles the columns narrow into wedges that can slip
+          // between samples, so take the neighbours as well.
+          for (const dx of Math.abs(p.lat) > 60 ? [0, -1, 1] : [0]) {
+            const tx = (x + dx + n) % n,
+              key = `${z}/${tx}/${y}`,
+              prev = wanted.get(key);
+            if (!prev || prev[3] > d) wanted.set(key, [z, tx, y, d]);
+          }
         }
       const now = performance.now();
       queue = [];
@@ -374,7 +364,7 @@ export function GeoPinMap({
         }
         if (!tile) queue.push([tz, x, y, d]);
         // Until it arrives, the nearest loaded ancestor stands in.
-        for (let up = 1; up <= tz - minTileZoom + 1; up++) {
+        for (let up = 1; up <= tz; up++) {
           const parent = cache.get(`${tz - up}/${x >> up}/${y >> up}`);
           if (parent?.ready) {
             parent.mesh.visible = true;
@@ -562,7 +552,8 @@ export function GeoPinMap({
       if (!width || !height) return;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+      renderer.setSize(width, height, false);
       for (const l of arcs.children)
         (l as Line2).material.resolution.set(width, height);
       const fit = fitDistance();
@@ -595,8 +586,7 @@ export function GeoPinMap({
     function place(x: number, y: number) {
       if (!loaded) return;
       ray.setFromCamera(new THREE.Vector2(x, y), camera);
-      const hit = ray.intersectObject(earth, false)[0];
-      if (hit) pick.current?.(location(hit.point));
+      if (ray.ray.intersectSphere(ball, hit)) pick.current?.(location(hit));
     }
     const pointers = new Map<number, { x: number; y: number }>();
     let start: { x: number; y: number; moved: boolean } | null = null,
@@ -728,6 +718,7 @@ export function GeoPinMap({
       texture.dispose();
       material.dispose();
       geometry.dispose();
+      for (const cap of polarCaps) cap.geometry.dispose();
       haloGeometry.dispose();
       (halo.material as THREE.Material).dispose();
       renderer.dispose();

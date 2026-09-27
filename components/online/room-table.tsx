@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Settings2 } from 'lucide-react';
 import {
   api,
   ApiError,
@@ -8,7 +7,7 @@ import {
   returnPath,
   withDevSession,
 } from '@/lib/online/client';
-import type { Command, Table } from '@/lib/online/types';
+import type { Command, Table, TableCommand } from '@/lib/online/types';
 
 /** Keep a standalone saved game connected to the table that opened it. */
 export function useRoomTable(onExit: (path: string) => void) {
@@ -105,27 +104,35 @@ export function useRoomTable(onExit: (path: string) => void) {
       events?.close();
     };
   }, []);
-  async function dispatch(type?: 'abandon' | 'close') {
+  /** Sends a table command; ending the game or closing the table takes
+   *  everyone back to the table (or home). Without an action, retries. */
+  async function dispatch(action?: TableCommand) {
     const t = current.current;
     if (!t || sending.current) return;
-    if (!pending.current && type)
+    if (!pending.current && action)
       pending.current = {
         requestId: requestId(),
         revision: t.revision,
         matchId: t.matchId,
-        action: { type },
+        action,
       };
     if (!pending.current) return;
     sending.current = true;
     setBusy(true);
     try {
+      const sent = pending.current.action.type;
       const next = await api<Table>(
         `/api/tables/${t.token}/commands`,
         pending.current,
       );
       pending.current = null;
       setRetry(false);
-      exit.current(next.status === 'closed' ? '/' : `/table/${t.token}`);
+      if (sent === 'abandon' || sent === 'close')
+        exit.current(next.status === 'closed' ? '/' : `/table/${t.token}`);
+      else if (next.revision >= (current.current?.revision ?? 0)) {
+        current.current = next;
+        setTable(next);
+      }
     } catch (e) {
       if (e instanceof ApiError) {
         pending.current = null;
@@ -142,49 +149,4 @@ export function useRoomTable(onExit: (path: string) => void) {
     }
   }
   return { table, error, busy, retry, dispatch };
-}
-
-export function RoomTableSettings({
-  room,
-}: {
-  room: ReturnType<typeof useRoomTable>;
-}) {
-  if (!room.table) return room.error ? <p role="alert">{room.error}</p> : null;
-  return (
-    <details className="room-game-settings">
-      <summary>
-        <Settings2 size={18} /> Table settings
-      </summary>
-      <ul>
-        {room.table.members.map((m) => (
-          <li key={m.id}>
-            {m.name}
-            {m.owner ? ' · Host' : ''}
-          </li>
-        ))}
-      </ul>
-      {room.table.isHost && (
-        <>
-          <button
-            disabled={room.busy || room.retry}
-            onClick={() => void room.dispatch('abandon')}
-          >
-            Back to lobby
-          </button>
-          <button
-            disabled={room.busy || room.retry}
-            onClick={() => void room.dispatch('close')}
-          >
-            Close table
-          </button>
-        </>
-      )}
-      {room.error && <p role="alert">{room.error}</p>}
-      {room.retry && (
-        <button disabled={room.busy} onClick={() => void room.dispatch()}>
-          Retry
-        </button>
-      )}
-    </details>
-  );
 }

@@ -38,6 +38,8 @@
   cursor: crosshair;
 }
 .atlas-pin-map canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   /* Close up, the imagery fills the canvas; keep its corners soft. */
   border-radius: 22px;

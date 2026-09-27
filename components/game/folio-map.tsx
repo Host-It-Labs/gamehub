@@ -1,6 +1,6 @@
 'use client';
 import { type CSSProperties } from 'react';
-import { Crown } from 'lucide-react';
+import { Crown, Dices } from 'lucide-react';
 import type { MapNode, PublicGame } from '@/lib/games/folio/types';
 import {
   BOSS_EVERY,
@@ -35,12 +35,43 @@ export function nodeTitle(n: MapNode) {
     ? `Boss · ${game.name}: ${game.boss.name}`
     : game.name;
 }
+/** A teammate's pick on the map: their initial in their colour. */
+export type Voter = {
+  id: string;
+  initial: string;
+  colour: string;
+  name: string;
+};
+/**
+ * The act's boss reroll: `soon` until round 2 is played, `ready` once it may
+ * be used, `used` after it was.
+ */
+export type Reroll = {
+  state: 'soon' | 'ready' | 'used';
+  /** Present for whoever may use it now (the host). */
+  onReroll?: () => void;
+  picked?: boolean;
+};
+export function VoteChips({ voters }: { voters: Voter[] }) {
+  if (!voters.length) return null;
+  return (
+    <span className="folio-votes" aria-hidden="true">
+      {voters.map((v) => (
+        <i key={v.id} style={{ '--voter': v.colour } as CSSProperties}>
+          {v.initial}
+        </i>
+      ))}
+    </span>
+  );
+}
 export function FolioMap({
   g,
   open,
   picked,
   onPick,
   act,
+  votes,
+  reroll,
 }: {
   g: PublicGame;
   /** Node ids the crew can choose now. */
@@ -49,6 +80,9 @@ export function FolioMap({
   onPick?: (n: MapNode) => void;
   /** Only the current section is visible; future sections stay hidden. */
   act: number;
+  /** Who picked which open stop. */
+  votes?: Record<string, Voter[]>;
+  reroll?: Reroll;
 }) {
   const shown = act;
   const nodes = g.map.filter((n) => actOfRow(n.row) === shown);
@@ -128,6 +162,7 @@ export function FolioMap({
               : open.includes(n.id)
                 ? 'open'
                 : 'later';
+          const voters = votes?.[n.id] ?? [];
           return (
             <button
               key={n.id}
@@ -140,9 +175,19 @@ export function FolioMap({
                 { left: `${x * 100}%`, top: `${y * 100}%` } as CSSProperties
               }
               onClick={() => can && onPick(n)}
-              aria-label={`Round ${n.row + 1}: ${nodeTitle(n)}${`, ${LEVEL_NAMES[n.level]}`}${state === 'won' ? ', solved' : state === 'lost' ? ', lost' : state === 'open' ? ', available' : ''}`}
+              aria-label={`Round ${n.row + 1}: ${nodeTitle(n)}${`, ${LEVEL_NAMES[n.level]}`}${state === 'won' ? ', solved' : state === 'lost' ? ', lost' : state === 'open' ? ', available' : ''}${voters.length ? `, picked by ${voters.map((v) => v.name).join(', ')}` : ''}`}
             >
-              <span className="folio-node-seal">
+              <span
+                className="folio-node-seal"
+                // A rerolled boss turns over into its new game.
+                key={n.type === 'boss' ? n.kind : undefined}
+                data-rerolled={
+                  (n.type === 'boss' &&
+                    g.rerolled?.includes(actOfRow(n.row))) ||
+                  undefined
+                }
+              >
+                <VoteChips voters={voters} />
                 {n.type === 'boss' ? (
                   <>
                     <Crown size={15} className="folio-node-crown" />
@@ -163,6 +208,40 @@ export function FolioMap({
             </button>
           );
         })}
+        {reroll &&
+          nodes
+            .filter((n) => n.type === 'boss')
+            .map((n) => {
+              const { x, y } = nodePoint(n);
+              return (
+                <button
+                  key={`reroll-${n.id}`}
+                  type="button"
+                  className="folio-reroll"
+                  data-state={reroll.state}
+                  data-picked={reroll.picked || undefined}
+                  disabled={reroll.state !== 'ready' || !reroll.onReroll}
+                  style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
+                  onClick={reroll.onReroll}
+                  aria-label={
+                    reroll.state === 'used'
+                      ? 'Boss rerolled'
+                      : reroll.state === 'ready'
+                        ? 'Reroll the boss'
+                        : 'Boss reroll opens after round 2'
+                  }
+                  title={
+                    reroll.state === 'used'
+                      ? 'Boss rerolled'
+                      : reroll.state === 'ready'
+                        ? 'Reroll the boss'
+                        : 'Reroll after round 2'
+                  }
+                >
+                  <Dices size={17} strokeWidth={2.2} aria-hidden="true" />
+                </button>
+              );
+            })}
       </fieldset>
     </div>
   );

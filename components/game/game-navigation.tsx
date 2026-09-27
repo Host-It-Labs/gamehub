@@ -1,13 +1,14 @@
 'use client';
-import { ArrowLeft, Clock3, EllipsisVertical, Users } from 'lucide-react';
+import { ArrowLeft, Clock3, Users } from 'lucide-react';
 import './game-navigation.css';
 import { GameProgress } from './game-progress';
+import { GameMenu, type GameMenuProps } from './game-menu';
 
 /** Shared navigation islands for games that do not use the trio table toolbar. */
 export function GameNavigation({
   name,
   onBack,
-  onMenu,
+  menu,
   onOthers,
   othersLabel = 'Others',
   onAdvance,
@@ -20,7 +21,8 @@ export function GameNavigation({
   /** A fixed round count, shown as a pill centred on the top bar. */
   round?: string;
   onBack: () => void;
-  onMenu: () => void;
+  /** The shared drop-down menu; its name defaults to the game's. */
+  menu: Omit<GameMenuProps, 'name' | 'triggerClassName'> & { name?: string };
   /** Omitted where there is nothing private to look at (Know Me, Quiz). */
   onOthers?: () => void;
   othersLabel?: string;
@@ -48,10 +50,11 @@ export function GameNavigation({
             <span>Advance time</span>
           </button>
         )}
-        <button className="game-navigation-menu" onClick={onMenu}>
-          <EllipsisVertical size={18} />
-          <span>Menu</span>
-        </button>
+        <GameMenu
+          name={name}
+          {...menu}
+          triggerClassName="game-navigation-menu"
+        />
         {onOthers && (
           <button className="game-navigation-others" onClick={onOthers}>
             <Users size={18} />

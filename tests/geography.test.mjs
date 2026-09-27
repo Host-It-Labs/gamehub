@@ -180,6 +180,24 @@ await test('scoring rewards closeness, allows shared closest points, and breaks 
   ]);
   assert.deepEqual(g.result.gains, [100, 0]);
   assert.deepEqual(g.result.distances[0], [0]);
+  // Every pin scores by its own distance, not only the closest one.
+  assert.deepEqual(
+    [0, 25, 60, 100, 500, 750, 4000, 9000].map(geo.pinPoints),
+    [100, 100, 95, 90, 55, 45, 0, 0],
+  );
+  let h = geo.createGame(3, 12);
+  const [target] = h.cityIds.map((i) => places[i]);
+  const near = (dlat) => [{ lat: target.lat + dlat, lng: target.lng }];
+  h = pinAndLock(h, 0, near(0));
+  h = pinAndLock(h, 1, near(2));
+  h = pinAndLock(h, 2, near(6));
+  const [a, b, c] = h.result.gains;
+  assert.equal(a, 100);
+  assert.ok(b > c && c > 0, `${b} > ${c} > 0`);
+  assert.deepEqual(
+    h.result.gains,
+    h.result.distances.map(([d]) => geo.pinPoints(d)),
+  );
   assert.equal(
     entry.outcome({ ...g, scores: [3, 3], totalDistance: [300, 400] }).title,
     'You wins',

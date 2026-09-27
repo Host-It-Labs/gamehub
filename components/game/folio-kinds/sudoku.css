@@ -316,11 +316,17 @@
     transform: none;
   }
 }
+/* A finished row, column or box washes over in a halftone of ink dots. */
 .fk-sudoku-cell.sweep::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--folio-ink);
+  background: radial-gradient(
+      circle,
+      var(--folio-ink) 0 1.1px,
+      transparent 1.6px
+    )
+    0 0 / 4px 4px;
   opacity: 0;
   pointer-events: none;
   animation: fk-sudoku-sweep 0.5s ease both;
@@ -331,7 +337,7 @@
     opacity: 0;
   }
   35% {
-    opacity: 0.24;
+    opacity: 0.5;
   }
   100% {
     opacity: 0;
@@ -402,7 +408,90 @@
     transform: none;
   }
 }
+
+/* ---------- Folio touches ---------- */
+/* Your numbers are inked by hand: each rests at its own slight angle beside
+   the upright printed givens, and lands with a small bloom of ink. */
+.fk-sudoku-digit {
+  position: relative;
+}
+.fk-sudoku-cell.placed .fk-sudoku-digit,
+.fk-sudoku-cell.wrong .fk-sudoku-digit {
+  rotate: calc((var(--t) - 4) * 0.6deg);
+}
+.fk-sudoku-cell.pop::before {
+  content: '';
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--fk-sudoku-placed) 34%, transparent) 0 42%,
+    transparent 71%
+  );
+  opacity: 0;
+  pointer-events: none;
+  animation: fk-sudoku-bloom 0.55s ease-out;
+}
+@keyframes fk-sudoku-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+/* Notes are graphite pencil, sketched in with one quick stroke. */
+.fk-sudoku-notes {
+  --fk-sudoku-graphite: color-mix(in srgb, #4b4d56 78%, var(--folio-ink));
+  color: color-mix(in srgb, var(--fk-sudoku-graphite) 86%, transparent);
+  text-shadow: 0.35px 0.3px 0
+    color-mix(in srgb, var(--fk-sudoku-graphite) 30%, transparent);
+}
+.fk-sudoku-note {
+  display: block;
+  animation: fk-sudoku-sketch 0.22s ease-out;
+}
+@keyframes fk-sudoku-sketch {
+  0% {
+    opacity: 0.3;
+    clip-path: inset(-10% 100% -10% -10%);
+    transform: translateX(-0.08em);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(-10% -10% -10% -10%);
+    transform: none;
+  }
+}
+/* The mistake tally is rubber-stamped each time it goes up. */
+.fk-sudoku-mistakes b.on {
+  display: inline-block;
+  animation: fk-sudoku-tally 0.42s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+@keyframes fk-sudoku-tally {
+  0% {
+    opacity: 0;
+    transform: scale(2.1) rotate(-14deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.9) rotate(3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .fk-sudoku-cell::before,
+  .fk-sudoku-note,
+  .fk-sudoku-mistakes b.on,
   .fk-sudoku-cell .fk-sudoku-digit,
   .fk-sudoku-cell::after,
   .fk-sudoku .fk-sudoku-cell.shake,

@@ -1,165 +1,165 @@
 {
-  "source": "/art/mora-overgrown-floodline-portrait-v3-f-tall.png",
-  "image": "/art/optimized/mora-overgrown-floodline-portrait-v3-f-tall.webp",
-  "boardImage": "/art/optimized/mora-overgrown-floodline-portrait-v3-f-tall-board.webp",
-  "width": 1024,
-  "height": 1780,
+  "source": "/art/mora-phone-floodline-v4-f-tall.png",
+  "image": "/art/optimized/mora-phone-floodline-v4-f-tall.webp",
+  "boardImage": "/art/optimized/mora-phone-floodline-v4-f-tall-board.webp",
+  "width": 1204,
+  "height": 2116,
   "crop": {
-    "left": 154,
-    "top": 179,
-    "width": 768,
-    "height": 1195
+    "left": 172,
+    "top": 401,
+    "width": 902,
+    "height": 1090
   },
   "landmarks": {
-    "roofTop": 213,
+    "roofTop": 276,
     "protectedBounds": [
       {
         "name": "lighthouse",
-        "bounds": [120, 248, 400, 370]
+        "bounds": [833, 276, 257, 364]
       },
       {
         "name": "pier",
-        "bounds": [590, 213, 260, 420]
+        "bounds": [226, 440, 614, 150]
       },
       {
         "name": "nesting beach",
-        "bounds": [100, 628, 430, 310]
+        "bounds": [104, 654, 464, 336]
       },
       {
-        "name": "mangrove",
-        "bounds": [540, 618, 420, 340]
+        "name": "mangrove roots",
+        "bounds": [604, 611, 486, 379]
       },
       {
         "name": "rock pools",
-        "bounds": [70, 1003, 450, 390]
+        "bounds": [90, 1019, 507, 443]
       },
       {
         "name": "sea cave",
-        "bounds": [540, 1028, 470, 360]
+        "bounds": [647, 1019, 429, 436]
       }
     ]
   },
   "habitats": [
     {
       "zone": 0,
-      "bounds": [184, 1150, 209, 136],
-      "label": [288, 1310],
+      "bounds": [208, 1179, 285, 187],
+      "label": [351, 1429],
       "slots": [
-        [217, 1189],
-        [288, 1189],
-        [359, 1189],
-        [251, 1254],
-        [326, 1254]
+        [254, 1232],
+        [350, 1232],
+        [447, 1232],
+        [291, 1321],
+        [393, 1321]
       ],
-      "tokenWidth": 54,
-      "summary": "*Exact* pairs 7 \u00b7 lone 1"
+      "tokenWidth": 74,
+      "summary": "7 per *pair*"
     },
     {
       "zone": 1,
-      "bounds": [216, 745, 213, 133],
-      "label": [322, 900],
+      "bounds": [192, 757, 278, 180],
+      "label": [331, 1000],
       "slots": [
-        [249, 784],
-        [322, 784],
-        [395, 784],
-        [277, 846],
-        [353, 846]
+        [238, 810],
+        [331, 810],
+        [424, 810],
+        [278, 892],
+        [378, 892]
       ],
-      "tokenWidth": 54,
-      "summary": "All *different* 3 each \u00b7 repeat 1 each"
+      "tokenWidth": 74,
+      "summary": "3 per *different* species"
     },
     {
       "zone": 2,
-      "bounds": [609, 795, 224, 71],
-      "label": [721, 888],
+      "bounds": [696, 843, 264, 98],
+      "label": [778, 1004],
       "slots": [
-        [642, 834],
-        [721, 834],
-        [799, 834]
+        [742, 896],
+        [828, 896],
+        [914, 896]
       ],
-      "tokenWidth": 54,
-      "summary": "Three *alike* 12 \u00b7 else 1 each"
+      "tokenWidth": 74,
+      "summary": "Three *alike*: 12"
     },
     {
       "zone": 3,
-      "bounds": [651, 230, 81, 286],
-      "label": [698, 540],
+      "bounds": [350, 421, 360, 99],
+      "label": [530, 583],
       "slots": [
-        [698, 484],
-        [694, 409],
-        [689, 335],
-        [684, 269]
+        [396, 474],
+        [485, 474],
+        [575, 475],
+        [664, 475]
       ],
-      "tokenWidth": 54,
-      "summary": "2 each \u00b7 *A\u2013B\u2013A\u2013B* +6"
+      "tokenWidth": 74,
+      "summary": "2 each · *A–B–A–B* +6"
     },
     {
       "zone": 4,
-      "bounds": [635, 1184, 258, 107],
-      "label": [764, 1312],
+      "bounds": [777, 1213, 179, 167],
+      "label": [867, 1443],
       "slots": [
-        [668, 1223],
-        [726, 1249],
-        [796, 1259],
-        [859, 1246]
+        [823, 1266],
+        [908, 1266],
+        [824, 1335],
+        [910, 1335]
       ],
-      "tokenWidth": 54,
-      "summary": "*Echo*: 1 per same species elsewhere"
+      "tokenWidth": 74,
+      "summary": "3 each if found *elsewhere*"
     },
     {
       "zone": 6,
-      "bounds": [237, 405, 127, 71],
-      "label": [300, 498],
+      "bounds": [880, 438, 167, 98],
+      "label": [964, 599],
       "slots": [
-        [270, 444],
-        [330, 444]
+        [926, 491],
+        [1001, 491]
       ],
-      "tokenWidth": 54,
-      "summary": "4 each if its species lives *only* here"
+      "tokenWidth": 74,
+      "summary": "4 each if found *only* here"
     }
   ],
-  "release": [510, 993],
+  "release": [611, 1019],
   "animation": {
     "water": {
       "polygon": [
-        [380, 1448],
-        [520, 1438],
-        [620, 1478],
-        [600, 1548],
-        [460, 1568],
-        [370, 1528]
+        [633, 1500],
+        [730, 1490],
+        [833, 1510],
+        [833, 1630],
+        [730, 1640],
+        [633, 1630]
       ]
     },
     "foliage": [
       {
         "polygon": [
-          [540, 628],
-          [700, 608],
-          [880, 648],
-          [880, 718],
-          [700, 738],
-          [540, 718]
+          [1019, 640],
+          [1070, 632],
+          [1114, 645],
+          [1114, 775],
+          [1070, 785],
+          [1019, 770]
         ],
-        "pivot": [710, 758]
+        "pivot": [1065, 800]
       },
       {
         "polygon": [
-          [100, 1408],
-          [200, 1388],
-          [260, 1428],
-          [240, 1488],
-          [150, 1498],
-          [90, 1458]
+          [90, 1354],
+          [135, 1346],
+          [176, 1360],
+          [176, 1490],
+          [135, 1498],
+          [90, 1488]
         ],
-        "pivot": [175, 1508]
+        "pivot": [135, 1515]
       }
     ]
   },
   "overview": {
-    "left": 58,
-    "top": 197,
-    "width": 964,
-    "height": 1208
+    "left": 80,
+    "top": 266,
+    "width": 1020,
+    "height": 1235
   },
-  "overviewImage": "/art/optimized/mora-overgrown-floodline-portrait-v3-f-tall-overview.webp"
+  "overviewImage": "/art/optimized/mora-phone-floodline-v4-f-tall-overview.webp"
 }

@@ -1,0 +1,28 @@
+{
+  "prompt": "Original instrumental soundtrack for Arena, a bright cartoon miniature castle tower-battle game. Studio-quality playful orchestral game score, warm positive good vibes, elegant and memorable, no vocals or voices, no sound effects. Two clear sections in one 120-second piece: first 60 seconds relaxed at 96 BPM, sunny pizzicato strings, marimba, warm woodwinds, light plucked lute and soft brushed marching percussion, spacious and easygoing. At exactly 60 seconds switch decisively into the same theme in the same D major key at 144 BPM: energetic string ostinatos, lively hand drums, restrained brass counter-melody, urgent and exciting final-minute battle pace, maintaining this energy until the end. Clean mix with room for gameplay effects, no huge cinematic impacts, no crowded high frequencies or sub bass. Each section maintains a steady groove, begins promptly and ends on a clean bar line without a fade or long outro, suitable for looping independently. Fully original melody.",
+  "model": "eleven_music_v2",
+  "flow": "https://elevenlabs.io/app/flows/ImJi9NIYUt18vvRv2ubF",
+  "takes": [
+    {
+      "id": "ss3fKWkljlkzNIIy5TYO",
+      "status": "completed",
+      "duration_secs": 120
+    },
+    {
+      "id": "NSi74AXvIICGHpTfkPbT",
+      "status": "completed",
+      "duration_secs": 120
+    },
+    {
+      "id": "iSfthsNOXJzsiAdp38dE",
+      "status": "completed",
+      "duration_secs": 120
+    },
+    {
+      "id": "BGUWQuhY3Ff8c2Uohf9H",
+      "status": "failed"
+    }
+  ],
+  "selected": "take-1.mp3",
+  "processing": "First 60 seconds calm; second 60 seconds accelerated with pitch-preserving atempo=1.5; one-bar circular crossfades; stereo 48kHz 192kbps MP3 normalized to -20 LUFS, -2 dBTP target."
+}

@@ -1,157 +1,157 @@
 {
-  "source": "/art/mora-overgrown-observatory-portrait-v3-c-tall.png",
-  "image": "/art/optimized/mora-overgrown-observatory-portrait-v3-c-tall.webp",
-  "boardImage": "/art/optimized/mora-overgrown-observatory-portrait-v3-c-tall-board.webp",
-  "width": 1024,
-  "height": 1720,
+  "source": "/art/mora-phone-observatory-v4-b-tall.png",
+  "image": "/art/optimized/mora-phone-observatory-v4-b-tall.webp",
+  "boardImage": "/art/optimized/mora-phone-observatory-v4-b-tall-board.webp",
+  "width": 1204,
+  "height": 1906,
   "crop": {
-    "left": 163,
-    "top": 184,
-    "width": 759,
-    "height": 1068
+    "left": 214,
+    "top": 268,
+    "width": 813,
+    "height": 1171
   },
   "landmarks": {
-    "roofTop": 120,
+    "roofTop": 144,
     "protectedBounds": [
       {
         "name": "roof garden",
-        "bounds": [160, 160, 340, 350]
+        "bounds": [169, 169, 414, 407]
       },
       {
         "name": "observatory",
-        "bounds": [530, 120, 400, 430]
+        "bounds": [640, 144, 379, 475]
       },
       {
         "name": "root hollow",
-        "bounds": [120, 520, 420, 360]
+        "bounds": [147, 626, 471, 357]
       },
       {
         "name": "watchpost",
-        "bounds": [560, 540, 300, 370]
+        "bounds": [669, 633, 350, 371]
       },
       {
         "name": "glasshouse",
-        "bounds": [60, 890, 480, 400]
+        "bounds": [176, 1019, 407, 357]
       },
       {
         "name": "dry channel",
-        "bounds": [530, 990, 470, 250]
+        "bounds": [640, 1097, 407, 271]
       }
     ]
   },
   "habitats": [
     {
       "zone": 0,
-      "bounds": [634, 361, 153, 134],
-      "label": [710, 508],
+      "bounds": [721, 375, 213, 195],
+      "label": [827, 626],
       "slots": [
-        [671, 404],
-        [748, 405],
-        [671, 458],
-        [750, 459]
+        [774, 437],
+        [879, 437],
+        [774, 518],
+        [880, 518]
       ],
-      "tokenWidth": 60,
-      "summary": "*Same* species: 2 \u00b7 6 \u00b7 11 \u00b7 17"
+      "tokenWidth": 86,
+      "summary": "*Same* species: 2 · 6 · 11 · 17"
     },
     {
       "zone": 1,
-      "bounds": [255, 238, 152, 131],
-      "label": [331, 392],
+      "bounds": [292, 288, 202, 192],
+      "label": [393, 536],
       "slots": [
-        [292, 282],
-        [370, 281],
-        [292, 331],
-        [369, 333]
+        [345, 351],
+        [439, 350],
+        [345, 427],
+        [440, 428]
       ],
-      "tokenWidth": 60,
-      "summary": "*Pair* 7 \u00b7 two pairs 16"
+      "tokenWidth": 86,
+      "summary": "8 per *pair*"
     },
     {
       "zone": 2,
-      "bounds": [248, 732, 143, 81],
-      "label": [320, 832],
+      "bounds": [289, 810, 203, 115],
+      "label": [390, 981],
       "slots": [
-        [285, 777],
-        [354, 775]
+        [342, 872],
+        [438, 873]
       ],
-      "tokenWidth": 60,
-      "summary": "*Pair* 9 \u00b7 single 1"
+      "tokenWidth": 86,
+      "summary": "*Pair*: 9"
     },
     {
       "zone": 3,
-      "bounds": [193, 1065, 240, 113],
-      "label": [313, 1190],
+      "bounds": [234, 1200, 302, 135],
+      "label": [385, 1391],
       "slots": [
-        [230, 1108],
-        [310, 1131],
-        [396, 1142]
+        [287, 1262],
+        [384, 1283],
+        [482, 1283]
       ],
-      "tokenWidth": 60,
-      "summary": "*Echo*: 3 each if its species lives elsewhere"
+      "tokenWidth": 86,
+      "summary": "3 each if found *elsewhere*"
     },
     {
       "zone": 4,
-      "bounds": [612, 1034, 280, 79],
-      "label": [751, 1135],
+      "bounds": [683, 1141, 324, 114],
+      "label": [845, 1311],
       "slots": [
-        [649, 1077],
-        [751, 1077],
-        [855, 1077]
+        [736, 1203],
+        [844, 1203],
+        [953, 1203]
       ],
-      "tokenWidth": 60,
-      "summary": "*Full* channel: 6"
+      "tokenWidth": 86,
+      "summary": "2 per *creature*"
     },
     {
       "zone": 6,
-      "bounds": [691, 649, 74, 79],
-      "label": [728, 748],
-      "slots": [[728, 692]],
-      "tokenWidth": 60,
+      "bounds": [790, 750, 107, 114],
+      "label": [843, 920],
+      "slots": [[843, 812]],
+      "tokenWidth": 86,
       "summary": "2 per *other* area with its species"
     }
   ],
-  "release": [516, 928],
+  "release": [611, 1033],
   "animation": {
     "water": {
       "polygon": [
-        [0, 590],
-        [80, 570],
-        [120, 620],
-        [110, 760],
-        [60, 790],
-        [0, 780]
+        [90, 1350],
+        [180, 1355],
+        [240, 1400],
+        [245, 1490],
+        [200, 1550],
+        [90, 1555]
       ]
     },
     "foliage": [
       {
         "polygon": [
-          [900, 640],
-          [960, 620],
-          [1010, 650],
-          [1010, 720],
-          [960, 750],
-          [900, 720]
+          [1033, 1140],
+          [1080, 1125],
+          [1114, 1140],
+          [1114, 1270],
+          [1080, 1285],
+          [1033, 1260]
         ],
-        "pivot": [955, 760]
+        "pivot": [1075, 1300]
       },
       {
         "polygon": [
-          [20, 420],
-          [80, 400],
-          [130, 430],
-          [130, 500],
-          [80, 520],
-          [20, 500]
+          [90, 497],
+          [130, 485],
+          [150, 510],
+          [150, 600],
+          [120, 615],
+          [90, 605]
         ],
-        "pivot": [75, 535]
+        "pivot": [120, 630]
       }
     ]
   },
   "overview": {
-    "left": 48,
-    "top": 108,
-    "width": 964,
-    "height": 1194
+    "left": 137,
+    "top": 134,
+    "width": 920,
+    "height": 1315
   },
-  "overviewImage": "/art/optimized/mora-overgrown-observatory-portrait-v3-c-tall-overview.webp"
+  "overviewImage": "/art/optimized/mora-phone-observatory-v4-b-tall-overview.webp"
 }

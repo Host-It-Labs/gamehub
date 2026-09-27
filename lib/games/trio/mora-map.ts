@@ -51,13 +51,13 @@ export function habitatRelationships(
   };
   switch (art.zone) {
     case 0:
-      // Courtyard herds; Rock pools want exact pairs in each row.
+      // Courtyard herds; Pools want pairs in each row.
       between(0, 1, '=');
       between(2, 3, '=');
       if (coastal) between(3, 4, '=');
       break;
     case 1:
-      // Roof garden pairs; the Nesting beach wants every species different.
+      // Garden pairs; the Beach wants different species.
       if (coastal) {
         between(0, 1, '≠');
         between(1, 2, '≠');
@@ -68,12 +68,12 @@ export function habitatRelationships(
       }
       break;
     case 2:
-      // Root hollows pair; Mangrove roots want three alike.
+      // Hollow pairs; Mangroves want three alike.
       between(0, 1, '=');
       if (coastal) between(1, 2, '=');
       break;
     case 3:
-      // The Glasshouse trail echoes other habitats (see the summary); the Pier alternates in order.
+      // The Glasshouse looks at other habitats (see the summary); the Pier alternates in order.
       if (coastal) {
         const [first, , , last] = art.slots;
         const upright = Math.abs(last[1] - first[1]) > Math.abs(last[0] - first[0]);
@@ -85,7 +85,7 @@ export function habitatRelationships(
       }
       break;
     case 4:
-      // Dry channel only needs filling; the Sea cave echoes the rest of the board.
+      // Channel takes anything; the Cave looks at the rest of the board.
       break;
     default:
       // Watchpost multiplies; the two lighthouse keepers must differ.

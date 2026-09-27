@@ -2,20 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Table, TableCommand } from '@/lib/online/types';
 import { decisionKey } from '@/lib/games/standalone/registry';
-import { TableAmbienceControl } from './table-ambience-control';
+import { Users } from 'lucide-react';
 import { StandaloneTable } from '../game/standalone-table';
-import { SoundSettings } from '../game/sound-settings';
+import { SoundSettings, SoundToggle } from '../game/sound-settings';
 import {
   readAmbienceLevel,
   saveAmbienceLevel,
   useAmbience,
 } from '../game/use-ambience';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from '../ui/dialog';
 export function AdventureMatch({
   table,
   disabled,
@@ -28,8 +22,7 @@ export function AdventureMatch({
   onHome: () => void;
 }) {
   const [volume, setVolume] = useState(0.5),
-    [ambient, setAmbient] = useState(readAmbienceLevel),
-    [sound, setSound] = useState(false);
+    [ambient, setAmbient] = useState(readAmbienceLevel);
   const g = table.adventure!;
   const moveQueue = useRef<Promise<unknown>>(Promise.resolve());
   const latest = useRef({ dispatch, g });
@@ -46,7 +39,29 @@ export function AdventureMatch({
         volume={volume}
         onHome={onHome}
         onNew={() => void dispatch({ type: 'abandon' })}
-        onSound={() => setSound(true)}
+        sound={
+          <>
+            {table.isHost && (
+              <SoundToggle
+                Icon={Users}
+                label="Table ambience"
+                on={table.ambienceEnabled === true}
+                onChange={(enabled) =>
+                  void dispatch({ type: 'ambience', enabled })
+                }
+              />
+            )}
+            <SoundSettings
+              volume={volume}
+              ambience={ambient}
+              onVolume={setVolume}
+              onAmbience={(level) => {
+                setAmbient(level);
+                saveAmbienceLevel(level);
+              }}
+            />
+          </>
+        }
         onMove={(move) => {
           const key = decisionKey(g);
           moveQueue.current = moveQueue.current.then(async () => {
@@ -64,24 +79,6 @@ export function AdventureMatch({
         viewerId={table.viewerId}
         onNextGame={(gameId) => void dispatch({ type: 'next-game', gameId })}
       />
-      <Dialog open={sound} onOpenChange={setSound}>
-        <DialogContent>
-          <DialogTitle>Sound</DialogTitle>
-          <DialogDescription>
-            The host turns background sounds on for the table. Your switches only affect this device.
-          </DialogDescription>
-          <TableAmbienceControl table={table} disabled={disabled} dispatch={dispatch} />
-          <SoundSettings
-            volume={volume}
-            ambience={ambient}
-            onVolume={setVolume}
-            onAmbience={(level) => {
-              setAmbient(level);
-              saveAmbienceLevel(level);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

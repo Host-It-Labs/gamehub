@@ -19,9 +19,10 @@ import {
 } from './vote.ts';
 import type { TribuState } from './tribu-state.ts';
 
-/** Dial: one player at a time sees a hidden point on a spectrum and gives a
- * one-line clue; everyone else privately turns their dial to where they think
- * it sits. A round gives every player one turn as the clue-giver. */
+/** Dial: everyone at once sees a hidden point on a spectrum of their own and
+ * writes a one-line clue for it, like Top Five's private lists. Then the
+ * table reads the clues one after the other; everyone but the author
+ * privately turns their dial to where they think the point sits. */
 export type DialMove =
   | { type: 'card'; target: number }
   | { type: 'clue'; text: string }
@@ -31,9 +32,20 @@ export type DialMove =
   | { type: 'lock'; value?: number }
   | { type: 'unlock' | 'next' };
 export type DialGuess = { value: number; locked: boolean };
+/** One player's clue for the round. Hidden fields read -1 (or empty) for
+ * everyone else until the table reaches it. */
+export type DialCard = {
+  /** Two spectrums the author chooses between. */
+  offers: number[];
+  card: number;
+  /** 0–100 along the spectrum; the author's secret until the reveal. */
+  point: number;
+  clue: string;
+  locked: boolean;
+};
 export type DialGame = StandaloneBase & {
   kind: 'dial';
-  rules: 1;
+  rules: 2;
   mode: 'individual';
   /** Everyone plays for themselves; kept so shared party screens can group seats. */
   teams: number[];
@@ -41,14 +53,9 @@ export type DialGame = StandaloneBase & {
   tutorial: boolean;
   lesson: number;
   phase: 'clue' | 'guess' | 'reveal' | 'vote';
-  /** Whose turn it is to give the clue. */
+  /** Whose clue the table is reading (guess and reveal). */
   target: number;
-  /** Two spectrums the clue-giver chooses between; only they see them before the clue. */
-  offers: number[];
-  card: number | null;
-  /** 0–100 along the spectrum; hidden from everyone but the clue-giver until the reveal. */
-  point: number;
-  clue: string;
+  cards: DialCard[];
   guesses: (DialGuess | null)[];
   scores: number[];
   deck: number[];
@@ -75,7 +82,7 @@ export function createGame(
   const g: DialGame = {
     kind: 'dial',
     version: 1,
-    rules: 1,
+    rules: 2,
     rngState: seed >>> 0,
     difficulty,
     seats: Array.from({ length: n }, (_, i) => (i ? `Player ${i + 1}` : 'You')),
@@ -89,18 +96,14 @@ export function createGame(
     lesson: 0,
     phase: 'clue',
     target: 0,
-    offers: [],
-    card: null,
-    point: 50,
-    clue: '',
+    cards: [],
     guesses: [],
     scores: Array(n).fill(0),
     deck: [],
     vote: null,
     result: null,
   };
-  turn(g);
-  note(g, `Round 1: ${g.seats[0]} gives the first clue.`);
+  deal(g);
   return g;
 }
 function draw(g: DialGame) {
@@ -115,20 +118,34 @@ function draw(g: DialGame) {
     );
   return g.deck.splice(0, 2);
 }
-function turn(g: DialGame) {
+/** Everyone gets two spectrums and a hidden point at once. */
+function deal(g: DialGame) {
   g.phase = 'clue';
-  g.offers = draw(g);
-  // The first spectrum shows at once; the clue-giver may swap to the other.
-  g.card = g.offers[0];
-  g.clue = '';
-  // Keep the point off the extreme ends so every band is reachable.
-  g.point = 5 + Math.floor(roll(g) * 91);
+  g.target = 0;
+  g.cards = g.seats.map(() => {
+    const offers = draw(g);
+    return {
+      offers,
+      // The first spectrum shows at once; the author may swap to the other.
+      card: offers[0],
+      // Keep the point off the extreme ends so every band is reachable.
+      point: 5 + Math.floor(roll(g) * 91),
+      clue: '',
+      locked: false,
+    };
+  });
   g.guesses = g.seats.map(() => null);
   g.result = null;
+  note(g, `Round ${g.round}: everyone writes a clue at once.`);
+}
+/** The clue the table is reading now. */
+export function current(g: DialGame): DialCard {
+  return g.cards[g.target];
 }
 export function actingSeats(g: DialGame): number[] {
   if (g.over) return [];
-  if (g.phase === 'clue') return [g.target];
+  if (g.phase === 'clue')
+    return g.seats.flatMap((_, s) => (g.cards[s].locked ? [] : [s]));
   if (g.phase === 'guess')
     return g.seats.flatMap((_, s) =>
       s !== g.target && !g.guesses[s]?.locked ? [s] : [],
@@ -170,12 +187,13 @@ export function validMove(
       g.vote?.choices[seat] !== m.choice
     );
   if (g.phase === 'clue') {
-    if (seat !== g.target) return false;
+    const c = g.cards[seat];
+    if (m.type === 'unlock') return c.locked;
+    if (c.locked) return false;
     if (m.type === 'card')
-      return Number.isInteger(m.target) && g.offers.includes(m.target);
+      return Number.isInteger(m.target) && c.offers.includes(m.target);
     if (m.type === 'clue')
       return (
-        g.card !== null &&
         typeof m.text === 'string' &&
         cleanClue(m.text).length > 0 &&
         cleanClue(m.text).length <= clueLimit
@@ -202,11 +220,17 @@ export function play(
   const n = structuredClone(g);
   n.revision++;
   if (n.phase === 'clue') {
-    if (m.type === 'card') n.card = m.target;
+    const c = n.cards[s];
+    if (m.type === 'card') c.card = m.target;
     if (m.type === 'clue') {
-      n.clue = cleanClue(m.text);
+      c.clue = cleanClue(m.text);
+      c.locked = true;
+    }
+    if (m.type === 'unlock') c.locked = false;
+    if (n.cards.every((c) => c.locked)) {
       n.phase = 'guess';
-      note(n, `${n.seats[s]}'s clue: “${n.clue}”.`, s);
+      n.target = 0;
+      note(n, `Read ${n.seats[0]}'s clue: “${n.cards[0].clue}”.`, 0);
     }
   } else if (n.phase === 'guess') {
     if (m.type === 'dial')
@@ -222,7 +246,14 @@ export function play(
   } else if (n.phase === 'reveal') {
     if (n.target < n.seats.length - 1) {
       n.target++;
-      turn(n);
+      n.phase = 'guess';
+      n.guesses = n.seats.map(() => null);
+      n.result = null;
+      note(
+        n,
+        `Read ${n.seats[n.target]}'s clue: “${n.cards[n.target].clue}”.`,
+        n.target,
+      );
     } else {
       n.phase = 'vote';
       n.vote = openVote(
@@ -240,22 +271,23 @@ export function play(
   return n;
 }
 function reveal(g: DialGame) {
-  const gains = g.seats.map(() => 0),
+  const point = current(g).point,
+    gains = g.seats.map(() => 0),
     values = g.guesses.map((b) => b?.value ?? -1);
   let total = 0;
   for (let s = 0; s < g.seats.length; s++) {
     if (s === g.target) continue;
-    gains[s] = points(values[s], g.point);
+    gains[s] = points(values[s], point);
     total += gains[s];
   }
-  // The clue-giver earns the average of what their clue won for everyone else.
+  // The author earns the average of what their clue won for everyone else.
   gains[g.target] = Number((total / (g.seats.length - 1)).toFixed(2));
   g.scores = g.scores.map((v, i) => v + gains[i]);
-  g.result = { point: g.point, guesses: values, gains };
+  g.result = { point, guesses: values, gains };
   g.phase = 'reveal';
   note(
     g,
-    `The point was at ${g.point}. ${g.seats.map((name, i) => `${name} +${gains[i]}`).join(', ')}.`,
+    `The point was at ${point}. ${g.seats.map((name, i) => `${name} +${gains[i]}`).join(', ')}.`,
   );
 }
 function close(g: DialGame): DialGame {
@@ -278,9 +310,7 @@ function close(g: DialGame): DialGame {
     g.handoff = 'orin';
     return g;
   }
-  g.target = 0;
-  turn(g);
-  note(g, `Round ${g.round}: ${g.seats[0]} gives the first clue.`);
+  deal(g);
   return g;
 }
 /** The server owns the vote deadline. Silent players don't count. */
@@ -295,12 +325,15 @@ export function observe(g: DialGame, viewer: number): DialGame {
   const n = structuredClone(g);
   n.rngState = 0;
   n.deck = [];
-  const giver = viewer === n.target;
-  if (!giver && n.phase === 'clue') {
-    n.offers = [];
-    n.card = null;
-  }
-  if (!giver && n.phase !== 'reveal') n.point = -1;
+  const shown = n.phase === 'reveal' || n.phase === 'vote';
+  n.cards = n.cards.map((c, s) =>
+    s === viewer
+      ? c
+      : // The table sees the clue it is reading, and its point once revealed.
+        n.phase !== 'clue' && s === n.target
+        ? { ...c, offers: [], point: shown ? c.point : -1 }
+        : { offers: [], card: -1, point: -1, clue: '', locked: c.locked },
+  );
   if (n.phase === 'guess')
     n.guesses = n.guesses.map((b, s) =>
       b && s !== viewer ? { value: -1, locked: b.locked } : b,
@@ -316,14 +349,14 @@ export function botMove(g: DialGame, s: number): DialMove | null {
       choice: g.round >= 2 ? 'finish' : g.tribu ? 'dial' : 'more',
     };
   if (g.phase === 'clue') {
-    if (g.card === null) return { type: 'card', target: g.offers[0] };
-    const sp = spectrums[g.card];
+    const c = g.cards[s],
+      sp = spectrums[c.card];
     return {
       type: 'clue',
       text:
-        g.point < 35
+        c.point < 35
           ? `Quite ${sp.left.toLowerCase()}`
-          : g.point > 65
+          : c.point > 65
             ? `Quite ${sp.right.toLowerCase()}`
             : 'Somewhere in the middle',
     };
@@ -331,8 +364,9 @@ export function botMove(g: DialGame, s: number): DialMove | null {
   const b = g.guesses[s];
   if (b) return { type: 'lock' };
   // Bots never see the hidden point; they read the clue's direction only.
-  const clue = g.clue.toLowerCase(),
-    sp = g.card === null ? null : spectrums[g.card];
+  const c = current(g),
+    clue = c.clue.toLowerCase(),
+    sp = spectrums[c.card];
   const base = !sp
     ? 50
     : clue.includes(sp.left.toLowerCase())
@@ -344,8 +378,8 @@ export function botMove(g: DialGame, s: number): DialMove | null {
 }
 export function validState(g: DialGame) {
   const n = g.seats.length,
-    ids = (a: unknown) =>
-      Array.isArray(a) && a.every((i) => Number.isInteger(i) && !!spectrums[i]);
+    id = (i: unknown) => Number.isInteger(i) && !!spectrums[i as number],
+    ids = (a: unknown) => Array.isArray(a) && a.every(id);
   return (
     g.mode === 'individual' &&
     Array.isArray(g.teams) &&
@@ -356,13 +390,23 @@ export function validState(g: DialGame) {
     g.target >= 0 &&
     g.target < n &&
     ids(g.deck) &&
-    ids(g.offers) &&
-    (g.card === null || g.offers.includes(g.card)) &&
-    Number.isInteger(g.point) &&
-    g.point >= 0 &&
-    g.point <= 100 &&
-    typeof g.clue === 'string' &&
-    g.clue.length <= clueLimit &&
+    Array.isArray(g.cards) &&
+    g.cards.length === n &&
+    g.cards.every(
+      (c) =>
+        !!c &&
+        ids(c.offers) &&
+        c.offers.length === 2 &&
+        c.offers.includes(c.card) &&
+        Number.isInteger(c.point) &&
+        c.point >= 0 &&
+        c.point <= 100 &&
+        typeof c.clue === 'string' &&
+        c.clue.length <= clueLimit &&
+        typeof c.locked === 'boolean' &&
+        (!c.locked || c.clue.length > 0) &&
+        (g.phase === 'clue' || c.locked),
+    ) &&
     Array.isArray(g.guesses) &&
     g.guesses.length === n &&
     g.guesses.every(

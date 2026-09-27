@@ -6,8 +6,7 @@ import {
   captain,
   challengeLabels,
   challenges,
-  closestPoints,
-  nearPoints,
+  maxPinPoints,
   type GeoGame,
   type GeoMove,
 } from '@/lib/games/party/geography';
@@ -316,7 +315,7 @@ function Round({
                 .map((row, i) => (
                   <li
                     key={row.t}
-                    className={`reveal-rise ${row.gain === closestPoints + nearPoints ? 'is-perfect' : ''} ${row.t === g.teams[viewer] ? 'is-you' : ''}`}
+                    className={`reveal-rise ${row.gain === maxPinPoints ? 'is-perfect' : ''} ${row.t === g.teams[viewer] ? 'is-you' : ''}`}
                     style={stagger(i, 200, 160)}
                   >
                     <i
@@ -331,7 +330,7 @@ function Round({
                       format={(v) => `${Math.round(v).toLocaleString('en')} km`}
                     />
                     <strong
-                      className={`reveal-pop ${row.gain === closestPoints + nearPoints ? 'reveal-burst' : ''}`}
+                      className={`reveal-pop ${row.gain === maxPinPoints ? 'reveal-burst' : ''}`}
                       style={stagger(i, 1000, 160)}
                     >
                       +{row.gain}

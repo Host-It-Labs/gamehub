@@ -15,7 +15,7 @@ const cards = (kinds) =>
   kinds.map((kind, id) => ({ id: `test-${id}`, kind, rank: 1 }));
 for (const set of ['beginner', 'intermediate']) {
   await test(`${set} printed maxima agree with scoring for every local arrangement`, () => {
-    // The beginner Glasshouse trail echoes other habitats, so it is checked below.
+    // The Glasshouse and the Cave look at other habitats, so they are checked below.
     for (let zone = 0; zone < (set === 'beginner' ? 3 : 4); zone++) {
       const habitat = habitatsFor(set)[zone];
       let max = 0;
@@ -35,7 +35,7 @@ for (const set of ['beginner', 'intermediate']) {
       zones[4] = cards([0, 1, 2]);
       zones[0] = cards([0, 1, 2]);
     } else {
-      // Every cave creature echoes three of its species elsewhere.
+      // Every Cave creature has its species elsewhere.
       zones[4] = cards([0, 0, 0, 0]);
       zones[0] = cards([0, 0, 0]);
     }
@@ -62,7 +62,7 @@ for (const set of ['beginner', 'intermediate']) {
       (pair.slots[a][0] + pair.slots[b][0]) / 2,
       (pair.slots[a][1] + pair.slots[b][1]) / 2,
     ];
-    // Root hollows are one pair; Mangrove roots want all three alike.
+    // Hollow is one pair; Mangroves want all three alike.
     assert.deepEqual(
       habitatRelationships(pair, set),
       (set === 'beginner' ? [[0, 1]] : [[0, 1], [1, 2]]).map(([a, b]) => ({ at: mid(a, b), symbol: '=' })),

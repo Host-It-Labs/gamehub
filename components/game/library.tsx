@@ -32,6 +32,7 @@ import {
   librarySections,
   libraryGames,
   playerRange,
+  playersSpoken,
   type Friend,
   type LibraryGame,
 } from '@/lib/games/library-fixtures';
@@ -125,7 +126,7 @@ export function StatStrip({
       <Stat icon={Clock} label={game.durationSpoken}>
         {game.duration}
       </Stat>
-      <Stat icon={Users} label={`${playerRange(game.players)} players`}>
+      <Stat icon={Users} label={playersSpoken(game.players)}>
         {playerRange(game.players)}
       </Stat>
       {full && (
@@ -176,12 +177,12 @@ export function ShelfTile({
         disabled={disabled}
         aria-pressed={pressed}
         onClick={() => onOpen(game)}
-        aria-label={`${game.name}. ${game.durationSpoken}, ${playerRange(game.players)} players. ${label}`}
+        aria-label={`${game.name}. ${game.durationSpoken}, ${playersSpoken(game.players)}. ${label}`}
       >
         <GameBox
           game={game}
           width={150}
-          sizes="(max-width: 700px) 34vw, 400px"
+          sizes="(max-width: 600px) 45vw, (max-width: 700px) 34vw, 400px"
         />
         <StatStrip game={game} />
         {children}
@@ -376,6 +377,10 @@ export function Library({
               <VolumeX aria-hidden="true" />
             )}
           </button>
+          <a className="lib-friends" href="/tables" aria-label="Play with friends">
+            <Users aria-hidden="true" />
+            <span>Play with friends</span>
+          </a>
           <Popover>
             <PopoverTrigger
               className="lib-sound lib-phone-only"
@@ -393,10 +398,6 @@ export function Library({
               <ThemeSwitch />
             </PopoverContent>
           </Popover>
-          <a className="lib-friends" href="/tables">
-            <Users aria-hidden="true" />
-            <span>Play with friends</span>
-          </a>
         </div>
       </header>
       <main className="lib-main" aria-labelledby="lib-title">

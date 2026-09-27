@@ -1,9 +1,10 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Coins, Heart, Lock, RotateCcw, Star, Zap } from 'lucide-react';
 import { formatNumber, type ActionResult } from '@/lib/games/relic/engine';
 import {
   PACKS,
+  bookExperience,
   houseTicket,
   jackpot,
   levelAt,
@@ -27,7 +28,7 @@ type Buy = (pack: PackId, level: number) => Promise<ActionResult | null>;
 type Stroke = (
   id: number,
   sequence: number,
-  batch: { points: { x: number; y: number }[] },
+  batch: { points: { x: number; y: number }[]; breaks?: number[] },
 ) => Promise<ActionResult | null>;
 function remembered<T>(key: string, fallback: T): T {
   try {
@@ -42,10 +43,14 @@ function remember(key: string, value: unknown) {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {}
 }
-function useLevels(state: ScratchState) {
-  const [chosen, setChosen] = useState<Partial<Record<PackId, number>>>(() =>
-    remembered('gamehub-lucky-levels', {}),
+function useLevels(
+  state: ScratchState,
+  mirror?: Partial<Record<PackId, number>>,
+) {
+  const [own, setChosen] = useState<Partial<Record<PackId, number>>>(() =>
+    mirror ? {} : remembered('gamehub-lucky-levels', {}),
   );
+  const chosen = mirror ?? own;
   const levelOf = (id: PackId) =>
     Math.min(chosen[id] ?? levelOpen(state, id), levelOpen(state, id));
   const choose = (id: PackId, level: number) => {
@@ -53,7 +58,7 @@ function useLevels(state: ScratchState) {
     setChosen(next);
     remember('gamehub-lucky-levels', next);
   };
-  return { levelOf, choose };
+  return { levelOf, choose, chosen };
 }
 /** The ticket books: buy a ticket straight into your hand, choose its level. */
 function Shelf({
@@ -79,7 +84,7 @@ function Shelf({
 }) {
   const forSale = nextBook(state);
   return (
-    <nav className="rs-shelf" aria-label="Ticket books">
+    <nav className="rs-shelf" aria-label="Ticket books" data-rs-area="shelf">
       {PACKS.map((p, i) => {
         const open = packOpen(state, p.id),
           sale = forSale?.id === p.id;
@@ -125,23 +130,27 @@ function Shelf({
           played = state.books[p.id] ?? 0,
           lvl = levelOf(p.id),
           free = houseTicket(state, coins, p.id, lvl),
-          price = ticketPrice(state, p.id, lvl);
+          price = ticketPrice(state, p.id, lvl),
+          progress = bookExperience(state, p.id);
         return (
           <div
             key={p.id}
             className={`rs-book ${held === p.id ? 'is-held' : ''}`}
             data-game-motion="piece"
-            data-game-motion-key={`${open}:${top}`}
-            style={{ '--book': p.color } as React.CSSProperties}
+            data-game-motion-key={`${open}:${progress.level}`}
+            style={
+              { '--book': p.color } as React.CSSProperties
+            }
           >
             <button
               className="rs-book-take"
               disabled={busy || locked || (!free && coins < price)}
-              aria-label={`Buy a ${p.name} ticket, level ${LEVEL_NAMES[lvl]}, for ${free ? 'free' : formatNumber(price)}`}
+              aria-label={`Buy a ${p.name} ticket, difficulty ${LEVEL_NAMES[lvl]}, for ${free ? 'free' : formatNumber(price)}`}
               onClick={() => onBuy(p.id)}
             >
               <span className="rs-book-cover">
                 <img src={TICKET_ART[p.id].small} alt="" />
+
               </span>
               <span className="rs-book-text">
                 <b>{p.name}</b>
@@ -151,7 +160,15 @@ function Shelf({
                 </small>
               </span>
             </button>
-            <fieldset className="rs-levels" aria-label={`${p.name} level`}>
+            <div className="rs-book-xp">
+              <span>Lv {progress.level}</span>
+              <progress className="rs-book-progress"
+                aria-label={`${p.name}: level ${progress.level}, progress to level ${progress.level + 1}`}
+                max={progress.needed} value={progress.current}
+                aria-valuetext={`${progress.current} of ${progress.needed} tickets`} />
+              <span>{progress.current}/{progress.needed}</span>
+            </div>
+            <fieldset className="rs-levels" aria-label={`${p.name} difficulty`}>
               {LEVEL_NAMES.map((name, level) => (
                 <button
                   key={name}
@@ -159,8 +176,8 @@ function Shelf({
                   disabled={level > top}
                   aria-label={
                     level > top
-                      ? `Level ${name} opens after ${levelAt(state, level) - played} more tickets`
-                      : `Level ${name}`
+                      ? `Difficulty ${name} opens after ${levelAt(state, level) - played} more tickets`
+                      : `Difficulty ${name}`
                   }
                   title={
                     level > top
@@ -245,6 +262,7 @@ function BigTicket({
   return (
     <div
       className={`rs-big ${ticket.star ? 'is-star' : ''}`}
+      data-rs-area="ticket"
       style={
         {
           '--aspect': art.aspect,
@@ -316,7 +334,7 @@ function BigTicket({
 }
 /** The ticket desk: the book shelf on the left and the ticket in your hand,
  * always open. When it has paid, Again buys the same one. */
-export function ScratchDesk({
+export const ScratchDesk = memo(function ScratchDesk({
   state,
   coins,
   hand,
@@ -325,6 +343,9 @@ export function ScratchDesk({
   onBuy,
   onBuyBook,
   onStroke,
+  readOnly = false,
+  levels,
+  onLevels,
 }: {
   state: ScratchState;
   coins: number;
@@ -334,8 +355,16 @@ export function ScratchDesk({
   onBuy: Buy;
   onBuyBook: (id: PackId) => void;
   onStroke: Stroke;
+  /** The Watch TV: another player's desk, with the levels they chose. */
+  readOnly?: boolean;
+  levels?: Partial<Record<PackId, number>>;
+  /** Tells the others which level each book is set to. */
+  onLevels?: (levels: Partial<Record<PackId, number>>) => void;
 }) {
-  const { levelOf, choose } = useLevels(state);
+  const { levelOf, choose, chosen } = useLevels(state, levels);
+  useEffect(() => {
+    if (!readOnly) onLevels?.(chosen);
+  }, [chosen, onLevels, readOnly]);
   const [live, setLive] = useState<{
     ticket: ScratchTicket;
     syncing: boolean;
@@ -411,6 +440,7 @@ export function ScratchDesk({
           {hand && shown ? (
             <BigTicket
               key={hand.id}
+              readOnly={readOnly}
               ticket={hand}
               state={state}
               audio={audio}
@@ -468,14 +498,4 @@ export function ScratchDesk({
       </section>
     </div>
   );
-}
-
-/** The same ticket, driven only by the other player's saved strokes. */
-export function WatchTicket({ ticket, state, audio }: {
-  ticket: ScratchTicket; state: ScratchState; audio: ScratchAudio;
-}) {
-  return <div className="rs-watch-ticket">
-    <BigTicket key={ticket.id} readOnly ticket={ticket} state={state} audio={audio} onStroke={async () => null} onStatus={() => {}} />
-    {ticket.claimed && <Payout t={ticket} state={state} />}
-  </div>;
-}
+});

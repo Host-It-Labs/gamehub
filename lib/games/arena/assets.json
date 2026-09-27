@@ -1,0 +1,336 @@
+{
+  "textures": {
+    "grass": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/grass-albedo-2048-c50ed5e1.webp",
+          "bytes": 376080
+        },
+        "lite": {
+          "path": "/3d/arena/tex/grass-albedo-1024-09ec60bf.webp",
+          "bytes": 182946
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/grass-normal-1024-69383da6.webp",
+        "bytes": 153736
+      },
+      "orm": {
+        "path": "/3d/arena/tex/grass-orm-1024-3a91c601.webp",
+        "bytes": 60354
+      }
+    },
+    "cobble": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/cobble-albedo-2048-a6b4c4b4.webp",
+          "bytes": 341318
+        },
+        "lite": {
+          "path": "/3d/arena/tex/cobble-albedo-1024-5684fbfc.webp",
+          "bytes": 157246
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/cobble-normal-1024-8a66efd7.webp",
+        "bytes": 193058
+      },
+      "orm": {
+        "path": "/3d/arena/tex/cobble-orm-1024-c9491c6e.webp",
+        "bytes": 56792
+      }
+    },
+    "dirt": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/dirt-albedo-2048-cc1bc10c.webp",
+          "bytes": 127130
+        },
+        "lite": {
+          "path": "/3d/arena/tex/dirt-albedo-1024-7aba19a0.webp",
+          "bytes": 52904
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/dirt-normal-1024-a4984c3c.webp",
+        "bytes": 85848
+      },
+      "orm": {
+        "path": "/3d/arena/tex/dirt-orm-1024-ee73bd4a.webp",
+        "bytes": 22434
+      }
+    },
+    "pebbles": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/pebbles-albedo-2048-a27e81c1.webp",
+          "bytes": 386270
+        },
+        "lite": {
+          "path": "/3d/arena/tex/pebbles-albedo-1024-d2f6577a.webp",
+          "bytes": 181570
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/pebbles-normal-1024-0b272da7.webp",
+        "bytes": 207202
+      },
+      "orm": {
+        "path": "/3d/arena/tex/pebbles-orm-1024-aa63bac6.webp",
+        "bytes": 62094
+      }
+    },
+    "forest": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/forest-albedo-2048-49cecdd5.webp",
+          "bytes": 472854
+        },
+        "lite": {
+          "path": "/3d/arena/tex/forest-albedo-1024-88523e6a.webp",
+          "bytes": 219888
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/forest-normal-1024-cf76ccf4.webp",
+        "bytes": 231546
+      },
+      "orm": {
+        "path": "/3d/arena/tex/forest-orm-1024-8f876198.webp",
+        "bytes": 67370
+      }
+    },
+    "stone": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/stone-albedo-2048-2887d109.webp",
+          "bytes": 178128
+        },
+        "lite": {
+          "path": "/3d/arena/tex/stone-albedo-1024-fd3fbe4c.webp",
+          "bytes": 70228
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/stone-normal-1024-1279a547.webp",
+        "bytes": 118302
+      },
+      "orm": {
+        "path": "/3d/arena/tex/stone-orm-1024-e80ccaaa.webp",
+        "bytes": 27976
+      }
+    },
+    "slate": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/slate-albedo-2048-8bff19d3.webp",
+          "bytes": 165486
+        },
+        "lite": {
+          "path": "/3d/arena/tex/slate-albedo-1024-44ad338c.webp",
+          "bytes": 68002
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/slate-normal-1024-6f7f4684.webp",
+        "bytes": 95976
+      },
+      "orm": {
+        "path": "/3d/arena/tex/slate-orm-1024-0270a74a.webp",
+        "bytes": 43116
+      }
+    },
+    "wood": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/wood-albedo-2048-844b30d4.webp",
+          "bytes": 158960
+        },
+        "lite": {
+          "path": "/3d/arena/tex/wood-albedo-1024-9ef2790b.webp",
+          "bytes": 66098
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/wood-normal-1024-aa8f1299.webp",
+        "bytes": 75496
+      },
+      "orm": {
+        "path": "/3d/arena/tex/wood-orm-1024-7dfeb201.webp",
+        "bytes": 28244
+      }
+    },
+    "rock": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/rock-albedo-2048-6ac46fe8.webp",
+          "bytes": 228522
+        },
+        "lite": {
+          "path": "/3d/arena/tex/rock-albedo-1024-04eb542f.webp",
+          "bytes": 92916
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/rock-normal-1024-6bfb6dee.webp",
+        "bytes": 158698
+      },
+      "orm": {
+        "path": "/3d/arena/tex/rock-orm-1024-e8e86468.webp",
+        "bytes": 43520
+      }
+    },
+    "bark": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/bark-albedo-2048-c067812b.webp",
+          "bytes": 171554
+        },
+        "lite": {
+          "path": "/3d/arena/tex/bark-albedo-1024-fbbc0a61.webp",
+          "bytes": 66904
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/bark-normal-1024-d9144a93.webp",
+        "bytes": 115972
+      },
+      "orm": {
+        "path": "/3d/arena/tex/bark-orm-1024-e59f1a6c.webp",
+        "bytes": 32800
+      }
+    },
+    "foliage": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/foliage-albedo-2048-2933334e.webp",
+          "bytes": 239956
+        },
+        "lite": {
+          "path": "/3d/arena/tex/foliage-albedo-1024-5cdaa63a.webp",
+          "bytes": 116386
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/foliage-normal-1024-103b55b8.webp",
+        "bytes": 134234
+      },
+      "orm": {
+        "path": "/3d/arena/tex/foliage-orm-1024-bd0d3375.webp",
+        "bytes": 47892
+      }
+    },
+    "cloth": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/cloth-albedo-2048-d67af14c.webp",
+          "bytes": 758524
+        },
+        "lite": {
+          "path": "/3d/arena/tex/cloth-albedo-1024-fcb270ce.webp",
+          "bytes": 374484
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/cloth-normal-1024-c4771ba3.webp",
+        "bytes": 342342
+      },
+      "orm": {
+        "path": "/3d/arena/tex/cloth-orm-1024-0361256c.webp",
+        "bytes": 123484
+      }
+    },
+    "leather": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/leather-albedo-2048-bee8a871.webp",
+          "bytes": 1317438
+        },
+        "lite": {
+          "path": "/3d/arena/tex/leather-albedo-1024-0425d76e.webp",
+          "bytes": 518170
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/leather-normal-1024-afaf4385.webp",
+        "bytes": 401428
+      },
+      "orm": {
+        "path": "/3d/arena/tex/leather-orm-1024-a02f2c71.webp",
+        "bytes": 205502
+      }
+    },
+    "metal": {
+      "albedo": {
+        "hq": {
+          "path": "/3d/arena/tex/metal-albedo-2048-6483a0da.webp",
+          "bytes": 948520
+        },
+        "lite": {
+          "path": "/3d/arena/tex/metal-albedo-1024-43d75448.webp",
+          "bytes": 402494
+        }
+      },
+      "normal": {
+        "path": "/3d/arena/tex/metal-normal-1024-40157e6f.webp",
+        "bytes": 426234
+      },
+      "orm": {
+        "path": "/3d/arena/tex/metal-orm-1024-75462f7e.webp",
+        "bytes": 119748
+      }
+    }
+  },
+  "models": {
+    "towers": {
+      "path": "/3d/arena/models/towers-32f74df9.glb",
+      "bytes": 6041412
+    },
+    "troops": {
+      "path": "/3d/arena/models/troops-471b5213.glb",
+      "bytes": 2954004
+    },
+    "props": {
+      "path": "/3d/arena/models/props-79b6418a.glb",
+      "bytes": 3062864
+    },
+    "figures": {
+      "path": "/3d/arena/models/figures-e65fd298.glb",
+      "bytes": 5739496
+    }
+  },
+  "cards": {
+    "archers": {
+      "path": "/3d/arena/cards/archers-4198f0b0.webp",
+      "bytes": 57556
+    },
+    "ogre": {
+      "path": "/3d/arena/cards/ogre-1748866a.webp",
+      "bytes": 44724
+    },
+    "imps": {
+      "path": "/3d/arena/cards/imps-277066d2.webp",
+      "bytes": 59460
+    },
+    "duelist": {
+      "path": "/3d/arena/cards/duelist-5ce45ee2.webp",
+      "bytes": 60510
+    },
+    "ranger": {
+      "path": "/3d/arena/cards/ranger-fbe47951.webp",
+      "bytes": 46786
+    },
+    "drake": {
+      "path": "/3d/arena/cards/drake-51b0cdd5.webp",
+      "bytes": 53242
+    },
+    "mage": {
+      "path": "/3d/arena/cards/mage-9ea99e3b.webp",
+      "bytes": 47760
+    },
+    "meteor": {
+      "path": "/3d/arena/cards/meteor-782d95b3.webp",
+      "bytes": 44222
+    }
+  }
+}

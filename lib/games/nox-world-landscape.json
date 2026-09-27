@@ -1,54 +1,54 @@
 {
   "game": "undertow",
-  "source": "/art/nox-gilthold-landscape-v2-a.png",
-  "image": "/art/optimized/nox-gilthold-landscape-v2.webp",
+  "source": "/art/nox-chart-landscape-v1-b.png",
+  "image": "/art/optimized/nox-chart-landscape-v1.webp",
   "width": 1536,
   "height": 1024,
   "crop": {
-    "left": 181,
-    "top": 85,
-    "width": 1181,
-    "height": 682
+    "left": 147,
+    "top": 89,
+    "width": 1242,
+    "height": 696
   },
   "table": {
-    "left": 281,
-    "top": 185,
-    "width": 981,
-    "height": 482
+    "left": 247,
+    "top": 189,
+    "width": 1042,
+    "height": 496
   },
   "seatRing": {
-    "left": 251,
-    "top": 155,
-    "width": 1041,
-    "height": 542
+    "left": 217,
+    "top": 159,
+    "width": 1102,
+    "height": 556
   },
   "landmarks": {
     "protectedBounds": [
       {
-        "name": "chest lid",
+        "name": "chart table",
         "bounds": [
-          281,
-          185,
-          981,
-          482
+          247,
+          189,
+          1042,
+          496
         ]
       },
       {
         "name": "seat rim",
         "bounds": [
-          251,
-          155,
-          1041,
-          542
+          217,
+          159,
+          1102,
+          556
         ]
       },
       {
-        "name": "lantern",
+        "name": "moon",
         "bounds": [
-          640,
-          0,
-          250,
-          175
+          40,
+          15,
+          120,
+          145
         ]
       }
     ]
@@ -56,135 +56,168 @@
   "animation": {
     "glows": [
       {
-        "x": 768,
-        "y": 150,
-        "radius": 420,
-        "color": "255, 196, 120",
-        "alpha": 0.16,
-        "period": 4100
+        "x": 100,
+        "y": 85,
+        "radius": 300,
+        "color": "247, 225, 175",
+        "alpha": 0.1,
+        "period": 4700
       }
     ],
     "water": [
       {
         "polygon": [
           [
-            0,
-            690
-          ],
-          [
-            350,
+            260,
             700
           ],
           [
-            340,
+            1240,
+            700
+          ],
+          [
+            1240,
             1024
           ],
           [
-            0,
+            260,
             1024
+          ]
+        ]
+      },
+      {
+        "polygon": [
+          [
+            40,
+            420
+          ],
+          [
+            235,
+            420
+          ],
+          [
+            235,
+            520
+          ],
+          [
+            40,
+            520
           ]
         ]
       }
     ],
-    "glints": [],
+    "glints": [
+      [
+        1421,
+        95
+      ],
+      [
+        117,
+        342
+      ],
+      [
+        1446,
+        232
+      ]
+    ],
     "motes": false
   },
   "overview": {
-    "left": 181,
-    "top": 85,
-    "width": 1181,
-    "height": 682
+    "left": 147,
+    "top": 89,
+    "width": 1242,
+    "height": 696
   },
-  "overviewImage": "/art/optimized/nox-gilthold-landscape-v2-overview.webp",
+  "overviewImage": "/art/optimized/nox-chart-landscape-v1-overview.webp",
   "seats": {
     "2": [
       [
-        771.5,
-        660
+        767.5,
+        673
       ],
       [
-        771,
-        197
+        767.5,
+        200
       ]
     ],
     "3": [
       [
-        771.5,
-        660
+        767.5,
+        673
       ],
       [
-        520,
-        197
+        501,
+        200
       ],
       [
-        1022,
-        197
+        1035,
+        200
       ]
     ],
     "4": [
       [
-        520,
-        660
+        501,
+        673
       ],
       [
-        293,
-        426
+        258,
+        436
       ],
       [
-        771,
-        197
+        767.5,
+        200
       ],
       [
-        1250,
-        426
+        1277,
+        436
       ]
     ],
     "5": [
       [
-        520,
-        660
+        501,
+        673
       ],
       [
-        293,
-        426
+        258,
+        436
       ],
       [
-        520,
-        197
+        501,
+        200
       ],
       [
-        1022,
-        197
+        1035,
+        200
       ],
       [
-        1250,
-        426
+        1277,
+        436
       ]
     ],
     "6": [
       [
-        520,
-        660
+        501,
+        673
       ],
       [
-        293,
-        426
+        258,
+        436
       ],
       [
-        520,
-        197
+        501,
+        200
       ],
       [
-        771,
-        197
+        767.5,
+        200
       ],
       [
-        1022,
-        197
+        1035,
+        200
       ],
       [
-        1250,
-        426
+        1277,
+        436
       ]
     ]
   }

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Footprints, MoveRight, Waves, Sun, Anchor } from 'lucide-react';
 import {
   canAct,
@@ -10,7 +10,7 @@ import {
   type Move,
   type PublicGame,
 } from '@/lib/games/trio/engine';
-import { RuleExplanation } from './extension-rules';
+import { RuleSection } from './rules';
 import { Piece, type Inspect } from './interactions';
 export type ExtensionKind =
   | 'roamEnabled'
@@ -47,97 +47,96 @@ function SeasonRouteLine({ reached }: { reached: number }) {
     </svg>
   );
 }
-export function NewExtensionRules({ kind }: { kind: ExtensionKind }) {
+/** One public route, shared by the live counter and the Others mats. */
+export function SeasonTrack({ g, player, results = false }: {
+  g: PublicGame; player: number; results?: boolean;
+}) {
+  const start = (g.round - 1) * 6;
+  const cards = g.players[player].zones[0];
+  return <span className={`season-route ${results ? 'season-results' : ''}`} aria-label="Market Seasons">
+    <SeasonRouteLine reached={g.phase === 'over' ? SEASON_ROUTE.length + 1 : g.pick} />
+    {g.seasonForecast?.slice(start, start + 6).map((kind, i) => {
+      const played = cards[start + i];
+      const matched = played?.kind === kind;
+      const current = i === g.pick - 1 && g.phase !== 'over';
+      const name = foodsFor(g.contentSet)[kind].name;
+      return <span className="season-step" data-step={i} key={i}
+        aria-label={results ? `${name}: ${matched ? 'matched' : played ? 'missed' : 'upcoming'}` : undefined}>
+        {results && matched ? <span className="season-check" aria-hidden="true">✓</span> :
+          <img className={results ? `unmatched ${current ? 'current' : ''}` : current ? 'current' : played ? 'past' : ''}
+            src={tokenImage(kind, true, g.contentSet)} alt={results ? '' : name} />}
+      </span>;
+    })}
+  </span>;
+}
+
+export function NewExtensionRules({
+  kind,
+  title,
+}: {
+  kind: ExtensionKind;
+  /** Only where no dialog title already names the extension. */
+  title?: ReactNode;
+}) {
   if (kind === 'roamEnabled')
     return (
-      <RuleExplanation
-        outcome="Place in a habitat blocked by the die."
-        note="Once per match. Capacity still applies. Never needed for Release."
-      >
+      <RuleSection title={title} note="The habitat still needs a free space.">
         <p>
-          <b>Prepare.</b> Select the footprints, then place a creature in a
-          blocked habitat.
+          Once per game, place a creature in a habitat <b>the die blocks</b>.
+          Tap the <b>footprints</b>, then place your creature.
         </p>
-        <p>
-          <b>Spend.</b> Used only when the placement needs it. May accompany
-          Migration.
-        </p>
-      </RuleExplanation>
+      </RuleSection>
     );
   if (kind === 'migration')
     return (
-      <RuleExplanation
-        outcome="Move one sheltered creature, then make your normal placement."
-        note="Once per match. Both choices lock together. You may also use Roam."
+      <RuleSection
+        title={title}
+        note="The move ignores the die and cannot go to Release. Your placement still follows the die."
       >
         <p>
-          <b>Relocate.</b> Tap or drag a creature already on your board to
-          another habitat with space. This move ignores the die; Release is
-          excluded.
+          Once per game, before you place, <b>move one creature</b> already on
+          your board to another habitat with space. Tap or drag it there, then
+          place from your hand as usual.
         </p>
-        <p>
-          <b>Order.</b> Remaining creatures keep their order. The moved creature
-          goes to the end of its new habitat.
-        </p>
-        <p>
-          <b>Place.</b> Choose your hand creature and destination on the
-          previewed board. The normal die restriction applies to this placement.
-        </p>
-        <p>
-          <b>Cancel.</b> Tap the moved creature, or the Migration token, before
-          committing to spend nothing.
-        </p>
-      </RuleExplanation>
+      </RuleSection>
     );
   if (kind === 'salvage')
     return (
-      <RuleExplanation
-        outcome="Secretly claim before the lead, then try to take the trick."
-        note="One claim per player per round. The leader cannot claim. No claims on the final trick. Printed ranks and follow-suit rules stay unchanged."
+      <RuleSection
+        title={title}
+        note="The player who leads cannot claim, and no one can on the last trick. Scores can go below zero."
       >
         <p>
-          <b>Commit.</b> Eligible players choose Claim or Pass, then lock.
-          Choices reveal together before the first card.
+          Once per round, you may bet on winning <b>the next trick</b>. Before
+          each trick, choose <b>Claim</b> or <b>Pass</b> and lock it. All
+          choices show at once.
         </p>
         <p>
-          <b>Reward.</b> A claimant who takes the trick reduces their score by
-          6. Every unsuccessful claimant takes 3 penalty points.
+          Claim and win the trick: <b>−6</b>. Claim and lose it: <b>+3</b>. The
+          trick’s own points still count.
         </p>
-        <p>
-          <b>Risk.</b> Ordinary trick penalties still apply. Shields halve those
-          first; Salvage applies afterward. Your total may fall below zero.
-        </p>
-      </RuleExplanation>
+      </RuleSection>
     );
   if (kind === 'turningTide')
     return (
-      <RuleExplanation
-        outcome="Odd tricks: highest led-suit card wins. Even tricks: lowest wins."
-        note="The pattern restarts each round. Follow suit normally. Off-suit cards never win."
+      <RuleSection
+        title={title}
+        note="The count starts again each round. A card off the led suit still never wins."
       >
         <p>
-          <b>Read.</b> The wave marker shows whether high or low wins.
+          Odd tricks: the <b>highest</b> card of the led suit wins. Even tricks:
+          the <b>lowest</b> wins. The wave arrow shows which.
         </p>
-        <p>
-          <b>Plan.</b> The winner takes penalties and leads next. Shields and
-          Salvage work normally.
-        </p>
-      </RuleExplanation>
+      </RuleSection>
     );
   return (
-    <RuleExplanation
-      outcome="Draft the featured dish on its forecast turn."
-      note="Every dish type appears once per round. The forecast is shared and works with either menu."
-    >
+    <RuleSection title={title}>
       <p>
-        <b>Forecast.</b> Six dishes show the order this round; the highlighted
-        dish is featured now.
+        Each pick has one <b>featured dish</b>, shown in the forecast. Every
+        dish is featured once a round. Keep the featured dish on its pick for{' '}
+        <b>+2</b>, on top of its usual score.
       </p>
-      <p>
-        <b>Reward.</b> Draft that type for 2 extra points, in addition to normal
-        scoring.
-      </p>
-    </RuleExplanation>
+    </RuleSection>
   );
 }
 export type NatureChoice = {
@@ -248,28 +247,7 @@ export function ExtensionControls({
           onClick={() => showRules('marketSeasons', 'Market Seasons')}
         >
           <Sun />
-          <span className="season-route">
-            <SeasonRouteLine
-              reached={g.phase === 'over' ? SEASON_ROUTE.length + 1 : g.pick}
-            />
-            {g
-              .seasonForecast!.slice((g.round - 1) * 6, g.round * 6)
-              .map((kind, i) => (
-                <span className="season-step" data-step={i} key={i}>
-                  <img
-                    className={
-                      i === g.pick - 1 && g.phase !== 'over'
-                        ? 'current'
-                        : i < g.pick - 1 || g.phase === 'over'
-                          ? 'past'
-                          : ''
-                    }
-                    src={tokenImage(kind, true, g.contentSet)}
-                    alt={foodsFor(g.contentSet)[kind].name}
-                  />
-                </span>
-              ))}
-          </span>
+          <SeasonTrack g={g} player={viewer} />
           <b>+{p.seasonPoints ?? 0}</b>
         </button>
       )}

@@ -3,8 +3,12 @@ import { useEffect, useRef } from 'react';
 
 let boardGuardSequence = 0;
 
-/** Keep a same-URL history entry above the board so device Back asks first. */
-export function useBoardLeave(active: boolean, requestLeave: () => void) {
+/** Keep a same-URL history entry above the board so device Back asks first.
+ *  `requestLeave` gets the same `allow` function the hook returns. */
+export function useBoardLeave(
+  active: boolean,
+  requestLeave: (allow: () => void) => void,
+) {
   const request = useRef(requestLeave);
   const allowed = useRef(false);
   useEffect(() => {
@@ -34,7 +38,9 @@ export function useBoardLeave(active: boolean, requestLeave: () => void) {
         '',
         location.href,
       );
-      request.current();
+      request.current(() => {
+        allowed.current = true;
+      });
     }
     function unload(event: BeforeUnloadEvent) {
       if (allowed.current) return;

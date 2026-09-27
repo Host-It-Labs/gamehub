@@ -112,7 +112,12 @@ export function MyTables() {
     let active = true;
     void (async () => {
       try {
-        const session = await api<{ user: User | null }>('/api/session');
+        let session = await api<{ user: User | null }>('/api/session');
+        // Development: skip logging in; the dev account hosts.
+        if (!session.user && process.env.NODE_ENV === 'development') {
+          await api('/api/auth/dev', {});
+          session = await api<{ user: User | null }>('/api/session');
+        }
         if (!active) return;
         setUser(session.user);
         if (session.user) {

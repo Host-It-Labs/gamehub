@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { Anchor, Shield } from 'lucide-react';
 import { PlayerStatus } from './player-status';
+import { SeatEmblem } from './nox-emblems';
 import {
   canAct,
   tableOrderStep,
@@ -51,6 +52,7 @@ export function BlackwakeTable({
   onSeat,
   cardPull,
   style,
+  aspect,
 }: {
   g: PublicGame;
   viewer: number;
@@ -66,7 +68,7 @@ export function BlackwakeTable({
    *  player's stool, horizontally and vertically, instead of on the shared card ellipse. */
   cardPull?: [number, number];
   style?: CSSProperties;
-  /** Width over height of the table box, so the painted direction ring keeps true arrowheads. */
+  /** Width over height of the table box: a won trick sweeps to the winner's seat in true proportion. */
   aspect?: number;
 }) {
   const latestSeen = useRef(g.events.at(-1)?.id ?? -1);
@@ -108,7 +110,7 @@ export function BlackwakeTable({
       style={style}
     >
       <div className="blackwake-surface" />
-      {seatTags && g.phase !== 'over' && <DirectionRing clockwise={tableOrderStep(g) === 1} passing={g.phase === 'pass'} />}
+      {seatTags && g.phase !== 'over' && <DirectionMarks clockwise={tableOrderStep(g) === 1} passing={g.phase === 'pass'} />}
       <div className="blackwake-centre" aria-live="polite" data-game-motion="change" data-game-motion-key={`${g.phase}:${reveal?.id ?? trick[0]?.card.id ?? 'empty'}`}>
         {!seatTags && <span className="table-direction" aria-label={tableOrderStep(g) === 1 ? "Clockwise" : "Counterclockwise"}>{tableOrderStep(g) === 1 ? "↻" : "↺"}</span>}
         {g.salvage && <Anchor aria-label="Salvage" />}
@@ -146,7 +148,7 @@ export function BlackwakeTable({
               : {})}
           >
             <span className={`avatar avatar-${seat}`}>
-              {player.name.slice(0, 1)}
+              {seatTags ? <SeatEmblem seat={seat} /> : player.name.slice(0, 1)}
             </span>
             <strong>{seat === viewer ? 'You' : player.name}</strong>
             {totals && <b className="seat-score" data-game-motion="change" data-game-motion-key={totals[seat]} aria-hidden="true">{totals[seat]}</b>}
@@ -202,7 +204,7 @@ export function BlackwakeTable({
                 left: `${position.x}%`,
                 top: `${position.y}%`,
                 '--collect-x': `${(winner?.x ?? position.x) - position.x}cqw`,
-                '--collect-y': `${((winner?.y ?? position.y) - position.y) * 0.68}cqw`,
+                '--collect-y': `${((winner?.y ?? position.y) - position.y) / (aspect ?? 1.47)}cqw`,
                 '--card-order': order,
               } as CSSProperties
             }
@@ -221,13 +223,11 @@ export function BlackwakeTable({
   );
 }
 
-/** One circular chalk arrow at the centre, reversing with the passing round. */
-function DirectionRing({ clockwise, passing }: { clockwise: boolean; passing: boolean }) {
-  return <svg className="table-direction-ring" viewBox="0 0 100 100"
-    aria-label={`${passing ? 'Cards pass' : 'Tricks proceed'} ${clockwise ? 'clockwise' : 'counterclockwise'}`}>
-    <g transform={clockwise ? undefined : 'translate(100 0) scale(-1 1)'}>
-      <path d="M 50 83 A 33 33 0 1 1 83 50" />
-      <polygon points="75,45 83,58 91,45" />
-    </g>
-  </svg>;
+/** Four chevrons just inside the rope rim, one on each side, chasing each other
+ *  round the table the way this round's cards pass and tricks proceed. */
+function DirectionMarks({ clockwise, passing }: { clockwise: boolean; passing: boolean }) {
+  return <div className="table-direction-marks" data-clockwise={clockwise}>
+    <span className="sr-only">{`${passing ? 'Cards pass' : 'Tricks proceed'} ${clockwise ? 'clockwise' : 'counterclockwise'}`}</span>
+    {(['top', 'right', 'bottom', 'left'] as const).map((side) => <span key={side} className="direction-mark" data-side={side} aria-hidden="true" />)}
+  </div>;
 }

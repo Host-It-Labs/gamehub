@@ -14,9 +14,11 @@
 .fk-code-wrap {
   position: relative;
   --rowh: min(46px, calc((100cqh - var(--bar) - 44px) / (var(--rows) + 1.45)));
+  /* Width left for the holes: the tray (its pick size plus padding) and the
+   * board's frame, gap and key cluster come off first. */
   --hole: min(
     calc(var(--rowh) * 0.78),
-    calc((100cqw - 128px) / (var(--pegs) + 2.6))
+    calc((100cqw - var(--pick) - 88px) / (var(--pegs) + 2.6))
   );
   --pick: min(
     46px,
@@ -131,6 +133,27 @@ button.fk-code-hole::after {
   height: 70%;
   background: #c5472c40;
 }
+/* The hole the next colour drops into breathes faintly, like fresh ink. */
+.fk-code-row.active .fk-code-hole.next::before {
+  animation: fk-code-await 2.8s ease-in-out infinite;
+}
+@keyframes fk-code-await {
+  0%,
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.55;
+  }
+}
+/* Checked pegs sit pressed into the paper, a debossed ring around each. */
+.fk-code-row.played .fk-code-hole {
+  box-shadow:
+    inset 0 1px 2px #193d7938,
+    0 1px 0 #ffffffb0;
+}
 .fk-code-hole:focus-visible {
   outline: 2px solid var(--folio-red);
   outline-offset: 1px;
@@ -161,6 +184,30 @@ button.fk-code-hole::after {
 .fk-code-row.active .fk-code-peg {
   animation: fk-code-pop 0.26s cubic-bezier(0.3, 1.6, 0.5, 1) both;
 }
+/* On Check the row is pressed down into the page, left to right. */
+.fk-code-row.played.fresh .fk-code-peg {
+  animation: fk-code-press 0.3s ease-out both;
+  animation-delay: calc(var(--i) * 0.045s);
+}
+@keyframes fk-code-press {
+  0% {
+    transform: translateY(-6%) scale(1.1);
+    box-shadow:
+      inset 0 -2px 0 #0000002e,
+      0 4px 0 #0d1f4033,
+      0 5px 8px #0d1f4030;
+  }
+  55% {
+    transform: scale(0.9);
+    box-shadow:
+      inset 0 -2px 0 #0000002e,
+      0 0 0 #0d1f4055,
+      0 0 1px #0d1f4030;
+  }
+  100% {
+    transform: none;
+  }
+}
 @keyframes fk-code-pop {
   0% {
     transform: scale(0.2) translateY(-30%);
@@ -187,6 +234,13 @@ button.fk-code-hole::after {
 .fk-code-keys {
   border-radius: 5px;
   background: #193d790a;
+}
+/* Each key cluster is a small ticket stub with a perforated edge. */
+.fk-code-row .fk-code-keys {
+  background:
+    radial-gradient(circle, #193d7940 30%, #193d7900 42%) 0 50% / 3px 4px
+      repeat-y,
+    #193d790a;
 }
 .fk-code-keys.five {
   grid-template-columns: repeat(3, calc(var(--hole) * 0.3));
@@ -226,6 +280,28 @@ button.fk-code-hole::after {
   animation: fk-code-drop 0.32s cubic-bezier(0.3, 1.5, 0.5, 1) both;
   animation-delay: calc(0.15s + var(--i) * 0.26s);
 }
+/* Where a key peg lands, a ring flicks out like a ticket punch. */
+.fk-code-key.drop::after {
+  content: '';
+  position: absolute;
+  inset: -34%;
+  border: 1.5px solid #193d7966;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  animation: fk-code-punch 0.34s ease-out both;
+  animation-delay: calc(0.33s + var(--i) * 0.26s);
+}
+@keyframes fk-code-punch {
+  0% {
+    transform: scale(0.55);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
 @keyframes fk-code-drop {
   0% {
     transform: translateY(-160%) scale(1.8);
@@ -249,7 +325,39 @@ button.fk-code-hole::after {
   perspective: 500px;
 }
 .fk-code-secret .fk-code-keys-spacer {
+  position: relative;
   visibility: hidden;
+}
+/* A cracked code is sealed with a vermilion ink stamp beside it. */
+.fk-code-seal {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: var(--rowh);
+  height: var(--rowh);
+  translate: -50% -50%;
+  rotate: -12deg;
+  visibility: visible;
+  fill: none;
+  stroke: var(--folio-red);
+  opacity: 0.92;
+  pointer-events: none;
+  animation: fk-code-seal 0.42s cubic-bezier(0.3, 1.3, 0.5, 1) 1.05s both;
+}
+@keyframes fk-code-seal {
+  0% {
+    transform: scale(2.1) rotate(-16deg);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(0.92);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 0.92;
+  }
 }
 .fk-code-shield {
   position: absolute;
@@ -480,7 +588,11 @@ button.fk-code-hole::after {
 @media (prefers-reduced-motion: reduce) {
   .fk-code-board.lost,
   .fk-code-row.active .fk-code-peg,
+  .fk-code-row.active .fk-code-hole.next::before,
+  .fk-code-row.played.fresh .fk-code-peg,
   .fk-code-key.drop,
+  .fk-code-key.drop::after,
+  .fk-code-seal,
   .fk-code-secret .fk-code-peg,
   .fk-code-board.won .fk-code-secret .fk-code-peg,
   .fk-code-row.shake {

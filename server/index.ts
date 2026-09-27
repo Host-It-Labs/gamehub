@@ -21,9 +21,11 @@ import {
   emailAddress,
   type Identity,
 } from './auth.ts';
-import { Tables } from './tables.ts';
+import { Tables, handOverMs, type StoredTable } from './tables.ts';
 import { Expeditions } from './expeditions.ts';
+import { DeskPresence } from './desk-presence.ts';
 import { FolioRuns } from './folio.ts';
+import { ArenaRooms, ArenaRefusal, type ArenaOptions } from './arena.ts';
 import { flagContent, flaggedTitle } from './content-flags.ts';
 import {
   observe,
@@ -49,6 +51,10 @@ export async function makeServer(
     bots?: boolean;
     /** How long a table may sit with nobody connected before it is deleted. */
     idleTableMs?: number;
+    /** Arena clock and timeouts; tests shorten them. */
+    arena?: ArenaOptions;
+    /** How long a table's admin may be away before the table passes on. */
+    handOverMs?: number;
   } = {},
 ) {
   const origin = new URL(
@@ -58,8 +64,13 @@ export async function makeServer(
   const db = openDatabase(
     options.database ?? process.env.DATABASE_PATH ?? '.data/gamehub.sqlite',
   );
-  const expeditions = new Expeditions(db);
+  const deskPresence = new DeskPresence();
+  const expeditions = new Expeditions(db, deskPresence);
   const folio = new FolioRuns(db);
+  const arena = new ArenaRooms({
+    ...options.arena,
+    authorized: (req) => !!identity(db, req),
+  });
   const clients = new Set<Client>();
   type BotJob = {
     decision: string;
@@ -151,6 +162,22 @@ export async function makeServer(
         }
       }
     schedule(invite);
+  }
+  /** A Folio run the table moved on to follows the table's admin. */
+  function followAdmin(t: StoredTable) {
+    const run = t.handoff?.kind === 'folio' && /^\/folio\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
+    if (run) folio.follow(run[1], t.owner);
+  }
+  /** Once the admin has been gone a while, a player still here takes the table. */
+  function handOverLater(invite: string) {
+    const timer = setTimeout(() => {
+      if (stopping) return;
+      const t = tables.handOverIfAway(invite);
+      if (!t) return;
+      followAdmin(t);
+      publish(invite);
+    }, options.handOverMs ?? handOverMs);
+    timer.unref?.();
   }
   /** Deletes a table and forgets its timers; its link then leads nowhere. */
   function drop(invite: string) {
@@ -288,7 +315,9 @@ export async function makeServer(
           'Request origin is not allowed.',
         );
       const ip = req.socket.remoteAddress ?? 'unknown';
-      limit(`${path.startsWith('/api/expeditions') ? 'expedition' : 'request'}:${ip}`, path.startsWith('/api/expeditions') ? 3600 : 600);
+      // Lucky's live pointer and view updates have their own budget.
+      if (/^\/api\/expeditions\/[A-Za-z0-9_-]{32}\/presence$/.test(path)) limit(`presence:${ip}`, 3000);
+      else limit(`${path.startsWith('/api/expeditions') ? 'expedition' : 'request'}:${ip}`, path.startsWith('/api/expeditions') ? 3600 : 600);
       // Development: a test-player tab sends its own guest session, since
       // every localhost tab shares the one cookie.
       const devSession =
@@ -322,7 +351,7 @@ export async function makeServer(
         throw new HttpError(405, 'Method not allowed.');
       }
       if (path === '/api/expeditions' || path.startsWith('/api/expeditions/')) {
-        const match = /^\/api\/expeditions\/([A-Za-z0-9_-]{32})(?:\/(join|commands|activity|delete))?$/.exec(path);
+        const match = /^\/api\/expeditions\/([A-Za-z0-9_-]{32})(?:\/(join|commands|activity|delete|events|presence))?$/.exec(path);
         check(path === '/api/expeditions' || match, 404, 'Expedition route not found.');
         if (path === '/api/expeditions' && req.method === 'GET') {
           send(res, 200, who ? expeditions.list(who) : []); return;
@@ -338,6 +367,18 @@ export async function makeServer(
           who = identity(db, req)!;
         }
         check(who, 401, 'Enter your name to join the expedition.');
+        if (match && (match[2] === 'events' || match[2] === 'presence')) {
+          expeditions.assertMember(match[1], who);
+          if (req.method === 'POST' && match[2] === 'presence') {
+            limit(`presence-actor:${who.id}`, 1500);
+            send(res, 200, deskPresence.post(match[1], who, input)); return;
+          }
+          if (req.method === 'GET' && match[2] === 'events') {
+            limit(`presence-stream:${who.id}`, 60);
+            deskPresence.connect(match[1], who, url.searchParams.get('session') ?? '', res); return;
+          }
+          throw new HttpError(405, 'Method not allowed.');
+        }
         limit(`expedition-actor:${who.id}`, 1200);
         if (path === '/api/expeditions' && req.method === 'POST') { send(res, 200, expeditions.create(who, input)); return; }
         if (match && req.method === 'POST' && match[2] === 'join') { send(res, 200, expeditions.join(match[1], who)); return; }
@@ -345,6 +386,30 @@ export async function makeServer(
         if (match && req.method === 'POST' && match[2] === 'commands') { send(res, 200, expeditions.command(match[1], who, input)); return; }
         if (match && req.method === 'POST' && match[2] === 'delete') { send(res, 200, expeditions.remove(match[1], who)); return; }
         if (match && req.method === 'GET' && !match[2]) { send(res, 200, expeditions.get(match[1], who)); return; }
+        throw new HttpError(405, 'Method not allowed.');
+      }
+      if (path.startsWith('/api/arena/')) {
+        // Arena battles run in memory; only seated players may open one.
+        const match = /^\/api\/arena\/([A-Za-z0-9_-]{32})(?:\/(events|commands|again))?$/.exec(path);
+        check(match, 404, 'Arena route not found.');
+        const [, room, action] = match;
+        if (!action && req.method === 'GET') { send(res, 200, arena.get(room, who)); return; }
+        if (action === 'events' && req.method === 'GET') {
+          check(!req.headers.origin || process.env.NODE_ENV === 'development' || req.headers.origin === origin, 403, 'Request origin is not allowed.');
+          arena.connect(room, who, req, res);
+          return;
+        }
+        if (action === 'commands' && req.method === 'POST') {
+          limit(`arena:${who?.id ?? ip}`, 20, 10_000);
+          send(res, 200, arena.command(room, who, await body(req)));
+          return;
+        }
+        if (action === 'again' && req.method === 'POST') {
+          limit(`command:${who?.id ?? ip}`, 120);
+          await body(req);
+          send(res, 200, arena.again(room, who));
+          return;
+        }
         throw new HttpError(405, 'Method not allowed.');
       }
       if (path === '/api/session' && req.method === 'GET') {
@@ -397,11 +462,38 @@ export async function makeServer(
         send(res, 200, { ok: true });
         return;
       }
+      if (
+        path === '/api/auth/dev' &&
+        req.method === 'POST' &&
+        process.env.NODE_ENV === 'development'
+      ) {
+        // Development only: Play with friends signs you in to one shared dev account.
+        const email = 'dev@gamehub.localhost';
+        let user = db.prepare('SELECT id FROM users WHERE email=?').get(email) as
+          | { id: string }
+          | undefined;
+        if (!user) {
+          user = { id: token() };
+          // A random, forgotten password: the account never opens through Log in.
+          db.prepare('INSERT INTO users VALUES (?,?,?,?)').run(
+            user.id,
+            email,
+            'Dev',
+            await hashPassword(token()),
+          );
+        }
+        if (who)
+          db.prepare('DELETE FROM sessions WHERE hash=?').run(who.sessionHash);
+        res.setHeader('Set-Cookie', newSession(db, user.id, true, secure));
+        send(res, 200, { ok: true });
+        return;
+      }
       if (path === '/api/auth/logout' && req.method === 'POST') {
         if (who) {
           db.prepare('DELETE FROM sessions WHERE hash=?').run(who.sessionHash);
           for (const c of clients)
             if (c.who.sessionHash === who.sessionHash) c.res.end();
+          arena.revoke(who.sessionHash);
         }
         res.setHeader(
           'Set-Cookie',
@@ -433,39 +525,6 @@ export async function makeServer(
         flagContent(db, who, input.gameId as 'orin' | 'dial', input.key as number, title);
         send(res, 200, { flagged: true });
         return;
-      }
-      const preference =
-        /^\/api\/preferences\/(confirm-moves\.(?:undertow|wildgrove|midnight))$/.exec(
-          path,
-        );
-      if (preference) {
-        if (!who?.userId) {
-          send(res, 200, { account: false, value: null });
-          return;
-        }
-        const key = preference[1];
-        if (req.method === 'GET') {
-          const row = db
-            .prepare(
-              'SELECT value FROM user_preferences WHERE user_id=? AND key=?',
-            )
-            .get(who.userId, key) as { value: string } | undefined;
-          send(res, 200, {
-            account: true,
-            value: row ? row.value === 'true' : null,
-          });
-          return;
-        }
-        if (req.method === 'POST') {
-          const input = await body(req);
-          check(typeof input.value === 'boolean', 400, 'Invalid preference.');
-          db.prepare(
-            'INSERT INTO user_preferences VALUES (?,?,?) ON CONFLICT(user_id,key) DO UPDATE SET value=excluded.value',
-          ).run(who.userId, key, String(input.value));
-          send(res, 200, { account: true, value: input.value });
-          return;
-        }
-        throw new HttpError(405, 'Method not allowed.');
       }
       const devPlayer =
         process.env.NODE_ENV === 'development' && req.method === 'POST'
@@ -526,8 +585,8 @@ export async function makeServer(
         return;
       }
       if (action === 'launch' && req.method === 'POST') {
-        // Folio and Relic run in their own rooms: open one, seat everyone at
-        // the table in it, and send the table there.
+        // Folio, Relic and Arena run in their own rooms: open one, seat
+        // everyone at the table in it, and send the table there.
         limit(`command:${who.id}`, 120);
         const input = await body(req);
         tables.checkLaunch(t, who);
@@ -538,11 +597,13 @@ export async function makeServer(
           sessionHash: '',
           expires: 0,
         });
-        check(t.members.length <= 3, 409, 'Solo and co-op games seat up to three players.');
         check(input.token === undefined || (typeof input.token === 'string' && /^[A-Za-z0-9_-]{32}$/.test(input.token)), 400, 'Choose a saved game.');
         const players = t.members.map(guest);
         let url: string;
-        if (input.kind === 'folio') {
+        if (input.kind === 'arena') {
+          // Arena seats two in a duel and four in a team battle; bots fill the rest.
+          url = `/arena/${arena.launch(invite, t.owner, t.members, input)}`;
+        } else if (input.kind === 'folio') {
           check(t.members.length <= 3, 409, 'Folio seats one to three players.');
           const run = input.token
             ? folio.seatTable(input.token as string, who, players)
@@ -551,6 +612,7 @@ export async function makeServer(
           url = `/folio/${run.token}`;
         } else {
           check(input.kind === 'relic', 400, 'Unknown game.');
+          check(t.members.length <= 3, 409, 'Solo and co-op games seat up to three players.');
           const owner = t.members.find((m) => m.id === t.owner)?.name ?? who.name;
           const room = input.token
             ? expeditions.seatTable(input.token as string, who, players)
@@ -570,6 +632,7 @@ export async function makeServer(
           who,
           (await body(req)) as unknown as Command,
         );
+        followAdmin(changed);
         publish(invite);
         if (changed.status === 'closed') drop(invite);
         send(
@@ -606,7 +669,9 @@ export async function makeServer(
         publish(invite);
         res.on('close', () => {
           clients.delete(c);
-          if (!stopping) publish(invite);
+          if (stopping) return;
+          publish(invite);
+          handOverLater(invite);
         });
         return;
       }
@@ -623,6 +688,7 @@ export async function makeServer(
           error instanceof HttpError
             ? error.message
             : 'Something went wrong. Please try again.',
+        ...(error instanceof ArenaRefusal ? { reason: error.reason } : {}),
       });
     }
   });
@@ -646,8 +712,10 @@ export async function makeServer(
       path === '/tables' ||
       path === '/relic' ||
       path === '/folio' ||
+      path === '/arena' ||
       path === '/sound-lab' ||
       /^\/folio\/[A-Za-z0-9_-]{32}$/.test(path) ||
+      /^\/arena\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/expedition\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/table\/[A-Za-z0-9_-]{32}$/.test(path)
     )
@@ -683,6 +751,7 @@ export async function makeServer(
       '.ico': 'image/x-icon',
       '.mp3': 'audio/mpeg',
       '.m4a': 'audio/mp4',
+      '.glb': 'model/gltf-binary',
     };
     res.writeHead(200, {
       'Content-Type': mime[extname(file)] ?? 'application/octet-stream',
@@ -690,7 +759,9 @@ export async function makeServer(
       'Cache-Control':
         extname(file) === '.html'
           ? 'no-cache'
-          : /^\/art\/(?:optimized\/)?[a-z0-9-]+-v\d+(?:-\d+)?\.webp$/.test(path)
+          : /^\/art\/(?:optimized\/)?[a-z0-9-]+-v\d+(?:-\d+)?\.webp$/.test(path) ||
+              // Arena's 3D files carry content hashes in their names.
+              /^\/3d\/arena\/[a-z]+\/[a-z0-9-]+-[0-9a-f]{8}\.(?:webp|glb)$/.test(path)
             ? 'public, max-age=31536000, immutable'
             : 'public, max-age=3600',
     });
@@ -719,6 +790,8 @@ export async function makeServer(
     stopping = true;
     clearInterval(heartbeat);
     clearInterval(sweeper);
+    arena.close();
+    deskPresence.close();
     for (const seats of jobs.values())
       for (const j of seats.values()) {
         clearTimeout(j.timer);
@@ -733,7 +806,7 @@ export async function makeServer(
     });
     db.close();
   }
-  return { server, close, tables, db, sweep };
+  return { server, close, tables, db, sweep, arena };
 }
 if (
   process.argv[1] &&

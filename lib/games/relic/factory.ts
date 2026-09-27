@@ -158,6 +158,8 @@ export type Machine = {
   hold?: Item[];
   turn?: number;
   stuck?: number;
+  /** Tickets a printer has printed: the browser restarts its ring on each. */
+  printed?: number;
 };
 export type FactoryState = {
   blueprints: string[];
@@ -176,9 +178,17 @@ export type FactoryAction =
       pieces: { kind: MachineKind; x: number; y: number; dir: Dir }[];
     }
   | { type: 'factory-remove'; cells: { x: number; y: number }[] }
-  | { type: 'factory-rotate'; x: number; y: number }
+  /** Turns one machine a quarter clockwise, or every one of `cells`. */
+  | { type: 'factory-rotate'; x: number; y: number; cells?: { x: number; y: number }[] }
   /** Drags a machine, with whatever it holds, to an empty cell. */
   | { type: 'factory-move'; x: number; y: number; to: { x: number; y: number } }
+  /** Drags several machines together by the same offset. */
+  | {
+      type: 'factory-shift';
+      cells: { x: number; y: number }[];
+      dx: number;
+      dy: number;
+    }
   | { type: 'factory-book'; x: number; y: number; book: PackId };
 export function createFactory(): FactoryState {
   return {
@@ -290,6 +300,7 @@ function step(g: ScratchHost, s: ScratchState, f: FactoryState) {
       m.t += printSpeed * b.speed;
       if (m.t >= PRINT_TICKS) {
         m.t -= PRINT_TICKS;
+        m.printed = (m.printed ?? 0) + 1;
         const book = m.book && packOpen(s, m.book) ? m.book : 'seven';
         m.output = {
           id: f.nextItem++,
@@ -499,6 +510,56 @@ export function actFactory(g: ScratchHost, action: FactoryAction) {
       const refund = machineRefund(f, m.kind, s);
       f.machines.splice(f.machines.indexOf(m), 1);
       g.coins = Math.min(1e18, g.coins + refund);
+    }
+    return;
+  }
+  if (action.type === 'factory-shift') {
+    const cells = action.cells;
+    if (
+      !Array.isArray(cells) ||
+      !cells.length ||
+      cells.length > width * height ||
+      !Number.isInteger(action.dx) ||
+      !Number.isInteger(action.dy) ||
+      (!action.dx && !action.dy)
+    )
+      throw new Error('Choose what to move.');
+    const group = new Set<Machine>();
+    for (const c of cells) {
+      const m = c && machineAt(f, c.x, c.y);
+      if (!m) throw new Error('There is no machine there.');
+      group.add(m);
+    }
+    for (const m of group) {
+      const x = m.x + action.dx,
+        y = m.y + action.dy,
+        other = machineAt(f, x, y);
+      if (!cell(x, width) || !cell(y, height))
+        throw new Error('Move it inside the factory floor.');
+      if (other && !group.has(other)) throw new Error('That space is taken.');
+    }
+    for (const m of group) {
+      m.x += action.dx;
+      m.y += action.dy;
+      m.stuck = 0;
+    }
+    f.machines.sort((a, b) => a.y - b.y || a.x - b.x);
+    return;
+  }
+  if (action.type === 'factory-rotate' && action.cells !== undefined) {
+    if (
+      !Array.isArray(action.cells) ||
+      !action.cells.length ||
+      action.cells.length > width * height
+    )
+      throw new Error('Choose what to turn.');
+    const turned = new Set<Machine>();
+    for (const c of action.cells) {
+      const m = c && machineAt(f, c.x, c.y);
+      if (!m || turned.has(m) || !MACHINES[m.kind].turns) continue;
+      turned.add(m);
+      m.dir = ((m.dir + 1) % 4) as Dir;
+      m.turn = 0;
     }
     return;
   }

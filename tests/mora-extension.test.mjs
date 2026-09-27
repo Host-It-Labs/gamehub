@@ -17,7 +17,7 @@ void test('Wild Trails is opt-in, Mora-only, and rejects missing goal definition
   assert.equal(expanded.sanctuaryGoalsEnabled, true);
   assert.equal(isSavedGame(expanded), true);
   delete base.sanctuaryGoalsEnabled;
-  // Mirror terraces: four of one species across Courtyard's herd and Roof garden's pairs.
+  // Mirror terraces: four of one species across Courtyard's herd and Garden's pairs.
   expanded.sanctuaryGoals = [3, 6, 9];
   assert.equal(isSavedGame(base), true);
   for (const g of [base, expanded]) g.players[0].zones = [[creature(0), creature(0)], [creature(0), creature(0)], [], [], [], [], []];
@@ -55,7 +55,7 @@ void test('new goals are seeded, distinct, varied between matches and public to 
 void test('goal scoring uses only the drawn goals and rejects invalid saved goals', async () => {
   const { sanctuaryGoalProgress, sanctuaryBonus } = await import('../lib/games/trio/engine.ts');
   const zones = [[creature(0), creature(0)], [creature(0), creature(1), creature(2), creature(3)], [creature(1), creature(1)], [creature(0), creature(2), creature(3)], [creature(4)], [creature(5)], [creature(0)]];
-  // Full houses needs habitats of three or more spaces: Root hollows and Watchpost do not count.
+  // Full houses needs habitats of three or more spaces: Hollow and Watchpost do not count.
   assert.equal(sanctuaryGoalProgress(zones, 0).points, 4);
   assert.equal(sanctuaryGoalProgress(zones, 6).points, 0); // Species 5 is only in trash.
   assert.equal(sanctuaryGoalProgress(zones, 7).points, 4);

@@ -13,7 +13,11 @@ import {
   levelFor,
   makeMap,
   observeFolio,
+  rerollTarget,
   startFolio,
+  suggestFolio,
+  acceptSuggestion,
+  dismissSuggestion,
 } from '../lib/games/folio/engine.ts';
 import { KIND_MODULES } from '../lib/games/folio/kinds/index.ts';
 import { FolioRuns } from '../server/folio.ts';
@@ -182,9 +186,7 @@ await test('two lives: the first loss is survivable, the second ends the run, no
   }
 });
 
-await test('edits: offered only after a boss, balanced, optional and sound', () => {
-  let strikes = 0,
-    swaps = 0;
+await test('after a boss the crew may strike any game still in the run, down to six', () => {
   for (let seed = 1; seed <= 80; seed++) {
     const g = createFolio(seed, 1, now);
     for (let r = 0; r < BOSS_EVERY - 1; r++) {
@@ -196,47 +198,105 @@ await test('edits: offered only after a boss, balanced, optional and sound', () 
     actFolio(g, { type: 'node', id: choices(g)[0] }, now);
     play(g, true);
     assert.equal(g.phase, 'result');
-    assert.ok(g.edits.length >= 2 && g.edits.length <= 3);
+    assert.deepEqual(
+      g.edits.map((e) => e.kind),
+      [...KINDS],
+      'every one of the ten games can be struck',
+    );
     const bossRow = BOSS_EVERY - 1;
     for (const e of g.edits) {
-      assert.ok(e.changes.length > 0);
+      assert.equal(e.type, 'strike');
       for (const c of e.changes) {
         const n = g.map.find((m) => m.id === c.node);
         assert.ok(n.row > bossRow, 'edits only touch the trail ahead');
         assert.equal(n.kind, e.kind);
         assert.notEqual(c.to, e.kind);
       }
-      if (e.type === 'swap') {
-        swaps++;
-        assert.equal(e.changes.length, 1);
-        const n = g.map.find((m) => m.id === e.changes[0].node);
-        assert.equal(n.type, 'puzzle');
-        assert.equal(Math.floor(n.row / BOSS_EVERY), 1, 'swaps are next act');
-      } else strikes++;
+      assert.equal(
+        e.changes.length,
+        g.map.filter((n) => n.row > bossRow && n.kind === e.kind).length,
+        'every later stop of the struck game is replaced',
+      );
     }
-    assert.throws(() => actFolio(g, { type: 'edit', index: 9 }, now));
+    assert.throws(() => actFolio(g, { type: 'edit', index: 10 }, now));
     const pick = seed % g.edits.length,
       edit = g.edits[pick];
     const h = structuredClone(g);
     actFolio(g, { type: 'edit', index: pick }, now);
     assert.equal(g.phase, 'map');
     assertMapSound(g.map);
-    if (edit.type === 'strike') {
-      assert.deepEqual(g.struck, [edit.kind]);
-      assert.ok(
-        g.map.every((n) => n.row <= bossRow || n.kind !== edit.kind),
-        'a struck game is gone from the trail ahead',
-      );
-    }
+    assert.deepEqual(g.struck, [edit.kind]);
+    assert.ok(
+      g.map.every((n) => n.row <= bossRow || n.kind !== edit.kind),
+      'a struck game is gone from the trail ahead',
+    );
     const before = structuredClone(h.map);
     actFolio(h, { type: 'continue' }, now);
     assert.deepEqual(h.map, before, 'leaving the trail as it is');
-    // Keep striking through the run; the map stays sound as it grows.
-    for (let r = 0; r < 5 * BOSS_EVERY; r++) step(g, true);
+    // Keep striking through the run; offers shrink, then stop at six games.
+    for (let act = 1; act < 6; act++) {
+      for (let r = 0; r < BOSS_EVERY - 1; r++) step(g, true);
+      actFolio(g, { type: 'node', id: choices(g)[0] }, now);
+      play(g, true);
+      const left = KINDS.length - g.struck.length;
+      // A game whose stops cannot all be replaced is left out of the offer.
+      if (left > 6) assert.ok(g.edits.length > 0 && g.edits.length <= left);
+      else assert.equal(g.edits.length, 0, 'strikes stop at six games');
+      assert.ok(g.edits.every((e) => !g.struck.includes(e.kind)));
+      actFolio(
+        g,
+        g.edits.length ? { type: 'edit', index: 0 } : { type: 'continue' },
+        now,
+      );
+      assertMapSound(g.map);
+    }
+    assert.ok(g.struck.length <= KINDS.length - 6);
+  }
+});
+
+await test('each act lets the crew reroll its boss once, after round 2', () => {
+  for (let seed = 1; seed <= 80; seed++) {
+    const g = createFolio(seed, 1, now);
+    const rounds = (n) => {
+      for (let r = 0; r < n; r++) step(g, true);
+    };
+    const bossOf = (act) =>
+      g.map.find(
+        (n) => n.type === 'boss' && Math.floor(n.row / BOSS_EVERY) === act,
+      );
+    assert.equal(rerollTarget(g), undefined, 'not before the first round');
+    rounds(1);
+    assert.throws(() => actFolio(g, { type: 'reroll' }, now), /round 2/);
+    rounds(1);
+    const boss = bossOf(0),
+      was = boss.kind;
+    assert.equal(rerollTarget(g)?.id, boss.id);
+    const twin = structuredClone(g);
+    actFolio(g, { type: 'reroll' }, now);
+    actFolio(twin, { type: 'reroll' }, now);
+    assert.notEqual(bossOf(0).kind, was, 'the boss changes game');
+    assert.equal(bossOf(0).kind, twin.map.find((n) => n.id === boss.id).kind);
+    assert.ok(!g.struck.includes(bossOf(0).kind));
+    assertMapSound(g.map);
+    assert.deepEqual(g.rerolled, [0]);
     assert.equal(g.phase, 'map');
+    assert.throws(() => actFolio(g, { type: 'reroll' }, now), /once per act/);
+    rounds(1);
+    assert.equal(rerollTarget(g), undefined, 'used up for this act');
+    // The boss plays as the rerolled game; the next act brings a new reroll,
+    // which may also wait until round 3.
+    actFolio(g, { type: 'node', id: choices(g)[0] }, now);
+    assert.equal(g.puzzle.kind, bossOf(0).kind);
+    assert.equal(g.puzzle.boss, true);
+    play(g, true);
+    actFolio(g, { type: 'continue' }, now);
+    assert.equal(rerollTarget(g), undefined);
+    rounds(3);
+    assert.equal(rerollTarget(g)?.id, bossOf(1).id);
+    actFolio(g, { type: 'reroll' }, now);
+    assert.deepEqual(g.rerolled, [0, 1]);
     assertMapSound(g.map);
   }
-  assert.ok(strikes > 0 && swaps > 0);
 });
 
 await test('actions are validated: closed paths, puzzles out of phase, malformed moves', () => {
@@ -385,7 +445,7 @@ await test('commands: stale revisions, idempotent retries and hidden secrets', (
     assert.ok(!JSON.stringify(opened).includes('"seed"'));
     const lost = runs.command(
       v.token,
-      b,
+      a,
       {
         requestId: randomUUID(),
         revision: opened.game.revision,
@@ -607,6 +667,159 @@ await test('version four migration preserves existing expedition and account rec
     db?.close();
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+await test('the host picks the path and moves the crew on; the others vote', () => {
+  const db = openDatabase(':memory:'),
+    runs = new FolioRuns(db);
+  const cmd = (who, revision, action, at = now) =>
+    runs.command(
+      v.token,
+      who,
+      { requestId: randomUUID(), revision, action },
+      at,
+    );
+  let v;
+  try {
+    const a = actor('A'),
+      b = actor('B');
+    v = runs.create(a, { seats: 2, name: 'Ann' }, now);
+    runs.join(v.token, b, { name: 'Bo' }, now);
+    const host = runs.get(v.token, a, now),
+      guest = runs.get(v.token, b, now);
+    assert.equal(host.hostId, 'A');
+    assert.equal(guest.hostId, 'A');
+    assert.equal(host.canLead, true);
+    assert.equal(guest.canLead, false);
+    const [first, second] = choices(host.game);
+    const rev = host.game.revision;
+    assert.throws(() => cmd(b, rev, { type: 'node', id: first }), /host picks/);
+    const voted = cmd(b, rev, { type: 'vote', target: second });
+    assert.deepEqual(voted.game.votes, { B: second });
+    assert.equal(voted.game.revision, rev, 'a vote never makes a move stale');
+    assert.throws(
+      () => cmd(b, rev, { type: 'vote', target: 'r3l1' }),
+      /not open/,
+    );
+    const changed = cmd(b, rev, { type: 'vote', target: first });
+    assert.deepEqual(changed.game.votes, { B: first });
+    assert.deepEqual(
+      cmd(b, rev, { type: 'vote', target: null }).game.votes,
+      {},
+    );
+    cmd(b, rev, { type: 'vote', target: first });
+    const opened = cmd(a, rev, { type: 'node', id: second });
+    assert.equal(opened.game.phase, 'puzzle');
+    assert.equal(
+      opened.game.votes,
+      undefined,
+      'votes clear once the host picks',
+    );
+    // Only the host plays the board; the others' moves are suggestions.
+    const puzzle = opened.game.revision;
+    const saved = () =>
+      JSON.parse(
+        db.prepare('SELECT state FROM folio_runs WHERE token=?').get(v.token)
+          .state,
+      );
+    const state = saved();
+    const drill = KIND_MODULES[state.puzzle.kind];
+    const good = drill.win(state.puzzle.view, state.secret);
+    assert.throws(() => cmd(b, puzzle, { type: 'give-up' }), /moves the crew on/);
+    assert.throws(
+      () => cmd(b, puzzle, { type: 'move', move: good }),
+      /as a suggestion/,
+    );
+    const offered = cmd(b, puzzle, { type: 'suggest', move: good });
+    assert.equal(offered.game.revision, puzzle, 'a suggestion is never stale');
+    assert.deepEqual(offered.game.puzzle.view, opened.game.puzzle.view);
+    assert.equal(offered.game.suggestions.length, 1);
+    assert.deepEqual(offered.game.suggestions[0].by, ['B']);
+    const id = offered.game.suggestions[0].id;
+    assert.deepEqual(
+      runs.get(v.token, a, now).game.suggestions,
+      offered.game.suggestions,
+      'the whole crew sees it',
+    );
+    assert.throws(() => cmd(b, puzzle, { type: 'accept', id }), /moves the crew on/);
+    const withdrawn = cmd(b, puzzle, { type: 'dismiss', id });
+    assert.deepEqual(withdrawn.game.suggestions, []);
+    const again = cmd(b, puzzle, { type: 'suggest', move: good });
+    const played = cmd(a, puzzle, {
+      type: 'accept',
+      id: again.game.suggestions[0].id,
+    });
+    assert.ok(played.game.revision > puzzle, 'the host played it');
+    assert.equal(played.game.suggestions?.length ?? 0, 0);
+    const lost =
+      played.game.phase === 'puzzle'
+        ? cmd(a, played.game.revision, { type: 'give-up' })
+        : played;
+    assert.equal(lost.game.phase, 'result');
+    assert.throws(
+      () => cmd(b, lost.game.revision, { type: 'continue' }),
+      /moves the crew on/,
+    );
+    // A host away too long hands the run to the next player still here,
+    // for good: coming back does not take it back.
+    const later = now + 31000;
+    assert.equal(runs.get(v.token, b, later).canLead, true);
+    const back = cmd(b, lost.game.revision, { type: 'continue' }, later);
+    assert.equal(back.game.phase, 'map');
+    const returned = runs.get(v.token, a, later + 1);
+    assert.equal(returned.hostId, 'B');
+    assert.equal(returned.canLead, false);
+    // The table the run came from names a new admin: they host the run too.
+    runs.follow(v.token, 'A');
+    assert.equal(runs.get(v.token, a, later + 2).canLead, true);
+  } finally {
+    db.close();
+  }
+});
+
+await test('suggestions: checked like a move, merged per move, limited per player, pruned as the board changes', () => {
+  const g = createFolio(7, 1, now, { kind: 'sudoku', boss: false });
+  const view = g.puzzle.view;
+  const empty = view.grid.flatMap((d, i) => (d ? [] : [i]));
+  const right = (i) => g.secret.solution[i];
+  const wrong = (i) => (right(i) % 9) + 1;
+  const revision = g.revision;
+  assert.throws(
+    () => suggestFolio(g, 'B', { cell: view.given.findIndex(Boolean), digit: 1 }, now),
+    /given/,
+    'refused the way the original refuses it',
+  );
+  suggestFolio(g, 'B', { cell: empty[0], digit: wrong(empty[0]) }, now);
+  suggestFolio(g, 'C', { digit: wrong(empty[0]), cell: empty[0] }, now);
+  assert.equal(g.suggestions.length, 1, 'the same move is one suggestion');
+  assert.deepEqual(g.suggestions[0].by, ['B', 'C']);
+  suggestFolio(g, 'B', { cell: empty[1], digit: right(empty[1]) }, now);
+  suggestFolio(g, 'B', { cell: empty[1], digit: wrong(empty[1]) }, now);
+  assert.throws(
+    () => suggestFolio(g, 'B', { cell: empty[2], digit: 1 }, now),
+    /Wait for the host/,
+  );
+  assert.equal(g.revision, revision, 'suggesting plays nothing');
+  assert.deepEqual(g.puzzle.view.grid, view.grid);
+  dismissSuggestion(g, 'C', g.suggestions[0].id, false, now);
+  assert.deepEqual(g.suggestions[0].by, ['B'], 'C took their name off');
+  assert.throws(
+    () => dismissSuggestion(g, 'C', g.suggestions[1].id, false, now),
+    /Only the host/,
+  );
+  const solving = g.suggestions.find((s) => s.move.digit === right(empty[1]));
+  acceptSuggestion(g, solving.id, now);
+  assert.equal(g.puzzle.view.grid[empty[1]], right(empty[1]));
+  assert.equal(g.revision, revision + 1);
+  assert.deepEqual(
+    g.suggestions.map((s) => s.move.cell),
+    [empty[0]],
+    'the played move and the wrong digit on the now-solved square are gone',
+  );
+  dismissSuggestion(g, 'A', g.suggestions[0].id, true, now);
+  assert.deepEqual(g.suggestions, []);
+  actFolio(g, { type: 'give-up' }, now);
+  assert.throws(() => suggestFolio(g, 'B', { cell: empty[2], digit: 1 }, now), /Open a puzzle/);
 });
 
 await test('deleting a run takes it off your list; the run goes once nobody is left', () => {

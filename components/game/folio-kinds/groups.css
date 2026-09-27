@@ -49,7 +49,7 @@
     color 0.15s,
     transform 0.1s;
 }
-.fk-groups .fk-groups-tile:hover:not([aria-disabled='true']) {
+.fk-groups .fk-groups-tile:hover:not([aria-disabled='true'], .on) {
   transform: none;
   background: #e8d9ae;
 }
@@ -103,6 +103,8 @@
   }
 }
 .fk-groups-bar {
+  position: relative;
+  isolation: isolate;
   grid-column: 1 / -1;
   display: grid;
   align-content: center;
@@ -116,6 +118,57 @@
   color: #1b2a4a;
   text-align: center;
   text-transform: uppercase;
+  box-shadow:
+    inset 0 0 0 1px #1b2a4a1a,
+    inset 0 -2px 0 #1b2a4a14;
+}
+/* A solved band is printed: a 45° halftone screen in its own ink, fading in from the right. */
+.fk-groups-bar::before,
+.fk-groups-bar::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.fk-groups-bar::before {
+  inset: 0;
+  background-image:
+    radial-gradient(circle, #1b2a4a2b 0.9px, transparent 1.4px),
+    radial-gradient(circle, #1b2a4a2b 0.9px, transparent 1.4px);
+  background-size: 6px 6px;
+  background-position:
+    0 0,
+    3px 3px;
+  -webkit-mask-image: linear-gradient(100deg, transparent 30%, #000 100%);
+  mask-image: linear-gradient(100deg, transparent 30%, #000 100%);
+}
+/* The brayer: one soft roll of fresh ink across a band as it lands. */
+.fk-groups-bar::after {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 42%;
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    #fffaf05c 42%,
+    #1b2a4a14 62%,
+    transparent
+  );
+}
+.fk-groups-bar.fresh::after {
+  animation: fk-groups-brayer 0.56s 0.2s cubic-bezier(0.4, 0, 0.3, 1) both;
+}
+@keyframes fk-groups-brayer {
+  0% {
+    opacity: 1;
+    transform: translateX(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(240%);
+  }
 }
 .fk-groups-bar[data-level='2'] {
   background: var(--fk-g2);
@@ -190,8 +243,10 @@
   width: 14px;
   height: 14px;
   margin-right: 8px;
-  border-radius: 50%;
+  /* Hand-inked blots rather than perfect circles. */
+  border-radius: 52% 47% 55% 45% / 46% 54% 47% 53%;
   background: var(--folio-ink);
+  box-shadow: 0 0 0 0.6px #193d7940;
   transition:
     transform 0.4s cubic-bezier(0.5, -0.5, 0.7, 1),
     opacity 0.4s,
@@ -247,6 +302,7 @@
   .fk-groups-tile.hop,
   .fk-groups-tile.shake,
   .fk-groups-bar.fresh,
+  .fk-groups-bar.fresh::after,
   .fk-groups-bar.cheer {
     animation: none;
   }

@@ -2,11 +2,16 @@ import type { DatabaseSync } from 'node:sqlite';
 import { randomInt } from 'node:crypto';
 import { check, displayName, HttpError, token, type Identity } from './auth.ts';
 import {
+  acceptSuggestion,
   actFolio,
   createFolio,
+  dismissSuggestion,
   observeFolio,
+  rerollTarget,
   round,
   startFolio,
+  suggestFolio,
+  voteFolio,
 } from '../lib/games/folio/engine.ts';
 import {
   KINDS,
@@ -16,6 +21,25 @@ import {
   type FolioView,
   type Kind,
 } from '../lib/games/folio/types.ts';
+/** A member counts as here while their page has polled within this time. */
+const AWAY_AFTER = 15000;
+/** A host away this long hands the run to the next member still here. */
+const HAND_OVER_AFTER = 30000;
+/** Only the host plays the board and moves the whole crew; the others
+ * suggest moves and vote on paths. */
+const LEAD_ACTIONS = new Set([
+  'node',
+  'edit',
+  'continue',
+  'reroll',
+  'start',
+  'move',
+  'give-up',
+  'accept',
+  'dev-win',
+]);
+/** Actions about what is open right now, so a new revision never makes them stale. */
+const FRESH_ACTIONS = new Set(['vote', 'suggest', 'dismiss', 'accept']);
 export class FolioRuns {
   private db: DatabaseSync;
   constructor(db: DatabaseSync) {
@@ -65,6 +89,54 @@ export class FolioRuns {
         .get(invite) as { n: number }
     ).n;
   }
+  private members(invite: string) {
+    return this.db
+      .prepare(
+        'SELECT actor,name,seen_at FROM folio_members WHERE run=? ORDER BY joined_at,actor',
+      )
+      .all(invite) as { actor: string; name: string; seen_at: number }[];
+  }
+  /**
+   * The host: the table's first member, or whoever the run was handed to.
+   * A host away too long hands it to the earliest member still here; the
+   * hand-over is saved, so coming back does not take it back.
+   */
+  private host(invite: string, g: FolioGame, now: number) {
+    const members = this.members(invite);
+    const host = members.find((m) => m.actor === g.host) ?? members[0];
+    if (!host || now - host.seen_at < HAND_OVER_AFTER) return host?.actor ?? '';
+    const next = members.find(
+      (m) => m.actor !== host.actor && now - m.seen_at < AWAY_AFTER,
+    );
+    if (!next) return host.actor;
+    g.host = next.actor;
+    this.save(invite, g);
+    return next.actor;
+  }
+  private mayLead(
+    invite: string,
+    who: Identity | null,
+    g: FolioGame,
+    now: number,
+  ) {
+    return (
+      !!who && this.isMember(invite, who) && this.host(invite, g, now) === who.id
+    );
+  }
+  /** The table the run came from has a new admin: they host the run too. */
+  follow(invite: string, actor: string) {
+    if (!this.isMember(invite, { id: actor } as Identity)) return;
+    let g: FolioGame;
+    try {
+      g = this.load(invite);
+    } catch {
+      return; // A deleted or retired run has nobody to host.
+    }
+    if (g.host === actor) return;
+    g.host = actor;
+    g.updatedAt = Date.now();
+    this.save(invite, g);
+  }
   private view(
     invite: string,
     who: Identity | null,
@@ -76,11 +148,8 @@ export class FolioRuns {
       this.db
         .prepare('UPDATE folio_members SET seen_at=? WHERE run=? AND actor=?')
         .run(now, invite, who!.id);
-    const members = this.db
-      .prepare(
-        'SELECT actor,name,seen_at FROM folio_members WHERE run=? ORDER BY joined_at,actor',
-      )
-      .all(invite) as { actor: string; name: string; seen_at: number }[];
+    const hostId = this.host(invite, g, now);
+    const members = this.members(invite);
     return {
       token: invite,
       game: observeFolio(g),
@@ -89,8 +158,11 @@ export class FolioRuns {
       members: members.map((m) => ({
         id: m.actor,
         name: m.name,
-        online: now - m.seen_at < 15000,
+        online: now - m.seen_at < AWAY_AFTER,
       })),
+      hostId,
+      canLead: joined && hostId === who!.id,
+      reroll: rerollTarget(g)?.id ?? null,
     };
   }
   private seat(invite: string, who: Identity, name: unknown, now: number) {
@@ -322,12 +394,22 @@ export class FolioRuns {
         );
         return this.view(invite, who, g, now);
       }
+      const action = input.action as Action;
       check(
-        g.revision === input.revision,
+        FRESH_ACTIONS.has(action.type) || g.revision === input.revision,
         409,
         'A teammate just changed the puzzle. Take a look and try again.',
       );
-      const action = input.action as Action;
+      const lead = this.mayLead(invite, who, g, now);
+      check(
+        !LEAD_ACTIONS.has(action.type) || lead,
+        403,
+        action.type === 'node'
+          ? 'The host picks the path. Your pick shows as a vote.'
+          : action.type === 'move'
+            ? 'The host plays the board. Your move shows as a suggestion.'
+            : 'The host moves the crew on.',
+      );
       check(
         action.type !== 'dev-win' || process.env.NODE_ENV === 'development',
         403,
@@ -335,6 +417,14 @@ export class FolioRuns {
       );
       try {
         if (action.type === 'start') startFolio(g, this.count(invite), now);
+        else if (action.type === 'vote')
+          voteFolio(g, who.id, action.target ?? null, now);
+        else if (action.type === 'suggest')
+          suggestFolio(g, who.id, action.move, now);
+        else if (action.type === 'accept')
+          acceptSuggestion(g, String(action.id), now);
+        else if (action.type === 'dismiss')
+          dismissSuggestion(g, who.id, String(action.id), lead, now);
         else actFolio(g, action, now);
       } catch (error) {
         throw new HttpError(

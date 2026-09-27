@@ -152,35 +152,18 @@ await test('HTTP accounts, guest identity, authorization, renamed guests and log
     await app.close();
   }
 });
-await test('move confirmation preferences follow accounts and guests keep browser defaults', async () => {
+await test('the retired move-confirmation preference is gone', async () => {
   const { app, client } = await fixture();
   try {
-    const anonymous = client();
-    assert.deepEqual(
-      (await anonymous.request('/api/preferences/confirm-moves.undertow')).data,
-      { account: false, value: null },
-    );
     const signedIn = client();
     await signedIn.request('/api/auth/signup', {
       name: 'Preference owner',
       email: 'preferences@example.com',
       password: 'test-password-123',
     });
-    assert.deepEqual(
-      (await signedIn.request('/api/preferences/confirm-moves.undertow')).data,
-      { account: true, value: null },
-    );
-    assert.deepEqual(
-      (
-        await signedIn.request('/api/preferences/confirm-moves.undertow', {
-          value: true,
-        })
-      ).data,
-      { account: true, value: true },
-    );
-    assert.deepEqual(
-      (await signedIn.request('/api/preferences/confirm-moves.undertow')).data,
-      { account: true, value: true },
+    assert.equal(
+      (await signedIn.request('/api/preferences/confirm-moves.undertow')).status,
+      404,
     );
   } finally {
     await app.close();

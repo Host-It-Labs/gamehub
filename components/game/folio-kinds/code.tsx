@@ -68,6 +68,27 @@ function Peg({ c, style }: { c: number; style?: CSSProperties }) {
     </span>
   );
 }
+/** The ink seal stamped beside a cracked code. */
+function Seal() {
+  return (
+    <svg className="fk-code-seal" viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r="17.5" strokeWidth="2.6" />
+      <circle
+        cx="20"
+        cy="20"
+        r="13.4"
+        strokeWidth="1"
+        strokeDasharray="2 2.2"
+      />
+      <path
+        d="m12.8 20.6 4.9 4.9 9.6-10.4"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 const empty = (n: number) => Array<number | null>(n).fill(null);
 const names = (code: (number | null)[]) =>
   code.map((c) => (c === null ? 'empty' : PEGS[c].name)).join(', ');
@@ -106,6 +127,8 @@ export default function Code({
   const active = done ? -1 : played;
   const full = draft.every((c) => c !== null);
   const idle = done || busy;
+  // The hole the next colour will drop into.
+  const next = idle ? -1 : draft.indexOf(null);
 
   function place(c: number, hole?: number) {
     if (idle || c < 0 || c >= colours) return;
@@ -191,7 +214,7 @@ export default function Code({
     return (
       <fieldset
         key={r}
-        className={`fk-code-row ${isActive ? 'active' : ''} ${isActive && shake ? 'shake' : ''} ${g ? 'played' : ''}`}
+        className={`fk-code-row ${isActive ? 'active' : ''} ${isActive && shake ? 'shake' : ''} ${g ? 'played' : ''} ${animate ? 'fresh' : ''}`}
         aria-label={
           g
             ? `Row ${r + 1}: ${names(g.code)}. ${g.black} black, ${g.white} white`
@@ -209,7 +232,7 @@ export default function Code({
               <button
                 key={i}
                 type="button"
-                className={`fk-code-hole ${drag?.hole === i ? 'target' : ''}`}
+                className={`fk-code-hole ${drag?.hole === i ? 'target' : ''} ${i === next && !drag ? 'next' : ''}`}
                 data-fk-code-hole={i}
                 disabled={idle}
                 onClick={() => c !== null && clear(i)}
@@ -219,7 +242,9 @@ export default function Code({
               </button>
             ) : (
               <span key={i} className="fk-code-hole">
-                {c !== null && <Peg c={c} />}
+                {c !== null && (
+                  <Peg c={c} style={{ '--i': i } as CSSProperties} />
+                )}
               </span>
             ),
           )}
@@ -285,6 +310,7 @@ export default function Code({
               {Array.from({ length: pegs }, (_, i) => (
                 <i key={i} className="fk-code-khole" />
               ))}
+              {done && won && view.answer && <Seal />}
             </span>
             <span
               className={`fk-code-shield ${view.answer ? 'open' : ''}`}

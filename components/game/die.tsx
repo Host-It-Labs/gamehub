@@ -93,17 +93,16 @@ export function DieControl({ g, viewer }: { g: PublicGame; viewer?: number }) {
           {g.id === 'undertow' ? 'Penalty die' : 'Placement die'}
         </PopoverTitle>
         {g.id === 'undertow' && g.phase === 'pass' ? (
-          <p>
-            The penalty suit is unknown. The die rolls after everyone has
-            passed.
-          </p>
+          <p>The die rolls once everyone has passed.</p>
         ) : g.phase === 'roll' ? (
-          <p>The die rolls automatically.</p>
+          <p>The die is rolling.</p>
         ) : g.id === 'undertow' ? (
           <p>
-            The {suits[g.hazard]} {tidePenaltyRank(g)} is worth{' '}
-            {tidePenaltyValue(g)} penalty points this round. The die rolls after
-            everyone has passed their cards.
+            This round the{' '}
+            <b>
+              {suits[g.hazard]} {tidePenaltyRank(g)}
+            </b>{' '}
+            is worth <b>{tidePenaltyValue(g)}</b> penalty points.
           </p>
         ) : (
           <>
@@ -111,9 +110,17 @@ export function DieControl({ g, viewer }: { g: PublicGame; viewer?: number }) {
               <b>{moraDieLabels[g.die]}:</b> {placementDieRule(g.die, g.contentSet)}
             </p>
             <p>
-              {g.players[g.roller].name} can use any habitat with space.
-              Everyone else follows the die. Releasing a creature is always
-              available and scores nothing.
+              {exempt ? (
+                <>
+                  You are the <b>roller</b>: use any habitat with space.
+                </>
+              ) : (
+                <>
+                  The roller, <b>{g.players[g.roller].name}</b>, may use any
+                  habitat with space.
+                </>
+              )}{' '}
+              Release is always allowed and scores 0.
             </p>
           </>
         )}

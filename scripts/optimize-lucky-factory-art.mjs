@@ -19,6 +19,9 @@ const chosen = {
   floor: process.env.LUCKY_FLOOR ?? 'floor-v1-b.png',
   belt: process.env.LUCKY_BELT ?? 'belt-v1-a.png',
 };
+/** `LUCKY_SUFFIX=-v2` writes only the machine sprites, as `bot-v2.webp` etc.,
+ * leaving the default sprites, the floor and the belt untouched. */
+const suffix = process.env.LUCKY_SUFFIX ?? '';
 /** Sheet order, left to right, top row first. */
 const kinds = [
   'printer',
@@ -150,11 +153,13 @@ async function rgba(path) {
     await sharp(square)
       .resize(192, 192, { kernel: 'lanczos3' })
       .webp({ quality: 88, alphaQuality: 92 })
-      .toFile(`${out}/${kind}.webp`);
+      .toFile(`${out}/${kind}${suffix}.webp`);
     report[kind] = { box: [x0, y0, w, h], side };
   }
   console.log(JSON.stringify(report));
 }
+
+if (suffix) process.exit(0);
 
 // Floor: a seamless square texture, resized whole so it still tiles.
 await sharp(source(chosen.floor))

@@ -5,16 +5,15 @@ import { useGameSound } from './use-game-sound';
 import { useResultsFeedback, WinnerCelebration } from './results-feedback';
 import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
 import { CountUp, stagger } from './reveal-motion';
-import { totalRounds } from '@/lib/games/trio/engine';
+import { previewPlacement, totalRounds } from '@/lib/games/trio/engine';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import { useBoardLeave } from './use-board-leave';
 import { dropTargetNear } from './drag-preview';
-import { FullscreenControl, useFullscreen } from './fullscreen-control';
+import { LeaveDialog, useLeaveDialog } from './leave-dialog';
 import {
   ExtensionControls,
   useNatureChoice,
 } from '@/components/game/new-extensions';
-import { useAdvancedView } from '@/components/game/advanced-view';
 import { readSetup, saveSetup } from './setup-preferences';
 import {
   readAmbienceLevel,
@@ -23,14 +22,9 @@ import {
 } from './use-ambience';
 import { ExtensionAction } from './extension-action';
 import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
-import { TableHeading, gameName } from '../game/table-heading';
-import {
-  useAutoRoll,
-  MoveConfirmation,
-  UndoChoice,
-  useMoveConfirmation,
-} from './confirmation';
-import { TableMenu } from '../game/table-menu';
+import { TableHeading, gameName, worldTheme } from '../game/table-heading';
+import { useAutoRoll, MoveConfirmation, UndoChoice } from './confirmation';
+import { GameMenu } from './game-menu';
 import { ArtworkLoading } from './artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { SanctuaryBadges } from '@/components/game/mora-extension';
@@ -48,16 +42,20 @@ import {
 import { setOf } from '@/lib/games/party/vote';
 import { FolioSetupBox } from './folio-box';
 import { RelicSetupBox } from './relic-box';
+import { ArenaSetupBox } from './arena/arena-box';
 import type { StandaloneId } from '@/lib/games/standalone/types';
 import {
+  gameByLibraryId,
   realGames,
   standaloneLibraryGames,
   type LibraryGame,
 } from '@/lib/games/library-fixtures';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+// The 3D battle and three.js load only when Arena opens.
+const ArenaGame = lazy(() => import('./arena/arena-game'));
 
 const isBotSeat = (seat: number) => seat > 0;
-import { ArrowLeft, Volume2, VolumeX, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, RotateCcw, List, Trophy } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -98,6 +96,7 @@ import { cue, eventCue } from '@/lib/games/trio/sound';
 import { fallbackMove } from '@/lib/games/trio/bot';
 import { practice } from '@/lib/games/adventures/lessons';
 import { useBotTurns } from './bot-turns';
+import { recordCompletedGame } from './play-experience';
 const SAVE = 'gamehub.tables.v3';
 /** Games outside the trio engine save separately, so one save shape per engine. */
 const OWN_SAVE = 'gamehub.standalone.v1';
@@ -109,7 +108,12 @@ export default function SoloGame() {
   const [g, setG] = useState<Game | null>(null),
     [saves, setSaves] = useState<Partial<Record<GameId, Game>>>({}),
     [setup, setSetup] = useState<GameId | null>(null),
-    [preview, setPreview] = useState<LibraryGame | null>(null),
+    // /arena opens the library with Arena's box already open.
+    [preview, setPreview] = useState<LibraryGame | null>(() =>
+      typeof window !== 'undefined' && window.location.pathname === '/arena'
+        ? (gameByLibraryId('arena') ?? null)
+        : null,
+    ),
     [shields, setShields] = useState(false),
     [customerOrders, setCustomerOrders] = useState(false),
     [sanctuaryGoalsEnabled, setSanctuaryGoalsEnabled] = useState(false),
@@ -123,7 +127,7 @@ export default function SoloGame() {
     [ambience, setAmbience] = useState(0.6),
     [panelOpen, setPanelOpen] = useState(false),
     [panel, rememberPanel] = useState<
-      'rules' | 'reference' | 'log' | 'leave' | 'sound' | null
+      'rules' | 'reference' | 'log' | 'sound' | null
     >(null),
     [inspection, setInspection] = useState<Inspection | null>(null),
     [inspectorOpen, setInspectorOpen] = useState(false),
@@ -140,17 +144,26 @@ export default function SoloGame() {
     [own, setOwn] = useState<Partial<Record<StandaloneId, AnyGame>>>({}),
     [openOwn, setOpenOwn] = useState<StandaloneId | null>(null),
     [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
-    [ownSeats, setOwnSeats] = useState(3);
+    [ownSeats, setOwnSeats] = useState(3),
+    [arena, setArena] = useState<{
+      difficulty: import('@/lib/games/arena/engine').Difficulty;
+      mode: import('@/lib/games/arena/engine').Mode;
+      learn: boolean;
+      key: number;
+    } | null>(null);
+  // Leaving a saved match asks once and says it is saved; practice simply leaves.
+  const leaving = useLeaveDialog();
   function leaveOwn() {
-    if (window.confirm('Leave the board? Your game is saved so you can return later.')) { setOpenOwn(null); setOwnPractice(null); }
+    leaving.ask(() => { setOpenOwn(null); setOwnPractice(null); });
   }
-  useBoardLeave(!!(g || openOwn), () => {
-    if (openOwn) leaveOwn(); else { rememberPanel('leave'); setPanelOpen(true); }
-  });
+  useEffect(() => {
+    if (window.location.pathname === '/arena')
+      history.replaceState(history.state, '', '/');
+  }, []);
   const festival = useFestivalChoice(g, 0);
   const motionRoot = useRef<HTMLElement>(null);
   useGameMotion(motionRoot, g ? `${g.id}:${g.round}:${g.phase}` : 'library');
-  useGameSound(openOwn ?? g?.id, volume);
+  useGameSound(arena ? 'arena' : (openOwn ?? g?.id), volume);
   function setPanel(value: typeof panel) {
     if (value) rememberPanel(value);
     setPanelOpen(!!value);
@@ -214,6 +227,8 @@ export default function SoloGame() {
     current.current = next;
     setG(next);
     if(next.tutorial)return;
+    if (next.phase === 'over' && saveRef.current[next.id]?.phase !== 'over')
+      recordCompletedGame(catalog.find((entry) => entry.id === next.id)!.name);
     saveRef.current = { ...saveRef.current, [next.id]: next };
     setSaves(saveRef.current);
     try {
@@ -229,6 +244,8 @@ export default function SoloGame() {
     setOwnPractice(null);
     // A set keeps one save under its library id whichever game it is playing.
     const id = next.tribu ? setOf(next.kind) : next.kind;
+    if (next.over && !ownRef.current[id]?.over)
+      recordCompletedGame(standaloneGames[id].name);
     ownRef.current = { ...ownRef.current, [id]: next };
     setOwn(ownRef.current);
     try {
@@ -266,8 +283,7 @@ export default function SoloGame() {
     else if(canAct(game,0)&&game.phase==='roll')commit({type:'roll'});
   }
   const nature = useNatureChoice(g, 0);
-  const [advanced, setAdvanced] = useAdvancedView(g?.id);
-  const fullscreen = useFullscreen();
+  const display = g ? previewPlacement(g, 0, g.pending?.[0] ?? undefined) : null;
   // Both Mora worlds (Observatory and Floodline Station) share the paper-table environment.
   const observatory = g?.id === 'wildgrove';
   // Full-table worlds float their controls over one environment plate.
@@ -281,8 +297,13 @@ export default function SoloGame() {
   const world = environment !== undefined;
   // The world's soundscape runs while a table is open, and stops on the shelf.
   // Effects and ambience are switched on and off separately.
-  useAmbience(openOwn ?? (g && !showResults ? g.id : null), 1, ambience, g?.contentSet);
-  const [confirmMoves, setConfirmMoves] = useMoveConfirmation(g?.id);
+  // Arena plays its own battle music at the ambience level instead.
+  useAmbience(
+    arena ? null : (openOwn ?? (g && !showResults ? g.id : null)),
+    1,
+    ambience,
+    g?.contentSet,
+  );
 
   function inspect(item: Inspection, source?: HTMLElement) {
     origin.current =
@@ -307,6 +328,7 @@ export default function SoloGame() {
     const game = current.current;
     if (actor === 0) m = nature.withChoice(festival.withChoice(m));
     if (!game || !validMove(game, m, actor)) return;
+    if (actor === 0 && m.type === 'play') cue('place', vol.current, 0, game.id);
     let next = play(game, m, actor);
     const action =
       m.type === 'pass'
@@ -319,7 +341,7 @@ export default function SoloGame() {
               ? 'ward-play'
               : 'play';
     if (actor === 0) next = progress(action, next);
-    for (const e of next.events.filter((e) => e.id >= (game.revision + 1) * 10))
+    for (const e of next.events.filter((e) => e.id >= (game.revision + 1) * 10 && !(e.type === 'play' && e.player === 0)))
       eventCue(e, next.id, vol.current);
     store(next);
     if (
@@ -423,6 +445,16 @@ export default function SoloGame() {
     setPanel(null);
     setBotError(false);
   }
+  function exitTable() {
+    const game = current.current;
+    if (!game || game.tutorial || game.phase === 'over') home();
+    else leaving.ask(home);
+  }
+  useBoardLeave(!!(g || openOwn || arena), () => {
+    if (arena) {
+      if (window.confirm('Leave the battle? It ends when you leave.')) setArena(null);
+    } else if (openOwn) leaveOwn(); else exitTable();
+  });
   useEffect(() => {
     if (g?.phase !== 'over' || g.tutorial) return;
     // The last capture must finish even when several trick events were queued.
@@ -435,7 +467,7 @@ export default function SoloGame() {
     game: g,
     active:
       !g?.tutorial &&
-      !(panelOpen && panel === 'leave') &&
+      !leaving.open &&
       !inspectorOpen &&
       // Bots wait until the table has finished showing the completed trick.
       !(g && revealingTrick(g) && capturesSettled < (g.events.findLast((e) => e.type === 'trick')?.id ?? -1)),
@@ -475,14 +507,13 @@ export default function SoloGame() {
       card: c.id,
       ...(ward ? { ward: true } : {}),
     };
-    if (!confirmMoves && validMove(g, festival.withChoice(move), 0))
-      commit(move);
+    if (validMove(g, festival.withChoice(move), 0)) commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
   }
   function place(zone: number) {
     if (!g) return;
     if (selected === null || g.phase === 'over') return;
-    if (!confirmMoves && canAct(g, 0) && g.phase === 'play') {
+    if (canAct(g, 0) && g.phase === 'play') {
       commit({ type: 'play', card: selected, zone });
     } else setPreparedZone(zone);
   }
@@ -539,7 +570,7 @@ export default function SoloGame() {
       return;
     }
     if (g.phase === 'over') return;
-    if (confirmMoves || !canAct(g, 0) || g.phase === 'roll') {
+    if (!canAct(g, 0) || g.phase === 'roll') {
       const destination = target?.dataset.drop;
       if (g.phase === 'pass') return;
       if (
@@ -585,6 +616,14 @@ export default function SoloGame() {
       /* Preference is optional. */
     }
   }
+  const soundSettings = (
+    <SoundSettings
+      volume={volume}
+      ambience={ambience}
+      onVolume={volumeChange}
+      onAmbience={ambienceChange}
+    />
+  );
   const meta = catalog.find((c) => c.id === g?.id),
     sc = g ? scores(g) : [],
     bestScore = g?.id === 'undertow' ? Math.min(...sc) : Math.max(...sc),
@@ -595,6 +634,29 @@ export default function SoloGame() {
     showResults && !openOwn,
     volume,
   );
+  if (arena)
+    return (
+      <div className="app at-table arena">
+        <Suspense
+          fallback={
+            <main className="startup-loading" aria-busy="true">
+              Arena
+            </main>
+          }
+        >
+          <ArenaGame
+            key={arena.key}
+            difficulty={arena.difficulty}
+            mode={arena.mode}
+            learn={arena.learn}
+            volume={volume}
+            music={ambience}
+            onExit={() => setArena(null)}
+            sound={soundSettings}
+          />
+        </Suspense>
+      </div>
+    );
   const ownGame = openOwn ? (ownPractice && (ownPractice.tribu ? setOf(ownPractice.kind) : ownPractice.kind)===openOwn?ownPractice:own[openOwn]) : undefined;
   if (openOwn && ownGame && !requiresHumanPlayers(openOwn))
     return (
@@ -605,27 +667,9 @@ export default function SoloGame() {
           onChange={storeOwn}
           onHome={leaveOwn}
           onNew={() => startOwn(openOwn)}
-          onSound={() => setPanel('sound')}
+          sound={soundSettings}
         />
-        <Dialog
-          open={panelOpen && panel === 'sound'}
-          onOpenChange={(open) => {
-            if (!open) setPanel(null);
-          }}
-        >
-          <DialogContent className="modal help-modal">
-            <DialogTitle>Sound</DialogTitle>
-            <DialogDescription className="sr-only">
-              Applies to every game on this device.
-            </DialogDescription>
-            <SoundSettings
-              volume={volume}
-              ambience={ambience}
-              onVolume={volumeChange}
-              onAmbience={ambienceChange}
-            />
-          </DialogContent>
-        </Dialog>
+        <LeaveDialog state={leaving} title="Leave the table?" saved="Your game is saved on this device." />
       </div>
     );
   return (
@@ -634,7 +678,7 @@ export default function SoloGame() {
         <header className="app-header">
           <button
             className="brand"
-            onClick={() => (g ? setPanel('leave') : undefined)}
+            onClick={() => (g ? exitTable() : undefined)}
             aria-label="Gamehub home"
           >
             <span className="brand-icon">g</span>gamehub
@@ -681,7 +725,7 @@ export default function SoloGame() {
             <button
               className="table-back"
               aria-label="Back to games"
-              onClick={() => setPanel('leave')}
+              onClick={exitTable}
             >
               <ArrowLeft size={17} />
               <span>{world ? gameName(g) : 'Games'}</span>
@@ -690,19 +734,26 @@ export default function SoloGame() {
             <GameProgress round label={`Round ${g.round} / ${totalRounds(g)}`} />
             <div className="table-toolbar-actions">
               <div className="table-others-slot" />
-              {!world && <FullscreenControl />}
-              <TableMenu
-                fullscreen={world ? fullscreen : undefined}
-                advanced={advanced}
-                onAdvanced={
-                  g.id !== 'undertow' && !observatory ? setAdvanced : undefined
-                }
-                confirmMoves={confirmMoves}
-                onConfirmMoves={setConfirmMoves}
+              <GameMenu
+                name={meta?.name ?? gameName(g) ?? ''}
+                theme={worldTheme(g.id)}
+                triggerClassName="table-menu-trigger"
                 onRules={() => setPanel('rules')}
-                onCounts={() => setPanel('reference')}
-                onScores={() => setPanel('log')}
-                onSound={() => setPanel('sound')}
+                items={[
+                  {
+                    label: 'Card and piece counts',
+                    icon: List,
+                    onSelect: () => setPanel('reference'),
+                  },
+                  {
+                    label: 'Scores and activity',
+                    icon: Trophy,
+                    onSelect: () => setPanel('log'),
+                  },
+                ]}
+                sound={soundSettings}
+                onLeave={exitTable}
+                leaveLabel={g.tutorial ? 'Leave' : 'Save and leave'}
               />
             </div>
           </div>
@@ -710,11 +761,11 @@ export default function SoloGame() {
             <section className="play-area">
               <div className="table-players">
                 <Players
-                  g={g}
+                  g={display ?? g}
                   viewer={0}
                   volume={volume}
+                  turnSound={false}
                   inspect={inspect}
-                  advanced={advanced}
                   boardButton
 
                 />
@@ -723,7 +774,7 @@ export default function SoloGame() {
                 <div className="observatory-achievements">
                   <span className="achievements-heading">Sanctuary goals</span>
                   <SanctuaryBadges
-                    zones={g.players[0].zones}
+                    zones={(display ?? g).players[0].zones}
                     goals={g.sanctuaryGoals}
                     contentSet={g.contentSet}
                     inspect={inspect}
@@ -733,8 +784,8 @@ export default function SoloGame() {
               <ScrollArea className="board-viewport" fitBoard={g.id}>
                 <Board
                   onCapturesSettled={setCapturesSettled}
-                  natureChoice={nature.choice}
-                  g={g}
+                  natureChoice={g.ready?.[0] ? {} : nature.choice}
+                  g={display ?? g}
                   selected={selected}
                   inspect={inspect}
                   onPlace={place}
@@ -750,14 +801,14 @@ export default function SoloGame() {
                   {g.id !== 'midnight' && <DieControl g={g} viewer={0} />}
                   <ExtensionControls
                     key={`${g.round}:${g.pick}:${g.phase}`}
-                    g={g}
+                    g={display ?? g}
                     viewer={0}
                     choice={nature.choice}
                     onChange={nature.setChoice}
                     inspect={inspect}
                   />
                   <FestivalControls
-                    g={g}
+                    g={display ?? g}
                     viewer={0}
                     choice={festival.choice}
                     onChange={festival.setChoice}
@@ -804,16 +855,7 @@ export default function SoloGame() {
               <MoveConfirmation
                 g={g}
                 viewer={0}
-                selected={selected}
                 passed={passed}
-                zone={preparedZone}
-                ward={ward}
-
-                festivalChoice={festival.choice}
-                natureChoice={nature.choice}
-
-                enabled={confirmMoves}
-
                 onConfirm={commit}
                 onClear={() => {
                   setSelected(null);
@@ -822,7 +864,7 @@ export default function SoloGame() {
                 }}
               />
               <Hand
-                g={g}
+                g={display ?? g}
                 order={order}
                 selected={selected}
                 passed={passed}
@@ -942,6 +984,14 @@ export default function SoloGame() {
             <FolioSetupBox game={preview} />
           ) : preview?.id === 'relic' ? (
             <RelicSetupBox game={preview} />
+          ) : preview?.id === 'arena' ? (
+            <ArenaSetupBox
+              game={preview}
+              onPlay={(choice) => {
+                setPreview(null);
+                setArena({ ...choice, key: Date.now() });
+              }}
+            />
           ) : preview ? (
             <PlaceholderBox game={preview} />
           ) : null}
@@ -962,16 +1012,12 @@ export default function SoloGame() {
                 ? 'Card and piece counts'
                 : panel === 'log'
                   ? 'Scores & activity'
-                  : panel === 'sound'
-                    ? 'Sound'
-                    : 'Leave the table?'}
+                  : 'Sound'}
           </DialogTitle>
           <DialogDescription>
             {panel === 'sound'
               ? 'Applies to every game on this device.'
-              : panel === 'leave'
-                ? 'Your match is saved on this device.'
-                : meta?.name}
+              : meta?.name}
           </DialogDescription>
           {panel === 'sound' ? (
             <SoundSettings
@@ -980,15 +1026,6 @@ export default function SoloGame() {
               onVolume={volumeChange}
               onAmbience={ambienceChange}
             />
-          ) : panel === 'leave' ? (
-            <>
-              <button className="primary" onClick={home}>
-                Save & leave
-              </button>
-              <button className="secondary" onClick={() => setPanel(null)}>
-                Keep playing
-              </button>
-            </>
           ) : g && panel === 'log' ? (
             <div>
               <h3>Scores</h3>
@@ -1081,6 +1118,12 @@ export default function SoloGame() {
           </button>
         </DialogContent>
       </Dialog>
+      <LeaveDialog
+        state={leaving}
+        title="Leave the table?"
+        saved="Your match is saved on this device."
+        theme={g ? worldTheme(g.id) : undefined}
+      />
     </div>
   );
 }

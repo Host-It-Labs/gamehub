@@ -6,6 +6,7 @@ import {
   Check,
   Copy,
   Crown,
+  Dices,
   Flag,
   Heart,
   Lock,
@@ -39,18 +40,20 @@ import {
   DIFFICULTY_NOTES,
   LEVEL_NAMES,
   PUZZLES,
-  START_LIVES,
+  REROLL_AFTER,
 } from '@/lib/games/folio/catalog';
-import { RoomTableSettings, useRoomTable } from '../online/room-table';
+import { useRoomTable } from '../online/room-table';
+import { TableManager } from './table-manager';
+import { FolioSuggestions } from './folio-suggestions';
 import { useBadgeFit } from './use-fit';
-import { FullscreenControl } from './fullscreen-control';
+import { LeaveDialog, useLeaveDialog } from './leave-dialog';
 import { GameNavigation } from './game-navigation';
 import { useGameMotion } from './game-motion';
 import { useGameSound } from './use-game-sound';
 import { useResultsFeedback, WinnerCelebration } from './results-feedback';
 import { SoundToggle } from './sound-settings';
 import { gameSound } from '@/lib/games/game-sound';
-import { RuleExplanation } from './extension-rules';
+import { FolioPuzzleRules, FolioRunRules } from './folio-rules';
 import { useBoardLeave } from './use-board-leave';
 import {
   Dialog,
@@ -58,35 +61,43 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { currentAct, FolioMap, nodeTitle } from './folio-map';
+import {
+  actOfRow,
+  currentAct,
+  FolioMap,
+  nodeTitle,
+  VoteChips,
+  type Reroll,
+  type Voter,
+} from './folio-map';
 import { KIND_VIEWS } from './folio-kinds/index';
 import { KindIcon } from './folio-icons';
 import { DeleteRunDialog, type SavedRun } from './setup-box';
 import './folio.css';
 import './party-table.css';
 
-type Panel = 'rules' | 'sound' | 'menu' | 'crew' | 'help' | 'leave' | 'give-up' | null;
+type Panel = 'rules' | 'crew' | 'help' | 'give-up' | null;
 const errorText = (e: unknown) =>
   e instanceof Error ? e.message : 'Could not reach the run. Please try again.';
 const inviteUrl = (token: string) =>
   `${typeof location === 'undefined' ? '' : location.origin}/folio/${token}`;
-/** The generated paper-mountain plate, with a quiet wash for legibility. */
-/** One line describing an edit offered after a boss. */
-function editText(e: Edit, g: { map: MapNode[] }) {
-  const game = PUZZLES[e.kind].name;
-  if (e.type === 'strike') {
-    const n = e.changes.length;
-    return {
-      title: `Strike ${game}`,
-      detail: `${game} leaves the trail: ${n} ${n === 1 ? 'stop changes' : 'stops change'} to other games.`,
-    };
-  }
-  const c = e.changes[0],
-    node = g.map.find((m) => m.id === c.node);
-  return {
-    title: `Swap a stop`,
-    detail: `Round ${(node?.row ?? 0) + 1}: ${game} becomes ${PUZZLES[c.to].name}.`,
-  };
+/** Each seat's colour on the map: cobalt, vermilion and leaf green. */
+const CREW_COLOURS = ['#193d79', '#c5472c', '#4f8a45'];
+/** Where a long name may break on a narrow tile, with a hyphen. */
+const SOFT_NAMES: Partial<Record<Kind, string>> = {
+  groups: 'Connec\u00adtions',
+  country: 'Country out\u00adline',
+  equation: 'Hidden equa\u00adtion',
+  mines: 'Mine\u00adsweeper',
+  nonogram: 'Nono\u00adgram',
+  code: 'Code\u00adbreaker',
+};
+/** What striking a game does to the trail ahead, in one line. */
+function strikeText(e: Edit) {
+  const n = e.changes.length;
+  if (!n) return 'Not on the trail ahead. It stays out of every new act.';
+  const to = [...new Set(e.changes.map((c) => PUZZLES[c.to].name))];
+  return `${n} ${n === 1 ? 'stop becomes' : 'stops become'} ${to.join(', ')}.`;
 }
 function Backdrop() {
   return <div className="folio-backdrop" aria-hidden="true" />;
@@ -113,9 +124,11 @@ function Lives({ lives, max }: { lives: number; max: number }) {
 function Seats({
   seats,
   members,
+  hostId,
 }: {
   seats: number;
   members: FolioView['members'];
+  hostId: string;
 }) {
   return (
     <ul className="folio-seats" aria-label="Seats at this table">
@@ -128,7 +141,13 @@ function Seats({
             </span>
             <b>{m ? m.name : 'Open seat'}</b>
             <small>
-              {m ? (i === 0 ? 'Host' : m.online ? 'Here' : 'Away') : 'Waiting…'}
+              {m
+                ? m.id === hostId
+                  ? 'Host'
+                  : m.online
+                    ? 'Here'
+                    : 'Away'
+                : 'Waiting…'}
             </small>
           </li>
         );
@@ -143,6 +162,11 @@ function Run({ initial }: { initial: FolioView }) {
     [offline, setOffline] = useState(false),
     [panel, setPanel] = useState<Panel>(null),
     [picked, setPicked] = useState<MapNode | null>(null),
+    // Both belong to the stop they were made at, so they lapse when it changes.
+    [rerollAt, setRerollAt] = useState<string | null>(null),
+    [strikeAt, setStrikeAt] = useState<{ at: string; index: number } | null>(
+      null,
+    ),
     [copied, setCopied] = useState(false),
     [uncertain, setUncertain] = useState(false);
   const g = view.game,
@@ -163,6 +187,30 @@ function Run({ initial }: { initial: FolioView }) {
   useGameSound('folio', volume);
   const isMember =
     view.joined && view.members.some((member) => member.id === view.viewerId);
+  // The host plays the board, picks the path and moves the crew on; the
+  // others' moves are suggestions and their picks votes, open to everyone.
+  // A host who stays away hands the run to the next player still here.
+  const lead = view.canLead,
+    shared = view.members.length > 1;
+  const hostName =
+    view.members.find((m) => m.id === view.hostId)?.name ?? 'The host';
+  const voterOf = (id: string): Voter | null => {
+    const i = view.members.findIndex((m) => m.id === id);
+    if (i < 0) return null;
+    const m = view.members[i];
+    return {
+      id,
+      name: m.name,
+      initial: m.name.slice(0, 1).toUpperCase(),
+      colour: CREW_COLOURS[i % CREW_COLOURS.length],
+    };
+  };
+  const votes: Record<string, Voter[]> = {};
+  if (shared)
+    for (const [id, target] of Object.entries(g.votes ?? {})) {
+      const voter = voterOf(id);
+      if (voter) (votes[target] ??= []).push(voter);
+    }
   const finalResults = g.phase === 'over' && !g.practice;
   useResultsFeedback('folio', finalResults, finalResults, volume);
   // Server snapshots are authoritative; neither a retry nor an unchanged poll
@@ -185,14 +233,54 @@ function Run({ initial }: { initial: FolioView }) {
             : 'move';
     gameSound('folio', cue, volume);
   }, [soundKey, g.phase, p?.status, volume, finalResults, isMember]);
+  const voted = useRef(0);
+  /** Show this player's pick to the crew at once; best effort. */
+  function vote(target: string | null) {
+    if (!shared || !isMember) return;
+    voted.current++;
+    setView((old) => {
+      const next = { ...old.game.votes };
+      if (target === null) delete next[old.viewerId];
+      else next[old.viewerId] = target;
+      return { ...old, game: { ...old.game, votes: next } };
+    });
+    void api<FolioView>(`/api/folio/${view.token}/commands`, {
+      revision: view.game.revision,
+      requestId: requestId(),
+      action: { type: 'vote', target },
+    })
+      .then((next) => {
+        if (alive.current) apply(next);
+      })
+      .catch(() => {
+        /* The next poll shows the crew's real picks. */
+      });
+  }
   const unresolved = useRef<{
     revision: number;
     requestId: string;
     action: Action;
   } | null>(null);
+  // Leaving a run in progress asks once, says it is saved, and waits for a
+  // move still on its way.
+  const leaving = useLeaveDialog(
+    () =>
+      new Promise<void>((resolve) => {
+        const started = Date.now();
+        const check = () =>
+          !pending.current || Date.now() - started > 4000
+            ? resolve()
+            : setTimeout(check, 60);
+        check();
+      }),
+  );
   const allowLeave = useBoardLeave(
     g.phase !== 'over' && g.phase !== 'lobby',
-    () => setPanel('leave'),
+    (allow) =>
+      leaving.ask(() => {
+        allow();
+        window.location.assign(returnPath());
+      }, true),
   );
   const apply = (next: FolioView) =>
     setView((old) => (next.game.revision >= old.game.revision ? next : old));
@@ -202,9 +290,12 @@ function Run({ initial }: { initial: FolioView }) {
       timer: ReturnType<typeof setTimeout>;
     async function poll() {
       try {
+        const asked = voted.current;
         const next = await api<FolioView>(`/api/folio/${initial.token}`);
         if (!cancelled) {
-          apply(next);
+          // A snapshot asked for before this player's last vote may not
+          // have it yet; the vote's own reply shows it instead.
+          if (asked === voted.current) apply(next);
           setOffline(false);
         }
       } catch {
@@ -259,7 +350,8 @@ function Run({ initial }: { initial: FolioView }) {
           }
         }
         // Puzzle moves show their own refusal on the board, like the originals.
-        if (alive.current && action.type !== 'move') setError(errorText(e));
+        if (alive.current && action.type !== 'move' && action.type !== 'suggest')
+          setError(errorText(e));
         return errorText(e);
       }
       unresolved.current = command;
@@ -275,6 +367,10 @@ function Run({ initial }: { initial: FolioView }) {
     allowLeave();
     window.location.assign(returnPath());
   };
+  const exit = () =>
+    g.phase === 'over' || g.phase === 'lobby'
+      ? leave()
+      : leaving.ask(leave, true);
   const open =
     g.phase === 'map'
       ? g.at
@@ -283,6 +379,33 @@ function Run({ initial }: { initial: FolioView }) {
       : [];
   // A teammate may have moved the crew on; a stale path choice just lapses.
   const pick = picked && open.includes(picked.id) ? picked : null;
+  const actBoss = g.map.find(
+    (n) => n.type === 'boss' && actOfRow(n.row) === currentAct(g, open),
+  );
+  const playedInAct = g.path.filter((s) => {
+    const node = g.map.find((n) => n.id === s.id);
+    return !!node && actOfRow(node.row) === currentAct(g, open);
+  }).length;
+  const rerollState: Reroll['state'] | null =
+    g.phase !== 'map' || g.practice || !actBoss
+      ? null
+      : g.rerolled?.includes(actOfRow(actBoss.row))
+        ? 'used'
+        : view.reroll === actBoss.id
+          ? 'ready'
+          : playedInAct < REROLL_AFTER
+            ? 'soon'
+            : null;
+  const canReroll = rerollState === 'ready' && lead;
+  const stop = `${g.at ?? ''}:${g.phase}`;
+  const rerolling = rerollAt === stop;
+  const setRerolling = (on: boolean) => setRerollAt(on ? stop : null);
+  const showReroll = rerolling && canReroll && !!actBoss;
+  const edits = g.phase === 'result' ? g.edits : [];
+  const chosen =
+    strikeAt?.at === stop && edits[strikeAt.index] ? strikeAt.index : null;
+  const setStrike = (index: number | null) =>
+    setStrikeAt(index === null ? null : { at: stop, index });
   const here = g.map.find((n) => n.id === g.at);
   const row = here ? here.row + 1 : 0;
   const View = p ? KIND_VIEWS[p.kind] : null;
@@ -295,7 +418,10 @@ function Run({ initial }: { initial: FolioView }) {
       setError('Select and copy the invitation link.');
     }
   };
-  const room = useRoomTable((path) => { allowLeave(); window.location.assign(path); });
+  const room = useRoomTable((path) => {
+    allowLeave();
+    window.location.assign(path);
+  });
   const act = currentAct(g, open);
   const progress = g.practice
     ? 'Practice'
@@ -312,12 +438,56 @@ function Run({ initial }: { initial: FolioView }) {
         name="Folio"
         round={g.practice || g.phase === 'lobby' ? undefined : progress}
         progress={g.practice ? progress : undefined}
-        onBack={() =>
-          g.phase === 'over' || g.phase === 'lobby'
-            ? leave()
-            : setPanel('leave')
-        }
-        onMenu={() => setPanel('menu')}
+        onBack={exit}
+        menu={{
+          theme: 'folio',
+          onRules: () => setPanel('rules'),
+          items:
+            !room.table && !g.practice
+              ? [
+                  {
+                    label: 'Players',
+                    icon: Users,
+                    onSelect: () => setPanel('crew'),
+                  },
+                ]
+              : [],
+          sound: (
+            <SoundToggle
+              Icon={Volume2}
+              label="Sound effects"
+              on={volume > 0}
+              onChange={(on) => {
+                const next = on ? 0.5 : 0;
+                setVolume(next);
+                try {
+                  localStorage.setItem('gamehub.folio.volume', String(next));
+                } catch {}
+              }}
+            />
+          ),
+          onLeave: exit,
+          leaveLabel:
+            g.phase === 'over' || g.phase === 'lobby'
+              ? 'Leave'
+              : 'Save and leave',
+        }}
+      />
+      {room.table && (
+        <TableManager
+          table={room.table}
+          connected={!room.error}
+          disabled={room.busy || room.retry}
+          theme="folio"
+          dispatch={room.dispatch}
+          error={room.error}
+        />
+      )}
+      <LeaveDialog
+        state={leaving}
+        title="Leave the trail?"
+        saved="Your run is saved. Pick it up from Folio."
+        theme="folio"
       />
       <div className="folio-hud" aria-label="Crew and shared supplies">
         <span className="folio-crew" ref={badges}>
@@ -327,8 +497,17 @@ function Run({ initial }: { initial: FolioView }) {
               title={`${m.name} · ${m.online ? 'here' : 'away'}`}
             >
               <i data-online={m.online} />
+              {shared && m.id === view.hostId && (
+                <Crown
+                  size={13}
+                  className="folio-host-crown"
+                  aria-label="Host"
+                />
+              )}
               <b className="folio-member-name">{m.name}</b>
-              <b className="folio-member-initial" aria-label={m.name}>{m.name.slice(0, 1).toUpperCase()}</b>
+              <b className="folio-member-initial" aria-label={m.name}>
+                {m.name.slice(0, 1).toUpperCase()}
+              </b>
             </span>
           ))}
         </span>
@@ -350,7 +529,7 @@ function Run({ initial }: { initial: FolioView }) {
                 The run starts when every seat is taken. Then the table locks:
                 only these players can play it.
               </p>
-              <Seats seats={g.seats} members={view.members} />
+              <Seats seats={g.seats} members={view.members} hostId={view.hostId} />
               <div className="folio-invite-row">
                 <input
                   readOnly
@@ -363,7 +542,7 @@ function Run({ initial }: { initial: FolioView }) {
                   {copied ? 'Copied' : 'Copy link'}
                 </button>
               </div>
-              {view.members.length < g.seats && (
+              {view.members.length < g.seats && lead && (
                 <button
                   className="folio-text-button"
                   disabled={busy}
@@ -401,11 +580,63 @@ function Run({ initial }: { initial: FolioView }) {
               picked={pick?.id}
               onPick={(n) => {
                 if (picked?.id !== n.id) gameSound('folio', 'select', volume);
+                setRerolling(false);
                 setPicked(n);
+                vote(n.id);
               }}
               act={act}
+              votes={votes}
+              reroll={
+                rerollState
+                  ? {
+                      state: rerollState,
+                      picked: showReroll,
+                      onReroll: canReroll
+                        ? () => {
+                            gameSound('folio', 'select', volume);
+                            setPicked(null);
+                            setRerolling(true);
+                          }
+                        : undefined,
+                    }
+                  : undefined
+              }
             />
-            {pick && (
+            {showReroll && actBoss && (
+              <div
+                className="folio-pick"
+                data-game-motion="change"
+                data-game-motion-key="reroll"
+                data-dock="bottom"
+                aria-live="polite"
+              >
+                <span className="folio-eyebrow">
+                  Boss · {PUZZLES[actBoss.kind].boss.name}
+                </span>
+                <strong>
+                  <Dices size={18} /> Reroll the boss
+                </strong>
+                <p>
+                  {PUZZLES[actBoss.kind].name} becomes another game. Once per
+                  act.
+                </p>
+                <div className="folio-inline">
+                  <button onClick={() => setRerolling(false)}>Back</button>
+                  <button
+                    className="folio-primary"
+                    disabled={busy}
+                    onClick={() =>
+                      void send({ type: 'reroll' }).then((e) => {
+                        if (!e) setRerolling(false);
+                      })
+                    }
+                  >
+                    Reroll <Dices size={17} />
+                  </button>
+                </div>
+              </div>
+            )}
+            {pick && !showReroll && (
               <div
                 className="folio-pick"
                 data-game-motion="change"
@@ -426,14 +657,27 @@ function Run({ initial }: { initial: FolioView }) {
                     : `${PUZZLES[pick.kind].description}. Inspired by ${PUZZLES[pick.kind].source}.`}
                 </p>
                 <div className="folio-inline">
-                  <button onClick={() => setPicked(null)}>Back</button>
                   <button
-                    className="folio-primary"
-                    disabled={busy}
-                    onClick={() => void send({ type: 'node', id: pick.id })}
+                    onClick={() => {
+                      setPicked(null);
+                      vote(null);
+                    }}
                   >
-                    Take this path <ArrowRight size={17} />
+                    Back
                   </button>
+                  {lead ? (
+                    <button
+                      className="folio-primary"
+                      disabled={busy}
+                      onClick={() => void send({ type: 'node', id: pick.id })}
+                    >
+                      Take this path <ArrowRight size={17} />
+                    </button>
+                  ) : (
+                    <span className="folio-host-wait">
+                      <Crown size={15} aria-hidden="true" /> {hostName} picks
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -458,7 +702,7 @@ function Run({ initial }: { initial: FolioView }) {
                 >
                   <BookOpen size={18} />
                 </button>
-                {p.status === 'playing' && (
+                {p.status === 'playing' && lead && (
                   <button
                     className="folio-icon"
                     disabled={busy || uncertain}
@@ -470,7 +714,8 @@ function Run({ initial }: { initial: FolioView }) {
                   </button>
                 )}
                 {process.env.NODE_ENV === 'development' &&
-                  p.status === 'playing' && (
+                  p.status === 'playing' &&
+                  lead && (
                     <button
                       className="folio-icon"
                       disabled={busy || uncertain}
@@ -490,9 +735,28 @@ function Run({ initial }: { initial: FolioView }) {
                 view={p.view as never}
                 busy={busy || uncertain}
                 done={p.status !== 'playing'}
-                move={(move) => send({ type: 'move', move })}
+                // Only the host plays; everyone else's move is a suggestion.
+                move={(move) =>
+                  send(
+                    lead || !shared
+                      ? { type: 'move', move }
+                      : { type: 'suggest', move },
+                  )
+                }
               />
             </div>
+            {shared && p.status === 'playing' && (
+              <FolioSuggestions
+                p={p}
+                suggestions={g.suggestions ?? []}
+                voterOf={voterOf}
+                viewerId={view.viewerId}
+                lead={lead}
+                busy={busy || uncertain}
+                onAccept={(id) => void send({ type: 'accept', id })}
+                onDismiss={(id) => void send({ type: 'dismiss', id })}
+              />
+            )}
             {g.result && (
               <output className="folio-verdict" data-won={g.result.won}>
                 <span className="folio-stamp">{g.result.won ? '✓' : '×'}</span>
@@ -512,43 +776,95 @@ function Run({ initial }: { initial: FolioView }) {
                   )}
                 </div>
                 {g.phase === 'result' &&
-                  (g.edits.length ? (
+                  (edits.length ? (
                     <div className="folio-rewards">
-                      <span className="folio-eyebrow">
-                        Change one thing on the trail ahead
-                      </span>
-                      {g.edits.map((e, index) => {
-                        const text = editText(e, g);
-                        return (
-                          <button
-                            key={index}
-                            disabled={busy}
-                            onClick={() => void send({ type: 'edit', index })}
-                          >
-                            <span className="folio-reward-mark">
-                              <KindIcon
-                                kind={
-                                  e.type === 'swap' ? e.changes[0].to : e.kind
+                      <span className="folio-eyebrow">Remove a game</span>
+                      <div className="folio-strikes">
+                        {KINDS.map((kind) => {
+                          const index = edits.findIndex(
+                            (e) => e.type === 'strike' && e.kind === kind,
+                          );
+                          const out = g.struck.includes(kind);
+                          return (
+                            <button
+                              key={kind}
+                              type="button"
+                              disabled={busy || index < 0}
+                              data-struck={out || undefined}
+                              aria-pressed={chosen === index && index >= 0}
+                              aria-label={`${out ? 'Already removed: ' : index < 0 ? 'Cannot be removed now: ' : 'Remove '}${PUZZLES[kind].name}`}
+                              onClick={() => {
+                                const next = chosen === index ? null : index;
+                                setStrike(next);
+                                vote(next === null ? null : `edit:${next}`);
+                              }}
+                            >
+                              <VoteChips
+                                voters={
+                                  index >= 0
+                                    ? (votes[`edit:${index}`] ?? [])
+                                    : []
                                 }
-                                size={18}
                               />
+                              <KindIcon kind={kind} size={20} />
+                              <small>
+                                {SOFT_NAMES[kind] ?? PUZZLES[kind].name}
+                              </small>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {chosen !== null && (
+                        <small className="folio-strike-note">
+                          {strikeText(edits[chosen])}
+                        </small>
+                      )}
+                      <div className="folio-inline">
+                        {lead ? (
+                          <>
+                            <button
+                              disabled={busy}
+                              onClick={() => void send({ type: 'continue' })}
+                            >
+                              <VoteChips voters={votes.keep ?? []} />
+                              Keep all
+                            </button>
+                            <button
+                              className="folio-primary"
+                              disabled={busy || chosen === null}
+                              onClick={() =>
+                                chosen !== null &&
+                                void send({ type: 'edit', index: chosen })
+                              }
+                            >
+                              Remove
+                              {chosen !== null &&
+                                ` ${PUZZLES[edits[chosen].kind].name}`}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              aria-pressed={g.votes?.[view.viewerId] === 'keep'}
+                              onClick={() => {
+                                const keep =
+                                  g.votes?.[view.viewerId] !== 'keep';
+                                setStrike(null);
+                                vote(keep ? 'keep' : null);
+                              }}
+                            >
+                              <VoteChips voters={votes.keep ?? []} />
+                              Keep all
+                            </button>
+                            <span className="folio-host-wait">
+                              <Crown size={15} aria-hidden="true" /> {hostName}{' '}
+                              picks
                             </span>
-                            <span>
-                              <b>{text.title}</b>
-                              <small>{text.detail}</small>
-                            </span>
-                          </button>
-                        );
-                      })}
-                      <button
-                        className="folio-text-button"
-                        disabled={busy}
-                        onClick={() => void send({ type: 'continue' })}
-                      >
-                        Leave the trail as it is
-                      </button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  ) : (
+                  ) : lead ? (
                     <button
                       className="folio-primary"
                       disabled={busy}
@@ -556,6 +872,10 @@ function Run({ initial }: { initial: FolioView }) {
                     >
                       Back to the map <ArrowRight size={17} />
                     </button>
+                  ) : (
+                    <span className="folio-host-wait folio-verdict-wait">
+                      <Crown size={15} aria-hidden="true" /> {hostName} moves on
+                    </span>
                   ))}
                 {g.phase === 'over' && (
                   <button
@@ -630,30 +950,26 @@ function Run({ initial }: { initial: FolioView }) {
               ? 'Players'
               : panel === 'help' && p
                 ? PUZZLES[p.kind].name
-                : panel === 'leave'
-                  ? 'Leave the trail?'
-                  : panel === 'give-up'
-                    ? 'Give up this puzzle?'
-                    : 'Folio'}
+                : panel === 'give-up'
+                  ? 'Give up this puzzle?'
+                  : 'How to play'}
           </DialogTitle>
           <DialogDescription>
             {panel === 'crew'
               ? g.phase === 'lobby'
                 ? 'Share the link to fill the open seats.'
                 : `This table is locked to ${view.members.length} ${view.members.length === 1 ? 'player' : 'players'}.`
-              : panel === 'leave'
-                ? 'Your run is saved. You can come back to it from Folio.'
-                : panel === 'give-up'
-                  ? g.lives > 1
-                    ? 'This costs one of your two lives. After that, one more loss ends the run.'
-                    : 'This is your last life: giving up ends the run.'
-                  : panel === 'help' && p
-                    ? `Inspired by ${PUZZLES[p.kind].source}.`
-                    : 'A puzzle roguelike on one winding trail.'}
+              : panel === 'give-up'
+                ? g.lives > 1
+                  ? 'This costs one of your two lives. After that, one more loss ends the run.'
+                  : 'This is your last life: giving up ends the run.'
+                : panel === 'help' && p
+                  ? `Inspired by ${PUZZLES[p.kind].source}.`
+                  : 'A puzzle roguelike on one winding trail.'}
           </DialogDescription>
           {panel === 'crew' && (
             <>
-              <Seats seats={g.seats} members={view.members} />
+              <Seats seats={g.seats} members={view.members} hostId={view.hostId} />
               {g.phase === 'lobby' ? (
                 <div className="folio-invite-row">
                   <input
@@ -668,93 +984,18 @@ function Run({ initial }: { initial: FolioView }) {
                 </div>
               ) : (
                 <p className="folio-locked">
-                  <Lock size={15} /> Everyone plays the same board. Any of you
-                  can make a move or pick the path, so talk it through.
+                  <Lock size={15} /> {hostName} plays the shared board and
+                  picks the path. Your moves go to them as suggestions; tap a
+                  stop to vote.
                 </p>
               )}
             </>
           )}
           {panel === 'help' && p && (
-            <RuleExplanation
-              outcome={`${p.allowance} ${p.budget}. Run out and the puzzle is lost.`}
-              note={
-                g.practice
-                  ? 'Practice puzzles do not affect any run.'
-                  : `Losing a puzzle costs a shared life. The crew has ${START_LIVES} and nothing restores them.`
-              }
-            >
-              <p>{PUZZLES[p.kind].rules}</p>
-              {p.boss && (
-                <p>
-                  <b>Boss · {PUZZLES[p.kind].boss.name}.</b>{' '}
-                  {PUZZLES[p.kind].boss.rules}
-                </p>
-              )}
-            </RuleExplanation>
-          )}
-          {panel === 'menu' && (
-            <div className="party-menu">
-              <button onClick={() => setPanel('rules')}><BookOpen />Rules</button>
-              <button onClick={() => setPanel('sound')}><Volume2 />Sound</button>
-              <FullscreenControl />
-              <RoomTableSettings room={room} />
-              {!room.table && !g.practice && <button onClick={() => setPanel('crew')}><Users />Players</button>}
-              <button onClick={() => setPanel('leave')}>Save &amp; leave</button>
-            </div>
+            <FolioPuzzleRules puzzle={p} practice={!!g.practice} />
           )}
           {panel === 'rules' && (
-            <>
-              <RuleExplanation
-                outcome={`Climb as far as you can. The run ends when the crew has lost ${START_LIVES} puzzles.`}
-                note="The crew shares two lives: one mistake is allowed. Nothing restores a life."
-              >
-                <p>
-                  <b>Choose.</b> Each stretch is three rounds and a boss. Pick the
-                  next stop among the paths leading on. Only the current stretch
-                  is shown.
-                </p>
-                <p>
-                  <b>Play.</b> Each game keeps its original rules and its own
-                  limit: six guesses, four mistakes, one mine… Run out and the
-                  crew loses a life.
-                </p>
-                <p>
-                  <b>Climb.</b> This run started at{' '}
-                  {LEVEL_NAMES[g.difficulty].toLowerCase()}. Every boss beaten
-                  makes the next stretch one level harder, up to very hard, and the
-                  trail goes on at very hard until you lose. After a boss, you
-                  may change one thing on the trail ahead.
-                </p>
-              </RuleExplanation>
-              {g.struck.length > 0 && (
-                <>
-                  <h3>Struck from the trail</h3>
-                  <p>{g.struck.map((k) => PUZZLES[k].name).join(', ')}</p>
-                </>
-              )}
-            </>
-          )}
-          {panel === 'sound' && (
-              <SoundToggle
-                Icon={Volume2}
-                label="Sound effects"
-                on={volume > 0}
-                onChange={(on) => {
-                  const next = on ? 0.5 : 0;
-                  setVolume(next);
-                  try {
-                    localStorage.setItem('gamehub.folio.volume', String(next));
-                  } catch {}
-                }}
-              />
-          )}
-          {panel === 'leave' && (
-            <div className="folio-inline">
-              <button onClick={() => setPanel(null)}>Stay</button>
-              <button className="folio-primary" onClick={leave}>
-                Save & leave
-              </button>
-            </div>
+            <FolioRunRules difficulty={g.difficulty} struck={g.struck} />
           )}
           {panel === 'give-up' && (
             <div className="folio-inline">
@@ -900,7 +1141,11 @@ function Hub({ invite }: { invite?: string }) {
                     A Folio run for {preview.game.seats}. Once every seat is
                     taken the table locks and the trail begins.
                   </p>
-                  <Seats seats={preview.game.seats} members={preview.members} />
+                  <Seats
+                    seats={preview.game.seats}
+                    members={preview.members}
+                    hostId={preview.hostId}
+                  />
                   {full ? (
                     <p className="folio-locked">
                       <Lock size={15} /> This table is locked. Ask for a new

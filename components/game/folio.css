@@ -37,12 +37,14 @@
   box-sizing: border-box;
 }
 .folio-world {
+  /* The top bar's own top edge, kept clear of a notch in fullscreen. */
+  --folio-bar-top: max(8px, env(safe-area-inset-top));
   height: 100dvh;
   min-height: 320px;
   overflow: hidden;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
-  padding: 96px 24px 18px;
+  padding: calc(var(--folio-bar-top) + 88px) 24px 18px;
 }
 /* Paper grain over everything, under the UI. */
 .folio-world::after,
@@ -596,17 +598,25 @@
   font-size: 0.85rem;
 }
 
-/* ---------- Run HUD ---------- */
+/* ---------- Run HUD ----------
+ * One layout on every screen (26 September 2026), the phone one: the
+ * difficulty and round pill in the centre of the top bar, the crew and the
+ * lives on their own plate just beneath it. Both hang from the bar's top
+ * edge, so a notch in fullscreen moves them together. */
+.folio-world .game-navigation > .game-progress.is-round {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
 .folio-hud {
   position: absolute;
   z-index: 9;
-  top: 12px;
+  top: calc(var(--folio-bar-top) + 48px);
   left: 50%;
   translate: -50% 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: calc(100% - 360px);
+  max-width: calc(100% - 20px);
   padding: 6px 14px;
   border-radius: 99px;
   background: #fffaf0e6;
@@ -640,6 +650,12 @@
 .folio-crew i[data-online='true'] {
   background: var(--fk-hit);
   box-shadow: 0 0 0 3px #4f8a4530;
+}
+.folio-host-crown {
+  flex: none;
+  margin-right: -2px;
+  color: var(--folio-red);
+  fill: #f2cf57;
 }
 .folio-lives {
   display: inline-flex;
@@ -857,7 +873,17 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.folio-node[data-state='later'] {
+/* Stops further on are dimmed with solid colours, not opacity: a
+ * translucent seal let the trail lines show through as a faint cross. */
+.folio-node[data-state='later'] .folio-node-seal {
+  border-color: color-mix(in srgb, var(--folio-ink) 72%, var(--folio-card));
+  color: color-mix(in srgb, var(--folio-ink) 72%, var(--folio-card));
+}
+.folio-node.boss[data-state='later'] .folio-node-seal {
+  background: color-mix(in srgb, var(--folio-ink) 72%, var(--folio-card));
+  color: var(--folio-paper);
+}
+.folio-node[data-state='later'] small {
   opacity: 0.72;
 }
 .folio-node[data-state='open'] .folio-node-seal {
@@ -915,8 +941,119 @@
 .folio-world .folio-node:disabled {
   opacity: 1;
 }
-.folio-world .folio-node[data-state='later']:disabled {
-  opacity: 0.72;
+/* A rerolled boss turns over into its new game. */
+.folio-node.boss .folio-node-seal[data-rerolled] {
+  animation: folio-reroll 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.folio-node.boss[data-state='open'] .folio-node-seal[data-rerolled] {
+  animation:
+    folio-reroll 0.6s cubic-bezier(0.3, 1.4, 0.5, 1),
+    folio-beckon 1.6s 0.6s ease-in-out infinite;
+}
+@keyframes folio-reroll {
+  from {
+    transform: rotateY(90deg) scale(0.8);
+  }
+}
+/* Teammates' picks: their initials in their seat colours, on the seal's
+ * top-left shoulder, clear of the names and the boss crown. */
+.folio-votes {
+  position: absolute;
+  z-index: 2;
+  top: -7px;
+  right: calc(100% - 12px);
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0;
+  pointer-events: none;
+}
+.folio-votes i {
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  margin-left: -5px;
+  border: 2px solid var(--folio-card);
+  border-radius: 50%;
+  background: var(--voter);
+  color: #fffaf0;
+  font:
+    800 0.62rem/1 var(--font-sans),
+    sans-serif;
+  font-style: normal;
+  box-shadow: 0 2px 4px #1d150240;
+  animation: folio-vote 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes folio-vote {
+  from {
+    transform: scale(0) rotate(-30deg);
+  }
+}
+/* The act's boss reroll: a die on the boss's left. Dim until round 2 is
+ * played, lit once it may be used, crossed through once spent. */
+.folio-world .folio-reroll {
+  position: absolute;
+  z-index: 2;
+  width: 34px;
+  min-height: 34px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid var(--folio-ink);
+  border-radius: 9px;
+  background: var(--folio-card);
+  color: var(--folio-ink);
+  box-shadow: 0 3px 0 #0c2350;
+  translate: calc(-100% - clamp(23px, 4.2vh, 31px) - 14px) -50%;
+  rotate: -8deg;
+}
+.folio-world .folio-reroll:disabled {
+  opacity: 1;
+}
+.folio-world .folio-reroll[data-state='soon'] {
+  border-style: dashed;
+  border-color: #193d7960;
+  color: #193d7970;
+  box-shadow: none;
+}
+.folio-world .folio-reroll[data-state='ready'] {
+  background: #f2cf57;
+  animation: folio-die 2.8s ease-in-out infinite;
+}
+.folio-world .folio-reroll[data-state='ready']:not(:disabled) {
+  cursor: pointer;
+}
+.folio-world .folio-reroll[data-picked] {
+  background: var(--folio-ink);
+  color: var(--folio-paper);
+  animation: none;
+}
+.folio-world .folio-reroll[data-state='used'] {
+  border-color: #193d7950;
+  background: #efe3bf;
+  color: #193d7970;
+  box-shadow: none;
+}
+.folio-world .folio-reroll[data-state='used']::after {
+  content: '';
+  position: absolute;
+  inset: 45% -3px auto;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--folio-red);
+  rotate: -35deg;
+}
+@keyframes folio-die {
+  0%,
+  80%,
+  100% {
+    rotate: -8deg;
+  }
+  86% {
+    rotate: 10deg;
+  }
+  92% {
+    rotate: -14deg;
+  }
 }
 @keyframes folio-beckon {
   50% {
@@ -962,6 +1099,27 @@
 .folio-pick[data-dock='top'] {
   top: 12px;
   bottom: auto;
+}
+.folio-pick strong svg {
+  flex: none;
+}
+/* Where someone else holds the choice: the host's name, never a button. */
+.folio-host-wait {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 4px;
+  color: var(--folio-ink-soft);
+  font-weight: 750;
+}
+.folio-host-wait svg {
+  color: var(--folio-red);
+  fill: #f2cf57;
+}
+.folio-verdict-wait {
+  grid-column: 1 / -1;
+  justify-content: center;
 }
 @keyframes folio-rise {
   from {
@@ -1108,31 +1266,84 @@
   display: grid;
   gap: 8px;
 }
-.folio-world .folio-rewards button {
-  justify-content: flex-start;
-  gap: 12px;
-  padding: 10px 12px;
-  text-align: left;
-}
-.folio-rewards button > span:last-child {
+/* After a boss: the ten games as printed tiles; pick one to take out. */
+.folio-strikes {
   display: grid;
-  gap: 2px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
 }
-.folio-rewards small {
-  font-weight: 500;
+.folio-world .folio-strikes button {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  min-height: 58px;
+  padding: 7px 3px 6px;
+  border-radius: 8px;
+  background: #fffdf6;
+}
+.folio-strikes small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  max-width: 100%;
+  font-size: 0.64rem;
+  font-weight: 750;
+  line-height: 1.15;
+  text-align: center;
+  text-wrap: balance;
+  hyphens: manual;
+}
+.folio-world .folio-strikes button[aria-pressed='true'] {
+  border-color: var(--folio-red);
+  background: #fbe3d8;
+  color: var(--folio-red);
+  box-shadow: 0 0 0 1.5px var(--folio-red);
+}
+.folio-world .folio-strikes button[aria-pressed='true'] svg {
+  animation: folio-strike-pick 0.32s ease;
+}
+/* A game already out of the run keeps its tile, struck through in red ink. */
+.folio-world .folio-strikes button[data-struck] {
+  opacity: 1;
+  background: #efe3bf;
+  color: #193d7970;
+}
+.folio-world .folio-strikes button[data-struck]::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 12%;
+  right: 12%;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--folio-red);
+  rotate: -18deg;
+}
+.folio-strikes .folio-votes {
+  top: -6px;
+  right: auto;
+  left: 2px;
+  flex-direction: row;
+}
+.folio-rewards .folio-inline button .folio-votes {
+  position: static;
+  margin-right: 2px;
+}
+.folio-strike-note {
   color: var(--folio-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
   line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
 }
-.folio-reward-mark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--folio-ink);
-  color: var(--folio-paper);
-  font-size: 1.1rem;
+@keyframes folio-strike-pick {
+  40% {
+    transform: scale(1.25) rotate(-8deg);
+  }
 }
 .folio-error {
   position: absolute;
@@ -1159,6 +1370,15 @@
 .folio-dialog h3 {
   margin: 12px 0 4px;
   font: 800 1rem var(--folio-serif);
+}
+/* The shared rules layout (rules.tsx) in Folio's ink. */
+.folio-dialog {
+  --rules-heading: var(--folio-ink);
+  --rules-muted: var(--folio-ink-soft);
+  --rules-note-ink: var(--folio-ink);
+}
+.folio-dialog .rule-section h3 {
+  margin-top: 0;
 }
 .folio-dialog p {
   line-height: 1.5;
@@ -1219,13 +1439,21 @@
     padding: 20px 18px;
   }
   .folio-world {
-    padding: 100px 10px 10px;
+    padding: calc(var(--folio-bar-top) + 92px) 10px 10px;
   }
   .folio-hud {
-    top: 56px;
-    max-width: calc(100% - 20px);
     padding: 4px 12px;
     font-size: 0.75rem;
+  }
+  .folio-strikes {
+    gap: 4px;
+  }
+  .folio-world .folio-strikes button {
+    min-height: 52px;
+    padding: 6px 2px 5px;
+  }
+  .folio-strikes small {
+    font-size: 0.56rem;
   }
   .folio-play-sheet {
     padding: 10px 10px 12px;
@@ -1271,10 +1499,10 @@
 }
 @media (max-height: 520px) and (orientation: landscape) {
   .folio-world {
-    padding: 58px 14px 8px;
+    padding: calc(var(--folio-bar-top) + 78px) 14px 8px;
   }
   .folio-hud {
-    top: 8px;
+    top: calc(var(--folio-bar-top) + 44px);
   }
   .folio-node small {
     display: none;
@@ -1306,7 +1534,10 @@
   .folio-pick,
   .folio-seats li,
   .folio-seat-chair,
-  .folio-lives svg {
+  .folio-lives svg,
+  .folio-votes i,
+  .folio-reroll,
+  .folio-strikes svg {
     animation: none !important;
   }
 }
@@ -1323,4 +1554,120 @@
 }
 .folio-crew[data-fit='compact'] .folio-member-initial {
   display: inline;
+}
+
+/* ---------- Suggestions ---------- */
+/* Teammates' moves under the board: their initials, the move, and for the
+ * host a tick to play it and a cross to turn it down. */
+.folio-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-height: 96px;
+  margin: 0;
+  padding: 2px;
+  overflow-y: auto;
+  list-style: none;
+}
+.folio-suggestions > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 3px 4px 3px 6px;
+  border: 1.5px solid var(--folio-line);
+  border-radius: 999px;
+  background: var(--folio-card);
+  color: var(--folio-ink);
+  box-shadow: 0 2px 0 #193d7914, 0 6px 14px -8px #3a2a0660;
+  animation: folio-suggest 0.28s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.folio-suggestions > li[data-mine] {
+  border-color: #193d7955;
+  background: #fff3cf;
+}
+@keyframes folio-suggest {
+  from {
+    transform: translateY(8px) scale(0.9);
+    opacity: 0;
+  }
+}
+.folio-suggestion-by {
+  display: flex;
+  padding-left: 5px;
+}
+.folio-suggestion-by i {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: -5px;
+  border: 2px solid var(--folio-card);
+  border-radius: 50%;
+  background: var(--voter);
+  color: #fffaf0;
+  font:
+    800 0.7rem/1 var(--font-sans),
+    sans-serif;
+  font-style: normal;
+}
+.folio-suggestion-move {
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    800 0.95rem/1 var(--font-sans),
+    sans-serif;
+  letter-spacing: 0.04em;
+}
+.folio-suggestion-pegs {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+.folio-suggestion-pegs i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--peg);
+  box-shadow: inset 0 -2px 0 #0003;
+}
+.folio-suggestions > li > button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.folio-suggestions > li > .folio-suggestion-accept {
+  background: var(--folio-ink);
+  color: #fffaf0;
+}
+.folio-suggestions > li > .folio-suggestion-dismiss {
+  background: #193d7912;
+  color: var(--folio-ink);
+}
+.folio-suggestions > li > button:focus-visible {
+  outline: 3px solid var(--folio-red);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .folio-suggestions {
+    max-height: 96px;
+    scrollbar-width: thin;
+  }
+  .folio-suggestion-move {
+    max-width: 22ch;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .folio-suggestions > li {
+    animation: none;
+  }
 }

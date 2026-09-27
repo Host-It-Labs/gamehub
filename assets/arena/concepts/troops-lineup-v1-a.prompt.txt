@@ -1,0 +1,17 @@
+Use case: stylized-concept. Character design reference sheet for 3D modelling. Generate with the newest available built-in image model, highest available quality. Format: one wide landscape image, 1536x1024 PNG.
+
+World context only: Arena, a real-time battle between two rival hill forts facing each other across a clear mountain stream in a sunlit highland meadow; each side has a big king tower and two smaller stone towers, two wooden bridges cross the stream, and small troops fight over the bridges. Style: stylized 3D fantasy miniature, like the key art of a premium strategy game: chunky, charming troops with big heads and bold readable silhouettes, hand-painted textures with visible brushwork on every surface (lush meadow grass, warm cut stone, honey-coloured wood planks, woven cloth, hammered steel), warm late-morning sunlight from the upper left with soft long shadows and a gentle glow, saturated but controlled palette of meadow greens, warm sandstone, slate grey and honey wood; the near side is the blue team (cobalt blue cloth and roofs with brass trim), the far side is the red team (crimson cloth and roofs with bronze trim). Original designs, not any existing game, franchise or logo. Not flat vector art, not cel-shaded outlines, not cut paper, not ink printmaking, not photoreal.
+
+Actual sheet backdrop and lighting: plain flat warm light-grey background, even soft studio light. No environment depicted. Show eight original troop characters standing side by side in ONE row, full body, three-quarter front view, at consistent relative scale, each clearly separated with space between them, all on the blue team (cobalt blue cloth accents). Chibi proportions: the head is about one third of the body height for the humanoids. Preserve specified relative heights, with Ogre twice Knight height and Imp half Knight height.
+
+From left to right:
+1 Knight: sturdy, full rounded steel helmet with a T-shaped visor slit and a short blue plume, round wooden shield with a steel rim and boss, short broadsword, chainmail shirt under a blue tabard, leather boots.
+2 Archer: young, a blue hooded short cloak, short curved bow, quiver of arrows on the back, leather bracers, soft boots, a friendly face.
+3 Ogre: huge, twice the Knight's height and very broad, grey-green skin, small tusks, bald head with a topknot, leather shoulder strap, blue cloth loincloth, bare feet, carrying a big wooden club.
+4 Imp: tiny, half the Knight's height, a mischievous goblin-like creature with long pointed ears, olive-green skin, big eyes, a blue rag tunic and a small curved dagger.
+5 Duelist: lean fighter in dark blued steel plate armour with a closed helmet and a single glowing slit, a long two-handed greatsword held ready.
+6 Ranger: wide-brimmed leather hat with a feather, a long coat, a blue scarf, a wooden crossbow, a bolt pouch.
+7 Drake: a small winged dragon hovering, orange-red scales, cream belly plates, bat-like wings, stubby horns, big friendly eyes.
+8 Mage: a robed wizard with a tall blue pointed hat, a long white beard, blue robe with gold trim, holding a gnarled staff topped with a glowing fire orb.
+
+Clean readable shapes, simple large forms suited to a small real-time strategy game miniature, hand-painted texture detail on cloth, steel, leather and skin. No text, no labels, no numbers, no weapons crossing other characters. No watermark. Fresh composition from this text only; no input or reference images.

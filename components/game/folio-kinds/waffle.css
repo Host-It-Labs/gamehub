@@ -18,6 +18,8 @@
   --fk-waffle-cr: var(--folio-card, #fffaf0);
   --fk-waffle-cink: var(--folio-ink);
   --fk-waffle-ctext: #fffdf2;
+  /* Pressed type: a lit top edge and an inked foot on every block. */
+  --fk-waffle-bevel: inset 0 1px 0 #ffffff4d, inset 0 -2px 0 #0d1f401a;
   --fk-waffle-g: calc(var(--fk-waffle-b) * 0.03);
   --fk-waffle-t: calc(
     (var(--fk-waffle-b) - (var(--n) - 1) * var(--fk-waffle-g)) / var(--n)
@@ -53,6 +55,7 @@
   cursor: grab;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  border-radius: 12%;
   transition: transform 0.12s ease;
 }
 .folio-world .fk-waffle-tile:disabled,
@@ -77,8 +80,36 @@
     Georgia,
     serif;
   text-transform: uppercase;
-  box-shadow: 0 2px 0 #193d7922;
+  /* The letter sits pressed into the block, like wood type on newsprint. */
+  text-shadow: 0 1px 0 #fffdf2b3;
+  box-shadow:
+    var(--fk-waffle-bevel),
+    0 2px 0 #193d7922;
   backface-visibility: hidden;
+  position: relative;
+  isolation: isolate;
+}
+/* Inked blocks carry a faint wood grain under the letter. */
+.fk-waffle-face[data-grade='1']::after,
+.fk-waffle-face[data-grade='2']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      87deg,
+      transparent 0 5px,
+      #0d1f400d 5px 6px,
+      transparent 6px 8px
+    ),
+    repeating-linear-gradient(94deg, transparent 0 9px, #ffffff0f 9px 11px);
+  /* Every block is cut from a different part of the plank. */
+  background-position:
+    calc(var(--d) * 3px) 0,
+    calc(var(--d) * -5px) 0;
 }
 .fk-waffle-face[data-grade='2'] {
   border-color: var(--fk-waffle-c2);
@@ -90,13 +121,19 @@
   background: var(--fk-waffle-c1);
   color: var(--fk-waffle-ctext);
 }
+.fk-waffle-face[data-grade='1'],
+.fk-waffle-face[data-grade='2'] {
+  text-shadow: 0 -1px 0 #0d1f4030;
+}
 .fk-waffle-face[data-grade='r'] {
   border: 2px dashed var(--folio-red);
   background: var(--fk-waffle-cr);
   color: var(--folio-red);
 }
 .fk-waffle-tile:not(.fk-waffle-locked):hover .fk-waffle-face {
-  box-shadow: 0 3px 0 #193d7933;
+  box-shadow:
+    var(--fk-waffle-bevel),
+    0 3px 0 #193d7933;
 }
 .fk-waffle-tile:focus-visible {
   outline: none;
@@ -112,7 +149,17 @@
 .fk-waffle-picked .fk-waffle-face {
   outline: 3px solid var(--folio-red);
   outline-offset: 2px;
-  box-shadow: 0 8px 14px #193d7933;
+  box-shadow:
+    var(--fk-waffle-bevel),
+    0 8px 14px #193d7933;
+  /* The proofreader's red ring closes in around the chosen block. */
+  animation: fk-waffle-ring 0.24s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes fk-waffle-ring {
+  from {
+    outline-color: transparent;
+    outline-offset: 10px;
+  }
 }
 .fk-waffle-dragging {
   z-index: 5;
@@ -120,7 +167,9 @@
   transition: none;
 }
 .fk-waffle-dragging .fk-waffle-face {
-  box-shadow: 0 12px 22px #193d7944;
+  box-shadow:
+    var(--fk-waffle-bevel),
+    0 12px 22px #193d7944;
 }
 .fk-waffle-shake {
   animation: fk-waffle-shake 0.45s ease;
@@ -178,7 +227,21 @@
     serif;
 }
 .fk-waffle-count b {
+  display: inline-block;
   font-size: 1.5rem;
+}
+/* Each swap turns the count like the wheel of a numbering machine. */
+.fk-waffle-count b.fk-waffle-tick {
+  animation: fk-waffle-tick 0.34s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+@keyframes fk-waffle-tick {
+  0% {
+    opacity: 0;
+    transform: translateY(-55%);
+  }
+  60% {
+    opacity: 1;
+  }
 }
 .fk-waffle-stars {
   display: flex;
@@ -231,7 +294,9 @@
   .fk-waffle-shake,
   .fk-waffle-stars span,
   .fk-waffle-praise,
-  .fk-waffle-lost .fk-waffle-face[data-grade='r'] {
+  .fk-waffle-lost .fk-waffle-face[data-grade='r'],
+  .fk-waffle-picked .fk-waffle-face,
+  .fk-waffle-count b.fk-waffle-tick {
     animation: none;
     transition: none;
   }

@@ -12,6 +12,7 @@ import {
   useToast,
   type KindProps,
 } from './shared';
+import './word.css';
 
 export default function Word({
   p,
@@ -26,6 +27,8 @@ export default function Word({
   const fresh = useFresh(view.guesses.length);
   const grades = keyGrades(view.guesses);
   const won = view.guesses.at(-1)?.marks.every((m) => m === 2);
+  // A board already won when it opens stays still, like rows already graded.
+  const [settled] = useState(!!won);
   async function key(k: string) {
     if (done || busy) return;
     if (k === 'BACK') setTyped((t) => t.slice(0, -1));
@@ -46,6 +49,8 @@ export default function Word({
   // The allowance, not the original six, so an extra-guess upgrade gets a row.
   const rows = Array.from({ length: p.allowance }, (_, i) => {
     const g = view.guesses[i];
+    // The winning row keeps its flourish classes so its bounce is never cut.
+    const winNow = !!won && !settled && i === view.guesses.length - 1;
     if (g)
       return (
         <TileRow
@@ -53,8 +58,8 @@ export default function Word({
           letters={g.word}
           length={5}
           marks={g.marks}
-          reveal={i >= fresh}
-          win={won && i === view.guesses.length - 1 && i >= fresh}
+          reveal={i >= fresh || winNow}
+          win={winNow}
         />
       );
     const current = i === view.guesses.length && !done;

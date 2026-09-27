@@ -1,0 +1,143 @@
+/*
+ * Word guess: Wordle, printed. Graded tiles are inked blocks pressed into the
+ * paper with a faint halftone; a typed letter lands like a rubber stamp; the
+ * winning row gets circled in red pen; Hard mode is a stamp on the page.
+ * Everything is scoped to .fk-word: .fk-tile and .fk-row are shared.
+ */
+@property --fk-word-sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 365deg;
+}
+.fk-word .fk-tile,
+.fk-word .fk-row {
+  position: relative;
+}
+
+/* ---------- Material: letterpress and halftone ---------- */
+.fk-word .fk-tile[data-grade='-1'] {
+  box-shadow: inset 0 1px 2px #193d7914;
+}
+.fk-word .fk-tile:is([data-grade='0'], [data-grade='1'], [data-grade='2']) {
+  background-image: radial-gradient(#ffffff0f 0.8px, transparent 1.1px);
+  background-size: 4px 4px;
+  box-shadow:
+    inset 0 2px 1px #00000024,
+    inset 0 0 3px #0000001f,
+    inset 0 -1px 0 #ffffff26;
+  text-shadow: 0 1px 0 #00000033;
+}
+
+/* ---------- Typing: the letter lands like a stamp ---------- */
+/* Graded rows stay still when their flip ends (the shared pop would replay). */
+.fk-word .fk-tile.filled {
+  animation: none;
+}
+.fk-word .fk-tile.filled[data-grade='-1'] {
+  animation: fk-word-stamp 0.2s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+.fk-word .fk-tile.filled[data-grade='-1']::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: fk-word-ink 0.32s ease-out 0.08s both;
+}
+@keyframes fk-word-stamp {
+  0% {
+    opacity: 0.35;
+    transform: scale(1.18) rotate(-4deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes fk-word-ink {
+  0% {
+    box-shadow: 0 0 0 0 #193d7955;
+  }
+  100% {
+    box-shadow: 0 0 1px 6px #193d7900;
+  }
+}
+
+/* ---------- Grading: every row flips, the winning one flips then bounces ---------- */
+.fk-word .fk-tile.filled.reveal {
+  animation: fk-flip 0.5s ease both;
+  animation-delay: calc(var(--i) * 0.28s);
+}
+.fk-word .fk-row.win .fk-tile.filled.reveal {
+  animation:
+    fk-flip 0.5s ease both,
+    fk-bounce 0.8s ease;
+  animation-delay: calc(var(--i) * 0.28s), calc(1.5s + var(--i) * 0.1s);
+}
+
+/* ---------- Win: the answer circled in red pen ---------- */
+.fk-word .fk-row:not(:has(.fk-tile:not([data-grade='2'])))::after {
+  content: '';
+  position: absolute;
+  inset: -9px -8px;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 60' preserveAspectRatio='none'%3E%3Cpath d='M22 8C66 1 166 1 204 7c18 2 18 44-4 47-48 6-136 6-178 1C-2 50-3 14 24 7c12-3 26-4 40-4' fill='none' stroke='%23c5472c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+  opacity: 0.92;
+  rotate: -1deg;
+  mask-image: conic-gradient(
+    from 282deg,
+    #000 var(--fk-word-sweep),
+    transparent 0
+  );
+}
+.fk-word .fk-row.win::after {
+  animation: fk-word-circle 0.6s cubic-bezier(0.45, 0.1, 0.35, 1) 2.4s both;
+}
+@keyframes fk-word-circle {
+  from {
+    --fk-word-sweep: 0deg;
+  }
+  to {
+    --fk-word-sweep: 365deg;
+  }
+}
+
+/* ---------- Hard mode: a rubber stamp on the page ---------- */
+.fk-word .fk-badge {
+  background: transparent;
+  color: var(--folio-red);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+  rotate: -2deg;
+  mix-blend-mode: multiply;
+  animation: fk-word-thump 0.42s cubic-bezier(0.3, 0.7, 0.4, 1) 0.25s both;
+}
+@keyframes fk-word-thump {
+  0% {
+    opacity: 0;
+    scale: 1.9;
+    rotate: -9deg;
+  }
+  70% {
+    opacity: 1;
+    scale: 0.96;
+    rotate: -2deg;
+  }
+  100% {
+    scale: 1;
+    rotate: -2deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fk-word .fk-tile,
+  .fk-word .fk-tile::after,
+  .fk-word .fk-row::after,
+  .fk-word .fk-badge {
+    animation: none !important;
+  }
+}

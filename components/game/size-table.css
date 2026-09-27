@@ -1,7 +1,7 @@
 /* Sizes on the Sabi mat (sabi.css): after Size It Up, a cream reference
  * silhouette at true scale and a tomato silhouette the player resizes, both
  * standing on one ground line. The reveal lines up the true size in gold and
- * every player's guess in their colour, the true size laid over each. */
+ * every player's guess in their colour. */
 .size-board {
   touch-action: none;
   user-select: none;
@@ -126,21 +126,14 @@ svg.size-sil path {
   box-shadow: none;
   pointer-events: none;
 }
-/* A guess far past the true size is cropped to its slot, fading out. */
+/* Guesses may outgrow their slots; only the outer mat clips them. */
 .size-clip {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: none;
-}
-.size-clip.is-over {
-  mask-image:
-    linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
-    linear-gradient(0deg, #000 70%, transparent);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
 }
 .size-slot .size-thing {
   left: 50%;
@@ -200,13 +193,6 @@ svg.size-sil path {
   color: var(--seat);
   filter: drop-shadow(0 6px 8px #0006);
 }
-/* The true size over each guess: gold where the guess fell short, a gold
- * tint where it overshot. */
-.size-thing.is-ghost {
-  pointer-events: none;
-  color: var(--s-sun);
-  opacity: 0.4;
-}
 .size-slot.is-you > small {
   color: var(--s-cream);
 }
@@ -222,9 +208,6 @@ svg.size-sil path {
 .size-stage.has-focus .size-slot.is-guess:not(.is-focus) .size-thing,
 .size-stage.has-focus .size-slot.is-guess:not(.is-focus) > small {
   opacity: 0.18;
-}
-.size-stage.has-focus .size-slot.is-focus .size-thing.is-ghost {
-  opacity: 0.55;
 }
 .size-slot.is-focus > small {
   color: var(--s-cream);
@@ -401,15 +384,6 @@ svg.size-sil path {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.size-readout {
-  margin-right: auto;
-  white-space: nowrap;
-  font-family: var(--s-display);
-  font-size: clamp(22px, 2.4vw, 30px);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--s-ink);
-}
 .size-fact {
   flex: none;
   margin: 0;
@@ -463,9 +437,6 @@ svg.size-sil path {
   }
   .size-legend small {
     font-size: 10px;
-  }
-  .size-readout {
-    font-size: 20px;
   }
   .size-fact {
     font-size: 12px;

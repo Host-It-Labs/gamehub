@@ -7,6 +7,7 @@ import {
   packFor,
   prizeUnit,
   rubTicket,
+  STROKE_POINTS,
   type ScratchPoint,
   type ScratchState,
   type ScratchTicket,
@@ -138,7 +139,13 @@ function foilFor(t: ScratchTicket, i: number): Foil {
   }
   return silver;
 }
-type Batch = { points: ScratchPoint[] };
+type Batch = { points: ScratchPoint[]; breaks?: number[] };
+/** A flushed run of points; `continued` batches start with the last point of
+ * the batch before, so the stroke carries on unbroken. */
+type Queued = { points: ScratchPoint[]; continued: boolean };
+/** Pointer positions are sent to four decimals: plenty for an 8×8 foil bitmap,
+ * and small enough that a full stroke command stays well inside the body limit. */
+const snap = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 1e4) / 1e4;
 type FoilFlake = {
   x: number;
   y: number;
@@ -344,8 +351,9 @@ export function ScratchSurface({
   const settlement = useRef({ id: ticket.id, claimed: ticket.claimed });
   const callback = useRef(onStroke),
     status = useRef(onStatus);
-  const queue = useRef<Batch[]>([]),
+  const queue = useRef<Queued[]>([]),
     current = useRef<ScratchPoint[]>([]),
+    sent = useRef<ScratchPoint | null>(null),
     sending = useRef(false);
   const sequence = useRef(ticket.sequence),
     held = useRef<number | null>(null),
@@ -449,10 +457,17 @@ export function ScratchSurface({
       c.restore();
     });
   }, []);
+  const reported = useRef('');
   const report = useCallback(() => {
     const busy =
       sending.current || queue.current.length > 0 || current.current.length > 0;
-    status.current(model.current, busy);
+    // The desk only shows hearts, the end and syncing: tell it when those change.
+    const m = model.current,
+      signature = `${m.id}:${m.ended}:${m.mistakes}:${m.cells.filter((c) => c.revealed).length}:${busy}`;
+    if (signature !== reported.current) {
+      reported.current = signature;
+      status.current(m, busy);
+    }
     if (!frame.current)
       frame.current = requestAnimationFrame(() => {
         frame.current = 0;
@@ -464,7 +479,20 @@ export function ScratchSurface({
     sending.current = true;
     report();
     while (queue.current.length) {
-      const batch = queue.current.shift()!;
+      // Everything queued while the last command was in flight goes as one, so
+      // a slow connection or a fast mouse never builds a backlog.
+      const first = queue.current.shift()!,
+        points = [...first.points],
+        breaks: number[] = [];
+      while (queue.current.length) {
+        const next = queue.current[0],
+          add = next.continued ? next.points.slice(1) : next.points;
+        if (points.length + add.length > STROKE_POINTS) break;
+        if (!next.continued) breaks.push(points.length);
+        points.push(...add);
+        queue.current.shift();
+      }
+      const batch: Batch = breaks.length ? { points, breaks } : { points };
       const ok = await callback.current(sequence.current, batch);
       if (!ok) {
         queue.current = [];
@@ -485,7 +513,10 @@ export function ScratchSurface({
   const flush = useCallback(
     (continued = false) => {
       if (current.current.length) {
-        queue.current.push({ points: current.current });
+        // The previous batch ended on the very point this one starts from.
+        const joined = !!sent.current && current.current[0] === sent.current;
+        queue.current.push({ points: current.current, continued: joined });
+        sent.current = current.current.at(-1) ?? null;
         current.current = continued && last.current ? [last.current] : [];
         void drain();
       }
@@ -501,8 +532,22 @@ export function ScratchSurface({
     if (cursor.current) cursor.current.style.opacity = '0';
   }, [audio, flush]);
   const rub = useCallback(
-    (point: ScratchPoint) => {
+    (raw: ScratchPoint) => {
       if (model.current.ended) return;
+      const point = { x: snap(raw.x), y: snap(raw.y) };
+      if (cursor.current) {
+        cursor.current.style.left = `${point.x * 100}%`;
+        cursor.current.style.top = `${point.y * 100}%`;
+        cursor.current.style.opacity = '1';
+      }
+      // A high-rate mouse reports every pixel. Points closer than a fraction of
+      // the coin add nothing the segment between them does not already cut.
+      if (
+        last.current &&
+        Math.hypot(point.x - last.current.x, point.y - last.current.y) <
+          brushRadius(stateRef.current) * 0.4
+      )
+        return;
       const points = last.current ? [last.current, point] : [point];
       const count = rubTicket(model.current, stateRef.current, points);
       if (!current.current.length && last.current)
@@ -567,11 +612,7 @@ export function ScratchSurface({
       }
       report();
       if (current.current.length >= 48) flush(true);
-      if (cursor.current && !model.current.ended) {
-        cursor.current.style.left = `${point.x * 100}%`;
-        cursor.current.style.top = `${point.y * 100}%`;
-        cursor.current.style.opacity = '1';
-      }
+      if (cursor.current && model.current.ended) cursor.current.style.opacity = '0';
     },
     [audio, finish, flush, paint, report, scatter],
   );
@@ -586,7 +627,10 @@ export function ScratchSurface({
     motion.addEventListener('change', updateMotion);
     paint();
     report();
-    const resize = new ResizeObserver(paint);
+    // The Watch TV draws this ticket inside its own frame: observe it there.
+    const Observer =
+      canvas.current?.ownerDocument.defaultView?.ResizeObserver ?? ResizeObserver;
+    const resize = new Observer(paint);
     if (canvas.current) resize.observe(canvas.current);
     const timer = window.setInterval(() => {
       if (current.current.length > 1) flush(true);

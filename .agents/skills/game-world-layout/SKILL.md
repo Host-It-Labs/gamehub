@@ -35,6 +35,12 @@ If protected content does not fit, first quantify the mismatch. Choose a bounded
 
 ## Flat pieces on a painted world (hard constraint)
 
+Exception: **Arena** (`arena`) is a real-time battle in a real 3D world, built
+at William's request on 26 September 2026 (see `docs/arena.md` and the Arena
+section of `docs/DESIGN.md`). Its field, towers and troops are modelled in
+Blender and drawn with three.js; this section does not apply to it. It still
+applies to every painted-plate game (Nox, Mora, Yata and new board games).
+
 Everything the player touches is a flat 2D element drawn by the app: cards, tiles, tags, dice faces, buttons. There are no modelled 3D pieces and there will not be any: the image models we use cannot produce consistent 3D assets at scale. Design every world for that reality instead of for a miniature diorama.
 
 - **The play surface is a plane parallel to the screen.** Draw the area where pieces land (table top, chart, cloth, counter, floor spread) in true plan view: no perspective convergence, no receding lines, no tilt inside that area. A flat card dropped onto a tilted, perspectival table reads as a sticker pasted over a photo. The surroundings may show depth (walls receding, objects drawn in shallow oblique like a dollhouse plan), but the surface the pieces sit on must be flat and face-on.

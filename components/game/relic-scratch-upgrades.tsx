@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
+  ArrowUp,
   BadgePercent,
   BookOpen,
   Bot,
@@ -58,7 +59,7 @@ import {
 } from '@/lib/games/relic/scratch';
 import { TICKET_ART } from './relic-scratch-art';
 
-const ICONS: Record<string, LucideIcon> = {
+export const UPGRADE_ICONS: Record<string, LucideIcon> = {
   coin: Maximize,
   foil: Wand,
   quick: Zap,
@@ -183,41 +184,38 @@ const WIDTHS: Record<PathId, number> = {
   books: 4,
   factory: 2,
 };
-function Medallion({
+const Medallion = memo(function Medallion({
   node,
-  coins,
+  affordable,
   selected,
   onSelect,
   onBuy,
 }: {
   node: Node;
-  coins: number;
+  affordable: boolean;
   selected: boolean;
-  onSelect: () => void;
-  onBuy: () => void;
+  onSelect: (id: string) => void;
+  onBuy: (id: string) => void;
 }) {
   const { u, rank, ready, hidden, max, price } = node;
-  const Icon = ICONS[u.id];
+  const Icon = UPGRADE_ICONS[u.id];
   const book = u.book && u.id.endsWith('-prize') ? (u.book as PackId) : null;
-  const affordable = ready && !max && coins >= price;
   return (
     <button
       className={`rs-node ${ready ? '' : 'is-locked'} ${hidden ? 'is-hidden' : ''} ${max ? 'is-max' : ''} ${affordable ? 'is-affordable' : ''} ${rank ? 'is-owned' : ''}`}
-      data-game-motion="change"
-      data-game-motion-key={`${rank}:${ready}:${hidden}`}
       aria-pressed={selected}
       aria-label={
         hidden
           ? 'Undiscovered upgrade'
-          : `${u.name}, ${rank} of ${u.max}${max ? '' : `, ${formatNumber(price)} coins`}`
+          : `${u.name}, ${rank} of ${u.max}${max ? '' : `, ${formatNumber(price)} coins`}${affordable ? ', can buy' : ''}`
       }
       style={
         {
           '--rank': rank / u.max,
         } as React.CSSProperties
       }
-      onClick={onSelect}
-      onDoubleClick={() => affordable && onBuy()}
+      onClick={() => onSelect(u.id)}
+      onDoubleClick={() => affordable && onBuy(u.id)}
     >
       <span className="rs-node-disc">
         {hidden ? (
@@ -229,6 +227,11 @@ function Medallion({
         ) : null}
         {!ready && !hidden && <Lock size={12} className="rs-node-lock" />}
         {max && <Check size={12} className="rs-node-check" />}
+        {affordable && (
+          <span className="rs-node-ready" aria-hidden="true">
+            <ArrowUp size={11} strokeWidth={3} />
+          </span>
+        )}
       </span>
       {!hidden && (
         <span className="rs-node-pips" aria-hidden="true">
@@ -246,26 +249,47 @@ function Medallion({
       )}
     </button>
   );
-}
+});
 /** The upgrade tree: six paths side by side, each a little tree of
  * medallions. An upgrade opens once the one before it has a rank; the
  * selected one is explained and bought in the bar below. */
-export function ScratchUpgrades({
+export const ScratchUpgrades = memo(function ScratchUpgrades({
   state,
   coins,
   busy,
   onBuy,
+  mirror,
+  onView,
 }: {
   state: ScratchState;
   coins: number;
   busy: boolean;
   onBuy: (id: string) => void;
+  /** The Watch TV: another player's selected upgrade and path. */
+  mirror?: { upgrade?: string; path?: string };
+  onView?: (view: { upgrade: string; path: string }) => void;
 }) {
-  const [selected, setSelected] = useState('coin'),
-    [path, setPath] = useState<PathId>('scratch');
+  const [ownSelected, setSelected] = useState('coin'),
+    [ownPath, setPath] = useState<PathId>('scratch');
+  const selected =
+    mirror?.upgrade && upgradeFor(mirror.upgrade) ? mirror.upgrade : ownSelected,
+    path = (PATHS.find((p) => p.id === mirror?.path)?.id ?? ownPath) as PathId;
+  useEffect(() => {
+    if (!mirror) onView?.({ upgrade: ownSelected, path: ownPath });
+  }, [mirror, onView, ownSelected, ownPath]);
+  const [select] = useState(() => (id: string) => {
+    setSelected(id);
+    setPath(upgradeFor(id)!.path);
+  });
+  // One node per upgrade, rebuilt only when the desk changes, so choosing an
+  // upgrade redraws two medallions rather than forty.
+  const nodes = useMemo(
+    () => new Map(UPGRADES.map((x) => [x.id, nodeOf(state, x)])),
+    [state],
+  );
   const u = upgradeFor(selected)!,
-    node = nodeOf(state, u);
-  const Icon = ICONS[u.id] ?? Ticket;
+    node = nodes.get(u.id)!;
+  const Icon = UPGRADE_ICONS[u.id] ?? Ticket;
   const color = PATHS.find((p) => p.id === u.path)!.color;
   return (
     <div className="rs-upgrades">
@@ -290,11 +314,11 @@ export function ScratchUpgrades({
           );
         })}
       </div>
-      <div className="rs-tree">
+      <div className="rs-tree" data-rs-area="tree">
         {PATHS.map((p) => {
           const PathIcon = PATH_ICONS[p.id],
             list = UPGRADES.filter((x) => x.path === p.id),
-            nodes = list.map((x) => nodeOf(state, x)),
+            branch = list.map((x) => nodes.get(x.id)!),
             rows = Math.max(...list.map((x) => place(x)[1])) + 1,
             cols = WIDTHS[p.id];
           const bought = list.reduce((n, x) => n + level(state, x.id), 0),
@@ -303,8 +327,6 @@ export function ScratchUpgrades({
             <section
               key={p.id}
               className={`rs-branch ${path === p.id ? 'is-current' : ''}`}
-              data-game-motion="change"
-              data-game-motion-key={path === p.id ? 'current' : 'other'}
               style={
                 {
                   '--path': p.color,
@@ -345,7 +367,7 @@ export function ScratchUpgrades({
                     );
                   })}
                 </svg>
-                {nodes.map((n) => {
+                {branch.map((n) => {
                   const [x, y] = place(n.u);
                   return (
                     <div
@@ -360,13 +382,12 @@ export function ScratchUpgrades({
                     >
                       <Medallion
                         node={n}
-                        coins={coins}
+                        affordable={
+                          n.ready && !n.max && !n.hidden && coins >= n.price
+                        }
                         selected={selected === n.u.id}
-                        onSelect={() => {
-                          setSelected(n.u.id);
-                          setPath(p.id);
-                        }}
-                        onBuy={() => onBuy(n.u.id)}
+                        onSelect={select}
+                        onBuy={onBuy}
                       />
                     </div>
                   );
@@ -437,4 +458,4 @@ export function ScratchUpgrades({
       </div>
     </div>
   );
-}
+});

@@ -107,8 +107,9 @@
     transform: scale(1);
     box-shadow: 0 0 0 0 transparent;
   }
+  /* Small enough that the top boards stay inside the play area. */
   45% {
-    transform: scale(1.07);
+    transform: scale(1.035);
     box-shadow: 0 6px 18px #2c7a4b40;
   }
   100% {
@@ -166,6 +167,93 @@
 .fk-four.won .fk-four-cell:nth-child(4) .fk-four-board {
   --n: 3;
 }
+/*
+ * Printed touches: graded tiles are inked blocks pressed into the paper, a
+ * typed letter prints with a vermilion registration ghost that snaps into
+ * place, and a solved board takes a green ink seal as it pops.
+ */
+.fk-four-board
+  .fk-tile:is([data-grade='0'], [data-grade='1'], [data-grade='2']) {
+  box-shadow:
+    inset 0 1px 1px #00000029,
+    inset 0 0 2px #0000001a;
+  text-shadow: 0 1px 0 #00000033;
+}
+/* Graded rows stay still when their flip ends (the shared pop would replay). */
+.fk-four .fk-tile.filled {
+  animation: none;
+}
+.fk-four .fk-tile.filled[data-grade='-1'] {
+  animation:
+    fk-pop 0.12s ease,
+    fk-four-register 0.3s ease-out;
+}
+.fk-four .fk-tile.filled.reveal {
+  animation: fk-flip 0.5s ease both;
+  animation-delay: calc(var(--i) * 0.28s);
+}
+/* The solving row flips like the others, then bounces. */
+.fk-four .fk-row.win .fk-tile.filled.reveal {
+  animation:
+    fk-flip 0.5s ease both,
+    fk-bounce 0.8s ease;
+  animation-delay: calc(var(--i) * 0.28s), calc(1.5s + var(--i) * 0.1s);
+}
+@keyframes fk-four-register {
+  from {
+    text-shadow:
+      0.16em 0.1em 0 #c5472cb0,
+      -0.06em -0.05em 0 #193d7940;
+  }
+  to {
+    text-shadow:
+      0 0 0 #c5472c00,
+      0 0 0 #193d7900;
+  }
+}
+.fk-four-seal {
+  --s: clamp(20px, calc(var(--t) * 1.45), 50px);
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: grid;
+  place-items: center;
+  width: var(--s);
+  height: var(--s);
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  outline: 1px solid currentColor;
+  outline-offset: calc(var(--s) * -0.13);
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  color: var(--fk-hit);
+  opacity: 0.85;
+  rotate: -14deg;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.fk-four-seal svg {
+  width: 58%;
+  height: 58%;
+}
+.fk-four-board.pop .fk-four-seal {
+  animation: fk-four-seal 0.46s cubic-bezier(0.3, 0.7, 0.4, 1) 1.5s both;
+}
+@keyframes fk-four-seal {
+  0% {
+    opacity: 0;
+    scale: 2.2;
+    rotate: -36deg;
+  }
+  65% {
+    opacity: 0.95;
+    scale: 0.9;
+    rotate: -12deg;
+  }
+  100% {
+    scale: 1;
+    rotate: -14deg;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .fk-four-board,
   .fk-four-board.pop,
@@ -173,6 +261,10 @@
   .fk-four-answer {
     animation: none;
     transition: none;
+  }
+  .fk-four .fk-tile,
+  .fk-four-seal {
+    animation: none !important;
   }
 }
 @container folio-play (max-width: 380px) {

@@ -73,7 +73,7 @@ const real = (
 
 export const realGames: Record<GameId, LibraryGame> = {
   undertow: real('undertow', 'Nox', {
-    world: 'A smugglers’ cabin, a lantern, and a table of tricks nobody wants',
+    world: 'A pirate treasure map at night, and a table of tricks nobody wants',
     duration: '5–10 min',
     durationSpoken: '5 to 10 minutes',
     players: [2, 6],
@@ -202,6 +202,24 @@ export const libraryGames: LibraryGame[] = [
     motif: 'gem',
     playing: [],
   },
+  {
+    id: 'arena',
+    name: 'Arena',
+    href: '/arena',
+    ...printedBoxArt('arena'),
+    world:
+      'Two hill forts across a mountain stream. Send troops over the bridges in real time and knock the towers down',
+    duration: '5 min',
+    durationSpoken: '5 minutes',
+    players: [1, 4],
+    mode: 'Competitive',
+    weight: 2,
+    genre: 'Real-time battle',
+    material: 'board',
+    palette: ['#1d3f8f', '#c7372b', '#f4d27a'],
+    motif: 'tent',
+    playing: [],
+  },
   ...Object.values(realGames),
   standaloneLibraryGames.orin,
   standaloneLibraryGames.miro,
@@ -222,7 +240,7 @@ const sectionsById = {
   strategy: {
     id: 'strategy',
     title: 'Strategy',
-    games: ['undertow', 'wildgrove', 'midnight'],
+    games: ['arena', 'undertow', 'wildgrove', 'midnight'],
   },
   party: { id: 'party', title: 'Party', games: ['orin', 'miro'] },
   solo: { id: 'solo', title: 'Solo & co-op', games: ['folio', 'relic'] },
@@ -250,3 +268,6 @@ export const initials = (name: string) =>
     .toUpperCase();
 export const playerRange = ([min, max]: [number, number]) =>
   min === max ? String(min) : `${min}–${max}`;
+/** "1 player", "2–6 players": the count read aloud. */
+export const playersSpoken = (players: [number, number]) =>
+  `${playerRange(players)} ${players[1] === 1 ? 'player' : 'players'}`;

@@ -70,7 +70,11 @@ function FlagGlyph({
         strokeWidth="1.7"
         strokeLinecap="round"
       />
-      <path d="M12 2.4 3.2 7.2l8.8 4.8z" style={{ fill: 'var(--folio-red)' }} />
+      {/* A folded paper pennant: the lower half sits in the fold's shadow. */}
+      <g className="fk-mines-pennant">
+        <path d="M12 2.4 3.2 7.2H12z" style={{ fill: 'var(--folio-red)' }} />
+        <path d="M12 12 3.2 7.2H12z" style={{ fill: '#a23a22' }} />
+      </g>
     </svg>
   );
 }
@@ -109,7 +113,13 @@ export default function Mines({
 
   // Squares opened by the latest move pop open in a ripple from where it began.
   // Cells only change on opens and chords, which always bump the turn.
-  const [anim, setAnim] = useState({
+  // A cascade also leaves one faint ink ring spreading from where it began.
+  const [anim, setAnim] = useState<{
+    turn: number;
+    cells: number[];
+    delays: Map<number, number>;
+    ripple?: { at: number; far: number; ms: number };
+  }>({
     turn: view.turn,
     cells,
     delays: new Map<number, number>(),
@@ -128,10 +138,17 @@ export default function Mines({
       delays: new Map(
         fresh.map((i) => [i, Math.round(reach(i, view.last, size) * step)]),
       ),
+      ripple:
+        fresh.length > 1 &&
+        view.last >= 0 &&
+        !fresh.some((i) => cells[i] === MINE)
+          ? { at: view.last, far, ms: Math.min(700, far * step + 320) }
+          : undefined,
     };
     setAnim(current);
   }
   const delays = current.delays;
+  const ripple = current.ripple;
   // Flags already planted when the board mounted do not replay their wobble.
   const [settled, setSettled] = useState(
     () => new Set(flags.flatMap((f, i) => (f ? [i] : []))),
@@ -145,6 +162,9 @@ export default function Mines({
   const flagCount = flags.filter((f, i) => f && cells[i] === -1).length;
   const blown = cells.filter((c) => c === MINE).length;
   const left = view.count - flagCount - blown;
+  // The counter re-stamps its digits whenever the count changes.
+  const [stamp, setStamp] = useState({ left, n: 0 });
+  if (stamp.left !== left) setStamp({ left, n: stamp.n + 1 });
   // On a loss the other mines surface one by one, nearest the blast first;
   // on a win every flag blooms outward from the final square.
   const origin = view.last >= 0 ? view.last : 0;
@@ -229,7 +249,7 @@ export default function Mines({
       <div className="fk-mines-bar">
         <span className="fk-mines-count" aria-label={`${left} mines left`}>
           <MineGlyph />
-          <b>
+          <b key={stamp.n} className={stamp.n ? 'restamp' : undefined}>
             {left < 0
               ? `-${String(-left).padStart(2, '0')}`
               : String(left).padStart(3, '0')}
@@ -339,6 +359,21 @@ export default function Mines({
             </button>
           );
         })}
+        {ripple && (
+          <span className="fk-mines-inkwash" aria-hidden="true">
+            <i
+              key={current.turn}
+              style={
+                {
+                  '--x': ripple.at % size,
+                  '--y': Math.floor(ripple.at / size),
+                  '--r': ripple.far,
+                  '--t': `${ripple.ms}ms`,
+                } as CSSProperties
+              }
+            />
+          </span>
+        )}
       </div>
     </Panel>
   );

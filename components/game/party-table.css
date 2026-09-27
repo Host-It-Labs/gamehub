@@ -482,21 +482,6 @@
   max-height: 85dvh;
   overflow-y: auto;
 }
-.party-menu {
-  display: grid;
-  gap: 10px;
-}
-.party-menu > button {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #aaa5;
-  border-radius: 8px;
-}
-.party-menu svg {
-  width: 20px;
-}
 .party-practice {
   position: sticky;
   bottom: 12px;

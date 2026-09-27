@@ -38,6 +38,23 @@
 * {
   box-sizing: border-box;
 }
+/* Nothing on the site can be selected or copied, on any device: no text
+   selection, no long-press callout, no dragging images out. Fields you type
+   into stay selectable. `components/game/copy-guard.tsx` blocks the copy
+   shortcuts and the context menu to match. */
+html {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+:is(input, textarea, select, [contenteditable]:not([contenteditable='false'])) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+:is(img, svg, a, picture, canvas) {
+  -webkit-user-drag: none;
+}
 body {
   margin: 0;
   background: var(--background);
@@ -936,20 +953,6 @@ svg {
   color: #66489a;
   font-weight: 700;
 }
-.board-preview {
-  width: 480px !important;
-  max-width: calc(100vw - 30px);
-  background: #fff;
-  padding: 14px !important;
-  border: 2px solid #d6c8e7;
-  border-radius: 17px !important;
-  box-shadow: 0 12px 40px #32204640;
-}
-.board-preview > strong {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 14px;
-}
 .mini-board {
   min-height: 230px;
   gap: 7px;
@@ -1128,21 +1131,6 @@ svg {
   justify-content: space-between;
   padding: 7px 0;
   border-bottom: 1px solid #eadff3;
-}
-.reference-rule {
-  padding: 10px 0;
-  border-bottom: 1px solid #eadff3;
-}
-.reference-rule b {
-  display: block;
-  color: #564269;
-}
-.reference-rule span {
-  display: block;
-}
-.reference-note {
-  font-size: 12px !important;
-  margin-top: 20px;
 }
 .modal-log {
   padding-left: 20px;
@@ -1443,16 +1431,6 @@ svg {
 @keyframes tutorialPulse {
   50% {
     outline-color: #f5d778;
-  }
-}
-@media (hover: hover) {
-  .board-preview {
-    display: block;
-  }
-}
-@media (hover: none) {
-  .board-preview {
-    display: none;
   }
 }
 @media (max-width: 1100px) {
@@ -2923,38 +2901,6 @@ svg {
     transform: none;
   }
 }
-.readable-reference {
-  line-height: 1.6;
-}
-.readable-reference h3 {
-  margin-top: 18px;
-  margin-bottom: 8px;
-}
-.readable-reference p + p {
-  margin-top: 9px;
-}
-.reference-goal {
-  padding: 12px 15px;
-  background: #f4eedf;
-  border-radius: 10px;
-}
-.reference-goal h3 {
-  margin-top: 0;
-}
-.rule-sequence {
-  list-style: decimal;
-  padding-left: 24px;
-}
-.rule-sequence li {
-  margin: 10px 0;
-  padding-left: 4px;
-}
-.readable-reference .reference-rule {
-  display: grid;
-  gap: 3px;
-  padding: 10px 0;
-  border-bottom: 1px solid #e8e1d4;
-}
 .at-table .online-session {
   flex: none;
   max-height: 45dvh;
@@ -3545,15 +3491,15 @@ svg {
   pointer-events: none;
 }
 .artwork-loading[data-game='undertow'] {
-  --curtain: #10161b;
-  --curtain-glow: #2c3438;
-  --curtain-ink: #e9dcb8;
-  --curtain-felt: #1f3535;
-  --curtain-card: #efe6d1;
-  --curtain-card-edge: #8a7a52;
-  --curtain-pip: #a8352d;
-  --curtain-die: #f3ecd8;
-  --curtain-die-ink: #2b2f33;
+  --curtain: #03111f;
+  --curtain-glow: #08546d;
+  --curtain-ink: #f8ecd2;
+  --curtain-felt: #041c33;
+  --curtain-card: #f8ecd2;
+  --curtain-card-edge: #f4ddb0;
+  --curtain-pip: #da3431;
+  --curtain-die: #f8ecd2;
+  --curtain-die-ink: #14181c;
 }
 .artwork-loading[data-game='wildgrove'] {
   --curtain: #ece5cf;
@@ -3748,18 +3694,6 @@ svg {
   .artwork-loading {
     transition: none;
   }
-}
-.confirm-moves {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  color: #776980;
-}
-.confirm-moves input {
-  width: 13px;
-  height: 13px;
-  accent-color: #806390;
 }
 .hand-status-row {
   flex-basis: 64px;
@@ -3979,16 +3913,6 @@ svg {
   height: auto;
   min-height: 0;
   aspect-ratio: 3 / 2;
-}
-.move-preferences {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin-bottom: 4px;
-}
-.move-preferences .confirm-moves {
-  white-space: nowrap;
 }
 .dice-token.ready-to-roll {
   border-color: #a080ba;
@@ -4229,10 +4153,6 @@ svg {
   align-items: center;
   gap: 8px;
 }
-.at-table .move-preferences {
-  margin: 0;
-  flex: none;
-}
 .at-table .prepared-move {
   flex: 1;
   min-width: 0;
@@ -4259,9 +4179,6 @@ svg {
   flex-basis: 76px;
   width: 76px;
   height: 74px;
-}
-.at-table .confirm-moves {
-  min-height: 32px;
 }
 .at-table .dice-token {
   min-height: 36px;
@@ -4449,46 +4366,6 @@ svg {
   background: #fffcf7;
   border-radius: 10px;
   font-size: 12px;
-}
-.table-menu {
-  width: 285px;
-  max-width: calc(100vw - 24px);
-  max-height: calc(100dvh - 80px);
-  overflow-y: auto;
-  padding: 12px;
-  background: #fffcf7;
-}
-.table-menu > button {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 8px;
-  text-align: left;
-  min-height: 40px;
-  border-radius: 8px;
-}
-.table-menu > button:hover {
-  background: #eee7f3;
-}
-.table-menu-preference {
-  border-top: 1px solid #e0d8e5;
-  margin-top: 4px;
-  padding: 10px 8px 4px;
-}
-.table-menu .confirm-moves {
-  font-size: 14px;
-  min-height: 36px;
-  gap: 9px;
-}
-.table-menu .confirm-moves input {
-  width: 18px;
-  height: 18px;
-}
-.table-menu-preference p {
-  font-size: 12px;
-  line-height: 1.5;
-  margin-top: 4px;
-  color: #766a7d;
 }
 .at-table .table-columns {
   grid-template-columns: minmax(0, 1fr);
@@ -4846,77 +4723,88 @@ svg {
   }
 }
 
-/* Full-proportion Tide cards expose a readable index when the hand overlaps. */
+/* Nox cards, as on the chart poster: cream card stock with a thin inner line,
+   a heavy index at the top left (it stays visible where the hand overlaps) and
+   one big flat suit mark in the middle. Storm cards are split treasure red and
+   black. Sizes follow the card (container units), so the hand, the table and
+   the inspection dialog share one face. */
 .playing-face.tide-face {
-  --tide-ink: #202333;
-  --tide-paper: #fffdfa;
+  --tide-ink: #14181c;
+  --tide-paper: #f8ecd2;
+  container-type: size;
   color: var(--tide-ink);
   background: var(--tide-paper);
-  border-radius: 12px;
-  border: 1px solid #cfc8c4;
+  border-radius: 10px;
+  border: 0;
+  box-shadow:
+    inset 0 0 0 4px var(--tide-paper),
+    inset 0 0 0 5.5px #03111f2e;
+  font-family: Futura, 'Futura PT', Jost, 'Century Gothic', 'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
 }
 .tide-face.suit-1 {
-  --tide-ink: #ba3049;
+  --tide-ink: #da3431;
 }
 .tide-face.suit-2 {
-  --tide-ink: #202333;
+  --tide-ink: #1b7b7d;
 }
 .tide-face.suit-3 {
-  --tide-ink: #ba3049;
+  --tide-ink: #3f8a4c;
 }
 .tide-face.suit-4 {
-  --tide-ink: #fffdfa;
-  --tide-paper: #293a50;
-  background: var(--tide-paper);
+  --tide-ink: #f8ecd2;
+  --tide-paper: #14181c;
+  background: linear-gradient(135deg, #da3431 0 50%, #14181c 50% 100%);
+  box-shadow: inset 0 0 0 5.5px #f8ecd233;
 }
 .tide-index {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 40%;
+  inset: 0 auto auto 0;
+  width: 36%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding-top: 10px;
+  gap: 2cqh;
+  padding-top: 7cqh;
 }
-.tide-pips {
+.tide-mark {
   position: absolute;
-  inset: 26% 22% 26% 39%;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-content: center;
-  gap: 2px;
-  font-size: 13px;
-  text-align: center;
-  line-height: 1.1;
-}
-.tide-bottom {
-  position: absolute;
-  bottom: 7px;
-  right: 7px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: rotate(180deg);
-  font-size: 17px;
-  font-weight: 800;
+  left: 58%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  font-size: 62cqw;
   line-height: 1;
 }
+.tide-pips,
+.tide-bottom {
+  display: none;
+}
 .tide-face .tide-suit {
-  font-size: 19px;
+  font-size: 19cqw;
   line-height: 1;
 }
 .tide-face .tide-rank {
-  font-size: 28px;
-  line-height: 1;
-  font-weight: 850;
+  font-size: 31cqw;
+  line-height: 0.9;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -1px;
+  letter-spacing: -0.04em;
+}
+/* A costly card (Storm, or the die's 8) carries its penalty on a small red tab. */
+.tide-face .tide-cost:empty {
+  display: none;
 }
 .tide-face .tide-cost {
-  font-size: 11px;
+  padding: 0.3em 0.45em;
+  border-radius: 999px;
+  background: #da3431;
+  color: #f8ecd2;
+  font-size: 11cqw;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1;
+}
+.tide-face.suit-4 .tide-cost {
+  background: #f8ecd2;
+  color: #a8221f;
 }
 .hand.card-hand.tide-hand {
   --hand-card-width: 100px;
@@ -4937,18 +4825,6 @@ svg {
 }
 .tide-hand .piece {
   border-radius: 12px;
-}
-.inspect-face .tide-rank {
-  font-size: 48px;
-}
-.inspect-face .tide-pips {
-  font-size: 24px;
-}
-.inspect-face .tide-suit {
-  font-size: 30px;
-}
-.inspect-face .tide-cost {
-  font-size: 15px;
 }
 
 /* Tide setup: base settings followed by a compact extension list. */
@@ -5809,32 +5685,83 @@ svg {
   }
 }
 
-/* Shared inspection rhythm: outcome, short steps, secondary constraints. */
-.rule-explanation {
+/* How to play and rule inspections, Arena's rhythm on every game
+   (`components/game/rules.tsx`): short titled sections, bold key words, one
+   purple note for limits. A game's dialog tints it through these tokens:
+   --rules-heading, --rules-muted, --rules-accent and --rules-note-ink. */
+.rules {
   display: grid;
-  gap: 12px;
-  margin-block: 12px;
-  line-height: 1.55;
+  gap: 16px;
+  margin-block: 4px;
 }
-.rule-explanation .rule-outcome {
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: #eee9f6;
-  color: #493b67;
-  font-weight: 600;
-}
-.rule-steps {
-  display: grid;
-  gap: 10px;
-}
-.rule-explanation p {
+.rule-section {
   margin: 0;
+  text-wrap: pretty;
 }
-.rule-explanation .rule-note {
-  font-size: 0.88em;
-  color: #68616e;
-  padding-top: 10px;
-  border-top: 1px solid #ded8e5;
+.rule-section h3 {
+  margin: 0 0 4px;
+  color: var(--rules-heading, #3b2c52);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.rule-section p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.rule-section > :last-child {
+  margin-bottom: 0;
+}
+.rule-section b {
+  font-weight: 700;
+}
+.rule-section .rule-note {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--rules-accent, #8f62d6);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--rules-accent, #8f62d6) 12%, transparent);
+  color: var(--rules-note-ink, #4a3a68);
+  font-size: 13px;
+}
+.rule-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: 10px 16px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rule-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  column-gap: 10px;
+}
+.rule-list li[data-marked] {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.rule-list-mark {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  align-self: center;
+}
+:where(.rule-list-mark) > img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.rule-list b {
+  font-size: 14px;
+  line-height: 1.3;
+}
+.rule-list small {
+  color: var(--rules-muted, #6c6474);
+  font-size: 12.5px;
+  line-height: 1.35;
 }
 .extension-emblem {
   width: 64px;
@@ -6324,53 +6251,6 @@ svg {
   margin: 0;
   white-space: nowrap;
   font-weight: 700;
-}
-/* Advanced boards share the main board's plates, food stacks and permits. */
-.market-board.mini-board {
-  container-type: inline-size;
-  box-sizing: border-box;
-  min-height: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(108px, auto));
-  gap: 10px 6px;
-  padding: 8px;
-  border-width: 3px;
-  border-radius: 16px;
-}
-.market-board.mini-board .stack-layer {
-  --dish-spread: 3px;
-  width: clamp(28px, 25cqw, 64px);
-  height: clamp(26px, 23cqw, 58px);
-}
-.market-board.mini-board .serving-dish > div {
-  padding: 8px 2px 6px;
-}
-.market-board.mini-board .serving-dish strong {
-  font-size: 9px;
-  line-height: 12px;
-  overflow-wrap: anywhere;
-}
-.market-board.mini-board .collection-score {
-  font-size: 10px;
-  line-height: 13px;
-}
-.market-board.mini-board .quantity {
-  top: 0;
-  right: 0;
-  font-size: 10px;
-  padding: 0 3px;
-}
-.market-board.mini-board .dish-permit {
-  top: 3px;
-  left: 3px;
-  right: auto;
-  gap: 1px;
-  padding: 2px;
-  font-size: 9px;
-}
-.market-board.mini-board .dish-permit svg {
-  width: 12px;
-  height: 12px;
 }
 @media (max-width: 760px) {
   .compact-habitat-scores {
@@ -7203,15 +7083,6 @@ button.primary {
   aspect-ratio: 5/7;
   height: auto;
 }
-.blackwake-played-card .tide-rank {
-  font-size: clamp(13px, 2.3cqw, 24px);
-}
-.blackwake-played-card .tide-index {
-  font-size: 12px;
-}
-.blackwake-played-card .tide-pips {
-  font-size: clamp(9px, 1.6cqw, 18px);
-}
 .played-order {
   position: absolute;
   right: -7px;
@@ -7302,17 +7173,6 @@ button.primary {
   border: 1.5px solid #394840;
   border-radius: 4px 7px 3px 6px;
   box-shadow: 1px 2px 0 #1d302e66;
-}
-.tide-face.suit-0,
-.tide-face.suit-2 {
-  color: #233f3b;
-}
-.tide-face.suit-1,
-.tide-face.suit-3 {
-  color: #983f30;
-}
-.tide-face.suit-4 {
-  color: #806127;
 }
 .serving-dish {
   border-color: #8b6343;
@@ -8825,8 +8685,3 @@ button.primary {
 .sound-lab-link:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
 
 /* Table controls remain available inside saved solo/co-op games. */
-.room-game-settings { width: 100%; }
-.room-game-settings summary { display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 44px; }
-.room-game-settings ul { list-style: none; padding: 0; margin: 12px 0; }
-.room-game-settings li { padding: 5px 0; overflow-wrap: anywhere; }
-.room-game-settings button { margin: 4px; }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { MobileViewport } from '@/components/game/mobile-viewport';
+import { CopyGuard } from '@/components/game/copy-guard';
 import { themeScript } from '@/lib/theme-script';
 export const metadata: Metadata = {
   title: 'Gamehub — Your little corner of play',
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body>
         {children}
         <MobileViewport />
+        <CopyGuard />
       </body>
     </html>
   );

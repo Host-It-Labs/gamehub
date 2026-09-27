@@ -7,7 +7,6 @@
 
 /* The woodland reaches every edge; where the sharp scene cannot, the canvas paints a soft copy of the same forest. */
 .at-table .table-layout[data-game='wildgrove'][data-environment='observatory'] { background: #2f3a2a; }
-.reference-rule .mora-die-symbol { vertical-align: middle; margin-right: 5px; }
 
 /* ===== 1. Scene and stage: full-bleed woodland, pads, die faces, goals card, tray =====
    One full-bleed woodland. Everything laid on it is a handmade object: a folded
@@ -151,21 +150,6 @@
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small { font-size: clamp(10px, 1.55cqw, 14px); }
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label b { font-size: .95em; min-width: 2.2em; }
 
-/* Table inspection: a sticky one-line passing cycle, then boards; three across with several opponents. */
-.all-boards-modal[data-slot='dialog-content'] { grid-template-rows: minmax(0, 1fr); padding: 16px 20px; }
-.all-boards-modal > [data-slot='dialog-close'] { z-index: 3; }
-.all-boards-grid { position: relative; padding-top: 0; }
-.all-boards-grid .table-passing-order {
-  position: sticky; top: 0; z-index: 2; margin: 0 0 12px; padding: 8px 12px;
-  background: #faf2ddf2; border: 1px solid #9b8c69; border-bottom-width: 2px; border-radius: 4px 14px 4px 14px; box-shadow: 0 3px 6px #23352c22;
-}
-.all-boards-grid .table-passing-order b, .all-boards-grid .passing-return-arrow { padding: 5px 10px; }
-.all-boards-grid .table-passing-order .your-seat b { background: #37533f; color: #fff6df; }
-.all-boards-grid .passing-return-arrow { color: #37533f; }
-@media (min-width: 1100px) { .all-boards-grid:not(.seats-1):not(.seats-2) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.table-board-card h3 { margin-bottom: 8px; }
-.table-board-card .player-resources { margin-top: 8px; }
-
 /* ===== 4. Dock sizing, die tag, habitat card layout, Release shape ===== */
 @media (orientation: landscape) and (min-height: 501px) {
   .at-table .table-layout[data-environment='observatory'] .play-area { --observatory-hand-height: 104px; }
@@ -205,7 +189,7 @@
 .mora-die-symbol .paper-fill { fill: #f6efdc; }
 .mora-die-symbol .ink-line { fill: none; stroke: #2f4a30; stroke-width: 3; stroke-linecap: round; }
 .mora-die-symbol .ink-dash { fill: none; stroke: #2f4a30; stroke-width: 3; stroke-dasharray: 5 4; stroke-linecap: round; }
-.reference-rule .mora-die-symbol { width: 30px; height: 30px; }
+.rule-list-mark .mora-die-symbol { width: 30px; height: 30px; }
 
 /* Habitat cards: centred title and score, left-aligned scoring in unbreakable phrases. */
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { flex-direction: column; align-items: stretch; text-align: left;
@@ -531,15 +515,6 @@
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash.prepared,
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-trash.drag-target { box-shadow: 0 0 0 3px #fff9e6e6, 0 0 18px 4px #fff2c680; }
 
-/* Modal cards: name, remaining abilities and goals, score on one line above the board. */
-.table-board-card h3 > .player-resources { flex: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
-.table-board-card h3 .nature-reserves { margin: 0; gap: 6px; }
-.table-board-card h3 .nature-reserves > div { padding: 3px 8px; gap: 6px; font-size: 12px; font-weight: 500; }
-.table-board-card h3 .sanctuary-goals { position: static; transform: none; padding: 0; gap: 4px; background: none; box-shadow: none; }
-.table-board-card h3 .sanctuary-goal.piece { min-width: 40px; min-height: 36px; }
-.table-board-card h3 .sanctuary-goal-medal { width: 26px; height: 26px; }
-.table-board-card h3 .sanctuary-goal-medal > svg, .table-board-card h3 .sanctuary-goal-creature { width: 22px; height: 22px; }
-
 /* Phone: readable tags, tighter cards, breathing room above the tray. */
 @media (orientation: portrait) {
   .at-table .table-layout[data-environment='observatory'] .player-button { padding: 3px 6px 3px 4px; gap: 4px; border-radius: 20px; }
@@ -705,20 +680,6 @@
 .goal-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 760px) { .goal-cards { grid-template-columns: 1fr; } }
 
-/* Others: name left, abilities and goals centred, points right; boards keep their aspect. */
-.table-board-card h3 { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
-.table-board-card h3 > .player-resources.compact { justify-content: center; flex-wrap: nowrap; min-width: 0; gap: 14px; }
-.table-board-card h3 .player-resources.compact .nature-reserves { gap: 6px; flex-wrap: nowrap; }
-.table-board-card h3 .player-resources.compact .nature-reserves > div { padding: 4px 8px; gap: 5px; font-size: 13px; font-weight: 700; }
-.table-board-card h3 .player-resources.compact .nature-reserves dt { gap: 0; }
-.table-board-card h3 .player-resources.compact .sanctuary-goals,
-.table-board-card h3 .player-resources.compact .sanctuary-goals.piece { border-left: 1px dashed #9b8c69; padding: 0 0 0 14px; margin-left: 2px; gap: 14px; background: none; box-shadow: none; }
-.table-board-card h3 .player-resources.compact .sanctuary-goal.piece,
-.table-board-card h3 .player-resources.compact .sanctuary-goal { min-width: 44px; width: auto; }
-.table-board-card h3 .player-resources.compact .sanctuary-goal-count { font-size: 10px; }
-.table-board-card .mora-board.mini-board { width: 100%; max-width: 100%; height: auto; overflow: hidden; }
-.table-board-card .mora-board.mini-board .mora-landscape { object-fit: fill; }
-.all-boards-grid { overflow-x: hidden; }
 /* Miniature boards are bare artwork plus creatures: no pad outlines, trail numbers or rings. */
 .mora-board.mini-board .mora-nest::before, .mora-board.mini-board .mora-nest::after { content: none; }
 .mora-board.mini-board .mora-trail-step { display: none; }
@@ -742,18 +703,6 @@
   .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-creature { width: 27px; height: 27px; }
   .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-reward { min-width: 18px; height: 15px; font-size: 9px; right: -5px; }
   .at-table .table-layout[data-environment='observatory'] .observatory-achievements .sanctuary-goal-count { font-size: 10px; padding: 0 .4em; }
-}
-
-/* Others: the same island language as the toolbar, aligned under the menu. */
-.at-table .table-layout[data-environment='observatory'] .table-board-chip {
-  height: 36px; min-width: 76px; padding: 0 12px; border-radius: 18px; gap: 7px; justify-content: center;
-  background: #f8f2e5f2; border: 1px solid #9caa86; color: #293726; box-shadow: 0 2px 5px #23352c30;
-  font: 600 13px/1 Georgia, serif; letter-spacing: 0;
-}
-.at-table .table-layout[data-environment='observatory'] .table-board-button:hover .table-board-chip { background: #fffbed; }
-.at-table .table-layout[data-environment='observatory'] .table-board-button:active .table-board-chip { transform: translateY(1px); box-shadow: 0 1px 2px #23352c30; }
-@media (orientation: portrait) {
-  .at-table .table-layout[data-environment='observatory'] .table-board-chip { height: 32px; min-width: 44px; font-size: 12px; padding: 0; }
 }
 
 /* The bold keyword is plain inline text; only the score wears the pill. */
@@ -884,5 +833,40 @@
     flex-direction: column;
     gap: 0;
     font-size: 11px;
+  }
+}
+
+/* Portrait habitat cards (27 September 2026): the short place name rides in
+   the score pill again, and the scoring line reads at 12px (phones) instead of
+   about 9px, a little larger on portrait tablets. */
+@media (orientation: portrait) {
+  html .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label {
+    max-width: clamp(128px, 20vw, 200px);
+    padding: 1.15em .5em .3em;
+  }
+  html .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong {
+    font-size: clamp(13px, 2vw, 18px);
+    gap: .35em;
+    padding: .12em .6em;
+    border-radius: 1em;
+    background: #fff8e6;
+    border: 1px solid #b7a37e;
+    color: #2f3a26;
+  }
+  html .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label .habitat-name {
+    display: inline;
+    font: 700 1em/1.1 Georgia, serif;
+  }
+  html .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong > b {
+    font-size: 1em;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  html .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small {
+    font-size: clamp(12px, 1.75vw, 16px);
+    line-height: 1.2;
+    color: #3f3a2c;
+    text-wrap: balance;
   }
 }

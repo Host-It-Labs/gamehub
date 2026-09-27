@@ -41,7 +41,8 @@ export default function Equation({
   const [typed, setTyped] = useState('');
   const [toast, say] = useToast();
   const [shake, fireShake] = usePulse();
-  const fresh = useFresh(view.guesses.length);
+  // Long enough for the winning row's flip and bounce to finish.
+  const fresh = useFresh(view.guesses.length, 3400);
   const grades = keyGrades(view.guesses);
   const L = view.length;
   const won = !!view.guesses.at(-1)?.marks.every((m) => m === 2);
@@ -122,6 +123,20 @@ export default function Equation({
         }
       >
         {rows}
+        {!done && (
+          // The typing point: steps along as you type, returns on Enter.
+          <i
+            className="fk-equation-caret"
+            aria-hidden="true"
+            data-full={typed.length >= L || undefined}
+            style={
+              {
+                '--c': Math.min(typed.length, L - 1),
+                '--r': view.guesses.length,
+              } as React.CSSProperties
+            }
+          />
+        )}
       </div>
       {lost && view.answer && (
         <p className="fk-answer fk-equation-answer">

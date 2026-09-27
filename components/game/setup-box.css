@@ -713,7 +713,17 @@
   position: relative;
   display: flex;
   gap: 10px;
-  align-items: stretch;
+  align-items: center;
+}
+.modal.setup-modal
+  .setup-actions
+  > :is(.setup-learn, .resume-strip, .run-picker) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.setup-actions > .run-picker > .resume-strip {
+  flex: 1;
+  min-width: 0;
 }
 .modal.setup-modal .setup-learn,
 .modal.setup-modal .play-plate,
@@ -751,7 +761,8 @@
   opacity: 0.5;
 }
 .modal.setup-modal .play-plate {
-  flex: 1;
+  flex: 2;
+  min-height: 60px;
   min-width: 0;
   display: inline-flex;
   align-items: center;
@@ -810,10 +821,15 @@
   text-decoration: none;
   cursor: pointer;
 }
+.modal.setup-modal .resume-strip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 .modal.setup-modal .resume-strip:hover {
   border-color: var(--accent);
 }
 .resume-copy {
+  min-width: 0;
   display: grid;
   gap: 2px;
 }
@@ -1147,6 +1163,7 @@
     font-size: 14px;
   }
   .modal.setup-modal .play-plate {
+    min-height: 54px;
     font-size: 17px;
   }
   .modal.setup-modal .resume-strip {

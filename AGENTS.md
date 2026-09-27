@@ -17,6 +17,15 @@ The browser/touch/viewport checks required elsewhere in this file apply to
 medium and large tasks. For small tasks, say plainly that browser QA was
 skipped by size rather than implying it was done.
 
+# Local development audio
+
+All agents must mute every browser tab used to open the local website for
+development, previews or testing. Mute the tab before interacting with the
+site and keep it muted throughout the session, including after reloads and
+navigation. Apply this to each new tab as well. Use the browser's tab or site
+mute control; do not change the application's audio defaults or the system
+volume to satisfy this rule.
+
 # Docker image and release build time
 
 The release image is built for linux/amd64 and linux/arm64 on GitHub's amd64
@@ -44,7 +53,7 @@ releases have happened several times; keep the image job to a few minutes.
 
 Applies to every game, every game family, solo and online, practice and live play:
 
-- Top left contains only the back/return control and game name. Menu, Others, time/advance-time and fullscreen controls belong at the top right; on wide screens Others sits directly below Menu. On phones (≤600 px) every game uses one top bar, modelled on Mora: back on the left, the round pill in the centre, Others then Menu on the right, and the player badges in a row beneath (full names while they fit without sideways scrolling, the contracted badge otherwise, via `useBadgeFit`). Nox keeps its badges on the table seats. Nothing on the bar may clip a badge's corner marks (the placement die). The contract lives in `components/game/mobile-hud.css`; no game-specific reversal. Only show Others where there is something private to see (not Know Me or Quiz).
+- Top left contains only the back/return control and game name. For the table admin alone it holds only the Table button instead (`TableManager`, `components/game/table-manager.tsx`), in the back control's slot; the back control and name are hidden for the admin. It drops the table panel along the left side: the players (Make admin, a bot for an away seat), then Leave (the back control's own action), Back to lobby and Close table, the two ending actions asked once in place. Table settings never sit in the Menu, and nobody else sees them. Menu, Others, time/advance-time and fullscreen controls belong at the top right; on wide screens Others sits directly below Menu. On phones (≤600 px) every game uses one top bar, modelled on Mora: back on the left, the round pill in the centre, Others then Menu on the right, and the player badges in a row beneath (full names while they fit without sideways scrolling, the contracted badge otherwise, via `useBadgeFit`). Nox keeps its badges on the table seats. Arena is the exception by decision: its top bar holds only a back button (left) and the clock with the crown counts and a small pause button (right) that opens the shared menu; no name, badges or Menu label (see its DESIGN.md section). Nothing on the bar may clip a badge's corner marks (the placement die). The contract lives in `components/game/mobile-hud.css`; no game-specific reversal. Only show Others where there is something private to see (not Know Me or Quiz).
 - Phones are portrait only and play full screen where the browser allows it: `components/game/mobile-viewport.tsx` asks for fullscreen and a portrait lock on a tap while a game is open (or on a `data-starts-game` button), respects leaving fullscreen from the menu, and shows a rotate screen on landscape phones. Short landscape phone layouts are no longer a target.
 - Undo always has its own visible slot in the dock row directly above the hand; no menu, plate, extension or confirmation may cover it.
 - Treat the playing screen as one viewport. Strongly avoid whole-page scrolling to reach the board, choices, hand, confirmation or navigation. Reflow into columns or side rails, reduce decorative spacing and duplicate headings, and fit the active board before reducing readable text or touch targets. Never hide essential controls with overflow clipping to claim a fit.
@@ -58,23 +67,38 @@ Applies to every game, solo and online. Wait for players only when they lock in
 their own decision (a ranking, guess, pin, card or final submit). Never make
 every player confirm moving on to the next step, reveal or round. That single
 **Next** belongs to the table host, and the game waits for the host even when
-everyone has locked in. The table creator always hosts the table (sets up,
-starts and closes it). In the lobby they may pick another player to lead the
-next match only: that player presses Next during that one match, and the lead
-returns to the creator when it ends. While the leader is disconnected any
+everyone has locked in. The table admin hosts the table (sets up, starts and
+closes it): the creator, until they hand it over (Make admin), leave the lobby
+or stay away for thirty seconds; then the earliest joiner still here takes it
+for good, in every game, and a Folio run the table moved on to follows. In the
+lobby the admin may pick another player to lead the next match only: that
+player presses Next during that one match, and the lead returns to the admin
+when it ends. While the leader is disconnected any
 seated player may press Next. Bots never move the table on. See the
 23 September 2026 section of [docs/DESIGN.md](docs/DESIGN.md).
+In Folio the host alone plays the shared board. Everyone else plays on their
+own board, and each move they enter becomes a suggestion the whole crew sees
+under the board; the host plays it (tick) or turns it down (cross). See the
+26 September 2026 table admin section of the same file.
 Party games end each round, and each match, with a ten-second table vote
 (another round or finish; which party game next). A vote never waits on
 anyone: most votes wins and silence doesn't count. See the table-votes
 section of the same file.
 
-# Extension explanation UI
+# Game menus, saving and copy protection
 
-Required for every new or changed extension explanation:
+- Every game's menu is the shared `GameMenu` (`components/game/game-menu.tsx`): a panel that drops down from the Menu button at the top right, along the side of the screen, never a modal over the table. Its order is fixed: Resume (only where the game pauses, Arena), How to play, the game's own entries, sound switches inline (never a separate sound window), Fullscreen where the browser supports it, extra content (stats), then Leave. Table settings are the Table button's, never the menu's. Games tint it with a `theme`; they do not build their own menu. `GameNavigation` renders it from its `menu` prop.
+- There is no Confirm moves setting and no Advanced view: a tapped or dropped card plays at once. Only Nox passing and Secret Salvage keep their lock plate beside the hand. Do not bring either setting back.
+- Leaving a game that keeps your progress (saved board-game matches, online matches, Folio runs) opens the shared `LeaveDialog` (`components/game/leave-dialog.tsx`, with `useLeaveDialog`): a check mark, the question, one line saying the game is already saved, then **Leave** above **Keep playing**. The buttons never swap, solo or online; rarer actions such as the host's End for everyone go beneath them. Leave waits for anything still in flight. There is no saving animation. Lucky leaves directly once its scratches have landed.
+- Nothing on the site can be selected or copied, on any device (`app/globals.css` and `components/game/copy-guard.tsx`): no text selection, copy shortcut, long-press callout, context menu or image drag. Fields you type into are the only exception. Share links through copy buttons (`navigator.clipboard`).
 
-- Use `RuleExplanation` from `components/game/extension-rules.tsx` for overview rules and individual ability or goal inspections. Customer Orders in `components/game/yatai-festival.tsx` is the reference.
-- Put the requirement or action the player must understand in the shared purple callout; rewards belong in the supporting text. Keep the shared purple outcome callout, short paragraphs with bold action labels, and a separated secondary note for limits. Use the shared typography and spacing in `app/globals.css`; do not introduce per-extension text sizes, plain unstructured rule blocks, or alternate callout styles.
+# Rules and explanation UI
+
+Required for every How to play, rule inspection and extension explanation, in every game:
+
+- Arena's How to play (`components/game/arena/arena-rules.tsx`) is the model for wording and presentation. Build rules only from `Rules`, `RuleSection` and `RuleList` in `components/game/rules.tsx`: a few short sections, each a two-to-four word heading and one or two short paragraphs with the key words in bold; limits and exceptions in the section's single purple note; reference lists (cards, dishes, habitats, books, puzzles) as a compact `RuleList`. Goal first, then what you do, scoring, how it ends.
+- Write plainly: short everyday words, second person, present tense, no filler, each thing said once, only the one gesture a player needs; keyboard shortcuts go in a note. Every number must match the engine.
+- Games tint rules only through the `--rules-*` tokens (`app/globals.css`); do not introduce per-game text sizes, alternate callouts or unstructured rule blocks.
 - Reuse the same rule components in setup, match help, and inspections. Make changes to the shared component/styles when the visual standard changes.
 - Setup extension explanations use a separate, larger modal above setup, opened by long-press, keyboard inspection, or Rules. Keep setup selections intact, restore focus on close, and constrain the modal to the viewport with internal vertical scrolling.
 - Keep extension controls compact and graphical; on-board overlays must not cover placement slots or add board height. Content sets and extensions are independent, so rules and art must resolve through the current content set.
@@ -86,8 +110,8 @@ Required for every new or changed extension explanation:
 - Required naming rule: game names must be short, simple to read aloud, and reasonably easy to pronounce for non-English speakers across languages. Prefer clear syllables; avoid English-dependent puns, opaque compounds and difficult consonant clusters. Treat proposed names as provisional until chosen; do not rename running games during concept-only work.
 - Abstract strategy games (Nox, Mora, Yata) take short abstract names. Party and less abstract games (Know Me, Quiz) take plain, literal names that say what the game is; never an invented word.
 - The previous names, themes and artwork are not design constraints. Invent names and imagery consistent with the documented worlds; preserve gameplay and scoring identity unless a rule change is requested.
-- Give every game a strongly distinct visual identity, including materials, typography, palette, illustration and presentation; palette swaps of one shared skin are insufficient. Keep Blackwake’s approved printmaking direction. The library is a warm, neutral home for these distinct worlds. Review generated images and delegate image generation. Each Elsewild environment has its own geography and slot coordinates; match environment scale to readable creatures.
-- Each extension adds one mechanic and is independently selectable. Setup has one Extensions heading, compact graphic tiles, and an information control on each tile. Rules use the shared modal and RuleExplanation.
+- Give every game a strongly distinct visual identity, including materials, typography, palette, illustration and presentation; palette swaps of one shared skin are insufficient. Keep Nox’s approved flat treasure-map poster direction (the Chart, 26 September 2026). The library is a warm, neutral home for these distinct worlds. Review generated images and delegate image generation. Each Elsewild environment has its own geography and slot coordinates; match environment scale to readable creatures.
+- Each extension adds one mechanic and is independently selectable. Setup has one Extensions heading, compact graphic tiles, and an information control on each tile. Rules use the shared modal and the shared rules pieces (`components/game/rules.tsx`).
 - Put turn/waiting states beside the top players, confirmations beside the hand, and prominent graphical actions near the hand. Never restore the bottom status strip.
 - Respect reduced motion and mute. Validate hidden simultaneous decisions and atomic moves in solo and online play; report browser/touch checks separately.
 - **Hard rule: no noise text in the playing layout, in every game.** No eyebrows, subtitles, taglines, duplicate game titles, or helper and status sentences. The board, buttons, avatars, dots and images carry the state. Keep only content (prompts, clues, answer labels), names, scores and one short word per action; explanations go in Rules. When in doubt, cut the text.
@@ -133,4 +157,4 @@ Before creating or changing a game's illustrated board, responsive scene framing
 
 ## Shared game progress
 
-Games with a fixed number of rounds (Nox, Mora, Yata, Folio) show the round as a pill centred at the top of the screen, on its own plate so it reads over the artwork: `<GameProgress round>` from `components/game/game-progress.tsx` (or `round` on `GameNavigation`). On wide screens it hangs just beneath the centred player badges; on phones it sits in the centre of the top bar. Games whose length changes as they go (Know Me, Quiz) show no round count. Other progress (Lucky's tally) stays small beneath the back control. Never put progress in a bottom action panel. Atlas does not show a medium/hard badge. Know Me (Top Five and Dial) and Quiz (Atlas and Sizes) require human players in every seat; no solo bot matches, bot-filled online seats, or bot replacements.
+Games with a fixed number of rounds (Nox, Mora, Yata, Folio) show the round as a pill centred at the top of the screen, on its own plate so it reads over the artwork: `<GameProgress round>` from `components/game/game-progress.tsx` (or `round` on `GameNavigation`). On wide screens it hangs just beneath the centred player badges; on phones it sits in the centre of the top bar. Folio is the exception by decision (26 September 2026): on every screen its pill sits in the centre of the top bar with the crew and hearts beneath it, the phone layout. Games whose length changes as they go (Know Me, Quiz) show no round count. Other progress (Lucky's tally) stays small beneath the back control. Never put progress in a bottom action panel. Atlas does not show a medium/hard badge. Know Me (Top Five and Dial) and Quiz (Atlas and Sizes) require human players in every seat; no solo bot matches, bot-filled online seats, or bot replacements.

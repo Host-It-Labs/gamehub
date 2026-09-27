@@ -1,6 +1,6 @@
 'use client';
 import { useId, useRef, useState, type PointerEvent } from 'react';
-import { Check, LoaderCircle, LockKeyhole, Send } from 'lucide-react';
+import { Check, LockKeyhole, Send } from 'lucide-react';
 import type { AnyMove } from '@/lib/games/standalone/registry';
 import { bands, clueLimit, type DialGame } from '@/lib/games/party/dial';
 import { spectrums } from '@/lib/games/party/spectrums';
@@ -55,12 +55,16 @@ function Dial({
   waiting?: boolean;
 }) {
   const svg = useRef<SVGSVGElement>(null),
-    dragging = useRef(false),
+    dragging = useRef<number | null>(null),
     id = useId().replace(/:/g, '');
   function valueAt(e: PointerEvent<SVGSVGElement>) {
-    const box = svg.current!.getBoundingClientRect(),
-      x = ((e.clientX - box.left) / box.width) * 428 - 14,
-      y = ((e.clientY - box.top) / box.height) * 260 - 40;
+    const matrix = svg.current!.getScreenCTM();
+    if (!matrix) return null;
+    const { x, y } = new DOMPoint(e.clientX, e.clientY).matrixTransform(
+      matrix.inverse(),
+    );
+    // Blank space below the hub is never part of the dial, even on release.
+    if (y > CY + 16) return null;
     const a = Math.atan2(Math.max(0, CY - y), x - CX);
     return Math.round(Math.min(100, Math.max(0, 100 * (1 - a / Math.PI))));
   }
@@ -83,18 +87,31 @@ function Dial({
         // The slider and the score chips carry the same information accessibly.
         aria-hidden="true"
         onPointerDown={(e) => {
-          if (!live) return;
-          dragging.current = true;
+          if (!live || dragging.current !== null || e.button !== 0) return;
+          const value = valueAt(e);
+          if (value === null) return;
+          dragging.current = e.pointerId;
           e.currentTarget.setPointerCapture(e.pointerId);
-          onTurn!(valueAt(e));
+          onTurn!(value);
         }}
         onPointerMove={(e) => {
-          if (live && dragging.current) onTurn!(valueAt(e));
+          if (!live || dragging.current !== e.pointerId) return;
+          const value = valueAt(e);
+          if (value !== null) onTurn!(value);
         }}
         onPointerUp={(e) => {
-          if (!live || !dragging.current) return;
-          dragging.current = false;
-          onSettle?.(valueAt(e));
+          if (dragging.current !== e.pointerId) return;
+          dragging.current = null;
+          if (e.currentTarget.hasPointerCapture(e.pointerId))
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          const value = valueAt(e);
+          if (live && value !== null) onSettle?.(value);
+        }}
+        onPointerCancel={() => {
+          dragging.current = null;
+        }}
+        onLostPointerCapture={() => {
+          dragging.current = null;
         }}
       >
         <defs>
@@ -248,19 +265,25 @@ export function DialTable({
   canAdvance: boolean;
   hostName?: string;
 }) {
-  const giver = g.target === viewer,
-    card = g.card === null ? null : spectrums[g.card],
+  const writing = g.phase === 'clue',
+    own = g.cards[viewer],
+    // While everyone writes, you see your own spectrum; then the one being read.
+    shown = writing ? own : g.cards[g.target],
+    author = writing ? viewer : g.target,
+    giver = author === viewer,
+    card = shown && shown.card >= 0 ? spectrums[shown.card] : null,
     mine = g.guesses[viewer],
-    locked = !!mine?.locked;
+    written = writing && !!own?.locked,
+    locked = writing ? written : !!mine?.locked;
   const [draft, setDraft] = useState({ key: '', text: '' }),
     [turning, setTurning] = useState<{ key: string; value: number } | null>(
       null,
     );
   const key = `${g.round}:${g.target}`,
     value = turning?.key === key ? turning.value : (mine?.value ?? 50),
-    // The draft survives switching spectrums, not the next clue-giver's turn.
-    clue = draft.key === key ? draft.text : '';
-  const author = g.seats[g.target];
+    // The draft survives switching spectrums and unlocking, not the next round.
+    clue = draft.key === `${g.round}` ? draft.text : (own?.clue ?? '');
+  const name = g.seats[author];
   function settle(v: number) {
     setTurning({ key, value: v });
     commit({ type: 'dial', value: v });
@@ -268,7 +291,8 @@ export function DialTable({
   const others = g.seats.length - 1,
     lockedCount = g.guesses.filter(
       (b, s) => s !== g.target && b?.locked,
-    ).length;
+    ).length,
+    writtenCount = g.cards.filter((c) => c.locked).length;
   return (
     <section
       className={`dial-stage phase-${g.phase} ${giver ? 'is-giver' : ''}`}
@@ -276,16 +300,16 @@ export function DialTable({
       <div
         className="dial-top"
         data-game-motion="change"
-        data-game-motion-key={`${g.card}:${g.phase}`}
+        data-game-motion-key={`${shown?.card}:${g.phase}:${g.target}`}
       >
-        {g.phase === 'clue' && giver && g.offers.length > 1 && (
+        {writing && !written && own && own.offers.length > 1 && (
           <fieldset className="dial-switch" aria-label="Spectrum">
-            {g.offers.map((id) => (
+            {own.offers.map((id) => (
               <button
                 key={id}
                 type="button"
-                className={g.card === id ? 'chosen' : ''}
-                aria-pressed={g.card === id}
+                className={own.card === id ? 'chosen' : ''}
+                aria-pressed={own.card === id}
                 disabled={disabled}
                 onClick={() => commit({ type: 'card', target: id })}
               >
@@ -296,28 +320,12 @@ export function DialTable({
             ))}
           </fieldset>
         )}
-        {g.phase === 'clue' && !giver && (
-          <p className="dial-thinking">
-            <span className={`party-avatar seat-${g.target}`}>
-              {author.slice(0, 1)}
-            </span>
-            <LoaderCircle
-              className="party-action-spinner"
-              size={18}
-              aria-hidden="true"
-            />
-            <span className="sr-only">{author} is choosing a clue</span>
-          </p>
-        )}
-        {g.phase !== 'clue' && (
+        {(!writing || written) && shown?.clue && (
           <p className="dial-clue" aria-live="polite">
-            <span
-              className={`party-avatar seat-${g.target}`}
-              aria-hidden="true"
-            >
-              {author.slice(0, 1)}
+            <span className={`party-avatar seat-${author}`} aria-hidden="true">
+              {name.slice(0, 1)}
             </span>
-            <q aria-label={`${author}’s clue: ${g.clue}`}>{g.clue}</q>
+            <q aria-label={`${name}’s clue: ${shown.clue}`}>{shown.clue}</q>
           </p>
         )}
       </div>
@@ -325,7 +333,7 @@ export function DialTable({
         left={card?.left ?? null}
         right={card?.right ?? null}
         waiting={!card}
-        point={g.point >= 0 ? g.point : null}
+        point={shown && shown.point >= 0 ? shown.point : null}
         needle={g.phase === 'guess' && !giver ? value : null}
         needles={
           g.phase === 'reveal' && g.result
@@ -409,7 +417,7 @@ export function DialTable({
         data-game-motion="change"
         data-game-motion-key={`${g.phase}:${locked}`}
       >
-        {g.phase === 'clue' && giver && (
+        {writing && !written && (
           <form
             className="dial-clue-form"
             onSubmit={(e) => {
@@ -423,19 +431,20 @@ export function DialTable({
               disabled={disabled || !card}
               placeholder="Your clue"
               aria-label="Your clue"
-              onChange={(e) => setDraft({ key, text: e.target.value })}
+              onChange={(e) =>
+                setDraft({ key: `${g.round}`, text: e.target.value })
+              }
             />
             <button
               className="party-primary"
               disabled={disabled || !card || !clue.trim()}
-              aria-label="Give clue"
+              aria-label="Lock your clue"
             >
               <Send size={18} aria-hidden="true" />
             </button>
           </form>
         )}
-        {g.phase === 'guess' &&
-          !giver &&
+        {((writing && written) || (g.phase === 'guess' && !giver)) &&
           (locked ? (
             <button
               className="party-locked"
@@ -455,6 +464,16 @@ export function DialTable({
               Lock
             </button>
           ))}
+        {writing && (
+          <span
+            className="party-lock-count"
+            aria-label={`${writtenCount} of ${g.seats.length} clues locked`}
+          >
+            {g.cards.map((c, s) => (
+              <i key={s} className={c.locked ? 'is-locked' : ''} />
+            ))}
+          </span>
+        )}
         {g.phase === 'guess' && giver && (
           <span
             className="party-lock-count"

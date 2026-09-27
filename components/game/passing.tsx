@@ -126,9 +126,9 @@ export function Passing({ g, viewer = 0 }: { g: PublicGame; viewer?: number }) {
           </svg>
           <p>
             {g.id === 'undertow'
-              ? 'Pass your selected cards'
-              : 'Pass your remaining hand'}{' '}
-            to <b>{g.players[to].name}</b>.
+              ? 'The cards you pass go to'
+              : 'After each pick, your hand goes to'}{' '}
+            <b>{g.players[to].name}</b>.
           </p>
         </PopoverContent>
       </Popover>

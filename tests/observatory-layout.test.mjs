@@ -99,7 +99,7 @@ await test('accepted Floodline artwork and pad geometry are the same revision', 
     const art = paperWorldFor(tall, undefined, 'floodline');
     // Three rounds of six need room: 5 + 5 + 3 + 4 + 4 + 2 spaces.
     assert.deepEqual([0, 1, 2, 3, 4, 6].map(zone => art.habitats.find(h => h.zone === zone).slots.length), [5, 5, 3, 4, 4, 2]);
-    assert.match(art.source, /overgrown-floodline-(landscape-v3-b|portrait-v3-f-tall)/);
-    assert.match(art.boardImage, /overgrown-floodline-(landscape-v3-b|portrait-v3-f-tall)-board/);
+    assert.match(art.source, /(overgrown-floodline-landscape-v3-b|phone-floodline-v4-f-tall)/);
+    assert.match(art.boardImage, /(overgrown-floodline-landscape-v3-b|phone-floodline-v4-f-tall)-board/);
   }
 });

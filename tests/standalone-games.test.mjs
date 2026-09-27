@@ -183,6 +183,7 @@ await test('every box shows its match length on the time badge', () => {
     miro: '5–60 min+',
     folio: '5–60 min+',
     relic: '60 min+',
+    arena: '5 min',
   });
   for (const game of libraryGames) {
     assert.doesNotMatch(game.duration, /\bh\b/, `${game.id} counts minutes`);

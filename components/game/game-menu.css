@@ -1,0 +1,228 @@
+/* The shared game menu (`game-menu.tsx`): a panel that drops down from the
+   Menu button along the right side and leaves the table in view. Every game
+   uses the same rows, order and motion; worlds only change the tokens. */
+/* The tokens are shared with the table admin's Table button
+   (table-manager.css), so both carry the game's world. */
+:is(.game-menu, .table-manager-trigger) {
+  --menu-bg: #fffaf2;
+  --menu-ink: #2e2433;
+  --menu-muted: #6f6475;
+  --menu-line: #e6dac8;
+  --menu-hover: #f2e7d7;
+  --menu-icon: #7b5aa6;
+  --menu-radius: 16px;
+  --menu-font: inherit;
+  --menu-shadow: 0 18px 48px #2a1d1233, 0 2px 6px #2a1d121f;
+  --menu-border: 1px solid var(--menu-line);
+}
+.game-menu {
+  display: grid;
+  gap: 0;
+  width: 264px;
+  max-width: calc(100vw - 20px);
+  max-height: calc(100dvh - 76px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border: var(--menu-border);
+  border-radius: var(--menu-radius);
+  background: var(--menu-bg);
+  color: var(--menu-ink);
+  box-shadow: var(--menu-shadow);
+  font-family: var(--menu-font);
+  font-size: 14px;
+  transform-origin: var(--transform-origin, top right);
+}
+.game-menu[data-open] {
+  animation: game-menu-drop 190ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+.game-menu[data-closed] {
+  animation: game-menu-lift 120ms ease-in forwards;
+}
+@keyframes game-menu-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(0.92);
+  }
+}
+@keyframes game-menu-lift {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-menu[data-open],
+  .game-menu[data-closed] {
+    animation: none;
+  }
+}
+.game-menu-group {
+  display: grid;
+  gap: 1px;
+  padding: 4px 0;
+}
+.game-menu-group + .game-menu-group {
+  border-top: 1px solid var(--menu-line);
+}
+.game-menu-group:empty {
+  display: none;
+}
+.game-menu-group > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: calc(var(--menu-radius) - 6px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  box-shadow: none;
+}
+.game-menu-group > button:hover:not(:disabled),
+.game-menu-group > button:focus-visible {
+  background: var(--menu-hover);
+  outline: none;
+}
+.game-menu-group > button[aria-pressed='true'] {
+  background: var(--menu-hover);
+}
+.game-menu-group > button > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--menu-icon);
+}
+.game-menu-leave {
+  color: var(--menu-muted) !important;
+}
+.game-menu-message {
+  display: block;
+  padding: 2px 12px 6px;
+  color: var(--menu-muted);
+  font-size: 12px;
+}
+/* Sound switches sit inline as ordinary rows. */
+.game-menu-sound .sound-settings {
+  gap: 1px;
+  padding: 0;
+}
+.game-menu-sound .sound-toggle {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: calc(var(--menu-radius) - 6px);
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+}
+.game-menu-sound .sound-toggle > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--menu-icon);
+  opacity: 1;
+}
+.game-menu-sound [data-slot='switch'][data-checked] {
+  background: var(--menu-icon);
+}
+.game-menu-sound .sound-lab-link {
+  padding: 8px 12px 4px;
+  color: var(--menu-muted);
+  font-size: 12px;
+}
+.game-menu-extra > p {
+  padding: 4px 12px;
+}
+
+/* Know Me and Quiz keep the plain paper on their bright stages
+   (theme 'party'); anything without a theme follows site dark mode. */
+:where(.dark) :is(.game-menu, .table-manager-trigger):not([data-menu-theme]) {
+  --menu-bg: #231e1b;
+  --menu-ink: #f3ece2;
+  --menu-muted: #b9ada1;
+  --menu-line: #3d342d;
+  --menu-hover: #312a24;
+  --menu-icon: #c7a8ff;
+  --menu-shadow: 0 18px 48px #0009;
+}
+
+/* Worlds */
+:is(.game-menu, .table-manager-trigger)[data-menu-theme='nox'] {
+  --menu-bg: #03111ff7;
+  --menu-ink: #f8ecd2;
+  --menu-muted: #c9b58c;
+  --menu-line: #f4ddb040;
+  --menu-hover: #08546d;
+  --menu-icon: #da3431;
+  --menu-radius: 18px;
+  --menu-font: Futura, 'Futura PT', Jost, 'Century Gothic', 'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
+  --menu-border: 2px solid #f4ddb0;
+  --menu-shadow: 6px 8px 0 #01091299;
+}
+:is(.game-menu, .table-manager-trigger)[data-menu-theme='yata'] {
+  --menu-bg: #fff6e2;
+  --menu-ink: #1d1a1f;
+  --menu-muted: #4f4646;
+  --menu-line: #1d1a1f33;
+  --menu-hover: #ffe3a3;
+  --menu-icon: #1d1a1f;
+  --menu-radius: 14px;
+  --menu-border: 3px solid #1d1a1f;
+  --menu-shadow: 0 5px 0 #1d1a1f, 0 18px 36px #0006;
+}
+.game-menu[data-menu-theme='yata']
+  :is(.game-menu-group > button, .sound-toggle) {
+  font-weight: 800;
+}
+:is(.game-menu, .table-manager-trigger)[data-menu-theme='mora'] {
+  --menu-bg: #fbf6ea;
+  --menu-ink: #2f3a2c;
+  --menu-muted: #6b725f;
+  --menu-line: #d9d0b8;
+  --menu-hover: #efe7d2;
+  --menu-icon: #5b7a3e;
+  --menu-shadow: 0 2px 0 #cfc3a4, 0 16px 36px #3b33204a;
+}
+:is(.game-menu, .table-manager-trigger)[data-menu-theme='folio'] {
+  --menu-bg: #fffaf0;
+  --menu-ink: #193d79;
+  --menu-muted: #193d79b3;
+  --menu-line: #193d7926;
+  --menu-hover: #f3e2a480;
+  --menu-icon: #c5472c;
+  --menu-font: var(--font-sans), Arial, sans-serif;
+  --menu-shadow: 0 2px 0 #193d7926, 0 16px 36px #193d7933;
+}
+:is(.game-menu, .table-manager-trigger)[data-menu-theme='lucky'] {
+  --menu-bg: radial-gradient(ellipse at top, #2c5442, #15392f 80%);
+  --menu-ink: #e9ddbd;
+  --menu-muted: #b8c2a3;
+  --menu-line: #a9b69238;
+  --menu-hover: #afc39c1f;
+  --menu-icon: #e0c089;
+  --menu-border: 1px solid #a9b69270;
+  --menu-shadow: 0 20px 56px #03140dcc;
+}
+:is(.game-menu, .table-manager-trigger)[data-menu-theme='arena'] {
+  --menu-bg: linear-gradient(180deg, #2a3346, #141a28);
+  --menu-ink: #fff6e3;
+  --menu-muted: #fff6e3a8;
+  --menu-line: #d6ad6247;
+  --menu-hover: #ffffff14;
+  --menu-icon: #ffe2a0;
+  --menu-border: 1px solid #d6ad62b3;
+  --menu-shadow: 0 20px 56px #000c;
+}
+
+/* Lucky's running totals sit in its menu. */
+.game-menu .scratch-menu-stats {
+  gap: 10px;
+  padding: 6px 12px 10px;
+}
+.game-menu .scratch-menu-stats b {
+  font-size: 20px;
+}

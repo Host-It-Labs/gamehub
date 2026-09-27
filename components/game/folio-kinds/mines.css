@@ -48,6 +48,10 @@
   font-variant-numeric: tabular-nums;
   color: var(--folio-red);
 }
+/* A changed count is stamped afresh, its ghost impression settling in. */
+.fk-mines-count b.restamp {
+  animation: fk-mines-restamp 0.34s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
 .fk-mines-mode {
   display: inline-flex;
   border: 1.5px solid var(--folio-ink);
@@ -79,6 +83,7 @@
 
 .fk-mines-board {
   --fk-mines-gap: calc(var(--fk-mines-board) / var(--n) * 0.07);
+  position: relative;
   display: grid;
   grid-template-columns: repeat(var(--n), minmax(0, 1fr));
   grid-template-rows: repeat(var(--n), minmax(0, 1fr));
@@ -128,9 +133,17 @@
   height: 72%;
   pointer-events: none;
 }
-/* Hidden squares: raised paper tiles. */
+/*
+ * Hidden squares: raised paper tiles whose shaded corner is printed as a
+ * halftone, like a newspaper puzzle grid.
+ */
 .fk-mines .fk-mines-cell.hid {
-  background: linear-gradient(160deg, #fffdf6, var(--folio-card) 55%, #f7ecce);
+  --fk-mines-dot: calc(var(--fk-mines-board) / var(--n) / 9);
+  background:
+    linear-gradient(160deg, #fffdf6, var(--folio-card) 48%, #fffaf000 82%),
+    radial-gradient(circle, #193d7921 24%, #193d7900 32%) 0 0 /
+      var(--fk-mines-dot) var(--fk-mines-dot),
+    #f7ecce;
   box-shadow:
     inset 0 1px 0 #ffffff,
     inset 0 -1.5px 0 #193d7924,
@@ -257,6 +270,14 @@
 .fk-mines-flag.plant {
   animation: fk-mines-plant 0.5s ease both;
 }
+/* The paper pennant catches the air once as it lands. */
+.fk-mines-pennant {
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+}
+.fk-mines-flag.plant .fk-mines-pennant {
+  animation: fk-mines-flutter 0.46s ease-out 0.2s both;
+}
 .won .fk-mines-flag.bloom {
   animation: fk-mines-bloom 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) both;
   animation-delay: var(--d);
@@ -272,6 +293,35 @@
 }
 .lost .fk-mines-board {
   animation: fk-mines-shake 0.45s ease 0.05s;
+}
+/* A cascade leaves one faint ring of ink spreading from where it began. */
+.fk-mines-inkwash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.fk-mines-inkwash i {
+  position: absolute;
+  left: calc((var(--x) + 0.5) * 100% / var(--n));
+  top: calc((var(--y) + 0.5) * 100% / var(--n));
+  width: calc(var(--fk-mines-board) / var(--n) * (var(--r) * 2 + 1.6));
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  /* A crisp leading edge with a soft wash behind it, like wet ink. */
+  background: radial-gradient(
+    closest-side,
+    #193d7900 52%,
+    #193d7912 68%,
+    #193d793d 81%,
+    #193d7900 85%
+  );
+  opacity: 0;
+  animation: fk-mines-inkwash var(--t, 600ms) cubic-bezier(0.3, 0.55, 0.5, 1)
+    both;
 }
 
 @keyframes fk-mines-pop {
@@ -305,6 +355,43 @@
   }
   100% {
     transform: none;
+  }
+}
+@keyframes fk-mines-flutter {
+  0%,
+  100% {
+    transform: none;
+  }
+  28% {
+    transform: scaleX(0.72) skewY(-9deg);
+  }
+  55% {
+    transform: scaleX(1.06) skewY(4deg);
+  }
+  80% {
+    transform: scaleX(0.95) skewY(-1.5deg);
+  }
+}
+@keyframes fk-mines-inkwash {
+  0% {
+    transform: scale(0.12);
+    opacity: 0.95;
+  }
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+@keyframes fk-mines-restamp {
+  0% {
+    transform: scale(1.4) rotate(-7deg);
+    opacity: 0.35;
+    text-shadow: 3px 2px 0 #193d7955;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+    text-shadow: 0 0 0 #193d7900;
   }
 }
 @keyframes fk-mines-bloom {
@@ -399,7 +486,8 @@
   .fk-mines *::after {
     animation: none !important;
   }
-  .fk-mines-cell.boom::before {
+  .fk-mines-cell.boom::before,
+  .fk-mines-inkwash {
     display: none;
   }
 }

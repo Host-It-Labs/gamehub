@@ -1,0 +1,311 @@
+/* Others (Mora and Yata, 26 September 2026): one inspection of every opponent.
+   The passing loop runs along the top, then the mats follow in the order the
+   cards travel, two to a row on phones and up to three on wide screens. Each
+   mat is drawn the way this screen draws the viewer's own board. */
+
+/* ---- The Others control: the same island as Menu in each world ---- */
+html .at-table .table-layout.world-table .table-others-slot .table-board-chip,
+html .at-table .table-layout.world-table .table-others-slot .table-board-button:is(:hover, :active, :focus-visible) .table-board-chip {
+  height: auto; min-width: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; transform: none;
+  color: inherit; font: inherit;
+}
+html .at-table .table-layout.world-table .table-others-slot .table-board-button {
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+html .at-table .table-layout.world-table[data-environment='observatory'] .table-others-slot .table-board-button {
+  color: #293726; background: #f8f2e5f2; border: 1px solid #9caa86; border-radius: 18px; box-shadow: 0 2px 5px #23352c30;
+  font-family: inherit; font-size: 12px; font-weight: 400;
+}
+html .at-table .table-layout.world-table[data-environment='market'] .table-others-slot .table-board-button {
+  color: #1d1a1f; background: #fff6e2; border: 3px solid #1d1a1f; border-radius: 12px; box-shadow: 0 3px 0 #1d1a1f;
+  font-size: 12px; font-weight: 800;
+}
+/* Hover lifts the whole island a touch; nothing lights up behind the word. */
+@media (hover: hover) {
+  html .at-table .table-layout.world-table[data-environment='observatory'] .table-others-slot .table-board-button:hover {
+    transform: translateY(-1px); box-shadow: 0 4px 9px #23352c3d;
+  }
+  html .at-table .table-layout.world-table[data-environment='market'] .table-others-slot .table-board-button:hover {
+    transform: translateY(-1px); box-shadow: 0 4px 0 #1d1a1f;
+  }
+}
+html .at-table .table-layout.world-table[data-environment='observatory'] .table-others-slot .table-board-button:active { transform: translateY(1px); box-shadow: 0 1px 2px #23352c30; }
+html .at-table .table-layout.world-table[data-environment='market'] .table-others-slot .table-board-button:active { transform: translateY(2px); box-shadow: 0 1px 0 #1d1a1f; }
+@media (prefers-reduced-motion: reduce) {
+  html .at-table .table-layout.world-table .table-others-slot .table-board-button { transition: none; }
+  html .at-table .table-layout.world-table .table-others-slot .table-board-button:is(:hover, :active) { transform: none; }
+}
+
+/* ---- The inspection ---- */
+.all-boards-modal[data-slot='dialog-content'] {
+  --others-gap: 16px;
+  --others-bg: #f0ecdf;
+  --others-ink: #293b32;
+  --others-muted: #5d6656;
+  --others-card: #fffdf5;
+  --others-line: #bbb9a6;
+  --others-accent: #37533f;
+  --others-accent-ink: #fff6df;
+  width: min(calc(100vw - 24px), 1480px);
+  max-width: none;
+  height: auto;
+  max-height: calc(100dvh - 24px);
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  background: var(--others-bg);
+  color: var(--others-ink);
+}
+.all-boards-modal[data-slot='dialog-content']:has(.seats-1) { width: min(calc(100vw - 24px), 760px); }
+.all-boards-modal[data-slot='dialog-content']:has(.seats-2) { width: min(calc(100vw - 24px), 1180px); }
+.all-boards-modal > [data-slot='dialog-close'] { top: 12px; right: 12px; z-index: 3; color: var(--others-ink); background: var(--others-card); }
+.others-panel { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; max-height: calc(100dvh - 24px); }
+
+/* The passing loop: along the row, then back to you underneath. */
+.passing-loop { --token: 64px; --link: 22px; --dot: 36px; display: flex; justify-content: center; min-width: 0; padding: 16px 76px 20px; }
+.passing-loop ol { position: relative; display: flex; align-items: flex-start; margin: 0; padding: 0 0 16px; list-style: none; }
+.passing-loop li { display: flex; align-items: flex-start; }
+.passing-seat {
+  width: var(--token); display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit;
+  cursor: pointer; font: inherit;
+}
+.passing-seat:disabled { cursor: default; opacity: 1; }
+.passing-seat .avatar {
+  position: relative; z-index: 1; width: var(--dot); height: var(--dot); border-radius: 50%; font-size: calc(var(--dot) * .42);
+  box-shadow: 0 0 0 2px var(--others-card), 0 2px 4px #0003; transition: transform .15s ease;
+}
+.passing-seat:not(:disabled):hover .avatar { transform: translateY(-2px); }
+.passing-seat:focus-visible { outline: none; }
+.passing-seat:focus-visible .avatar { outline: 3px solid var(--others-accent); outline-offset: 2px; }
+.passing-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; line-height: 1.2; }
+.passing-loop .is-you .avatar { background: var(--others-accent); color: var(--others-accent-ink); box-shadow: 0 0 0 2px var(--others-card), 0 0 0 4px var(--others-accent); }
+.passing-loop .is-you .passing-name { color: var(--others-accent); }
+.passing-arrow { flex: none; width: var(--link); height: 16px; margin-top: calc(var(--dot) / 2 - 8px); color: var(--others-muted); }
+.passing-loop ol::after {
+  content: ''; position: absolute; left: calc(var(--token) / 2); right: calc(var(--token) / 2); bottom: 0; height: 12px;
+  border: 2px solid var(--others-muted); border-top: 0; border-radius: 0 0 12px 12px; opacity: .55;
+}
+.passing-loop ol::before {
+  content: ''; position: absolute; left: calc(var(--token) / 2 - 5px); bottom: 11px; width: 0; height: 0; opacity: .8;
+  border-inline: 6px solid transparent; border-bottom: 7px solid var(--others-muted); transform: translateX(-0.5px);
+}
+
+/* The mats. */
+.others-grid {
+  --cols: 3;
+  display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); align-content: start; gap: var(--others-gap);
+  min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 20px 20px;
+}
+.others-grid:focus { outline: none; }
+.others-grid.seats-1 { --cols: 1; }
+.others-grid.seats-2 { --cols: 2; }
+@media (max-width: 1099px) { .others-grid:not(.seats-1) { --cols: 2; } }
+/* Mora's portrait maps are narrow: tablets held upright take three. */
+@media (orientation: portrait) and (min-width: 601px) {
+  .all-boards-modal[data-game='wildgrove'] .others-grid:not(.seats-1):not(.seats-2) { --cols: 3; }
+}
+.others-card {
+  display: grid; gap: 8px; align-content: start; min-width: 0; padding: 10px 12px 12px; scroll-margin: 12px;
+  background: var(--others-card); border: 1px solid var(--others-line); border-radius: 16px;
+}
+.others-card.is-selected { outline: 3px solid var(--others-accent); outline-offset: 2px; }
+.others-card-head { container: others-head / inline-size; min-width: 0; }
+.others-head-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'avatar name score' 'res res res';
+  align-items: center; gap: 6px 8px;
+}
+@container others-head (min-width: 620px) {
+  .others-head-row { grid-template-columns: auto minmax(0, max-content) minmax(0, 1fr) auto; grid-template-areas: 'avatar name res score'; }
+}
+.others-head-row > .avatar { grid-area: avatar; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; }
+.others-head-row > h3 { grid-area: name; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 1.2; }
+.others-score { grid-area: score; white-space: nowrap; font-size: 20px; line-height: 1; font-variant-numeric: tabular-nums; }
+.others-score small { font-size: 11px; font-weight: 700; opacity: .7; }
+.others-head-row > .player-resources { grid-area: res; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; margin: 0; }
+.others-head-row > .player-resources:empty { display: none; }
+@container others-head (min-width: 620px) {
+  .others-head-row > .player-resources { justify-content: center; }
+}
+
+/* Resources: small counters and the goals, never sentences. */
+.others-card .nature-reserves { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.others-card .nature-reserves > div {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 9px; border-radius: 14px;
+  font-size: 12px; font-weight: 700; border: 1px solid var(--others-line); background: #0000000a;
+}
+.others-card .nature-reserves dt { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.others-card .nature-reserves dd { margin: 0; font-weight: 800; }
+.others-card .sanctuary-goals { position: static; transform: none; display: flex; gap: 6px; padding: 0; margin: 0; background: none; border: 0; box-shadow: none; }
+.others-card .sanctuary-goal, .others-card .sanctuary-goal.piece { min-width: 0; width: auto; min-height: 0; padding: 0; }
+.others-card .sanctuary-goal strong { display: none; }
+.others-card .sanctuary-goal-medal { width: 28px; height: 28px; }
+.others-card .sanctuary-goal-medal > svg, .others-card .sanctuary-goal-creature { width: 20px; height: 20px; }
+.others-card .sanctuary-goal-reward { min-width: 16px; height: 14px; font-size: 9px; }
+.others-card .sanctuary-goal-count { font-size: 10px; }
+/* Yata: stall permits are the stall itself with the number left. */
+.stall-permits.stall-permits.stall-permits {
+  position: relative; min-height: 0; padding: 0; border: 0; background: none; gap: 0;
+}
+.stall-permits dt {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px;
+  background: #e0a52a; color: #1d1a1f; border: 2px solid #1d1a1f; box-shadow: 0 2px 0 #1d1a1f;
+}
+.stall-permits dd {
+  position: absolute; top: -6px; right: -7px; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 9px; background: #1d1a1f; color: #fff6e2; border: 2px solid #fff6e2; font-size: 11px; line-height: 1;
+}
+.stall-permits.spent dt { background: #d9d2c3; color: #6b6458; border-color: #6b6458; box-shadow: 0 2px 0 #6b6458; }
+.others-card .festival-preview-menus { display: flex; gap: 6px; margin: 0; }
+/* Yata, one row where it fits: permits first, then the chosen menus, then the seasons. */
+.all-boards-modal[data-game='midnight'] .others-card .player-resources > .nature-reserves { display: contents; }
+.all-boards-modal[data-game='midnight'] .others-card .player-resources .stall-permits { order: 1; }
+.all-boards-modal[data-game='midnight'] .others-card .player-resources > .festival-preview-menus { order: 2; }
+.all-boards-modal[data-game='midnight'] .others-card .player-resources .nature-reserves > div:not(.stall-permits) { order: 3; }
+
+/* ---- Worlds ---- */
+.all-boards-modal[data-game='wildgrove'] {
+  --others-bg: url('/art/optimized/mora-paper-fibers-v1.webp'), #efe6ce;
+  --others-card: #faf2dd;
+  --others-line: #9b8c69;
+  --others-muted: #6b6a52;
+}
+.all-boards-modal[data-game='wildgrove'] .others-card { border-style: dashed; border-radius: 5px 18px 5px 10px; box-shadow: 2px 4px 0 #bbaa85; }
+.all-boards-modal[data-game='wildgrove'] .others-head-row > h3,
+.all-boards-modal[data-game='wildgrove'] .passing-name,
+.all-boards-modal[data-game='wildgrove'] .others-score { font-family: Georgia, serif; }
+.all-boards-modal[data-game='wildgrove'] :is(.others-head-row, .passing-seat) .avatar { border: 1px dashed #71815d; background: #d8dec1; color: #304630; }
+.all-boards-modal[data-game='wildgrove'] .passing-loop .is-you .avatar { background: #37533f; color: #fff6df; border-style: solid; }
+.all-boards-modal[data-game='wildgrove'] .nature-reserves > div { border-style: dashed; background: #ede8d4; }
+
+/* The night market: lantern light over the canal, enamel cards with ink outlines. */
+.all-boards-modal[data-game='midnight'] {
+  --others-bg: radial-gradient(90% 60% at 50% -12%, #e8612f66, transparent 62%), radial-gradient(70% 50% at 100% 110%, #2554c740, transparent 70%), #13173a;
+  --others-ink: #fff6e2;
+  --others-muted: #f4d9a8;
+  --others-card: #fff6e2;
+  --others-line: #1d1a1f;
+  --others-accent: #e0a52a;
+  --others-accent-ink: #1d1a1f;
+}
+.all-boards-modal[data-game='midnight'] > [data-slot='dialog-close'] { color: #1d1a1f; border: 3px solid #1d1a1f; box-shadow: 0 3px 0 #1d1a1f; }
+.all-boards-modal[data-game='midnight'] .others-card { color: #1d1a1f; border: 3px solid #1d1a1f; border-radius: 16px; box-shadow: 0 5px 0 #1d1a1f, 0 14px 26px #0008; }
+.all-boards-modal[data-game='midnight'] .others-card.is-selected { outline-color: #e0a52a; }
+.all-boards-modal[data-game='midnight'] :is(.others-head-row, .passing-seat) .avatar { border: 2px solid #1d1a1f; }
+.all-boards-modal[data-game='midnight'] .passing-seat .avatar { box-shadow: 0 3px 0 #1d1a1f; }
+.all-boards-modal[data-game='midnight'] .passing-loop .is-you .avatar { box-shadow: 0 3px 0 #1d1a1f, 0 0 0 5px #e0a52a88; }
+.all-boards-modal[data-game='midnight'] .passing-loop .is-you .passing-name { color: #ffd46b; }
+.all-boards-modal[data-game='midnight'] .others-head-row > h3 { font-weight: 900; }
+.all-boards-modal[data-game='midnight'] .others-score { color: #d8342a; font-weight: 900; }
+.all-boards-modal[data-game='midnight'] .others-score small { color: #1d1a1f; }
+.all-boards-modal[data-game='midnight'] .nature-reserves > div:not(.stall-permits) { border: 2px solid #1d1a1f; background: #ffe9a3; color: #1d1a1f; }
+
+/* ---- Miniature Mora: the same board crop as the main board, labels cut to scores ---- */
+.others-card .mora-board.mini-board { width: 100%; max-width: 100%; height: auto; overflow: hidden; border-radius: 10px; }
+.mora-board.mini-board .mora-landscape { object-fit: fill; }
+.mora-board.mini-board .mora-ground-label { padding: .15em .45em; }
+.mora-board.mini-board .mora-ground-label .habitat-name { display: none; }
+.mora-board.mini-board .mora-ground-label > strong { font-size: clamp(9px, 3.4cqw, 12px); }
+.mora-board.mini-board .mora-ground-label > strong > b { font-size: inherit; }
+.mora-board.mini-board .mora-ground-label > strong > b > span { font-size: .8em; opacity: .75; }
+.mora-board.mini-board .mora-nest.occupied { transform: translate(-50%, -62%) scale(1.35); }
+
+/* ---- Miniature Yata: the counter cut to the table, plates as on the viewer's own counter ---- */
+.mini-market { position: relative; width: 100%; overflow: hidden; border-radius: 12px; }
+.mini-market-art { position: absolute; max-width: none; pointer-events: none; }
+.market-world.mini-market > .market-board.counter-board.mini-board {
+  inset: 0; width: 100%; height: 100%; min-height: 0; border-radius: 0; padding: 4% 3.5% 4.5%; gap: 6% 3%;
+}
+.mini-market .counter-board.mini-board .serving-dish {
+  border-width: 2px;
+  box-shadow: 0 0 0 3px var(--plate-ring), 0 0 0 4px #1d1a1f, 0 4px 0 4px #7a1410, 0 7px 8px #0008;
+}
+.mini-market .counter-board.mini-board .serving-dish > div { display: block; padding: 7% 10% 12%; }
+.mini-market .counter-board.mini-board .serving-dish strong { display: none; }
+.mini-market .counter-board.mini-board .dish-stack { height: 100%; min-height: 0; }
+.mini-market .counter-board.mini-board .stack-layer { --dish-spread: 4px; width: auto; height: 100%; max-width: 100%; aspect-ratio: 72 / 66; }
+.mini-market .counter-board.mini-board .collection-score {
+  position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); z-index: 11; margin: 0; padding: 0 6px;
+  white-space: nowrap; font-size: 10px; line-height: 14px; border-width: 1.5px;
+}
+.mini-market .counter-board.mini-board .quantity { top: 0; right: 4%; padding: 0 4px; font-size: 10px; line-height: 14px; border-width: 1.5px; }
+/* Where a stall opened: the stall sign, big enough to spot at a glance. */
+.mini-market .counter-board.mini-board .dish-permit {
+  top: -8%; left: -3%; right: auto; gap: 2px; padding: 2px 5px 2px 3px; border-radius: 8px; font-size: 12px; font-weight: 900; line-height: 1;
+}
+.mini-market .counter-board.mini-board .dish-permit svg { width: 20px; height: 20px; }
+.mini-market[data-paper-world='phone'] > .market-board.counter-board.mini-board { padding: 5% 4% 6%; gap: 0; }
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .serving-dish {
+  --cell: calc(min(100cqw / 3, 50cqh) - 6px);
+  box-shadow: 0 0 0 2px var(--plate-ring), 0 0 0 3px #1d1a1f, 0 3px 0 3px #7a1410, 0 5px 6px #0008;
+}
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .serving-dish > div { display: block; padding: 10%; }
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .stack-layer { width: calc(var(--cell) * .66); height: calc(var(--cell) * .66); aspect-ratio: auto; }
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .collection-score {
+  position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); z-index: 11; white-space: nowrap; font-size: 9px; line-height: 12px; padding: 0 4px;
+}
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .quantity { top: -2px; right: -2px; font-size: 9px; line-height: 12px; padding: 0 3px; }
+/* Phone plates are small: the stall sign sits on the rim, icon only, clear of the dish. */
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .dish-permit {
+  top: -7px; left: -7px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%;
+}
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .dish-permit svg { width: 14px; height: 14px; }
+.mini-market[data-paper-world='phone'] .counter-board.mini-board .dish-permit b { display: none; }
+
+/* ---- Phones: two mats to a row, the loop on one line beside the close control ---- */
+@media (max-width: 600px) {
+  .all-boards-modal[data-slot='dialog-content'],
+  .all-boards-modal[data-slot='dialog-content']:is(:has(.seats-1), :has(.seats-2)) { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 14px; }
+  .others-panel { max-height: calc(100dvh - 16px); }
+  .all-boards-modal > [data-slot='dialog-close'] { top: 8px; right: 8px; width: 40px; height: 40px; }
+  .all-boards-modal > [data-slot='dialog-close'] svg { width: 22px; height: 22px; }
+  .passing-loop { --token: 30px; --link: 12px; --dot: 28px; justify-content: flex-start; padding: 14px 56px 12px 12px; }
+  .passing-loop ol { padding-bottom: 14px; }
+  .passing-name { display: none; }
+  .passing-arrow { height: 12px; margin-top: calc(var(--dot) / 2 - 6px); }
+  .others-grid { --others-gap: 10px; padding: 0 8px 10px; }
+  .others-grid:not(.seats-1) { --cols: 2; }
+  .others-card { gap: 6px; padding: 7px 7px 8px; border-radius: 12px; }
+  .others-head-row { gap: 4px 6px; }
+  .others-head-row > .avatar { width: 22px; height: 22px; font-size: 11px; }
+  .others-head-row > h3 { font-size: 13px; }
+  .others-score { font-size: 15px; }
+  .others-score small { display: none; }
+  .others-card .nature-reserves { gap: 4px; }
+  .others-card .nature-reserves > div { min-height: 24px; padding: 2px 7px; font-size: 11px; }
+  .others-card .sanctuary-goals { gap: 3px; }
+  .others-card .sanctuary-goal-medal { width: 24px; height: 24px; }
+  .others-card .sanctuary-goal-medal > svg, .others-card .sanctuary-goal-creature { width: 17px; height: 17px; }
+  .stall-permits dt { width: 26px; height: 26px; border-radius: 7px; }
+  .stall-permits dt svg { width: 15px; height: 15px; }
+  .all-boards-modal[data-game='midnight'] .others-card { border-width: 2px; box-shadow: 0 3px 0 #1d1a1f, 0 8px 16px #0008; }
+  .others-card .festival-preview-menus { gap: 4px; zoom: .78; }
+}
+
+/* The same six-stop route as the counter; matches replace dishes with ticks. */
+.others-card .season-results {
+  order: 3; position: relative; display: grid;
+  grid-template-columns: repeat(2, 24px); grid-template-rows: repeat(3, 24px);
+  gap: 2px 6px; padding: 3px; border-radius: 8px; background: #ffe9a3;
+}
+.others-card .season-results .season-line {
+  display: block; position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px);
+}
+.others-card .season-line polyline { fill: none; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.others-card .season-line-ahead { stroke: #7d573b; stroke-width: 2; stroke-dasharray: 2 4; }
+.others-card .season-line-done { stroke: #d8342a; stroke-width: 2; }
+.others-card .season-step { position: relative; z-index: 1; display: grid; place-items: center; }
+.others-card .season-step[data-step='2'] { grid-area: 2 / 2; }
+.others-card .season-step[data-step='3'] { grid-area: 2 / 1; }
+.others-card .season-step[data-step='4'] { grid-area: 3 / 1; }
+.others-card .season-step[data-step='5'] { grid-area: 3 / 2; }
+.others-card .season-step img { width: 24px; height: 24px; object-fit: contain; opacity: .38; }
+.others-card .season-step img.current { outline: 2px solid #d8342a; border-radius: 50%; }
+.others-card .season-check { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #326c3b; color: #fff6e2; font-weight: 900; font-size: 16px; }
+@media (max-width: 600px) {
+  .others-card .season-results { display: flex; width: 100%; justify-content: space-between; gap: 1px; }
+  .others-card .season-results .season-line { display: none; }
+  .others-card .season-step { flex: 1; min-width: 0; }
+  .others-card .season-step img { width: 100%; max-width: 24px; height: auto; aspect-ratio: 1; }
+  .others-card .season-check { width: 19px; height: 19px; font-size: 14px; }
+}

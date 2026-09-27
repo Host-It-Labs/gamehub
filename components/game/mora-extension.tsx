@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   Check,
   Circle,
@@ -26,7 +27,7 @@ import {
   type SanctuaryGoal,
 } from '@/lib/games/trio/engine';
 import { Piece, type Inspect } from './interactions';
-import { RuleExplanation } from './extension-rules';
+import { RuleList, RuleSection, type RuleListItem } from './rules';
 
 function GoalArt({
   goal,
@@ -68,33 +69,18 @@ function GoalArt({
   return <Icon size={30} aria-hidden="true" />;
 }
 
-function GoalRules({
-  id,
-  zones,
-  contentSet,
-}: {
-  id: number;
-  zones?: Card[][];
-  contentSet?: ContentSet;
-}) {
+/** One drawn goal as a reference line, with live progress when a board is given. */
+function goalItem(id: number, zones?: Card[][], contentSet?: ContentSet): RuleListItem {
   const goal = sanctuaryGoalsFor(contentSet)[id];
   const status = zones ? sanctuaryGoalProgress(zones, id, contentSet) : null;
-  return (
-    <RuleExplanation
-      outcome={goal.rule}
-      note="Only your own board counts. Released creatures never count. Awarded once at the end of this match."
-    >
-      <p>
-        <b>Reward.</b> Earn +{goal.points} points when complete.
-      </p>
-      {status && (
-        <p>
-          <b>Progress.</b> {status.progress}/{goal.target} ·{' '}
-          {status.complete ? 'Completed!' : 'In progress'}
-        </p>
-      )}
-    </RuleExplanation>
-  );
+  return {
+    key: String(id),
+    mark: <GoalArt goal={goal} contentSet={contentSet} />,
+    name: `${goal.name} · +${goal.points}`,
+    text: status
+      ? `${goal.rule} ${status.complete ? 'Done.' : `${status.progress}/${goal.target}.`}`
+      : goal.rule,
+  };
 }
 
 export function WildTrailsRules({
@@ -102,12 +88,15 @@ export function WildTrailsRules({
   goals,
   contentSet,
   compact = false,
+  title,
 }: {
   contentSet?: ContentSet;
   zones?: Card[][];
   goals?: number[];
   /** In-match inspection: the goals themselves, side by side, without the introduction. */
   compact?: boolean;
+  /** Only where no dialog title already names the extension. */
+  title?: ReactNode;
 }) {
   if (compact)
     return (
@@ -126,40 +115,18 @@ export function WildTrailsRules({
       </div>
     );
   return (
-    <>
-      <RuleExplanation
-        outcome={
-          <>
-            Complete three randomly drawn goals for <b>bonus points</b>.
-          </>
-        }
-        note="Goals stay the same for every round. Released creatures never count. Normal placement, habitat scoring and the die stay the same."
-      >
-        <p>
-          <b>Discover.</b> Each new match draws three goals from twelve.
-          Everyone receives the same goals and completes them on their own
-          board.
-        </p>
-        <p>
-          <b>Track.</b> Badges on your board show what to collect, your progress
-          and the reward. A completed badge turns gold.
-        </p>
-        <p>
-          <b>Inspect.</b> Tap or hold a badge, or focus it and press I, for its
-          exact requirement.
-        </p>
-        <p>
-          <b>Score.</b> Earn each completed badge’s points once, at the end of
-          the match.
-        </p>
-      </RuleExplanation>
-      {goals?.map((id) => (
-        <section key={id}>
-          <h3>{sanctuaryGoalsFor(contentSet)[id].name}</h3>
-          <GoalRules id={id} zones={zones} contentSet={contentSet} />
-        </section>
-      ))}
-    </>
+    <RuleSection
+      title={title}
+      note="Released creatures never count. Each goal scores once."
+    >
+      <p>
+        Each game draws <b>3 goals</b> from 12, the same for everyone. Every
+        goal your board meets at the end earns its <b>bonus</b>.
+      </p>
+      {goals && (
+        <RuleList items={goals.map((id) => goalItem(id, zones, contentSet))} />
+      )}
+    </RuleSection>
   );
 }
 

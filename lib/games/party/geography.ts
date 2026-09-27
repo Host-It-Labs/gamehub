@@ -122,9 +122,28 @@ export const challengeLabels: Record<GeoChallenge, string> = {
   hard: 'Harder',
   final: 'Final',
 };
-/** Points for the closest pin and for landing within 100 km. */
-export const closestPoints = 50,
-  nearPoints = 50;
+/** Every pin scores by its own distance: kilometres off → points out of
+ * 100, straight lines between the marks, like Sizes' curve. */
+export const pinCurve = [
+  [25, 100],
+  [100, 90],
+  [250, 75],
+  [500, 55],
+  [1000, 35],
+  [2000, 15],
+  [4000, 0],
+] as const;
+export const maxPinPoints = pinCurve[0][1];
+export function pinPoints(km: number) {
+  if (!(km >= 0)) return 0;
+  if (km <= pinCurve[0][0]) return maxPinPoints;
+  for (let i = 1; i < pinCurve.length; i++) {
+    const [d1, p1] = pinCurve[i],
+      [d0, p0] = pinCurve[i - 1];
+    if (km <= d1) return Math.round(p0 + ((km - d0) / (d1 - d0)) * (p1 - p0));
+  }
+  return 0;
+}
 export function distance(a: Pin, b: Pin) {
   const r = Math.PI / 180,
     dlat = (b.lat - a.lat) * r,
@@ -304,18 +323,9 @@ function reveal(g: GeoGame) {
   const distances = pins.map((pair) =>
     pair.map((pin, p) => distance(pin, targets[p])),
   );
-  // Points for the closest pin, and a precision bonus within 100 km. Equal metre-rounded distances share the closest points.
+  // Every pin scores by how far it landed, not only the closest one.
   const gains = distances.map((pair) =>
-    pair.reduce(
-      (sum, d, p) =>
-        sum +
-        (Math.round(d * 1000) ===
-        Math.min(...distances.map((ds) => Math.round(ds[p] * 1000)))
-          ? closestPoints
-          : 0) +
-        (d <= 100 ? nearPoints : 0),
-      0,
-    ),
+    pair.reduce((sum, d) => sum + pinPoints(d), 0),
   );
   g.totalDistance = g.totalDistance.map(
     (total, t) => total + distances[t].reduce((a, b) => a + b, 0),
@@ -655,8 +665,7 @@ export function validState(g: GeoGame) {
         ) &&
         g.result.gains.length === g.scores.length &&
         g.result.gains.every(
-          (v) =>
-            Number.isInteger(v) && v >= 0 && v <= closestPoints + nearPoints,
+          (v) => Number.isInteger(v) && v >= 0 && v <= maxPinPoints,
         )
       : g.result === null) &&
     (!g.over || (g.challenge === 'final' && g.phase !== 'guess'))

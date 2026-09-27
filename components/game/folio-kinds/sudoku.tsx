@@ -281,6 +281,8 @@ export default function Sudoku({
             '--d': flash ?? 0,
             '--w': r + c,
             '--k': revealed ? (i * 37) % 23 : 0,
+            // A steady per-square tilt for hand-inked numbers.
+            '--t': (Math.imul(i + 1, 0x9e3779b1) >>> 0) % 9,
           } as CSSProperties
         }
       >
@@ -290,7 +292,9 @@ export default function Sudoku({
           <span className="fk-sudoku-notes" aria-hidden="true">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
               <i key={n} className={selDigit === n ? 'hit' : ''}>
-                {mask & (1 << (n - 1)) ? n : ''}
+                {mask & (1 << (n - 1)) ? (
+                  <span className="fk-sudoku-note">{n}</span>
+                ) : null}
               </i>
             ))}
           </span>
@@ -309,8 +313,11 @@ export default function Sudoku({
           <span className="fk-sudoku-tier">{TIER_NAME[view.tier]}</span>
         )}
         <span className="fk-sudoku-mistakes" aria-live="polite">
-          Mistakes: <b className={mistakes ? 'on' : ''}>{mistakes}</b>/
-          {p.allowance}
+          Mistakes:{' '}
+          <b key={mistakes} className={mistakes ? 'on' : ''}>
+            {mistakes}
+          </b>
+          /{p.allowance}
         </span>
       </div>
       <fieldset

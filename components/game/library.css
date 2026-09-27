@@ -616,3 +616,11 @@
     font-size: 11px;
   }
 }
+
+/* Phone shelves: two generous covers and a glimpse of the next box. */
+@media (max-width: 600px) {
+  .lib-sections { --tile: calc((100cqw - 2 * var(--lib-gap)) / 2.15); }
+  .lib-friends { width: 40px; padding: 0; justify-content: center; }
+  .lib-friends svg { width: 18px; height: 18px; }
+  .lib-friends span { display: none; }
+}

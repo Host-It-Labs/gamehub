@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { ReceiptText } from 'lucide-react';
 import { Piece, type Inspect } from './interactions';
-import { RuleExplanation } from './extension-rules';
+import { RuleSection } from './rules';
 import { ExtensionAction } from './extension-action';
 import {
   availableOrders,
@@ -179,27 +179,20 @@ export function FestivalControls({
             inspect({
               title: festivalOrders[entry.order].name,
               body: (
-                <RuleExplanation
-                  outcome={
-                    <>
-                      Collect{' '}
+                <RuleSection note="Only that round’s dishes count, and they still score as usual.">
+                  <p>
+                    Collect{' '}
+                    <b>
                       {festivalOrders[entry.order].needs
                         .flatMap((n, k) =>
                           n ? [`${n} ${foodsFor(g.contentSet)[k].name}`] : [],
                         )
-                        .join(' + ')}{' '}
-                      in round {i + 1}.
-                    </>
-                  }
-                  note="Dishes are not consumed. Previous rounds do not count."
-                >
-                  <p>
-                    <b>Progress.</b> {entry.progress} of 3 collected.
+                        .join(' + ')}
+                    </b>{' '}
+                    in round {i + 1} for <b>+7</b>.
                   </p>
-                  <p>
-                    <b>Reward.</b> +7 when complete; currently +{entry.points}.
-                  </p>
-                </RuleExplanation>
+                  <p>{entry.progress} of 3 collected.</p>
+                </RuleSection>
               ),
             })
           }
@@ -233,30 +226,22 @@ export function FestivalControls({
                   inspect({
                     title: order.name,
                     body: (
-                      <RuleExplanation
-                        outcome={
-                          <>
-                            Collect{' '}
+                      <RuleSection note="Only this round’s dishes count, and they still score as usual. Everyone may choose the same order.">
+                        <p>
+                          Collect{' '}
+                          <b>
                             {order.needs
                               .flatMap((n, k) =>
                                 n
                                   ? [`${n} ${foodsFor(g.contentSet)[k].name}`]
                                   : [],
                               )
-                              .join(' + ')}{' '}
-                            this round.
-                          </>
-                        }
-                        note="Dishes are not consumed. Previous rounds do not count. Everyone may choose the same order."
-                      >
-                        <p>
-                          <b>Choose.</b> Lock this order with your first dish.
+                              .join(' + ')}
+                          </b>{' '}
+                          this round for <b>+7</b>. Choose it with your first
+                          dish.
                         </p>
-                        <p>
-                          <b>Reward.</b> +7 for all three dishes; +0 if
-                          unfinished.
-                        </p>
-                      </RuleExplanation>
+                      </RuleSection>
                     ),
                   })
                 }

@@ -7,7 +7,14 @@ import {
   BOOKS,
   COIN_SIZES,
   LEVEL_AT,
+  BOOK_LEVEL_STEP,
+  BOOK_LEVEL_GAIN,
+  bookLevel,
+  bookExperience,
+  bookBonus,
+  levelProgress,
   PRICE_SHARE,
+  STROKE_POINTS,
   UPGRADES,
   actScratch,
   botReward,
@@ -41,11 +48,13 @@ import {
 import {
   actFactory,
   advanceFactory,
+  machineAt,
   machinePrice,
   floorSize,
 } from '../lib/games/relic/factory.ts';
 import { openDatabase } from '../server/database.ts';
 import { Expeditions } from '../server/expeditions.ts';
+import { seedLuckyWorkshop } from '../server/dev-lucky.ts';
 const start = 1789992000000;
 const FOIL = [0.72, 0.5, 0.3, 0.04];
 const game = (seed = 123) =>
@@ -690,12 +699,28 @@ await test('bad strokes, locked books and unaffordable upgrades reject without c
     [],
     [{ x: NaN, y: 0.5 }],
     [{ x: 2, y: 0.5 }],
-    Array(81).fill({ x: 0.5, y: 0.5 }),
+    Array(STROKE_POINTS + 1).fill({ x: 0.5, y: 0.5 }),
   ])
     assert.throws(() =>
       actScratch(
         g,
         { type: 'scratch-stroke', ticket: t.id, sequence: 0, points },
+        'Jo',
+        start,
+      ),
+    );
+  // A new stroke starts inside the command, after its first point, in order.
+  for (const breaks of [[0], [3], [2, 1], [1, 1], [1.5], 'x'])
+    assert.throws(() =>
+      actScratch(
+        g,
+        {
+          type: 'scratch-stroke',
+          ticket: t.id,
+          sequence: 0,
+          points: Array(3).fill({ x: 0.5, y: 0.5 }),
+          breaks,
+        },
         'Jo',
         start,
       ),
@@ -982,7 +1007,8 @@ await test('printers print the chosen unlocked book, and better books sell for m
   unlock(g, 'twins');
   actFactory(g, { type: 'factory-book', x: 0, y: 0, book: 'twins' });
   advanceFactory(g, 120000);
-  assert.ok(g.coins > 4 * botReward(g.scratch, 'twins'));
+  assert.ok(g.scratch.factory.sold >= 4);
+  assert.ok(g.coins >= 4 * botReward(g.scratch, 'twins'));
   assert.ok(botReward(g.scratch, 'twins') > botReward(g.scratch, 'seven') * 5);
 });
 
@@ -1093,6 +1119,223 @@ await test('activity is counted once across members and tabs, with no earnings a
   }
 });
 
+/** The foil rule before seals out of the coin's reach were skipped: every
+ * bit of every seal measured against every segment. */
+function slowRub(ticket, s, points, breaks = []) {
+  const radius = brushRadius(s),
+    threshold = Math.ceil(64 * FOIL[level(s, 'foil')]),
+    { cols, rows } = ticket;
+  for (let p = 0; p < points.length && !ticket.ended; p++) {
+    const a = points[p && !breaks.includes(p) ? p - 1 : p],
+      b = points[p],
+      dx = b.x - a.x,
+      dy = b.y - a.y,
+      length = dx * dx + dy * dy,
+      candidates = [];
+    ticket.cells.forEach((cell, index) => {
+      if (cell.revealed || sealLocked(ticket, index)) return;
+      const col = index % cols,
+        row = Math.floor(index / cols),
+        mask = cell.mask.split('');
+      let rubbed = 0;
+      for (let bit = 0; bit < 64; bit++) {
+        if (mask[bit] === '1') {
+          rubbed++;
+          continue;
+        }
+        const x = (col + 0.1 + (((bit % 8) + 0.5) / 8) * 0.8) / cols,
+          y = (row + 0.1 + ((Math.floor(bit / 8) + 0.5) / 8) * 0.8) / rows;
+        const along = length
+          ? Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / length))
+          : 0;
+        if (Math.hypot(x - a.x - dx * along, y - a.y - dy * along) > radius)
+          continue;
+        mask[bit] = '1';
+        rubbed++;
+      }
+      cell.mask = mask.join('');
+      if (rubbed >= threshold) {
+        const cx = (col + 0.5) / cols,
+          cy = (row + 0.5) / rows;
+        candidates.push({
+          index,
+          along: length ? ((cx - a.x) * dx + (cy - a.y) * dy) / length : 0,
+        });
+      }
+    });
+    for (const { index } of candidates.sort((a, b) => a.along - b.along)) {
+      if (ticket.ended) break;
+      openSeal(ticket, index);
+    }
+  }
+}
+await test('skipping seals beyond the coin changes nothing; queued strokes sent as one match strokes sent apart', () => {
+  const g = game(),
+    r = rand(21);
+  for (const book of ['seven', 'twins', 'ladder', 'mine']) {
+    unlock(g, book);
+    for (let n = 0; n < 6; n++) {
+      const a = printTicket(n, book, n % 3, rand(n + 40), 0, start),
+        b = structuredClone(a);
+      const points = Array.from({ length: 60 }, () => ({ x: r(), y: r() })),
+        breaks = [15, 31, 44];
+      rubTicket(a, g.scratch, points, breaks);
+      slowRub(b, g.scratch, points, breaks);
+      assert.deepEqual(a, b, `${book} ${n}`);
+    }
+  }
+  // The browser rubs every point against the one before as it moves; the
+  // server gets the same points, merged into one command with its breaks.
+  const t = printTicket(9, 'seven', 1, rand(3), 0, start),
+    one = structuredClone(t),
+    apart = structuredClone(t);
+  const strokes = [
+    [{ x: 0.1, y: 0.1 }, { x: 0.5, y: 0.2 }, { x: 0.9, y: 0.15 }],
+    [{ x: 0.2, y: 0.8 }, { x: 0.3, y: 0.5 }],
+    [{ x: 0.7, y: 0.7 }],
+  ];
+  for (const stroke of strokes)
+    stroke.forEach((p, i) =>
+      rubTicket(apart, g.scratch, i ? [stroke[i - 1], p] : [p]),
+    );
+  rubTicket(one, g.scratch, strokes.flat(), [3, 5]);
+  assert.deepEqual(
+    one.cells.map((c) => [c.mask, c.revealed]),
+    apart.cells.map((c) => [c.mask, c.revealed]),
+  );
+});
+await test('every book costs several times the book before it, at every level', () => {
+  const s = game().scratch;
+  for (let i = 1; i < BOOKS.length; i++)
+    for (let l = 0; l < 3; l++) {
+      const ratio =
+        ticketPrice(s, BOOKS[i].id, l) / ticketPrice(s, BOOKS[i - 1].id, l);
+      assert.ok(ratio >= 2.5 && ratio <= 16, `${BOOKS[i].id} ${l}: ×${ratio.toFixed(2)}`);
+    }
+});
+await test('book levels continue beyond III, scaling prices and rewards together and announcing each level', () => {
+  const g = game();
+  g.coins = 1e12;
+  g.scratch.books.seven = LEVEL_AT[2] - 1;
+  assert.equal(levelOpen(g.scratch, 'seven'), 1);
+  const before = botReward(g.scratch, 'seven');
+  play(g, take(g, 'seven', 'Jo', 1));
+  assert.equal(levelOpen(g.scratch, 'seven'), 2);
+  assert.ok(botReward(g.scratch, 'seven') > before * 1.3, 'the factory prints level III');
+  assert.deepEqual(
+    g.scratch.feed.slice(-2).map((e) => [e.kind, e.what, e.n]),
+    [
+      ['win', 'seven', 1],
+      ['level', 'seven', 2],
+    ],
+  );
+  assert.equal(levelProgress(g.scratch, 'seven'), 0);
+  // Easier difficulties cannot farm levels beyond 3.
+  for (let i = 0; i < BOOK_LEVEL_STEP; i++) play(g, take(g, 'seven', 'Jo', 1));
+  assert.equal(bookLevel(g.scratch, 'seven'), 3);
+  const top = botReward(g.scratch, 'seven');
+  for (let i = 0; i < BOOK_LEVEL_STEP - 1; i++) play(g, take(g, 'seven', 'Jo', 2));
+  assert.equal(bookLevel(g.scratch, 'seven'), 3);
+  assert.ok(levelProgress(g.scratch, 'seven') > 0.9);
+  play(g, take(g, 'seven', 'Jo', 2));
+  assert.equal(bookLevel(g.scratch, 'seven'), 4);
+  assert.equal(g.scratch.feed.at(-1).kind, 'level');
+  assert.equal(g.scratch.feed.at(-1).n, 3);
+  assert.equal(levelProgress(g.scratch, 'seven'), 0);
+  assert.equal(bookExperience(g.scratch, 'seven').needed, 30);
+  const price = ticketPrice(g.scratch, 'seven', 2);
+  const reward = botReward(g.scratch, 'seven');
+  g.scratch.top.seven = 44;
+  assert.equal(bookLevel(g.scratch, 'seven'), 4);
+  assert.equal(bookExperience(g.scratch, 'seven').current, 29);
+  play(g, take(g, 'seven', 'Jo', 2));
+  assert.equal(bookLevel(g.scratch, 'seven'), 5);
+  assert.equal(bookExperience(g.scratch, 'seven').needed, 45);
+  assert.ok(Math.abs(ticketPrice(g.scratch, 'seven', 2) / price - 2 / 1.5) < 0.01);
+  assert.ok(Math.abs(botReward(g.scratch, 'seven') / reward - 2 / 1.5) < 1e-9);
+  assert.ok(
+    Math.abs(reward / top - (1 + BOOK_LEVEL_GAIN)) < 1e-9,
+  );
+  // The feed stays short.
+  assert.ok(g.scratch.feed.length <= 24);
+  assert.ok(g.scratch.feed.every((e, i, all) => !i || e.id > all[i - 1].id));
+});
+await test('purchases are announced with who made them; belts and tidying are not', () => {
+  const g = game();
+  g.coins = 1e9;
+  actRelic(g, { type: 'scratch-book', pack: 'twins' }, 'Ann', start, 'ann');
+  actRelic(g, { type: 'scratch-upgrade', id: 'coin' }, 'Ann', start, 'ann');
+  actRelic(g, { type: 'factory-blueprint', id: 'starter' }, 'Bo', start, 'bo');
+  actRelic(
+    g,
+    {
+      type: 'factory-build',
+      pieces: [
+        { kind: 'printer', x: 0, y: 0, dir: 0 },
+        { kind: 'belt', x: 1, y: 0, dir: 0 },
+        { kind: 'bot', x: 2, y: 0, dir: 0 },
+        { kind: 'bot', x: 2, y: 1, dir: 0 },
+      ],
+    },
+    'Bo',
+    start,
+    'bo',
+  );
+  actRelic(g, { type: 'factory-rotate', x: 1, y: 0 }, 'Bo', start, 'bo');
+  assert.deepEqual(
+    g.scratch.feed.map((e) => [e.by, e.kind, e.what, e.n]),
+    [
+      ['ann', 'book', 'twins', undefined],
+      ['ann', 'upgrade', 'coin', 1],
+      ['bo', 'blueprint', 'starter', undefined],
+      ['bo', 'machine', 'printer', 1],
+      ['bo', 'machine', 'bot', 2],
+    ],
+  );
+});
+await test('a selection of machines moves and turns together, never onto another machine', () => {
+  const g = game();
+  line(g);
+  advanceFactory(g, 3000);
+  const f = g.scratch.factory,
+    cells = [0, 1, 2].map((x) => ({ x, y: 0 }));
+  const held = f.machines.find((m) => m.x === 1).item?.id;
+  assert.throws(
+    () => actFactory(g, { type: 'factory-shift', cells, dx: 1, dy: 0 }),
+    /taken/,
+  );
+  assert.throws(
+    () => actFactory(g, { type: 'factory-shift', cells, dx: 0, dy: -1 }),
+    /inside/,
+  );
+  // Moving along itself is fine: the group only has to land on free floor.
+  actFactory(g, { type: 'factory-shift', cells, dx: 0, dy: 2 });
+  assert.deepEqual(
+    f.machines.filter((m) => m.y === 2).map((m) => [m.kind, m.x]),
+    [
+      ['printer', 0],
+      ['belt', 1],
+      ['bot', 2],
+    ],
+  );
+  assert.equal(machineAt(f, 1, 2).item?.id, held);
+  actFactory(g, {
+    type: 'factory-rotate',
+    x: 0,
+    y: 2,
+    cells: [...cells.map((c) => ({ x: c.x, y: 2 })), { x: 4, y: 0 }],
+  });
+  assert.deepEqual(
+    f.machines.map((m) => [m.kind, m.dir]),
+    [
+      ['belt', 0],
+      ['cashier', 0],
+      ['printer', 1],
+      ['belt', 1],
+      ['bot', 1],
+    ],
+  );
+});
 await test('a careful player with simple factory lines opens the factory in minutes and every book in hours', () => {
   const g = game(7),
     s = g.scratch,
@@ -1209,5 +1452,76 @@ await test('a careful player with simple factory lines opens the factory in minu
   assert.ok(reached.twins <= 10, `twins at ${reached.twins} min`);
   assert.ok(reached.mine >= 35, `gold mine at ${reached.mine} min`);
   assert.ok(reached.ladder >= 15, `ladder at ${reached.ladder} min`);
-  assert.ok(reached.crown >= 4 * 60, `crown at ${reached.crown} min`);
+  // Uncapped levels now bring the careful-player run to about 2h40.
+  assert.ok(reached.crown >= 2.5 * 60, `crown at ${reached.crown} min`);
+});
+
+await test('unbounded book levels preserve saved progress and remain finite at large counts', () => {
+  const g = game();
+  g.scratch.books.seven = 100;
+  g.scratch.top.seven = 15;
+  const restored = JSON.parse(JSON.stringify(g));
+  assert.equal(bookLevel(scratchFor(restored), 'seven'), 4);
+  assert.equal(bookBonus(restored.scratch, 'seven'), 1.5);
+  g.scratch.upgrades.early = 3;
+  g.scratch.top.seven = 4;
+  assert.equal(bookLevel(g.scratch, 'seven'), 3);
+  g.scratch.top.seven = 5;
+  assert.equal(bookLevel(g.scratch, 'seven'), 4);
+  for (const count of [1e4, 1e6, 1e9, 1e12]) {
+    g.scratch.top.seven = count;
+    const xp = bookExperience(g.scratch, 'seven');
+    assert.ok(xp.level > 4 && xp.current >= 0 && xp.current < xp.needed);
+    assert.equal(levelOpen(g.scratch, 'seven'), 2);
+    assert.ok(Number.isFinite(ticketPrice(g.scratch, 'seven', 2)));
+    assert.ok(Number.isFinite(botReward(g.scratch, 'seven')));
+  }
+});
+await test('Twins begins at the former second difficulty and keeps three distinct steps', () => {
+  const levels = BOOKS.find((b) => b.id === 'twins').levels;
+  assert.deepEqual(levels, [
+    { cols: 6, rows: 4, lives: 2, count: 3 },
+    { cols: 6, rows: 4, lives: 2, count: 2 },
+    { cols: 6, rows: 4, lives: 1, count: 2 },
+  ]);
+});
+await test('dev workshop is a separate persisted, joinable and table-compatible save, rejected in production', () => {
+  const previous = process.env.NODE_ENV;
+  const db = openDatabase(':memory:');
+  try {
+    const service = new Expeditions(db);
+    const input = { title: 'Workshop', world: 'dunes', devPreset: 'workshop' };
+    process.env.NODE_ENV = 'production';
+    assert.throws(() => service.create(actor('Jo'), input, start), /only available in development/);
+    assert.throws(() => seedLuckyWorkshop(game()), /only available in development/);
+    process.env.NODE_ENV = 'development';
+    const normal = service.create(actor('Jo'), { title: 'Keep me', world: 'dunes' }, start);
+    const view = service.create(actor('Jo'), input, start);
+    assert.notEqual(view.token, normal.token);
+    assert.equal(service.get(normal.token, actor('Jo'), start).game.scratch.completed, 0);
+    const g = view.game, s = g.scratch;
+    assert.equal(s.unlocked.length, 8);
+    assert.ok(UPGRADES.every((u) => s.upgrades[u.id] >= 0 && s.upgrades[u.id] <= u.max));
+    assert.ok(BOOKS.every((b) => bookLevel(s, b.id) >= 12 && levelOpen(s, b.id) === 2));
+    assert.equal(s.factory.machines.length, 68);
+    assert.equal(new Set(s.factory.machines.map((m) => `${m.x},${m.y}`)).size, 68);
+    assert.ok(s.factory.machines.every((m) => m.x < 16 && m.y < 9));
+    assert.ok(s.factory.machines.some((m) => m.item || m.output));
+    assert.ok(s.factory.sold > 0);
+    const sold = s.factory.sold;
+    advanceFactory(g, 60000);
+    assert.ok(s.factory.sold > sold);
+    assert.ok(s.factory.machines.some((m) => m.output && m.stuck > 0), 'queues remain');
+    assert.ok(s.upgrades.bots < s.upgrades.printers);
+    const joined = service.join(view.token, actor('Bo'), start);
+    assert.equal(joined.members.length, 2);
+    assert.equal(joined.game.scratch.completed, s.completed);
+    service.seatTable(view.token, actor('Jo'), [actor('Jo'), actor('Bo'), actor('Ann')], start);
+    assert.equal(service.get(view.token, actor('Ann'), start).members.length, 3);
+    assert.equal(service.list(actor('Jo')).length, 2);
+  } finally {
+    db.close();
+    if (previous === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previous;
+  }
 });

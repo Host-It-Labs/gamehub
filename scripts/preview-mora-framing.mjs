@@ -10,7 +10,7 @@ for(const [w,h] of [[390,844],[1440,900],[320,568]]) {
  const target=paperWorldTarget(art,f);
  const encoded=(await sharp(`public${art.image}`).png().toBuffer()).toString('base64');
  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="#2f3a2a"/><image href="data:image/png;base64,${encoded}" x="${target.x}" y="${target.y}" width="${target.width}" height="${target.height}"/>`;
- const names=['Courtyard','Roof garden','Root hollows','Glasshouse trail','Dry channel','','Watchpost'];
+ const names=['Courtyard','Garden','Hollow','Glasshouse','Channel','','Watchpost'];
  for(const habitat of art.habitats) {
   const x=target.x+habitat.label[0]*f.scale,y=target.y+habitat.label[1]*f.scale;
   const font=tall?Math.max(9,Math.min(13,f.width*.03)):Math.max(11,Math.min(18,f.width*.0165));

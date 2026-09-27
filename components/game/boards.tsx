@@ -36,11 +36,6 @@ import { Store, UsersRound } from 'lucide-react';
 import { ScrollArea } from './scroll-area';
 import { dropTargetNear } from './drag-preview';
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
-import {
-  HoverCard,
-  HoverCardTrigger,
-  HoverCardContent,
-} from '@/components/ui/hover-card';
 import { Piece, type Inspect } from './interactions';
 import {
   suits,
@@ -129,17 +124,15 @@ export function Face({
         </span>
       </>
     );
+  const cost = penalty(card, hazard, penaltyRank, penaltyValue);
   return (
-    <div className={`playing-face tide-face suit-${card.kind}`}>
+    <div className={`playing-face tide-face suit-${card.kind}${cost > 0 ? ' costly' : ''}`}>
       <span className="tide-index">
         <strong className="tide-rank">{card.rank}</strong>
         <span className="tide-suit">{suits[card.kind]}</span>
-        <span className="tide-cost">
-          {penalty(card, hazard, penaltyRank, penaltyValue) > 0
-            ? `+${penalty(card, hazard, penaltyRank, penaltyValue)}`
-            : ''}
-        </span>
+        <span className="tide-cost">{cost > 0 ? `+${cost}` : ''}</span>
       </span>
+      <span className="tide-mark" aria-hidden="true">{suits[card.kind]}</span>
       <span className="tide-pips" aria-hidden="true">
         {Array.from({ length: card.rank }, (_, i) => (
           <span key={i}>{suits[card.kind]}</span>
@@ -199,9 +192,8 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
           </p>
           <p>
             One of {tideRanks(g)} cards in {suitNames[c.kind]}.
-            {g.shields === true
-              ? ' A selected Shield halves the trick’s penalty points, rounded up.'
-              : ' The base game has no shields.'}
+            {g.shields === true &&
+              ' A selected Shield halves the trick’s penalty points, rounded up.'}
           </p>
         </>
       ) : g.id === 'midnight' ? (
@@ -301,13 +293,22 @@ export function Board({
     from: number;
   } | null>(null);
   useEffect(() => {
-    // Every full-table world has its own portrait plate.
-    if (mini) return;
+    // Every full-table world has its own portrait plate; miniatures follow the
+    // same plate, so another player's mat looks like the viewer's own board.
     const query = window.matchMedia(tallWorldQuery(g.id));
     const update = () => setPortrait(query.matches);
     update();
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
+  }, [g.id]);
+  // A miniature Yata counter takes the phone plate wherever phones show it.
+  useEffect(() => {
+    if (!mini || g.id !== 'midnight') return;
+    const small = window.matchMedia(phoneWorldQuery);
+    const update = () => setPhone(small.matches);
+    update();
+    small.addEventListener('change', update);
+    return () => small.removeEventListener('change', update);
   }, [mini, g.id]);
   // Yata's portrait phones take the near-square counter when their stage
   // (the space between the badges and the dock) shows it bigger.
@@ -349,16 +350,10 @@ export function Board({
     g.id === 'wildgrove' ? (worldId === 'floodline' ? 'floodline' : undefined) : g.id,
   );
   const world = paperWorldFor(portrait, variant, worldId);
-  const baseMap = mini
-    ? moraMapFor(g.contentSet, false, true)
-    : moraMapFor(g.contentSet, portrait);
+  // Miniatures show the main board's own crop, so a mat reads like your board.
+  const baseMap = moraMapFor(g.contentSet, portrait);
   // Candidate artwork shares the measured geometry; only the image differs.
-  const map = {
-    ...baseMap,
-    image: mini
-      ? paperWorldFor(false, variant, worldId).overviewImage
-      : world.boardImage,
-  };
+  const map = { ...baseMap, image: world.boardImage };
   const p =
     natureChoice.migration && player === viewer
       ? {
@@ -394,8 +389,8 @@ export function Board({
           face={face}
         />
       );
-    // The captain's cabin: the painted chart table is the board; the crew sits
-    // on the painted stools around it, each seat carrying its own score tag.
+    // The chart: the navy sea inside the rope rim is the board; each player's
+    // tag lies on the rope, carrying their own score.
     const cabin = tableWorldFor('undertow', portrait, variant);
     const totals = scores(g);
     const stools = cabin.seats?.[String(g.players.length) as keyof typeof cabin.seats];
@@ -409,7 +404,7 @@ export function Board({
         data-paper-world={portrait ? 'portrait' : 'landscape'}
         data-world="undertow"
       >
-        <WorldScene art={cabin} tint="rgba(6, 10, 16, 0.5)" />
+        <WorldScene art={cabin} tint="rgba(3, 20, 38, 0.42)" />
         <BlackwakeTable
           onCapturesSettled={onCapturesSettled}
           g={g}
@@ -454,7 +449,7 @@ export function Board({
         style={
           mini
             ? {
-                aspectRatio: `${world.overview.width} / ${world.overview.height}`,
+                aspectRatio: `${world.crop.width} / ${world.crop.height}`,
               }
             : undefined
         }
@@ -558,7 +553,7 @@ export function Board({
                       width: `${(art.tokenWidth / width) * 100}%`,
                     }}
                   >
-                    {/* Only the Pier is filled in order; the Glasshouse trail no longer is. */}
+                    {/* Only the Pier is filled in order. */}
                     {z === 3 && g.contentSet === 'intermediate' && (
                       <span className="mora-trail-step">{i + 1}</span>
                     )}
@@ -753,16 +748,14 @@ export function Board({
       g.contentSet,
     );
   // The night market: the collection board stands on the painted counter.
-  const market = mini
-    ? null
-    : tableWorldFor('midnight', portrait, variant, phone);
+  const market = tableWorldFor('midnight', portrait, variant, phone);
   const marketBoard = (
     <div
-      className={`market-board ${g.customerOrders || g.specialtyStalls ? 'festival-board' : ''} ${mini ? 'mini-board' : ''} ${market ? 'counter-board' : ''}`}
+      className={`market-board counter-board ${g.customerOrders || g.specialtyStalls ? 'festival-board' : ''} ${mini ? 'mini-board' : ''}`}
       data-drop={mini ? undefined : 'menu'}
       aria-label={`${p.name}’s dishes`}
-      data-coach="board"
-      style={market ? cropPercent(market, market.table) : undefined}
+      data-coach={mini ? undefined : 'board'}
+      style={mini ? undefined : cropPercent(market, market.table)}
     >
       {foodsFor(g.contentSet).map((f, k) => {
         const stall = g.specialtyStalls
@@ -797,7 +790,7 @@ export function Board({
                 className="dish-permit"
                 aria-label={`Specialty stall: +${stall.points} of 6 bonus points`}
               >
-                <Store size={16} aria-hidden="true" />
+                <Store size={mini ? 20 : 16} aria-hidden="true" />
                 <b>+{stall.points}</b>
               </span>
             )}
@@ -837,7 +830,33 @@ export function Board({
       })}
     </div>
   );
-  if (!market) return marketBoard;
+  // A miniature is the same counter cut to its table; the overview image
+  // covers the plate's crop, so it is placed around the table box.
+  if (mini) {
+    const t = market.table,
+      crop = market.crop;
+    return (
+      <div
+        className="market-world mini-market"
+        data-paper-world={phone ? 'phone' : portrait ? 'portrait' : 'landscape'}
+        style={{ aspectRatio: `${t.width} / ${t.height}` }}
+      >
+        <img
+          className="mini-market-art"
+          src={market.overviewImage}
+          alt=""
+          draggable={false}
+          style={{
+            left: `${((crop.left - t.left) / t.width) * 100}%`,
+            top: `${((crop.top - t.top) / t.height) * 100}%`,
+            width: `${(crop.width / t.width) * 100}%`,
+            height: `${(crop.height / t.height) * 100}%`,
+          }}
+        />
+        {marketBoard}
+      </div>
+    );
+  }
   return (
     <div
       ref={marketScene}
@@ -858,9 +877,9 @@ export function Players({
   inspect,
   viewer = 0,
   volume = 0.5,
+  turnSound = true,
   disabled = false,
   connectionStatus,
-  advanced = false,
   boardButton = false,
   progress,
 }: {
@@ -868,10 +887,11 @@ export function Players({
   inspect: Inspect;
   viewer?: number;
   volume?: number;
+  /** Instant bot opponents do not need a repeated next-turn announcement. */
+  turnSound?: boolean;
   disabled?: boolean;
   connectionStatus?: string;
-  advanced?: boolean;
-  /** One shared Board control opens the table inspection; player tags only preview on hover. */
+  /** One shared Others control opens every board; player tags open nothing. */
   boardButton?: boolean;
   /** Round and pick progress, shown centred on the same line as the Boards control. */
   progress?: ReactNode;
@@ -890,10 +910,10 @@ export function Players({
   const lastCue = useRef(actionable ? turn : null);
   useEffect(() => {
     if (actionable && g.phase !== 'roll' && lastCue.current !== turn) {
-      cue('turn', volume, 0, g.id);
+      if (turnSound) cue('turn', volume, 0, g.id);
       lastCue.current = turn;
     }
-  }, [turn, actionable, volume, g.phase, g.id]);
+  }, [turn, actionable, volume, g.phase, g.id, turnSound]);
   const waiting = g.players.flatMap((player, seat) =>
     canAct(g, seat) ? [seat === viewer ? 'you' : player.name] : [],
   );
@@ -931,7 +951,12 @@ export function Players({
           }
         }}
       >
-        <DialogContent className="all-boards-modal" data-game={g.id}>
+        <DialogContent
+          className="all-boards-modal"
+          data-game={g.id}
+          // The mats take focus, so arrow keys scroll them and no seat lights up on open.
+          initialFocus={() => document.querySelector<HTMLElement>('.all-boards-modal .others-grid')}
+        >
           <DialogTitle className="sr-only">Boards around the table</DialogTitle>
           <DialogDescription className="sr-only">
             Passing order, then every opponent’s board and remaining abilities.
@@ -958,22 +983,20 @@ export function Players({
             onClick={(event) => {
               if (boardButton) return;
               boardTrigger.current = event.currentTarget;
-              return advanced && g.id !== 'undertow'
-                ? setBoardSeat(i)
-                : inspect({
-                    title: `${p.name} · ${sc[i]} ${g.id === 'undertow' ? 'penalty points' : 'points'}`,
-                    body:
-                      g.id === 'undertow' ? (
-                        <p>
-                          {p.hand.length} cards remaining · {p.wards} shields.
-                        </p>
-                      ) : (
-                        <>
-                          <PlayerResources g={g} player={i} inspect={inspect} />
-                          <Board g={g} player={i} mini />
-                        </>
-                      ),
-                  });
+              return inspect({
+                title: `${p.name} · ${sc[i]} ${g.id === 'undertow' ? 'penalty points' : 'points'}`,
+                body:
+                  g.id === 'undertow' ? (
+                    <p>
+                      {p.hand.length} cards remaining · {p.wards} shields.
+                    </p>
+                  ) : (
+                    <>
+                      <PlayerResources g={g} player={i} inspect={inspect} />
+                      <Board g={g} player={i} mini />
+                    </>
+                  ),
+              });
             }}
           >
             <span className={`avatar avatar-${i}`}>{p.name.slice(0, 1)}</span>
@@ -995,22 +1018,7 @@ export function Players({
             )}
           </button>
         );
-        return g.id === 'undertow' ? (
-          <div key={i}>{trigger}</div>
-        ) : (
-          <HoverCard key={i}>
-            <HoverCardTrigger render={trigger} />
-            <HoverCardContent className="board-preview" side="bottom">
-              <strong>
-                {p.name} · {sc[i]} points
-              </strong>
-              <>
-                <PlayerResources g={g} player={i} inspect={inspect} />
-                <Board g={g} player={i} mini />
-              </>
-            </HoverCardContent>
-          </HoverCard>
-        );
+        return <div key={i}>{trigger}</div>;
       })}
       {boardButton && (
         <div className="table-second-line">

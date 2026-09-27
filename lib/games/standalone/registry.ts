@@ -221,7 +221,7 @@ function saved(id: StandaloneId, value: unknown): value is AnyGame {
           : g.kind === 'size'
             ? 2
             : g.kind === 'dial'
-              ? 1
+              ? 2
               : 6) ||
       !Array.isArray(g.seats) ||
       !g.seats.every((s) => typeof s === 'string') ||
@@ -389,7 +389,7 @@ export const standaloneGames = Object.fromEntries(
                   : 'The reveal'
                 : g.kind === 'dial'
                   ? g.phase === 'clue'
-                    ? `${g.seats[g.target]} gives a clue`
+                    ? 'Write your clue'
                     : g.phase === 'guess'
                       ? `Read ${g.seats[g.target]}'s clue`
                       : 'The reveal'

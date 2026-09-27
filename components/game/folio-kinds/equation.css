@@ -95,6 +95,106 @@
   font-family: var(--folio-digits, Georgia), serif;
   font-size: clamp(0.95rem, min(5.2cqw, 4.6cqh), 1.8rem);
 }
+/*
+ * Typewriter and letterpress touches: tiles sit pressed into the paper, a
+ * typed figure strikes its tile like a typebar, a small ribbon-red typing
+ * point steps along the row and carriage-returns on Enter, and a solved
+ * target gets the ledger's double rule.
+ */
+.fk-equation-grid {
+  position: relative;
+}
+.fk-equation-grid .fk-tile {
+  box-shadow: inset 0 1px 2px #193d7914;
+}
+.fk-equation-grid .fk-tile:not([data-grade='-1']) {
+  box-shadow:
+    inset 0 2px 2px #0d1f4029,
+    inset 0 -1px 0 #fffdf233;
+  text-shadow: 0.045em 0.05em 0 #193d7947;
+}
+.fk-equation-grid .fk-tile.filled[data-grade='-1'] {
+  animation: fk-equation-strike 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+@keyframes fk-equation-strike {
+  0% {
+    transform: translateY(-5%) scale(1.05);
+    color: #193d7933;
+    text-shadow: 0 0 0.3em #193d7980;
+  }
+  45% {
+    transform: translateY(3%) scale(0.97);
+    box-shadow: inset 0 2px 4px #193d7933;
+  }
+}
+.fk-equation-caret {
+  --fk-eq-gap: 5px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(
+    (100% - (var(--fk-eq-cols) - 1) * var(--fk-eq-gap)) / var(--fk-eq-cols)
+  );
+  aspect-ratio: 1;
+  transform: translate(
+    calc(var(--c) * (100% + var(--fk-eq-gap))),
+    calc(var(--r) * (100% + var(--fk-eq-gap)))
+  );
+  transition: transform 0.18s cubic-bezier(0.3, 0.7, 0.4, 1);
+  pointer-events: none;
+}
+.fk-equation-caret[data-full] {
+  opacity: 0;
+}
+.fk-equation-caret::after {
+  content: '';
+  position: absolute;
+  left: 34%;
+  right: 34%;
+  bottom: 13%;
+  height: max(2px, 5%);
+  border-radius: 2px;
+  background: var(--folio-red);
+  animation: fk-equation-blink 1.3s ease-in-out infinite;
+}
+@keyframes fk-equation-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+.fk-equation-target {
+  position: relative;
+}
+.fk-equation-prompt.won .fk-equation-target::after {
+  content: '';
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -0.03em;
+  height: 0.15em;
+  background:
+    linear-gradient(currentColor, currentColor) left top / 100% 0.045em
+      no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 100% 0.045em
+      no-repeat;
+  animation: fk-equation-rule 0.5s ease-out 2.3s both;
+}
+@keyframes fk-equation-rule {
+  0% {
+    background-size:
+      0% 0.045em,
+      0% 0.045em;
+  }
+  55% {
+    background-size:
+      100% 0.045em,
+      0% 0.045em;
+  }
+}
+.folio-world .fk-equation-keys .fk-key:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 3px #193d7930;
+}
 .fk-equation:has(.fk-equation-answer) .fk-equation-grid {
   --fk-eq-avail: calc(100cqh - 265px);
 }
@@ -126,8 +226,14 @@
   .fk-equation-target,
   .fk-equation-prompt.won .fk-equation-target,
   .fk-equation-prompt.lost .fk-equation-target,
-  .fk-equation-answer {
+  .fk-equation-answer,
+  .fk-equation-grid .fk-tile.filled[data-grade='-1'],
+  .fk-equation-caret::after,
+  .fk-equation-prompt.won .fk-equation-target::after {
     animation: none;
+  }
+  .fk-equation-caret {
+    transition: none;
   }
 }
 .folio-world .fk-equation-keys .fk-key.wide,

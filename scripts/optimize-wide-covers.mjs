@@ -11,8 +11,9 @@ import { wideCover } from '../lib/games/box-covers.ts';
  * Source PNGs live in the art archive beside the repo, not in git. */
 const archive = process.env.ART_ARCHIVE ?? '../gamehub-art-archive/public/art';
 const sources = {
-  undertow: 'box-nox-wide-v1-a.png',
-  wildgrove: 'box-mora-wide-v1-a.png',
+  undertow: 'box-nox-chart-wide-v1-b.png',
+  // Mora's game-true lid (27 September 2026) is cut by the same steps in
+  // docs/concepts/2026-09-27-mora-phone-boards; its source is box-mora-game-wide-v2-d.png.
   midnight: 'box-yata-wide-v1-a.png',
   orin: 'box-know-me-wide-v1-a.png',
   miro: 'box-quiz-wide-v1-b.png',

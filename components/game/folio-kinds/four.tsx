@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Lock } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 import type { FourBoard, FourView } from '@/lib/games/folio/kinds/four';
 import {
   Keyboard,
@@ -51,7 +51,7 @@ function Board({
     const now = board.solved !== null;
     if (now && !wasSolved.current) {
       setPop(true);
-      const t = setTimeout(() => setPop(false), 2600);
+      const t = setTimeout(() => setPop(false), 2800);
       wasSolved.current = now;
       return () => clearTimeout(t);
     }
@@ -76,6 +76,8 @@ function Board({
       >
         {Array.from({ length: rows }, (_, r) => {
           const marks = board.marks[r];
+          // The solving row keeps its flourish until the board's pop is over.
+          const flourish = r >= fresh || (pop && board.solved === r);
           if (marks)
             return (
               <TileRow
@@ -84,8 +86,8 @@ function Board({
                 letters={guesses[r]}
                 length={5}
                 marks={marks}
-                reveal={r >= fresh}
-                win={board.solved === r && r >= fresh}
+                reveal={flourish}
+                win={board.solved === r && flourish}
               />
             );
           const current = open && r === guesses.length;
@@ -102,6 +104,11 @@ function Board({
         {board.locked && (
           <span className="fk-four-lock" aria-hidden="true">
             <Lock size={18} />
+          </span>
+        )}
+        {solved && (
+          <span className="fk-four-seal" aria-hidden="true">
+            <Check strokeWidth={3.2} />
           </span>
         )}
       </div>

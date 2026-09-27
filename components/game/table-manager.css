@@ -1,0 +1,305 @@
+/* The table admin's Table button and panel (`table-manager.tsx`). For the
+   admin the button takes the back control's place at the top left: the back
+   control and game name are hidden (their slot is kept, so nothing else on
+   the bar moves) and the component measures that slot and sets the two
+   position variables. It wears the game's menu tokens (game-menu.css), and
+   the panel is a `.game-menu`, so both match each world's Menu. */
+html[data-table-admin] :is(.game-navigation-back, .table-back, .arena-back) {
+  visibility: hidden;
+}
+.table-manager-trigger {
+  --menu-trigger-shadow: 0 3px 12px #0000002e;
+  position: fixed;
+  z-index: 40;
+  top: var(--table-manager-top, max(8px, env(safe-area-inset-top)));
+  left: var(--table-manager-left, max(10px, env(safe-area-inset-left)));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin: 0;
+  padding: 7px 14px 7px 10px;
+  border: var(--menu-border);
+  border-radius: 999px;
+  background: var(--menu-bg);
+  color: var(--menu-ink);
+  box-shadow: var(--menu-trigger-shadow);
+  font: 700 12px/1 var(--menu-font);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+.table-manager-trigger > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--menu-icon);
+}
+.table-manager-trigger:hover {
+  transform: translateY(-1px);
+}
+.table-manager-trigger[data-popup-open] {
+  transform: none;
+  box-shadow:
+    var(--menu-trigger-shadow),
+    0 0 0 3px color-mix(in srgb, var(--menu-icon) 35%, transparent);
+}
+.table-manager-trigger:focus-visible {
+  outline: 3px solid var(--menu-icon);
+  outline-offset: 2px;
+}
+/* The connection light sits on the button's corner. */
+.table-manager-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #d18a2c;
+  box-shadow: 0 0 0 2px var(--menu-ink);
+}
+.table-manager-dot[data-connected] {
+  display: none;
+}
+.table-manager-trigger[data-menu-theme='nox'] {
+  --menu-trigger-shadow: 4px 5px 0 #01091299;
+}
+.table-manager-trigger[data-menu-theme='yata'] {
+  --menu-trigger-shadow: 0 3px 0 #1d1a1f;
+  border-radius: 12px;
+  font-weight: 800;
+}
+/* Folio's paper tabs. */
+.table-manager-trigger[data-menu-theme='folio'] {
+  --menu-trigger-shadow: 0 2px 0 #193d7914, 0 6px 16px -8px #3a2a0660;
+  border-radius: 6px;
+}
+/* Know Me and Quiz: the stage's ink-outlined chips (the panel stays paper). */
+.table-manager-trigger[data-menu-theme='party'] {
+  --menu-trigger-shadow: 3px 4px 0 #2b1a12;
+  --menu-bg: #fffaf0;
+  --menu-ink: #2b1a12;
+  --menu-border: 2px solid #2b1a12;
+  border-radius: 12px;
+}
+@media (max-width: 600px) {
+  .table-manager-trigger {
+    left: var(--table-manager-left, max(8px, env(safe-area-inset-left)));
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .table-manager-trigger > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .table-manager-dot {
+    top: 1px;
+    right: 1px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-manager-trigger {
+    transition: none;
+  }
+  .table-manager-trigger:hover {
+    transform: none;
+  }
+}
+
+/* The panel: drops from the Table button along the left side. */
+.game-menu.table-manager {
+  width: 292px;
+  transform-origin: var(--transform-origin, top left);
+}
+.table-manager-people {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 4px 0 6px;
+  list-style: none;
+}
+.table-manager-people + .game-menu-group {
+  border-top: 1px solid var(--menu-line);
+}
+.table-manager-people > li {
+  border-radius: calc(var(--menu-radius) - 6px);
+}
+.table-manager-people > li[data-open] {
+  background: var(--menu-hover);
+}
+.table-manager-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: calc(var(--menu-radius) - 6px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  box-shadow: none;
+}
+button.table-manager-person {
+  cursor: pointer;
+}
+button.table-manager-person:hover:not(:disabled),
+button.table-manager-person:focus-visible {
+  background: var(--menu-hover);
+  outline: none;
+}
+.table-manager-avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--menu-icon);
+  color: var(--menu-bg);
+  font-size: 13px;
+  font-weight: 800;
+}
+/* Lucky's panel is a gradient; the letter keeps a solid ground. */
+.game-menu[data-menu-theme='lucky'] .table-manager-avatar {
+  color: #15392f;
+}
+.table-manager-avatar > svg {
+  width: 16px;
+  height: 16px;
+}
+.table-manager-avatar[data-away] {
+  opacity: 0.45;
+}
+.table-manager-avatar[data-away]::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d18a2c;
+  box-shadow: 0 0 0 2px var(--menu-line);
+}
+.table-manager-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table-manager-name small {
+  color: var(--menu-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.table-manager-crown {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--menu-icon);
+}
+.table-manager-person-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 10px 50px;
+}
+.table-manager-person-actions > button,
+.table-manager-confirm > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--menu-line);
+  border-radius: 999px;
+  background: var(--menu-bg);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+  cursor: pointer;
+}
+.table-manager-person-actions > button > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--menu-icon);
+}
+.table-manager-person-actions > button:hover:not(:disabled),
+.table-manager-confirm > button:hover:not(:disabled) {
+  border-color: var(--menu-icon);
+}
+.game-menu-group > button.table-manager-danger,
+.game-menu-group > button.table-manager-danger > svg {
+  color: #c2412d;
+}
+:is(
+    .game-menu[data-menu-theme='nox'],
+    .game-menu[data-menu-theme='lucky'],
+    .game-menu[data-menu-theme='arena']
+  )
+  .game-menu-group
+  > button.table-manager-danger,
+:is(
+    .game-menu[data-menu-theme='nox'],
+    .game-menu[data-menu-theme='lucky'],
+    .game-menu[data-menu-theme='arena']
+  )
+  .game-menu-group
+  > button.table-manager-danger
+  > svg {
+  color: #ff8a73;
+}
+:where(.dark)
+  .game-menu:not([data-menu-theme])
+  .game-menu-group
+  > button.table-manager-danger,
+:where(.dark)
+  .game-menu:not([data-menu-theme])
+  .game-menu-group
+  > button.table-manager-danger
+  > svg {
+  color: #ff8a73;
+}
+
+/* Ending the game or closing the table asks once, in place. */
+.table-manager-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 10px 8px 8px;
+}
+.table-manager-confirm > strong {
+  padding: 0 4px 4px;
+  font-size: 15px;
+  text-wrap: balance;
+}
+.table-manager-confirm > button {
+  min-height: 44px;
+  border-radius: calc(var(--menu-radius) - 6px);
+}
+.table-manager-confirm > .table-manager-primary {
+  border-color: transparent;
+  background: #c2412d;
+  color: #fff;
+}
+.table-manager-confirm > .table-manager-primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: #a93622;
+}

@@ -89,6 +89,25 @@ export function RelicScratchSession({ initial }: { initial: ExpeditionView }) {
     },
     [accept, path],
   );
+  // Someone else changed the desk: fetch it now, at most once per 150 ms.
+  const refreshing = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refresh = useCallback(() => {
+    if (refreshing.current) return;
+    refreshing.current = setTimeout(() => {
+      refreshing.current = null;
+      void api<ExpeditionView>(path)
+        .then(accept)
+        .catch(() => {
+          /* The regular poll reports connection trouble. */
+        });
+    }, 150);
+  }, [accept, path]);
+  useEffect(
+    () => () => {
+      if (refreshing.current) clearTimeout(refreshing.current);
+    },
+    [],
+  );
   const room = useRoomTable((path) => { void chain.current.then(() => window.location.assign(path)); });
   return (
     <RelicScratch
@@ -98,6 +117,8 @@ export function RelicScratchSession({ initial }: { initial: ExpeditionView }) {
       error={error}
       onAct={dispatch}
       onView={accept}
+      onRefresh={refresh}
+      // Leaving waits for every scratch still on its way.
       onBack={() => {
         void chain.current.then(() => window.location.assign(returnPath()));
       }}

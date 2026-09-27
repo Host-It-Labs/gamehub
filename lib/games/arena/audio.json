@@ -1,0 +1,358 @@
+{
+  "battle-start": {
+    "srcs": [
+      "/audio/arena/battle-start-70d5fffb.mp3"
+    ],
+    "duration": 2.0,
+    "gain": 0.9,
+    "loop": false
+  },
+  "overtime": {
+    "srcs": [
+      "/audio/arena/overtime-4062f632.mp3"
+    ],
+    "duration": 1.47,
+    "gain": 0.85,
+    "loop": false
+  },
+  "crown": {
+    "srcs": [
+      "/audio/arena/crown-a853ebb3.mp3"
+    ],
+    "duration": 1.48,
+    "gain": 0.85,
+    "loop": false
+  },
+  "countdown-tick": {
+    "srcs": [
+      "/audio/arena/countdown-tick-7482faa6.mp3"
+    ],
+    "duration": 0.24,
+    "gain": 0.6,
+    "loop": false
+  },
+  "sting-win": {
+    "srcs": [
+      "/audio/arena/sting-win-f70681f1.mp3"
+    ],
+    "duration": 3.06,
+    "gain": 0.9,
+    "loop": false
+  },
+  "sting-lose": {
+    "srcs": [
+      "/audio/arena/sting-lose-6d7195d8.mp3"
+    ],
+    "duration": 3.48,
+    "gain": 0.85,
+    "loop": false
+  },
+  "sting-draw": {
+    "srcs": [
+      "/audio/arena/sting-draw-2775f60c.mp3"
+    ],
+    "duration": 2.48,
+    "gain": 0.8,
+    "loop": false
+  },
+  "card-pick": {
+    "srcs": [
+      "/audio/arena/card-pick-56b12cee.mp3"
+    ],
+    "duration": 0.45,
+    "gain": 0.5,
+    "loop": false
+  },
+  "card-drop": {
+    "srcs": [
+      "/audio/arena/card-drop-1-319eb4c8.mp3",
+      "/audio/arena/card-drop-2-28c52223.mp3"
+    ],
+    "duration": 0.5,
+    "gain": 0.85,
+    "loop": false
+  },
+  "no-elixir": {
+    "srcs": [
+      "/audio/arena/no-elixir-6324045b.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.6,
+    "loop": false
+  },
+  "archers-deploy": {
+    "srcs": [
+      "/audio/arena/archers-deploy-ea643526.mp3"
+    ],
+    "duration": 1.2,
+    "gain": 0.75,
+    "loop": false
+  },
+  "archers-attack": {
+    "srcs": [
+      "/audio/arena/archers-attack-1-51b403eb.mp3",
+      "/audio/arena/archers-attack-2-d810e744.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.7,
+    "loop": false
+  },
+  "archers-death": {
+    "srcs": [
+      "/audio/arena/archers-death-4a5d7a9b.mp3"
+    ],
+    "duration": 0.88,
+    "gain": 0.6,
+    "loop": false
+  },
+  "ogre-deploy": {
+    "srcs": [
+      "/audio/arena/ogre-deploy-945e3439.mp3"
+    ],
+    "duration": 1.36,
+    "gain": 0.75,
+    "loop": false
+  },
+  "ogre-attack": {
+    "srcs": [
+      "/audio/arena/ogre-attack-1-c4bba58e.mp3",
+      "/audio/arena/ogre-attack-2-9475266e.mp3"
+    ],
+    "duration": 0.68,
+    "gain": 0.85,
+    "loop": false
+  },
+  "ogre-death": {
+    "srcs": [
+      "/audio/arena/ogre-death-ee3118fa.mp3"
+    ],
+    "duration": 1.2,
+    "gain": 0.6,
+    "loop": false
+  },
+  "imps-deploy": {
+    "srcs": [
+      "/audio/arena/imps-deploy-10e8b61e.mp3"
+    ],
+    "duration": 1.13,
+    "gain": 0.75,
+    "loop": false
+  },
+  "imps-attack": {
+    "srcs": [
+      "/audio/arena/imps-attack-1-0c89c126.mp3",
+      "/audio/arena/imps-attack-2-e3cd5b1b.mp3"
+    ],
+    "duration": 0.48,
+    "gain": 0.65,
+    "loop": false
+  },
+  "imps-death": {
+    "srcs": [
+      "/audio/arena/imps-death-0e182dd1.mp3"
+    ],
+    "duration": 0.71,
+    "gain": 0.6,
+    "loop": false
+  },
+  "duelist-deploy": {
+    "srcs": [
+      "/audio/arena/duelist-deploy-cdaf9f6d.mp3"
+    ],
+    "duration": 1.28,
+    "gain": 0.75,
+    "loop": false
+  },
+  "duelist-attack": {
+    "srcs": [
+      "/audio/arena/duelist-attack-1-1015a814.mp3",
+      "/audio/arena/duelist-attack-2-3e39cb8b.mp3"
+    ],
+    "duration": 0.48,
+    "gain": 0.8,
+    "loop": false
+  },
+  "duelist-death": {
+    "srcs": [
+      "/audio/arena/duelist-death-2841a9cf.mp3"
+    ],
+    "duration": 0.75,
+    "gain": 0.6,
+    "loop": false
+  },
+  "ranger-deploy": {
+    "srcs": [
+      "/audio/arena/ranger-deploy-9f85327f.mp3"
+    ],
+    "duration": 0.44,
+    "gain": 0.75,
+    "loop": false
+  },
+  "ranger-attack": {
+    "srcs": [
+      "/audio/arena/ranger-attack-1-cd1dbb77.mp3",
+      "/audio/arena/ranger-attack-2-fde72177.mp3"
+    ],
+    "duration": 0.8,
+    "gain": 0.8,
+    "loop": false
+  },
+  "ranger-death": {
+    "srcs": [
+      "/audio/arena/ranger-death-9d1902a4.mp3"
+    ],
+    "duration": 0.88,
+    "gain": 0.6,
+    "loop": false
+  },
+  "drake-deploy": {
+    "srcs": [
+      "/audio/arena/drake-deploy-e8a1a3ce.mp3"
+    ],
+    "duration": 1.48,
+    "gain": 0.75,
+    "loop": false
+  },
+  "drake-attack": {
+    "srcs": [
+      "/audio/arena/drake-attack-1-cf1f9b00.mp3",
+      "/audio/arena/drake-attack-2-23c60683.mp3"
+    ],
+    "duration": 1.0,
+    "gain": 0.65,
+    "loop": false
+  },
+  "drake-death": {
+    "srcs": [
+      "/audio/arena/drake-death-042abfea.mp3"
+    ],
+    "duration": 1.6,
+    "gain": 0.6,
+    "loop": false
+  },
+  "mage-deploy": {
+    "srcs": [
+      "/audio/arena/mage-deploy-e6f41511.mp3"
+    ],
+    "duration": 1.2,
+    "gain": 0.75,
+    "loop": false
+  },
+  "mage-attack": {
+    "srcs": [
+      "/audio/arena/mage-attack-1-ed5b6746.mp3",
+      "/audio/arena/mage-attack-2-86394be9.mp3"
+    ],
+    "duration": 0.68,
+    "gain": 0.8,
+    "loop": false
+  },
+  "mage-death": {
+    "srcs": [
+      "/audio/arena/mage-death-e8922b37.mp3"
+    ],
+    "duration": 0.45,
+    "gain": 0.6,
+    "loop": false
+  },
+  "arrow-shot": {
+    "srcs": [
+      "/audio/arena/arrow-shot-1-51b2b68a.mp3",
+      "/audio/arena/arrow-shot-2-935a6574.mp3"
+    ],
+    "duration": 0.48,
+    "gain": 0.5,
+    "loop": false
+  },
+  "cannon-shot": {
+    "srcs": [
+      "/audio/arena/cannon-shot-1-ed13bf44.mp3",
+      "/audio/arena/cannon-shot-2-5155e0c9.mp3"
+    ],
+    "duration": 0.74,
+    "gain": 0.7,
+    "loop": false
+  },
+  "tower-hit": {
+    "srcs": [
+      "/audio/arena/tower-hit-1-eaf2b6de.mp3",
+      "/audio/arena/tower-hit-2-117f0071.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.55,
+    "loop": false
+  },
+  "tower-fall": {
+    "srcs": [
+      "/audio/arena/tower-fall-20dfbb54.mp3"
+    ],
+    "duration": 2.25,
+    "gain": 1.0,
+    "loop": false
+  },
+  "king-wake": {
+    "srcs": [
+      "/audio/arena/king-wake-00e036d4.mp3"
+    ],
+    "duration": 2.08,
+    "gain": 0.9,
+    "loop": false
+  },
+  "hit-melee": {
+    "srcs": [
+      "/audio/arena/hit-melee-1-197a4ef3.mp3",
+      "/audio/arena/hit-melee-2-5e076210.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.6,
+    "loop": false
+  },
+  "bomb-blast": {
+    "srcs": [
+      "/audio/arena/bomb-blast-212cc2c2.mp3"
+    ],
+    "duration": 1.2,
+    "gain": 0.8,
+    "loop": false
+  },
+  "fire-blast": {
+    "srcs": [
+      "/audio/arena/fire-blast-eca8116d.mp3"
+    ],
+    "duration": 1.0,
+    "gain": 0.75,
+    "loop": false
+  },
+  "meteor-fall": {
+    "srcs": [
+      "/audio/arena/meteor-fall-6ab94531.mp3"
+    ],
+    "duration": 1.08,
+    "gain": 0.7,
+    "loop": false
+  },
+  "meteor-crash": {
+    "srcs": [
+      "/audio/arena/meteor-crash-bf73ae10.mp3"
+    ],
+    "duration": 2.0,
+    "gain": 1.0,
+    "loop": false
+  },
+  "music-battle": {
+    "srcs": [
+      "/audio/arena/music-battle-65fe57f1.mp3"
+    ],
+    "duration": 57.5,
+    "gain": 0.8,
+    "loop": true
+  },
+  "music-final": {
+    "srcs": [
+      "/audio/arena/music-final-834fdfa7.mp3"
+    ],
+    "duration": 38.334875,
+    "gain": 0.8,
+    "loop": true
+  }
+}

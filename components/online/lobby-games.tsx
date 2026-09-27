@@ -5,6 +5,8 @@ import { isStandaloneId } from '@/lib/games/standalone/registry';
 import { lessons } from '@/lib/games/trio/lessons';
 import { FolioSetupBox } from '../game/folio-box';
 import { RelicSetupBox } from '../game/relic-box';
+import { ArenaSetupBox } from '../game/arena/arena-box';
+import type { ArenaLaunch } from '@/lib/games/arena/room';
 import type { ShelfGameId, Table, TableCommand } from '@/lib/online/types';
 import type { GameId } from '@/lib/games/trio/engine';
 import {
@@ -27,11 +29,14 @@ type Props = {
   error?: string;
   dispatch: (action: TableCommand) => Promise<boolean>;
 };
-export type Launch = { kind: 'folio' | 'relic'; difficulty?: 1 | 2 | 3; token?: string; title?: string };
+export type Launch =
+  | { kind: 'folio' | 'relic'; difficulty?: 1 | 2 | 3; token?: string; title?: string }
+  | ArenaLaunch;
 
-/** Folio and Relic run in their own rooms; the rest are set up at the table. */
-const ownRoom = (id: string): id is 'folio' | 'relic' =>
-  id === 'folio' || id === 'relic';
+/** Folio, Relic and Arena run in their own rooms; the rest are set up at the
+ *  table. */
+const ownRoom = (id: string): id is 'folio' | 'relic' | 'arena' =>
+  id === 'folio' || id === 'relic' || id === 'arena';
 
 /** The table's shelf: the library's sections and boxes. The host opens a box
  *  to set it up for everyone; guests tap boxes to suggest them. */
@@ -254,7 +259,8 @@ export function LobbyGames({
   );
 }
 
-/** Folio and Relic open their own room with everyone at the table seated. */
+/** Folio, Relic and Arena open their own room with everyone at the table
+ *  seated. */
 function LaunchDialog({
   box,
   table,
@@ -278,6 +284,18 @@ function LaunchDialog({
         {error && <p className="online-notice" role="alert">{error}</p>}
         {box?.id === 'folio' && <FolioSetupBox game={box} table={options} />}
         {box?.id === 'relic' && <RelicSetupBox game={box} table={options} />}
+        {box?.id === 'arena' && (
+          <ArenaSetupBox
+            game={box}
+            table={{
+              members: table.members
+                .filter((m) => !m.bot)
+                .map((m) => ({ id: m.id, name: m.name })),
+              disabled,
+              onLaunch,
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

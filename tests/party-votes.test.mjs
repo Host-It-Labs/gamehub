@@ -173,45 +173,65 @@ await test('practice votes wait for everyone instead of a clock', () => {
   assert.equal(deadline(g), null);
 });
 
-await test('Dial scores bands, rewards the clue-giver with the average and keeps the point private', () => {
+await test('Dial: everyone writes a clue at once, then the table reads them in turn', () => {
   assert.deepEqual(
     [50, 52, 53, 56, 57, 60, 61, 100].map((v) => dial.points(v, 50)),
     [4, 4, 3, 3, 2, 2, 0, 0],
   );
   let g = dial.createGame(3, 21);
   assert.equal(g.phase, 'clue');
-  assert.equal(g.offers.length, 2);
-  for (const viewer of [1, 2]) {
-    const v = dial.observe(g, viewer);
-    assert.equal(v.point, -1);
-    assert.deepEqual(v.offers, []);
-    assert.deepEqual(v.deck, []);
+  assert.deepEqual(dial.actingSeats(g), [0, 1, 2], 'every player writes at once');
+  for (const c of g.cards) {
+    assert.equal(c.offers.length, 2);
+    assert.equal(c.card, c.offers[0], 'the first spectrum shows at once');
   }
-  assert.equal(dial.observe(g, 0).point, g.point);
-  assert.equal(g.card, g.offers[0], 'the first spectrum shows at once');
-  assert.equal(dial.observe(g, 1).card, null);
+  const v1 = dial.observe(g, 1);
+  assert.deepEqual(v1.deck, []);
+  assert.equal(v1.cards[1].point, g.cards[1].point, 'you see your own point');
+  assert.equal(v1.cards[0].point, -1);
+  assert.equal(v1.cards[0].card, -1);
+  assert.deepEqual(v1.cards[0].offers, []);
   assert.equal(
-    dial.validMove(g, { type: 'card', target: g.offers[0] }, 1),
+    dial.validMove(g, { type: 'card', target: g.cards[0].offers[0] }, 1),
     false,
+    'you only choose between your own spectrums',
   );
-  g = dial.play(g, { type: 'card', target: g.offers[1] }, 0);
+  g = dial.play(g, { type: 'card', target: g.cards[0].offers[1] }, 0);
+  assert.equal(g.cards[0].card, g.cards[0].offers[1]);
   assert.equal(dial.validMove(g, { type: 'clue', text: '   ' }, 0), false);
   assert.equal(
     dial.validMove(g, { type: 'clue', text: 'x'.repeat(61) }, 0),
     false,
   );
   g = dial.play(g, { type: 'clue', text: '  A   warm bath ' }, 0);
-  assert.equal(g.clue, 'A warm bath');
+  assert.equal(g.cards[0].clue, 'A warm bath');
+  assert.equal(g.cards[0].locked, true);
+  assert.equal(g.phase, 'clue');
+  assert.equal(dial.observe(g, 1).cards[0].clue, '', 'clues stay hidden while writing');
+  assert.equal(dial.observe(g, 1).cards[0].locked, true);
+  // A locked clue can reopen until everyone has locked.
+  g = dial.play(g, { type: 'unlock' }, 0);
+  assert.equal(g.cards[0].locked, false);
+  assert.equal(g.cards[0].clue, 'A warm bath');
+  g = dial.play(g, { type: 'clue', text: 'A warm bath' }, 0);
+  g = dial.play(g, { type: 'clue', text: 'Tea' }, 1);
+  g = dial.play(g, { type: 'clue', text: 'Snow' }, 2);
   assert.equal(g.phase, 'guess');
+  assert.equal(g.target, 0);
+  assert.ok(standaloneGames.dial.isSavedGame(JSON.parse(JSON.stringify(g))));
+  const seen = dial.observe(g, 1);
+  assert.equal(seen.cards[0].clue, 'A warm bath');
+  assert.equal(seen.cards[0].card, g.cards[0].card);
+  assert.equal(seen.cards[0].point, -1);
+  assert.equal(seen.cards[2].clue, '', 'later clues wait their turn');
   assert.equal(
     dial.validMove(g, { type: 'dial', value: 10 }, 0),
     false,
-    'the clue-giver never guesses',
+    'the author never guesses',
   );
-  const point = g.point;
+  const point = g.cards[0].point;
   g = dial.play(g, { type: 'dial', value: point }, 1);
   assert.equal(dial.observe(g, 2).guesses[1].value, -1);
-  assert.equal(dial.observe(g, 2).point, -1);
   g = dial.play(g, { type: 'lock' }, 1);
   g = dial.play(
     g,
@@ -221,10 +241,12 @@ await test('Dial scores bands, rewards the clue-giver with the average and keeps
   assert.equal(g.phase, 'reveal');
   assert.deepEqual(g.result.gains, [3, 4, 2]);
   assert.deepEqual(g.scores, [3, 4, 2]);
-  assert.equal(dial.observe(g, 2).point, point);
+  assert.equal(dial.observe(g, 2).cards[0].point, point);
   g = dial.play(g, { type: 'next' }, 0);
   assert.equal(g.target, 1);
-  assert.equal(g.phase, 'clue');
+  assert.equal(g.phase, 'guess', 'the next clue is read straight away');
+  assert.deepEqual(dial.actingSeats(g), [0, 2]);
+  assert.equal(dial.observe(g, 0).cards[1].clue, 'Tea');
   assert.ok(standaloneGames.dial.isSavedGame(JSON.parse(JSON.stringify(g))));
 });
 
@@ -412,5 +434,63 @@ await test('flagged prompts are logged once per player with their title', async 
     assert.deepEqual(await ok.json(), { flagged: true });
   } finally {
     await app.close();
+  }
+});
+
+await test('development: the host’s pick in the opening vote starts that game at once', () => {
+  const env = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'development';
+  const db = openDatabase(':memory:');
+  try {
+    db.prepare('INSERT INTO users VALUES (?,?,?,?)').run(
+      'host',
+      'host@example.com',
+      'host',
+      'unused',
+    );
+    const who = (id, user = false) => ({
+      id,
+      name: id,
+      userId: user ? id : null,
+      sessionHash: 't',
+      expires: Date.now() + 99999,
+    });
+    const tables = new Tables(db, () => true),
+      host = who('host', true),
+      guest = who('guest');
+    const cmd = (t, actor, action) =>
+      tables.command(t.token, actor, {
+        action,
+        requestId: randomUUID(),
+        revision: t.revision,
+        matchId: t.matchId,
+      });
+    let t = tables.create(host);
+    t = cmd(t, host, {
+      type: 'configure',
+      gameId: 'orin',
+      difficulty: 'medium',
+      capacity: 2,
+    });
+    t = tables.join(t.token, guest);
+    t = cmd(t, host, { type: 'start' });
+    assert.equal(t.adventure.vote.opening, true);
+    // A guest's vote alone still waits for the table.
+    t = cmd(t, guest, {
+      type: 'adventure-move',
+      move: { type: 'vote', choice: 'orin' },
+      key: decisionKey(t.adventure),
+    });
+    assert.equal(t.adventure.phase, 'vote');
+    t = cmd(t, host, {
+      type: 'adventure-move',
+      move: { type: 'vote', choice: 'dial' },
+      key: decisionKey(t.adventure),
+    });
+    assert.equal(t.adventure.kind, 'dial');
+    assert.notEqual(t.adventure.phase, 'vote');
+  } finally {
+    db.close();
+    process.env.NODE_ENV = env;
   }
 });
