@@ -1,4 +1,4 @@
-import { deck } from './cards.ts';
+import { allCards } from './cards.ts';
 import { deploy, step, type Match } from './engine.ts';
 
 /**
@@ -74,8 +74,8 @@ export function checksum(m: Match) {
     h = mix(h, p.elixir);
     h = mix(h, p.hand.cards.length + p.hand.queue.length);
     // The hand and deck order, so a card played on one device only shows.
-    for (const id of p.hand.cards) h = mix(h, deck.indexOf(id));
-    for (const id of p.hand.queue) h = mix(h, deck.indexOf(id));
+    for (const id of p.hand.cards) h = mix(h, allCards.indexOf(id));
+    for (const id of p.hand.queue) h = mix(h, allCards.indexOf(id));
   }
   for (const u of m.units) {
     h = mix(h, u.id);
@@ -84,6 +84,8 @@ export function checksum(m: Match) {
     h = mix(h, u.hp);
     h = mix(h, u.attackTimer);
     h = mix(h, u.targetId ?? -1);
+    h = mix(h, u.shield);
+    h = mix(h, u.stun);
   }
   for (const t of m.towers) {
     h = mix(h, t.hp);

@@ -2,12 +2,24 @@ import landscape from './observatory-art.json' with { type: 'json' };
 import portrait from './observatory-portrait-art.json' with { type: 'json' };
 import floodlineLandscape from './floodline-art.json' with { type: 'json' };
 import floodlinePortrait from './floodline-portrait-art.json' with { type: 'json' };
+import floodlinePhone from './floodline-phone-art.json' with { type: 'json' };
+import motelLandscape from './motel-art.json' with { type: 'json' };
+import motelPortrait from './motel-portrait-art.json' with { type: 'json' };
+import damLandscape from './dam-art.json' with { type: 'json' };
+import damPortrait from './dam-portrait-art.json' with { type: 'json' };
 import registry from './observatory-variants.json' with { type: 'json' };
+import type { ContentSet } from './trio/engine.ts';
 export type PaperWorld = typeof landscape;
-/** Mora's two paper worlds: the beginner Observatory and the intermediate Floodline Station. */
-export type PaperWorldId = 'observatory' | 'floodline';
-export const paperWorldIdFor = (set?: 'beginner' | 'intermediate'): PaperWorldId =>
-  set === 'intermediate' ? 'floodline' : 'observatory';
+/** Mora's paper worlds: the Observatory (beginner), Floodline Station and Sunset Motel (intermediate), Glacier Dam (advanced). */
+export type PaperWorldId = 'observatory' | 'floodline' | 'motel' | 'dam';
+export const paperWorldIdFor = (set?: ContentSet): PaperWorldId =>
+  set === 'intermediate' ? 'floodline' : set === 'desert' ? 'motel' : set === 'alpine' ? 'dam' : 'observatory';
+export const paperWorldAlt: Record<PaperWorldId, string> = {
+  observatory: 'The Observatory: wildlife reclaiming an abandoned inland observatory.',
+  floodline: 'Floodline Station: shore wildlife reclaiming an abandoned coastal field station.',
+  motel: 'Sunset Motel: desert wildlife reclaiming an abandoned roadside motel.',
+  dam: 'Glacier Dam: mountain wildlife reclaiming an abandoned hydroelectric dam.',
+};
 export type PaperWorldVariant = {
   id: string; orientation: 'landscape' | 'portrait'; world?: PaperWorldId; label: string;
   source: string; image: string; boardImage: string; overviewImage: string;
@@ -16,15 +28,20 @@ const variants = registry as PaperWorldVariant[];
 const worlds: Record<PaperWorldId, { landscape: PaperWorld; portrait: PaperWorld }> = {
   observatory: { landscape, portrait },
   floodline: { landscape: floodlineLandscape as PaperWorld, portrait: floodlinePortrait as PaperWorld },
+  motel: { landscape: motelLandscape as PaperWorld, portrait: motelPortrait as PaperWorld },
+  dam: { landscape: damLandscape as PaperWorld, portrait: damPortrait as PaperWorld },
 };
 /** Alternative renderings of the same measured geometry (candidate generations). */
 export const paperWorldVariants = (tall = false, world: PaperWorldId = 'observatory'): PaperWorldVariant[] =>
   variants.filter((v) => (v.world ?? 'observatory') === world && v.orientation === (tall ? 'portrait' : 'landscape'));
 const variantWorlds = new Map<string, PaperWorld>();
 /** Stable object identity per (world, orientation, variant), so scene effects keyed on it do not rerun. */
-export function paperWorldFor(tall = false, variant?: string | null, world: PaperWorldId = 'observatory'): PaperWorld {
-  const base = tall ? worlds[world].portrait : worlds[world].landscape;
-  const accepted = world === 'floodline' ? null : variant;
+export function paperWorldFor(tall = false, variant?: string | null, world: PaperWorldId = 'observatory', phone = false): PaperWorld {
+  const base = tall && phone && world === 'floodline'
+    ? floodlinePhone as PaperWorld
+    : tall ? worlds[world].portrait : worlds[world].landscape;
+  // Only the Observatory still reads review candidates.
+  const accepted = world === 'observatory' ? variant : null;
   const v = accepted ? paperWorldVariants(tall, world).find((x) => x.id === accepted) : undefined;
   if (!v) return base;
   const key = `${world}:${tall ? 'p' : 'l'}:${v.id}`;
@@ -110,7 +127,7 @@ export function frameScene(
     ];
     const soft: Range[] = [
       [size - artSize * scale, 0],
-      [size - markEnd * scale, -markStart * scale],
+      [-markStart * scale, size - markEnd * scale],
     ];
     for (const s of soft) {
       const i = intersect(range, s);

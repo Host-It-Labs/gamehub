@@ -23,7 +23,7 @@ Artwork tests decode every active CSS texture, map, cover variant and token; che
 
 ## Salvage policy experiment
 
-Reproduce with `node --experimental-strip-types scripts/simulate-salvage.mjs 25`. Raw results: [salvage-simulation.json](salvage-simulation.json).
+Salvage, Shields and Turning Tide were retired on 29 September 2026 (see DESIGN.md), and the simulation script and its raw results were removed with them. The table below is kept as history.
 
 900 complete games: 25 paired seeds × 3 claim policies × 3 player counts × 2 deck sizes × Turning Tide on/off. Shields are enabled. The focal seat rotates by seed; opponents and all ordinary card choices use the medium bot's public-information policy. “Always” claims at the first eligible opportunity; “never” always passes. Lower mean penalty is better.
 

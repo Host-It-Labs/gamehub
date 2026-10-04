@@ -1,4 +1,5 @@
 import { paperWorldFor, paperWorldIdFor, type PaperWorldId } from '../mora-world.ts';
+import type { ContentSet } from './engine.ts';
 
 /** Percent coordinates on a paper world's gameplay crop. Keep tokens on painted pads. */
 export type MoraHabitatArt = {
@@ -10,8 +11,8 @@ export type MoraHabitatArt = {
   summary: string;
 };
 /** Scene, pad targets and labels are measured on each independently authored source. */
-export function paperWorldMap(world: PaperWorldId, portrait = false, overview = false) {
-  const art = paperWorldFor(portrait, undefined, world);
+export function paperWorldMap(world: PaperWorldId, portrait = false, overview = false, phone = false) {
+  const art = paperWorldFor(portrait, undefined, world, phone);
   const crop = overview ? art.overview : art.crop;
   const point = ([x, y]: number[]): [number, number] => [
     (x - crop.left) / crop.width * 100, (y - crop.top) / crop.height * 100,
@@ -27,8 +28,8 @@ export function paperWorldMap(world: PaperWorldId, portrait = false, overview = 
 export const observatoryMap = (portrait = false, overview = false) => paperWorldMap('observatory', portrait, overview);
 export const floodlineMap = (portrait = false, overview = false) => paperWorldMap('floodline', portrait, overview);
 export const moraMap = observatoryMap();
-export const moraMapFor = (set?: 'beginner' | 'intermediate', portrait = false, overview = false) =>
-  paperWorldMap(paperWorldIdFor(set), portrait, overview);
+export const moraMapFor = (set?: ContentSet, portrait = false, overview = false, phone = false) =>
+  paperWorldMap(paperWorldIdFor(set), portrait, overview, phone);
 
 /** Printed scoring relationships sit between spaces, never beside habitat names. */
 export function habitatRelationships(

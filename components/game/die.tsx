@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/popover';
 import {
   placementDieRule,
+  goldValue,
+  tideRanks,
   tidePenaltyRank,
   tidePenaltyValue,
   suits,
@@ -97,13 +99,24 @@ export function DieControl({ g, viewer }: { g: PublicGame; viewer?: number }) {
         ) : g.phase === 'roll' ? (
           <p>The die is rolling.</p>
         ) : g.id === 'undertow' ? (
-          <p>
-            This round the{' '}
-            <b>
-              {suits[g.hazard]} {tidePenaltyRank(g)}
-            </b>{' '}
-            is worth <b>{tidePenaltyValue(g)}</b> penalty points.
-          </p>
+          <>
+            <p>
+              This round the{' '}
+              <b>
+                {suits[g.hazard]} {tidePenaltyRank(g)}
+              </b>{' '}
+              is worth <b>{tidePenaltyValue(g)}</b> penalty points.
+            </p>
+            {g.gold && (
+              <p>
+                The{' '}
+                <b>
+                  {suits[g.hazard]} {tideRanks(g)}
+                </b>{' '}
+                is Gold: it takes <b>{goldValue(g)}</b> off.
+              </p>
+            )}
+          </>
         ) : (
           <>
             <p>

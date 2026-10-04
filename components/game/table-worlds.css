@@ -161,6 +161,44 @@
   font: 800 17px/1 var(--nox-font); box-shadow: var(--nox-drop);
 }
 .nox-board .capture-score.reward { background: var(--nox-green); color: var(--nox-paper); }
+/* What the trick is playing for, at the heart of the table between the cards:
+   Dawn's sun waits small all round and rises, bright, for the last trick;
+   the Anchor's ×2 appears while it lies in the trick. */
+.blackwake-table .table-stakes {
+  position: absolute; left: 50%; top: 50%; z-index: 2; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: clamp(6px, 1.2cqw, 12px); pointer-events: none;
+}
+.table-stakes :is(.stake-dawn, .stake-anchor) {
+  display: grid; place-items: center; align-content: center; gap: 1px;
+  width: clamp(44px, 8.5cqw, 74px); aspect-ratio: 1; border-radius: 50%;
+  font: 800 clamp(12px, 1.9cqw, 18px)/1 var(--nox-font); font-variant-numeric: tabular-nums;
+  transition: transform 500ms cubic-bezier(.2, 1.4, .4, 1), opacity 400ms, box-shadow 400ms;
+}
+.table-stakes svg { width: 46%; height: 46%; stroke-width: 2.4; }
+.table-stakes .stake-dawn {
+  color: #5a2a05;
+  background: radial-gradient(circle at 50% 70%, #fff3c4 0 18%, #ffc857 46%, #f08a2c 100%);
+  box-shadow: 0 0 0 2px #fde7a8, var(--nox-drop);
+}
+.table-stakes .stake-dawn[data-state='waiting'] { transform: scale(.78); opacity: .9; }
+.table-stakes .stake-dawn[data-state='rising'] {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 2px #fde7a8, 0 0 22px 8px #ffb84d99, 0 0 60px 18px #ff8a3d55;
+  animation: dawn-rise 2.4s ease-in-out infinite alternate;
+}
+@keyframes dawn-rise {
+  from { box-shadow: 0 0 0 2px #fde7a8, 0 0 18px 6px #ffb84d88, 0 0 44px 12px #ff8a3d44; }
+  to { box-shadow: 0 0 0 2px #fde7a8, 0 0 28px 10px #ffc85fbb, 0 0 72px 22px #ff8a3d66; }
+}
+.table-stakes .stake-anchor {
+  color: var(--nox-cream); background: var(--nox-navy);
+  box-shadow: 0 0 0 2px var(--nox-cream), var(--nox-drop);
+  animation: stake-drop 420ms cubic-bezier(.2, 1.5, .4, 1) both;
+}
+@keyframes stake-drop { from { transform: translateY(-14px) scale(.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .table-stakes :is(.stake-dawn, .stake-anchor) { transition: none; animation: none; }
+}
 /* The shared top row keeps only the spoken turn status and connection warning; players are tagged at their seats. */
 .world-table[data-environment='cabin'] .table-players {
   position: absolute; inset: var(--world-top) 0 auto; z-index: 5; padding: 0; background: none; box-shadow: none; pointer-events: none;
@@ -374,6 +412,28 @@
   --board-left-x: 100px; --board-right-x: 1270px; --board-top: 335px; --board-width: 165px;
   background: #0e1230; color: #fff6e2;
 }
+/* The Mexican plaza (Mexico, Puebla): the same toon language on a turquoise counter
+   under a tin star lantern. Hot pink takes the lantern red's place; plate rings avoid
+   turquoise; the plates' shadows are the counter's own dark teal. */
+.at-table .table-layout.world-table[data-environment='market'][data-market='plaza'] {
+  --market-accent: #e2336f; background: #1c1640;
+  /* The plaza's clipboards lie straight (lib/games/yata-plaza-landscape.json signboards) and its ledge runs lower. */
+  --paper-x: 126px; --paper-y: 285px; --paper-w: 124px; --paper-h: 262px; --paper-skew: 0deg;
+  --paper-gap: 1162px; --paper-right-w: 124px; --paper-right-skew: 0deg;
+  --paper-stall-h: 80px; --paper-season-top: 86px; --paper-season-h: 176px;
+  --ledge-cx: 770px; --ledge-cy: 790px;
+}
+.market-world[data-market='plaza'] .counter-board .serving-dish { --plate-shadow: #0d4f4a; }
+.market-world[data-market='plaza'] .counter-board .serving-dish:nth-child(2) { --plate-ring: #e2336f; }
+.market-world[data-market='plaza'] .counter-board .serving-dish:nth-child(3) { --plate-ring: #f2a516; }
+.market-world[data-market='plaza'] .counter-board .serving-dish:nth-child(4) { --plate-ring: #c8643a; }
+.market-world[data-market='plaza'] .counter-board .serving-dish:nth-child(6) { --plate-ring: #9ccc3a; }
+.at-table .world-table[data-environment='market'][data-market='plaza'] .food-card { --dish-color: #e2336f; }
+.at-table .world-table[data-environment='market'][data-market='plaza'] .food-kind-1 { --dish-color: #c8643a; }
+.at-table .world-table[data-environment='market'][data-market='plaza'] .food-kind-2 { --dish-color: #f2a516; }
+.at-table .world-table[data-environment='market'][data-market='plaza'] .food-kind-3 { --dish-color: #6f9a1f; }
+.at-table .world-table[data-environment='market'][data-market='plaza'] .food-kind-4 { --dish-color: #35303a; }
+.at-table .world-table[data-environment='market'][data-market='plaza'] .food-kind-5 { --dish-color: #7a3fa0; }
 /* The collection board stands on the painted counter: six toon plates, no board of its own. */
 .market-world .market-board.counter-board {
   position: absolute; margin: 0; min-height: 0; aspect-ratio: auto; max-width: none; width: auto; height: auto; box-sizing: border-box;
@@ -385,7 +445,7 @@
   --plate-ring: #fff6e2;
   min-height: 0; border: 3px solid #1d1a1f; border-bottom-width: 3px; border-radius: 50% / 46%;
   background: radial-gradient(ellipse at 50% 40%, #fffaf0 55%, #efe3cc 56%, #f8f0de 64%, #e8dcc3 65%);
-  box-shadow: 0 0 0 5px var(--plate-ring), 0 0 0 7px #1d1a1f, 0 8px 0 7px #7a1410, 0 14px 16px #0008;
+  box-shadow: 0 0 0 5px var(--plate-ring), 0 0 0 7px #1d1a1f, 0 8px 0 7px var(--plate-shadow, #7a1410), 0 14px 16px #0008;
 }
 .market-world .counter-board .serving-dish:nth-child(2) { --plate-ring: #2554c7; }
 .market-world .counter-board .serving-dish:nth-child(3) { --plate-ring: #e0a52a; }
@@ -419,7 +479,7 @@
 .at-table .world-table[data-environment='market'] .food-card .dish-name { color: #1d1a1f; font: 900 12px/1.1 system-ui, sans-serif; text-transform: uppercase; }
 .at-table .world-table[data-environment='market'] .food-card .dish-formula { border: 2px solid #1d1a1f; border-radius: 5px; box-shadow: none; color: #fff6e2; }
 .at-table .world-table[data-environment='market'] .food-card .token-art { filter: drop-shadow(0 2px 0 #1d1a1f); }
-.at-table .world-table[data-environment='market'] .food-card { --dish-color: #d8342a; }
+.at-table .world-table[data-environment='market'] .food-card { --dish-color: var(--market-accent, #d8342a); }
 .at-table .world-table[data-environment='market'] .food-kind-1 { --dish-color: #2554c7; }
 .at-table .world-table[data-environment='market'] .food-kind-2 { --dish-color: #e0a52a; }
 .at-table .world-table[data-environment='market'] .food-kind-3 { --dish-color: #3c9b45; }
@@ -436,7 +496,7 @@
   box-shadow: 0 4px 0 #1d1a1f; font: 800 13px/1.1 system-ui, sans-serif;
 }
 .at-table .world-table[data-environment='market'] .player-button.active { background: #ffe9a3; box-shadow: 0 4px 0 #1d1a1f, 0 0 0 4px #7cff3f88; }
-.at-table .world-table[data-environment='market'] .player-button b { color: #d8342a; font-size: 16px; }
+.at-table .world-table[data-environment='market'] .player-button b { color: var(--market-accent, #d8342a); font-size: 16px; }
 .at-table .world-table[data-environment='market'] .player-button .avatar { border: 2px solid #1d1a1f; border-radius: 50%; }
 .at-table .world-table[data-environment='market'] .table-board-button { background: none; border: 0; box-shadow: none; padding: 0; }
 .at-table .world-table[data-environment='market'] .table-board-chip,
@@ -475,7 +535,7 @@
 /* Confirm: the big red arcade button. */
 .at-table .world-table[data-environment='market'] .hand-confirmation .confirm-action,
 .at-table .world-table[data-environment='market'] .hand-confirmation .primary {
-  background: #d8342a; color: #fff6e2; border: 3px solid #1d1a1f; border-radius: 10px; box-shadow: 0 5px 0 #1d1a1f, 0 10px 14px #0009;
+  background: var(--market-accent, #d8342a); color: #fff6e2; border: 3px solid #1d1a1f; border-radius: 10px; box-shadow: 0 5px 0 #1d1a1f, 0 10px 14px #0009;
   font: 900 16px/1 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase;
 }
 .at-table .world-table[data-environment='market'] .hand-confirmation .confirm-action:disabled { background: #8d5a56; }
@@ -773,8 +833,8 @@
 @media (min-aspect-ratio: 1301/1000) and (min-height: 501px) {
   .at-table .table-layout.world-table[data-environment='market'] {
     /* The ledge between the chopstick cup and the lantern: yata-world-landscape.json ledge (320, 660, 900 × 252). */
-    --ledge-x: calc(var(--world-x, 0px) + 770px * var(--world-scale, 1));
-    --ledge-y: calc(var(--world-y, 0px) + 786px * var(--world-scale, 1));
+    --ledge-x: calc(var(--world-x, 0px) + var(--ledge-cx, 770px) * var(--world-scale, 1));
+    --ledge-y: calc(var(--world-y, 0px) + var(--ledge-cy, 786px) * var(--world-scale, 1));
     --ledge-card-height: clamp(100px, calc(190px * var(--world-scale, 1)), 196px);
     --world-hand-height: calc(var(--ledge-card-height) + 20px);
     --world-hand-width: calc(900px * var(--world-scale, 1));
@@ -808,15 +868,15 @@
   /* The clipboards, laid out in source pixels and scaled and sheared with the plate. The box is the
      left paper (144, 348, 108 × 242); the right paper sits 1148 px further along, sheared the other way. */
   .at-table .world-table[data-environment='market'] .hand-controls > .hand-abilities {
-    position: absolute; left: calc(var(--world-x, 0px) + 144px * var(--world-scale, 1)); top: calc(var(--world-y, 0px) + 348px * var(--world-scale, 1));
-    width: 108px; height: 242px; max-height: none; padding: 0; margin: 0; display: block;
-    transform: scale(var(--world-scale, 1)) skewX(-4deg); transform-origin: top left;
+    position: absolute; left: calc(var(--world-x, 0px) + var(--paper-x, 144px) * var(--world-scale, 1)); top: calc(var(--world-y, 0px) + var(--paper-y, 348px) * var(--world-scale, 1));
+    width: var(--paper-w, 108px); height: var(--paper-h, 242px); max-height: none; padding: 0; margin: 0; display: block;
+    transform: scale(var(--world-scale, 1)) skewX(var(--paper-skew, -4deg)); transform-origin: top left;
     border: 0; background: none; box-shadow: none;
   }
   /* Left paper: earlier receipts stay thin; the open menus share all the remaining height,
      and the menu you are cooking grows into one tall ticket. */
   .at-table .world-table[data-environment='market'] .festival-controls {
-    display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: 108px; height: 100%; padding: 0;
+    display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: var(--paper-w, 108px); height: 100%; padding: 0;
   }
   .at-table .world-table[data-environment='market'] .festival-controls > .piece-wrap:has(.festival-order) { flex: 1 1 0; width: 100%; min-height: 0; }
   .at-table .world-table[data-environment='market'] .festival-controls > .piece-wrap:has(.festival-order.settled) { flex: 0 0 26px; }
@@ -826,7 +886,7 @@
     display: block; position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; padding: 0; box-sizing: border-box; container-type: size;
     background: #f3dfb699; color: #50331d; border: 1px solid #7d573b88; border-radius: 4px; box-shadow: none;
   }
-  .at-table .world-table[data-environment='market'] .festival-controls .festival-order.selected { background: #fff6e2; outline: 3px solid #d8342a; outline-offset: -1px; box-shadow: none; }
+  .at-table .world-table[data-environment='market'] .festival-controls .festival-order.selected { background: #fff6e2; outline: 3px solid var(--market-accent, #d8342a); outline-offset: -1px; box-shadow: none; }
   .at-table .world-table[data-environment='market'] .festival-order .order-emblem { display: none; }
   /* A plated set: two dishes behind, one in front, as large as the menu allows. */
   .at-table .world-table[data-environment='market'] .festival-order:not(.settled) .order-dishes { position: absolute; inset: 0; display: block; --dish: min(47cqw, 57cqh); }
@@ -840,9 +900,9 @@
   /* The reward is a stamp in the free corner beside the front dish; the pick tick takes the other. */
   .at-table .world-table[data-environment='market'] .festival-order:not(.settled) .order-reward {
     position: absolute; left: 3px; right: auto; bottom: 3px; z-index: 2; min-width: 24px; height: 24px; padding: 0 3px; box-sizing: border-box; border-radius: 12px;
-    display: grid; place-items: center; background: #d8342a; color: #fff6e2; font: 900 12px/1 system-ui, sans-serif; letter-spacing: -.02em;
+    display: grid; place-items: center; background: var(--market-accent, #d8342a); color: #fff6e2; font: 900 12px/1 system-ui, sans-serif; letter-spacing: -.02em;
   }
-  .at-table .world-table[data-environment='market'] .festival-order:not(.settled) .order-reward.pending { background: #fff6e2; color: #d8342a; box-shadow: inset 0 0 0 2px #d8342a; }
+  .at-table .world-table[data-environment='market'] .festival-order:not(.settled) .order-reward.pending { background: #fff6e2; color: var(--market-accent, #d8342a); box-shadow: inset 0 0 0 2px var(--market-accent, #d8342a); }
   .at-table .world-table[data-environment='market'] .festival-order .extension-selected {
     top: auto; right: 3px; bottom: 3px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
     background: #1d1a1f; color: #7cff3f; font: 900 13px/1 system-ui, sans-serif;
@@ -866,17 +926,17 @@
   .at-table .world-table[data-environment='market'] .festival-order.settled .order-result { font-size: 16px; }
   /* Right paper: a compact stall permit on top, the season route below; the route takes the whole paper without stalls. */
   .at-table .world-table[data-environment='market'] .festival-controls > .piece-wrap:has(.extension-action-stall) {
-    position: absolute; left: 1148px; top: 0; width: 98px; height: 74px; margin: 0;
-    transform: skewX(10deg); transform-origin: top left; display: flex; align-items: center; justify-content: center;
+    position: absolute; left: var(--paper-gap, 1148px); top: 0; width: var(--paper-right-w, 98px); height: var(--paper-stall-h, 74px); margin: 0;
+    transform: skewX(var(--paper-right-skew, 10deg)); transform-origin: top left; display: flex; align-items: center; justify-content: center;
   }
   .at-table .world-table[data-environment='market'] .extension-action-stall { width: 64px; height: 64px; min-width: 0; min-height: 0; }
   .at-table .world-table[data-environment='market'] .hand-abilities > .season-forecast {
-    position: absolute; left: 1148px; top: 80px; width: 98px; height: 162px; max-width: none; max-height: none; margin: 0;
-    transform: skewX(10deg); transform-origin: top left; box-sizing: border-box; padding: 4px 3px 5px;
+    position: absolute; left: var(--paper-gap, 1148px); top: var(--paper-season-top, 80px); width: var(--paper-right-w, 98px); height: var(--paper-season-h, 162px); max-width: none; max-height: none; margin: 0;
+    transform: skewX(var(--paper-right-skew, 10deg)); transform-origin: top left; box-sizing: border-box; padding: 4px 3px 5px;
     display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 18px minmax(0, 1fr); gap: 2px; align-items: center;
     background: #f3dfb6aa; color: #50331d; border: 1px solid #7d573b66; border-radius: 4px; box-shadow: none;
   }
-  .at-table .world-table[data-environment='market'] .hand-abilities:not(:has(.extension-action-stall)) > .season-forecast { top: 0; height: 242px; }
+  .at-table .world-table[data-environment='market'] .hand-abilities:not(:has(.extension-action-stall)) > .season-forecast { top: 0; height: var(--paper-h, 242px); }
   .at-table .world-table[data-environment='market'] .season-forecast > svg { grid-area: 1 / 1; justify-self: start; margin-left: 3px; width: 18px; height: 18px; }
   .at-table .world-table[data-environment='market'] .season-forecast > b { grid-area: 1 / 2; justify-self: end; margin-right: 3px; font-size: 13px; }
   /* The six picks snake across, down, back, down and across; one line shows the way, filled in as the round goes. */
@@ -887,13 +947,13 @@
   .at-table .world-table[data-environment='market'] .season-line { display: block; position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .at-table .world-table[data-environment='market'] .season-line polyline { fill: none; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
   .at-table .world-table[data-environment='market'] .season-line-ahead { stroke: #7d573b; stroke-width: 2; stroke-dasharray: 2 4; opacity: .7; }
-  .at-table .world-table[data-environment='market'] .season-line-done { stroke: #d8342a; stroke-width: 3.5; }
+  .at-table .world-table[data-environment='market'] .season-line-done { stroke: var(--market-accent, #d8342a); stroke-width: 3.5; }
   .at-table .world-table[data-environment='market'] .season-route::before,
   .at-table .world-table[data-environment='market'] .season-route::after { content: ''; position: absolute; z-index: 2; transform: translateY(-50%); }
   /* Start: a dot where the route begins. End: the only arrow, where it leaves the paper. */
-  .at-table .world-table[data-environment='market'] .season-route::before { left: 0; top: 16.7%; width: 8px; height: 8px; border-radius: 50%; background: #d8342a; box-shadow: 0 0 0 2px #fff6e2; }
+  .at-table .world-table[data-environment='market'] .season-route::before { left: 0; top: 16.7%; width: 8px; height: 8px; border-radius: 50%; background: var(--market-accent, #d8342a); box-shadow: 0 0 0 2px #fff6e2; }
   .at-table .world-table[data-environment='market'] .season-route::after { right: -1px; top: 83.3%; border: 6px solid transparent; border-left: 8px solid #7d573b; border-right: 0; }
-  .at-table .world-table[data-environment='market'] .season-forecast:has(.season-step:last-child .past) .season-route::after { border-left-color: #d8342a; }
+  .at-table .world-table[data-environment='market'] .season-forecast:has(.season-step:last-child .past) .season-route::after { border-left-color: var(--market-accent, #d8342a); }
   .at-table .world-table[data-environment='market'] .season-step { position: relative; z-index: 1; display: grid; place-items: center; width: 100%; height: 100%; min-height: 0; }
   .at-table .world-table[data-environment='market'] .season-step[data-step='0'] { grid-area: 1 / 1; }
   .at-table .world-table[data-environment='market'] .season-step[data-step='1'] { grid-area: 1 / 2; }
@@ -902,7 +962,7 @@
   .at-table .world-table[data-environment='market'] .season-step[data-step='4'] { grid-area: 3 / 1; }
   .at-table .world-table[data-environment='market'] .season-step[data-step='5'] { grid-area: 3 / 2; }
   .at-table .world-table[data-environment='market'] .season-forecast img { width: auto; height: auto; max-width: 84%; max-height: 90%; aspect-ratio: 1; object-fit: contain; min-height: 0; border-radius: 50%; }
-  .at-table .world-table[data-environment='market'] .season-forecast img.current { outline: 3px solid #d8342a; outline-offset: 0; background: #fff6e2; box-shadow: 0 0 0 5px #d8342a33; }
+  .at-table .world-table[data-environment='market'] .season-forecast img.current { outline: 3px solid var(--market-accent, #d8342a); outline-offset: 0; background: #fff6e2; box-shadow: 0 0 0 5px var(--market-accent, #d8342a)33; }
   .at-table .world-table[data-environment='market'] .season-forecast img.past { opacity: .45; }
 }
 
@@ -1254,6 +1314,62 @@
   }
   html .at-table .world-table[data-environment='market'] .festival-orders > .piece-wrap { flex: 1 1 0; min-width: 0; }
   html .at-table .world-table[data-environment='market'] .festival-orders .festival-order { width: 100%; min-width: 0; }
+  /* Side B keeps one receipt for all completed rounds, beside the dock and
+     above Undo. The two-row action space stays fixed as orders accumulate. */
+  html .at-table .world-table[data-environment='market'] .hand-controls:has(.festival-long-menu) {
+    position: relative;
+    min-height: 114px;
+  }
+  html .at-table .world-table[data-environment='market'] .festival-long-menu > .piece-wrap:has(.festival-history) {
+    position: absolute;
+    right: -88px;
+    bottom: 58px;
+    width: 76px;
+    height: 44px;
+  }
+  html .at-table .world-table[data-environment='market'] .festival-long-menu .festival-history {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 44px;
+    min-height: 44px;
+    gap: 4px;
+    padding: 4px;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 600px) {
+  /* Leave room for the stall button even on a 320px phone. */
+  html .at-table .world-table[data-environment='market'] .hand-abilities:has(.festival-long-menu) > .season-forecast {
+    width: calc(100% - 60px);
+    min-width: 0;
+    flex-wrap: nowrap;
+    padding: 3px;
+    gap: 2px;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-abilities:has(.festival-long-menu) > .season-forecast .season-route {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    gap: 0;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-abilities:has(.festival-long-menu) > .season-forecast .season-step {
+    display: block;
+    min-width: 0;
+  }
+  html .at-table .world-table[data-environment='market'] .hand-abilities:has(.festival-long-menu) > .season-forecast .season-step img {
+    width: 100%;
+    max-width: 22px;
+    height: auto;
+  }
+}
+@media (orientation: portrait) and (max-width: 600px) and (max-height: 700px) {
+  html .at-table .world-table[data-environment='market']:has(.festival-long-menu) .hand-frame > .hand.card-hand {
+    --hand-card-height: 84px;
+  }
 }
 
 /* ===== Yata phone plate (25 September 2026) =====
@@ -1296,6 +1412,10 @@ html .world-table[data-environment='market'] .board-frame:has(.market-world[data
 /* Portrait tablets keep the badge row between the two navigation islands. */
 @media (min-width: 601px) {
   html .at-table .world-table[data-environment='market'] .table-players { left: 110px; right: 125px; width: auto; }
+  /* Let useBadgeFit detect long-name overflow before a second badge row can
+     collide with the round pill. Keep the existing two-round layout intact. */
+  html .at-table .world-table:has(.market-board:is([data-menu-rounds='3'], [data-menu-rounds='4'])) .table-players .players { flex-wrap: nowrap; }
+  html .at-table .world-table:has(.market-board:is([data-menu-rounds='3'], [data-menu-rounds='4'])) .table-players .players[data-fit='compact'] .player-button > span:nth-child(2) { display: none; }
 }
 @media (min-width: 601px) {
 @container (max-width: 650px) {
@@ -1308,3 +1428,110 @@ html .world-table[data-environment='market'] .board-frame:has(.market-world[data
   .at-table .world-table[data-environment='market'] .table-players .player-status-icons { justify-self: center; }
 }
 }
+
+/* Every menu's counter (3 October 2026). The cards' drawn dishes bring their
+   own plates, so the counter drops the toon plate rings: each dish stands
+   straight on the counter, extra servings peek out behind it, and one tag
+   under it carries the name and the score. Names fold away when the counter
+   is small (container query on the board). Servings stay inside their cell,
+   so no dish spills over a neighbour or off the table. */
+.market-world .market-board.counter-board.pile-board { padding: 1.5% 2.5% 3%; gap: 2% 1.5%; }
+.market-world .counter-board .serving-dish.serving-pile {
+  border: 0; border-radius: 0; background: none; box-shadow: none; transform: none; min-height: 0; width: auto; height: auto;
+}
+.market-world .counter-board .serving-pile > .piece-wrap { height: 100%; }
+.market-world .counter-board .serving-pile > .piece-wrap > .piece,
+.market-world .counter-board .serving-pile > div:not(.piece-wrap) {
+  display: grid; grid-template-rows: minmax(0, 1fr) auto; justify-items: center; gap: 0; padding: 0; height: 100%; box-sizing: border-box;
+  background: none; border: 0; border-radius: 18px;
+}
+.market-world .counter-board .serving-pile .dish-pile {
+  position: relative; width: 100%; height: 100%; min-height: 0;
+  transform-origin: 50% 100%;
+}
+.market-world .counter-board .serving-pile .dish-copy {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none;
+  transform: translate(var(--dx, 0), var(--dy, 0)) scale(var(--s, 1));
+}
+/* Servings further back sit higher on the counter, a touch smaller and in the
+   lantern's shade. Offsets keep every copy's drawing (5% transparent margin)
+   inside the cell, whichever way the cell is cut. */
+.market-world .counter-board .serving-pile .dish-copy[data-copy='1'] { --dx: 11%; --dy: -8%; --s: .82; filter: brightness(.86); }
+.market-world .counter-board .serving-pile .dish-copy[data-copy='2'] { --dx: -11%; --dy: -10%; --s: .8; filter: brightness(.84); }
+.market-world .counter-board .serving-pile .dish-copy[data-copy='3'] { --dx: 0%; --dy: -15%; --s: .72; filter: brightness(.78); }
+.market-world .counter-board .serving-pile .dish-pile[data-copies='2'] { transform: scale(.94); }
+.market-world .counter-board .serving-pile .dish-pile[data-copies='3'] { transform: scale(.9); }
+.market-world .counter-board .serving-pile .dish-pile[data-copies='4'] { transform: scale(.86); }
+/* Not collected yet: a dim imprint of the dish on the counter, so the menu still reads. */
+.market-world .counter-board .serving-pile .dish-pile:not(.has-dish) .dish-copy { opacity: .55; filter: grayscale(1) brightness(.55) sepia(.3); }
+.market-world .counter-board .serving-pile .dish-pile .quantity {
+  position: absolute; top: 4%; right: 6%; left: auto; bottom: auto; z-index: 6;
+  min-width: 30px; height: 26px; padding: 0 7px; box-sizing: border-box; display: grid; place-items: center;
+  background: #1d1a1f; color: #fff6e2; border: 2px solid #fff6e2; border-radius: 13px;
+  font: 900 14px/1 system-ui, sans-serif; box-shadow: 0 3px 8px #0007;
+}
+.market-world .counter-board .serving-pile .dish-tag {
+  position: relative; z-index: 5; margin-top: -10px; display: inline-flex; align-items: center; gap: 7px;
+  height: 28px; padding: 0 3px 0 12px; box-sizing: border-box; max-width: 100%;
+  background: linear-gradient(#fffaf0, #f4e6c8); border: 2px solid #1d1a1f; border-radius: 15px;
+  box-shadow: 0 3px 0 #1d1a1f, 0 8px 14px #0006;
+}
+.market-world .counter-board .serving-pile .dish-tag strong {
+  display: inline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #1d1a1f; font-size: 14px; line-height: 1; text-transform: uppercase;
+}
+.market-world .counter-board .serving-pile .dish-tag .collection-score {
+  display: grid; place-items: center; min-width: 32px; height: 22px; margin: 0; padding: 0 6px; box-sizing: border-box;
+  background: #1d1a1f; color: #fff6e2; border: 0; border-radius: 11px; font: 900 14px/1 system-ui, sans-serif;
+}
+.market-world .counter-board .serving-pile:has(.dish-pile:not(.has-dish)) .dish-tag { background: #e9dcc2; }
+.market-world .counter-board .serving-pile:has(.dish-pile:not(.has-dish)) .collection-score { background: #6b5e58; }
+.market-world .counter-board .serving-pile .dish-permit { top: 4%; left: 6%; right: auto; }
+.market-world .counter-board .serving-pile .piece.selected,
+.market-world .counter-board .serving-pile .piece:focus-visible { outline: 3px solid #fff6e2; outline-offset: -2px; }
+/* Small counters (phones, opponents' mats): the dish and its score only. */
+@container (max-width: 560px) {
+  .market-world .counter-board .serving-pile .dish-tag { padding: 0 2px; margin-top: -8px; height: 24px; }
+  .market-world .counter-board .serving-pile .dish-tag strong { display: none; }
+  .market-world .counter-board .serving-pile .dish-tag .collection-score { min-width: 28px; height: 18px; font-size: 13px; }
+  .market-world .counter-board .serving-pile .dish-pile .quantity { min-width: 24px; height: 20px; font-size: 12px; padding: 0 5px; top: 2%; right: 2%; }
+}
+@container (max-width: 300px) {
+  .market-world .counter-board .serving-pile .dish-tag { height: 18px; margin-top: -6px; border-width: 1.5px; box-shadow: 0 2px 0 #1d1a1f; }
+  .market-world .counter-board .serving-pile .dish-tag .collection-score { min-width: 20px; height: 14px; font-size: 10px; padding: 0 3px; }
+  .market-world .counter-board .serving-pile .dish-pile .quantity { min-width: 18px; height: 15px; font-size: 9px; border-width: 1.5px; padding: 0 3px; }
+}
+/* The phone's near-square counter keeps its three-by-two grid without plates. */
+.market-world[data-paper-world='phone'] .counter-board.pile-board { padding: 10px 8px 14px; gap: 6px 4px; justify-items: stretch; align-items: stretch; }
+.market-world[data-paper-world='phone'] .counter-board .serving-dish.serving-pile { width: auto; height: auto; border-radius: 0; box-shadow: none; }
+.market-world[data-paper-world='phone'] .counter-board .serving-pile .collection-score { position: static; transform: none; }
+/* Hot dishes steam gently above the front serving. */
+.market-world .counter-board .serving-pile .dish-steam {
+  position: absolute; left: 50%; top: 14%; width: 30%; height: 34%; transform: translateX(-50%); pointer-events: none; z-index: 4;
+}
+.market-world .counter-board .serving-pile .dish-steam i {
+  position: absolute; bottom: 0; left: calc(18% + var(--i, 0) * 26%); width: 22%; height: 70%; border-radius: 50%;
+  background: radial-gradient(closest-side, #fff8eecc, #fff8ee00); filter: blur(3px); opacity: 0;
+  animation: dish-steam 3.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -1.2s);
+}
+.market-world .counter-board .serving-pile .dish-steam i:nth-child(2) { --i: 1; }
+.market-world .counter-board .serving-pile .dish-steam i:nth-child(3) { --i: 2; }
+@keyframes dish-steam {
+  0% { transform: translate(0, 30%) scale(.6, .7); opacity: 0; }
+  35% { opacity: .55; }
+  70% { transform: translate(18%, -55%) scale(1, 1.15); opacity: .25; }
+  100% { transform: translate(-10%, -95%) scale(1.2, 1.3); opacity: 0; }
+}
+@container (max-width: 300px) { .market-world .counter-board .serving-pile .dish-steam { display: none; } }
+@media (prefers-reduced-motion: reduce) { .market-world .counter-board .serving-pile .dish-steam { display: none; } }
+/* Phone cells are taller than wide: drop the plate padding so the dish takes
+   the cell's full width, sitting low on its tag. */
+.market-world[data-paper-world='phone'] .counter-board .serving-dish.serving-pile > .piece-wrap > .piece {
+  padding: 2px 0 0; grid-template-rows: minmax(0, 1fr) auto;
+}
+.market-world[data-paper-world='phone'] .counter-board .serving-pile .dish-copy { object-position: 50% 100%; }
+/* Opponents' mats in Others: no plate rings, the coin stays inside its tag. */
+.market-world.mini-market .counter-board.mini-board .serving-dish.serving-pile { border: 0; box-shadow: none; background: none; }
+.market-world.mini-market .counter-board.mini-board .serving-pile > div { display: grid; padding: 0; }
+.market-world.mini-market .counter-board.mini-board .serving-pile .collection-score { position: static; transform: none; }
+.market-world.mini-market > .market-board.counter-board.mini-board.pile-board { padding: 3% 3% 4%; gap: 4% 2%; }

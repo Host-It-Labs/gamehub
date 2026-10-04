@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
             { source: '/tables', destination: '/' },
             { source: '/relic', destination: '/' },
             { source: '/folio', destination: '/' },
+            { source: '/rota', destination: '/' },
+            { source: '/rota/:token', destination: '/' },
             { source: '/sound-lab', destination: '/' },
             { source: '/folio/:token', destination: '/' },
             { source: '/expedition/:token', destination: '/' },

@@ -87,6 +87,17 @@ for (const id of standaloneIds)
               t = cmd(tables, t, host, { type: 'adventure-move', move: { type: 'next' }, key: decisionKey(g) });
               continue;
             }
+            // Unless the table votes, the host alone picks what comes next.
+            if (g.phase === 'vote' && g.vote.host) {
+              const choice = g.vote.opening ? g.vote.options[0] : 'finish';
+              if (humans > 1)
+                assert.throws(
+                  () => cmd(tables, t, actors[1], { type: 'adventure-move', move: { type: 'vote', choice }, key: decisionKey(g) }),
+                  /host picks/,
+                );
+              t = cmd(tables, t, host, { type: 'adventure-move', move: { type: 'vote', choice }, key: decisionKey(g) });
+              continue;
+            }
             const s = standaloneGames[id].actingSeats(g)[0],
               move = botMove(g, s);
             if (t.seats[s].bot) {
@@ -141,13 +152,12 @@ await test('simultaneous stale revisions accepted once; changed match and locked
     t = tables.join(t.token, guest2);
     t = tables.join(t.token, guest3);
     t = cmd(tables, t, host, { type: 'start' });
-    // Tribu's opening vote: everyone picks Top Five.
-    for (const who of [host, guest, guest2, guest3])
-      t = cmd(tables, t, who, {
-        type: 'adventure-move',
-        move: { type: 'vote', choice: 'orin' },
-        key: decisionKey(t.adventure),
-      });
+    // Know Me opens on the host's pick: Top Five.
+    t = cmd(tables, t, host, {
+      type: 'adventure-move',
+      move: { type: 'vote', choice: 'orin' },
+      key: decisionKey(t.adventure),
+    });
     assert.equal(t.adventure.phase, 'rank');
     const original = t,
       g = t.adventure;
@@ -241,8 +251,11 @@ for (const id of standaloneIds) await test(`${id}: disconnected humans cannot be
   const { db, tables, host } = setup();
   try {
     let t = tables.create(host);
-    t = cmd(tables, t, host, { type: 'configure', gameId: id, capacity: 2, difficulty: 'medium' });
+    // Impostor needs three; everything else starts at two.
+    const seats = Math.max(2, standaloneGames[id].seatChoices[0]);
+    t = cmd(tables, t, host, { type: 'configure', gameId: id, capacity: seats, difficulty: 'medium' });
     t = tables.join(t.token, identity('guest'));
+    for (let i = 2; i < seats; i++) t = tables.join(t.token, identity(`guest${i}`));
     t = cmd(tables, t, host, { type: 'start' });
     tables.connected = (_, seat) => seat !== 'guest';
     assert.throws(() => cmd(tables, t, host, { type: 'replace', memberId: 'guest' }), /cannot replace players with bots/);
@@ -281,6 +294,10 @@ await test('the creator keeps hosting the table; a picked player leads only the 
     view = tables.view(t, bo);
     assert.deepEqual(view.members.filter(m => m.host).map(m => m.id), ['ada']);
     const actors = [host, ada, bo];
+    // Ada picks the first game; the creator cannot while she leads.
+    const opening = { type: 'adventure-move', move: { type: 'vote', choice: 'orin' }, key: decisionKey(t.adventure) };
+    assert.throws(() => cmd(tables, t, host, opening), /host picks/);
+    t = cmd(tables, t, ada, opening);
     while (t.adventure.phase !== 'reveal') {
       const g = t.adventure, seat = standaloneGames.orin.actingSeats(g)[0];
       t = cmd(tables, t, actors[seat], { type: 'adventure-move', move: botMove(g, seat), key: decisionKey(g) });

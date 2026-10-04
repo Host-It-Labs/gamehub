@@ -1,0 +1,62 @@
+{
+  "game": "midnight",
+  "source": "/art/yata-plaza-phone-v1-a.png",
+  "image": "/art/optimized/yata-plaza-phone-v1.webp",
+  "width": 1024,
+  "height": 1536,
+  "crop": {
+    "left": 166,
+    "top": 201,
+    "width": 692,
+    "height": 538
+  },
+  "table": {
+    "left": 166,
+    "top": 201,
+    "width": 692,
+    "height": 538
+  },
+  "signboards": [],
+  "landmarks": {
+    "protectedBounds": [
+      {
+        "name": "counter",
+        "bounds": [
+          166,
+          201,
+          692,
+          538
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "glows": [
+      {
+        "x": 512,
+        "y": 40,
+        "radius": 380,
+        "color": "255, 170, 70",
+        "alpha": 0.15,
+        "period": 4100
+      },
+      {
+        "x": 940,
+        "y": 1360,
+        "radius": 120,
+        "color": "255, 160, 60",
+        "alpha": 0.16,
+        "period": 3400
+      }
+    ],
+    "water": [],
+    "motes": false
+  },
+  "overview": {
+    "left": 166,
+    "top": 201,
+    "width": 692,
+    "height": 538
+  },
+  "overviewImage": "/art/optimized/yata-plaza-phone-v1-overview.webp"
+}

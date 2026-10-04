@@ -214,8 +214,8 @@ function Run({ initial }: { initial: FolioView }) {
   const finalResults = g.phase === 'over' && !g.practice;
   useResultsFeedback('folio', finalResults, finalResults, volume);
   // Server snapshots are authoritative; neither a retry nor an unchanged poll
-  // replays feedback. A teammate's accepted move is audible at the shared table.
-  const soundKey = JSON.stringify([g.phase, g.at, p?.status, p?.view, g.edits]);
+  // replays feedback. Only reveals and stage changes sound; draft edits stay silent.
+  const soundKey = JSON.stringify([g.phase, g.at, p?.status, g.edits]);
   const feedback = useRef({ key: soundKey, phase: g.phase, status: p?.status });
   useEffect(() => {
     const previous = feedback.current;
@@ -230,8 +230,8 @@ function Run({ initial }: { initial: FolioView }) {
               g.phase !== previous.phase &&
               (g.phase === 'map' || g.phase === 'puzzle')
             ? 'turn'
-            : 'move';
-    gameSound('folio', cue, volume);
+            : null;
+    if (cue) gameSound('folio', cue, volume);
   }, [soundKey, g.phase, p?.status, volume, finalResults, isMember]);
   const voted = useRef(0);
   /** Show this player's pick to the crew at once; best effort. */
@@ -333,6 +333,13 @@ function Run({ initial }: { initial: FolioView }) {
       );
       if (alive.current) {
         apply(next);
+        if (
+          (action.type === 'move' || action.type === 'suggest') &&
+          ('guess' in action.move || 'words' in action.move) &&
+          next.game.revision > view.game.revision &&
+          next.game.puzzle?.status === view.game.puzzle?.status
+        )
+          gameSound('folio', 'submit', volume);
         setOffline(false);
       }
       unresolved.current = null;
@@ -579,7 +586,6 @@ function Run({ initial }: { initial: FolioView }) {
               open={open}
               picked={pick?.id}
               onPick={(n) => {
-                if (picked?.id !== n.id) gameSound('folio', 'select', volume);
                 setRerolling(false);
                 setPicked(n);
                 vote(n.id);
@@ -593,7 +599,6 @@ function Run({ initial }: { initial: FolioView }) {
                       picked: showReroll,
                       onReroll: canReroll
                         ? () => {
-                            gameSound('folio', 'select', volume);
                             setPicked(null);
                             setRerolling(true);
                           }

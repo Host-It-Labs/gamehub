@@ -1,6 +1,8 @@
 import { requiresHumanPlayers } from '../lib/games/player-policy.ts';
+import { isGameAvailable } from '../lib/games/availability.ts';
 
 import { placeHistoryKey } from '../lib/games/party/geography.ts';
+import { pairKey } from '../lib/games/party/impostor.ts';
 import type { StandaloneId } from '../lib/games/standalone/types.ts';
 import { standaloneGames, isStandaloneId, observe as observeAdventure, botMove as adventureBot, decisionKey as adventureKey, tick as tickAdventure, type AnyGame } from '../lib/games/standalone/registry.ts';
 import { practice, adventureLessons } from '../lib/games/adventures/lessons.ts';
@@ -11,6 +13,7 @@ import { randomInt } from 'node:crypto';
 import {
   createGame,
   isSavedGame,
+  upgradeSave,
   festivalOrders,
   observe,
   play,
@@ -20,7 +23,11 @@ import {
   simultaneous,
   decisionKey,
   catalog,
+  contentSetsFor,
+  seatRange,
   type Game,
+  type GameId,
+  type GameOptions,
   type Move,
   type Difficulty,
   preparationKey,
@@ -40,18 +47,20 @@ export type StoredTable = {
   host?: string;
   gameId: OnlineGameId;
   difficulty: Difficulty;
-  shields?: boolean;
   customerOrders?: boolean;
   sanctuaryGoalsEnabled?: boolean;
-  contentSet?: 'beginner' | 'intermediate';
+  contentSet?: GameOptions['contentSet'];
   roamEnabled?: boolean;
-  turningTide?: boolean;
+  gold?: boolean;
   marketSeasons?: boolean;
-  migration?: boolean;
-  salvage?: boolean;
+  census?: boolean;
+  anchor?: boolean;
+  dawn?: boolean;
   specialtyStalls?: boolean;
   ambienceEnabled?: boolean;
   fastMode?: boolean;
+  /** Party games: the table votes between rounds; otherwise the host picks. */
+  partyVotes?: boolean;
   capacity: number;
   revision: number;
   status: Table['status'];
@@ -68,16 +77,23 @@ export type StoredTable = {
   /** The table moved on to a game with its own online room (Folio, Relic, Arena). */
   handoff?: Handoff | null;
 };
-export type Handoff = { kind: 'folio' | 'relic' | 'arena'; url: string; at: number };
-export type NextVote = { endsAt: number; ballots: Record<string, StandaloneId> };
+export type Handoff = { kind: 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner'; url: string; at: number };
+/** Without a deadline (`host`), the table's host picks alone. */
+export type NextVote = {
+  endsAt: number | null;
+  ballots: Record<string, StandaloneId>;
+  host?: true;
+};
 export const nextGameMs = 10_000;
-export const partyGames: StandaloneId[] = ['orin', 'miro'];
+export const partyGames: StandaloneId[] = ['orin', 'miro', 'impostor'];
 /** Marks a finished party match and opens the what-next vote. */
 function finishAdventure(t: StoredTable, now = Date.now()) {
   if (t.status !== 'playing' || !t.adventure?.over || t.adventure.tutorial) return;
   t.status = 'finished';
   endMatch(t);
-  t.nextVote = { endsAt: now + nextGameMs, ballots: {} };
+  t.nextVote = t.partyVotes
+    ? { endsAt: now + nextGameMs, ballots: {} }
+    : { endsAt: null, ballots: {}, host: true };
 }
 /** The most votes wins; a tie is settled at random; silence starts nothing. */
 export function nextGameWinner(v: NextVote, pick = (n: number) => randomInt(n)) {
@@ -95,10 +111,6 @@ export function parseMove(value: unknown): Move {
     400,
     'This action belongs to an older rules version.',
   );
-  if (m.type === 'salvage') {
-    check(typeof m.claim === 'boolean', 400, 'Choose Claim or Pass.');
-    return { type: 'salvage', claim: m.claim };
-  }
   if (m.type === 'roll') return { type: 'roll' };
   if (m.type === 'undo') return { type: 'undo' };
   if (m.type === 'pass') {
@@ -119,14 +131,7 @@ export function parseMove(value: unknown): Move {
         (Number.isInteger(m.zone) &&
           Number(m.zone) >= 0 &&
           Number(m.zone) < 7)) &&
-      (m.ward === undefined || typeof m.ward === 'boolean') &&
       (m.roam === undefined || typeof m.roam === 'boolean') &&
-      (m.migration === undefined ||
-        (m.migration !== null &&
-          typeof m.migration === 'object' &&
-          ['card', 'from', 'to'].every((key) =>
-            Number.isInteger((m.migration as Record<string, unknown>)[key]),
-          ))) &&
       (m.stall === undefined || typeof m.stall === 'boolean') &&
       (m.order === undefined ||
         (Number.isInteger(m.order) &&
@@ -139,13 +144,7 @@ export function parseMove(value: unknown): Move {
     type: 'play',
     card: m.card as number,
     ...(m.zone === undefined ? {} : { zone: m.zone as number }),
-    ...(m.ward === undefined ? {} : { ward: m.ward as boolean }),
     ...(m.roam === undefined ? {} : { roam: m.roam as boolean }),
-    ...(m.migration === undefined
-      ? {}
-      : {
-          migration: m.migration as { card: number; from: number; to: number },
-        }),
     ...(m.order === undefined ? {} : { order: m.order as number }),
     ...(m.stall === undefined ? {} : { stall: m.stall as boolean }),
   };
@@ -226,7 +225,6 @@ export class Tables {
       }
       // Keep preferences for retained mechanics; new mechanics start disabled.
       for (const [oldKey, newKey, gameId] of [
-        ['starter', 'shields', 'undertow'],
         ['nightMarket', 'customerOrders', 'midnight'],
         ['nightMarket', 'specialtyStalls', 'midnight'],
         ['wildTrails', 'sanctuaryGoalsEnabled', 'wildgrove'],
@@ -238,6 +236,21 @@ export class Tables {
         delete (table as unknown as Record<string, unknown>)[oldKey];
         changed = true;
       }
+      // Nox's Shields, Turning Tide and Salvage were retired; their matches play on.
+      // Mora's Migration was retired on 29 September 2026, and Nox's Mutiny on
+      // 2 October 2026, the same way.
+      for (const key of ['starter', 'shields', 'turningTide', 'salvage', 'migration', 'mutiny'])
+        if (key in legacy) {
+          delete (table as unknown as Record<string, unknown>)[key];
+          changed = true;
+        }
+      if (table.game) {
+        const upgraded = upgradeSave(table.game) as StoredTable['game'];
+        if (JSON.stringify(upgraded) !== JSON.stringify(table.game)) {
+          table.game = upgraded;
+          changed = true;
+        }
+      }
       if (
         table.status === 'playing' &&
         table.game &&
@@ -248,6 +261,15 @@ export class Tables {
         table.status = 'lobby';
         table.botError = false;
         changed = true;
+      }
+      // Nox needs three seats, and four at most with the Fast deck (2 October 2026).
+      if (catalog.some((c) => c.id === table.gameId) && table.status === 'lobby') {
+        const [fewest, most] = seatRange(table.gameId as GameId, table.fastMode);
+        const seats = Math.min(most, Math.max(fewest, table.capacity));
+        if (seats !== table.capacity) {
+          table.capacity = seats;
+          changed = true;
+        }
       }
       if(isStandaloneId(table.gameId)&&!standaloneGames[table.gameId].seatChoices.includes(table.capacity)){table.capacity=standaloneGames[table.gameId].defaultSeats;changed=true;}
       if(table.adventure && !standaloneGames[table.adventure.kind]?.isSavedGame(table.adventure)){table.adventure=null;table.game=null;table.status='lobby';table.matchId=null;table.seats=[];changed=true;}
@@ -271,7 +293,7 @@ export class Tables {
   }
   contentHistory(t: StoredTable): Set<string> {
     const seen = new Set<string>();
-    if (t.gameId !== 'miro') return seen;
+    if (t.gameId !== 'miro' && t.gameId !== 'impostor') return seen;
     const query = this.db.prepare('SELECT content_key FROM user_content_history WHERE user_id=? AND game_id=?');
     for (const id of this.contentUsers(t))
       for (const row of query.all(id, t.gameId) as { content_key: string }[])
@@ -283,8 +305,8 @@ export class Tables {
     this.db.exec('SAVEPOINT table_content');
     try {
       const game = t.adventure;
-      if (game && !game.tutorial && (game.kind === 'miro')) {
-        const keys = game.cityIds.map(placeHistoryKey);
+      if (game && !game.tutorial && (game.kind === 'miro' || game.kind === 'impostor')) {
+        const keys = game.kind === 'impostor' ? [pairKey(game.pair)] : game.cityIds.map(placeHistoryKey);
         const insert = this.db.prepare('INSERT OR IGNORE INTO user_content_history (user_id, game_id, content_key) VALUES (?,?,?)');
         for (const id of this.contentUsers(t))
           for (const key of new Set(keys)) insert.run(id, game.kind, key);
@@ -425,17 +447,18 @@ export class Tables {
       token: t.token,
       gameId: t.gameId,
       difficulty: t.difficulty,
-      shields: t.shields ?? false,
       customerOrders: t.customerOrders ?? false,
       sanctuaryGoalsEnabled: t.sanctuaryGoalsEnabled ?? false,
       contentSet: t.contentSet ?? 'beginner',
       roamEnabled: t.roamEnabled ?? false,
-      turningTide: t.turningTide ?? false,
-      migration: t.migration,
-      salvage: t.salvage,
+      gold: t.gold ?? false,
+      census: t.census ?? false,
+      anchor: t.anchor ?? false,
+      dawn: t.dawn ?? false,
       specialtyStalls: t.specialtyStalls,
       marketSeasons: t.marketSeasons ?? false,
       fastMode: t.fastMode ?? false,
+      partyVotes: t.partyVotes ?? false,
       ambienceEnabled: t.ambienceEnabled === true,
       capacity: t.capacity,
       revision: t.revision,
@@ -540,6 +563,8 @@ export class Tables {
           check(standaloneGames[game.kind].validMove(game,a.move,seat),409,'That action is unavailable.');
           // Players only lock in their own choices; moving the table on belongs to the host.
           check(a.move.type!=='next'||mayAdvance(t,who.id,id=>this.connected(t.token,id)),403,'The host moves the table on.');
+          // Unless the table votes, what comes next is the host's pick alone.
+          check(a.move.type!=='vote'||!('vote' in game&&game.vote?.host)||mayAdvance(t,who.id,id=>this.connected(t.token,id)),403,'The host picks what comes next.');
           // Development: the host's pick in a party game's opening vote is final, so every other seat takes it.
           const pick=a.move.type==='vote'?a.move.choice:null;
           const played:AnyGame=process.env.NODE_ENV==='development'&&pick&&'vote' in game&&game.vote?.opening&&who.id===hostOf(t)
@@ -561,6 +586,9 @@ export class Tables {
               a.gameId === 'folio' ||
               a.gameId === 'relic' ||
               a.gameId === 'arena' ||
+              a.gameId === 'rota' ||
+              a.gameId === 'alto' ||
+              (a.gameId === 'diner' && isGameAvailable('diner')) ||
               (typeof a.gameId === 'string' && isStandaloneId(a.gameId))),
             400,
             'Unknown game.',
@@ -574,11 +602,12 @@ export class Tables {
         }
         case 'next-game': {
           const v = t.nextVote;
-          check(t.status === 'finished' && v && Date.now() < v.endsAt, 409, 'The vote has closed.');
+          check(t.status === 'finished' && v && (v.endsAt === null || Date.now() < v.endsAt), 409, 'The vote has closed.');
           check(t.seats.some((s) => s.id === who.id && !s.bot), 403, 'Only players vote.');
+          check(!v.host || who.id === hostOf(t), 403, 'The host picks the next game.');
           check(typeof a.gameId === 'string' && partyGames.includes(a.gameId as StandaloneId) && standaloneGames[a.gameId as StandaloneId].seatChoices.includes(t.seats.length), 400, 'Unknown game.');
           v.ballots[who.id] = a.gameId as StandaloneId;
-          if (t.seats.every((s) => s.bot || v.ballots[s.id] || !this.connected(t.token, s.id)))
+          if (v.host || t.seats.every((s) => s.bot || v.ballots[s.id] || !this.connected(t.token, s.id)))
             this.startNext(t);
           break;
         }
@@ -608,15 +637,10 @@ export class Tables {
               ['easy', 'medium', 'hard'].includes(a.difficulty) &&
               Number.isInteger(a.capacity) &&
               a.capacity >= 2 &&
-              a.capacity <= 6 &&
+              a.capacity <= 8 &&
               a.capacity >= t.members.length,
             400,
-            'Choose 2–6 seats, enough for everyone at the table.',
-          );
-          check(
-            a.shields === undefined || typeof a.shields === 'boolean',
-            400,
-            'Invalid expansion.',
+            'Choose 2–8 seats, enough for everyone at the table.',
           );
           check(
             a.fastMode === undefined || typeof a.fastMode === 'boolean',
@@ -624,17 +648,24 @@ export class Tables {
             'Invalid fast mode.',
           );
           check(
+            a.partyVotes === undefined || typeof a.partyVotes === 'boolean',
+            400,
+            'Invalid vote setting.',
+          );
+          t.partyVotes = a.partyVotes ?? t.partyVotes ?? false;
+          check(
             a.contentSet === undefined ||
-              ['beginner', 'intermediate'].includes(a.contentSet),
+              contentSetsFor(a.gameId).includes(a.contentSet),
             400,
             'Invalid content set.',
           );
           for (const [key, game] of [
-            ['migration', 'wildgrove'],
-            ['salvage', 'undertow'],
+            ['census', 'wildgrove'],
+            ['anchor', 'undertow'],
             ['specialtyStalls', 'midnight'],
             ['roamEnabled', 'wildgrove'],
-            ['turningTide', 'undertow'],
+            ['gold', 'undertow'],
+            ['dawn', 'undertow'],
             ['marketSeasons', 'midnight'],
           ] as const) {
             check(
@@ -676,14 +707,19 @@ export class Tables {
               false);
           t.fastMode =
             a.gameId === 'undertow' && (a.fastMode ?? t.fastMode ?? false);
-          t.shields =
-            a.gameId === 'undertow' &&
-            (a.shields ?? (t.gameId === a.gameId && t.shields) ?? false);
           t.gameId = a.gameId;
           t.difficulty = a.difficulty;
-          const allowed=isStandaloneId(a.gameId)?standaloneGames[a.gameId].seatChoices:[2,3,4,5,6];
+          const range = isStandaloneId(a.gameId) ? null : seatRange(a.gameId, t.fastMode);
+          const allowed = range
+            ? Array.from({ length: range[1] - range[0] + 1 }, (_, i) => range[0] + i)
+            : standaloneGames[a.gameId as keyof typeof standaloneGames].seatChoices;
           check(allowed.some(n=>n>=t.members.length),409,'Too many players for this game.');
-          t.capacity = allowed.includes(a.capacity)?a.capacity:allowed.find(n=>n>=t.members.length)!;
+          // A seat count the game no longer allows moves to the nearest one that does.
+          t.capacity = allowed.includes(a.capacity)
+            ? a.capacity
+            : allowed
+                .filter((n) => n >= t.members.length)
+                .sort((x, y) => Math.abs(x - a.capacity) - Math.abs(y - a.capacity))[0];
           break;
         case 'begin-match':
         case 'start': {
@@ -724,7 +760,7 @@ export class Tables {
               bot: true,
             });
           if(isStandaloneId(t.gameId)){
-            t.game=null;t.adventure=a.type==='start'&&a.learning?practice(t.gameId,t.capacity,t.difficulty,0):standaloneGames[t.gameId].create(t.capacity,randomInt(4294967296),t.difficulty,'individual',this.contentHistory(t));
+            t.game=null;t.adventure=a.type==='start'&&a.learning?practice(t.gameId,t.capacity,t.difficulty,0):standaloneGames[t.gameId].create(t.capacity,randomInt(4294967296),t.difficulty,'individual',this.contentHistory(t),undefined,t.partyVotes??false);
             t.adventure.seats=t.seats.map(s=>s.name);t.matchId=token();t.status='playing';t.botError=false;break;
           }
           t.adventure=null;
@@ -734,16 +770,17 @@ export class Tables {
             randomInt(4294967296),
             a.type === 'start' && (a.learning ?? false),
             t.capacity,
-            t.shields ?? false,
+            false,
             t.fastMode ?? false,
             t.customerOrders ?? false,
             t.sanctuaryGoalsEnabled ?? false,
             {
               contentSet: t.contentSet,
               roamEnabled: t.roamEnabled,
-              turningTide: t.turningTide,
-              migration: t.migration,
-              salvage: t.salvage,
+              gold: t.gold,
+              census: t.census,
+              anchor: t.anchor,
+              dawn: t.dawn,
               specialtyStalls: t.specialtyStalls,
               marketSeasons: t.marketSeasons,
             },
@@ -905,7 +942,7 @@ export class Tables {
   /** Closes the what-next vote once its ten seconds are up. */
   nextGameTick(invite: string) {
     const t = this.get(invite);
-    if (t.status !== 'finished' || !t.nextVote || Date.now() < t.nextVote.endsAt) return;
+    if (t.status !== 'finished' || !t.nextVote || t.nextVote.endsAt === null || Date.now() < t.nextVote.endsAt) return;
     this.startNext(t);
     t.revision++;
     this.save(t);
@@ -921,7 +958,7 @@ export class Tables {
     if (!standaloneGames[id].seatChoices.includes(n)) return;
     t.gameId = id;
     t.capacity = n;
-    t.adventure = standaloneGames[id].create(n, randomInt(4294967296), t.difficulty, 'individual', this.contentHistory(t));
+    t.adventure = standaloneGames[id].create(n, randomInt(4294967296), t.difficulty, 'individual', this.contentHistory(t), undefined, t.partyVotes ?? false);
     t.adventure.seats = t.seats.map((s) => s.name);
     t.game = null;
     t.matchId = token();

@@ -20,7 +20,7 @@ SHARP = 48
 
 # Metres per texture repeat on this figure (weave and hide carry the cloth
 # and leather reliefs at the troops' fine density).
-TILE = {"weave": 0.26, "hide": 0.3}
+TILE = {"weave": 0.26, "drape": 0.26, "hide": 0.3}
 
 
 def V(*a):

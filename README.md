@@ -4,6 +4,8 @@ Three tabletop games for friends: **Nox**, **Mora**, and **Yata**. Play solo aga
 
 See [the design guide](docs/DESIGN.md) for the shared art direction, worlds, extension rules, and interaction standards.
 
+See [future plans](docs/future-plans/README.md) for proposed directions, including open-source licensing, peer-to-peer play and verified leaderboards. These are planning records, not implemented features.
+
 ## Local development
 
 Requires Node.js 22.22+ (Node 24 recommended) and npm.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { audioAssets, sharedAudioAssets, soundGames, effectFor } from '../lib/games/audio-catalog.ts';
+import { audioAssets, sharedAudioAssets, soundGames, soundCandidates, effectFor } from '../lib/games/audio-catalog.ts';
 import { stat } from 'node:fs/promises';
 import { effectLevel, gameSound, preloadGameSounds, stopGameSounds } from '../lib/games/game-sound.ts';
 import { cue, eventCue } from '../lib/games/trio/sound.ts';
@@ -162,6 +162,7 @@ await test('audio feedback respects cancellation, background state and bounded s
     gameSound('orin', 'select', .5);
     gameSound('dial', 'select', .5);
     stopGameSounds('dial');
+    audio.resolve(effectFor('orin', 'select').src);
     await settle();
     assert.equal(audio.sources.length, start);
     audio.tick(100);
@@ -172,12 +173,13 @@ await test('audio feedback respects cancellation, background state and bounded s
     stopGameSounds();
   });
 
-  await t.test('shared buffers retain the calling game ownership, including alias cancellation', async () => {
+  await t.test('per-game buffers retain calling-game ownership, including shared party alias cancellation', async () => {
     audio.tick(200);
     const before = audio.sources.length;
     gameSound('undertow', 'pickup', .5);
     gameSound('wildgrove', 'pickup', .5);
     stopGameSounds('undertow');
+    audio.resolve(effectFor('wildgrove', 'pickup').src);
     await settle();
     assert.equal(audio.sources.length, before + 1, 'cancelling Nox leaves Mora playback intact');
     const mora = audio.sources.at(-1);
@@ -187,17 +189,19 @@ await test('audio feedback respects cancellation, background state and bounded s
     assert.equal(mora.stopped, true);
 
     gameSound('size', 'place', .5);
+    audio.resolve(effectFor('size', 'place').src);
     await settle();
     const quiz = audio.sources.at(-1);
     stopGameSounds('miro');
     assert.equal(quiz.stopped, true, 'mini-games cancel under their public game family');
   });
 
-  await t.test('all cue entry points use shared files and global cancellation catches anonymous callers', async () => {
+  await t.test('cue entry points use their catalogs and global cancellation catches anonymous callers', async () => {
     audio.tick(200);
     let before = audio.sources.length;
     cue('pickup', .5);
     stopGameSounds();
+    audio.resolve(effectFor('global', 'pickup').src);
     await settle();
     assert.equal(audio.sources.length, before, 'pending id-less cues are cancelled');
 
@@ -209,7 +213,6 @@ await test('audio feedback respects cancellation, background state and bounded s
     assert.deepEqual(audio.sources.slice(before).map((source) => source.buffer.src), [
       effectFor('global', 'pickup').src,
       effectFor('orin', 'place').src,
-      effectFor('midnight', 'place').src,
     ]);
     stopGameSounds();
     before = audio.sources.length;
@@ -224,6 +227,7 @@ await test('audio feedback respects cancellation, background state and bounded s
     audio.tick(200);
     const before = audio.sources.length;
     for (const kind of ['pickup', 'place', 'turn']) gameSound('relic', kind, .5);
+    audio.resolve(effectFor('relic', 'place').src);
     await settle();
     assert.equal(audio.sources.length, before + 3);
     gameSound('relic', 'scores', .5);
@@ -243,10 +247,12 @@ await test('audio feedback respects cancellation, background state and bounded s
     stopGameSounds();
   });
 
-  await t.test('preloading is shared and simultaneous effects stay bounded', async () => {
+  await t.test('preloading covers live cues and simultaneous effects stay bounded', async () => {
     audio.tick(200);
     for (const game of soundGames) preloadGameSounds(game.id);
-    assert.deepEqual([...audio.requests.keys()].sort((a, b) => a.localeCompare(b)), sharedAudioAssets.map((asset) => asset.src).sort());
+    assert.deepEqual([...audio.requests.keys()].sort((a, b) => a.localeCompare(b)), [...sharedAudioAssets, ...soundCandidates.filter((asset) => asset.option === 'a')].map((asset) => asset.src).sort());
+    for (const asset of soundCandidates.filter((asset) => asset.option === 'a')) audio.resolve(asset.src);
+    await settle();
     const before = audio.sources.length;
     for (const game of soundGames) gameSound(game.id, 'place', .5);
     await settle();
@@ -254,6 +260,21 @@ await test('audio feedback respects cancellation, background state and bounded s
     audio.visibility(true);
     assert.ok(audio.sources.slice(before).every((source) => source.stopped && source.disconnected));
     audio.visibility(false);
+  });
+
+  await t.test('a draft placement sounds once even after delayed table resolution and auto-roll', async () => {
+    for (const id of ['wildgrove', 'midnight']) {
+      audio.tick(500);
+      const before = audio.sources.length;
+      gameSound(id, 'place', .5);
+      await settle();
+      assert.equal(audio.sources.length, before + 1);
+      audio.tick(1000);
+      for (const type of ['play', 'play', 'pass', 'roll', 'deal']) eventCue({ type, player: 1 }, id, .5);
+      await settle();
+      assert.equal(audio.sources.length, before + 1, 'resolution must not echo placement');
+      stopGameSounds();
+    }
   });
 
   await t.test('an abandoned ambience preview never schedules late-decoded beds or details', async () => {
@@ -413,17 +434,17 @@ await test('audio feedback respects cancellation, background state and bounded s
   });
 });
 
-await test('shared gameplay cues retain historical Sound Lab recordings and strategy alternatives', async () => {
+await test('Sound Lab retains historical recordings and includes the refreshed world beds', async () => {
   assert.equal(new Set(audioAssets.map((a) => a.src)).size, audioAssets.length);
   for (const game of soundGames) {
     const effects = audioAssets.filter((a) => a.game === game.id && a.kind === 'effect');
     assert.deepEqual(effects.map((a) => a.category).sort(), ['move', 'reveal', 'reward', 'select']);
-    for (const category of ['move', 'reveal', 'reward', 'select']) assert.ok(effectFor(game.id, category));
+    for (const category of ['reveal', 'reward']) assert.ok(effectFor(game.id, category));
     const beds = audioAssets.filter((a) => a.game === game.id && a.kind === 'bed');
-    assert.equal(beds.length, ['undertow', 'wildgrove', 'midnight'].includes(game.id) ? 2 : 0);
+    assert.equal(beds.length, game.id === 'wildgrove' ? 3 : ['undertow', 'midnight'].includes(game.id) ? 2 : 0);
   }
   let bytes = 0;
-  for (const asset of [...audioAssets, ...sharedAudioAssets]) {
+  for (const asset of [...audioAssets, ...sharedAudioAssets, ...soundCandidates]) {
     assert.match(asset.src, /^\/audio\/elevenlabs\/[a-z0-9-]+\.mp3$/);
     assert.ok(asset.duration > 0 && asset.duration <= 31);
     const info = await stat(`public${asset.src}`);
@@ -433,17 +454,27 @@ await test('shared gameplay cues retain historical Sound Lab recordings and stra
   assert.ok(bytes < 5_000_000, 'the complete library stays below five MB');
 });
 
-await test('every game shares restrained pickup, place, turn and final score cues', () => {
-  assert.deepEqual(sharedAudioAssets.map((asset) => asset.category).sort(), ['pickup', 'place', 'scores', 'turn']);
-  for (const game of [...soundGames.map((entry) => entry.id), 'dial', 'size', 'global']) {
-    for (const kind of ['tap', 'pickup', 'select'])
-      assert.equal(effectFor(game, kind), sharedAudioAssets.find((asset) => asset.category === 'pickup'));
-    for (const kind of ['drop', 'move', 'shuffle', 'roll', 'creature', 'dish', 'ward', 'reveal', 'win', 'reward', 'combo', 'prize', 'upgrade'])
-      assert.equal(effectFor(game, kind), sharedAudioAssets.find((asset) => asset.category === 'place'));
-    assert.equal(effectFor(game, 'turn').category, 'turn');
-    assert.equal(effectFor(game, 'scores').category, 'scores');
+await test('strategy actions are distinct, party actions shared, and turn/results universal', () => {
+  const games = ['undertow', 'wildgrove', 'midnight'];
+  for (const category of ['pickup', 'place']) {
+    assert.equal(new Set(games.map((id) => effectFor(id, category).src)).size, 3);
+    for (const family of [...games, 'party']) {
+      const options = soundCandidates.filter((asset) => asset.game === family && asset.category === category);
+      assert.deepEqual(options.map((asset) => asset.option), ['a', 'b', 'c']);
+    }
+    assert.equal(effectFor('orin', category), effectFor('miro', category));
+    assert.equal(effectFor('dial', category), effectFor('size', category));
   }
-  assert.equal(effectLevel(.5, .6), .195);
-  assert.equal(effectLevel(2, 1), .39);
+  for (const id of [...games, 'orin', 'miro', 'folio', 'relic', 'global']) {
+    assert.equal(effectFor(id, 'turn'), sharedAudioAssets.find((asset) => asset.category === 'turn'));
+    assert.equal(effectFor(id, 'scores'), sharedAudioAssets.find((asset) => asset.category === 'scores'));
+  }
+  assert.equal(soundCandidates.filter((asset) => asset.category === 'turn').length, 5);
+  for (const kind of ['tap', 'select', 'pickup', 'move']) assert.equal(effectFor('folio', kind), undefined);
+  assert.equal(effectFor('folio', 'submit'), effectFor('orin', 'place'));
+  assert.equal(effectFor('folio', 'reveal'), effectFor('miro', 'place'));
+  assert.ok(effectFor('folio', 'reveal'));
+  assert.equal(effectLevel(.5, .6), .096);
+  assert.equal(effectLevel(2, 1), .192);
   for (const invalid of [NaN, Infinity, -1]) assert.equal(effectLevel(invalid, .6), 0);
 });

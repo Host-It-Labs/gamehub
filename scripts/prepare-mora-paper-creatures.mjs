@@ -32,13 +32,43 @@ const sets = {
       [1147, 528, 1387, 942],
     ],
   },
+  desert: {
+    // Sunset Motel v1-a atlas (29 September 2026): coyote, roadrunner, tortoise, gila lizard, rattlesnake, scorpion.
+    // The roadrunner's tail nearly touches the tortoise, so those two are cut flush (fifth value: padding).
+    version: 1,
+    source: 'mora-paper-motel-atlas-v1-a.png',
+    padding: 6,
+    bounds: [
+      [62, 30, 509, 491],
+      [522, 96, 1046, 462, 0],
+      [1051, 144, 1515, 468, 0],
+      [64, 532, 461, 995],
+      [558, 570, 1013, 967],
+      [1111, 527, 1487, 979],
+    ],
+  },
+  alpine: {
+    // Glacier Dam v1-b atlas (29 September 2026): ibex, marmot, lynx, ermine, grouse, fire salamander.
+    version: 1,
+    source: 'mora-paper-dam-atlas-v1-b.png',
+    padding: 6,
+    bounds: [
+      [49, 33, 503, 525],
+      [603, 132, 894, 499],
+      [1043, 72, 1466, 507],
+      [44, 663, 508, 873],
+      [569, 582, 947, 970],
+      [1116, 556, 1464, 1002],
+    ],
+  },
 };
 
 await fs.mkdir(path.join(root, 'public/art/optimized'), { recursive: true });
-for (const [set, { version, padding, bounds }] of Object.entries(sets)) {
+for (const [set, { version, padding: pad, bounds, source: file }] of Object.entries(sets)) {
   const source = path.join(
     root,
-    `public/art/mora-paper-${set}-atlas-v${version}${set === 'coast' ? '-a' : ''}.png`,
+    'public/art',
+    file ?? `mora-paper-${set}-atlas-v${version}${set === 'coast' ? '-a' : ''}.png`,
   );
   try {
     await fs.access(source);
@@ -47,7 +77,7 @@ for (const [set, { version, padding, bounds }] of Object.entries(sets)) {
     console.warn(`skipping ${set}: ${path.relative(root, source)} is not in the repo`);
     continue;
   }
-  for (const [kind, [x0, y0, x1, y1]] of bounds.entries()) {
+  for (const [kind, [x0, y0, x1, y1, padding = pad]] of bounds.entries()) {
     // Preserve the original generated alpha; no color key or masking is used.
     const sprite = await sharp(source)
       .extract({

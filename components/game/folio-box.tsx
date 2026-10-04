@@ -21,6 +21,7 @@ import {
   SetupIntro,
   SetupShell,
 } from './setup-box';
+import { SetupOptions } from './setup-pages';
 import { Segmented, SetupRow } from './setup-row';
 import { KindIcon } from './folio-icons';
 import './online-boxes.css';
@@ -116,7 +117,7 @@ export function FolioSetupBox({
   return (
     <SetupShell game={game} className="online-box folio-box">
       <SetupIntro game={game} />
-      <div className="setup-options">
+      <SetupOptions>
         {!table && (
           <SetupRow label="Your name" className="setup-name">
             <input
@@ -212,7 +213,7 @@ export function FolioSetupBox({
             </SetupRow>
           </>
         )}
-      </div>
+      </SetupOptions>
 
       {error && (
         <p role="alert" className="online-error">

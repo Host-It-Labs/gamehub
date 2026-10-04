@@ -1,0 +1,302 @@
+{
+  "source": "/art/mora-motel-portrait-v1-b-ext.png",
+  "image": "/art/optimized/mora-motel-portrait-v1-b-ext.webp",
+  "boardImage": "/art/optimized/mora-motel-portrait-v1-b-ext-board.webp",
+  "width": 1144,
+  "height": 2206,
+  "crop": {
+    "left": 149,
+    "top": 575,
+    "width": 936,
+    "height": 985
+  },
+  "landmarks": {
+    "roofTop": 425,
+    "protectedBounds": [
+      {
+        "name": "motel rooms",
+        "bounds": [
+          115,
+          430,
+          460,
+          330
+        ]
+      },
+      {
+        "name": "garage",
+        "bounds": [
+          650,
+          425,
+          410,
+          340
+        ]
+      },
+      {
+        "name": "road",
+        "bounds": [
+          240,
+          940,
+          670,
+          110
+        ]
+      },
+      {
+        "name": "pool",
+        "bounds": [
+          70,
+          1140,
+          450,
+          340
+        ]
+      },
+      {
+        "name": "diner",
+        "bounds": [
+          530,
+          1180,
+          300,
+          340
+        ]
+      },
+      {
+        "name": "sign",
+        "bounds": [
+          880,
+          1160,
+          190,
+          300
+        ]
+      }
+    ]
+  },
+  "habitats": [
+    {
+      "zone": 0,
+      "bounds": [
+        169,
+        1245,
+        268,
+        173
+      ],
+      "label": [
+        290,
+        1500
+      ],
+      "slots": [
+        [
+          211,
+          1297
+        ],
+        [
+          302,
+          1294
+        ],
+        [
+          395,
+          1294
+        ],
+        [
+          253,
+          1377
+        ],
+        [
+          352,
+          1376
+        ]
+      ],
+      "tokenWidth": 68,
+      "summary": "*Biggest* kind: 3 each"
+    },
+    {
+      "zone": 1,
+      "bounds": [
+        266,
+        595,
+        176,
+        160
+      ],
+      "label": [
+        358,
+        805
+      ],
+      "slots": [
+        [
+          313,
+          645
+        ],
+        [
+          400,
+          644
+        ],
+        [
+          308,
+          714
+        ],
+        [
+          399,
+          714
+        ]
+      ],
+      "tokenWidth": 68,
+      "summary": "Up to *2* kinds: 3 each"
+    },
+    {
+      "zone": 2,
+      "bounds": [
+        700,
+        689,
+        274,
+        90
+      ],
+      "label": [
+        837,
+        830
+      ],
+      "slots": [
+        [
+          742,
+          738
+        ],
+        [
+          837,
+          738
+        ],
+        [
+          932,
+          738
+        ]
+      ],
+      "tokenWidth": 68,
+      "summary": "4 if on the *Road*"
+    },
+    {
+      "zone": 3,
+      "bounds": [
+        244,
+        946,
+        658,
+        90
+      ],
+      "label": [
+        573,
+        1090
+      ],
+      "slots": [
+        [
+          286,
+          995
+        ],
+        [
+          429,
+          995
+        ],
+        [
+          573,
+          995
+        ],
+        [
+          717,
+          995
+        ],
+        [
+          860,
+          995
+        ]
+      ],
+      "tokenWidth": 68,
+      "summary": "*Repeat*: 3, else 1"
+    },
+    {
+      "zone": 4,
+      "bounds": [
+        601,
+        1291,
+        175,
+        160
+      ],
+      "label": [
+        635,
+        1512
+      ],
+      "slots": [
+        [
+          643,
+          1340
+        ],
+        [
+          734,
+          1340
+        ],
+        [
+          644,
+          1410
+        ],
+        [
+          734,
+          1410
+        ]
+      ],
+      "tokenWidth": 68,
+      "summary": "3 if *alone* here"
+    },
+    {
+      "zone": 6,
+      "bounds": [
+        905,
+        1285,
+        100,
+        168
+      ],
+      "label": [
+        975,
+        1505
+      ],
+      "slots": [
+        [
+          947,
+          1334
+        ],
+        [
+          963,
+          1412
+        ]
+      ],
+      "tokenWidth": 68,
+      "summary": "4 if in the *Pool*"
+    }
+  ],
+  "release": [
+    390,
+    1150
+  ],
+  "animation": {
+    "water": {
+      "polygon": [
+        [
+          480,
+          1660
+        ],
+        [
+          760,
+          1655
+        ],
+        [
+          765,
+          1740
+        ],
+        [
+          475,
+          1745
+        ]
+      ]
+    },
+    "foliage": []
+  },
+  "overview": {
+    "left": 99,
+    "top": 525,
+    "width": 1036,
+    "height": 1085
+  },
+  "overviewImage": "/art/optimized/mora-motel-portrait-v1-b-ext-overview.webp"
+}

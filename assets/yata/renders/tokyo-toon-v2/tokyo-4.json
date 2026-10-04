@@ -1,0 +1,67 @@
+{
+  "kind": 4,
+  "semantic_inventory": {
+    "name": "Takoyaki",
+    "servings": 6,
+    "vessel": "golden angular folded paper boat",
+    "features": [
+      "six balls in two dense rows",
+      "six brown sauce caps",
+      "six thick ivory mayo zigzags",
+      "thirty sparse large green herbs",
+      "twelve large pink bonito flakes",
+      "one modeled toothpick"
+    ]
+  },
+  "measured_object_inventory": {
+    "balls": 6,
+    "mayo_zigzags": 6
+  },
+  "object_inventory_audit_passed": true,
+  "source_recipe_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+  "blender_version": "5.2.2 LTS",
+  "material_node_types": [
+    "ShaderNodeAttribute",
+    "ShaderNodeBsdfDiffuse",
+    "ShaderNodeBsdfTransparent",
+    "ShaderNodeEmission",
+    "ShaderNodeLightPath",
+    "ShaderNodeMapRange",
+    "ShaderNodeMath",
+    "ShaderNodeMixShader",
+    "ShaderNodeNewGeometry",
+    "ShaderNodeOutputMaterial",
+    "ShaderNodeValToRGB",
+    "ShaderNodeVectorMath"
+  ],
+  "material_audit_passed": true,
+  "model_counts": {
+    "mesh_objects": 63,
+    "curve_objects": 6
+  },
+  "textures_used": [],
+  "source_image_inputs": [],
+  "camera": {
+    "projection": "orthographic",
+    "elevation_degrees": 47,
+    "scale": 3.1
+  },
+  "contact_shadow": {
+    "method": "modeled analytic ellipse",
+    "alpha_at_boundary": 0,
+    "cycles_shadow_catcher": false,
+    "image_postprocessing": false
+  },
+  "render": {
+    "size": 1200,
+    "samples": 96,
+    "engine": "Cycles",
+    "film_transparent": true,
+    "outline_px": 7.166666666666667,
+    "cel_band_thresholds": [
+      0.0,
+      0.48,
+      0.8
+    ]
+  }
+}

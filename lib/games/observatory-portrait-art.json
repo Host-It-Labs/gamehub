@@ -1,157 +1,148 @@
 {
-  "source": "/art/mora-phone-observatory-v4-b-tall.png",
-  "image": "/art/optimized/mora-phone-observatory-v4-b-tall.webp",
-  "boardImage": "/art/optimized/mora-phone-observatory-v4-b-tall-board.webp",
-  "width": 1204,
-  "height": 1906,
+  "source": "/art/mora-phone-observatory-v5-c.png",
+  "image": "/art/optimized/mora-phone-observatory-v5-c.webp",
+  "boardImage": "/art/optimized/mora-phone-observatory-v5-c-board.webp",
+  "width": 997,
+  "height": 1578,
   "crop": {
-    "left": 214,
-    "top": 268,
-    "width": 813,
-    "height": 1171
+    "left": 196,
+    "top": 307,
+    "width": 661,
+    "height": 911
   },
   "landmarks": {
-    "roofTop": 144,
+    "roofTop": 187,
     "protectedBounds": [
       {
         "name": "roof garden",
-        "bounds": [169, 169, 414, 407]
+        "bounds": [198, 236, 254, 343]
       },
       {
         "name": "observatory",
-        "bounds": [640, 144, 379, 475]
+        "bounds": [503, 187, 379, 431]
       },
       {
         "name": "root hollow",
-        "bounds": [147, 626, 471, 357]
+        "bounds": [176, 586, 337, 310]
       },
       {
         "name": "watchpost",
-        "bounds": [669, 633, 350, 371]
+        "bounds": [564, 596, 307, 339]
       },
       {
         "name": "glasshouse",
-        "bounds": [176, 1019, 407, 357]
+        "bounds": [178, 875, 304, 331]
       },
       {
         "name": "dry channel",
-        "bounds": [640, 1097, 407, 271]
+        "bounds": [521, 970, 363, 278]
       }
     ]
   },
   "habitats": [
     {
       "zone": 0,
-      "bounds": [721, 375, 213, 195],
-      "label": [827, 626],
+      "bounds": [594, 433, 171, 158],
+      "label": [680, 611],
       "slots": [
-        [774, 437],
-        [879, 437],
-        [774, 518],
-        [880, 518]
+        [640, 485],
+        [720, 485],
+        [639, 549],
+        [721, 549]
       ],
-      "tokenWidth": 86,
+      "tokenWidth": 71,
       "summary": "*Same* species: 2 · 6 · 11 · 17"
     },
     {
       "zone": 1,
-      "bounds": [292, 288, 202, 192],
-      "label": [393, 536],
+      "bounds": [235, 311, 167, 156],
+      "label": [319, 496],
       "slots": [
-        [345, 351],
-        [439, 350],
-        [345, 427],
-        [440, 428]
+        [281, 363],
+        [358, 362],
+        [280, 425],
+        [358, 425]
       ],
-      "tokenWidth": 86,
+      "tokenWidth": 71,
       "summary": "8 per *pair*"
     },
     {
       "zone": 2,
-      "bounds": [289, 810, 203, 115],
-      "label": [390, 981],
+      "bounds": [246, 752, 168, 94],
+      "label": [330, 866],
       "slots": [
-        [342, 872],
-        [438, 873]
+        [291, 804],
+        [370, 804]
       ],
-      "tokenWidth": 86,
+      "tokenWidth": 71,
       "summary": "*Pair*: 9"
     },
     {
       "zone": 3,
-      "bounds": [234, 1200, 302, 135],
-      "label": [385, 1391],
+      "bounds": [215, 1021, 248, 120],
+      "label": [339, 1159],
       "slots": [
-        [287, 1262],
-        [384, 1283],
-        [482, 1283]
+        [260, 1073],
+        [338, 1091],
+        [419, 1099]
       ],
-      "tokenWidth": 86,
+      "tokenWidth": 71,
       "summary": "3 each if found *elsewhere*"
     },
     {
       "zone": 4,
-      "bounds": [683, 1141, 324, 114],
-      "label": [845, 1311],
+      "bounds": [578, 975, 258, 94],
+      "label": [707, 1118],
       "slots": [
-        [736, 1203],
-        [844, 1203],
-        [953, 1203]
+        [623, 1026],
+        [707, 1027],
+        [792, 1027]
       ],
-      "tokenWidth": 86,
+      "tokenWidth": 71,
       "summary": "2 per *creature*"
     },
     {
       "zone": 6,
-      "bounds": [790, 750, 107, 114],
-      "label": [843, 920],
-      "slots": [[843, 812]],
-      "tokenWidth": 86,
+      "bounds": [659, 691, 89, 94],
+      "label": [704, 816],
+      "slots": [
+        [704, 743]
+      ],
+      "tokenWidth": 71,
       "summary": "2 per *other* area with its species"
     }
   ],
-  "release": [611, 1033],
+  "release": [505, 943],
   "animation": {
     "water": {
       "polygon": [
-        [90, 1350],
-        [180, 1355],
-        [240, 1400],
-        [245, 1490],
-        [200, 1550],
-        [90, 1555]
+        [228, 1274],
+        [384, 1270],
+        [506, 1322],
+        [502, 1405],
+        [367, 1416],
+        [258, 1375]
       ]
     },
     "foliage": [
       {
         "polygon": [
-          [1033, 1140],
-          [1080, 1125],
-          [1114, 1140],
-          [1114, 1270],
-          [1080, 1285],
-          [1033, 1260]
+          [906, 1080],
+          [964, 1090],
+          [994, 1160],
+          [985, 1290],
+          [935, 1278],
+          [908, 1190]
         ],
-        "pivot": [1075, 1300]
-      },
-      {
-        "polygon": [
-          [90, 497],
-          [130, 485],
-          [150, 510],
-          [150, 600],
-          [120, 615],
-          [90, 605]
-        ],
-        "pivot": [120, 630]
+        "pivot": [958, 1267]
       }
     ]
   },
   "overview": {
-    "left": 137,
-    "top": 134,
-    "width": 920,
-    "height": 1315
+    "left": 166,
+    "top": 177,
+    "width": 728,
+    "height": 1081
   },
-  "overviewImage": "/art/optimized/mora-phone-observatory-v4-b-tall-overview.webp"
+  "overviewImage": "/art/optimized/mora-phone-observatory-v5-c-overview.webp"
 }

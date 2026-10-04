@@ -35,7 +35,7 @@ import type { ExpeditionView } from '@/lib/games/relic/types';
 import { devSession, requestId } from '@/lib/online/client';
 import { ScratchAudio } from './relic-scratch-audio';
 import { ScratchDesk } from './relic-scratch-desk';
-import { MACHINE_ART, ScratchFactory, type FactoryView } from './relic-scratch-factory';
+import { MachineIcon, ScratchFactory, type FactoryView } from './relic-scratch-factory';
 import { ScratchUpgrades, UPGRADE_ICONS } from './relic-scratch-upgrades';
 import { DESK_TABS, WatchTv } from './relic-scratch-watch';
 import {
@@ -172,7 +172,7 @@ function Toast({
       return (
         <span className="rs-toast">
           {who}
-          <img src={MACHINE_ART[kind]} alt="" className="rs-toast-machine" />
+          <MachineIcon kind={kind} className="rs-toast-machine" />
           <span>{factory ? 'Factory' : MACHINES[kind]?.name}</span>
           {entry.kind === 'machine' && (entry.n ?? 1) > 1 && <small>×{entry.n}</small>}
         </span>

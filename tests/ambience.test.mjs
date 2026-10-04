@@ -23,7 +23,7 @@ await test('every game with a world has a soundscape with beds and a varied pool
   for (const a of ambiences) {
     assert.ok(a.beds.length >= 1, `${a.world} has a bed`);
     assert.ok(
-      a.events.length >= (a.world === 'coast' ? 3 : 8),
+      a.events.length >= (['coast', 'street'].includes(a.world) ? 5 : 8),
       `${a.world} has enough one-shots to avoid repetition`,
     );
     assert.ok(a.level > 0 && a.level <= 1);

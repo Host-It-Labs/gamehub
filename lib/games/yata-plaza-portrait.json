@@ -1,0 +1,71 @@
+{
+  "game": "midnight",
+  "source": "/art/yata-plaza-portrait-v1.png",
+  "image": "/art/optimized/yata-plaza-portrait-v1.webp",
+  "width": 1024,
+  "height": 1536,
+  "crop": {
+    "left": 0,
+    "top": 363,
+    "width": 1024,
+    "height": 517
+  },
+  "table": {
+    "left": 56,
+    "top": 423,
+    "width": 911,
+    "height": 397
+  },
+  "signboards": [],
+  "landmarks": {
+    "protectedBounds": [
+      {
+        "name": "counter",
+        "bounds": [
+          56,
+          423,
+          911,
+          397
+        ]
+      },
+      {
+        "name": "lantern",
+        "bounds": [
+          290,
+          0,
+          440,
+          210
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "glows": [
+      {
+        "x": 512,
+        "y": 90,
+        "radius": 340,
+        "color": "255, 170, 70",
+        "alpha": 0.15,
+        "period": 4100
+      },
+      {
+        "x": 975,
+        "y": 905,
+        "radius": 120,
+        "color": "255, 160, 60",
+        "alpha": 0.16,
+        "period": 3400
+      }
+    ],
+    "water": [],
+    "motes": false
+  },
+  "overview": {
+    "left": 0,
+    "top": 363,
+    "width": 1024,
+    "height": 517
+  },
+  "overviewImage": "/art/optimized/yata-plaza-portrait-v1-overview.webp"
+}

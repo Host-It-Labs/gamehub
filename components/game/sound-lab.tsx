@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, Headphones, Play, RotateCcw, Square, Volume2 } from 'lucide-react';
-import { audioAssets, sharedAudioAssets, soundGames, type SoundGame } from '@/lib/games/audio-catalog';
+import { audioAssets, sharedAudioAssets, soundCandidates, soundGames, type SoundGame } from '@/lib/games/audio-catalog';
 import type { Ambience } from '@/lib/games/ambience';
 import { labAmbiences as ambiences } from '@/lib/games/lab-ambiences';
 import { defaultMix, mixedAmbience, readAmbienceMix, saveAmbienceMix, type AmbienceMix } from '@/lib/games/ambience-mix';
@@ -10,6 +10,8 @@ import { audioContext } from '@/lib/games/audio-context';
 import { effectLevel } from '@/lib/games/game-sound';
 import { audioOptions, earlierAudioOptions, sharedSoundActions } from '@/lib/games/audio-options';
 import { boxCover } from '@/lib/games/box-covers';
+import arenaAudio from '@/lib/games/arena/audio.json';
+import { arenaMusicOptions } from '@/lib/games/arena/music';
 import './sound-lab.css';
 
 const humanName = (src: string) => src.split('/').at(-1)!.replace(/\.(m4a|mp3)$/, '').replaceAll('-', ' ');
@@ -26,10 +28,17 @@ export default function SoundLab() {
   const live = useRef<{ player: HTMLAudioElement | null; request: number; gain: number }>({ player: null, request: 0, gain: 0.45 });
   const entry = soundGames.find((g) => g.id === game)!;
   const effects = audioAssets.filter((a) => a.game === game && a.kind === 'effect');
-  const alternatives = ambience?.world === 'coast' ? [] : audioAssets.filter((a) => a.game === game && a.kind === 'bed');
+  const alternatives = audioAssets.filter((a) => a.game === game && a.kind === 'bed' && (ambience?.world === 'coast' ? a.id.includes('coast') : !a.id.includes('coast')));
+  const candidates = soundCandidates.filter((a) => a.game === (game === 'orin' || game === 'miro' || game === 'folio' ? 'party' : game));
   const selectedBed = alternatives.find((a) => a.src === mix.bed) ?? alternatives.find((a) => a.category === 'base');
   const beds = selectedBed ? [{ src: selectedBed.src, label: selectedBed.label, gain: 0.85 }] : ambience?.beds ?? [];
 
+  function stopClip() {
+    live.current.request++;
+    live.current.player?.pause();
+    live.current.player = null;
+    setClip(null);
+  }
   function stop() {
     live.current.request++;
     live.current.player?.pause();
@@ -76,9 +85,9 @@ export default function SoundLab() {
     setStatus('');
   }
 
-  async function audition(src: string, gain = 0.45) {
-    if (clip === src) { stop(); return; }
-    stop();
+  async function audition(src: string, gain = effectLevel(1, 0.5)) {
+    if (clip === src) { stopClip(); return; }
+    stopClip();
     const version = live.current.request;
     const audio = new Audio(src);
     live.current.player = audio;
@@ -98,11 +107,11 @@ export default function SoundLab() {
     setMix((previous) => ({ ...previous, levels: { ...previous.levels, [src]: value } }));
     setStatus('');
   }
-  function layer(a: { src: string; label?: string }, i: number) {
+  function layer(a: { src: string; label?: string; gain: number }, i: number) {
     const label = a.label ?? humanName(a.src);
     return (
       <li className="sound-lab-layer" key={a.src}>
-        <button type="button" className="sound-lab-play" aria-label={`${clip === a.src ? 'Stop' : 'Preview'} ${label}`} aria-pressed={clip === a.src} onClick={() => void audition(a.src)}>
+        <button type="button" className="sound-lab-play" aria-label={`${clip === a.src ? 'Stop' : 'Preview'} ${label}`} aria-pressed={clip === a.src} onClick={() => void audition(a.src, 0.52 * (ambience?.level ?? 0.55) * a.gain * (mix.levels[a.src] ?? 1))}>
           {clip === a.src ? <Square size={16} /> : <Play size={16} />}
         </button>
         <label htmlFor={`layer-${i}`}><span>{label}</span><small>{Math.round((mix.levels[a.src] ?? 1) * 100)}%</small></label>
@@ -128,14 +137,32 @@ export default function SoundLab() {
         <h1><Headphones size={23} /> Sound Lab</h1>
         <label className="sound-lab-volume"><Volume2 size={18} /><span className="sr-only">Preview volume</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(Number(e.target.value))} /><output>{Math.round(volume * 100)}%</output></label>
       </header>
+      <section className="sound-lab-panel" aria-labelledby="arena-music-heading">
+        <h2 id="arena-music-heading">Arena music</h2>
+        <p className="sound-lab-note">Two alternate original takes. Each final minute keeps the same music with fuller bass and a gentle 8% tempo lift. Previewing leaves the selected game music unchanged.</p>
+        {arenaMusicOptions.map((option) => (
+          <section className="sound-lab-comparison" key={option.id} aria-labelledby={`arena-music-${option.id}`}>
+            <h3 id={`arena-music-${option.id}`}>{option.label}</h3>
+            <div className="sound-lab-effects sound-lab-candidates">
+              {([['Battle', option.battle], ['Final minute', option.final]] as const).map(([label, id]) => {
+                const recording = arenaAudio[id];
+                return <button type="button" key={id} aria-label={`${option.label}: ${label}`} aria-pressed={clip === recording.srcs[0]} onClick={() => { stopAmbience(); setPlaying(false); void audition(recording.srcs[0], recording.gain); }}>
+                  {clip === recording.srcs[0] ? <Square size={18} /> : <Play size={18} />}
+                  <span>{label}</span><small>{recording.duration.toFixed(1)} s</small>
+                </button>;
+              })}
+            </div>
+          </section>
+        ))}
+      </section>
       <section className="sound-lab-panel sound-lab-shared" aria-labelledby="shared-effects-heading">
-        <h2 id="shared-effects-heading">Shared game sounds</h2>
-        <p className="sound-lab-note">Selected for every game: pickup B, place F, your turn C and Marimba flourish for final scores. Other sounds remain available to preview.</p>
-        {sharedSoundActions.map(({ category, label }) => (
+        <h2 id="shared-effects-heading">Universal game sounds</h2>
+        <p className="sound-lab-note">Your turn stays universal. Rising chimes remains selected; compare five new alternatives. Final scores keeps Marimba flourish.</p>
+        {sharedSoundActions.filter((a) => a.category === 'turn' || a.category === 'scores').map(({ category, label }) => (
           <section className="sound-lab-comparison" aria-labelledby={`action-${category}`} key={category}>
             <h3 id={`action-${category}`}>{label}</h3>
             <div className="sound-lab-effects sound-lab-candidates">
-              {audioOptions.filter((a) => a.category === category).map((a) => (
+              {(category === 'turn' ? [...sharedAudioAssets.filter((a) => a.category === 'turn').map((a) => ({ ...a, option: 'c', preferred: true })), ...soundCandidates.filter((a) => a.category === 'turn').map((a) => ({ ...a, preferred: false }))] : [...sharedAudioAssets.filter((a) => a.category === 'scores').map((a) => ({ ...a, option: 'b', preferred: true })), ...audioOptions.filter((a) => a.category === category)]).map((a) => (
                 <button type="button" key={a.id} data-preferred={a.preferred || undefined} aria-label={`${label}: ${a.option.toUpperCase()} · ${a.label}${a.preferred ? ' · Your pick' : ''}`} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>
                   {clip === a.src ? <Square size={18} /> : <Play size={18} />}
                   <span>{a.option.toUpperCase()} · {a.label}</span>
@@ -155,8 +182,8 @@ export default function SoundLab() {
           ))}
         </details>
         <details className="sound-lab-archive sound-lab-current">
-          <summary>Selected game sounds</summary>
-          <div className="sound-lab-effects">{sharedAudioAssets.map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{sharedSoundActions.find((action) => action.category === a.category)?.label}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
+          <summary>Earlier shared actions</summary>
+          <div className="sound-lab-effects">{sharedAudioAssets.filter((a) => a.category === 'pickup' || a.category === 'place').map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{sharedSoundActions.find((action) => action.category === a.category)?.label}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
         </details>
       </section>
       <nav className="sound-lab-games" aria-label="Choose a game">
@@ -166,9 +193,19 @@ export default function SoundLab() {
         <aside className="sound-lab-cover">
           <img src={boxCover(game)} alt={`${entry.name} cover`} />
           <p>{entry.material}</p>
-          <span>Original ElevenLabs foley</span>
+          <span>Original ElevenLabs sound</span>
         </aside>
         <div className="sound-lab-desk">
+          {candidates.length > 0 && <section className="sound-lab-panel" aria-label={`${entry.name} action candidates`}>
+            <h2>{game === 'orin' || game === 'miro' ? 'Know Me & Quiz' : entry.name} actions</h2>
+            <p className="sound-lab-note">Three options per action. A is the starting choice in play. Keep the world mix playing to compare the quieter effects against it.</p>
+            {(game === 'folio' ? ['place'] : ['pickup', 'place']).map((category) => <section className="sound-lab-comparison" key={category}>
+              <h3>{category === 'pickup' ? 'Pick up' : game === 'folio' ? 'Submit / reveal' : 'Place'}</h3>
+              <div className="sound-lab-effects sound-lab-candidates">{candidates.filter((a) => a.category === category).map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{a.option.toUpperCase()} · {a.label}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
+            </section>)}
+          </section>}
+          {game === 'relic' && <section className="sound-lab-panel" aria-label="Lucky music"><h2>Lucky music</h2><p className="sound-lab-note">Three 3-minute looping tracks are planned: Sunny pockets, Easy afternoon and Cloud lounge. Generation is blocked by insufficient ElevenLabs funds.</p></section>}
+          {game === 'folio' && <p className="sound-lab-note">Folio keeps submit and reveal sounds. Typing, cell edits and selection are silent.</p>}
           {ambience && <section className="sound-lab-panel" aria-labelledby="ambience-heading">
             <div className="sound-lab-section-heading"><h2 id="ambience-heading">The world around you</h2>
               <button type="button" className="sound-lab-primary" onClick={toggleMix} aria-pressed={playing}>{playing ? <Square size={17} /> : <Play size={17} />}{playing ? 'Stop mix' : 'Play mix'}</button>
@@ -183,7 +220,7 @@ export default function SoundLab() {
           <details className="sound-lab-panel sound-lab-archive">
             <summary>Earlier {entry.name} sounds</summary>
             <p className="sound-lab-note">Previous recordings, kept here for comparison.</p>
-            <div className="sound-lab-effects">{effects.map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src)}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{a.category === 'select' ? 'Pick up' : a.category === 'move' ? 'Place & lock' : a.category === 'reveal' ? 'Reveal' : 'Reward'}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
+            <div className="sound-lab-effects">{effects.map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{a.category === 'select' ? 'Pick up' : a.category === 'move' ? 'Place & lock' : a.category === 'reveal' ? 'Reveal' : 'Reward'}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
           </details>
           <output className="sound-lab-status">{status}</output>
         </div>

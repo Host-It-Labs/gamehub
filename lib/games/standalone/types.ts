@@ -1,8 +1,17 @@
-/** Stable storage IDs for the party games. Tribu is `orin` (with Dial inside
- * it) and Sabi is `miro` (with Sizes inside it). Public names live in the
- * registry. The rules marker rejects saves from their retired predecessors. */
+/** Stable storage IDs for the party games. Know Me is `orin` (with Dial and
+ * Ten Coins inside it) and Quiz is `miro` (with Sizes, Years
+ * and Order inside it). Public names live in the registry. The rules marker
+ * rejects saves from their retired predecessors. */
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type StandaloneId = 'orin' | 'miro' | 'dial' | 'size';
+export type StandaloneId =
+  | 'orin'
+  | 'miro'
+  | 'dial'
+  | 'size'
+  | 'coins'
+  | 'year'
+  | 'order'
+  | 'impostor';
 
 export type LogEntry = { id: number; seat?: number; text: string };
 

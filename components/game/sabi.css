@@ -361,7 +361,7 @@ ol.sabi-steps {
   color: var(--s-tomato);
 }
 
-/* Votes: index cards on the desk. */
+/* The vote clock above the pick. */
 .party-table.is-sabi .vote-clock {
   width: min(360px, 80%);
   height: 10px;
@@ -384,111 +384,6 @@ ol.sabi-steps {
   font-size: 12px;
   color: var(--s-soft);
 }
-.party-table.is-sabi .tribu-tile {
-  position: relative;
-  flex-direction: column;
-  gap: 14px;
-  padding: 26px 14px 18px;
-  min-height: min(290px, 48dvh);
-  border-radius: 20px;
-  border: 0;
-  background:
-    linear-gradient(
-      180deg,
-      transparent 38px,
-      #ff5a3c55 38px 40px,
-      transparent 40px
-    ),
-    linear-gradient(180deg, #ffffff99, transparent 40%), var(--s-card);
-  box-shadow:
-    0 0 0 1px var(--s-card-edge),
-    0 4px 0 var(--s-card-edge),
-    0 18px 36px #5b441f33;
-}
-.party-table.is-sabi .tribu-tile.tile-miro {
-  --tile: var(--s-cobalt);
-}
-.party-table.is-sabi .tribu-tile.tile-size {
-  --tile: var(--s-tomato);
-}
-.party-table.is-sabi .tribu-tile.tile-finish {
-  --tile: var(--s-soft);
-}
-.party-table.is-sabi .tribu-tile:disabled {
-  opacity: 1;
-}
-.party-table.is-sabi .tribu-tile.is-mine {
-  box-shadow:
-    0 0 0 3px var(--tile),
-    0 4px 0 var(--s-card-edge),
-    0 18px 36px color-mix(in srgb, var(--tile) 30%, transparent);
-}
-.party-table.is-sabi .tribu-tile strong {
-  font-family: var(--s-display);
-  font-weight: 800;
-  color: var(--s-ink);
-}
-.party-table.is-sabi .tribu-again {
-  color: #fff;
-}
-.party-table.is-sabi .vote-count i {
-  background: var(--tile);
-}
-.party-table.is-sabi .vote-check {
-  color: var(--tile);
-}
-/* The marks sit on a little patch of cutting mat. */
-.sabi-mark {
-  border-radius: 16px;
-  background:
-    linear-gradient(90deg, #e8f3cf22 1px, transparent 1px) 0 0 / 8px 8px,
-    linear-gradient(0deg, #e8f3cf22 1px, transparent 1px) 0 0 / 8px 8px,
-    linear-gradient(160deg, var(--s-mat-light, #2d7a63), var(--s-mat, #1f5a4a));
-  box-shadow: 0 3px 0 #0d2a22;
-}
-.sabi-mark .mark-globe {
-  fill: #3569ff;
-}
-.sabi-mark .mark-lines {
-  stroke: #cfe0ff;
-  stroke-width: 2;
-  opacity: 0.8;
-}
-.sabi-mark .mark-pin {
-  fill: #ff5a3c;
-  stroke: #fff8e6;
-  stroke-width: 2;
-}
-.sabi-mark .mark-pin-dot {
-  fill: #fff8e6;
-}
-.sabi-mark .mark-small {
-  fill: #fff8e6;
-}
-.sabi-mark .mark-big {
-  fill: #ff5a3c;
-}
-.sabi-mark .mark-times {
-  stroke: #ffd23f;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-@media (max-width: 700px) {
-  .party-table.is-sabi .tribu-tile {
-    min-height: 0;
-    padding: 18px 6px 12px;
-    border-radius: 16px;
-    gap: 8px;
-  }
-}
-@media (orientation: landscape) and (max-height: 600px) {
-  .party-table.is-sabi .tribu-tile {
-    min-height: 0;
-    padding: 12px 8px;
-    gap: 6px;
-  }
-}
-
 /* Results: an index card, sunflower for the winner. */
 .party-table.is-sabi .party-finale.is-animated {
   --finale-accent: var(--s-tomato);
@@ -608,4 +503,227 @@ ol.sabi-steps {
     min-width: 100px;
     padding: 6px 12px;
   }
+}
+
+/* The marks' parts. */
+.sabi-mark {
+  overflow: visible;
+}
+.sabi-mark .mark-shadow {
+  fill: #0000002e;
+}
+.sabi-mark .mark-pin {
+  fill: var(--s-tomato, #ff5a3c);
+  stroke: #fff8e6;
+  stroke-width: 1.5;
+}
+.sabi-mark .mark-pin-dot {
+  fill: #fff8e6;
+  stroke: none;
+}
+/* Atlas */
+.mark-atlas .mark-land {
+  fill: #3fcf8e;
+  stroke: #0d6b47;
+  stroke-width: 0.8;
+}
+.mark-atlas .mark-gloss {
+  fill: #ffffff4d;
+}
+.mark-atlas .mark-brass-ring,
+.mark-atlas .mark-brass-line {
+  stroke: #e2ad45;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.mark-atlas circle[fill] {
+  stroke: #fff8e6;
+  stroke-width: 1.5;
+}
+/* Sizes */
+.mark-sizes .mark-tape rect {
+  fill: #ffd23f;
+  stroke: #b88900;
+  stroke-width: 1;
+}
+.mark-sizes .mark-tape-ticks {
+  stroke: #1b2a24;
+  stroke-width: 1.2;
+}
+.mark-sizes .mark-case rect {
+  fill: #1b2a24;
+  stroke: #0b1411;
+  stroke-width: 1;
+}
+.mark-sizes .mark-case-hub {
+  fill: #ff5a3c;
+  stroke: #fff8e6;
+  stroke-width: 1.5;
+}
+.mark-sizes .mark-small rect {
+  fill: #fff8e6;
+}
+.mark-sizes .mark-small .mark-top {
+  fill: #ffffff;
+}
+.mark-sizes .mark-big rect {
+  fill: #3569ff;
+}
+.mark-sizes .mark-big .mark-top {
+  fill: #8fb0ff;
+}
+.mark-sizes .mark-big .mark-side {
+  fill: #1d3fb0;
+}
+.mark-sizes :is(.mark-small, .mark-big) > * {
+  stroke: #0e2470;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+.mark-sizes .mark-times {
+  stroke: #ffd23f;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+/* Years */
+.mark-years .mark-ruler rect {
+  fill: #fff5d8;
+  stroke: #1b2a24;
+  stroke-width: 1.2;
+}
+.mark-years .mark-ticks {
+  stroke: #1b2a24;
+  stroke-width: 1.4;
+}
+.mark-years .mark-trail {
+  stroke: #1b2a24;
+  stroke-width: 1.6;
+  stroke-dasharray: 2 3.5;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+.mark-years .mark-spark {
+  fill: none;
+  stroke: #ff5a3c;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.mark-years .mark-stem {
+  stroke: #c93a20;
+  stroke-width: 2.6;
+}
+.mark-years .mark-head {
+  fill: #ff5a3c;
+  stroke: #fff8e6;
+  stroke-width: 1.5;
+}
+/* Order */
+.mark-order .mark-card rect {
+  stroke: #0b231d;
+  stroke-width: 1;
+}
+.mark-order .mark-card-0 rect { fill: #fff8e6; }
+.mark-order .mark-card-1 rect { fill: #ffd23f; }
+.mark-order .mark-card-2 rect { fill: #ff9a3c; }
+.mark-order .mark-card-3 rect { fill: #ff5a3c; }
+.mark-order .mark-card-4 rect { fill: #3569ff; }
+.mark-order .mark-card .mark-card-cap {
+  fill: #ffffff80;
+  stroke: none;
+}
+
+/* End */
+.mark-end .mark-end-pole,
+.mark-end .mark-end-foot {
+  stroke: #8e9994;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.mark-end .mark-end-cloth {
+  stroke: #1b2a24;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+.mark-end .mark-end-knob {
+  fill: #ff5a3c;
+  stroke: #fff8e6;
+  stroke-width: 1.5;
+}
+.mark-end .mark-flag {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+}
+
+/* Parts move from their own anchor points. */
+.sabi-mark :is(.mark-pin, .mark-big, .mark-small, .mark-tape, .mark-card, .mark-spark, .mark-land) {
+  transform-box: fill-box;
+}
+.sabi-mark :is(.mark-pin, .mark-big, .mark-small, .mark-card) {
+  transform-origin: 50% 100%;
+}
+.sabi-mark .mark-tape {
+  transform-origin: 0 50%;
+}
+.sabi-mark .mark-spark {
+  transform-origin: 30% 100%;
+}
+
+/* A picked card, or one under the pointer, plays its game's gesture. */
+@media (prefers-reduced-motion: no-preference) {
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-atlas .mark-land {
+    animation: sabi-spin 2.4s linear infinite;
+  }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-atlas .mark-pin {
+    animation: sabi-bob 1.2s ease-in-out infinite;
+  }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-sizes .mark-big {
+    animation: sabi-grow 1.4s ease-in-out infinite;
+  }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-sizes .mark-tape {
+    animation: sabi-tape 1.4s ease-in-out infinite;
+  }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-years .mark-pin {
+    animation: sabi-bob 1.2s ease-in-out infinite;
+  }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-years .mark-spark {
+    animation: sabi-spark 1.2s ease-out infinite;
+  }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-order .mark-card {
+    animation: sabi-hop 1.3s ease-in-out infinite;
+  }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-order .mark-card-1 { animation-delay: 0.08s; }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-order .mark-card-2 { animation-delay: 0.16s; }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-order .mark-card-3 { animation-delay: 0.24s; }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-order .mark-card-4 { animation-delay: 0.32s; }
+  .quiz-card:is(:hover:not(:disabled), :focus-visible, .is-mine) .mark-end .mark-flag {
+    animation: sabi-wave 1s ease-in-out infinite;
+  }
+}
+@keyframes sabi-wave {
+  0%, 100% { transform: skewY(0deg); }
+  50% { transform: skewY(-7deg); }
+}
+@keyframes sabi-spin {
+  to { transform: translateX(-40px); }
+}
+@keyframes sabi-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes sabi-grow {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.82); }
+}
+@keyframes sabi-tape {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(0.86); }
+}
+@keyframes sabi-spark {
+  0%, 40% { opacity: 0; transform: scale(0.4); }
+  60% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+@keyframes sabi-hop {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
 }

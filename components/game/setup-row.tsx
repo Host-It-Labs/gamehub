@@ -3,17 +3,20 @@ import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-/** One labelled setting: a small label above its control. */
+/** One labelled setting: a small label above its control, and an optional
+ *  aside (a pager) at the end of the label's line. */
 export function SetupRow({
   label,
   Icon,
   note,
+  aside,
   className = '',
   children,
 }: {
   label: string;
   Icon?: LucideIcon;
   note?: ReactNode;
+  aside?: ReactNode;
   className?: string;
   children: ReactNode;
 }) {
@@ -23,6 +26,7 @@ export function SetupRow({
         {Icon && <Icon aria-hidden="true" />}
         {label}
       </legend>
+      {aside && <div className="setup-row-aside">{aside}</div>}
       <div className="setup-row-control">
         {children}
         {note && <small className="setup-row-note">{note}</small>}

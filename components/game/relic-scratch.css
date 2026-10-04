@@ -144,7 +144,7 @@
 }
 .rs-wallet {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 76px;
+  grid-template-columns: 18px minmax(0, 1fr) 64px;
   align-items: baseline;
   gap: 7px;
   box-sizing: border-box;
@@ -660,7 +660,9 @@
 }
 
 /* Book level and exact progress stay distinct from the I/II/III controls. */
-.rs-book:has(.rs-book-xp) { padding-bottom: 23px; }
+.rs-book:has(.rs-book-xp) {
+  padding-bottom: 23px;
+}
 .rs-book-xp {
   position: absolute;
   left: 9px;
@@ -683,11 +685,15 @@
   height: 6px;
   border-radius: 4px;
   background: #0005;
-  box-shadow: inset 0 1px 2px #0008, 0 0 0 1px #ffffff1c;
+  box-shadow:
+    inset 0 1px 2px #0008,
+    0 0 0 1px #ffffff1c;
   overflow: hidden;
   pointer-events: none;
 }
-.rs-book-progress::-webkit-progress-bar { background: #0005; }
+.rs-book-progress::-webkit-progress-bar {
+  background: #0005;
+}
 .rs-book-progress::-webkit-progress-value {
   border-radius: 4px;
   background: linear-gradient(90deg, #b48b48, #ffe1a1);
@@ -698,7 +704,9 @@
   background: linear-gradient(90deg, #b48b48, #ffe1a1);
 }
 @media (prefers-reduced-motion: reduce) {
-  .rs-book-progress::-webkit-progress-value { transition: none; }
+  .rs-book-progress::-webkit-progress-value {
+    transition: none;
+  }
 }
 .rs-book.is-held {
   border-color: color-mix(in srgb, var(--book) 60%, var(--gold));
@@ -1288,13 +1296,10 @@
     inset 0 0 30px #02110e90,
     0 20px 40px #02110e90;
 }
-.rs-factory-preview img {
+.rs-factory-preview > * {
   width: clamp(56px, 11vw, 96px);
+  height: clamp(56px, 11vw, 96px);
   filter: drop-shadow(0 6px 6px #02110e80);
-}
-.rs-factory-preview img:nth-child(2n) {
-  filter: none;
-  opacity: 0.9;
 }
 .rs-factory-closed h2 {
   margin: 0;
@@ -1427,343 +1432,170 @@
   min-width: 0;
   min-height: 0;
 }
-.rs-floor-wrap {
-  flex: 1;
-  min-height: 0;
+.rs-camera-tools {
+  display: flex;
+  align-self: flex-end;
+  flex: none;
+  min-width: 0;
+  margin: 0;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--panel-line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow:
+    0 3px 10px #0003,
+    inset 0 1px 0 #fff1;
+}
+.rs-camera-tools button {
   display: grid;
   place-items: center;
-  overflow: hidden;
-  padding: 10px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--cream);
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
 }
-.rs-floor-frame {
-  padding: calc(var(--cell) * 0.14);
-  border-radius: calc(var(--cell) * 0.3);
-  background: linear-gradient(145deg, #e8c77c, #9b6a2c 55%, #d8b066);
+.rs-camera-tools button:hover:not(:disabled),
+.rs-camera-tools button[aria-pressed='true'] {
+  color: #183e33;
+  background: #edc777;
   box-shadow:
-    inset 0 1px 0 #fff3c8,
-    inset 0 -2px 0 #5e3d14,
-    0 22px 44px #02110ea0;
+    inset 0 1px 0 #fff7,
+    0 1px 3px #0003;
 }
-.rs-floor {
+.rs-camera-tools button:focus-visible {
+  outline: 2px solid #edc777;
+  outline-offset: 2px;
+}
+.rs-camera-tools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+/* The 3D floor: a canvas filling the area, effects drawn above it. */
+.rs-floor3d {
   position: relative;
-  border-radius: calc(var(--cell) * 0.18);
+  flex: 1;
+  min-height: 0;
   touch-action: none;
-  background-color: #1d4a44;
-  background-size: calc(var(--cell) * 4);
-  box-shadow:
-    inset 0 0 0 1px #00000060,
-    inset 0 0 calc(var(--cell) * 1.4) #02110e70;
   -webkit-user-select: none;
   user-select: none;
 }
-.rs-floor::after {
-  /* Faint cell lines to place machines by. */
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background-image:
-    linear-gradient(#fff3d40d 1px, transparent 1px),
-    linear-gradient(90deg, #fff3d40d 1px, transparent 1px);
-  background-size: var(--cell) var(--cell);
-}
-.rs-floor.mode-build {
+.rs-floor3d.mode-build {
   cursor: crosshair;
 }
-.rs-floor.mode-erase {
+.rs-floor3d.mode-erase {
   cursor: not-allowed;
 }
-.rs-floor.is-moving {
+.rs-floor3d.is-moving {
   cursor: grabbing;
 }
-.rs-machine {
+.rs-floor3d.is-panning {
+  cursor: grab;
+}
+.rs-floor3d.is-panning:active {
+  cursor: grabbing;
+}
+.rs-floor-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.rs-floor-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 2;
+}
+.rs-floor-failed {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--muted);
+}
+/* A sale: a coin arcs to the purse and the amount rises over the till. */
+.rs-fly-coin {
+  position: absolute;
+  left: -11px;
+  top: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c4, #f6c64f 45%, #b9801f);
+  box-shadow:
+    inset 0 0 0 2px #e0a93f,
+    0 0 12px #ffd76a90,
+    0 3px 6px #02110e80;
+  will-change: transform, opacity;
+}
+.rs-sale-label {
   position: absolute;
   left: 0;
   top: 0;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: var(--cell);
-  height: var(--cell);
-  pointer-events: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #102b25d9;
+  border: 1px solid #f6c64f80;
+  color: #ffe08a;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 #02110e;
+  box-shadow: 0 4px 12px #02110e70;
+  will-change: transform, opacity;
 }
-.rs-machine-art {
-  width: 104%;
-  height: 104%;
-  object-fit: contain;
-  filter: drop-shadow(
-    0 calc(var(--cell) * 0.06) calc(var(--cell) * 0.05) #02110e90
-  );
-  transition: rotate 0.2s;
+.rs-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 1px;
+  background: #0d1f1b;
+  border: 1px solid var(--panel-line);
 }
-.rs-machine.is-working .rs-machine-art {
-  animation: rs-hum 0.9s ease-in-out infinite alternate;
-}
-@keyframes rs-hum {
-  to {
-    scale: 1.03;
-  }
-}
-.rs-machine.kind-lamp::before {
+.rs-status::before {
   content: '';
-  position: absolute;
-  inset: -40%;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: radial-gradient(#f7e08e40, transparent 65%);
-  z-index: -1;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
-.rs-machine.kind-belt {
-  z-index: 0;
+.rs-status.is-work {
+  color: #6ff59a;
 }
-/* The belt runs one cell per factory tick, as fast as the tickets on it. The
-   strip slides on the compositor, so a running floor never repaints. */
-.rs-belt {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+.rs-status.is-idle {
+  color: #b9a988;
 }
-.rs-belt::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -100%;
-  width: 200%;
-  background: url('/art/lucky/factory/belt.webp') 0 50% / 50% 100% repeat-x;
-  animation: rs-belt 0.5s linear infinite;
-}
-@keyframes rs-belt {
-  to {
-    transform: translateX(50%);
-  }
-}
-.rs-machine-book {
-  /* On the printer's closed back corner, clear of its output chute. */
-  position: absolute;
-  left: 2%;
-  bottom: 2%;
-  width: 30%;
-  rotate: -8deg;
-  filter: drop-shadow(0 1px 2px #0009);
-}
-.rs-machine-progress {
-  position: absolute;
-  top: 2%;
-  left: 2%;
-  width: 26%;
-  height: 26%;
-  rotate: -90deg;
-  /* Its own layer: a filling ring repaints only itself, never the floor. */
-  will-change: transform;
-}
-.rs-progress-track {
-  fill: #10251fcc;
-  stroke: #ffffff22;
-  stroke-width: 5;
-}
-.rs-progress-fill {
-  fill: none;
-  stroke: #ffe39a;
-  stroke-width: 5;
-  stroke-linecap: round;
-  stroke-dasharray: 1 1;
-  stroke-dashoffset: var(--from);
-  animation: rs-progress linear forwards;
-}
-@keyframes rs-progress {
-  from {
-    stroke-dashoffset: var(--from);
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-.rs-bundle-count {
-  position: absolute;
-  left: 50%;
-  bottom: 6%;
-  display: flex;
-  gap: 3px;
-  translate: -50% 0;
-}
-.rs-bundle-count i {
-  width: calc(var(--cell) * 0.1);
-  height: calc(var(--cell) * 0.1);
-  border-radius: 50%;
-  background: #f5e7c7;
-  box-shadow: 0 1px 2px #0009;
-}
-.rs-machine.is-ghost {
+.rs-status.is-idle::before {
+  box-shadow: none;
   opacity: 0.6;
 }
-.rs-machine.is-lifted {
-  z-index: 4;
-  opacity: 0.9;
-  scale: 1.08;
-  filter: drop-shadow(0 12px 12px #02110e90);
+.rs-status.is-full {
+  color: #ffbf47;
 }
-.rs-machine.is-blocked {
-  filter: drop-shadow(0 0 0 #e2735d) sepia(1) hue-rotate(-40deg);
-  opacity: 0.5;
+.rs-status.is-stuck {
+  color: #ff6a5c;
 }
-.rs-machine.is-selected::after {
-  content: '';
-  position: absolute;
-  inset: 3%;
-  border-radius: 20%;
-  box-shadow:
-    0 0 0 2px var(--gold),
-    0 0 16px #e7bd6f90;
-  pointer-events: none;
-}
-.rs-machine.is-erasing {
-  opacity: 0.45;
-  filter: sepia(1) hue-rotate(-40deg) saturate(3);
-}
-.rs-machine.is-stuck::after {
-  content: '!';
-  position: absolute;
-  top: -4%;
-  right: -4%;
-  display: grid;
-  place-items: center;
-  width: 30%;
-  height: 30%;
-  border-radius: 50%;
-  background: #d9563f;
-  color: #fff;
-  font: 800 calc(var(--cell) * 0.2) / 1 system-ui;
-  animation: rs-glow-stuck 1s ease-in-out infinite alternate;
-}
-@keyframes rs-glow-stuck {
-  to {
-    box-shadow: 0 0 10px #d9563f;
-  }
-}
-/* Tickets ride above the belts and beneath the machines, so a machine
-   swallows the ticket it takes and the one it made peeks out of its output. */
-.rs-item {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 2;
-  width: calc(var(--cell) * 0.34);
-  height: calc(var(--cell) * 0.34);
-  pointer-events: none;
-}
-.rs-floor[data-settled] .rs-item {
-  transition:
-    transform 0.5s linear,
-    opacity 0.2s,
-    scale 0.2s;
-}
-@starting-style {
-  .rs-floor[data-settled] .rs-item {
-    opacity: 0;
-    scale: 0.4;
-  }
-}
-.rs-item.is-sold {
-  animation: rs-sold 0.5s ease-in forwards;
-}
-@keyframes rs-sold {
-  60% {
-    opacity: 1;
-    scale: 0.9;
-  }
-  100% {
-    opacity: 0;
-    scale: 0.4;
-  }
-}
-.rs-sale-coin {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 5;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-.rs-sale-coin::before {
-  content: '';
-  position: absolute;
-  left: calc(var(--cell) * -0.13);
-  top: calc(var(--cell) * -0.13);
-  width: calc(var(--cell) * 0.26);
-  height: calc(var(--cell) * 0.26);
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff5c8, #e7b04a 55%, #9a6516);
-  box-shadow: 0 0 10px #f6d06acc;
-  opacity: 0;
-  animation: rs-sale-coin 0.8s 0.35s ease-out forwards;
-}
-@keyframes rs-sale-coin {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.5);
-  }
-  30% {
-    opacity: 1;
-    transform: translateY(calc(var(--cell) * -0.35)) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(calc(var(--cell) * -0.7)) scale(0.8);
-  }
-}
-.rs-marquee {
-  position: absolute;
-  z-index: 6;
-  border: 2px dashed var(--gold);
-  border-radius: 8px;
-  background: #e7bd6f18;
-  pointer-events: none;
-}
-.rs-item img {
+.rs-icon-wait {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  rotate: var(--tilt);
-  filter: drop-shadow(0 2px 2px #02110e90) grayscale(0.2) brightness(0.92);
 }
-.rs-item.is-done img {
-  filter: drop-shadow(0 2px 2px #02110e90) saturate(1.2);
-}
-.rs-item.is-done::after {
-  /* A scratched ticket carries a gold coin: it is ready to sell. */
-  content: '';
-  position: absolute;
-  right: -10%;
-  bottom: -4%;
-  width: 50%;
-  height: 50%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff1b8, #e3a93c 55%, #9a6516);
-  box-shadow: 0 1px 2px #0008;
-}
-.rs-item.is-star img {
-  filter: drop-shadow(0 0 5px #f6d06a) drop-shadow(0 2px 2px #02110e90);
-}
-.rs-item.is-gilded img {
-  filter: drop-shadow(0 0 3px #f2c75a) sepia(0.5) saturate(1.6);
-}
-.rs-item.is-stamped::before {
-  content: '★';
-  position: absolute;
-  z-index: 1;
-  left: -8%;
-  top: -14%;
-  color: #c8363a;
-  font-size: calc(var(--cell) * 0.16);
-  text-shadow: 0 1px 0 #fff;
-}
-.rs-item.is-bundle img {
-  filter: drop-shadow(3px -3px 0 #f5e7c7) drop-shadow(3px -3px 0 #e8d9b4)
-    drop-shadow(0 2px 2px #02110e90);
-}
+
 .rs-inspector {
   display: flex;
   align-items: center;
@@ -1839,7 +1671,9 @@
   background: #10251f;
   border: 1px solid #b3b89855;
   color: var(--cream);
-  font: 700 9px/1.2 Georgia, serif;
+  font:
+    700 9px/1.2 Georgia,
+    serif;
   font-style: normal;
 }
 .rs-book-level.is-max {
@@ -1862,7 +1696,9 @@
   border-radius: 4px;
   background: #ffffff14;
   color: var(--muted);
-  font: 700 9px/13px var(--font-sans), sans-serif;
+  font:
+    700 9px/13px var(--font-sans),
+    sans-serif;
   text-align: center;
   pointer-events: none;
 }
@@ -2575,9 +2411,6 @@
     width: 42px;
     height: 42px;
   }
-  .rs-floor-wrap {
-    padding: 4px;
-  }
   .rs-inspector {
     min-height: 52px;
     gap: 8px;
@@ -2699,11 +2532,27 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .relic-scratch-room :is(.rs-tabs button, .rs-path-tabs button, .rs-levels button, .rs-book, .rs-part, .rs-inspector-books button) {
-    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  .relic-scratch-room
+    :is(
+      .rs-tabs button,
+      .rs-path-tabs button,
+      .rs-levels button,
+      .rs-book,
+      .rs-part,
+      .rs-inspector-books button
+    ) {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      opacity 180ms ease;
   }
   .rs-lives svg {
-    transition: color 180ms ease, fill 180ms ease, opacity 180ms ease;
+    transition:
+      color 180ms ease,
+      fill 180ms ease,
+      opacity 180ms ease;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2712,7 +2561,6 @@
     transition: none !important;
   }
 }
-
 
 /* The shared rules layout (rules.tsx) on Lucky's green felt. */
 .scratch-modal {

@@ -8,14 +8,29 @@ import { boxCover, wideCover } from '../lib/games/box-covers.ts';
 import {
   creaturesFor,
   foodsFor,
+  moraContentSets,
   tokenImage,
+  yataContentSets,
 } from '../lib/games/trio/engine.ts';
 import { paperWorldFor } from '../lib/games/mora-world.ts';
 import { tableWorldFor } from '../lib/games/table-world.ts';
+import { altoAssets } from '../lib/games/alto/art.ts';
+import {
+  islands as altoIslands,
+  plans as altoPlans,
+  captains as altoCaptains,
+} from '../lib/games/alto/content.ts';
 import { ambiences } from '../lib/games/ambience.ts';
 import { labAmbiences } from '../lib/games/lab-ambiences.ts';
-import { audioAssets, sharedAudioAssets } from '../lib/games/audio-catalog.ts';
-import { audioOptions, earlierAudioOptions } from '../lib/games/audio-options.ts';
+import {
+  audioAssets,
+  sharedAudioAssets,
+  soundCandidates,
+} from '../lib/games/audio-catalog.ts';
+import {
+  audioOptions,
+  earlierAudioOptions,
+} from '../lib/games/audio-options.ts';
 
 const assets = new Set([
   '/favicon.svg',
@@ -37,6 +52,9 @@ for (const id of [
   'relic',
   'folio',
   'arena',
+  'rota',
+  'alto',
+  'impostor',
 ]) {
   const cover = boxCover(id);
   add(cover);
@@ -48,14 +66,16 @@ for (const id of [
   for (const entry of previews[wide].srcSet.split(', '))
     add(entry.split(' ')[0]);
 }
-for (const set of ['beginner', 'intermediate']) {
+for (const set of moraContentSets)
   creaturesFor(set).forEach((_, i) => add(tokenImage(i, false, set)));
+for (const set of yataContentSets)
   foodsFor(set).forEach((_, i) => add(tokenImage(i, true, set)));
-}
 for (const tall of [false, true]) {
-  for (const world of ['observatory', 'floodline']) {
+  for (const world of ['observatory', 'floodline', 'motel', 'dam']) {
     const art = paperWorldFor(tall, undefined, world);
     for (const key of ['image', 'boardImage', 'overviewImage']) add(art[key]);
+    const phone = paperWorldFor(tall, undefined, world, true);
+    for (const key of ['image', 'boardImage', 'overviewImage']) add(phone[key]);
   }
   for (const game of ['undertow', 'midnight']) {
     const art = tableWorldFor(game, tall);
@@ -63,8 +83,19 @@ for (const tall of [false, true]) {
     const phone = tableWorldFor(game, tall, undefined, true);
     for (const key of ['image', 'overviewImage']) add(phone[key]);
   }
+  // Yata's Mexican plaza (Mexico, Puebla).
+  for (const phone of [false, true])
+    for (const key of ['image', 'overviewImage'])
+      add(tableWorldFor('midnight', tall, undefined, phone, 'plaza')[key]);
 }
-for (const asset of [...audioAssets, ...sharedAudioAssets, ...audioOptions, ...earlierAudioOptions]) add(asset.src);
+for (const asset of [
+  ...audioAssets,
+  ...sharedAudioAssets,
+  ...audioOptions,
+  ...earlierAudioOptions,
+  ...soundCandidates,
+])
+  add(asset.src);
 for (const ambience of [...ambiences, ...labAmbiences])
   for (const sound of [...ambience.beds, ...ambience.events]) add(sound.src);
 // Arena's 3D art: every tile, model and card portrait its loader lists.
@@ -72,14 +103,34 @@ const arena = JSON.parse(await readFile('lib/games/arena/assets.json', 'utf8'));
 for (const set of Object.values(arena.textures))
   for (const file of [set.albedo.hq, set.albedo.lite, set.normal, set.orm])
     add(file.path);
-for (const file of [...Object.values(arena.models), ...Object.values(arena.cards)])
+for (const file of [
+  ...Object.values(arena.models),
+  ...Object.values(arena.cards),
+])
   add(file.path);
+// Rota's 3D board: its tiles and models (scripts/rota-assets.mjs).
+const rota = JSON.parse(await readFile('lib/games/rota/assets.json', 'utf8'));
+for (const set of Object.values(rota.textures))
+  for (const file of [set.albedo.hq, set.albedo.lite, set.normal, set.orm])
+    add(file.path);
+for (const file of Object.values(rota.models)) add(file.path);
 // Arena's music and effects.
 const arenaAudio = JSON.parse(
   await readFile('lib/games/arena/audio.json', 'utf8'),
 );
 for (const sound of Object.values(arenaAudio))
   for (const src of sound.srcs) add(src);
+// Arena's Quest builds each region's map URL from its number.
+for (const region of [1, 2, 3])
+  for (const cut of ['wide', 'tall', 'wide-2x', 'tall-2x'])
+    add(`/art/optimized/arena-quest-${region}-${cut}.webp`);
+// Alto's islands, plans, goods, captains and sky plates.
+for (const path of altoAssets(
+  altoIslands.map((i) => i.id),
+  altoPlans.map((p) => p.id),
+  altoCaptains.map((c) => c.id),
+))
+  add(path);
 // Sizes builds its sheet URLs from each silhouette's sheet name.
 const silhouettes = JSON.parse(
   await readFile('lib/games/party/size-silhouettes.json', 'utf8'),
@@ -118,6 +169,7 @@ for (const file of files) {
 if (process.argv.includes('--strict')) {
   async function verifyDirectory(root) {
     for (const entry of await readdir(root, { withFileTypes: true })) {
+      if (entry.name === '.DS_Store') continue;
       const path = `${root}/${entry.name}`;
       if (entry.isDirectory()) await verifyDirectory(path);
       else if (!files.includes(path))

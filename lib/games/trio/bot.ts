@@ -1,19 +1,20 @@
 import {
   rng,
-  migratedZones,
   passCount,
   shuffled,
   legalMoves,
   play,
   scores,
-  penalty,
   tidePenaltyRank,
   tidePenaltyValue,
-  tideRanks,
   tideDeck,
+  deck,
+  supplyPerKind,
   zoneScore,
-  lowTide,
+  trickPoints,
+  dawnValue,
   sanctuaryBonus,
+  censusBreakdown,
   foodScore,
   festivalBreakdown,
   orderProgress,
@@ -39,20 +40,6 @@ const best = <T>(a: T[], f: (x: T) => number) => {
   return winner;
 };
 export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
-  if (m.type === 'salvage') {
-    if (!m.claim) return 0;
-    const hand = g.players[g.active].hand;
-    const strengths = Array.from({ length: 5 }, (_, kind) => {
-      const ranks = hand.filter((c) => c.kind === kind).map((c) => c.rank);
-      if (!ranks.length) return 0;
-      const edge = lowTide(g)
-        ? (tideRanks(g) + 1 - Math.min(...ranks)) / tideRanks(g)
-        : Math.max(...ranks) / tideRanks(g);
-      return edge ** Math.max(1, g.players.length - 1);
-    });
-    const chance = strengths.reduce((a, b) => a + b, 0) / 5;
-    return 9 * chance - 3 - (hand.length > 4 ? 0.7 : 0.15);
-  }
   if (m.type !== 'play') return 0;
   const p = g.players[g.active],
     c = p.hand.find((c) => c.id === m.card)!;
@@ -62,56 +49,23 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
         0,
         ...g.trick.filter((t) => t.card.kind === lead).map((t) => t.card.rank),
       );
-    const wins =
-        c.kind === lead &&
-        (lowTide(g)
-          ? c.rank <
-            Math.min(
-              ...g.trick
-                .filter((t) => t.card.kind === lead)
-                .map((t) => t.card.rank),
-            )
-          : c.rank > high),
-      pot =
-        penalty(c, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g)) +
-        g.trick.reduce(
-          (s, t) =>
-            s +
-            penalty(t.card, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g)),
-          0,
-        );
+    const wins = c.kind === lead && c.rank > high,
+      // Gold counts against the pot (a trick holding it is worth winning) and
+      // the Anchor doubles it.
+      before = trickPoints(g, g.trick.map((t) => t.card), g.hazard),
+      cards = trickPoints(g, [...g.trick.map((t) => t.card), c], g.hazard);
     const last = g.trick.length === g.players.length - 1;
-    const strength = lowTide(g) ? tideRanks(g) + 1 - c.rank : c.rank;
-    const captureChance = wins
-      ? last
-        ? 1
-        : (strength / tideRanks(g)) ** (g.players.length - g.trick.length - 1)
-      : 0;
-    const myClaim = (g.salvageClaimants ?? []).includes(g.active);
-    // Revealed claims are public: deny a rival's −6 reward / +3 failure swing
-    // when taking the ordinary penalties is cheaper. Never inspect hidden hands.
-    const rivalsClaiming = (g.salvageClaimants ?? []).filter(
-      (seat) => seat !== g.active,
-    ).length;
-    const salvageValue =
-      captureChance *
-      9 *
-      (myClaim ? 1 : rivalsClaiming ? 1 / (g.players.length - 1) : 0);
-    return (
-      (wins
-        ? -pot * (last ? 1 : 0.7) - strength * 0.3
-        : penalty(c, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g)) +
-          strength * 0.4) +
-      (m.ward ? (wins ? pot / 2 : 0) - (p.hand.length > 4 ? 5 : 2) : 0) +
-      salvageValue
-    );
+    // Dawn: the round's last trick (one card left in hand) carries extra points.
+    const pot = cards + (g.dawn && p.hand.length === 1 ? dawnValue(g) : 0);
+    // A losing card hands its points, and the Anchor's ×2, to the trick's winner.
+    return wins
+      ? -pot * (last ? 1 : 0.7) - c.rank * 0.3
+      : cards - before + c.rank * 0.4;
   }
   if (g.id === 'wildgrove') {
     const z = m.zone!;
     if (z === 5) return 0;
-    const zones = m.migration
-      ? migratedZones(p.zones, m.migration)
-      : p.zones.map((area) => [...area]);
+    const zones = p.zones.map((area) => [...area]);
     (zones[z] ??= []).push(c);
     const remaining = Math.max(0, (totalRounds(g) - g.round + 1) * 6 - g.pick);
     const value = (areas: Card[][]) =>
@@ -121,6 +75,10 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
       ) +
       (g.sanctuaryGoalsEnabled
         ? sanctuaryBonus(areas, g.sanctuaryGoals, g.contentSet)
+        : 0) +
+      // Census: this seat's leads against the other boards as they stand.
+      (g.census
+        ? censusBreakdown(g.players.map((q, seat) => (seat === g.active ? areas : q.zones)))[g.active].points
         : 0);
     const current = value(zones);
     let potential = 0;
@@ -146,7 +104,6 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
       current -
       value(p.zones) +
       potential * 0.65 -
-      (m.migration && remaining > 3 ? 1.5 : 0) -
       (m.roam ? (remaining > 3 ? 1.5 : 0.3) : 0)
     );
   }
@@ -168,16 +125,18 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
       });
     festivalValue = festivalBreakdown(after).total - festivalBreakdown(p).total;
     const order = after.festival!.orders[g.round - 1];
-    const beforeProgress = orderProgress(old.slice((g.round - 1) * 6), order);
-    const afterProgress = orderProgress(
-      after.zones[0].slice((g.round - 1) * 6),
-      order,
-    );
-    // Value useful progress, but do not double-count the completion reward.
-    if (afterProgress < 3)
-      festivalValue += (afterProgress - beforeProgress) * 1.8;
+    if (order !== undefined) {
+      const beforeProgress = orderProgress(old.slice((g.round - 1) * 6), order);
+      const afterProgress = orderProgress(
+        after.zones[0].slice((g.round - 1) * 6),
+        order,
+      );
+      // Value useful progress, but do not double-count the completion reward.
+      if (afterProgress < 3)
+        festivalValue += (afterProgress - beforeProgress) * 1.8;
+    }
     if (m.stall) {
-      const future = 12 - after.zones[0].length;
+      const future = totalRounds(g) * 6 - after.zones[0].length;
       const inHand = p.hand.filter(
         (card) => card.id !== c.id && card.kind === c.kind,
       ).length;
@@ -192,7 +151,9 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
     festivalValue +
     foodScore([...old, c], opponents, g.contentSet) -
     foodScore(old, opponents, g.contentSet) +
-    (12 - old.length > 2
+    (g.contentSet === 'plaza' || g.contentSet === 'fiesta'
+      ? setPotential(old, c, opponents, g.contentSet, totalRounds(g) * 6 - old.length)
+      : totalRounds(g) * 6 - old.length > 2
       ? c.kind === 0 && n[0] % 2 === 0
         ? 2
         : c.kind === 5
@@ -206,6 +167,27 @@ export function heuristic(g: Game | Observation, m: Move, lookahead = 3) {
             : 0
       : 0)
   );
+}
+/** The Mexican menus pay for sets, pairs, squares and odd counts that one pick
+ *  rarely shows: value the best average gain per pick over the next few copies
+ *  of this dish, discounted, beyond what the pick earns now. */
+function setPotential(
+  old: Card[],
+  c: Card,
+  opponents: Card[][],
+  set: Game['contentSet'],
+  remaining: number,
+) {
+  const base = foodScore(old, opponents, set);
+  const now = foodScore([...old, c], opponents, set) - base;
+  let potential = now;
+  const copies = [c];
+  for (let k = 2; k <= Math.min(4, Math.floor(remaining / 3)); k++) {
+    copies.push({ ...c, id: -k });
+    const gain = (foodScore([...old, ...copies], opponents, set) - base) / k;
+    potential = Math.max(potential, gain * 0.85 ** (k - 1));
+  }
+  return Math.max(0, potential - now) * 0.6;
 }
 function passMove(
   g: Game | Observation,
@@ -255,10 +237,6 @@ export function determinize(o: Observation, r: () => number): Game {
     passes: o.players.map(() => []),
     memory: o.players.map(() => ({})),
   };
-  if (o.phase === 'salvage') {
-    g.ready = o.players.map((p, i) => i === o.trickLeader || !p.salvageClaims);
-    g.pending = o.players.map(() => null);
-  }
   // Model unrevealed simultaneous choices without reading opponents’ submissions.
   if (o.phase === 'pass' || (o.phase === 'play' && o.id !== 'undertow')) {
     g.ready = o.players.map(() => false);
@@ -273,7 +251,8 @@ export function determinize(o: Observation, r: () => number): Game {
     g.players[i].hand.forEach((c) => knownIds.add(c.id));
   }
   const pool = shuffled(
-    tideDeck(o).filter((c) => !knownIds.has(c.id)),
+    (o.id === 'undertow' ? tideDeck(o) : deck(o.id, 1, 10, supplyPerKind(o)))
+      .filter((c) => !knownIds.has(c.id)),
     r,
   );
   const slots = players
@@ -309,8 +288,8 @@ export function determinize(o: Observation, r: () => number): Game {
   }
   return g;
 }
-/** Rollouts play plain placements: migrations and roams multiply the legal
- *  moves several times over and are only worth weighing for the real choice. */
+/** Rollouts play plain placements: roams double the legal moves and are only
+ *  worth weighing for the real choice. */
 /** Rollouts value moves with a one-step completion search: cheap enough
  *  that many more determinizations fit the budget, which beat a deeper
  *  search with a single sample in hard-versus-medium trials. */
@@ -319,7 +298,7 @@ function rolloutMoves(g: Game): Move[] {
   const all = legalMoves(g);
   if (g.id !== 'wildgrove') return all;
   const plain = all.filter(
-    (m) => m.type !== 'play' || (!m.migration && !m.roam),
+    (m) => m.type !== 'play' || !m.roam,
   );
   return plain.length ? plain : all;
 }
@@ -351,7 +330,7 @@ export function chooseMove(
     .sort((a, b) => b.value - a.value)
     .filter(({ move }) => {
       if (o.id !== 'wildgrove' || move.type !== 'play') return true;
-      const key = `${o.players[o.active].hand.find((card) => card.id === move.card)?.kind}:${move.zone}:${!!move.roam}:${JSON.stringify(move.migration)}`;
+      const key = `${o.players[o.active].hand.find((card) => card.id === move.card)?.kind}:${move.zone}:${!!move.roam}`;
       if (distinct.has(key)) return false;
       distinct.add(key);
       return true;

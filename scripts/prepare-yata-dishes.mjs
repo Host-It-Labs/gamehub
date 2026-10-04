@@ -2,8 +2,13 @@ import sharp from 'sharp';
 import { readFile } from 'node:fs/promises';
 
 /** The toon dishes (25 September 2026): each picked source is trimmed to its
- *  drawing and padded to the same margin, so every dish reads at one size. */
-const directory = 'public/art/yata-dishes-v3';
+ *  drawing and padded to the same margin, so every dish reads at one size.
+ *  `node scripts/prepare-yata-dishes.mjs v4` prepares the 29 September 2026 set
+ *  (the Mexican menus and four redrawn Asian dishes). */
+const version = process.argv[2] ?? 'v3';
+const directory = `public/art/yata-dishes-${version}`;
+// Contact sheets show each dish on its own counter: red enamel or the plaza's turquoise.
+const counter = (set) => (set === 'plaza' || set === 'fiesta' ? '#1fa89a' : '#c7352b');
 const { dishes } = JSON.parse(
   await readFile(`${directory}/provenance.json`, 'utf8'),
 );
@@ -11,7 +16,7 @@ const size = 512;
 const margin = 0.05;
 const tiles = [];
 for (const [index, dish] of dishes.entries()) {
-  const name = `yata-counter-${dish.set}-${dish.kind}-v3`;
+  const name = `yata-counter-${dish.set}-${dish.kind}-${version}`;
   const source = `${directory}/${name}-${dish.pick}.png`;
   const metadata = await sharp(source).metadata();
   if (!metadata.hasAlpha) throw new Error(`${name}: generated alpha missing`);
@@ -32,7 +37,7 @@ for (const [index, dish] of dishes.entries()) {
     throw new Error(`${name}: transparent pixels missing`);
   const tile = await sharp(output)
     .resize(240, 240)
-    .flatten({ background: '#c7352b' })
+    .flatten({ background: counter(dish.set) })
     .png()
     .toBuffer();
   tiles.push({
@@ -45,7 +50,7 @@ for (const [index, dish] of dishes.entries()) {
   );
 }
 await sharp({
-  create: { width: 1440, height: 480, channels: 4, background: '#c7352b' },
+  create: { width: 1440, height: Math.ceil(tiles.length / 6) * 240, channels: 4, background: '#35303a' },
 })
   .composite(tiles)
   .png()

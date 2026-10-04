@@ -1,11 +1,17 @@
 'use client';
 import { useState, type ReactNode } from 'react';
-import { Footprints, MoveRight, Waves, Sun, Anchor } from 'lucide-react';
+import { Crown, Footprints, Sun } from 'lucide-react';
 import {
   canAct,
+  censusBreakdown,
+  censusPoints,
+  counts,
+  creaturesFor,
   decisionKey,
   foodsFor,
-  lowTide,
+  dawnValue,
+  goldValue,
+  tideRanks,
   tokenImage,
   type Move,
   type PublicGame,
@@ -14,9 +20,10 @@ import { RuleSection } from './rules';
 import { Piece, type Inspect } from './interactions';
 export type ExtensionKind =
   | 'roamEnabled'
-  | 'migration'
-  | 'salvage'
-  | 'turningTide'
+  | 'census'
+  | 'gold'
+  | 'anchor'
+  | 'dawn'
   | 'marketSeasons';
 // The six picks of a round snake through two columns: across, down, back, down, across.
 // Centres in a 100 × 100 box; the line stretches with the grid, so any cell size works.
@@ -73,11 +80,15 @@ export function SeasonTrack({ g, player, results = false }: {
 export function NewExtensionRules({
   kind,
   title,
+  fastMode = false,
 }: {
   kind: ExtensionKind;
   /** Only where no dialog title already names the extension. */
   title?: ReactNode;
+  /** Nox's Fast deck, whose cards and values are smaller. */
+  fastMode?: boolean;
 }) {
+  const deck = { fastMode };
   if (kind === 'roamEnabled')
     return (
       <RuleSection title={title} note="The habitat still needs a free space.">
@@ -87,45 +98,55 @@ export function NewExtensionRules({
         </p>
       </RuleSection>
     );
-  if (kind === 'migration')
+  if (kind === 'census')
     return (
       <RuleSection
         title={title}
-        note="The move ignores the die and cannot go to Release. Your placement still follows the die."
+        note="Released creatures never count. You need at least one of a species to lead it."
       >
         <p>
-          Once per game, before you place, <b>move one creature</b> already on
-          your board to another habitat with space. Tap or drag it there, then
-          place from your hand as usual.
+          At the end, each species is counted across the table. The player with{' '}
+          <b>the most</b> of it on their board earns <b>+{censusPoints.lead}</b>.
+          Tied leaders earn <b>+{censusPoints.tie}</b> each.
+        </p>
+        <p>
+          Watch the other boards: taking a creature someone needs can win you
+          the lead. Tap the <b>crown</b> to see the count.
         </p>
       </RuleSection>
     );
-  if (kind === 'salvage')
+  if (kind === 'gold')
     return (
-      <RuleSection
-        title={title}
-        note="The player who leads cannot claim, and no one can on the last trick. Scores can go below zero."
-      >
+      <RuleSection title={title} note="Scores can go below zero.">
         <p>
-          Once per round, you may bet on winning <b>the next trick</b>. Before
-          each trick, choose <b>Claim</b> or <b>Pass</b> and lock it. All
-          choices show at once.
-        </p>
-        <p>
-          Claim and win the trick: <b>−6</b>. Claim and lose it: <b>+3</b>. The
-          trick’s own points still count.
+          The <b>{tideRanks(deck)}</b> of the die’s suit is <b>Gold</b>. Win the
+          trick that holds it and take <b>{goldValue(deck)} points off</b> your
+          score.
         </p>
       </RuleSection>
     );
-  if (kind === 'turningTide')
+  if (kind === 'dawn')
     return (
       <RuleSection
         title={title}
-        note="The count starts again each round. A card off the led suit still never wins."
+        note="The cards in that trick still count as usual."
       >
         <p>
-          Odd tricks: the <b>highest</b> card of the led suit wins. Even tricks:
-          the <b>lowest</b> wins. The wave arrow shows which.
+          Win the <b>last trick</b> of a round and take{' '}
+          <b>{dawnValue(deck)} extra points</b>. Keep a low card for the end.
+        </p>
+      </RuleSection>
+    );
+  if (kind === 'anchor')
+    return (
+      <RuleSection
+        title={title}
+        note="Gold counts double too. Dawn’s extra points do not."
+      >
+        <p>
+          The <b>Storm 1</b> is the <b>Anchor</b>. The trick that holds it
+          counts <b>double</b>. Sink it under a bigger Storm card someone
+          else will win.
         </p>
       </RuleSection>
     );
@@ -139,10 +160,7 @@ export function NewExtensionRules({
     </RuleSection>
   );
 }
-export type NatureChoice = {
-  roam?: boolean;
-  migration?: { card: number; from: number; to: number };
-};
+export type NatureChoice = { roam?: boolean };
 export function useNatureChoice(g: PublicGame | null, viewer: number) {
   const key = g
     ? `${decisionKey(g)}:${g.players[viewer]?.hand.map((c) => c.id).join(',')}`
@@ -152,7 +170,7 @@ export function useNatureChoice(g: PublicGame | null, viewer: number) {
     value: {},
   });
   const choice =
-    (g?.roamEnabled || g?.migration) && draft.key === key ? draft.value : {};
+    g?.roamEnabled && draft.key === key ? draft.value : {};
   return {
     choice,
     setChoice: (value: NatureChoice) => setDraft({ key, value }),
@@ -176,7 +194,7 @@ export function ExtensionControls({
   disabled?: boolean;
 }) {
   const p = g.players[viewer];
-  const hasResidents = p.zones.some((z, i) => i !== 5 && z.length);
+  const census = g.census ? censusBreakdown(g.players.map((q) => q.zones))[viewer] : null;
   const locked = disabled || !canAct(g, viewer) || g.phase !== 'play';
   const showRules = (kind: ExtensionKind, title: string) =>
     inspect({ title, body: <NewExtensionRules kind={kind} /> });
@@ -199,46 +217,16 @@ export function ExtensionControls({
           <span className="extension-count">{p.roams ?? 0}</span>
         </Piece>
       )}
-      {g.migration && (
+      {census && (
         <Piece
-          className="extension-action mora-migration-action"
-          label={`Migration · ${p.migrations ?? 0} remaining`}
-          selected={!!choice.migration}
-          unavailable={locked || !p.migrations || !hasResidents}
-          onTap={
-            locked || !p.migrations || !hasResidents
-              ? undefined
-              : choice.migration
-                ? () => onChange({ ...choice, migration: undefined })
-                : () => showRules('migration', 'Migration')
-          }
-          inspect={() => showRules('migration', 'Migration')}
+          className="extension-action mora-census-action"
+          label={`Census · you lead ${census.leads.length} species and tie ${census.ties.length}: ${census.points} points. Open the count.`}
+          onTap={() => inspect({ title: 'Census', body: <CensusCount g={g} viewer={viewer} /> })}
+          inspect={() => showRules('census', 'Census')}
         >
-          <MoveRight />
-          <span className="extension-count">{p.migrations ?? 0}</span>
+          <Crown />
+          <span className="extension-count">+{census.points}</span>
         </Piece>
-      )}
-      {g.salvage && (
-        <Piece
-          className="extension-action salvage-emblem"
-          label={`Salvage · ${p.salvageClaims ?? 0} claim remaining`}
-          selected={(g.salvageClaimants ?? []).includes(viewer)}
-          inspect={() => showRules('salvage', 'Salvage')}
-          onTap={() => showRules('salvage', 'Salvage')}
-        >
-          <Anchor />
-          <span className="extension-count">{p.salvageClaims ?? 0}</span>
-        </Piece>
-      )}
-      {g.turningTide && (
-        <button
-          className="forecast-tide"
-          onClick={() => showRules('turningTide', 'Turning Tide')}
-          aria-label={`Turning Tide: ${lowTide(g) ? 'lowest' : 'highest'} wins`}
-        >
-          <Waves />
-          <b aria-hidden="true">{lowTide(g) ? '↓' : '↑'}</b>
-        </button>
       )}
       {g.marketSeasons && (
         <button
@@ -252,5 +240,31 @@ export function ExtensionControls({
         </button>
       )}
     </>
+  );
+}
+
+/** Census: each species, your count against the best other count at the table. */
+export function CensusCount({ g, viewer }: { g: PublicGame; viewer: number }) {
+  const tallies = g.players.map((p) => counts(p.zones.filter((_, i) => i !== 5).flat()));
+  const names = creaturesFor(g.contentSet);
+  return (
+    <ul className="census-count">
+      {names.map((name, kind) => {
+        const mine = tallies[viewer][kind];
+        const best = Math.max(0, ...tallies.filter((_, seat) => seat !== viewer).map((t) => t[kind]));
+        const state = mine === 0 ? 'none' : mine > best ? 'lead' : mine === best ? 'tie' : 'behind';
+        return (
+          <li key={kind} className={`census-row ${state}`}>
+            <img src={tokenImage(kind, false, g.contentSet)} alt="" draggable={false} />
+            <span className="census-name">{name}</span>
+            <b aria-label={`You ${mine}`}>{mine}</b>
+            <span className="census-vs" aria-label={`Best rival ${best}`}>{best}</span>
+            <span className="census-mark" aria-label={state === 'lead' ? `+${censusPoints.lead}` : state === 'tie' ? `+${censusPoints.tie}` : 'No points'}>
+              {state === 'lead' ? <><Crown size={16} aria-hidden="true" />+{censusPoints.lead}</> : state === 'tie' ? `+${censusPoints.tie}` : '–'}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

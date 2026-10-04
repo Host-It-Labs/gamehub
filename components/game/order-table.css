@@ -1,0 +1,177 @@
+/* Order on the measuring desk: five cream index-card strips on the green
+ * mat, numbered in the mat's margin; the reveal lays the true order out
+ * with each value in gold. */
+.order-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(14px, 3vh, 36px) clamp(14px, 3vw, 40px);
+}
+.order-list {
+  width: min(560px, 100%);
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+}
+.order-places {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-auto-rows: minmax(52px, 1fr);
+  gap: 10px;
+}
+.order-places li {
+  display: grid;
+  place-items: center;
+  font-family: var(--s-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--s-sun);
+  text-shadow: 0 2px 0 #0006;
+}
+.order-list .tier-list {
+  grid-auto-rows: minmax(52px, 1fr);
+  gap: 10px;
+}
+.party-table.is-sabi .order-list .tier-row {
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, #ffffff99, transparent 40%),
+    linear-gradient(transparent calc(100% - 3px), #ff5a3c55 0),
+    var(--s-card);
+  color: var(--s-ink);
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 3px 0 var(--s-card-edge),
+    0 10px 22px #0005;
+}
+.party-table.is-sabi .order-list .tier-row > strong {
+  font-family: var(--s-display);
+  font-size: clamp(15px, 2vw, 19px);
+  font-weight: 700;
+}
+.party-table.is-sabi .order-list .ranking-handle {
+  border: 0;
+  border-left: 1px solid var(--s-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--s-soft);
+}
+.order-title {
+  margin: 0;
+  font-family: var(--s-display);
+  font-size: clamp(20px, 2.4vw, 27px);
+  font-weight: 800;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.order-truth {
+  width: min(620px, 100%);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.order-truth li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  grid-template-areas: 'place name value mine' 'place right right right';
+  align-items: center;
+  column-gap: 12px;
+  min-height: 56px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 12px;
+  background: var(--s-card);
+  color: var(--s-ink);
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 3px 0 var(--s-card-edge),
+    0 10px 22px #0005;
+}
+.order-place {
+  grid-area: place;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  border-radius: 9px;
+  background: var(--s-mat);
+  font-family: var(--s-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--s-sun);
+}
+.order-truth strong {
+  grid-area: name;
+  font-family: var(--s-display);
+  font-size: clamp(15px, 2vw, 19px);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.order-truth em {
+  grid-area: value;
+  font-style: normal;
+  font-family: var(--s-display);
+  font-weight: 800;
+  color: #a77800;
+  font-variant-numeric: tabular-nums;
+}
+.order-mine {
+  grid-area: mine;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 34px;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1b2a2412;
+  font-weight: 800;
+}
+.order-truth li.is-spot .order-mine {
+  background: var(--s-mat);
+  color: var(--s-cream);
+}
+.order-truth li.is-near .order-mine {
+  background: #fff3c2;
+}
+.order-right {
+  grid-area: right;
+  display: flex;
+  min-height: 0;
+}
+.order-right:empty {
+  display: none;
+}
+.order-right .party-avatar {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  font-style: normal;
+  box-shadow: 0 0 0 2px var(--s-card);
+}
+.order-right .party-avatar + .party-avatar {
+  margin-left: -5px;
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  .order-board { padding: 12px 10px; }
+  /* The score plate sits in the corner above the true order. */
+  .order-stage.is-revealed .order-board { align-items: flex-start; padding-top: 78px; }
+  .order-list { grid-template-columns: 30px minmax(0, 1fr); gap: 6px; }
+  .order-places, .order-list .tier-list { grid-auto-rows: minmax(46px, 1fr); gap: 6px; }
+  .order-places li { font-size: 19px; }
+  .party-table.is-sabi .order-list .tier-row { min-height: 46px; }
+  .order-truth { gap: 6px; }
+  .order-truth li { min-height: 46px; grid-template-columns: 30px minmax(0, 1fr) auto auto; column-gap: 8px; padding: 4px 10px 4px 4px; }
+  .order-title { font-size: 19px; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .order-places, .order-list .tier-list { grid-auto-rows: minmax(36px, 1fr); gap: 5px; }
+  .party-table.is-sabi .order-list .tier-row { min-height: 36px; }
+  .order-truth { gap: 5px; }
+  .order-truth li { min-height: 38px; }
+}

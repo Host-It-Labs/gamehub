@@ -41,7 +41,7 @@ await test('current habitat and food scoring matches the published rules', () =>
 });
 await test('seeded matches terminate legally with conserved cards at every player count', () => {
   for (const id of ['undertow', 'wildgrove', 'midnight'])
-    for (let n = 2; n <= 6; n++)
+    for (let n = id === 'undertow' ? 3 : 2; n <= 6; n++)
       for (let seed = 1; seed <= 8; seed++) {
         let g = createGame(id, 'medium', seed, false, n),
           steps = 0;
@@ -66,7 +66,7 @@ await test('seeded matches terminate legally with conserved cards at every playe
                       ),
                   ).length
                 : 0);
-          assert.equal(count, id === 'undertow' ? (n === 2 ? 25 : 50) : 72);
+          assert.equal(count, id === 'undertow' ? 60 : 72);
           const move = chooseMove(observe(g), 'medium');
           assert.ok(validMove(g, move));
           const previous = JSON.stringify(g);
@@ -82,7 +82,7 @@ await test('seeded matches terminate legally with conserved cards at every playe
 });
 await test('observation conceals every other seat and server-private information', () => {
   for (const id of ['undertow', 'wildgrove', 'midnight'])
-    for (let n = 2; n <= 6; n++) {
+    for (let n = id === 'undertow' ? 3 : 2; n <= 6; n++) {
       const g = createGame(id, 'medium', 37, false, n);
       for (let viewer = 0; viewer < n; viewer++) {
         const view = observe(g, viewer);
@@ -135,11 +135,10 @@ await test('pass validation and invalid actions leave the original game intact',
 
 await test('Deck-scaled exchanges preserve each hand and move the chosen cards to the neighbour', () => {
   for (const [seats, amount] of [
-    [2, 3],
     [3, 4],
-    [4, 3],
+    [4, 4],
     [5, 3],
-    [6, 2],
+    [6, 3],
   ]) {
     let g = createGame('undertow', 'medium', 719, false, seats);
     assert.equal(passCount(g), amount);
@@ -176,30 +175,19 @@ await test('an older partially confirmed pass retains three cards in both privat
     assert.equal(move.cards.length, 3);
     g = play(g, move);
   }
-  assert.ok(g.players.every((p) => p.hand.length === 12));
+  assert.ok(g.players.every((p) => p.hand.length === 15));
 });
 
-await test('shields expansion is opt-in and tokens cannot be smuggled into base moves', () => {
-  const base = createGame('undertow');
+await test('retired Shields and Tack cannot be smuggled into Nox moves', () => {
+  const base = createGame('undertow', 'medium', 1, false, 3, true);
   base.phase = 'play';
-  assert.equal(base.shields, false);
-  assert.ok(base.players.every((p) => p.wards === 0 && p.salvageClaims === 0));
+  assert.equal('shields' in base, false);
+  assert.ok(base.players.every((p) => !('wards' in p)));
   const card = base.players[0].hand[0].id;
   assert.equal(validMove(base, { type: 'play', card, ward: true }), false);
   assert.equal(validMove(base, { type: 'play', card, tack: true }), false);
-  const extra = createGame('undertow', 'medium', 1, false, 3, true);
-  assert.ok(extra.players.every((p) => p.wards === 2 && p.salvageClaims === 0));
-  extra.phase = 'play';
-  assert.equal(
-    validMove(extra, {
-      type: 'play',
-      card: extra.players[0].hand[0].id,
-      tack: true,
-      ward: true,
-    }),
-    false,
-  );
-  assert.ok(isSavedGame(extra));
+  assert.equal(validMove(base, { type: 'salvage', claim: true }), false);
+  assert.ok(isSavedGame(base));
 });
 
 await test('removed Tack cannot bypass follow-suit or be smuggled into a legal move', () => {

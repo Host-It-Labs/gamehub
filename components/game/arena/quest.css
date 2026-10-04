@@ -1,0 +1,1395 @@
+/* Quest: a painted region map under a warm sky, stops as chunky enamel
+   medallions joined by inked trails, and Arena's smoked-glass and brass
+   plates for everything you choose. One viewport: the map fits between
+   the top corners and the deck strip; panels float over it and scroll
+   inside themselves only on very short screens. */
+
+.quest {
+  --team-0: #2f63e0;
+  --plate: linear-gradient(180deg, #2c2d33f2, #17181cf5);
+  --brass: #c9a86a;
+  --brass-hi: #efd6a0;
+  --brass-dark: #7d6537;
+  --ink: #f3ede2;
+  --ink-soft: #c9c1b3;
+  --violet: #9b5cff;
+  --violet-hot: #d2b0ff;
+  --violet-deep: #4a1d9c;
+  --gold: #ffcf5a;
+  --heart: #ff5a6e;
+  --stop: 58px;
+  --hud-font: 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--hud-font);
+  user-select: none;
+  -webkit-user-select: none;
+  background:
+    radial-gradient(90% 60% at 50% 105%, #2f7a3d 0%, transparent 70%),
+    linear-gradient(180deg, #7bbbe8 0%, #b7e0a0 55%, #5f9e4b 100%);
+}
+.quest[data-region='1'] {
+  background:
+    radial-gradient(90% 60% at 50% 105%, #b5652f 0%, transparent 70%),
+    linear-gradient(180deg, #f2b872 0%, #e9c98d 55%, #c7874e 100%);
+}
+.quest[data-region='2'] {
+  background:
+    radial-gradient(90% 60% at 50% 105%, #6d8fb8 0%, transparent 70%),
+    linear-gradient(180deg, #a9c7ea 0%, #e6f0f8 55%, #9fb9d6 100%);
+}
+/* ------------------------------------------------------------ top bar */
+
+.quest-top {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: max(12px, env(safe-area-inset-top)) 14px 0;
+  pointer-events: none;
+}
+.quest-top > * {
+  pointer-events: auto;
+}
+.quest .arena-back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, var(--brass) 70%, transparent);
+  border-radius: 50%;
+  background: var(--plate);
+  box-shadow: 0 6px 18px #0008;
+  color: var(--ink);
+}
+.quest-region {
+  justify-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 7px 16px 6px;
+  border: 1px solid color-mix(in srgb, var(--brass) 70%, transparent);
+  border-radius: 999px;
+  background: var(--plate);
+  box-shadow: 0 6px 18px #0008;
+}
+.quest-region b {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+.quest-region span {
+  display: flex;
+  gap: 5px;
+}
+.quest-region i {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: #ffffff2b;
+}
+.quest-region i[data-on='true'] {
+  background: linear-gradient(90deg, var(--brass), var(--brass-hi));
+  box-shadow: 0 0 6px #efd6a077;
+}
+.quest-corner {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-items: end;
+  align-items: center;
+  gap: 8px;
+}
+.quest-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--brass) 70%, transparent);
+  border-radius: 999px;
+  background: var(--plate);
+  box-shadow: 0 6px 18px #0008;
+}
+.quest-hearts {
+  display: flex;
+  gap: 2px;
+}
+.quest-hearts svg {
+  width: 18px;
+  height: 18px;
+  color: #ffffff40;
+}
+.quest-hearts svg[data-on='true'] {
+  color: var(--heart);
+  fill: var(--heart);
+  filter: drop-shadow(0 0 4px #ff5a6e88);
+}
+.quest-gold {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+.quest-gold svg {
+  width: 18px;
+  height: 18px;
+}
+.quest .game-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 16px 0 12px;
+  font: inherit;
+  font-weight: 800;
+  border: 1px solid color-mix(in srgb, var(--brass) 70%, transparent);
+  border-radius: 999px;
+  background: var(--plate);
+  box-shadow: 0 6px 18px #0008;
+  color: var(--ink);
+}
+.quest-charms {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 260px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quest-charms button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid color-mix(in srgb, var(--brass) 80%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #5b3aa8, #22133f);
+  box-shadow:
+    inset 0 1px 0 #ffffff44,
+    0 4px 10px #0007;
+  color: var(--brass-hi);
+}
+.quest-charms svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* ------------------------------------------------------------ the map */
+
+/* The painting covers the screen and everything on the map is placed in
+   its pixels (quest-map.tsx), so trails run over its ground and markers
+   stand on it. Stacking inside the world: painting, ambient light, edge
+   shade, trails, fog, markers by depth, the token, the stop's details. */
+.quest-world {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  isolation: isolate;
+  --trail: #6b4a24;
+  --trail-step: #3d2a12;
+  --fog: #f4f8ff;
+}
+.quest[data-region='1'] .quest-world {
+  --trail: #9a5a26;
+  --trail-step: #5e3110;
+  --fog: #fff1d6;
+}
+.quest[data-region='2'] .quest-world {
+  --trail: #7f97b8;
+  --trail-step: #46597a;
+  --fog: #d9e3f3;
+}
+.quest-map-art,
+.quest-map-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.quest-map-art img {
+  display: block;
+  object-fit: cover;
+}
+/* Light shade only under the corners and the deck, so the HUD reads. */
+.quest-world::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, #0b142266 0%, transparent 13%),
+    linear-gradient(0deg, #0b142288 0%, transparent 16%);
+}
+
+.quest-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Cloud shadows drifting slowly over the land. */
+.quest-cloudshade {
+  position: absolute;
+  top: 18%;
+  left: -40%;
+  width: 46vmax;
+  height: 26vmax;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #0d1b2b, transparent);
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  animation: quest-drift 70s linear infinite;
+}
+.quest-cloudshade.b {
+  top: 52%;
+  width: 36vmax;
+  height: 20vmax;
+  animation-duration: 95s;
+  animation-delay: -48s;
+}
+@keyframes quest-drift {
+  to {
+    transform: translateX(240vw);
+  }
+}
+/* Light glinting on water. */
+.quest-glint {
+  position: absolute;
+  width: 26px;
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  translate: -50% -50%;
+  opacity: 0;
+  animation: quest-glint 3.2s ease-in-out infinite;
+}
+@keyframes quest-glint {
+  30% {
+    opacity: 0.9;
+    transform: scaleX(1.4);
+  }
+  60% {
+    opacity: 0;
+    transform: scaleX(0.6) translateX(10px);
+  }
+}
+/* Twinkles over the open ground. */
+.quest-sparkle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  translate: -50% -50%;
+  background: #fff;
+  clip-path: polygon(
+    50% 0,
+    60% 40%,
+    100% 50%,
+    60% 60%,
+    50% 100%,
+    40% 60%,
+    0 50%,
+    40% 40%
+  );
+  filter: drop-shadow(0 0 4px #fff);
+  opacity: 0;
+  animation: quest-twinkle 5s ease-in-out infinite;
+}
+@keyframes quest-twinkle {
+  8% {
+    opacity: 1;
+    transform: scale(1) rotate(20deg);
+  }
+  16%,
+  100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(60deg);
+  }
+}
+
+/* Trails: a worn track on the ground with two lines of footprints. */
+.quest-trails {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: visible;
+  pointer-events: none;
+}
+.quest-trails path {
+  fill: none;
+  stroke-linecap: round;
+}
+.quest-trail-bed {
+  stroke: var(--trail);
+  stroke-width: calc(11px * var(--k));
+  opacity: 0.32;
+  mix-blend-mode: multiply;
+}
+.quest-trail-step {
+  stroke: var(--trail-step);
+  stroke-width: calc(3.2px * var(--k));
+  stroke-dasharray: calc(4px * var(--k)) calc(9px * var(--k));
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+}
+.quest-trail-step.r {
+  stroke-dashoffset: calc(6.5px * var(--k));
+}
+.quest-trails g[data-kind='fog'],
+.quest-trails g[data-kind='past'] {
+  opacity: 0.35;
+}
+.quest-trails g[data-kind='walked'] .quest-trail-bed {
+  opacity: 0.5;
+}
+.quest-trails g[data-kind='walked'] .quest-trail-step {
+  stroke: #2a1806;
+  opacity: 0.85;
+}
+/* The ways on from where you stand: bright steps that walk ahead. */
+.quest-trails g[data-kind='open'] .quest-trail-bed {
+  stroke: #fff6d8;
+  opacity: 0.5;
+  mix-blend-mode: soft-light;
+  stroke-width: calc(15px * var(--k));
+}
+.quest-trails g[data-kind='open'] .quest-trail-step {
+  stroke: #fffbe9;
+  opacity: 1;
+  mix-blend-mode: normal;
+  filter: drop-shadow(0 0 3px #ffcf5a);
+  animation: quest-steps 1.3s linear infinite;
+}
+.quest-trails g[data-kind='open'] .quest-trail-step.r {
+  animation-delay: -0.65s;
+}
+@keyframes quest-steps {
+  to {
+    stroke-dashoffset: calc(-26px * var(--k));
+  }
+}
+
+/* Fog over the rows beyond the next two; it rolls back as you climb. */
+.quest-fog {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  z-index: 3;
+  pointer-events: none;
+  transition:
+    top 1.4s ease,
+    height 1.4s ease;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0,
+    #000 38%,
+    #000 58%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0,
+    #000 38%,
+    #000 58%,
+    transparent 100%
+  );
+}
+.quest-fog i {
+  position: absolute;
+  inset: 0 -20%;
+  background:
+    radial-gradient(16% 34% at 12% 52%, var(--fog) 0 30%, transparent 70%),
+    radial-gradient(20% 42% at 34% 40%, var(--fog) 0 30%, transparent 70%),
+    radial-gradient(14% 30% at 55% 60%, var(--fog) 0 30%, transparent 70%),
+    radial-gradient(22% 40% at 78% 46%, var(--fog) 0 30%, transparent 70%),
+    radial-gradient(14% 32% at 96% 58%, var(--fog) 0 30%, transparent 70%);
+  opacity: 0.5;
+  animation: quest-fog 38s ease-in-out infinite alternate;
+}
+.quest-fog i:nth-child(2) {
+  top: 18%;
+  opacity: 0.5;
+  animation-duration: 52s;
+  animation-delay: -20s;
+  scale: -1 1;
+}
+.quest-fog i:nth-child(3) {
+  top: 44%;
+  opacity: 0.55;
+  animation-duration: 44s;
+  animation-delay: -9s;
+}
+.quest-fog i:nth-child(4) {
+  top: -14%;
+  opacity: 0.4;
+  animation-duration: 61s;
+  scale: -1 1;
+}
+@keyframes quest-fog {
+  from {
+    transform: translateX(-7%);
+  }
+  to {
+    transform: translateX(7%);
+  }
+}
+
+/* A stop: a painted emblem standing on a stone plinth, its ground point
+   at the bottom centre, smaller toward the far end of the map. */
+.quest-stop {
+  position: absolute;
+  width: var(--marker);
+  height: calc(var(--marker) * 1.32);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  translate: -50% -100%;
+  transform: scale(var(--k));
+  transform-origin: 50% 100%;
+  transition:
+    transform 0.25s,
+    filter 0.3s,
+    opacity 0.6s;
+  -webkit-tap-highlight-color: transparent;
+  --hi: #7fd07b;
+  --lo: #2b7a33;
+  --rim: #e6d2a2;
+}
+.quest-stop > i,
+.quest-stop > span {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+}
+.quest-stop-shadow {
+  bottom: -9%;
+  width: 118%;
+  height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #0009, transparent);
+}
+.quest-stop-plinth {
+  bottom: 0;
+  width: 92%;
+  height: 30%;
+  border-radius: 50%;
+  background:
+    radial-gradient(70% 60% at 50% 30%, #d7d0c2 0 55%, transparent 56%),
+    linear-gradient(180deg, #b9b0a0, #6d6556);
+  box-shadow:
+    inset 0 -3px 0 #4b4438,
+    0 1px 0 #2229;
+}
+.quest-stop-ring {
+  bottom: -6%;
+  width: 150%;
+  height: 46%;
+  border-radius: 50%;
+  border: 3px solid #fff8d6;
+  box-shadow:
+    0 0 14px #ffcf5a,
+    inset 0 0 12px #ffcf5a88;
+  animation: quest-ring 1.5s ease-out infinite;
+}
+@keyframes quest-ring {
+  from {
+    opacity: 1;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+.quest-stop-emblem {
+  bottom: 17%;
+  display: grid;
+  place-items: center;
+  width: 84%;
+  aspect-ratio: 1 / 1.08;
+  border-radius: 50% 50% 46% 46% / 44% 44% 56% 56%;
+  background: radial-gradient(circle at 35% 26%, var(--hi), var(--lo) 74%);
+  box-shadow:
+    inset 0 2px 0 #ffffff77,
+    inset 0 -5px 7px #0005,
+    0 0 0 2.5px #1a120a,
+    0 0 0 4.5px var(--rim),
+    0 6px 8px #0007;
+}
+.quest-stop-emblem svg {
+  width: 50%;
+  height: 50%;
+  filter: drop-shadow(0 2px 0 #0007);
+}
+.quest-stop[data-kind='elite'] {
+  --hi: #ff8a6a;
+  --lo: #8e2418;
+}
+.quest-stop[data-kind='camp'] {
+  --hi: #ffc36b;
+  --lo: #a4561b;
+}
+.quest-stop[data-kind='shop'] {
+  --hi: #6fd3ff;
+  --lo: #1d5f9c;
+}
+.quest-stop[data-kind='event'] {
+  --hi: #c69bff;
+  --lo: #4d2596;
+}
+/* The boss stands at the foot of its landmark, bigger, under a red glow. */
+.quest-stop[data-kind='boss'] {
+  --hi: #ff6a5a;
+  --lo: #6e0f12;
+  --rim: #ffd77a;
+  width: calc(var(--marker) * 1.5);
+  height: calc(var(--marker) * 1.95);
+}
+.quest-stop[data-kind='boss']::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 10%;
+  width: 190%;
+  aspect-ratio: 1;
+  translate: -50% 20%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #ff3b3b66, transparent);
+  animation: quest-menace 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.quest-stop[data-kind='boss'] .quest-stop-emblem svg {
+  color: #ffe7a3;
+}
+@keyframes quest-menace {
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+.quest-stop[data-state='ahead'] .quest-stop-emblem {
+  filter: saturate(0.85) brightness(0.95);
+}
+.quest-stop[data-fog='true'] {
+  opacity: 0.45;
+}
+.quest-stop[data-state='past'] {
+  filter: grayscale(0.85) brightness(0.75);
+  opacity: 0.7;
+}
+.quest-stop[data-state='done'] .quest-stop-emblem,
+.quest-stop[data-state='here'] .quest-stop-emblem {
+  filter: saturate(0.5) brightness(0.85);
+  scale: 0.86;
+  translate: -50% 10%;
+}
+/* Your banner, planted on every stop you cleared. */
+.quest-stop-flag {
+  bottom: 20%;
+  width: 4px;
+  height: 92%;
+  margin-left: 30%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6b4a24, #3a2610);
+}
+.quest-stop-flag::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: calc(var(--marker) * 0.42);
+  height: calc(var(--marker) * 0.3);
+  background: linear-gradient(180deg, #4d82ff, var(--team-0));
+  clip-path: polygon(0 0, 100% 12%, 78% 50%, 100% 88%, 0 100%);
+  transform-origin: 0 50%;
+  animation: quest-flutter 2.2s ease-in-out infinite;
+}
+@keyframes quest-flutter {
+  50% {
+    transform: skewY(6deg) scaleX(0.9);
+  }
+}
+.quest-stop[data-state='next'] {
+  animation: quest-bob 1.5s ease-in-out infinite;
+}
+.quest-stop[data-state='next'] .quest-stop-emblem {
+  --rim: #fff;
+}
+@keyframes quest-bob {
+  50% {
+    transform: scale(var(--k)) translateY(-6px);
+  }
+}
+.quest-stop[data-selected='true'] {
+  transform: scale(calc(var(--k) * 1.15));
+  animation: none;
+  --rim: var(--gold);
+}
+.quest-stop .quest-suggest {
+  top: 0;
+}
+
+/* The party: a team token with your lead card's face, hopping as it walks. */
+.quest-token {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+.quest-token-body {
+  position: absolute;
+  left: calc(var(--marker) * -0.95);
+  bottom: 0;
+  display: block;
+  width: calc(var(--marker) * 0.62 * var(--k));
+  height: calc(var(--marker) * 0.9 * var(--k));
+  animation: quest-idle 2.4s ease-in-out infinite;
+}
+.quest-world[data-walking='true'] .quest-token-body {
+  left: calc(var(--marker) * -0.31 * var(--k));
+  animation: none;
+}
+.quest-token-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -10%;
+  width: 120%;
+  height: 26%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #000a, transparent);
+}
+.quest-token-face {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50% 50% 50% 8%;
+  rotate: -45deg;
+  background: linear-gradient(135deg, #6f9bff, var(--team-0));
+  box-shadow:
+    0 0 0 2.5px #fff,
+    0 0 0 4px #13244f,
+    0 5px 8px #0008;
+}
+.quest-token-face img {
+  position: absolute;
+  inset: 9%;
+  width: 82%;
+  height: 82%;
+  border-radius: 50%;
+  object-fit: cover;
+  rotate: 45deg;
+}
+@keyframes quest-idle {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.quest-preview {
+  position: absolute;
+  z-index: 3000;
+  display: grid;
+  gap: 10px;
+  width: min(300px, 78vw);
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--brass) 75%, transparent);
+  border-radius: 16px;
+  background: var(--plate);
+  box-shadow: 0 16px 40px #000b;
+  translate: -50% calc(-100% - var(--marker) * 1.45);
+}
+.quest-preview[data-below='true'] {
+  translate: -50% calc(var(--marker) * 0.4);
+}
+.quest-preview header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quest-preview header > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--brass-hi);
+}
+.quest-preview header b {
+  flex: 1;
+  font-size: 15px;
+}
+.quest-foe-level {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ffffff1a;
+  font-size: 12px;
+  font-weight: 800;
+}
+.quest-preview-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff14;
+  color: var(--ink);
+}
+.quest-preview-close svg {
+  width: 16px;
+  height: 16px;
+}
+.quest-foe-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quest-foe-cards .quest-card-art {
+  width: 100%;
+}
+.quest-foe-boost,
+.quest-curse {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: #ffb3a3;
+  font-size: 13px;
+  font-weight: 800;
+}
+.quest-foe-boost svg,
+.quest-curse svg {
+  width: 16px;
+  height: 16px;
+}
+.quest-locked {
+  justify-self: center;
+  color: var(--ink-soft);
+}
+.quest-locked svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ------------------------------------------------------------ deck strip */
+
+.quest-deck {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  gap: clamp(4px, 1.2vw, 10px);
+  margin: 0;
+  padding: 0 12px max(14px, env(safe-area-inset-bottom));
+  list-style: none;
+}
+.quest-deck button,
+.quest-deck-grid button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+.quest-deck .quest-card-art {
+  width: clamp(40px, 10.5vw, 70px);
+}
+.quest-card-art {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: visible;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px #1a120a,
+    0 0 0 3.5px var(--brass),
+    0 6px 14px #0008;
+  background: #2b2d36;
+}
+.quest-card-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.quest-card-blank {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--brass-hi);
+}
+.quest-card-art .arena-cost {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--violet-hot),
+    var(--violet-deep)
+  );
+  box-shadow: 0 0 0 2px #1a120a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.quest-pips {
+  display: flex;
+  gap: 2px;
+}
+.quest-pips i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffffff33;
+  box-shadow: 0 0 0 1px #0006;
+}
+.quest-pips i[data-on='true'] {
+  background: var(--gold);
+  box-shadow:
+    0 0 0 1px #6b4a09,
+    0 0 4px #ffcf5a99;
+}
+
+/* ------------------------------------------------------------ panels */
+
+.quest-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px
+    max(16px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: radial-gradient(80% 70% at 50% 45%, #0b142244 0%, #0b1422b8 100%);
+}
+.quest-sheet {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(720px, 100%);
+  padding: 22px 20px 20px;
+  border: 1px solid color-mix(in srgb, var(--brass) 75%, transparent);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 60% at 50% 0%, #ffffff12, transparent 60%),
+    var(--plate);
+  box-shadow:
+    inset 0 1px 0 #ffffff22,
+    0 24px 60px #000c;
+  text-align: center;
+}
+.quest-sheet[data-tone='win'] {
+  border-color: var(--gold);
+  box-shadow:
+    inset 0 1px 0 #ffffff22,
+    0 0 50px #ffcf5a33,
+    0 24px 60px #000c;
+}
+.quest-sheet h2 {
+  margin: 0;
+  font-size: clamp(22px, 4.6vw, 30px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+  color: var(--brass-hi);
+  text-shadow: 0 2px 0 #0008;
+}
+.quest-sheet[data-tone='lose'] h2 {
+  color: #ffb3a3;
+}
+.quest-sheet-head {
+  display: grid;
+  place-items: center;
+  margin-top: -2px;
+}
+.quest-prompt {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.4;
+  text-wrap: balance;
+}
+.quest-gain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ffcf5a1f;
+  color: var(--gold);
+  font-size: 20px;
+  font-weight: 900;
+}
+.quest-gain svg {
+  width: 22px;
+  height: 22px;
+}
+.quest-gain.lose {
+  background: #ff5a6e1f;
+  color: var(--heart);
+}
+.quest-trophy {
+  width: 64px;
+  height: 64px;
+  color: var(--gold);
+  filter: drop-shadow(0 0 14px #ffcf5a88);
+}
+.quest-trophy.lose {
+  color: var(--heart);
+  filter: drop-shadow(0 0 14px #ff5a6e66);
+}
+.quest-event-mark {
+  width: 48px;
+  height: 48px;
+  color: var(--violet-hot);
+  filter: drop-shadow(0 0 12px #9b5cff88);
+}
+.quest-new {
+  width: 92px;
+}
+
+.quest-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.quest-choices.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 440px;
+}
+.quest-choices.wares {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+.quest-choice {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 10px 14px;
+  border: 1px solid #ffffff22;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #3a3c46, #22232b);
+  box-shadow:
+    inset 0 1px 0 #ffffff22,
+    0 10px 22px #0008;
+  color: var(--ink);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+.quest-choice:not(:disabled):hover,
+.quest-choice:not(:disabled):focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--brass-hi);
+  box-shadow:
+    inset 0 1px 0 #ffffff33,
+    0 0 0 2px #efd6a066,
+    0 16px 28px #000a;
+}
+.quest-choice:disabled {
+  opacity: 0.5;
+}
+.quest-choice[data-sold='true'] {
+  opacity: 0.6;
+}
+.quest-choice .quest-card-art {
+  width: min(96px, 72%);
+}
+.quest-choice b {
+  font-size: 16px;
+  font-weight: 900;
+}
+.quest-choice small {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.quest-choice-art,
+.quest-charm-mark {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7b55d8, #22133f 75%);
+  box-shadow:
+    inset 0 2px 0 #ffffff44,
+    0 0 0 3px #1a120a,
+    0 0 0 5px var(--brass),
+    0 0 24px #9b5cff55;
+  color: var(--brass-hi);
+}
+.quest-choice-art svg,
+.quest-charm-mark svg {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 2px 0 #0008);
+}
+.quest-choice[data-kind='rest'] .quest-choice-art {
+  background: radial-gradient(circle at 35% 30%, #ff8a98, #7a1024 75%);
+  color: #fff;
+}
+.quest-choice[data-kind='train'] .quest-choice-art {
+  background: radial-gradient(circle at 35% 30%, #ffd27a, #7a4a09 75%);
+  color: #fff;
+}
+.quest-choice[data-kind='remove'] .quest-choice-art {
+  background: radial-gradient(circle at 35% 30%, #9aa3b4, #2a2f3a 75%);
+  color: #fff;
+}
+.quest-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7bd96f, #2c8a3a);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.quest-level-up {
+  color: var(--gold);
+  font-weight: 900;
+}
+.quest-price {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #0006;
+  color: var(--gold);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.quest-price svg {
+  width: 15px;
+  height: 15px;
+}
+.quest-price[data-sold='true'] {
+  color: #7bd96f;
+}
+.quest-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.quest-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: min(420px, 100%);
+  margin: 0;
+  padding: 6px 0 0;
+  list-style: none;
+}
+.quest-deck-grid .quest-card-art {
+  width: 100%;
+}
+.quest-deck-grid button:disabled {
+  opacity: 0.4;
+}
+.quest-deck-grid button:not(:disabled):hover .quest-card-art {
+  box-shadow:
+    0 0 0 2px #1a120a,
+    0 0 0 4px var(--brass-hi),
+    0 8px 18px #000a;
+}
+.quest-summary {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+}
+.quest-summary div {
+  display: grid;
+  gap: 2px;
+  min-width: 76px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #ffffff10;
+}
+.quest-summary dt {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.quest-summary dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+}
+.quest-unlocked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gold);
+}
+.quest-unlocked .quest-card-art {
+  width: 56px;
+}
+.quest-suggest {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  translate: -50% -100%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--team-0);
+  box-shadow: 0 0 0 2px #fff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.quest-inspect .quest-sheet {
+  width: min(360px, 100%);
+}
+
+/* ------------------------------------------------------------ draft */
+
+.quest-draft-pips {
+  display: flex;
+  gap: 6px;
+}
+.quest-draft-pips i {
+  width: 26px;
+  height: 6px;
+  border-radius: 3px;
+  background: #ffffff2b;
+}
+.quest-draft-pips i[data-on='true'] {
+  background: linear-gradient(90deg, var(--brass), var(--brass-hi));
+  box-shadow: 0 0 8px #efd6a088;
+}
+.quest-bundles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+/* A bundle: two cards fanned together on one plate. */
+.quest-bundle {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 12px 12px;
+  border: 1px solid #ffffff22;
+  border-radius: 18px;
+  background:
+    radial-gradient(90% 70% at 50% 0%, #ffffff14, transparent 70%),
+    linear-gradient(180deg, #3a3c46, #22232b);
+  box-shadow:
+    inset 0 1px 0 #ffffff22,
+    0 10px 22px #0008;
+  color: var(--ink);
+  animation: quest-bundle-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards;
+  animation-delay: calc(var(--i) * 90ms);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+@keyframes quest-bundle-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.92);
+  }
+}
+.quest-bundle:hover,
+.quest-bundle:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--brass-hi);
+  box-shadow:
+    inset 0 1px 0 #ffffff33,
+    0 0 0 2px #efd6a066,
+    0 0 30px #ffcf5a33,
+    0 18px 30px #000a;
+}
+.quest-bundle:active {
+  transform: scale(0.97);
+}
+.quest-bundle-card {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+.quest-bundle-card:first-child {
+  rotate: -4deg;
+}
+.quest-bundle-card:nth-child(2) {
+  rotate: 4deg;
+}
+.quest-bundle-card .quest-card-art {
+  width: min(96px, 86%);
+}
+.quest-bundle-card b {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quest-roles {
+  display: flex;
+  gap: 4px;
+  min-height: 18px;
+}
+.quest-roles svg {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 50%;
+  background: #0007;
+}
+.quest-roles svg[data-role='win'] {
+  color: #ffcf5a;
+}
+.quest-roles svg[data-role='air'] {
+  color: #8fd8ff;
+}
+/* The deck fills in over the draft: empty sockets wait for each pair. */
+.quest[data-screen='draft'] .quest-deck {
+  z-index: 11;
+}
+.quest[data-screen='draft'] .quest-overlay {
+  padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 96px);
+}
+.quest-socket span {
+  display: block;
+  width: clamp(40px, 10.5vw, 70px);
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 2px dashed #efd6a066;
+  background: #0b142266;
+}
+
+@media (max-width: 600px) {
+  /* On phones the stop's details rise just above the deck. */
+  .quest-preview,
+  .quest-preview[data-below='true'] {
+    top: auto !important;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 84px);
+    left: 50% !important;
+    translate: -50% 0;
+  }
+  .quest .game-menu-trigger span {
+    display: none;
+  }
+  .quest .game-menu-trigger {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .quest-top {
+    grid-template-columns: auto 1fr;
+    padding-inline: 10px;
+  }
+  .quest-region {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: center;
+    margin-top: -2px;
+  }
+  .quest-bundles {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .quest-bundle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px 10px 8px;
+  }
+  .quest-bundle-card .quest-card-art {
+    width: min(76px, 70%);
+  }
+  .quest-choices {
+    grid-template-columns: 1fr;
+  }
+  .quest-choice {
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    align-items: center;
+    text-align: left;
+    column-gap: 12px;
+    padding: 12px;
+  }
+  .quest-choice > :first-child {
+    grid-row: span 2;
+    width: 64px;
+  }
+  .quest-choice .quest-card-art,
+  .quest-choice .quest-choice-art,
+  .quest-choice .quest-charm-mark {
+    width: 64px;
+    height: 64px;
+  }
+  .quest-choice .quest-price {
+    grid-column: 2;
+  }
+  .quest-choices.wares {
+    grid-template-columns: 1fr;
+  }
+  .quest-sheet {
+    padding: 18px 14px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quest-world *,
+  .quest-world *::before,
+  .quest-world *::after,
+  .quest-bundle {
+    animation: none !important;
+    transition: none !important;
+  }
+  .quest-glint,
+  .quest-sparkle {
+    display: none;
+  }
+}

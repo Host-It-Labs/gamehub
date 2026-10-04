@@ -1,0 +1,56 @@
+/* Know Me's marks: studio colours with chunky ink outlines. Motion lives in
+ * set-pick.css (hover) and game-intro.css (the starting burst). */
+.know-mark {
+  --ink: #2b1a12;
+  overflow: visible;
+}
+.know-mark * { transform-box: view-box; }
+.know-mark .mark-bar,
+.know-mark .mark-chip,
+.know-mark .mark-face,
+.know-mark .mark-base,
+.know-mark .mark-flag,
+.know-mark .mark-star {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.know-mark .mark-bar-0 { fill: #e5482e; }
+.know-mark .mark-bar-1 { fill: #f07a2a; }
+.know-mark .mark-bar-2 { fill: #f2b531; }
+.know-mark .mark-bar-3 { fill: #2fb3a8; }
+.know-mark .mark-bar-4 { fill: #6c9bf0; }
+.know-mark .mark-chip { fill: #fffaf0; }
+.know-mark .mark-digit {
+  font: 900 7px 'Cooper Black', ui-rounded, system-ui, sans-serif;
+  text-anchor: middle;
+  fill: var(--ink);
+}
+.know-mark .mark-star { fill: #fff3a8; stroke-width: 1.5; transform-origin: 57px 9px; }
+
+.know-mark .mark-face { fill: #fffaf0; }
+.know-mark .mark-arc { stroke-linecap: round; }
+.know-mark .mark-tick { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.know-mark .mark-needle { transform-origin: 32px 46px; }
+.know-mark .mark-needle path { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+.know-mark .mark-hub { fill: var(--ink); }
+.know-mark .mark-base { fill: #e5482e; }
+.know-mark .mark-bulb { fill: #fff3a8; }
+
+.know-mark .mark-shadow { fill: #2b1a1222; }
+.know-mark .mark-coin-side,
+.know-mark .mark-coin-top,
+.know-mark .mark-coin-face,
+.know-mark .mark-coin-ring {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.know-mark .mark-coin-side { fill: #c98a12; }
+.know-mark .mark-coin-top { fill: #ffd23f; }
+.know-mark .mark-coin-face { fill: #ffd23f; }
+.know-mark .mark-coin-ring { fill: #fff3a8; stroke-width: 1.4; }
+.know-mark .mark-drop { transform-box: fill-box; transform-origin: center; }
+
+.know-mark .mark-pole { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; }
+.know-mark .mark-flag { transform-origin: 16px 20px; }

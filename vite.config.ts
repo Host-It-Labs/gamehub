@@ -1,8 +1,10 @@
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
+import { prepareProductionPublic } from './scripts/build-public.mjs';
 // Node serves the exported frontend in production; Vite proxies its API in development.
-export default defineConfig({
+export default defineConfig(async ({ command }) => ({
+  publicDir: command === 'build' ? await prepareProductionPublic() : 'public',
   css: { postcss: { plugins: [tailwindcss()] } },
   server: {
     host: '0.0.0.0',
@@ -23,4 +25,4 @@ export default defineConfig({
     ],
   },
   plugins: [vinext()],
-});
+}));

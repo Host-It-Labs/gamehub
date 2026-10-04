@@ -75,6 +75,8 @@ export function AdventureMatch({
         canTeach={table.isHost}
         canAdvance={table.canAdvance}
         hostName={table.members.find((m) => m.host)?.name}
+        hostSeat={table.members.find((m) => m.host)?.seat ?? null}
+        canPickNext={table.isHost}
         nextVote={table.status === 'finished' ? table.nextVote : null}
         viewerId={table.viewerId}
         onNextGame={(gameId) => void dispatch({ type: 'next-game', gameId })}

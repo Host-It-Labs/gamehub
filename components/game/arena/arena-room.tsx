@@ -1,5 +1,18 @@
 'use client';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ApiError, returnPath } from '@/lib/online/client';
 import { SoundSettings } from '../sound-settings';
 import { readAmbienceLevel, saveAmbienceLevel } from '../use-ambience';
@@ -7,6 +20,12 @@ import { useGameSound } from '../use-game-sound';
 import { joinRoom, type OnlineSession } from './online';
 
 const ArenaGame = lazy(() => import('./arena-game'));
+const QuestView = lazy(() =>
+  import('./quest-view').then((m) => ({ default: m.QuestView })),
+);
+const ArenaRules = lazy(() =>
+  import('./arena-rules').then((m) => ({ default: m.ArenaRules })),
+);
 const VOLUME = 'gamehub.volume.v3';
 
 function readVolume() {
@@ -27,7 +46,22 @@ export default function ArenaRoom({ token }: { token: string }) {
   const [failed, setFailed] = useState('');
   const [volume, setVolume] = useState(readVolume);
   const [ambience, setAmbience] = useState(readAmbienceLevel);
+  const [rules, setRules] = useState(false);
   useGameSound('arena', volume);
+  // Re-render as the room moves between the Quest map and its battles.
+  const subscribe = useCallback(
+    (l: () => void) => session?.subscribe(l) ?? (() => {}),
+    [session],
+  );
+  const view = useSyncExternalStore(
+    subscribe,
+    () =>
+      session
+        ? `${session.room.status}|${session.room.round}|${JSON.stringify(session.room.suggestions)}|${session.room.quest?.screen.kind}|${session.room.quest?.gold}|${session.room.quest?.deck.join()}|${session.room.quest?.trail.join()}|${session.room.quest?.hearts}`
+        : '',
+    () => '',
+  );
+  void view;
   useEffect(() => {
     let live = true;
     joinRoom(token)
@@ -72,6 +106,67 @@ export default function ArenaRoom({ token }: { token: string }) {
         Arena
       </main>
     );
+  const sound = (
+    <SoundSettings
+      volume={volume}
+      ambience={ambience}
+      onVolume={(v) => {
+        setVolume(v);
+        try {
+          localStorage.setItem(VOLUME, String(v));
+        } catch {
+          /* Preference is optional. */
+        }
+      }}
+      onAmbience={(v) => {
+        setAmbience(v);
+        saveAmbienceLevel(v);
+      }}
+    />
+  );
+  const room = session.room;
+  const quest = room.quest;
+  if (quest && room.status === 'map')
+    return (
+      <div className="app at-table arena">
+        <Suspense
+          fallback={
+            <main className="startup-loading" aria-busy="true">
+              Arena
+            </main>
+          }
+        >
+          <QuestView
+            q={quest}
+            act={(a) => session.quest(a)}
+            host={room.host}
+            suggestions={room.suggestions}
+            onSuggest={(key) => session.suggest(key)}
+            onLeave={exit}
+            rules={() => setRules(true)}
+            sound={sound}
+            saved="The quest waits at the table."
+            volume={volume}
+          />
+          <Dialog open={rules} onOpenChange={setRules}>
+            <DialogContent className="modal arena-modal arena-rules-modal">
+              <DialogTitle>How to play</DialogTitle>
+              <DialogDescription className="sr-only">
+                Rules of Arena
+              </DialogDescription>
+              <ArenaRules quest />
+              <button
+                type="button"
+                className="arena-button"
+                onClick={() => setRules(false)}
+              >
+                Back
+              </button>
+            </DialogContent>
+          </Dialog>
+        </Suspense>
+      </div>
+    );
   return (
     <div className="app at-table arena">
       <Suspense
@@ -82,27 +177,15 @@ export default function ArenaRoom({ token }: { token: string }) {
         }
       >
         <ArenaGame
+          key={quest ? `quest-${room.round}` : 'versus'}
           online={session}
           volume={volume}
           music={ambience}
           onExit={exit}
-          sound={
-            <SoundSettings
-              volume={volume}
-              ambience={ambience}
-              onVolume={(v) => {
-                setVolume(v);
-                try {
-                  localStorage.setItem(VOLUME, String(v));
-                } catch {
-                  /* Preference is optional. */
-                }
-              }}
-              onAmbience={(v) => {
-                setAmbience(v);
-                saveAmbienceLevel(v);
-              }}
-            />
+          sound={sound}
+          onFinish={quest && room.host ? () => session.again() : undefined}
+          leaveNote={
+            quest ? 'A bot plays your seat until you come back.' : undefined
           }
         />
       </Suspense>

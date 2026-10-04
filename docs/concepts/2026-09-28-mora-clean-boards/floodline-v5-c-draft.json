@@ -1,0 +1,306 @@
+{
+  "source": "/art/mora-phone-floodline-v5-c.png",
+  "image": "/art/optimized/mora-phone-floodline-v5-c.webp",
+  "boardImage": "/art/optimized/mora-phone-floodline-v5-c-board.webp",
+  "width": 946,
+  "height": 1663,
+  "crop": {
+    "left": 140,
+    "top": 273,
+    "width": 690,
+    "height": 949
+  },
+  "landmarks": {
+    "roofTop": 168,
+    "protectedBounds": [
+      {
+        "name": "pier",
+        "bounds": [
+          128,
+          183,
+          513,
+          238
+        ]
+      },
+      {
+        "name": "lighthouse",
+        "bounds": [
+          608,
+          168,
+          253,
+          292
+        ]
+      },
+      {
+        "name": "nesting beach",
+        "bounds": [
+          51,
+          454,
+          419,
+          347
+        ]
+      },
+      {
+        "name": "mangrove roots",
+        "bounds": [
+          464,
+          474,
+          422,
+          334
+        ]
+      },
+      {
+        "name": "rock pools",
+        "bounds": [
+          49,
+          837,
+          424,
+          388
+        ]
+      },
+      {
+        "name": "sea cave",
+        "bounds": [
+          479,
+          823,
+          383,
+          418
+        ]
+      }
+    ]
+  },
+  "habitats": [
+    {
+      "zone": 0,
+      "slots": [
+        [
+          192,
+          1020
+        ],
+        [
+          272,
+          1020
+        ],
+        [
+          351,
+          1020
+        ],
+        [
+          218,
+          1092
+        ],
+        [
+          317,
+          1093
+        ]
+      ],
+      "label": [
+        272,
+        1166
+      ],
+      "bounds": [
+        157.28,
+        979.68,
+        228.44,
+        146.92000000000002
+      ],
+      "tokenWidth": 56,
+      "summary": "7 per *pair*"
+    },
+    {
+      "zone": 1,
+      "slots": [
+        [
+          183,
+          625
+        ],
+        [
+          266,
+          624
+        ],
+        [
+          348,
+          624
+        ],
+        [
+          219,
+          696
+        ],
+        [
+          306,
+          696
+        ]
+      ],
+      "label": [
+        266,
+        772
+      ],
+      "bounds": [
+        148.28,
+        583.68,
+        234.44,
+        145.92000000000002
+      ],
+      "tokenWidth": 56,
+      "summary": "3 per *different* species"
+    },
+    {
+      "zone": 2,
+      "slots": [
+        [
+          604,
+          671
+        ],
+        [
+          677,
+          671
+        ],
+        [
+          749,
+          672
+        ]
+      ],
+      "label": [
+        677,
+        762
+      ],
+      "bounds": [
+        569.28,
+        630.68,
+        214.44,
+        74.92
+      ],
+      "tokenWidth": 56,
+      "summary": "Three *alike*: 12"
+    },
+    {
+      "zone": 3,
+      "slots": [
+        [
+          256,
+          314
+        ],
+        [
+          332,
+          314
+        ],
+        [
+          407,
+          315
+        ],
+        [
+          483,
+          315
+        ]
+      ],
+      "label": [
+        375,
+        410
+      ],
+      "bounds": [
+        221.28,
+        273.68,
+        296.44,
+        74.92
+      ],
+      "tokenWidth": 56,
+      "summary": "2 each · *A–B–A–B* +6"
+    },
+    {
+      "zone": 4,
+      "slots": [
+        [
+          645,
+          1047
+        ],
+        [
+          720,
+          1047
+        ],
+        [
+          644,
+          1109
+        ],
+        [
+          722,
+          1109
+        ]
+      ],
+      "label": [
+        684,
+        1180
+      ],
+      "bounds": [
+        609.28,
+        1006.68,
+        147.44,
+        135.92000000000002
+      ],
+      "tokenWidth": 56,
+      "summary": "3 each if found *elsewhere*"
+    },
+    {
+      "zone": 6,
+      "slots": [
+        [
+          692,
+          350
+        ],
+        [
+          769,
+          350
+        ]
+      ],
+      "label": [
+        718,
+        442
+      ],
+      "bounds": [
+        657.28,
+        309.68,
+        146.44,
+        73.92
+      ],
+      "tokenWidth": 56,
+      "summary": "4 each if found *only* here"
+    }
+  ],
+  "release": [
+    474,
+    786
+  ],
+  "animation": {
+    "water": {
+      "polygon": [
+        [
+          386,
+          1265
+        ],
+        [
+          570,
+          1240
+        ],
+        [
+          612,
+          1325
+        ],
+        [
+          585,
+          1430
+        ],
+        [
+          394,
+          1425
+        ]
+      ]
+    },
+    "foliage": []
+  },
+  "overview": {
+    "left": 40,
+    "top": 158,
+    "width": 856,
+    "height": 1093
+  },
+  "overviewImage": "/art/optimized/mora-phone-floodline-v5-c-overview.webp"
+}

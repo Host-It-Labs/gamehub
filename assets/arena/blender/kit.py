@@ -113,6 +113,8 @@ FAMILY = {
     "gilt": (0.32, 0.85),     # metallic paint: steel, brass, gold leaf
     "hide": (0.55, 0.0),      # sculpted skin with fine scales
     "weave": (0.85, 0.0),     # painted cloth with a fine weave
+    # Cloth that ripples in the game (capes, robes, sashes); needs drape().
+    "drape": (0.85, 0.0),
 }
 
 
@@ -524,6 +526,46 @@ def _fresh_uvs(me):
     while me.uv_layers:
         me.uv_layers.remove(me.uv_layers[0])
     me.uv_layers.new(name="UVMap")
+
+
+def drape(obj, top=None, bottom=None, phase=0.0, free=None):
+    """Make the "drape:<tint>" faces of a mesh ripple in the game (wind.ts,
+    addDrape):
+    a second UV layer "Wave" holds how free each point is (x: 0 at the
+    seam, 1 at the hem) and a phase (y, 0..1). By default freedom runs
+    down the object's own z, from `top` (the highest point) to `bottom`
+    (the lowest); `free(co)` (object-space co -> 0..1) replaces that.
+    The game moves the cloth along the part's -y (behind the figure, for
+    an unrotated part) and runs waves down its z and across its x, so give
+    the cloth enough vertices to bend (about 10 rows from seam to hem).
+    Call it after the mesh's last UV pass (which removes extra layers)
+    and after any join; check the exported part still has two UV sets."""
+    me = obj.data
+    # Only faces painted with a drape material move; on a part that joins
+    # cloth and other pieces everything else stays put (the game moves
+    # every point that has freedom, in the x-ray pass too).
+    cloth = {i for i, m in enumerate(me.materials)
+             if m and m.name.startswith("drape")}
+    polys = [p for p in me.polygons if p.material_index in cloth]
+    zs = [me.vertices[v].co.z for p in polys for v in p.vertices]
+    if not zs:
+        print(f"drape: {obj.name} has no drape faces")
+        return obj
+    hi = max(zs) if top is None else top
+    lo = min(zs) if bottom is None else bottom
+    span = max(1e-6, hi - lo)
+    layer = me.uv_layers.get("Wave") or me.uv_layers.new(name="Wave")
+    for loop in me.loops:
+        layer.data[loop.index].uv = (0.0, phase)
+    for p in polys:
+        for li in p.loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            f = free(co) if free else (hi - co.z) / span
+            layer.data[li].uv = (min(1.0, max(0.0, f)), phase)
+    # The colour map stays first: the glTF exporter writes TEXCOORD_0 from
+    # the active layer.
+    me.uv_layers.active = me.uv_layers[0]
+    return obj
 
 
 def uv_box(obj, small=False):

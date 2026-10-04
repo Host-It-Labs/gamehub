@@ -8,15 +8,25 @@ import { nearPoints, perfectPoints } from '../party/ranking.ts';
 import { bands, points as dialPoints } from '../party/dial.ts';
 import { maxPinPoints, pinCurve } from '../party/geography.ts';
 import { curve } from '../party/size.ts';
+import { coinCost, perfectRead, totalCoins } from '../party/coins.ts';
+import { eraFactor, yearCurve } from '../party/year.ts';
+import { pairPoints } from '../party/order.ts';
 import { roundVoteMs } from '../party/vote.ts';
+import {
+  drawMs,
+  escapePoints,
+  foundPoints,
+} from '../party/impostor.ts';
 
 const seconds = roundVoteMs / 1000;
 const percent = (e: number) => `${Math.round(e * 100)}%`;
-const vote = (again: string, other: string) =>
-  `the table has ${seconds} seconds to vote: ${again} again, ${other}, or End. Points carry across both games, and the most points wins.`;
+const next = (again: string, set: string) =>
+  `the host picks: ${again} again, another ${set} game, or End. With Votes on in setup, the table has ${seconds} seconds to vote instead. Points carry across the games, and the most points wins.`;
 const [closeOff, closeScore] = curve[0];
-const halfScore = curve.find(([e]) => e === 0.5)![1];
 const [farOff, farScore] = curve[curve.length - 1];
+const lastYears = yearCurve[yearCurve.length - 1][0];
+const guessAll =
+  'Then everyone at once guesses every other player. Tap a face to switch between them, and lock once when all are done. You can unlock until everyone has locked.';
 
 /** The practice coach's four steps per game: a short heading and a line or
  * two each. Numbers come from the engines. The How to play is
@@ -30,35 +40,47 @@ export const adventureLessons: Record<
       title: 'Rank your list',
       text: 'Pick one of 3 prompts and rank its 5 answers from 1st to 5th, the way you really feel. You may refresh the prompts twice a round. Lock your private list when you are done.',
     },
-    {
-      title: 'Guess each list',
-      text: 'Then each list takes a turn. Everyone but its author ranks it the way they think the author did, and locks. You can unlock until everyone has locked.',
-    },
+    { title: 'Guess every list', text: guessAll },
     {
       title: 'Closer scores more',
-      text: `Each answer scores ${nearPoints[0]} on the author’s exact rank and ${nearPoints[1]} one rank away, so a perfect list scores ${perfectPoints}. The author scores nothing on their own list. The host presses Next to move on.`,
+      text: `The lists are revealed one by one, and the host presses Next. Each answer scores ${nearPoints[0]} on the author’s exact rank and ${nearPoints[1]} one rank away, so a perfect list scores ${perfectPoints}. The author scores nothing on their own list.`,
     },
     {
-      title: 'Another round?',
-      text: `When every list is done, ${vote('Top Five', 'Dial')}`,
+      title: 'What next?',
+      text: `When every list is revealed, ${next('Top Five', 'Know Me')}`,
     },
   ],
   dial: [
     {
       title: 'Everyone writes a clue',
-      text: 'Everyone gets their own spectrum at once. Pick one of two, such as Cold – Hot, see its hidden point and type a short clue that sits right there. You can unlock until everyone has locked.',
+      text: 'Everyone gets their own spectrum at once, such as Cold – Hot: see its hidden point and type a short clue that sits right there. Or take the Me card, such as Night owl – Early bird, and turn the dial to where you really are. You can unlock until everyone has locked.',
     },
     {
-      title: 'Read the clues',
-      text: 'The clues come up one after the other. Everyone but the author turns their own dial to where they think the point is, and locks. The author stays quiet.',
+      title: 'Turn every dial',
+      text: 'Then everyone at once turns a dial for every other clue. Tap a face to switch clues, and lock once when all are done.',
     },
     {
       title: 'Closer scores more',
-      text: `On the 0–100 dial, within ${bands[0]} of the point scores ${dialPoints(bands[0], 0)}, within ${bands[1]} scores ${dialPoints(bands[1], 0)} and within ${bands[2]} scores ${dialPoints(bands[2], 0)}. The author earns the average of everyone’s points. The host presses Next for the next clue.`,
+      text: `The clues are revealed one by one. On the 0–100 dial, within ${bands[0]} of the point scores ${dialPoints(bands[0], 0)}, within ${bands[1]} scores ${dialPoints(bands[1], 0)} and within ${bands[2]} scores ${dialPoints(bands[2], 0)}. The author earns the average of everyone’s points.`,
     },
     {
-      title: 'Another round?',
-      text: `When every clue is read, ${vote('Dial', 'Top Five')}`,
+      title: 'What next?',
+      text: `When every clue is revealed, ${next('Dial', 'Know Me')}`,
+    },
+  ],
+  coins: [
+    {
+      title: 'Split your coins',
+      text: `Everyone gets their own prompt at once, such as A perfect weekend: Sleep, Friends, Adventure, Food. Pick one of two and share exactly ${totalCoins} coins between its options, the way you really are. Then lock.`,
+    },
+    { title: 'Guess every split', text: guessAll },
+    {
+      title: 'Closer scores more',
+      text: `The splits are revealed one by one, and the host presses Next. A perfect read scores ${perfectRead}, and every coin out of place costs ${coinCost}. The author scores nothing on their own split.`,
+    },
+    {
+      title: 'What next?',
+      text: `When every split is revealed, ${next('Ten Coins', 'Know Me')}`,
     },
   ],
   miro: [
@@ -74,27 +96,78 @@ export const adventureLessons: Record<
       title: 'Closer scores more',
       text: `The places are revealed one by one, and the host presses Next to move on. Every pin scores up to ${maxPinPoints} by how far it landed: within ${pinCurve[0][0]} km scores ${maxPinPoints}, ${pinCurve[3][0]} km off scores ${pinCurve[3][1]}, and ${pinCurve[pinCurve.length - 1][0].toLocaleString('en')} km or more scores nothing.`,
     },
-    {
-      title: 'Another round?',
-      text: `After the final, ${vote('Atlas', 'Sizes')}`,
-    },
+    { title: 'What next?', text: `After the final, ${next('Atlas', 'Quiz')}` },
   ],
   size: [
     {
       title: 'Size it up',
-      text: 'One silhouette stands at its true size. Resize the red one to its own real size beside it. Each round has 3: an animal, an object or landmark, then a country.',
+      text: 'The cream piece stands at its true size. Make the red one its own real size beside it. Each round has 3: an animal, an object or landmark, then a country, lying flat like a map.',
     },
     {
       title: 'Resize and lock',
-      text: 'Pull the red silhouette’s corner handle, or pinch, to resize it. Size all three, then lock once. You can unlock until everyone has locked.',
+      text: 'Slide the tape on the right, pull the red piece’s knob, or pinch to resize it. Drag a piece to move it, the mat to look around. Size all three, then lock once.',
     },
     {
       title: 'Closer scores more',
-      text: `Within ${percent(closeOff)} of the true size scores ${closeScore}. Half off scores ${halfScore}, and ${percent(farOff)} off or more scores ${farScore}. The host reveals the three one at a time.`,
+      text: `Within ${percent(closeOff - 1)} of the true size scores ${closeScore}. ${farOff === 2 ? 'Twice or half the size' : `${farOff} times too big or small`} scores ${farScore}: double and half cost the same. The host reveals the three one at a time.`,
     },
     {
-      title: 'Another round?',
-      text: `After the third reveal, ${vote('Sizes', 'Atlas')}`,
+      title: 'What next?',
+      text: `After the third reveal, ${next('Sizes', 'Quiz')}`,
+    },
+  ],
+  year: [
+    {
+      title: 'Three events',
+      text: 'Each round has 3 events: one from before 1800, one from 1800 to 1949 and one since 1950, in any order.',
+    },
+    {
+      title: 'Place and lock',
+      text: 'Drag the marker along the timeline to the year you think it happened, and fine-tune on the close-up ruler. Place all three, then lock once.',
+    },
+    {
+      title: 'Closer scores more',
+      text: `The right year scores ${yearCurve[0][1]}. Older events give more room: nothing at ${lastYears * eraFactor.old} years off before 1800, ${lastYears * eraFactor.modern} from 1800 to 1949 and ${lastYears} since 1950. The host reveals the three one at a time.`,
+    },
+    {
+      title: 'What next?',
+      text: `After the third reveal, ${next('Years', 'Quiz')}`,
+    },
+  ],
+  order: [
+    {
+      title: 'Put them in order',
+      text: 'Each round has 3 sets of five things, such as buildings to put tallest first. Drag them into order.',
+    },
+    {
+      title: 'Sort and lock',
+      text: 'Sort all three sets, then lock once. You can unlock until everyone has locked.',
+    },
+    {
+      title: 'Closer scores more',
+      text: `A perfect order scores ${pairPoints[0]}. One pair the wrong way round scores ${pairPoints[1]}, two pairs ${pairPoints[2]}, more scores nothing. The host reveals the three one at a time.`,
+    },
+    {
+      title: 'What next?',
+      text: `After the third reveal, ${next('Order', 'Quiz')}`,
+    },
+  ],
+  impostor: [
+    {
+      title: 'Draw your word',
+      text: `Everyone gets a secret word, such as Cat. The impostor gets a close one, such as Fox, and nobody is told who it is: maybe it is you. Draw your word in ${drawMs / 1000} seconds, without letters.`,
+    },
+    {
+      title: 'One word',
+      text: 'Every drawing goes up on the board. Write one word that fits your own word, without giving it away. If the drawings look wrong to you, you may be the impostor: blend in.',
+    },
+    {
+      title: 'Accuse',
+      text: `Then everyone accuses one player and locks. Accusing an impostor scores ${foundPoints}. An impostor without the most accusations escapes and scores ${escapePoints}.`,
+    },
+    {
+      title: 'What next?',
+      text: `The reveal shows both words. Then the host picks another round or End. With Votes on in setup, the table has ${seconds} seconds to vote instead. The most points wins.`,
     },
   ],
 };

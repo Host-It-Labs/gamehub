@@ -460,3 +460,293 @@ svg.size-sil path {
     gap: 6px;
   }
 }
+
+/* The 3D table (size-board-3d.tsx): extruded pieces on the cutting mat,
+ * drawn by three.js. Labels, the corner knob and the tape are DOM pinned to
+ * the pieces every frame. */
+.size-board-3d {
+  isolation: isolate;
+}
+.size-board-3d > .size-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  touch-action: none;
+  outline: none;
+}
+/* the lamp's warm pool and a soft vignette over the mat */
+.size-board-3d:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 90% at 22% 0%, #fff3d41f, transparent 55%),
+    radial-gradient(140% 120% at 50% 40%, transparent 55%, #08201a99);
+  box-shadow: inset 0 0 0 1px #e8f3cf22;
+}
+.size-board-3d > :not(.size-canvas) {
+  z-index: 2;
+}
+.size-3d-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  translate: -50% 10px;
+  max-width: 160px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: #e8f3cfcc;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  text-shadow: 0 1px 3px #0009;
+}
+.size-3d-label.is-gold b {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #3b2600;
+  text-shadow: none;
+  background: linear-gradient(180deg, #ffe58a, #f2b631);
+  box-shadow:
+    0 2px 0 #a8730d,
+    0 6px 14px #0006;
+}
+.size-3d-label.is-seat {
+  pointer-events: auto;
+  overflow: visible;
+}
+.party-table.is-sabi .size-3d-label button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-height: 0;
+  padding: 3px 8px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: #0d2a22b8;
+  box-shadow: inset 0 0 0 1px #e8f3cf22;
+  color: var(--s-cream);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.party-table.is-sabi .size-3d-label button i {
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--seat);
+}
+.party-table.is-sabi .size-3d-label button em {
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.party-table.is-sabi .size-3d-label button.is-you {
+  box-shadow: inset 0 0 0 1.5px var(--seat);
+}
+.size-3d-label.is-focus button {
+  outline: 2px solid var(--seat);
+}
+.size-3d-label.is-dim {
+  opacity: 0.35 !important;
+}
+/* The corner knob: an enamel ball ringed in cream, a big target for
+ * fingers, gently breathing until it is first used. */
+.size-knob {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 64px;
+  translate: -50% -50%;
+  cursor: nesw-resize;
+  touch-action: none;
+  display: none;
+  z-index: 2;
+}
+.size-knob.is-live {
+  display: block;
+}
+/* A big tomato grip with resize arrows, a cream ring and a halo that keeps
+ * pinging outward, so it reads as something to pull. */
+.size-knob:before,
+.size-knob:after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+}
+.size-knob:before {
+  border: 3px solid var(--s-cream);
+  opacity: 0;
+  animation: size-knob-ping 1.6s ease-out infinite;
+}
+.size-knob:after {
+  background:
+    radial-gradient(circle at 34% 28%, #fff9 0 12%, transparent 30%),
+    radial-gradient(circle at 50% 62%, var(--s-tomato), var(--s-tomato-deep));
+  box-shadow:
+    0 0 0 3px var(--s-cream),
+    0 0 0 6px #0d2a2299,
+    0 6px 14px #0009;
+  transition: scale 0.15s ease;
+}
+.size-knob-arrows {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 1;
+  color: #fff8e6;
+  filter: drop-shadow(0 1px 1px #0006);
+  pointer-events: none;
+}
+.size-knob:hover:after {
+  scale: 1.08;
+}
+.size-knob:active:after {
+  scale: 1.18;
+}
+.size-knob:active:before {
+  animation: none;
+}
+@keyframes size-knob-ping {
+  0% {
+    scale: 1;
+    opacity: 0.9;
+  }
+  100% {
+    scale: 1.7;
+    opacity: 0;
+  }
+}
+/* The tape measure: a cream strip with ticks up the right edge and a
+ * tomato tab that slides on a log scale. */
+.size-tape {
+  position: absolute;
+  top: 70px;
+  bottom: 54px;
+  right: 16px;
+  width: 40px;
+  outline: none;
+  border-radius: 12px;
+}
+.size-tape:focus-visible {
+  outline: 3px solid var(--s-sun);
+  outline-offset: 3px;
+}
+.size-tape-track {
+  position: absolute;
+  inset: 0 8px;
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, #1b2a2470 0 1px, transparent 1px 8px) right
+      0 top 0 / 8px 100% no-repeat,
+    repeating-linear-gradient(0deg, #1b2a2490 0 2px, transparent 2px 40px) right
+      0 top 0 / 13px 100% no-repeat,
+    linear-gradient(90deg, #f1e3bf, #fff5d8 55%, #e9d8ad);
+  box-shadow:
+    0 0 0 1px #0d2a22,
+    0 3px 0 #b9a472,
+    0 12px 24px #0007;
+  touch-action: none;
+}
+.size-tape.is-live .size-tape-track {
+  cursor: ns-resize;
+}
+.size-tape-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(90deg, #ff5a3c44, #ff5a3c22);
+  pointer-events: none;
+}
+/* where the piece matches the reference: a cream notch */
+.size-tape-mark {
+  position: absolute;
+  left: -7px;
+  width: 9px;
+  height: 0;
+  border-block: 5px solid transparent;
+  border-left: 8px solid var(--s-cream);
+  translate: 0 50%;
+  filter: drop-shadow(0 1px 1px #0007);
+  pointer-events: none;
+}
+.size-tape-tab {
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  height: 26px;
+  translate: 0 50%;
+  border-radius: 9px;
+  background:
+    repeating-linear-gradient(
+        0deg,
+        transparent 0 7px,
+        #ffffff55 7px 8px,
+        transparent 8px 10px
+      )
+      50% 50% / 40% 14px no-repeat,
+    linear-gradient(180deg, #ffffff55, transparent 50%),
+    var(--s-tomato);
+  box-shadow:
+    0 3px 0 var(--s-tomato-deep),
+    0 8px 16px #0007;
+  transition: bottom 0.08s;
+}
+.size-tape:not(.is-live) .size-tape-tab {
+  filter: saturate(0.5);
+}
+.party-table.is-sabi .size-recentre {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid #e8f3cf40;
+  background: #133a30cc;
+  color: var(--s-cream);
+  backdrop-filter: blur(6px);
+}
+.size-board-3d.is-revealed .size-recentre {
+  display: none;
+}
+@media (max-width: 600px) {
+  .size-tape {
+    right: 8px;
+    top: 60px;
+    bottom: 40px;
+  }
+  .party-table.is-sabi .size-recentre {
+    top: 8px;
+    right: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .size-knob:before {
+    animation: none;
+    opacity: 0.6;
+    scale: 1.3;
+  }
+  .size-tape-tab {
+    transition: none;
+  }
+}

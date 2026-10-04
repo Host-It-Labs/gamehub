@@ -8,10 +8,19 @@ import {
   type AmbienceBed,
   type AmbienceEvent,
 } from './ambience.ts';
-import type { GameId as TrioGameId } from './trio/engine';
-type GameId = TrioGameId | 'orin' | 'miro' | 'dial' | 'size';
+import type { ContentSet, GameId as TrioGameId } from './trio/engine';
+type GameId =
+  | TrioGameId
+  | 'orin'
+  | 'miro'
+  | 'dial'
+  | 'size'
+  | 'coins'
+  | 'year'
+  | 'order'
+  | 'impostor';
 
-/** Ambience sits under the cue sounds even at full volume. */
+/** Background master level; effects use a lower ceiling at the same volume. */
 const CEILING = 0.52;
 let active: Session | undefined;
 let paused: { ambience: Ambience; volume: number } | undefined;
@@ -124,7 +133,7 @@ function wakeOnGesture(context: AudioContext) {
 }
 
 /** Start (or switch to) the soundscape for a game; a second call with the same game is a no-op. */
-export function startAmbience(id: GameId | null | undefined, volume: number, contentSet?: 'beginner' | 'intermediate') {
+export function startAmbience(id: GameId | null | undefined, volume: number, contentSet?: ContentSet) {
   const ambience = ambienceFor(id, contentSet);
   if (!ambience) { stopAmbience(); return; }
   void previewAmbience(ambience, volume);

@@ -1,5 +1,5 @@
 import { audioBuffer, audioContext } from './audio-context.ts';
-import { sharedAudioAssets, effectFor, soundGame } from './audio-catalog.ts';
+import { sharedAudioAssets, effectFor, soundGame, soundCandidates } from './audio-catalog.ts';
 
 const recent = new Map<string, number>();
 const generations = new Map<string, number>();
@@ -15,11 +15,13 @@ export function stopGameSounds(game?: string) {
   }
 }
 
-export function preloadGameSounds(_id: string) {
+export function preloadGameSounds(id: string) {
   if (typeof window === 'undefined' || document.hidden) return;
   try {
     const context = audioContext();
-    for (const asset of sharedAudioAssets)
+    const game = soundGame(id);
+    const family = game === 'orin' || game === 'miro' || game === 'folio' ? 'party' : game;
+    for (const asset of [...sharedAudioAssets, ...soundCandidates.filter((asset) => asset.option === 'a' && asset.game === family)])
       void audioBuffer(context, asset.src).catch(() => {});
   } catch { /* Sound is optional. */ }
 }
@@ -27,7 +29,7 @@ export function preloadGameSounds(_id: string) {
 /** Match the Sound Lab audition to the same restrained level used in play. */
 export function effectLevel(volume: number, gain: number) {
   if (!Number.isFinite(volume) || !Number.isFinite(gain)) return 0;
-  return Math.max(0, Math.min(1, volume)) * Math.max(0, Math.min(0.6, gain)) * 0.65;
+  return Math.max(0, Math.min(1, volume)) * Math.max(0, Math.min(0.6, gain)) * 0.32;
 }
 
 /** Shared quiet foley. Rapid input coalesces; late responses never replay old moves. */

@@ -1,4 +1,5 @@
 'use client';
+import type { ReactNode } from 'react';
 import { ArrowLeft, Clock3, Users } from 'lucide-react';
 import './game-navigation.css';
 import { GameProgress } from './game-progress';
@@ -13,6 +14,7 @@ export function GameNavigation({
   othersLabel = 'Others',
   onAdvance,
   round,
+  roundTrack,
   progress,
 }: {
   name: string;
@@ -20,6 +22,8 @@ export function GameNavigation({
   progress?: string;
   /** A fixed round count, shown as a pill centred on the top bar. */
   round?: string;
+  /** A small picture of the whole match beside the round (Alto's years). */
+  roundTrack?: ReactNode;
   onBack: () => void;
   /** The shared drop-down menu; its name defaults to the game's. */
   menu: Omit<GameMenuProps, 'name' | 'triggerClassName'> & { name?: string };
@@ -39,7 +43,9 @@ export function GameNavigation({
         <span>{name}</span>
       </button>
       {round ? (
-        <GameProgress round label={round} />
+        <GameProgress round label={round}>
+          {roundTrack}
+        </GameProgress>
       ) : (
         progress && <GameProgress label={progress} />
       )}

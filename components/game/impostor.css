@@ -1,0 +1,1046 @@
+/* Impostor: an evidence wall at night. Ink-navy walls, one warm lamp from
+ * above, a cork board in a dark wooden frame, cream index cards held by red
+ * pushpins, red string for the accusations, manila tags for the secret
+ * words and typewriter labels. Never Know Me's studio, never Quiz's desk. */
+.party-table.is-impostor {
+  --i-wall: #121a2e;
+  --i-wall-deep: #0a0f1d;
+  --i-lamp: #ffcf7a;
+  --i-cork: #b98552;
+  --i-cork-deep: #8f6136;
+  --i-frame: #4a2e1b;
+  --i-card: #fbf3df;
+  --i-card-edge: #e6d6b4;
+  --i-ink: #22202b;
+  --i-soft: #6e6658;
+  --i-red: #d2372b;
+  --i-red-deep: #8f1b13;
+  --i-blue: #2457b8;
+  --i-manila: #e8c98a;
+  --i-brass: #c99a3c;
+  --i-type:
+    'American Typewriter', 'Courier Prime', 'Courier New', ui-monospace,
+    monospace;
+  --i-display:
+    Futura, 'Futura PT', 'Avenir Next', 'Century Gothic', 'Trebuchet MS',
+    system-ui, sans-serif;
+  --ink: var(--i-ink);
+  --paper: var(--i-card);
+  --accent: var(--i-red);
+  color: #f3ead6;
+  background:
+    radial-gradient(
+      60% 46% at 50% -6%,
+      #ffcf7a40 0%,
+      #ffcf7a12 45%,
+      transparent 75%
+    ),
+    radial-gradient(120% 80% at 50% 120%, #00000080, transparent 60%),
+    linear-gradient(
+      180deg,
+      #18223b 0%,
+      var(--i-wall) 45%,
+      var(--i-wall-deep) 100%
+    );
+}
+/* Faint wallpaper stripes, lit from above. */
+.party-table.is-impostor:before {
+  background:
+    radial-gradient(70% 55% at 50% 0%, transparent 30%, #0a0f1d99 100%),
+    repeating-linear-gradient(90deg, #ffffff06 0 2px, transparent 2px 44px);
+}
+.party-table.is-impostor button {
+  border-color: #ffffff22;
+  background: #f6ecd6;
+  color: var(--i-ink);
+}
+.party-table.is-impostor button:focus-visible {
+  outline: 3px solid var(--i-lamp);
+  outline-offset: 2px;
+}
+/* A red rubber-stamp pill with a pressed lip. */
+.party-table.is-impostor .party-primary {
+  border: 0 !important;
+  background:
+    linear-gradient(180deg, #ffffff38, transparent 50%), var(--i-red) !important;
+  color: #fff7ec !important;
+  box-shadow:
+    0 1px 0 #ffffff55 inset,
+    0 4px 0 var(--i-red-deep),
+    0 10px 22px #d2372b55;
+  font-family: var(--i-display);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.party-table.is-impostor .party-primary:not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 #ffffff55 inset,
+    0 1px 0 var(--i-red-deep);
+}
+.party-table.is-impostor .party-primary:disabled {
+  filter: saturate(0.35) brightness(0.9);
+  opacity: 0.6;
+}
+.party-table.is-impostor .party-player {
+  background: #f6ecd6;
+  border-color: #00000030;
+  color: var(--i-ink);
+  box-shadow: 0 4px 12px #0006;
+}
+.party-table.is-impostor .party-player.is-you {
+  box-shadow:
+    0 0 0 2px var(--i-lamp),
+    0 4px 12px #0006;
+}
+.party-table.is-impostor .party-player.is-active {
+  background: #fffaf0;
+}
+.party-table.is-impostor .party-action-status {
+  color: #2f7a52;
+}
+.party-table.is-impostor .party-action-spinner {
+  color: var(--i-red);
+}
+.party-table.is-impostor .party-avatar {
+  background: var(--seat, #8a8070);
+  color: #fff;
+  font-family: var(--i-display);
+  font-weight: 800;
+  text-shadow: 0 1px 0 #0004;
+}
+.party-table.is-impostor .seat-0 {
+  --seat: #e0523f;
+}
+.party-table.is-impostor .seat-1 {
+  --seat: #2f6fd6;
+}
+.party-table.is-impostor .seat-2 {
+  --seat: #1f9a68;
+}
+.party-table.is-impostor .seat-3 {
+  --seat: #9152e0;
+}
+.party-table.is-impostor .seat-4 {
+  --seat: #e8892a;
+}
+.party-table.is-impostor .seat-5 {
+  --seat: #d8509c;
+}
+.party-table.is-impostor .seat-6 {
+  --seat: #1c9bb0;
+}
+.party-table.is-impostor .seat-7 {
+  --seat: #7a8a24;
+}
+.party-table.is-impostor .party-waiting {
+  font-family: var(--i-type);
+  font-size: 14px;
+  color: #f3ead6cc;
+}
+
+/* Up to eight badges stay on one row: names give way to the contracted
+   badge (avatar, score, state) before the row would wrap over the table. */
+.party-table.is-impostor .party-players {
+  flex-wrap: nowrap;
+}
+.party-table.is-impostor .party-players > * {
+  flex: 0 0 auto;
+}
+.party-table.is-impostor .party-player b {
+  white-space: nowrap;
+}
+.party-table.is-impostor .party-players[data-fit='compact'] .party-player b {
+  display: none;
+}
+.party-table.is-impostor .party-players[data-fit='compact'] .party-player {
+  padding-right: 6px;
+}
+/* The contracted badge is the avatar alone, its score on a chip beneath
+   it and its state on its shoulder, so eight fit across any screen. */
+html .party-table.is-impostor .party-players[data-fit='compact'] {
+  justify-content: center;
+  gap: 8px;
+}
+html .party-table.is-impostor .party-players[data-fit='compact'] .party-player {
+  position: relative;
+  min-height: 0;
+  padding: 2px 2px 8px;
+  gap: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+html
+  .party-table.is-impostor
+  .party-players[data-fit='compact']
+  .party-player
+  .party-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+  box-shadow: 0 2px 6px #0007;
+}
+html
+  .party-table.is-impostor
+  .party-players[data-fit='compact']
+  .party-player.is-you
+  .party-avatar {
+  box-shadow:
+    0 0 0 2px var(--i-lamp),
+    0 2px 6px #0007;
+}
+html
+  .party-table.is-impostor
+  .party-players[data-fit='compact']
+  .party-player
+  > span:nth-child(2) {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  max-width: none;
+}
+html
+  .party-table.is-impostor
+  .party-players[data-fit='compact']
+  .party-player
+  small {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #f6ecd6;
+  color: var(--i-ink);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 13px;
+  opacity: 1;
+}
+html .party-table.is-impostor .party-players[data-fit='compact'] .party-pts {
+  display: none;
+}
+html
+  .party-table.is-impostor
+  .party-players[data-fit='compact']
+  .party-action-status {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f6ecd6;
+  box-shadow: 0 1px 3px #0006;
+}
+html
+  .party-table.is-impostor
+  .party-players[data-fit='compact']
+  .party-action-status
+  svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* ---------- Pieces ---------- */
+.imp-pin {
+  position: absolute;
+  top: calc(var(--card, 160px) * -0.035);
+  left: 50%;
+  z-index: 3;
+  width: clamp(12px, calc(var(--card, 160px) * 0.1), 22px);
+  aspect-ratio: 1;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 34% 30%,
+    #ffb3a6 0 12%,
+    var(--i-red) 46%,
+    var(--i-red-deep) 100%
+  );
+  box-shadow:
+    2px 4px 4px #0006,
+    0 0 0 1px #0003;
+}
+.imp-pin.is-big {
+  --card: 260px;
+  top: -10px;
+}
+.imp-word {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px 8px 14px;
+  border-radius: 6px 14px 14px 6px;
+  background:
+    linear-gradient(180deg, #ffffff30, transparent 40%), var(--i-manila);
+  color: var(--i-ink);
+  box-shadow:
+    0 1px 0 #fff6 inset,
+    0 6px 16px #0007;
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+  padding-left: 24px;
+}
+.imp-word i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--i-wall);
+  box-shadow: 0 0 0 2px var(--i-brass);
+  flex: none;
+}
+.imp-word b {
+  font-family: var(--i-type);
+  font-size: clamp(22px, 4.4vw, 34px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+.imp-word.is-small {
+  padding: 6px 12px 6px 20px;
+  gap: 7px;
+}
+.imp-word.is-small b {
+  font-size: clamp(15px, 2.4vw, 19px);
+}
+.imp-word.is-odd {
+  background: linear-gradient(180deg, #ffffff30, transparent 40%), #f2b3a6;
+}
+.imp-word.is-odd b {
+  color: var(--i-red-deep);
+}
+
+/* ---------- Drawing ---------- */
+.imp-desk {
+  flex: 1;
+  min-height: 0;
+  width: min(900px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.6vh, 16px);
+}
+.imp-desk-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex: none;
+}
+.imp-clock {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex: none;
+}
+.imp-clock svg {
+  position: absolute;
+  inset: 0;
+  rotate: -90deg;
+}
+.imp-clock circle {
+  fill: #0a0f1dcc;
+  stroke: #ffffff1f;
+  stroke-width: 4;
+}
+.imp-clock circle + circle {
+  fill: none;
+  stroke: var(--i-lamp);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--left));
+  transition: stroke-dashoffset 0.25s linear;
+  filter: drop-shadow(0 0 6px #ffcf7a99);
+}
+.imp-clock b {
+  position: relative;
+  font-family: var(--i-display);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.imp-clock.is-late circle + circle {
+  stroke: #ff6a55;
+  filter: drop-shadow(0 0 8px #ff6a55aa);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .imp-clock.is-late b {
+    animation: imp-beat 1s ease-in-out infinite;
+  }
+}
+@keyframes imp-beat {
+  50% {
+    transform: scale(1.18);
+  }
+}
+.imp-pad-room {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+.imp-pad {
+  position: relative;
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, var(--i-red) 0 3px, transparent 3px) 0 9% / 100%
+      100% no-repeat,
+    radial-gradient(120% 90% at 30% 10%, #fffdf6, var(--i-card) 60%, #f1e4c6);
+  box-shadow:
+    0 0 0 1px var(--i-card-edge),
+    0 2px 0 #fff inset,
+    0 26px 50px #0009,
+    0 0 90px #ffcf7a22;
+}
+.imp-pad canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  border-radius: inherit;
+}
+.imp-pad canvas.is-live {
+  cursor: crosshair;
+}
+.imp-pad.is-locked canvas {
+  filter: saturate(0.85);
+}
+.imp-pad.is-locked:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fbf3df55;
+  pointer-events: none;
+}
+.imp-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.6vw, 16px);
+  padding: 8px 10px 8px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff10, transparent), #0b1121e6;
+  box-shadow:
+    0 0 0 1px #ffffff14 inset,
+    0 10px 26px #0008;
+}
+.imp-inks,
+.imp-nibs {
+  display: flex;
+  gap: 6px;
+}
+.party-table.is-impostor .imp-ink,
+.party-table.is-impostor .imp-nib {
+  min-height: 0;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: transparent;
+  position: relative;
+}
+.party-table.is-impostor .imp-ink:before,
+.party-table.is-impostor .imp-nib:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.party-table.is-impostor .imp-ink:before {
+  width: 24px;
+  height: 24px;
+  box-shadow:
+    0 2px 0 #ffffff40 inset,
+    0 -3px 0 #0005 inset;
+}
+.party-table.is-impostor .imp-nib:before {
+  width: var(--nib);
+  height: var(--nib);
+  background: #f3ead6;
+}
+.party-table.is-impostor :is(.imp-ink, .imp-nib).is-on {
+  border-color: var(--i-lamp);
+  box-shadow: 0 0 12px #ffcf7a66;
+}
+.party-table.is-impostor .imp-undo {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: #f3ead6;
+}
+.party-table.is-impostor :is(.imp-done, .imp-edit, .imp-accuse) {
+  min-width: 108px;
+  border-radius: 999px;
+}
+.party-table.is-impostor .imp-edit {
+  background: #f3ead6;
+  font-family: var(--i-display);
+  font-weight: 800;
+}
+
+/* ---------- The board ---------- */
+.imp-room {
+  flex: 1;
+  min-height: 0;
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vh, 14px);
+}
+.imp-cork {
+  flex: 1;
+  min-height: 0;
+  padding: clamp(14px, 2.4vh, 26px) clamp(10px, 2vw, 26px);
+  border-radius: 16px;
+  background:
+    radial-gradient(70% 60% at 50% 0%, #ffd58a3d, transparent 70%),
+    radial-gradient(circle at 20% 30%, #6b421f22 0 1px, transparent 2px) 0 0 /
+      9px 11px,
+    radial-gradient(circle at 70% 60%, #f5d29a33 0 1px, transparent 2px) 0 0 /
+      13px 7px,
+    radial-gradient(circle at 40% 80%, #5a361722 0 1.5px, transparent 2.5px) 0 0
+      / 17px 13px,
+    linear-gradient(160deg, #c99560, var(--i-cork) 45%, var(--i-cork-deep));
+  box-shadow:
+    0 0 0 clamp(6px, 1vw, 11px) var(--i-frame),
+    0 0 0 calc(clamp(6px, 1vw, 11px) + 1px) #2a190d,
+    0 3px 0 #ffffff26 inset,
+    0 -24px 50px #0000003d inset,
+    0 28px 60px #000a;
+  margin: clamp(6px, 1vw, 11px);
+}
+.imp-board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: var(--gap);
+  /* Exactly `--cols` cards a row; a short last row sits in the middle. */
+  padding-inline: max(
+    0px,
+    calc(
+      (100% - var(--cols) * var(--card) - (var(--cols) - 1) * var(--gap)) / 2
+    )
+  );
+}
+.party-table.is-impostor .imp-card {
+  --pad: calc(var(--card) * 0.05);
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  width: var(--card);
+  height: calc(var(--card) * 1.24);
+  min-height: 0;
+  padding: var(--pad) var(--pad) 0;
+  border: 0;
+  border-radius: 4px;
+  background:
+    linear-gradient(
+      180deg,
+      transparent calc(var(--pad) - 2px),
+      #d2372b55 calc(var(--pad) - 2px) var(--pad),
+      transparent var(--pad)
+    ),
+    radial-gradient(120% 90% at 30% 10%, #fffdf6, var(--i-card) 60%, #efe1c2);
+  color: var(--i-ink);
+  box-shadow:
+    0 0 0 1px var(--i-card-edge),
+    3px 10px 18px #3b210c66;
+  transform: rotate(var(--tilt));
+  text-align: left;
+  font: inherit;
+}
+.party-table.is-impostor button.imp-card:not(:disabled):hover {
+  transform: rotate(0deg) translateY(-3px) scale(1.02);
+  box-shadow:
+    0 0 0 1px var(--i-card-edge),
+    6px 16px 24px #3b210c77;
+}
+.party-table.is-impostor button.imp-card:disabled {
+  opacity: 1;
+}
+.party-table.is-impostor .imp-card.is-you {
+  box-shadow:
+    0 0 0 1px var(--i-card-edge),
+    0 0 0 calc(1px + max(2px, var(--card) * 0.016)) var(--i-lamp),
+    3px 10px 18px #3b210c66;
+}
+.party-table.is-impostor .imp-card.is-suspect,
+.party-table.is-impostor button.imp-card.is-suspect:not(:disabled):hover {
+  transform: rotate(0deg) scale(1.03);
+  box-shadow:
+    0 0 0 3px var(--i-red),
+    0 0 26px #d2372b88,
+    6px 16px 24px #3b210c77;
+}
+.imp-card-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  flex: none;
+}
+.imp-sketch {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.imp-card-foot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--card) * 0.04);
+  padding: 0 calc(var(--card) * 0.01);
+}
+.imp-card-foot .party-avatar {
+  width: clamp(18px, calc(var(--card) * 0.15), 32px);
+  height: clamp(18px, calc(var(--card) * 0.15), 32px);
+  font-size: clamp(10px, calc(var(--card) * 0.075), 15px);
+  flex: none;
+}
+.imp-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+.imp-clue {
+  min-height: 1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--i-type);
+  font-size: clamp(12px, calc(var(--card) * 0.098), 22px);
+  font-weight: 700;
+  color: var(--i-blue);
+}
+.imp-clue svg {
+  color: #2f7a52;
+}
+.imp-card-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(9px, calc(var(--card) * 0.066), 14px);
+  font-weight: 650;
+  color: var(--i-soft);
+}
+.imp-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.imp-dots:before {
+  content: '';
+  width: 18px;
+  height: 5px;
+  background: radial-gradient(circle, var(--i-soft) 0 2px, transparent 2.5px) 0
+    0 / 6px 5px;
+  opacity: 0.6;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .imp-dots:before {
+    animation: imp-dots 1.2s steps(3) infinite;
+  }
+}
+@keyframes imp-dots {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 -10% 0 0);
+  }
+}
+
+/* The reveal. */
+.imp-strings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 4;
+}
+.imp-string {
+  fill: none;
+  stroke: #b8251b;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(1px 3px 2px #0006);
+  opacity: 0.85;
+}
+.imp-string.is-hit {
+  stroke: var(--i-red);
+  opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .imp-string {
+    animation: imp-string 420ms cubic-bezier(0.3, 0.8, 0.3, 1) both;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+}
+@keyframes imp-string {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+.imp-tally {
+  position: absolute;
+  top: 2%;
+  right: 2%;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  min-width: clamp(20px, calc(var(--card) * 0.17), 34px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--i-red);
+  color: #fff;
+  font-family: var(--i-display);
+  font-weight: 800;
+  font-size: clamp(11px, calc(var(--card) * 0.09), 18px);
+  box-shadow: 0 3px 8px #0005;
+}
+.imp-stamp {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 5;
+  translate: -50% -50%;
+  rotate: -14deg;
+  padding: 0.18em 0.45em;
+  border: max(2px, calc(var(--card) * 0.022)) solid currentColor;
+  border-radius: 6px;
+  font-family: var(--i-display);
+  font-size: clamp(12px, calc(var(--card) * 0.12), 26px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: #fbf3dfd9;
+  mix-blend-mode: multiply;
+}
+.imp-stamp.is-caught {
+  color: var(--i-red);
+}
+.imp-stamp.is-free {
+  color: #b5741d;
+  border-style: dashed;
+}
+.imp-card-word {
+  position: absolute;
+  left: 4%;
+  bottom: 3%;
+  z-index: 4;
+  padding: 0.12em 0.5em;
+  border-radius: 3px;
+  background: var(--i-manila);
+  color: var(--i-ink);
+  font-family: var(--i-type);
+  font-size: clamp(11px, calc(var(--card) * 0.09), 19px);
+  font-weight: 700;
+  box-shadow: 0 2px 5px #0004;
+  rotate: -3deg;
+}
+.imp-card-word.is-odd {
+  background: var(--i-red);
+  color: #fff;
+}
+.imp-gain {
+  flex: none;
+  font-family: var(--i-display);
+  font-weight: 900;
+  font-size: clamp(12px, calc(var(--card) * 0.11), 22px);
+  color: #2f7a52;
+}
+.imp-gain.is-zero {
+  color: var(--i-soft);
+  opacity: 0.55;
+}
+.party-table.is-impostor .imp-card.is-impostor {
+  box-shadow:
+    0 0 0 2px #d2372b88,
+    0 0 30px #d2372b55,
+    3px 10px 18px #3b210c66;
+}
+
+/* ---------- The dock ---------- */
+.imp-dock {
+  flex: none;
+  align-self: center;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.4vw, 14px);
+  padding: 8px 10px 8px 8px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff10, transparent), #0b1121e6;
+  box-shadow:
+    0 0 0 1px #ffffff14 inset,
+    0 10px 26px #0008;
+}
+.imp-clue-input {
+  width: clamp(150px, 30vw, 280px);
+  min-width: 0;
+  height: 46px;
+  padding: 0 14px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--i-card);
+  color: var(--i-blue);
+  font-family: var(--i-type);
+  font-size: 19px;
+  font-weight: 700;
+  outline: none;
+  user-select: text;
+}
+.imp-clue-input::placeholder {
+  color: #8d846f;
+  font-weight: 400;
+}
+.imp-clue-input:focus {
+  border-color: var(--i-lamp);
+}
+.imp-clue-input.is-blocked {
+  border-color: var(--i-red);
+  color: var(--i-red);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .imp-clue-input.is-blocked {
+    animation: imp-shake 0.3s ease;
+  }
+}
+@keyframes imp-shake {
+  30% {
+    translate: -4px 0;
+  }
+  60% {
+    translate: 4px 0;
+  }
+}
+.party-table.is-impostor .imp-send {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 50%;
+}
+.imp-clue-sent {
+  font-family: var(--i-type);
+  font-size: 19px;
+  font-weight: 700;
+  color: #9fc0ff;
+  max-width: 34vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.imp-suspect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f3ead6aa;
+}
+.imp-suspect .party-avatar {
+  width: 36px;
+  height: 36px;
+  box-shadow: 0 0 0 2px var(--i-red);
+}
+.imp-suspect-empty {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px dashed #f3ead655;
+}
+.imp-dock.is-reveal {
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px 12px;
+}
+.imp-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.imp-vs {
+  width: 16px;
+  height: 2px;
+  background: #f3ead655;
+}
+.imp-verdict {
+  font-family: var(--i-display);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.imp-verdict.is-caught {
+  color: #ff7a66;
+  text-shadow: 0 0 18px #d2372b88;
+}
+.imp-verdict.is-free {
+  color: var(--i-lamp);
+  text-shadow: 0 0 18px #ffcf7a77;
+}
+.imp-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.party-table.is-impostor .imp-next button {
+  border-radius: 999px;
+  font-family: var(--i-display);
+  font-weight: 800;
+}
+.party-table.is-impostor .imp-next .is-mine {
+  outline: 3px solid var(--i-lamp);
+  outline-offset: 2px;
+}
+.imp-vote-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.imp-vote-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.imp-vote-clock {
+  min-width: 34px;
+  font-family: var(--i-display);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--i-lamp);
+  text-align: center;
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 600px) {
+  .imp-cork {
+    margin: 6px 4px;
+    padding: 12px 6px;
+  }
+  .imp-tools {
+    gap: 6px;
+    padding: 6px 6px 6px 8px;
+  }
+  .party-table.is-impostor .imp-ink,
+  .party-table.is-impostor .imp-nib {
+    width: 34px;
+    height: 34px;
+  }
+  .imp-inks,
+  .imp-nibs {
+    gap: 2px;
+  }
+  .party-table.is-impostor :is(.imp-done, .imp-edit, .imp-accuse) {
+    min-width: 0;
+    padding-inline: 14px;
+  }
+  .imp-dock {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .imp-clue-input {
+    flex: 1;
+    width: auto;
+  }
+  .imp-dock.is-reveal {
+    gap: 6px 10px;
+  }
+}
+@media (max-width: 380px) {
+  .party-table.is-impostor .imp-ink,
+  .party-table.is-impostor .imp-nib {
+    width: 30px;
+    height: 30px;
+  }
+  .party-table.is-impostor .imp-ink:before {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ---------- Results: a case file on the board ---------- */
+.party-table.is-impostor .party-finale.is-animated {
+  --finale-accent: var(--i-red);
+  --finale-row: #fffdf6;
+  --finale-line: #22202b1a;
+  --finale-win: #f6dfae;
+  background:
+    linear-gradient(180deg, var(--i-red) 0 4px, transparent 4px),
+    radial-gradient(120% 90% at 30% 10%, #fffdf6, var(--i-card) 60%, #efe1c2);
+  border: 0;
+  border-radius: 8px;
+  color: var(--i-ink);
+  box-shadow:
+    0 0 0 1px var(--i-card-edge),
+    0 30px 60px #000a,
+    0 0 90px #ffcf7a22;
+}
+.party-table.is-impostor .party-finale h2 {
+  font-family: var(--i-type);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--i-ink);
+}
+.party-table.is-impostor .finale-standings strong {
+  font-family: var(--i-display);
+}
+/* Seven or eight players: two columns keep the standings and the next pick
+   on one screen. */
+.party-table.is-impostor .finale-standings:has(> li:nth-child(7)) {
+  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(4, auto);
+  gap: 6px;
+}
+.party-table.is-impostor .finale-standings:has(> li:nth-child(7)) li {
+  gap: 6px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 12px;
+}
+.party-table.is-impostor
+  .finale-standings:has(> li:nth-child(7))
+  .party-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+.party-table.is-impostor .finale-standings:has(> li:nth-child(7)) strong {
+  font-size: 1.05rem;
+}
+.party-table.is-impostor .finale-standings:has(> li:nth-child(7)) strong small {
+  display: none;
+}
+.party-table.is-impostor
+  .party-finale:has(.finale-standings > li:nth-child(7))
+  .finale-crown {
+  width: 44px;
+  height: 44px;
+}

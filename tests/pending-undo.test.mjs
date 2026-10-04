@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, play, observe, legalMoves, passCount, canUndo, validMove, isSavedGame } from '../lib/games/trio/engine.ts';
+import { createGame, play, observe, legalMoves, passCount, canUndo, validMove, isSavedGame, upgradeSave } from '../lib/games/trio/engine.ts';
 
 const choice = (g, seat) => g.phase === 'pass'
   ? { type: 'pass', cards: g.players[seat].hand.slice(0, passCount(g)).map(card => card.id) }
@@ -31,16 +31,19 @@ for (const id of ['undertow', 'wildgrove', 'midnight']) {
     assert.equal(play(g, { type: 'undo' }, 0), g);
   });
 }
-await test('withdrawing a migration leaves the original creature and its permit untouched', () => {
-  let g = createGame('wildgrove', 'medium', 91, false, 3, false, false, false, false, { migration: true });
+await test('a locked Migration move from an old save is withdrawn, not replayed', () => {
+  let g = createGame('wildgrove', 'medium', 91, false, 3, false, false, false, false, {});
   g = play(g, { type: 'roll' }, g.active);
-  const migrant = g.players[0].hand.shift();
-  g.players[0].zones[0].push(migrant);
-  const zones = structuredClone(g.players[0].zones);
-  const m = legalMoves({ ...observe(g, 0), active: 0 }).find(m => m.migration);
-  assert.ok(m, 'a migration is available');
-  g = play(g, m, 0);
-  g = play(g, { type: 'undo' }, 0);
-  assert.deepEqual(g.players[0].zones, zones);
-  assert.equal(g.players[0].migrations, 1);
+  const legacy = structuredClone(g);
+  legacy.migration = true;
+  legacy.players.forEach((p) => { p.migrations = 1; });
+  const card = legacy.players[0].hand[0].id;
+  legacy.pending = [{ type: 'play', card, zone: 0, migration: { card: 1, from: 0, to: 1 } }, null, null];
+  legacy.ready = [true, false, false];
+  const upgraded = upgradeSave(legacy);
+  assert.equal(isSavedGame(upgraded), true);
+  assert.equal(upgraded.pending[0], null);
+  assert.equal(upgraded.ready[0], false);
+  assert.equal('migration' in upgraded, false);
+  assert.equal(upgraded.players.some((p) => 'migrations' in p), false);
 });

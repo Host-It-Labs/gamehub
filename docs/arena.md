@@ -1,8 +1,9 @@
 # Arena
 
-A real-time battle on a 3D field, a collector's diorama of a medieval
-valley: one against one or two against two, against bots on this device or
-with friends online.
+A real-time battle on a 3D field in a bright cartoon woodland
+valley. **Versus**: one against one or two against two, against bots on
+this device or with friends online. **Quest**: a roguelite run across three
+regions, alone or with a friend (see Quest below).
 
 Design decisions live in the Arena sections of [DESIGN.md](DESIGN.md); this
 page is the reference for the rules, the numbers and the build.
@@ -25,7 +26,9 @@ the other side's small towers falls, its side of the field opens up to y 21.5.
 A card let go anywhere else is not lost: it goes to the nearest legal spot on
 the half-tile grid (`nearestLegal` in `engine.ts`; a spell is only held on
 the field), and the ghost shows that spot while you drag, with a faint line
-back to your finger. The server still checks `canPlayAt`.
+back to your finger. Enemies that could hit this placement show an amber
+exclamation mark above them; their ranges are not drawn. The server still
+checks `canPlayAt`.
 
 Ground troops walk round towers in their way (`skirt` in `engine.ts`): a step
 that would enter a standing tower turns along its edge towards the goal
@@ -45,8 +48,9 @@ the damage (136), since twice the troops attack them.
 
 ## Cards
 
-Everyone holds the same eight cards: four in hand, the next shown, the rest in
-order. A played card goes to the back of the line. Seven cards are troops
+A deck is eight of the twenty-four cards (`deck` in `cards.ts` is the starting
+one; the deck phase keeps yours on this device): four in hand, the next shown,
+the rest in order. A played card goes to the back of the line. Seven cards are troops
 (each a figure from a different genre; the ids are older than the names) and
 one is a spell. Deploying a troop takes one second, during which it is planted
 and does not fight.
@@ -57,9 +61,61 @@ and does not fight.
 | Dino    | ogre    | 5      | 1      | 4091       | 254    | 1.5 s     | melee | 0.75  | towers only    |                         |
 | Robots  | imps    | 2      | 3      | 202        | 120    | 1.1 s     | melee | 2.0   | ground         |                         |
 | Samurai | duelist | 4      | 1      | 1361       | 720    | 1.6 s     | melee | 1.5   | ground         |                         |
-| Cowboy  | ranger  | 4      | 1      | 721        | 217    | 1.0 s     | 6     | 1.0   | air and ground | bolt                    |
+| Cowboy  | ranger  | 4      | 1      | 721        | 200    | 1.0 s     | 6     | 1.0   | air and ground | bolt                    |
 | Biplane | drake   | 4      | 1      | 1152       | 161    | 1.5 s     | 3.5   | 1.5   | air and ground | bomb; flies; splash 1.2 |
 | Wizard  | mage    | 5      | 1      | 721        | 281    | 1.4 s     | 5.5   | 1.0   | air and ground | fire; splash 1.5        |
+
+The eight added on 29 September 2026 (`tags` on each card tell the bot
+what it is good at):
+
+| Card      | Id        | Elixir | Hit points | Damage | Hit speed | Range | Speed | Targets        | Ability                                                                   |
+| --------- | --------- | ------ | ---------- | ------ | --------- | ----- | ----- | -------------- | ------------------------------------------------------------------------- |
+| Pirate    | pirate    | 3      | 690        | 150    | 0.9 s     | melee | 1.5   | ground         | leaps (6 tiles/s) at a troop within 3.5 tiles, first hit ×2; every 3 s    |
+| Viking    | viking    | 4      | 1400       | 180    | 1.3 s     | melee | 1.0   | ground         | hits everything within 1.4 of himself; below half HP ×1.35 speed and pace |
+| Gladiator | gladiator | 3      | 520        | 125    | 1.1 s     | melee | 1.0   | ground         | a 750 shield takes every hit first (the whole hit, whatever is left)      |
+| Medic     | medic     | 3      | 780        | 0      | —         | —     | 1.1   | —              | heals friends within 3 by 70 every second; follows the nearest friend     |
+| Miner     | miner     | 3      | 1000       | 140    | 1.2 s     | melee | 1.5   | ground         | played anywhere off the water and towers; digs 2 s, then pops up          |
+| Balloon   | balloon   | 5      | 1650       | 520    | 3.0 s     | over  | 0.9   | towers only    | flies; bomb splash 1; its crash deals 240 within 2                        |
+| Inventor  | inventor  | 4      | 640        | 150    | 1.6 s     | 4.5   | 1.0   | air and ground | lightning jumps to 3 in all (2.5 apart), each stunned 0.5 s               |
+| Gunner    | gunner    | 4      | 700        | 180    | 3.5 s     | 9.5   | 0.6   | ground         | shell splash 1.3; cannot hit anything within 3                            |
+
+A stun stops a troop moving and attacking and restarts its wind-up. The
+Medic's pulse and the Inventor's jumps never touch towers.
+
+The eight added on 1 October 2026, three of them tanks so a deck without
+the Dino still has a front line (`armour`, `taunt`, `knockback`, `tackle`,
+`spawn`, `aura`, `follows`, `cone` and `slow` on `UnitStats`):
+
+| Card        | Id          | Elixir | Hit points | Damage | Hit speed | Range | Speed | Targets        | Ability                                                                                          |
+| ----------- | ----------- | ------ | ---------- | ------ | --------- | ----- | ----- | -------------- | ------------------------------------------------------------------------------------------------ |
+| Diver       | diver       | 5      | 2400       | 190    | 1.4 s     | melee | 0.75  | ground         | tank; armour: every hit on him loses 45, but at least a quarter of it lands (spells, towers too) |
+| Sumo        | sumo        | 6      | 4000       | 230    | 1.6 s     | melee | 0.6   | ground         | tank; landing stomp: enemies within 4.5 that can hit him fight only him for 3 s; slaps push 1    |
+| Linebacker  | linebacker  | 3      | 1350       | 125    | 1.1 s     | melee | 1.6   | ground         | mini-tank; first hit on each new target tackles: pushed 1.5 and stunned 1 s                      |
+| Beekeeper   | beekeeper   | 4      | 520        | 0      | —         | —     | 1.0   | —              | lets out 3 bees 1 s after landing, then every 4.5 s; follows the nearest friend                  |
+| Drummer     | drummer     | 3      | 750        | 0      | —         | —     | 1.5   | —              | friends within 3.5 move and strike ×1.3 (auras do not add up); follows the nearest friend        |
+| Firefighter | firefighter | 4      | 950        | 80     | 0.4 s     | 3     | 1.0   | ground         | water cone (half angle about 37°): hits all it can in it, pushes ground troops 0.18 each blow    |
+| Jetpack     | jetpack     | 4      | 850        | 115    | 0.6 s     | 3     | 1.8   | air and ground | flies; laser                                                                                     |
+| Explorer    | explorer    | 4      | 700        | 140    | 1.2 s     | 5     | 1.0   | air and ground | frost shot: the target moves and strikes at 60% for 1.5 s                                        |
+| Bee         | bee         | —      | 90         | 40     | 0.8 s     | melee | 2.4   | air and ground | spawned only (`token`, never in a deck); flies; takes the Beekeeper's level                      |
+
+Pushes (slaps, tackles, the water jet) only move troops lighter than mass 12,
+so the Dino, the Diver and the Sumo stand, and never carry a ground troop
+across the middle of the river. The Medic, the Drummer and the Beekeeper
+never attack (`supports` in `engine.ts`): each follows the nearest friend
+(bees and other supports aside) and otherwise waits outside the reach of
+the tower ahead. A beat and a slow change both the steps and the countdown
+to the next blow (`beat` and `slowFactor` on the unit). Quest keeps the
+Sumo and the Drummer locked until bosses unlock them; every other new card
+is in the starting pool. Ready-made decks Deep Sea, Dojo, Blitz and Frost
+are built round them.
+
+Balance is checked by bots: `node --experimental-strip-types
+scripts/arena-balance.mjs --games=10000` plays seeded hard duels with
+random playable decks (two troops that hit flyers, a tank or siege card)
+and prints each card's win rate and plays. On 1 October 2026 every new card
+won 45–56% of its decks; decks with a new tank and no Dino won 52%, with
+the Dino 51%. The Samurai and the Cowboy (58%) and the Viking (43%) are
+the outliers left.
 
 Speeds are tiles per second. Troops attack the nearest enemy within sight
 (about 5.5 tiles; the Dino's is 7.5, towers only) and otherwise walk to the
@@ -70,7 +126,12 @@ walking round a tower never change it. Only chasing an enemy troop more
 than a tile over the middle moves a troop to the other lane. Ground troops
 walking to a tower cross at their lane's bridge, chasing a troop at the
 nearer one; flyers go straight. Shots home in on their target. The small towers' guards are
-longbow archers and shoot arrows; the king fires a bronze cannon.
+longbow archers and shoot arrows; the king fires a bronze cannon. While the
+king sleeps its cannon is hidden under a round iron hatch in the middle of
+its deck; when the king wakes it springs up through the hatch, about twice
+its old size (`KING_CANNON` in `world.ts`). The king has no rear keep,
+roof or chimney since 2 October 2026 (`KING_KEEP_PARTS`, dropped from the
+model at load).
 
 **The Meteor** (id `meteor`, 4 elixir) is a spell: it may be cast anywhere on
 the field (x 0.5–17.5, y 0.5–31.5), on either half and on towers. It falls
@@ -84,7 +145,7 @@ replaced (26 September 2026) is gone.
 
 ## Elixir and time
 
-Elixir starts at 5, refills one point every 2.8 s, caps at 10, and refills
+After a one-second ready moment, elixir starts at 7, refills one point every 2.8 s, caps at 10, and refills
 twice as fast in the last minute of the three and 2.5× as fast throughout overtime. At full
 time more crowns wins. Level crowns start one minute of overtime in which the
 next tower to fall wins. After that the side whose weakest standing tower has
@@ -102,8 +163,12 @@ tower range to the towers. Otherwise it answers with the card that best
 counters the threat (air, swarm, tank, fighter or ranged), preferring cheap
 answers, placed so the fight happens inside tower range (against a tank the
 Samurai first, then Robots; against the Samurai, Robots or the Biplane). With
-elixir to spare it starts a push: the Dino at the back, then ranged support
-behind whatever reaches the bridge. Hard also punishes the other lane when you
+elixir to spare it starts a push: a big tank at the back (the Dino, the
+Balloon, the Diver, the Sumo), then support (the Medic, the Drummer, the
+Beekeeper) or ranged help behind whatever reaches the bridge; the
+Linebacker and the Samurai lead from the bridge. Frost counts as an
+answer to tanks and fighters, the water jet to fighters and swarms, armour
+to swarms, and each bee as half an elixir. Hard also punishes the other lane when you
 have just spent big.
 
 The Meteor is considered first at each decision: the bot predicts where each
@@ -119,6 +184,109 @@ already falling on.
 | Easy   | 1.4 s         | 2.2 s        | 10 elixir  | 35%           | 35%               | 5                   | where troops are now, ±2 tiles |
 | Medium | 0.6 s         | 1.0 s        | 8.5        | 80%           | 60%               | 4.2                 | straight-line lead, ±0.5       |
 | Hard   | 0.25 s        | 0.4 s        | 8.5        | always        | always            | 4.2, keeps 3 elixir | full lead, exact               |
+
+## Boosts and decks per player
+
+`createMatch(seed, difficulty, mode, options)` takes a deck and a `Boost`
+per seat and the regulation length. A boost carries card levels (+10% hit
+points and damage, or spell damage, a level above the first) and
+multipliers for troops, spells, elixir and towers (tower fields are read
+from the side's first seat); Quest charms and bosses are boosts.
+`summon` puts one troop down with its owner's boost (deploy, tests, the
+lab). Versus bots draw one of the ready-made decks in `decks.ts` by seed.
+
+## Versus decks: the deck phase and the draft
+
+The setup has no deck editor, only **Draft** (off by default, kept on the
+device as `gamehub.arena.draft`; at a table it is the host's and travels as
+`decks: 'pick' | 'draft'` in the launch). Every Versus battle, the first
+and each Again, opens with a deck phase over the loading screen (or the
+field), drawn by `deck-layer.tsx`:
+
+- **Draft off** (`DeckPicker` in `deck-editor.tsx`): your last deck
+  (`gamehub.arena.deck.v1`) is ready, every card sits below cheapest first,
+  the ready-made decks are quick picks and the average elixir shows as a
+  number. Tap a slot then a card, or a card then a slot, to swap. Ready
+  counts once the battle has loaded too; solo the battle then starts.
+  Online the room starts when every person is ready, or 30 s (`DECK_MS`)
+  after everyone opened it (8 s at most to join), with the deck each one
+  has; the others show as name badges with a dot.
+- **Draft on**, the Split draft (`lib/games/arena/draft.ts`, pure and
+  seeded): two rounds of four cards each, one per role (win condition:
+  `tank`/`siege` tags or tower-only targets; air: hits air, itself or its
+  spawn; splash: splash, swarm, spin, chain or three or more troops, never
+  tower-only; spell or support: spells, `support`/`fighter`/`control` tags,
+  anything else), filled scarcest role first. A lane (seats 0 and 1, 2 and
+  3) never sees a card twice, a round offers no card twice where the 24
+  allow it, and the Meteor is in one offer of the match at most. You keep
+  two (the second tap locks them), the other two go to the player across;
+  after two rounds everyone holds eight different cards. Rounds last 12 s
+  (a draining ring); the clock keeps your choice and fills it with the
+  highest-rated cards (`rate`: worth per elixir, plus what the deck still
+  lacks), and bots pick the same way at once. The cards fly (1.2 s), the
+  final eight show (1.5 s), then the battle. In 2 v 2 your teammate's offer
+  and live picks show under yours. Solo, a stall while the battle decodes
+  holds the clock (`holdClock`). Online the room runs it
+  (`POST /draft { round, picks }`, each viewer gets a redacted `DraftView`),
+  and after the draft waits for every device to say it loaded
+  (`POST /deck { loaded: true }`) or the 20 s start timeout.
+
+## Quest
+
+`lib/games/arena/quest.ts` holds the run as plain data and `questAct`
+applies each choice (returning null when it is not allowed), with its own
+dice, so the online room and every device agree. A run starts with three
+hearts, no charm and a **draft** of its deck (1 October 2026): three rounds,
+each three bundles of two cards from the reward pool, one bundle taken per
+round, so six cards. Each round tries a shape that makes the pick hard (a
+standout card, `TIER` 3, tied to a weak one against two solid pairs; a tank
+or win condition with nothing for the air against two bundles that each
+bring an air answer; the Meteor against two pairs of troops), shows cards
+not offered yet while enough remain, and keeps an offer only if every
+bundle still leads to a playable deck, so the last round completes it
+whatever is taken. Playable: at least one win card (`isWinCard`: a tank or
+siege troop, or a ground brawler of 1200 hit points or more) and one air
+answer (`isAirAnswer`: a troop that hits flyers). Cards still locked never
+appear. A run saved on the old charm pick loads into the draft
+(`upgradeQuest`). Each region's map has five rows of up to three stops
+(row 0 battles; a camp on the last row; a shop somewhere), each leading to
+one or two on the next, then the boss.
+
+The map is painted in (`quest-map.tsx`): the region's painting covers the
+screen and every trail, marker and cloud is placed in its pixels (`ART`
+holds each painting's open ground, the foot of its boss landmark and its
+water), so the stops stand on the open ground in perspective and the boss
+at its landmark. Trails are worn tracks with two lines of footprints; the
+ways on from where you stand glow and step forward. Cleared stops carry
+your blue flag, rows more than two ahead lie under drifting fog that rolls
+back as you climb, and the party's token (your lead card's face) walks the
+trail to the stop the host chooses before it opens. Cloud shadows, water
+glints and twinkles move gently; reduced motion stills all of it. The
+paintings are cut by `scripts/arena-splash.mjs` at their native size and a
+sharpened 2x for high-density screens (`srcset`).
+
+| Stop   | What happens                                                                                                                            |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Battle | 20 + 5 per crown gold; pick a new card, a new card, or an upgrade (or skip)                                                             |
+| Elite  | a stronger foe (level +1, one bot level harder, +12% troop and +20% tower HP); 40 + 5/crown; a charm                                    |
+| Camp   | rest (one heart) or train (one level)                                                                                                   |
+| Shop   | three cards (45 + 5 × cost), a charm (110), an upgrade (50); remove a card (40)                                                         |
+| Event  | one of eight strangers, a trade or leave                                                                                                |
+| Boss   | level +1 on the region's, hard bots, towers +40/55/70% and +15% damage, king awake; 60 gold, a charm, a heart back, and a card unlocked |
+
+Foes' card level is 1 + region (+1 from row 3). Battles run 120 s of
+regulation. A lost battle costs a heart (a lost boss is fought again); a
+draw is fought again. Decks hold five to eight cards; a new card into a full
+deck asks which card it replaces. Five cards (Viking, Miner, Inventor,
+Balloon, Gunner) join the reward pool one per boss beaten, kept on the
+device (`quest-store.ts`); the run itself is saved after every choice.
+
+Online, a table of one or two launches a Quest room: its people sit on the
+blue side (seats 0 and 2), the room holds the run and waits on the map
+(`status: 'map'`). The host's choices go to `POST /quest`; anyone else's
+`{ suggest }` shows on the thing they point at. A battle stop starts a
+battle as in Versus; when it ends the host's Continue (`/again`) hands the
+result to the run.
 
 ## Online
 
@@ -149,24 +317,44 @@ the crown counts and a small pause button that opens the shared game menu
 (settings online, where the battle cannot pause). On phones (≤600 px) the
 right holds only a square with the time: the crowns and the pause button
 give way, and the menu's trigger lies unseen over the clock, so tapping the
-time opens the menu. Every screen looks steeply down, at the classic
-tower-battle angle, so troops coming at you read all the way up the field:
-tall screens at 70° with a 26° lens, wide ones at 50° with a 36° lens
-(`lensFor` in `lib/games/arena/layout.ts`). The fit (`tallPoints` and
-`fitCamera`) keeps the field's side walls whole from your king's back to
-the far end, level on both sides, with the far towers' tops and your king,
-and centres them in the room between the top corners and the hand; on
-phones the width limits it and the spare height splits above and below.
-Beside a hand that covers only the middle of the bottom (wide screens) the
-near wall ends may drop below the hand's top edge (`isRim`, `Frame.dock`),
-so the field grows. The far king's bar is held on screen over its roof. A
-player on side 1 sees the mirrored framing; their team is blue.
+time opens the menu. Tall screens look steeply down the field, at the
+classic tower-battle angle, so troops coming at you read all the way up the
+field: 70° with a 26° lens (`lensFor` in `lib/games/arena/layout.ts`). The
+fit (`tallPoints` and `fitCamera`) keeps the field's side walls whole from
+your king's back to the far end, level on both sides, with the far towers'
+tops and your king, and centres them in the room between the top corners
+and the hand; on phones the width limits it and the spare height splits
+above and below. The far king's bar is held on screen over its roof.
 
-Troops are drawn larger than their footprint: 1.75 times on wide screens,
-2.3 times on portrait phones and 1.95 on tall windows elsewhere
-(`troopScale`), and their rings, shots, strides and health bars grow with
-them (the bars through `--figure`). The towers keep their size, since their
-footprint is the rules'. Phones draw at their screen's full density.
+Wide screens look **across** the field (2 October 2026): wherever the free
+area is at least 1.3 times as wide as it is tall (`SIDE_FROM`), the camera
+stands off the near side wall at 50° with a 30° lens, your king at the
+left and the other king at the right, the lanes running across the screen.
+Looking down the field there, it was a narrow strip with forest on both
+sides; turned, it fills the width and the field is drawn about 1.4 times
+larger (1.34 at 1180 × 820, 1.52 at 1280 × 720). The fit (`acrossPoints`) keeps both side walls end to end,
+every tower's top and both kings; `fitCamera` solves it in a frame turned
+a quarter (`toSolve`), so the same solver serves both looks. Beside a hand
+that covers only the middle of the bottom, the near wall's ends may drop
+below the hand's top edge (`isRim`, `Frame.dock`) while its middle stays
+above it. The hover card then lies on its side in the meadow under the
+field, right of the hand (`fieldBottom`, `.arena-peek.wide`). Free areas
+between square and 1.3 blend from the steep look towards 42° with a 36°
+lens. A player on side 1 sees the mirrored framing; their team is blue.
+
+Troops are drawn larger than their footprint: about 2.4 times on wide
+screens, 3.1 times on portrait phones and 2.6 on tall windows elsewhere
+(`troopScale`, grown 15% on 2 October 2026), and their rings, shots,
+strides and health bars grow with them (the bars through `--figure`).
+Towers stand taller than the troops: since 3 October 2026 they are drawn
+at 1.05 of their model size looking across the field and 1.35 on portrait
+screens looking down it, where they also take more of the field
+(`towerScale` in layout.ts, read through `world.towerScale`; 0.8 before,
+0.7 until 2 October). At 1.0 a model fills the rules' footprint, which
+stays the same; a screen that changes size class places the towers again.
+Their archers grow with the square root of the towers' growth, and the
+camera's key points keep the taller tower tops on screen. Phones draw at their
+screen's full density.
 
 A troop or the placement ghost hidden behind a tower, a keep, a bridge or
 scenery shows through as a soft silhouette in its team's colour as you see
@@ -211,6 +399,12 @@ major effects briefly duck the music, with reserved voices for important cues
 and a safety compressor on the combined mix. Pause, mute, backgrounding and
 leaving silence the appropriate buses and cancel delayed effects.
 
+The troops of 1 October 2026 have no clips of their own yet (the ElevenLabs
+credits ran out until 26 October): `BORROWED` in `sound.ts` maps each one's
+deploy, attack and death to the nearest fitting clip, and the stomp, tackle,
+bee release, frost hit and armour clank borrow clips too. The water jet and
+the bees' stings skip the melee thud.
+
 ## Art and build
 
 The art direction is Collector's Diorama (26 September 2026, night): a
@@ -234,7 +428,7 @@ board).
   2048/1024 albedo tiles plus 1024 normal and AO/roughness/metal maps.
   Prompts and picks are in the retheme README; the v3 sources stay beside
   them. Refresh the manifest with `node scripts/arena-assets.mjs --textures
-  --only=none` (the game reads `assets.json`, not `textures.json`).
+--only=none` (the game reads `assets.json`, not `textures.json`).
 - Materials: Blender materials are named `<tile or family>:<tint>`. Tiles
   dress most surfaces; the families (`plastic`, `vinyl`, `rubber`, `tin`,
   `chrome`, `paint`, `beech`, `felt`) in `materials.ts` are kept for the
@@ -256,18 +450,109 @@ board).
   `poses` extra (part → Blender quaternion), which `TowerCrew` blends. The
   figures use the miniature families `resin`, `lacquer`, `gilt`, `hide` and
   `weave` (`materials.ts`).
-- Card portraits: `assets/arena/cards/card-<id>-v5-{a,b}.png`, polished
-  cartoon characters (bold chunky shapes, expressive faces, soft cel-like
-  shading) filling the card in front of a simple painted backdrop of their
-  era (a lunar landing, a Cretaceous jungle, an atomic-age lab, a castle
-  courtyard, a frontier town, a 1917 airfield, a tower library, a dusk
-  valley for the Meteor). Each shows as many troops as the card deploys: two
-  Cadets, three Robots, one of the others. The pick per card is in
-  `CARD_ART` in `scripts/arena-assets.mjs`. The v4 set (the game's clean 3D
-  look) and v3 set (detailed miniatures on bases) are kept beside them.
-  Library covers:
-  `assets/arena/concepts/box-arena-square-v4-a.png` and
-  `box-arena-wide-v4-b.png`, served under the old `v1` names.
+- Card portraits: `assets/arena/cards/card-<id>-v7-{a,b}.png` (1 October
+  2026, all 24 cards), polished cartoon characters (bold chunky shapes, soft
+  cel-like shading) caught in action, mid-attack, charging, casting, firing
+  or bracing, eyes on their target and never posing or smiling for the
+  viewer, big and centred in front of a simple painted backdrop of their
+  era; the Meteor's trail rises from a cobalt tower. Each shows as many
+  troops as the card deploys: two Cadets, three Robots, one of the others.
+  The pick per card is in `CARD_ART` in `scripts/arena-assets.mjs`; prompts,
+  attempts and contact sheets in docs/concepts/2026-10-01-arena-draft
+  (`portraits.md`). The earlier sets are kept beside them: v5/v6 (the same
+  cartoon look, posed), v4 (the game's clean 3D look) and v3 (detailed
+  miniatures on bases).
+  Library covers (1 October 2026): cartoon key art in the loading screen's
+  style, `assets/arena/concepts/box-arena-square-v5-a.png` and
+  `box-arena-wide-v5-a.png`, served as `box-arena-blind-v2` and
+  `box-arena-wide-v2` (prompts in concepts/2026-10-01-arena-covers).
+- Every troop is a `figure_<id>.py` file (each with a private `_kit.py`),
+  animated by `components/game/arena/moves/<id>.ts` (contract in
+  `moves/types.ts`: the shared walk runs first, then the troop's `pose`,
+  and an optional `arrive` for its entrance; the first seven moved there
+  from troops.ts on 3 October 2026). A joint a pose asks for is its own:
+  the shared code then leaves it alone. Soft joints (`hat`, `beard`,
+  `hair`, `neck`, `tail2`, `tail3`, `cape`, `cape2`, `antenna`, sleeves,
+  wrists) rest unless a pose drives them, from the body's motion on the
+  context (`accel`, `lateral`, `vertical`, `turn`), with per-joint
+  `stiff` and `damping` on the troop's Moves; `idleFor` and per-troop
+  `memo` time idle fidgets. Cloth painted with the `drape` family ripples
+  and billows in the vertex shader (`addDrape` in wind.ts), more while the
+  troop moves (sent as its batch colour's alpha above 1): `kit.drape(obj)`
+  gives the drape faces a `Wave` UV set (0 at the seam, 1 at the hem). The
+  shadow caster and the x-ray pass move the cloth the same way. Coat tails and
+  kilts are `skirtL`/`skirtR` parts on the torso that trail the legs; elbows
+  are `foreL`/`foreR`. `ARENA_FIGURES=a,b` limits a figures build to those
+  ids; `/arena/lab?only=a,b&figures=/3d/arena/dev/<file>.glb` previews a
+  build that has not shipped (public/3d/arena/dev is not tracked).
+- The first seven troops were reworked on 3 October 2026 (brief in
+  docs/concepts/2026-10-03-arena-flair): each has idle fidgets timed by
+  `idleFor`, its own attack (`custom`), an entrance and a hit reaction, and
+  soft parts. The Cadets' antenna and hinged visor; the Dino's big
+  three-toed feet, elbows and a three-link tail (`tail`, `tail2`,
+  `tail3`); the Robots' antenna, eyelids (`extra`), gauge needle
+  (`extra2`) and snapping claws (`handL`/`handR`); the Samurai's tassets
+  (`skirtL`/`skirtR`), shoulder plates (`sleeveL`/`sleeveR`), neck guard
+  (`hat`) and a back banner (`cape`, drape); the Cowboy's elbows, hat,
+  neckerchief (`beard`, `cape2`) and rippling coat tails; the Biplane's
+  bigger pilot (`neck`, `head`, arms), scarf (`cape`, turned back by its
+  rest pose so the ripple runs across it), ailerons (`wingL`/`wingR`),
+  elevators (`tail`), rudder (`extra`), wheels and bomb; the Wizard's
+  two-link cape (`cape`, `cape2`) under a capelet, robe skirt (`extra2`),
+  hat tip, beard, elbows and flame (`extra`). Several figures cut their own
+  knees, so `articulation.legs` leaves them alone. Walkers lean into turns
+  (they leaned out before).
+- The original eight figures (including the tower archer) have separate
+  eyes, pupils, brows and mouth pieces, cut from their existing sculpts by
+  `face_rig.py`. `faces.ts` gives each instance its own blink and glance,
+  tightens its eyes when aiming or hit, and lifts the Dino's upper lids as
+  it rears before a bite; its amber eyes are larger and brighter so the
+  reaction reads on the field. Reduced motion holds idle faces still. Every
+  feature resets before another instance uses the same render kit.
+  Joint ownership uses names rather than a 32-bit mask: the later scarf,
+  sleeve and wrist parts used to alias legs, knees, torso and head, leaving
+  the Cowboy limping and the Samurai's gait blocked. The Cadets now breathe
+  and gesture with their feet planted; their entrance has one landing,
+  with no second hop or spin, and their walk has a small, steady bounce.
+  The Cowboy's rifle clears the coat, lifts in front of his shoulder, then
+  settles onto it; arm, forearm and rifle follow the same path on matched
+  damped springs, lowering along it before the two-hand aim.
+- The other sixteen card troops and the spawned Bee use the same grounded
+  gait, spring poses and facial rig. Each keeps its own entrance, idle,
+  attack preparation and recovery; articulated elbows, wrists and secondary
+  parts keep grips and equipment connected through those moves. Idle
+  fidgets stop with reduced motion. A stun holds the interrupted pose and
+  a dazed face until it expires; a push visibly skids and tips the recipient
+  in the impulse direction, without pretending it walked the displacement.
+- `status-state.ts` derives active effects from the current unit, including
+  restored online snapshots. `status.ts` attaches outlined symbols above
+  each recipient: orbiting stars for stun, a snowflake for slow, an
+  exclamation mark for taunt, double chevrons for the Drummer's haste, a
+  shield while armour remains, and a flame while the Viking's health rage
+  is active. Healing events name only allies whose health actually rose and
+  give those allies a brief plus. Push events carry origin and destination
+  for the recoil and dust trail. Symbols have distinct shapes and remain
+  still under reduced motion; expired effects disappear immediately.
+- The eight troops of 1 October 2026 (diver, sumo, linebacker, beekeeper,
+  drummer, firefighter, jetpack, explorer) and the Beekeeper's `bee` share
+  one kit, `figure_folk_kit.py`: one palette of pots (so they share draw
+  batches), her and his head sculpts, lighter painted eyes with a focused
+  frown and a firm or gritted mouth (never a grin), shoes, limbs, grips and
+  the knee split. Each is 8.3k–10.9k triangles (the bee 530); `<ID>_POSE`
+  poses a preview. The Sumo is built at figure size and scaled 1.22 at the
+  end; his open hands are `weapon`/`offhand` on wrist joints. The Drummer's
+  drum, the Beekeeper's hive and the Jetpack's flames are `extra`. The
+  bees are ordinary flying figures (wings `wingL`/`wingR`), so they get
+  rings, bars and the x-ray like any troop. Their abilities draw in
+  `AbilityEffects` (`effects.ts`): the beat ring, the stomp's shock rings,
+  the water jet (a streaked cone shader with droplets and mist), armour
+  sparks, tackle bursts, knock-back dust, frost rings and flakes on slowed
+  troops (with an icy batch tint, `TroopView.frost`), the Jetpack's exhaust
+  and the Beekeeper's smoke; frost shots are glowing ice shards.
+- The loading splash and the Quest region maps are paintings
+  (`assets/arena/concepts/loading-*`, `quest-map-*`, prompts in
+  concepts/2026-09-29-arena-quest); `node scripts/arena-splash.mjs` cuts the
+  picks into `public/art/optimized/arena-loading-*` and `arena-quest-*`.
 - `node scripts/arena-assets.mjs [--textures] [--only=towers,troops,props,cards,covers]`
   runs Blender headless, writes hashed files to `public/3d/arena/` and the
   manifest `lib/games/arena/assets.json`; `scripts/production-assets.mjs`
@@ -284,7 +569,10 @@ board).
   slab, the plinth and the water), `world.ts` (sky, haze, reflections and
   light; bridges, walls, embankments; the forest scatter and camp dressing,
   merged and culled), `troops.ts` (animation: a pose per frame, every joint
-  on a spring; every troop part drawn through one BatchedMesh per material),
+  on a spring except the legs, which a ground solver puts on feet planted
+  in world space, timed by a distance-driven cycle and a per-troop gait
+  profile from `lib/games/arena/gait.ts`; every troop part drawn through
+  one BatchedMesh per material),
   `effects.ts` (shots, the falling Meteor and its ring, scorches,
   particles, the drop zone and the placement ghost), `view.ts`, `session.ts`
   (solo battles) and `online.ts` (lockstep client), `pacer.ts` (the quality

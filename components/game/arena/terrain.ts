@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Textures } from './materials';
+import { WIND_GLSL, type Wind } from './wind';
 
 /**
  * The diorama's landscape: a forested valley modelled on a slab that floats
@@ -202,6 +203,24 @@ for (const s of [1, -1])
     PATHS.push([0, s * 13, x, s * 9.5]);
   }
 
+/** How far a field point is from the nearest lane path's centre line and
+ *  from the nearest tower spot's edge (negative inside it), in metres. */
+export function laneAndRing(px: number, pz: number) {
+  let path = 1e3;
+  for (const [ax, az, bx, bz] of PATHS) {
+    const [dx, dz] = [bx - ax, bz - az];
+    const t = Math.min(
+      1,
+      Math.max(0, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)),
+    );
+    path = Math.min(path, Math.hypot(px - ax - dx * t, pz - az - dz * t));
+  }
+  let ring = 1e3;
+  for (const [tx, tz, r] of TOWER_SPOTS)
+    ring = Math.min(ring, Math.hypot(px - tx, pz - tz) - r);
+  return { path, ring };
+}
+
 /** The area of the distance texture: the field and its walls, in metres. */
 const FIELD_BOX = { x: 11, z: 19, perMetre: 8 };
 
@@ -219,18 +238,7 @@ function fieldDistances() {
     for (let i = 0; i < w; i++) {
       const px = ((i + 0.5) / w) * 2 * FIELD_BOX.x - FIELD_BOX.x;
       const pz = ((j + 0.5) / h) * 2 * FIELD_BOX.z - FIELD_BOX.z;
-      let path = 1e3;
-      for (const [ax, az, bx, bz] of PATHS) {
-        const [dx, dz] = [bx - ax, bz - az];
-        const t = Math.min(
-          1,
-          Math.max(0, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)),
-        );
-        path = Math.min(path, Math.hypot(px - ax - dx * t, pz - az - dz * t));
-      }
-      let ring = 1e3;
-      for (const [tx, tz, r] of TOWER_SPOTS)
-        ring = Math.min(ring, Math.hypot(px - tx, pz - tz) - r);
+      const { path, ring } = laneAndRing(px, pz);
       const k = (j * w + i) * 4;
       // Only the first few metres matter: paths as 0–4 m, rings as −2–4 m.
       data[k] = Math.round((Math.min(path, 4) / 4) * 255);
@@ -294,6 +302,7 @@ export function makeGround(
   textures: Textures,
   noise: THREE.Texture,
   lite = false,
+  wind?: Wind,
 ) {
   // Fine over the field, its walls and the banks, coarser out in the
   // valley, whose hills are gentle.
@@ -322,6 +331,10 @@ export function makeGround(
     }
     shader.uniforms.tNoise = { value: noise };
     shader.uniforms.tField = { value: distances };
+    if (wind) {
+      Object.assign(shader.uniforms, wind);
+      shader.defines = { ...shader.defines, GROUND_WIND: '' };
+    }
     shader.vertexShader = shader.vertexShader
       .replace(
         'void main() {',
@@ -341,6 +354,9 @@ export function makeGround(
         ${layers.map((l) => `uniform sampler2D t_${l}; uniform sampler2D n_${l};`).join('\n')}
         uniform sampler2D tNoise;
         uniform sampler2D tField;
+        #ifdef GROUND_WIND
+        ${WIND_GLSL}
+        #endif
         vec2 rot(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
         vec3 unpackN(vec4 t) { return t.xyz * 2.0 - 1.0; }
         float gW[5];
@@ -350,6 +366,9 @@ export function makeGround(
         vec2 gDx;
         vec2 gDy;
         float gOutside;
+        // How much of the pixel is clay lane and woods, for the relief.
+        float gClay;
+        float gWood;
         vec4 layer(sampler2D t, vec2 uv, float scale) {
           return textureGrad(t, uv, gDx * scale, gDy * scale);
         }
@@ -392,10 +411,10 @@ export function makeGround(
           vec2 uv = vec2(p.x, -p.y);
           gDx = dFdx(uv);
           gDy = dFdy(uv);
-          gUV[0] = uv / 3.2;
+          gUV[0] = uv / 4.2;
           gUV[1] = uv / 2.4;
-          gUV[2] = uv / 3.4;
-          gUV[3] = uv / 3.0;
+          gUV[2] = uv / 3.6;
+          gUV[3] = uv / 4.6;
           gUV[4] = uv / 2.2;
         }
         void main() {`,
@@ -403,42 +422,65 @@ export function makeGround(
       .replace(
         '#include <map_fragment>',
         `groundWeights(vW.xz);
-        vec4 big = texture2D(tNoise, vW.xz * 0.03);
-        // Meadow sampled twice at unrelated scales so its repeat never shows.
-        vec3 grass = vec3(0.0);
-        if (gW[0] > 0.0) {
-          grass = layer(t_grass, gUV[0], 1.0 / 3.2).rgb;
-          #ifndef GROUND_LITE
-          vec3 grass2 = textureGrad(t_grass, rot(gUV[0] * 0.43, 0.7) + 0.37,
-            rot(gDx * (0.43 / 3.2), 0.7), rot(gDy * (0.43 / 3.2), 0.7)).rgb;
-          grass = mix(grass, grass2, 0.5 * smoothstep(0.35, 0.65, big.b));
-          #endif
+        vec4 big = texture2D(tNoise, vW.xz * 0.021 + 0.13);
+        vec4 mid = texture2D(tNoise, vW.xz * 0.07 + 0.52);
+        // Painted turf (v5) repeats every 5.6 m. A second copy, turned and
+        // at another scale, fades in by patches so the repeat never lines
+        // up across the field; phones skip it.
+        vec3 turf = layer(t_grass, vW.xz / 5.6, 1.0 / 5.6).rgb;
+        #ifndef GROUND_LITE
+        vec3 turf2 = textureGrad(t_grass, rot(vW.xz / 7.9, 0.9) + 0.37,
+          rot(gDx / 7.9, 0.9), rot(gDy / 7.9, 0.9)).rgb;
+        turf = mix(turf, turf2, 0.55 * smoothstep(0.38, 0.62, mid.b));
+        #endif
+        // Calm the blade detail a little so it reads as painted strokes,
+        // not noise, then drift the meadow's colour over tens of metres:
+        // deeper jade in some patches, warmer sunlit green in others.
+        vec3 turfMean = vec3(0.085, 0.25, 0.1);
+        turf = mix(turfMean, turf, 0.62);
+        float drift = smoothstep(0.3, 0.72, big.r);
+        turf *= mix(vec3(0.86, 0.95, 1.0), vec3(1.1, 1.04, 0.86), drift);
+        turf *= 0.98 + 0.16 * smoothstep(0.25, 0.75, mid.g);
+        vec3 woods = layer(t_forest, vW.xz / 4.6, 1.0 / 4.6).rgb;
+        woods *= mix(vec3(1.02, 1.0, 0.95), vec3(0.9, 1.0, 0.98), smoothstep(0.35, 0.7, mid.r));
+        vec2 fd = texture2D(tField, vec2(
+          (vW.x + ${FIELD_BOX.x.toFixed(1)}) / ${(FIELD_BOX.x * 2).toFixed(1)},
+          (vW.z + ${FIELD_BOX.z.toFixed(1)}) / ${(FIELD_BOX.z * 2).toFixed(1)})).rg;
+        float path = 1.0 - smoothstep(0.43, 0.55, fd.r * 4.0);
+        float bank = 1.0 - smoothstep(1.10, 1.42, abs(vW.z));
+        // Terracotta lanes (the v5 clay tile) through a jade meadow give
+        // Arena its own palette, with no checkerboard or tiled stadium lawn.
+        vec3 clay = layer(t_dirt, vW.xz / 3.6, 1.0 / 3.6).rgb;
+        clay = mix(vec3(0.5, 0.24, 0.14), clay, 0.85) * vec3(0.98, 0.94, 0.92);
+        clay *= 0.94 + 0.1 * smoothstep(0.3, 0.7, mid.a);
+        // A warm worn shoulder where the lanes meet the grass.
+        float shoulder = (1.0 - smoothstep(0.55, 0.72, fd.r * 4.0)) * (1.0 - path);
+        turf = mix(turf, turf * vec3(1.18, 0.98, 0.66), shoulder * 0.45);
+        // Trodden earth round each tower's foot, ragged at the edge, where
+        // the guards walk and the grass gives way.
+        float ringD = fd.g * 6.0 - 2.0 + (mid.r - 0.5) * 0.7;
+        float worn = (1.0 - smoothstep(-1.3, -0.55, ringD)) * (1.0 - gOutside);
+        turf = mix(turf, mix(turf, clay, 0.45) * vec3(1.04, 0.96, 0.86), worn * 0.7);
+        float clayW = max(path * 0.85, bank);
+        vec3 field = mix(turf, clay, clayW);
+        vec3 ground = mix(field, mix(turf, woods, gW[3]), gOutside);
+        gClay = clayW * (1.0 - gOutside);
+        gWood = gW[3] * gOutside;
+        ground *= mix(1.0, 0.78, smoothstep(-0.2, -0.6, vW.y));
+        #ifdef GROUND_WIND
+        {
+          // Gusts lay the grass over and it catches the light: a pale
+          // sheen rolling across the meadow with the wind (the blades in
+          // grass.ts bend with the same gusts).
+          float turfW = (1.0 - gClay) * (1.0 - gWood);
+          float g = gustAt(vW.xz) * turfW * uWindAmp;
+          ground = mix(ground, ground * vec3(1.13, 1.12, 0.94), g * 0.6);
+          // Cloud shadows drifting slowly over the valley.
+          float cloud = smoothstep(0.5, 0.8, texture2D(tNoise,
+            vW.xz * 0.0105 + vec2(0.21, 0.63) - uWindDir * uWindTime * 0.0045).b);
+          ground *= 1.0 - 0.14 * cloud;
         }
-        grass *= mix(vec3(0.9, 0.95, 0.88), vec3(1.05, 1.03, 0.9), smoothstep(0.3, 0.75, big.r));
-        // Moss on the field is a little deeper so the pale cobbles stand
-        // out on it; the valley's meadow is a calmer green.
-        grass *= mix(vec3(0.84, 0.92, 0.84), vec3(0.86, 0.9, 0.76), gOutside);
-        // A faint checker on the field helps judge where troops land.
-        vec2 tile = floor(vec2(vW.x + 9.0, 16.0 - vW.z));
-        float inField = step(abs(vW.x), 9.0) * step(abs(vW.z), 16.0);
-        grass *= 1.0 - 0.035 * inField * mod(tile.x + tile.y, 2.0);
-        // Layers are painted in patches, so most pixels skip most layers:
-        // a layer without weight is never sampled (same picture, less work).
-        vec3 ground = grass * gW[0];
-        if (gW[1] > 0.0) ground += layer(t_cobble, gUV[1], 1.0 / 2.4).rgb * gW[1];
-        if (gW[2] > 0.0) ground += layer(t_dirt, gUV[2], 1.0 / 3.4).rgb * gW[2];
-        if (gW[3] > 0.0) {
-          vec3 forest = layer(t_forest, gUV[3], 1.0 / 3.0).rgb;
-          #ifndef GROUND_LITE
-          vec3 forest2 = textureGrad(t_forest, rot(gUV[3] * 0.51, 1.9) + 0.21,
-            rot(gDx * (0.51 / 3.0), 1.9), rot(gDy * (0.51 / 3.0), 1.9)).rgb;
-          forest = mix(forest, forest2, 0.45 * smoothstep(0.35, 0.65, big.a));
-          #endif
-          ground += forest * gW[3];
-        }
-        if (gW[4] > 0.0) ground += layer(t_pebbles, gUV[4], 1.0 / 2.2).rgb * gW[4];
-        // Wet stones under the water are darker and richer.
-        ground *= mix(1.0, 0.72, smoothstep(-0.2, -0.6, vW.y));
+        #endif
         diffuseColor.rgb *= ground;`,
       )
       .replace(
@@ -448,24 +490,20 @@ export function makeGround(
       .replace(
         '#include <normal_fragment_maps>',
         `{
-          #ifdef GROUND_LITE
-          // Phones: relief from the meadow and the stones only.
-          vec3 level = vec3(0.0, 0.0, 1.0);
-          vec3 tn = level * (gW[2] + gW[3]);
-          if (gW[0] > 0.0) tn += unpackN(layer(n_grass, gUV[0], 1.0 / 3.2)) * gW[0];
-          if (gW[1] > 0.0) tn += unpackN(layer(n_cobble, gUV[1], 1.0 / 2.4)) * gW[1];
-          if (gW[4] > 0.0) tn += unpackN(layer(n_pebbles, gUV[4], 1.0 / 2.2)) * gW[4];
-          #else
+          // Relief from the same tiles, at the same place and scale, as the
+          // colour above: meadow, clay lanes and (not on phones) the woods.
           vec3 tn = vec3(0.0);
-          if (gW[0] > 0.0) tn += unpackN(layer(n_grass, gUV[0], 1.0 / 3.2)) * gW[0];
-          if (gW[1] > 0.0) tn += unpackN(layer(n_cobble, gUV[1], 1.0 / 2.4)) * gW[1];
-          if (gW[2] > 0.0) tn += unpackN(layer(n_dirt, gUV[2], 1.0 / 3.4)) * gW[2];
-          if (gW[3] > 0.0) tn += unpackN(layer(n_forest, gUV[3], 1.0 / 3.0)) * gW[3];
-          if (gW[4] > 0.0) tn += unpackN(layer(n_pebbles, gUV[4], 1.0 / 2.2)) * gW[4];
+          float wTurf = (1.0 - gClay) * (1.0 - gWood);
+          if (wTurf > 0.0) tn += unpackN(layer(n_grass, vW.xz / 5.6, 1.0 / 5.6)) * wTurf;
+          if (gClay > 0.0) tn += unpackN(layer(n_dirt, vW.xz / 3.6, 1.0 / 3.6)) * gClay;
+          #ifdef GROUND_LITE
+          tn += vec3(0.0, 0.0, 1.0) * gWood;
+          #else
+          if (gWood > 0.0) tn += unpackN(layer(n_forest, vW.xz / 4.6, 1.0 / 4.6)) * gWood;
           #endif
-          // Tiles load unflipped, so their green points towards +z here.
-          tn.y = -tn.y;
-          tn.xy *= 0.9;
+          // Sampled on world x and z, the tiles' green already points along
+          // the bitangent below (towards -z), so no flip is needed.
+          tn.xy *= 0.45;
           vec3 N = normalize(vWN);
           vec3 T = normalize(vec3(1.0, 0.0, 0.0) - N * N.x);
           vec3 B = cross(N, T);
@@ -474,7 +512,8 @@ export function makeGround(
         }`,
       );
   };
-  material.customProgramCacheKey = () => `arena-ground${lite ? '-lite' : ''}`;
+  material.customProgramCacheKey = () =>
+    `arena-ground${lite ? '-lite' : ''}${wind ? '-wind' : ''}`;
   const mesh = new THREE.Mesh(geo, material);
   mesh.receiveShadow = true;
   mesh.name = 'ground';
@@ -542,8 +581,8 @@ export function makePlinth(textures: Textures) {
         '#include <map_fragment>',
         `// A lip of turf, then dark topsoil and packed earth, then rock.
         float below = vCut.y;
-        vec3 soil = texture2D(tDirt, vCut * vec2(0.35, 0.5)).rgb * vec3(0.5, 0.4, 0.32);
-        vec3 stone = texture2D(tRock, vCut * vec2(0.22, 0.3)).rgb * 0.6;
+        vec3 soil = vec3(0.42, 0.24, 0.15) * mix(vec3(1.0), texture2D(tDirt, vCut * vec2(0.35, 0.5)).rgb, 0.12);
+        vec3 stone = vec3(0.36, 0.34, 0.43) * mix(vec3(1.0), texture2D(tRock, vCut * vec2(0.22, 0.3)).rgb, 0.12);
         float band = smoothstep(0.55, 1.2, below + sin(vCut.x * 0.7) * 0.18);
         vec3 cut = mix(soil, stone, band);
         float turf = 1.0 - smoothstep(0.05, 0.13, below);
@@ -614,9 +653,9 @@ export function makeWater(noise: THREE.Texture, ripples: THREE.Texture) {
       uSun: { value: new THREE.Vector3(-0.45, 0.8, 0.4).normalize() },
       // Bright cartoon water: a clear blue deep, turquoise shallows and
       // the sky in the reflections.
-      uDeep: { value: new THREE.Color('#1f6fae') },
-      uShallow: { value: new THREE.Color('#3fb2c4') },
-      uSky: { value: new THREE.Color('#bfe3f5') },
+      uDeep: { value: new THREE.Color('#2178c0') },
+      uShallow: { value: new THREE.Color('#44bed2') },
+      uSky: { value: new THREE.Color('#c8e9f8') },
     },
   ]);
   uniforms.tNoise.value = noise;
@@ -662,6 +701,18 @@ export function makeWater(noise: THREE.Texture, ripples: THREE.Texture) {
         float bank = smoothstep(0.62, 1.02, abs(p.y));
         float foam = bank * smoothstep(0.42, 0.62, f1 + bank * 0.25);
         foam += smoothstep(0.7, 0.78, f2) * 0.35 * (1.0 - bank);
+        // The stream runs towards -x. At each bridge it piles up against
+        // the deck's upstream edge and streams off its downstream edge in
+        // a churned wake that fades over a few metres.
+        for (int i = 0; i < 2; i++) {
+          float dx = p.x - (i == 0 ? -5.5 : 5.5);
+          float wake = (1.0 - smoothstep(-1.32, -1.12, dx)) * smoothstep(-5.0, -1.4, dx);
+          float churn = texture2D(tNoise, vec2(p.x * 0.55 + uTime * 0.42, p.y * 1.7 + float(i) * 0.37)).r
+            + texture2D(tNoise, vec2(p.x * 1.3 + uTime * 0.7, p.y * 3.1 + 0.2)).g * 0.5;
+          foam += wake * smoothstep(0.78, 1.02, churn) * 0.85;
+          float pile = smoothstep(0.9, 1.15, dx) * (1.0 - smoothstep(1.15, 1.6, dx));
+          foam += pile * smoothstep(0.35, 0.6, f1 + 0.2) * 0.6;
+        }
         col = mix(col, vec3(0.96, 0.98, 1.0), clamp(foam, 0.0, 1.0));
         float alpha = mix(0.62, 0.9, depth) + foam * 0.2;
         gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));

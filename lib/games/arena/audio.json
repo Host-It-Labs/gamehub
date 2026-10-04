@@ -1,10 +1,10 @@
 {
   "battle-start": {
     "srcs": [
-      "/audio/arena/battle-start-70d5fffb.mp3"
+      "/audio/arena/battle-start-92f4f0f3.mp3"
     ],
-    "duration": 2.0,
-    "gain": 0.9,
+    "duration": 1.0,
+    "gain": 0.8,
     "loop": false
   },
   "overtime": {
@@ -349,10 +349,298 @@
   },
   "music-final": {
     "srcs": [
-      "/audio/arena/music-final-834fdfa7.mp3"
+      "/audio/arena/music-final-2349499b.mp3"
     ],
-    "duration": 38.334875,
+    "duration": 53.251813,
     "gain": 0.8,
     "loop": true
+  },
+  "music-option-a-battle": {
+    "srcs": [
+      "/audio/arena/music-option-a-battle-b756c9f4.mp3"
+    ],
+    "duration": 57.5,
+    "gain": 0.8,
+    "loop": true
+  },
+  "music-option-a-final": {
+    "srcs": [
+      "/audio/arena/music-option-a-final-e6b74638.mp3"
+    ],
+    "duration": 53.246979,
+    "gain": 0.8,
+    "loop": true
+  },
+  "music-option-b-battle": {
+    "srcs": [
+      "/audio/arena/music-option-b-battle-abd1cf7e.mp3"
+    ],
+    "duration": 57.5,
+    "gain": 0.8,
+    "loop": true
+  },
+  "music-option-b-final": {
+    "srcs": [
+      "/audio/arena/music-option-b-final-e249cf73.mp3"
+    ],
+    "duration": 53.242313,
+    "gain": 0.8,
+    "loop": true
+  },
+  "shell-shot": {
+    "srcs": [
+      "/audio/arena/shell-shot-3ed9212c.mp3"
+    ],
+    "duration": 0.8,
+    "gain": 0.75,
+    "loop": false
+  },
+  "zap-chain": {
+    "srcs": [
+      "/audio/arena/zap-chain-183c8448.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.7,
+    "loop": false
+  },
+  "shell-blast": {
+    "srcs": [
+      "/audio/arena/shell-blast-bf4f428c.mp3"
+    ],
+    "duration": 0.57,
+    "gain": 0.8,
+    "loop": false
+  },
+  "drop-blast": {
+    "srcs": [
+      "/audio/arena/drop-blast-029665f8.mp3"
+    ],
+    "duration": 0.88,
+    "gain": 0.85,
+    "loop": false
+  },
+  "balloon-crash": {
+    "srcs": [
+      "/audio/arena/balloon-crash-0faa9d2c.mp3"
+    ],
+    "duration": 1.1,
+    "gain": 0.9,
+    "loop": false
+  },
+  "medic-heal": {
+    "srcs": [
+      "/audio/arena/medic-heal-c30d4e17.mp3"
+    ],
+    "duration": 0.37,
+    "gain": 0.6,
+    "loop": false
+  },
+  "shield-break": {
+    "srcs": [
+      "/audio/arena/shield-break-43d60544.mp3"
+    ],
+    "duration": 0.68,
+    "gain": 0.8,
+    "loop": false
+  },
+  "miner-dig": {
+    "srcs": [
+      "/audio/arena/miner-dig-ead8dd57.mp3"
+    ],
+    "duration": 0.76,
+    "gain": 0.7,
+    "loop": false
+  },
+  "miner-emerge": {
+    "srcs": [
+      "/audio/arena/miner-emerge-a3e44bfb.mp3"
+    ],
+    "duration": 0.68,
+    "gain": 0.8,
+    "loop": false
+  },
+  "pirate-leap": {
+    "srcs": [
+      "/audio/arena/pirate-leap-ffa3fbfa.mp3"
+    ],
+    "duration": 0.34,
+    "gain": 0.7,
+    "loop": false
+  },
+  "viking-rage": {
+    "srcs": [
+      "/audio/arena/viking-rage-68ff9146.mp3"
+    ],
+    "duration": 0.68,
+    "gain": 0.75,
+    "loop": false
+  },
+  "stun": {
+    "srcs": [
+      "/audio/arena/stun-d925a318.mp3"
+    ],
+    "duration": 0.48,
+    "gain": 0.55,
+    "loop": false
+  },
+  "pirate-deploy": {
+    "srcs": [
+      "/audio/arena/pirate-deploy-21204078.mp3"
+    ],
+    "duration": 0.68,
+    "gain": 0.75,
+    "loop": false
+  },
+  "viking-deploy": {
+    "srcs": [
+      "/audio/arena/viking-deploy-876749ac.mp3"
+    ],
+    "duration": 0.61,
+    "gain": 0.75,
+    "loop": false
+  },
+  "gladiator-deploy": {
+    "srcs": [
+      "/audio/arena/gladiator-deploy-1641da38.mp3"
+    ],
+    "duration": 0.39,
+    "gain": 0.75,
+    "loop": false
+  },
+  "medic-deploy": {
+    "srcs": [
+      "/audio/arena/medic-deploy-ebd1d7d2.mp3"
+    ],
+    "duration": 0.3,
+    "gain": 0.75,
+    "loop": false
+  },
+  "balloon-deploy": {
+    "srcs": [
+      "/audio/arena/balloon-deploy-784f562d.mp3"
+    ],
+    "duration": 0.55,
+    "gain": 0.75,
+    "loop": false
+  },
+  "inventor-deploy": {
+    "srcs": [
+      "/audio/arena/inventor-deploy-6b2e8e34.mp3"
+    ],
+    "duration": 0.62,
+    "gain": 0.75,
+    "loop": false
+  },
+  "gunner-deploy": {
+    "srcs": [
+      "/audio/arena/gunner-deploy-57af3dec.mp3"
+    ],
+    "duration": 0.48,
+    "gain": 0.75,
+    "loop": false
+  },
+  "pirate-death": {
+    "srcs": [
+      "/audio/arena/pirate-death-c2201933.mp3"
+    ],
+    "duration": 0.54,
+    "gain": 0.6,
+    "loop": false
+  },
+  "viking-death": {
+    "srcs": [
+      "/audio/arena/viking-death-2b06b287.mp3"
+    ],
+    "duration": 0.68,
+    "gain": 0.6,
+    "loop": false
+  },
+  "gladiator-death": {
+    "srcs": [
+      "/audio/arena/gladiator-death-c0ddd80f.mp3"
+    ],
+    "duration": 0.18,
+    "gain": 0.6,
+    "loop": false
+  },
+  "medic-death": {
+    "srcs": [
+      "/audio/arena/medic-death-00e1b3f8.mp3"
+    ],
+    "duration": 0.33,
+    "gain": 0.6,
+    "loop": false
+  },
+  "miner-death": {
+    "srcs": [
+      "/audio/arena/miner-death-b7375d20.mp3"
+    ],
+    "duration": 0.4,
+    "gain": 0.6,
+    "loop": false
+  },
+  "inventor-death": {
+    "srcs": [
+      "/audio/arena/inventor-death-6bce3850.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.6,
+    "loop": false
+  },
+  "gunner-death": {
+    "srcs": [
+      "/audio/arena/gunner-death-0dbcb351.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.6,
+    "loop": false
+  },
+  "quest-step": {
+    "srcs": [
+      "/audio/arena/quest-step-827c0160.mp3"
+    ],
+    "duration": 0.37,
+    "gain": 0.6,
+    "loop": false
+  },
+  "quest-reward": {
+    "srcs": [
+      "/audio/arena/quest-reward-46eb2d58.mp3"
+    ],
+    "duration": 0.61,
+    "gain": 0.8,
+    "loop": false
+  },
+  "quest-coin": {
+    "srcs": [
+      "/audio/arena/quest-coin-987246c3.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.7,
+    "loop": false
+  },
+  "quest-upgrade": {
+    "srcs": [
+      "/audio/arena/quest-upgrade-92dfbfb3.mp3"
+    ],
+    "duration": 0.42,
+    "gain": 0.8,
+    "loop": false
+  },
+  "quest-heart-lost": {
+    "srcs": [
+      "/audio/arena/quest-heart-lost-91cc5b1a.mp3"
+    ],
+    "duration": 0.6,
+    "gain": 0.7,
+    "loop": false
+  },
+  "quest-victory": {
+    "srcs": [
+      "/audio/arena/quest-victory-03bad7b8.mp3"
+    ],
+    "duration": 1.76,
+    "gain": 0.9,
+    "loop": false
   }
 }

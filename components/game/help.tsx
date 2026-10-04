@@ -11,6 +11,7 @@ import {
   placementDieRule,
   suits,
   handSize,
+  stormRanks,
   tideDeck,
   tideRanks,
   tidePenaltyRank,
@@ -40,10 +41,6 @@ function NoxRules({ g }: { g: Game }) {
   const pass = passCount(g),
     rank = tidePenaltyRank(g),
     value = tidePenaltyValue(g);
-  // Two-player games keep only some ranks, always including the penalty rank.
-  const ranks = [...new Set(tideDeck(g).map((card) => card.rank))].sort(
-    (a, b) => a - b,
-  );
   return (
     <Rules>
       <RuleSection title="Avoid penalty points">
@@ -70,31 +67,23 @@ function NoxRules({ g }: { g: Game }) {
           drag it to the table.
         </p>
         <p>
-          {g.turningTide ? (
-            <>
-              The <b>highest</b> card of the led suit wins odd tricks, the{' '}
-              <b>lowest</b> wins even tricks.
-            </>
-          ) : (
-            <>
-              The <b>highest card of the led suit</b> wins the trick.
-            </>
-          )}{' '}
-          The winner takes its points and leads the next trick.
+          The <b>highest card of the led suit</b> wins the trick. The winner
+          takes its points and leads the next trick.
         </p>
       </RuleSection>
       <RuleSection
         title="Penalty points"
         note={
-          g.duelDeck
-            ? `With two players the deck holds only the ${ranks.slice(0, -1).join(', ')} and ${ranks.at(-1)} of each suit.`
+          handSize(g) * g.players.length < tideDeck(g).length
+            ? `With ${g.players.length} players, ${tideDeck(g).length - handSize(g) * g.players.length} cards stay face down each round.`
             : undefined
         }
       >
         <p>
-          Five suits of cards 1 to {tideRanks(g)}: {suits.slice(0, 4).join(' ')}{' '}
-          and Storm {suits[4]}. After the pass, the <b>die</b> picks one of the
-          four plain suits.
+          Four plain suits of cards 1 to {tideRanks(g)},{' '}
+          {suits.slice(0, 4).join(' ')}, and <b>Storm {suits[4]}</b> from 1 to{' '}
+          {stormRanks(g)}. After the pass, the <b>die</b> picks one of the four
+          plain suits.
         </p>
         <RuleList
           items={[
@@ -114,11 +103,13 @@ function NoxRules({ g }: { g: Game }) {
           ]}
         />
       </RuleSection>
-      {g.shields && <AbilityRules kind="shield" title="Shields" />}
-      {g.turningTide && (
-        <NewExtensionRules kind="turningTide" title="Turning Tide" />
+      {g.gold && (
+        <NewExtensionRules kind="gold" title="Gold" fastMode={g.fastMode} />
       )}
-      {g.salvage && <NewExtensionRules kind="salvage" title="Salvage" />}
+      {g.anchor && <NewExtensionRules kind="anchor" title="Anchor" />}
+      {g.dawn && (
+        <NewExtensionRules kind="dawn" title="Dawn" fastMode={g.fastMode} />
+      )}
     </Rules>
   );
 }
@@ -157,7 +148,7 @@ function MoraRules({ g }: { g: Game }) {
         </p>
       </RuleSection>
       {g.roamEnabled && <NewExtensionRules kind="roamEnabled" title="Roam" />}
-      {g.migration && <NewExtensionRules kind="migration" title="Migration" />}
+      {g.census && <NewExtensionRules kind="census" title="Census" />}
       {g.sanctuaryGoalsEnabled && (
         <WildTrailsRules
           title="Sanctuary Goals"
@@ -211,7 +202,7 @@ function YataRules({ g }: { g: Game }) {
         </p>
       </RuleSection>
       {g.customerOrders && <CustomerOrderRules title="Customer Orders" />}
-      {g.specialtyStalls && <AbilityRules kind="stall" title="Specialty Stalls" />}
+      {g.specialtyStalls && <AbilityRules title="Specialty Stalls" />}
       {g.marketSeasons && (
         <NewExtensionRules kind="marketSeasons" title="Market Seasons" />
       )}
@@ -263,7 +254,7 @@ function Counts({ g }: { g: Game }) {
           <dt>{tide ? 'Full deck' : 'Full supply'}</dt>
           <dd>
             {tide
-              ? `${tideTotal} cards · 5 suits × ${tideTotal / 5}`
+              ? `${tideTotal} cards · 4 suits × ${tideRanks(g)} · Storm × ${stormRanks(g)}`
               : `${supply} ${items} · 6 kinds × ${perKind}`}
           </dd>
           <dt>{tide ? 'Dealt each round' : 'Used this game'}</dt>

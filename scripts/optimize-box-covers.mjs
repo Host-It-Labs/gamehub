@@ -1,13 +1,25 @@
 // Mechanical delivery derivatives only: never paint over generated cover titles.
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { boxCover } from '../lib/games/box-covers.ts';
-const ids = ['undertow', 'wildgrove', 'midnight', 'orin', 'miro'];
+const ids = ['undertow', 'wildgrove', 'midnight', 'orin', 'miro', 'impostor', 'diner'];
+// Chosen generations whose 1024 square is written here from the source PNG
+// (docs/concepts/2026-10-03-impostor-diner-covers). The PNGs live in the art
+// archive beside the repo (ART_ARCHIVE), not in git; without them the
+// committed delivery files stay as they are.
+const archive = process.env.ART_ARCHIVE ?? '../gamehub-art-archive/public/art';
+const sources = { impostor: 'box-impostor-v2-a.png', diner: 'box-diner-v1-a.png' };
+// Optional ids on the command line limit the run to those covers.
+const only = process.argv.slice(2);
 const manifestPath = 'lib/artwork-previews.json';
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-for (const id of ids) {
+for (const id of only.length ? ids.filter((id) => only.includes(id)) : ids) {
   const cover = boxCover(id);
   const path = `public${cover}`;
+  const source = sources[id] && `${archive}/${sources[id]}`;
+  if (source && existsSync(source))
+    await sharp(source).resize(1024, 1024).webp({ quality: 88 }).toFile(path);
   const metadata = await sharp(path).metadata();
   if (metadata.width !== 1024 || metadata.height !== 1024) throw new Error(`${id}: expected a 1024-square cover`);
   // Outer paper/scene texture wraps the narrow spine, avoiding the central title.

@@ -1,4 +1,13 @@
 import * as THREE from 'three';
+import {
+  addDrape,
+  addFlutter,
+  addSway,
+  swayingDepth,
+  tagCloth,
+  type SwayKind,
+  type Wind,
+} from './wind';
 
 /**
  * Materials for Arena's toys. Blender names each material "<family>:<tint>"
@@ -72,12 +81,23 @@ const textureLook: Record<
   metal: { rough: 0.75, metal: 1, normal: 0.45 },
   leather: { desat: 0.25, normal: 0.7 },
   cloth: { normal: 0.6 },
-  roof: { normal: 1 },
-  stone: { normal: 1 },
-  wood: { normal: 0.9 },
-  foliage: { desat: 0.15, normal: 0.8 },
-  bark: { normal: 1 },
-  rock: { normal: 1 },
+  roof: { desat: 0.65, normal: 0.06 },
+  stone: { normal: 0.06 },
+  wood: { desat: 0.65, normal: 0.08 },
+  foliage: { desat: 0.7, normal: 0.04 },
+  bark: { desat: 0.8, normal: 0.06 },
+  rock: { desat: 0.7, normal: 0.05 },
+};
+/** How strongly each scenery tile paints over its Blender tint (0 is the
+ *  flat tint). */
+const paintStrength: Record<string, number> = {
+  stone: 0.45,
+  roof: 0.4,
+  slate: 0.4,
+  wood: 0.5,
+  bark: 0.55,
+  rock: 0.45,
+  foliage: 0.5,
 };
 /** Leather tinted as skin or scales loses most of its brown. */
 const skinTints = new Set(['ogre', 'imp', 'drake', 'belly', 'peach']);
@@ -148,7 +168,7 @@ const families: Record<string, Family> = {
     rough: 0.85,
     env: 0.55,
     sheen: 0.4,
-    relief: { texture: 'cloth', strength: 0.35 },
+    relief: { texture: 'cloth', strength: 0.12 },
   },
 };
 
@@ -173,7 +193,86 @@ function extend(material: THREE.MeshStandardMaterial, desat: number) {
 
 export class MaterialLibrary {
   private cache = new Map<string, THREE.Material>();
+  private means = new Map<string, THREE.Vector3>();
+  /** Swaying copies of scenery materials and their shadow casters. */
+  private swaying = new Map<string, THREE.Material>();
+  /** The world's wind, for swaying scenery and waving flags. */
+  wind?: Wind;
   constructor(private textures: Textures) {}
+
+  /** A copy of a dressed material that sways in the wind (see wind.ts). */
+  sway(material: THREE.Material, kind: SwayKind) {
+    if (!this.wind) return material;
+    const key = `${material.uuid}|${kind}`;
+    const hit = this.swaying.get(key);
+    if (hit) return hit;
+    const copy = material.clone();
+    // clone() leaves the shader hooks behind; the paint needs them.
+    copy.onBeforeCompile = material.onBeforeCompile.bind(material);
+    copy.customProgramCacheKey = material.customProgramCacheKey.bind(material);
+    copy.name = `${material.name}~${kind}`;
+    addSway(copy, this.wind, kind);
+    this.swaying.set(key, copy);
+    return copy;
+  }
+
+  /** The shadow caster for swaying scenery of one kind. */
+  swayDepth(kind: SwayKind) {
+    if (!this.wind) return undefined;
+    const key = `depth|${kind}`;
+    const hit = this.swaying.get(key);
+    if (hit) return hit;
+    const depth = swayingDepth(this.wind, kind);
+    this.swaying.set(key, depth);
+    return depth;
+  }
+
+  /** A tile's average linear colour after its wash (`desat`), read once
+   *  from a small copy of its image. */
+  private paintMean(texture: string, map: THREE.Texture, desat: number) {
+    const key = `${texture}-${desat}`;
+    const hit = this.means.get(key);
+    if (hit) return hit;
+    const mean = new THREE.Vector3(0.5, 0.5, 0.5);
+    const image = map.image as CanvasImageSource | undefined;
+    if (image && typeof document !== 'undefined') {
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 32;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        if (g) {
+          g.drawImage(image, 0, 0, 32, 32);
+          const d = g.getImageData(0, 0, 32, 32).data;
+          const colour = new THREE.Color();
+          const sum = new THREE.Vector3();
+          for (let i = 0; i < d.length; i += 4) {
+            colour.setRGB(
+              d[i] / 255,
+              d[i + 1] / 255,
+              d[i + 2] / 255,
+              THREE.SRGBColorSpace,
+            );
+            sum.x += colour.r;
+            sum.y += colour.g;
+            sum.z += colour.b;
+          }
+          sum.divideScalar(d.length / 4);
+          const grey = sum.x * 0.299 + sum.y * 0.587 + sum.z * 0.114;
+          mean
+            .copy(sum)
+            .lerp(
+              new THREE.Vector3(1, 1, 1).multiplyScalar(grey * 1.25),
+              desat,
+            );
+        }
+      } catch {
+        // A tile that cannot be read keeps the neutral middle.
+      }
+    }
+    mean.max(new THREE.Vector3(0.02, 0.02, 0.02));
+    this.means.set(key, mean);
+    return mean;
+  }
 
   get(name: string, team: Team, hex?: string): THREE.Material {
     const [texture, tint = ''] = name.split(':');
@@ -211,10 +310,36 @@ export class MaterialLibrary {
     return material;
   }
 
+  /** Flags and banners: painted cloth, both faces, rippling in the wind
+   *  (its second uv set says how free each point is; see wind.ts). */
+  private flag(colour: THREE.Color) {
+    const set = this.textures.cloth;
+    const material = new THREE.MeshStandardMaterial({
+      color: colour,
+      map: set?.map ?? null,
+      normalMap: set?.normalMap ?? null,
+      normalScale: new THREE.Vector2(0.5, -0.5),
+      roughness: 0.82,
+      side: THREE.DoubleSide,
+      vertexColors: true,
+      envMapIntensity: 0.6,
+    });
+    extend(material, 0.85);
+    if (this.wind) addFlutter(material, this.wind);
+    return material;
+  }
+
   private make(texture: string, tint: string, team: Team, hex?: string) {
     const colour = new THREE.Color(tintColour(tint, team, hex));
+    // Troops' cloth: painted weave that ripples (wind.ts, addDrape).
+    if (texture === 'drape') {
+      const drape = this.family(families.weave, colour);
+      if (this.wind) addDrape(drape, this.wind);
+      return drape;
+    }
     const f = families[texture];
     if (f) return this.family(f, colour);
+    if (texture === 'flag') return this.flag(colour);
     if (texture === 'fire' || texture === 'glow')
       return new THREE.MeshStandardMaterial({
         color: colour,
@@ -232,6 +357,20 @@ export class MaterialLibrary {
         vertexColors: true,
       });
     }
+    const scenery = [
+      'stone',
+      'roof',
+      'slate',
+      'wood',
+      'bark',
+      'rock',
+      'foliage',
+    ].includes(texture);
+    if (scenery && !tint.startsWith('team')) {
+      // Coloured props already carry the palette in their Blender materials.
+      if (texture === 'stone') colour.set('#efd9b5');
+      if (texture === 'roof' || texture === 'slate') colour.set('#ce8167');
+    }
     const look = textureLook[texture] ?? {};
     const material = new THREE.MeshStandardMaterial({
       color: colour,
@@ -240,7 +379,7 @@ export class MaterialLibrary {
       // Tiles load unflipped, as glTF expects; derivative tangents then need
       // green flipped, as three's GLTFLoader does.
       normalScale: new THREE.Vector2(look.normal ?? 1, -(look.normal ?? 1)),
-      roughnessMap: set.ormMap,
+      roughnessMap: scenery ? null : set.ormMap,
       metalnessMap: look.metal ? set.ormMap : null,
       aoMap: null,
       roughness: look.rough ?? 1,
@@ -251,6 +390,40 @@ export class MaterialLibrary {
     const desat =
       texture === 'leather' && skinTints.has(tint) ? 0.85 : (look.desat ?? 0);
     extend(material, desat);
+    if (scenery) {
+      // The Blender tint carries the colour; the tile adds painted light
+      // and shade around it. Divided by its own average (after the wash
+      // above), the tile keeps the tint's mean tone at any strength, and
+      // `base` keeps the tone the scenery had when the tile was a quarter
+      // strength, so a stronger paint changes the detail, not the palette.
+      const mean = this.paintMean(texture, set.map, desat);
+      const strength = paintStrength[texture] ?? 0.4;
+      const base = new THREE.Vector3(1, 1, 1).lerp(mean, 0.24);
+      const previous = material.onBeforeCompile.bind(material);
+      material.onBeforeCompile = (shader, renderer) => {
+        previous(shader, renderer);
+        shader.uniforms.uPaintMean = { value: mean };
+        shader.uniforms.uPaintBase = { value: base };
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            'void main() {',
+            'uniform vec3 uPaintMean;\nuniform vec3 uPaintBase;\nvoid main() {',
+          )
+          .replace(
+            'diffuseColor *= sampledDiffuseColor;',
+            `diffuseColor.rgb *= uPaintBase * mix(vec3(1.0), sampledDiffuseColor.rgb / uPaintMean, ${strength.toFixed(2)});`,
+          )
+          .replace(
+            '#include <map_fragment>',
+            `#ifdef USE_MAP
+            vec4 paint = texture2D(map, vMapUv);
+            diffuseColor.rgb *= uPaintBase * mix(vec3(1.0), paint.rgb / uPaintMean, ${strength.toFixed(2)});
+          #endif`,
+          );
+      };
+      material.customProgramCacheKey = () =>
+        `cartoon-${texture}-${desat}-${strength}`;
+    }
     return material;
   }
 
@@ -270,6 +443,8 @@ export class MaterialLibrary {
         : swap(mesh.material);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
+      const cloth = Array.isArray(mesh.material) ? undefined : mesh.material;
+      if (cloth?.name.startsWith('flag')) tagCloth(mesh);
     });
     return object;
   }
@@ -277,5 +452,7 @@ export class MaterialLibrary {
   dispose() {
     for (const m of this.cache.values()) m.dispose();
     this.cache.clear();
+    for (const m of this.swaying.values()) m.dispose();
+    this.swaying.clear();
   }
 }

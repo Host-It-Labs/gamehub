@@ -1,0 +1,1 @@
+Use case: stylized-concept. Asset type: full-bleed illustrated Gamehub board for Mora. Generate one brand-new board with no image references. Do not open, view or use any existing image file, and do not edit, retouch or inpaint anything: this is a fresh generation.

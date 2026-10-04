@@ -1,0 +1,101 @@
+{
+  "sourceRecipeSha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+  "passed": true,
+  "reports": [
+    {
+      "kind": 0,
+      "width": 1200,
+      "height": 1200,
+      "borderWidth": 32,
+      "edgeMax": 0,
+      "nonzeroBorderPixels": 0,
+      "opaquePixels": 383429,
+      "shadowPixels": 62460,
+      "measuredObjectInventory": {
+        "dumplings": 5
+      },
+      "materialAuditPassed": true
+    },
+    {
+      "kind": 1,
+      "width": 1200,
+      "height": 1200,
+      "borderWidth": 32,
+      "edgeMax": 0,
+      "nonzeroBorderPixels": 0,
+      "opaquePixels": 564958,
+      "shadowPixels": 143353,
+      "measuredObjectInventory": {
+        "noodle_paths": 17,
+        "half_eggs": 1,
+        "fishcakes": 1,
+        "nori_sheets": 1,
+        "scallion_rings": 8
+      },
+      "materialAuditPassed": true
+    },
+    {
+      "kind": 2,
+      "width": 1200,
+      "height": 1200,
+      "borderWidth": 32,
+      "edgeMax": 0,
+      "nonzeroBorderPixels": 0,
+      "opaquePixels": 331395,
+      "shadowPixels": 31913,
+      "measuredObjectInventory": {
+        "skewers": 3,
+        "chicken_bites": 9,
+        "leeks": 6
+      },
+      "materialAuditPassed": true
+    },
+    {
+      "kind": 3,
+      "width": 1200,
+      "height": 1200,
+      "borderWidth": 32,
+      "edgeMax": 0,
+      "nonzeroBorderPixels": 0,
+      "opaquePixels": 425129,
+      "shadowPixels": 94008,
+      "measuredObjectInventory": {
+        "yellow_half_moons": 4,
+        "cucumber_rounds": 4,
+        "cucumber_seeds": 12,
+        "ginger_petals": 10
+      },
+      "materialAuditPassed": true
+    },
+    {
+      "kind": 4,
+      "width": 1200,
+      "height": 1200,
+      "borderWidth": 32,
+      "edgeMax": 0,
+      "nonzeroBorderPixels": 0,
+      "opaquePixels": 371768,
+      "shadowPixels": 100609,
+      "measuredObjectInventory": {
+        "balls": 6,
+        "mayo_zigzags": 6
+      },
+      "materialAuditPassed": true
+    },
+    {
+      "kind": 5,
+      "width": 1200,
+      "height": 1200,
+      "borderWidth": 32,
+      "edgeMax": 0,
+      "nonzeroBorderPixels": 0,
+      "opaquePixels": 523031,
+      "shadowPixels": 93589,
+      "measuredObjectInventory": {
+        "skewers": 3,
+        "balls": 9
+      },
+      "materialAuditPassed": true
+    }
+  ]
+}

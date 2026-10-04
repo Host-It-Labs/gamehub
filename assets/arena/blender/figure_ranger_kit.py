@@ -18,7 +18,7 @@ TAU = math.tau
 
 # Metres per texture repeat for the Cowboy's surfaces: the miniature
 # families borrow the fine small-scale densities of their relief tiles.
-UV_TILE = {"weave": 0.28, "cloth": 0.28, "hide": 0.3, "leather": 0.3,
+UV_TILE = {"weave": 0.28, "drape": 0.28, "cloth": 0.28, "hide": 0.3, "leather": 0.3,
            "wood": 0.45, "metal": 0.22, "resin": 0.5, "gilt": 0.3,
            "lacquer": 0.5}
 

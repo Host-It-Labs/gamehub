@@ -16,13 +16,11 @@ export function TableProgress({
   const phase =
     g.phase === 'over'
       ? 'Finished'
-      : g.phase === 'salvage'
-        ? 'Secret Salvage claims'
-        : g.phase === 'pass'
-          ? 'Passing cards'
-          : g.phase === 'roll'
-            ? 'Rolling dice'
-            : `Pick ${Math.min(g.pick, handSize(g))} / ${handSize(g)}`;
+      : g.phase === 'pass'
+        ? 'Passing cards'
+        : g.phase === 'roll'
+          ? 'Rolling dice'
+          : `Pick ${Math.min(g.pick, handSize(g))} / ${handSize(g)}`;
   if (roundOnly)
     return <GameProgress round label={`Round ${g.round} / ${totalRounds(g)}`} />;
   return (

@@ -3,23 +3,27 @@ import { Check } from 'lucide-react';
 import { boxCover } from '@/lib/games/box-covers';
 import { standaloneGames } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
+import type { NextGameVote as NextVoteState } from '@/lib/online/types';
 import { VoteClock } from './table-vote';
 
-const choices: StandaloneId[] = ['orin', 'miro'];
+const choices: StandaloneId[] = ['impostor', 'orin', 'miro'];
 
-/** Ten seconds after a party match to pick the next party game. The most votes
- * starts with the same players; silence leaves the table on the results. */
+/** After a party match, the next party game. The host picks it, or with
+ * Votes on the table has ten seconds: the most votes starts with the same
+ * players, and silence leaves the table on the results. */
 export function NextGameVote({
   vote,
   viewerId,
   seats,
   disabled,
+  hostName,
   onVote,
 }: {
-  vote: { endsAt: number; ballots: Record<string, StandaloneId> };
+  vote: NextVoteState;
   viewerId: string;
   seats: number;
   disabled: boolean;
+  hostName?: string;
   onVote: (id: StandaloneId) => void;
 }) {
   const mine = vote.ballots[viewerId],
@@ -30,8 +34,7 @@ export function NextGameVote({
       className="table-vote next-game-vote"
       aria-labelledby="next-game-title"
     >
-      <span className="party-eyebrow">WHAT NEXT?</span>
-      <h2 id="next-game-title">Vote for the next game</h2>
+      <h2 id="next-game-title">What next?</h2>
       <VoteClock endsAt={vote.endsAt} />
       <div className="vote-options">
         {choices
@@ -60,16 +63,18 @@ export function NextGameVote({
                 <strong className="next-game-name">
                   {standaloneGames[id].name}
                 </strong>
-                <span
-                  className="vote-count"
-                  aria-label={`${counts(id)} votes`}
-                  data-game-motion="change"
-                  data-game-motion-key={counts(id)}
-                >
-                  {Array.from({ length: counts(id) }, (_, i) => (
-                    <i key={i} />
-                  ))}
-                </span>
+                {!vote.host && (
+                  <span
+                    className="vote-count"
+                    aria-label={`${counts(id)} votes`}
+                    data-game-motion="change"
+                    data-game-motion-key={counts(id)}
+                  >
+                    {Array.from({ length: counts(id) }, (_, i) => (
+                      <i key={i} />
+                    ))}
+                  </span>
+                )}
                 {mine === id && (
                   <Check className="vote-check" size={18} aria-hidden="true" />
                 )}
@@ -77,10 +82,9 @@ export function NextGameVote({
             );
           })}
       </div>
-      <p className="vote-note">
-        Most votes starts with everyone here. You can change your vote until the
-        time runs out.
-      </p>
+      {vote.host && disabled && (
+        <p className="party-host-wait">{hostName ?? 'The host'} picks</p>
+      )}
     </section>
   );
 }

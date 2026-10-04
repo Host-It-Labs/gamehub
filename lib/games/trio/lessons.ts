@@ -14,7 +14,7 @@ export const lessons: Record<
       target: 'die',
       action: 'roll',
       title: 'Read the die',
-      text: 'The die picks a suit for this round. Its 8 is worth 40 penalty points, or its 4 is worth 10 in Fast mode.',
+      text: 'The die picks a suit for this round. Its 8 is worth 40 penalty points, or its 4 is worth 20 with the Fast deck.',
     },
     {
       target: 'hand',

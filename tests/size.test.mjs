@@ -5,6 +5,7 @@ import * as size from '../lib/games/party/size.ts';
 import { things } from '../lib/games/party/size-things.ts';
 import countries from '../lib/games/party/size-countries.json' with { type: 'json' };
 import silhouettes from '../lib/games/party/size-silhouettes.json' with { type: 'json' };
+import outlines from '../lib/games/party/size-outlines.json' with { type: 'json' };
 
 /** Everyone sizes all three comparisons (factors of each answer, per seat)
  * and locks once. */
@@ -34,17 +35,20 @@ function playRound(g) {
   return g;
 }
 
-await test('Size It Up’s curve: relative error to points out of 100', () => {
+await test('Sizes scores how many times too big or too small, out of 100', () => {
   assert.equal(size.points(100, 100), 100);
   assert.equal(size.points(106, 100), 100);
-  assert.equal(size.points(88, 100), 90);
+  assert.equal(size.points(91, 100), 100);
+  assert.equal(size.points(88, 100), 92);
   assert.equal(size.points(120, 100), 78);
-  assert.equal(size.points(150, 100), 45);
-  // 139.7 m for a 244 m bridge is 43% off and scores 52, as on Magnitudle.
-  assert.equal(size.points(139.7, 244), 52);
-  assert.equal(size.points(260, 100), 0);
+  assert.equal(size.points(150, 100), 35);
+  // Double and half cost the same.
+  assert.equal(size.points(140, 100), size.points(100, 140));
+  assert.equal(size.points(200, 100), 0);
+  assert.equal(size.points(50, 100), 0);
   assert.equal(size.points(0, 100), 0);
-  assert.ok(size.points(50, 100) > size.points(40, 100));
+  assert.ok(size.points(60, 100) > size.points(55, 100));
+  assert.equal(size.offBy(50, 100), 1);
 });
 
 await test('a round is an animal, an object or landmark, then a country', () => {
@@ -199,4 +203,19 @@ await test('catalogue data is complete and every silhouette has a box', async ()
       c.area > 0 && c.width > 0 && c.height > 0 && c.path.startsWith('M'),
       c.id,
     );
+});
+
+await test('every silhouette has a traced outline filling its box, for the 3D pieces', () => {
+  for (const t of things) {
+    const box = silhouettes.sheets[t.sheet][t.cell];
+    const loops = outlines.sheets[t.sheet][t.cell];
+    assert.ok(loops.length >= 1, t.id);
+    const xs = loops.flatMap((l) => l.filter((_, i) => i % 2 === 0)),
+      ys = loops.flatMap((l) => l.filter((_, i) => i % 2 === 1));
+    for (const l of loops) assert.ok(l.length >= 6 && l.length % 2 === 0, t.id);
+    // The outline spans the box the flat silhouette is measured by.
+    assert.ok(Math.min(...xs) <= 2 && Math.max(...xs) >= box.w - 2, t.id);
+    assert.ok(Math.min(...ys) <= 2 && Math.max(...ys) >= box.h - 2, t.id);
+    assert.ok(Math.max(...xs) <= box.w && Math.max(...ys) <= box.h, t.id);
+  }
 });

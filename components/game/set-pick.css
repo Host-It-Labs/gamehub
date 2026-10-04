@@ -1,0 +1,260 @@
+/* Know Me's pick between its games (Quiz has its own, quiz-pick.css): each
+ * game is a lit card on the stage, its colour, a turning sunburst and its
+ * mark big in the middle, its name on a plate. Cards deal in, lift on hover
+ * and settle with a ring when chosen. Each game tints its card through
+ * --g-bg, --g-bg-2, --g-ink, --g-accent and --g-glow on `.tile-<game>`
+ * (tribu.css); the defaults are Know Me's studio. */
+
+.tribu-vote,
+.game-intro {
+  --g-bg: #f2b531;
+  --g-bg-2: #f7cd6b;
+  --g-ink: #2b1a12;
+  --g-accent: #fffaf0;
+  --g-glow: #fff3c4;
+}
+.tribu-vote {
+  width: min(760px, 100%);
+  margin: auto;
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+}
+.tribu-vote.is-host-pick .party-host-wait { margin: 0; }
+.tribu-vote:has(.is-many) { width: min(1060px, 100%); }
+.tribu-vote-options {
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.tribu-vote-options.is-many {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
+}
+
+.party-table .tribu-vote .tribu-tile {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0;
+  min-width: 0;
+  min-height: min(300px, 46dvh);
+  padding: 0;
+  border-radius: 26px;
+  border: 2.5px solid var(--g-ink);
+  background: linear-gradient(170deg, var(--g-bg-2), var(--g-bg) 62%);
+  color: var(--g-ink);
+  box-shadow: 5px 6px 0 var(--g-ink), inset 0 2px 0 #ffffff66;
+  transition:
+    transform 220ms cubic-bezier(0.2, 1.4, 0.4, 1),
+    box-shadow 220ms ease,
+    filter 220ms ease,
+    opacity 220ms ease;
+  animation: set-tile-deal 460ms cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.party-table .tribu-vote .tribu-tile:disabled { opacity: 1; cursor: default; }
+.party-table .tribu-vote .tribu-tile:not(:disabled):hover,
+.party-table .tribu-vote .tribu-tile:not(:disabled):focus-visible {
+  transform: translateY(-6px) rotate(-1.2deg);
+  box-shadow: 7px 10px 0 var(--g-ink), inset 0 2px 0 #ffffff66;
+}
+.party-table .tribu-vote .tribu-tile:not(:disabled):active {
+  transform: translate(2px, 3px);
+  box-shadow: 2px 2px 0 var(--g-ink);
+}
+.party-table .tribu-vote .tribu-tile.is-mine {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow:
+    5px 7px 0 var(--g-ink),
+    0 0 0 5px var(--g-accent),
+    0 0 0 7.5px var(--g-ink),
+    0 0 34px 8px var(--g-glow);
+  z-index: 1;
+}
+.party-table .tribu-vote .tribu-tile.is-other { filter: saturate(0.65); opacity: 0.82; }
+
+/* The stage inside the card: a turning sunburst and a glow behind the mark. */
+.tribu-vote .tribu-tile-art {
+  position: relative;
+  flex: 1;
+  width: auto;
+  min-height: 0;
+  aspect-ratio: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 24px 24px 0 0;
+  background: radial-gradient(closest-side, var(--g-glow), transparent 85%);
+  box-shadow: none;
+  overflow: hidden;
+}
+.tile-rays {
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: repeating-conic-gradient(from 0deg, #ffffff38 0deg 9deg, transparent 9deg 22.5deg);
+  mask: radial-gradient(closest-side, #000 20%, transparent 78%);
+  animation: set-rays 38s linear infinite;
+}
+.tribu-tile:hover .tile-rays,
+.tribu-tile.is-mine .tile-rays { animation-duration: 9s; }
+.tribu-vote .tribu-mark {
+  width: min(78%, 150px);
+  height: auto;
+  aspect-ratio: 1;
+  filter: drop-shadow(3px 4px 0 #2b1a1255);
+  transition: transform 260ms cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.tribu-tile:not(:disabled):hover .tribu-mark,
+.tribu-tile.is-mine .tribu-mark { transform: scale(1.08) rotate(-3deg); }
+.tribu-vote .tile-finish .tribu-mark,
+.tribu-vote .tile-more .tribu-mark { width: min(56%, 96px); }
+
+/* The name on a plate across the bottom. */
+.tribu-tile-name {
+  position: relative;
+  margin: 0 10px 12px;
+  padding: 9px 8px 8px;
+  border-radius: 14px;
+  background: var(--g-accent);
+  border: 2.5px solid var(--g-ink);
+  box-shadow: 2px 3px 0 var(--g-ink);
+  font-family: var(--t-display, inherit);
+  font-size: clamp(17px, 2.1vw, 25px);
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+}
+.tribu-vote .tribu-again {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: auto;
+  bottom: auto;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border-radius: 50%;
+  border: 2px solid var(--g-ink);
+  background: var(--g-accent);
+  color: var(--g-ink);
+}
+.tribu-vote .vote-count {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  translate: -50% 0;
+  display: flex;
+  gap: 3px;
+}
+.tribu-vote .vote-count i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--g-accent);
+  box-shadow: inset 0 0 0 2px var(--g-ink);
+}
+.tribu-vote .vote-check {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--g-accent);
+  color: var(--g-ink);
+  box-shadow: 0 0 0 2.5px var(--g-ink), 2px 3px 0 var(--g-ink);
+  animation: set-check 320ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* Each game's mark plays a little on hover and when chosen. */
+.tribu-tile:not(:disabled):hover .mark-needle,
+.tribu-tile.is-mine .mark-needle { animation: mark-sway 1.4s ease-in-out infinite; }
+.tribu-tile:not(:disabled):hover .mark-drop,
+.tribu-tile.is-mine .mark-drop { animation: mark-flip 1.2s ease-in-out infinite; }
+.tribu-tile:not(:disabled):hover .mark-star,
+.tribu-tile.is-mine .mark-star { animation: mark-twinkle 1.2s ease-in-out infinite; }
+.tribu-tile:not(:disabled):hover .mark-flag,
+.tribu-tile.is-mine .mark-flag { animation: mark-wave 1s ease-in-out infinite; }
+
+@keyframes set-tile-deal {
+  from { opacity: 0; transform: translateY(36px) rotate(-5deg) scale(0.88); }
+}
+@keyframes set-rays { to { rotate: 360deg; } }
+@keyframes set-check { from { scale: 0; rotate: -90deg; } }
+@keyframes mark-sway {
+  0%, 100% { rotate: 0deg; }
+  30% { rotate: -38deg; }
+  65% { rotate: 14deg; }
+}
+@keyframes mark-flip {
+  0%, 100% { scale: 1 1; translate: 0 0; }
+  25% { scale: 0.15 1; translate: 0 -3px; }
+  50% { scale: 1 1; translate: 0 -5px; }
+  75% { scale: 0.15 1; translate: 0 -3px; }
+}
+@keyframes mark-twinkle {
+  0%, 100% { scale: 1; rotate: 0deg; }
+  50% { scale: 1.35; rotate: 36deg; }
+}
+@keyframes mark-wave {
+  0%, 100% { skew: 0deg 0deg; }
+  50% { skew: 0deg -6deg; }
+}
+
+@media (max-width: 700px) {
+  .tribu-vote-options { gap: 10px; }
+  .tribu-vote-options.is-many { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; }
+  /* Three games sit in one row, End across beneath them. */
+  .tribu-vote-options[data-games='3'] { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
+  .tribu-vote-options[data-games='3'] .tribu-tile-name { font-size: 14px; }
+  .party-table .tribu-vote .tribu-tile { min-height: min(176px, 25dvh); border-radius: 20px; }
+  .tribu-vote .tribu-tile-art { border-radius: 18px 18px 0 0; }
+  .tribu-vote .tribu-mark { width: min(70%, 100px); }
+  .tribu-tile-name { margin: 0 7px 8px; padding: 6px 4px 5px; border-radius: 11px; font-size: 16px; }
+  .party-table .tribu-vote .is-many .tribu-tile.tile-finish,
+  .party-table .tribu-vote .is-many .tribu-tile.tile-more {
+    grid-column: 1 / -1;
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .party-table .tribu-vote .is-many .tile-finish .tribu-tile-art,
+  .party-table .tribu-vote .is-many .tile-more .tribu-tile-art {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 0;
+    background: none;
+  }
+  .party-table .tribu-vote .is-many .tile-finish .tile-rays,
+  .party-table .tribu-vote .is-many .tile-more .tile-rays { display: none; }
+  .tribu-vote .is-many .tile-finish .tribu-mark,
+  .tribu-vote .is-many .tile-more .tribu-mark { width: 44px; }
+  .tribu-vote .is-many .tile-finish .tribu-tile-name,
+  .tribu-vote .is-many .tile-more .tribu-tile-name { margin: 0; min-width: 7em; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .tribu-vote { gap: 10px; }
+  .party-table .tribu-vote .tribu-tile { min-height: min(220px, 52dvh); }
+  .tribu-vote .tribu-mark { width: min(70%, 22dvh); }
+  .tribu-tile-name { margin: 0 6px 8px; padding: 5px 4px; font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .party-table .tribu-vote .tribu-tile,
+  .tile-rays,
+  .tribu-vote .vote-check,
+  .tribu-vote .tribu-tile .tribu-mark * { animation: none !important; }
+  .party-table .tribu-vote .tribu-tile,
+  .tribu-vote .tribu-mark { transition: none; }
+}

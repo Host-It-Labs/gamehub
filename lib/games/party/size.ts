@@ -9,11 +9,13 @@ import {
   type StandaloneBase,
 } from '../standalone/types.ts';
 import {
-  openVote,
   voteClosed,
-  voteResult,
   isChoice,
-  maxRounds,
+  validVote,
+  endRound,
+  closeRound,
+  botChoice,
+  voters,
   type RoundChoice,
   type RoundVote,
   type SetGame,
@@ -76,24 +78,27 @@ export type SizeGame = StandaloneBase & {
 export const questionsPerRound = 3;
 /** A guess is a real size in the target's unit; anything sane is allowed. */
 export const guessRange = [1e-4, 1e6] as const;
-/** Size It Up's curve: relative error → points out of 100, straight lines
- * between the marks. */
+/** How many times too big or too small → points out of 100, straight lines
+ * between the marks, so doubling and halving cost the same (2 October
+ * 2026, balanced against the other Quiz games). */
 export const curve = [
-  [0.06, 100],
-  [0.12, 90],
-  [0.2, 78],
-  [0.32, 62],
-  [0.5, 45],
-  [0.75, 30],
-  [1.1, 18],
-  [1.6, 0],
+  [1.1, 100],
+  [1.2, 78],
+  [1.4, 48],
+  [1.6, 22],
+  [2, 0],
 ] as const;
+/** The factor a guess is off by: 1 when exact, 2 at double or half. */
+export function factorOff(guess: number, answer: number) {
+  return Math.max(guess / answer, answer / guess);
+}
+/** How far off a guess is, as a share: 0 when exact, 1 at double or half. */
 export function offBy(guess: number, answer: number) {
-  return Math.abs(guess - answer) / answer;
+  return factorOff(guess, answer) - 1;
 }
 export function points(guess: number, answer: number) {
   if (!(guess > 0) || !(answer > 0)) return 0;
-  const e = offBy(guess, answer);
+  const e = factorOff(guess, answer);
   if (e <= curve[0][0]) return 100;
   for (let i = 1; i < curve.length; i++) {
     const [e1, p1] = curve[i],
@@ -239,8 +244,7 @@ export function startAt(g: SizeGame, round: number) {
 }
 export function actingSeats(g: SizeGame): number[] {
   if (g.over || g.phase === 'reveal') return [];
-  if (g.phase === 'vote')
-    return g.seats.flatMap((_, s) => (g.vote?.choices[s] ? [] : [s]));
+  if (g.phase === 'vote') return voters(g);
   return g.seats.flatMap((_, s) => (g.guesses[s].locked ? [] : [s]));
 }
 const isGuess = (v: unknown): v is number =>
@@ -340,16 +344,7 @@ export function play(
     if (n.step < questionsPerRound - 1) {
       n.step++;
       reveal(n);
-    } else {
-      n.phase = 'vote';
-      n.vote = openVote(
-        n.seats.length,
-        now,
-        !n.tutorial,
-        n.tribu ? ['miro', 'size', 'finish'] : undefined,
-      );
-      note(n, `Round ${n.round} complete. Another round?`);
-    }
+    } else endRound(n, now);
   } else if (m.type === 'vote') {
     n.vote!.choices[s] = m.choice;
     if (voteClosed(n.vote!, now)) return close(n);
@@ -357,27 +352,7 @@ export function play(
   return n;
 }
 function close(g: SizeGame): SizeGame {
-  const choice = voteResult(g.vote!, g.tribu ? 'size' : 'more', (n) =>
-    Math.floor(roll(g) * n),
-  );
-  g.vote = null;
-  if (choice === 'finish' || g.round >= maxRounds) {
-    // The finished table keeps the last reveal on screen.
-    g.phase = 'reveal';
-    g.over = true;
-    note(
-      g,
-      `The table finished after ${g.round} round${g.round === 1 ? '' : 's'}.`,
-    );
-    return g;
-  }
-  g.round++;
-  if (choice === 'miro') {
-    g.handoff = 'miro';
-    return g;
-  }
-  deal(g);
-  return g;
+  return closeRound(g, deal);
 }
 /** The server owns the vote deadline. Silent players don't count. */
 export function tick(g: SizeGame, now = Date.now()): SizeGame {
@@ -414,12 +389,7 @@ export function label(q: Pick<SizeQuestion, 'kind' | 'target'>) {
 }
 export function botMove(g: SizeGame, s: number): SizeMove | null {
   if (!actingSeats(g).includes(s)) return null;
-  // Practice bots play two rounds, then vote to finish.
-  if (g.phase === 'vote')
-    return {
-      type: 'vote',
-      choice: g.round >= 2 ? 'finish' : g.tribu ? 'size' : 'more',
-    };
+  if (g.phase === 'vote') return { type: 'vote', choice: botChoice(g, s) };
   const b = g.guesses[s];
   const step = b.values.findIndex((v) => v === null);
   if (step < 0) return { type: 'lock' };
@@ -478,7 +448,7 @@ export function validState(g: SizeGame) {
         (!b.locked || b.values.every((v) => v !== null)),
     ) &&
     (g.phase === 'guess' || g.guesses.every((b) => b.locked)) &&
-    (g.phase === 'vote') === !!g.vote &&
+    (g.phase === 'vote' ? validVote(g.vote, n) : !g.vote) &&
     Array.isArray(g.gains) &&
     g.gains.length === revealed &&
     g.gains.every(

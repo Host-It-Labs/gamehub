@@ -5,7 +5,7 @@ import { useGameSound } from './use-game-sound';
 import { useResultsFeedback, WinnerCelebration } from './results-feedback';
 import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
 import { CountUp, stagger } from './reveal-motion';
-import { previewPlacement, totalRounds } from '@/lib/games/trio/engine';
+import { previewPlacement, totalRounds, yataWorldFor } from '@/lib/games/trio/engine';
 import { requiresHumanPlayers } from '@/lib/games/player-policy';
 import { useBoardLeave } from './use-board-leave';
 import { dropTargetNear } from './drag-preview';
@@ -20,7 +20,6 @@ import {
   saveAmbienceLevel,
   useAmbience,
 } from './use-ambience';
-import { ExtensionAction } from './extension-action';
 import { FestivalControls, useFestivalChoice } from '../game/yatai-festival';
 import { TableHeading, gameName, worldTheme } from '../game/table-heading';
 import { useAutoRoll, MoveConfirmation, UndoChoice } from './confirmation';
@@ -43,6 +42,11 @@ import { setOf } from '@/lib/games/party/vote';
 import { FolioSetupBox } from './folio-box';
 import { RelicSetupBox } from './relic-box';
 import { ArenaSetupBox } from './arena/arena-box';
+import { RotaSetupBox } from './rota/rota-box';
+import type { RotaChoice } from './rota/rota-save';
+import { AltoSetupEntry, type AltoChoice } from './alto/alto-entry';
+import { DinerSetupBox } from './diner/diner-box';
+import type { DinerChoice } from './diner/diner-entry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
 import {
   gameByLibraryId,
@@ -52,7 +56,15 @@ import {
 } from '@/lib/games/library-fixtures';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 // The 3D battle and three.js load only when Arena opens.
-const ArenaGame = lazy(() => import('./arena/arena-game'));
+const ArenaGame = lazy(() => import('./arena/arena-entry'));
+// Rota's table, engine and bots load only when a match opens.
+const RotaSolo = lazy(() => import('./rota/rota-solo'));
+// Alto's table loads only when a match opens.
+const AltoSolo = lazy(() => import('./alto/alto-game'));
+// Diner's 3D room loads only when a shift opens.
+const DinerSolo = process.env.NODE_ENV === 'development'
+  ? lazy(() => import('./diner/diner-entry'))
+  : null;
 
 const isBotSeat = (seat: number) => seat > 0;
 import { ArrowLeft, Volume2, VolumeX, RotateCcw, List, Trophy } from 'lucide-react';
@@ -83,9 +95,11 @@ import {
   validMove,
   canAct,
   isSavedGame,
+  upgradeSave,
   scores,
   passCount,
   revealingTrick,
+  seatRange,
   type Game,
   type GameId,
   type Card,
@@ -108,13 +122,13 @@ export default function SoloGame() {
   const [g, setG] = useState<Game | null>(null),
     [saves, setSaves] = useState<Partial<Record<GameId, Game>>>({}),
     [setup, setSetup] = useState<GameId | null>(null),
-    // /arena opens the library with Arena's box already open.
+    // /arena and /rota open the library with that game's box already open.
     [preview, setPreview] = useState<LibraryGame | null>(() =>
-      typeof window !== 'undefined' && window.location.pathname === '/arena'
-        ? (gameByLibraryId('arena') ?? null)
+      typeof window !== 'undefined' &&
+      (window.location.pathname === '/arena' || window.location.pathname === '/rota' || window.location.pathname === '/alto' || window.location.pathname === '/diner')
+        ? (gameByLibraryId(window.location.pathname.slice(1)) ?? null)
         : null,
     ),
-    [shields, setShields] = useState(false),
     [customerOrders, setCustomerOrders] = useState(false),
     [sanctuaryGoalsEnabled, setSanctuaryGoalsEnabled] = useState(false),
     [options, setOptions] = useState<
@@ -135,7 +149,6 @@ export default function SoloGame() {
     [preparedZone, setPreparedZone] = useState<number | null>(null),
     [passed, setPassed] = useState<number[]>([]),
     [order, setOrder] = useState<number[]>([]),
-    [ward, setWard] = useState(false),
     [notice, setNotice] = useState(''),
     [botError, setBotError] = useState(false),
     [retry, setRetry] = useState(0),
@@ -145,19 +158,19 @@ export default function SoloGame() {
     [openOwn, setOpenOwn] = useState<StandaloneId | null>(null),
     [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
     [ownSeats, setOwnSeats] = useState(3),
-    [arena, setArena] = useState<{
-      difficulty: import('@/lib/games/arena/engine').Difficulty;
-      mode: import('@/lib/games/arena/engine').Mode;
-      learn: boolean;
-      key: number;
-    } | null>(null);
+    [arena, setArena] = useState<
+      (import('./arena/arena-entry').ArenaChoice & { key: number }) | null
+    >(null),
+    [rota, setRota] = useState<(RotaChoice & { key: number }) | null>(null),
+    [alto, setAlto] = useState<(AltoChoice & { key: number }) | null>(null),
+    [diner, setDiner] = useState<(DinerChoice & { key: number }) | null>(null);
   // Leaving a saved match asks once and says it is saved; practice simply leaves.
   const leaving = useLeaveDialog();
   function leaveOwn() {
     leaving.ask(() => { setOpenOwn(null); setOwnPractice(null); });
   }
   useEffect(() => {
-    if (window.location.pathname === '/arena')
+    if (window.location.pathname === '/arena' || window.location.pathname === '/rota' || window.location.pathname === '/alto' || window.location.pathname === '/diner')
       history.replaceState(history.state, '', '/');
   }, []);
   const festival = useFestivalChoice(g, 0);
@@ -186,9 +199,11 @@ export default function SoloGame() {
         unknown
       >;
       const restored: Partial<Record<GameId, Game>> = {};
-      for (const c of catalog)
-        if (isSavedGame(raw[c.id]) && !(raw[c.id] as Game).tutorial && (raw[c.id] as Game).id === c.id)
-          restored[c.id] = raw[c.id] as Game;
+      for (const c of catalog) {
+        const saved = upgradeSave(raw[c.id]);
+        if (isSavedGame(saved) && !saved.tutorial && saved.id === c.id)
+          restored[c.id] = saved;
+      }
       localStorage.setItem(SAVE, JSON.stringify(restored));
       saveRef.current = restored;
       setSaves(restored);
@@ -337,9 +352,7 @@ export default function SoloGame() {
           ? 'roll'
           : game.id === 'wildgrove'
             ? 'place'
-            : m.type === 'play' && m.ward
-              ? 'ward-play'
-              : 'play';
+            : 'play';
     if (actor === 0) next = progress(action, next);
     for (const e of next.events.filter((e) => e.id >= (game.revision + 1) * 10 && !(e.type === 'play' && e.player === 0)))
       eventCue(e, next.id, vol.current);
@@ -352,7 +365,6 @@ export default function SoloGame() {
       setSelected(null);
       setPreparedZone(null);
       setPassed([]);
-      setWard(false);
     }
   }
   const commitRef = useRef(commit);
@@ -364,7 +376,6 @@ export default function SoloGame() {
       saveSetup(setup, {
         players,
         difficulty,
-        shields,
         fastMode,
         customerOrders,
         sanctuaryGoalsEnabled,
@@ -374,7 +385,6 @@ export default function SoloGame() {
     setup,
     players,
     difficulty,
-    shields,
     fastMode,
     customerOrders,
     sanctuaryGoalsEnabled,
@@ -382,9 +392,9 @@ export default function SoloGame() {
   ]);
   function openSetup(id: GameId) {
     const saved = readSetup(id);
-    setPlayers(saved.players);
+    const [fewest, most] = seatRange(id, saved.fastMode);
+    setPlayers(Math.min(most, Math.max(fewest, saved.players)));
     setDifficulty(saved.difficulty);
-    setShields(saved.shields);
     setFastMode(saved.fastMode);
     setCustomerOrders(saved.customerOrders);
     setSanctuaryGoalsEnabled(saved.sanctuaryGoalsEnabled);
@@ -392,14 +402,17 @@ export default function SoloGame() {
     setSetup(id);
   }
   function start(id: GameId, tutorial = false) {
+    const fast =
+      setup === id ? fastMode : g?.id === id ? (g.fastMode ?? false) : false;
+    const [fewest, most] = seatRange(id, fast);
     const next = createGame(
       id,
       difficulty,
       seed(),
       tutorial,
-      players,
-      setup === id ? shields : g?.id === id ? (g.shields ?? false) : false,
-      setup === id ? fastMode : g?.id === id ? (g.fastMode ?? false) : false,
+      Math.min(most, Math.max(fewest, players)),
+      false,
+      fast,
       setup === id
         ? customerOrders
         : g?.id === id
@@ -417,7 +430,6 @@ export default function SoloGame() {
     setPanel(null);
     setOrder([]);
     setPassed([]);
-    setWard(false);
 
     setSelected(null);
     setPreparedZone(null);
@@ -433,7 +445,6 @@ export default function SoloGame() {
     setPassed([]);
     setSelected(null);
     setPreparedZone(null);
-    setWard(false);
 
     setBotError(false);
     setShowResults(false);
@@ -450,8 +461,10 @@ export default function SoloGame() {
     if (!game || game.tutorial || game.phase === 'over') home();
     else leaving.ask(home);
   }
-  useBoardLeave(!!(g || openOwn || arena), () => {
-    if (arena) {
+  useBoardLeave(!!(g || openOwn || arena || diner), () => {
+    if (diner) {
+      if (window.confirm('Leave the diner? This shift ends when you leave.')) setDiner(null);
+    } else if (arena) {
       if (window.confirm('Leave the battle? It ends when you leave.')) setArena(null);
     } else if (openOwn) leaveOwn(); else exitTable();
   });
@@ -505,7 +518,6 @@ export default function SoloGame() {
     const move: Move = {
       type: 'play',
       card: c.id,
-      ...(ward ? { ward: true } : {}),
     };
     if (validMove(g, festival.withChoice(move), 0)) commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
@@ -600,8 +612,7 @@ export default function SoloGame() {
       commit({
         type: 'play',
         card: c.id,
-        ...(ward ? { ward: true } : {}),
-      });
+        });
     else cue('drop', volume, 0, g.id);
   }
   function ambienceChange(value: number) {
@@ -646,9 +657,7 @@ export default function SoloGame() {
         >
           <ArenaGame
             key={arena.key}
-            difficulty={arena.difficulty}
-            mode={arena.mode}
-            learn={arena.learn}
+            choice={arena}
             volume={volume}
             music={ambience}
             onExit={() => setArena(null)}
@@ -656,6 +665,60 @@ export default function SoloGame() {
           />
         </Suspense>
       </div>
+    );
+  if (rota)
+    return (
+      <div className="app at-table rota">
+        <Suspense
+          fallback={
+            <main className="startup-loading" aria-busy="true">
+              Rota
+            </main>
+          }
+        >
+          <RotaSolo key={rota.key} choice={rota} onExit={() => setRota(null)} />
+        </Suspense>
+      </div>
+    );
+  if (diner && DinerSolo)
+    return (
+      <div className="app at-table diner">
+        <Suspense
+          fallback={
+            <main className="startup-loading" aria-busy="true">
+              Diner
+            </main>
+          }
+        >
+          <DinerSolo
+            key={diner.key}
+            choice={diner}
+            volume={volume}
+            music={ambience}
+            sound={soundSettings}
+            onExit={() => setDiner(null)}
+          />
+        </Suspense>
+      </div>
+    );
+  if (alto)
+    return (
+      <Suspense
+        fallback={
+          <main className="startup-loading" aria-busy="true">
+            Alto
+          </main>
+        }
+      >
+        <AltoSolo
+          key={alto.key}
+          initial={alto.game}
+          setup={alto.setup}
+          volume={volume}
+          sound={soundSettings}
+          onExit={() => setAlto(null)}
+        />
+      </Suspense>
     );
   const ownGame = openOwn ? (ownPractice && (ownPractice.tribu ? setOf(ownPractice.kind) : ownPractice.kind)===openOwn?ownPractice:own[openOwn]) : undefined;
   if (openOwn && ownGame && !requiresHumanPlayers(openOwn))
@@ -715,6 +778,7 @@ export default function SoloGame() {
           className={`table-layout ${world ? 'world-table' : ''}`}
           data-game={g.id}
           data-environment={environment}
+          data-market={g.id === 'midnight' ? yataWorldFor(g.contentSet) : undefined}
         >
           <ArtworkLoading
             key={`${g.id}:${g.contentSet}`}
@@ -790,9 +854,6 @@ export default function SoloGame() {
                   inspect={inspect}
                   onPlace={place}
                   preparedZone={preparedZone}
-                  onMigrate={(migration) =>
-                    nature.setChoice({ ...nature.choice, migration })
-                  }
                 />
               </ScrollArea>
 
@@ -814,29 +875,6 @@ export default function SoloGame() {
                     onChange={festival.setChoice}
                     inspect={inspect}
                   />
-                  {g.id === 'undertow' && g.shields && (
-                    <div data-coach="ward">
-                      <ExtensionAction
-                        kind="shield"
-                        label="Shield"
-                        description="Halve ordinary trick penalties"
-                        selected={ward}
-                        count={g.players[0].wards}
-                        disabled={
-                          g.phase !== 'play' ||
-                          !canAct(g, 0) ||
-                          !g.players[0].wards
-                        }
-                        onTap={() => {
-                          setWard(!ward);
-                          cue('ward', volume, 0, g.id);
-                          const next = progress('arm', g);
-                          if (next !== g) store(next);
-                        }}
-                        inspect={inspect}
-                      />
-                    </div>
-                  )}
                 </div>
 
                 {g.id === 'undertow' ? (
@@ -848,10 +886,10 @@ export default function SoloGame() {
                 ) : null}
               </div>
           <UndoChoice g={g} viewer={0}
-            drafted={selected !== null || passed.length > 0 || !!nature.choice.migration || !!nature.choice.roam || !!ward}
+            drafted={selected !== null || passed.length > 0 || !!nature.choice.roam}
 
             onUndo={() => { commit({ type: 'undo' }); nature.setChoice({}); }}
-            onClear={() => { setSelected(null); setPreparedZone(null); setPassed([]); setWard(false); nature.setChoice({}); }} />
+            onClear={() => { setSelected(null); setPreparedZone(null); setPassed([]); nature.setChoice({}); }} />
               <MoveConfirmation
                 g={g}
                 viewer={0}
@@ -961,15 +999,17 @@ export default function SoloGame() {
               difficulty={difficulty}
               fastMode={fastMode}
               options={options}
-              shields={shields}
               customerOrders={customerOrders}
               sanctuaryGoalsEnabled={sanctuaryGoalsEnabled}
               onPlayers={setPlayers}
               onDifficulty={setDifficulty}
-              onFastMode={setFastMode}
+              onFastMode={(on) => {
+                setFastMode(on);
+                // The Fast deck deals four hands at most.
+                if (setup) setPlayers((n) => Math.min(n, seatRange(setup, on)[1]));
+              }}
               onOptions={setOptions}
               onExtensions={(value) => {
-                if (value.shields !== undefined) setShields(value.shields);
                 if (value.customerOrders !== undefined)
                   setCustomerOrders(value.customerOrders);
                 if (value.sanctuaryGoalsEnabled !== undefined)
@@ -990,6 +1030,30 @@ export default function SoloGame() {
               onPlay={(choice) => {
                 setPreview(null);
                 setArena({ ...choice, key: Date.now() });
+              }}
+            />
+          ) : process.env.NODE_ENV === 'development' && preview?.id === 'diner' ? (
+            <DinerSetupBox
+              game={preview}
+              onPlay={(choice) => {
+                setPreview(null);
+                setDiner({ ...choice, key: Date.now() });
+              }}
+            />
+          ) : preview?.id === 'alto' ? (
+            <AltoSetupEntry
+              game={preview}
+              onPlay={(choice) => {
+                setPreview(null);
+                setAlto({ ...choice, key: Date.now() });
+              }}
+            />
+          ) : preview?.id === 'rota' ? (
+            <RotaSetupBox
+              game={preview}
+              onPlay={(choice) => {
+                setPreview(null);
+                setRota({ ...choice, key: Date.now() });
               }}
             />
           ) : preview ? (

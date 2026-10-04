@@ -9,6 +9,9 @@ import * as dial from '../lib/games/party/dial.ts';
 import * as ranking from '../lib/games/party/ranking.ts';
 import * as geography from '../lib/games/party/geography.ts';
 import * as sizes from '../lib/games/party/size.ts';
+import * as coins from '../lib/games/party/coins.ts';
+import * as year from '../lib/games/party/year.ts';
+import * as order from '../lib/games/party/order.ts';
 import {
   openVote,
   voteResult,
@@ -70,11 +73,14 @@ function playRound(g, now) {
   return g;
 }
 
-await test('every party game ends each round in a timed vote the server closes', () => {
-  for (const id of ['orin', 'miro', 'dial', 'size']) {
+const engines = { dial, orin: ranking, miro: geography, size: sizes, coins, year, order };
+const allGames = ['orin', 'dial', 'coins', 'miro', 'size', 'year', 'order'];
+
+await test('with Votes on, every party game ends each round in a timed vote the server closes', () => {
+  for (const id of allGames) {
     // Each set plays one of its games; "keep playing" is the same game.
     const keep = id;
-    let g = standaloneGames[id].create(4, 9, 'medium', 'individual', undefined, undefined);
+    let g = standaloneGames[id].create(4, 9, 'medium', 'individual', undefined, undefined, true);
     assert.equal(g.vote.opening, true);
     g = skipOpening(g, id, 5000);
     assert.equal(g.kind, id);
@@ -108,7 +114,7 @@ await test('every party game ends each round in a timed vote the server closes',
     const key = decisionKey(g);
     assert.equal(g.phase, 'vote');
     assert.equal(
-      { dial, orin: ranking, miro: geography, size: sizes }[g.kind].tick(g, 6000),
+      engines[g.kind].tick(g, 6000),
       g,
       'the clock has not run out',
     );
@@ -138,7 +144,7 @@ await test('every party game ends each round in a timed vote the server closes',
 });
 
 await test('Tribu switches games on the vote and carries everyone’s points', () => {
-  let g = skipOpening(standaloneGames.orin.create(3, 12, 'medium'), 'orin', 100);
+  let g = skipOpening(standaloneGames.orin.create(3, 12, 'medium', 'individual', undefined, undefined, true), 'orin', 100);
   g = playRound(g, 100);
   const before = seatTotals(g);
   assert.ok(before.some((v) => v > 0));
@@ -159,9 +165,9 @@ await test('Tribu switches games on the vote and carries everyone’s points', (
   for (const s of [0, 1, 2]) g = standaloneGames.orin.play(g, { type: 'vote', choice: 'finish' }, s, 400);
   assert.equal(g.over, false, 'finish is only offered at the end of a round');
   // An opening vote nobody answers is drawn at random.
-  let o = standaloneGames.orin.create(2, 5, 'medium', 'individual', undefined, undefined, 0);
+  let o = standaloneGames.orin.create(2, 5, 'medium', 'individual', undefined, undefined, true);
   o = tick({ ...o, vote: { ...o.vote, endsAt: 0 } });
-  assert.ok(['orin', 'dial'].includes(o.kind));
+  assert.ok(['orin', 'dial', 'coins'].includes(o.kind));
   assert.notEqual(o.phase, 'vote');
 });
 
@@ -171,6 +177,26 @@ await test('practice votes wait for everyone instead of a clock', () => {
   g = playRound(g, 100);
   assert.equal(g.vote.endsAt, null);
   assert.equal(deadline(g), null);
+});
+
+await test('Dial: a Me card places its author, and the dials aim for that', () => {
+  let g = dial.createGame(2, 33);
+  for (const c of g.cards) {
+    assert.ok(!dial.isSelf({ card: c.offers[0] }) && dial.isSelf({ card: c.offers[1] }));
+  }
+  g = dial.play(g, { type: 'card', target: g.cards[0].offers[1] }, 0);
+  g = dial.play(g, { type: 'place', value: 82 }, 0);
+  assert.equal(g.cards[0].locked, true);
+  assert.equal(dial.observe(g, 1).cards[0].placed, null, 'your place stays hidden');
+  g = dial.play(g, { type: 'clue', text: 'Tea' }, 1);
+  assert.equal(g.phase, 'guess');
+  assert.ok(standaloneGames.dial.isSavedGame(JSON.parse(JSON.stringify(g))));
+  g = dial.play(g, { type: 'lock', author: 0, value: 80 }, 1);
+  g = dial.play(g, { type: 'lock', author: 1, value: 50 }, 0);
+  assert.equal(g.phase, 'reveal');
+  assert.equal(g.result.point, 82);
+  assert.deepEqual(g.result.gains, [4, 4], 'within 2 of the place scores 4, the author the average');
+  assert.equal(dial.observe(g, 1).cards[0].placed, 82);
 });
 
 await test('Dial: everyone writes a clue at once, then the table reads them in turn', () => {
@@ -198,6 +224,10 @@ await test('Dial: everyone writes a clue at once, then the table reads them in t
   );
   g = dial.play(g, { type: 'card', target: g.cards[0].offers[1] }, 0);
   assert.equal(g.cards[0].card, g.cards[0].offers[1]);
+  assert.ok(dial.isSelf(g.cards[0]), 'the second offer is a Me card');
+  assert.equal(dial.validMove(g, { type: 'clue', text: 'Tea' }, 0), false, 'a Me card takes no clue');
+  g = dial.play(g, { type: 'card', target: g.cards[0].offers[0] }, 0);
+  assert.equal(dial.validMove(g, { type: 'place', value: 30 }, 0), false, 'only a Me card is placed');
   assert.equal(dial.validMove(g, { type: 'clue', text: '   ' }, 0), false);
   assert.equal(
     dial.validMove(g, { type: 'clue', text: 'x'.repeat(61) }, 0),
@@ -217,36 +247,45 @@ await test('Dial: everyone writes a clue at once, then the table reads them in t
   g = dial.play(g, { type: 'clue', text: 'Tea' }, 1);
   g = dial.play(g, { type: 'clue', text: 'Snow' }, 2);
   assert.equal(g.phase, 'guess');
-  assert.equal(g.target, 0);
   assert.ok(standaloneGames.dial.isSavedGame(JSON.parse(JSON.stringify(g))));
+  assert.deepEqual(dial.actingSeats(g), [0, 1, 2], 'everyone reads every clue at once');
   const seen = dial.observe(g, 1);
-  assert.equal(seen.cards[0].clue, 'A warm bath');
-  assert.equal(seen.cards[0].card, g.cards[0].card);
-  assert.equal(seen.cards[0].point, -1);
-  assert.equal(seen.cards[2].clue, '', 'later clues wait their turn');
+  for (const a of [0, 2]) {
+    assert.equal(seen.cards[a].clue, g.cards[a].clue, 'every clue is public');
+    assert.equal(seen.cards[a].card, g.cards[a].card);
+    assert.equal(seen.cards[a].point, -1, 'points stay hidden');
+  }
   assert.equal(
-    dial.validMove(g, { type: 'dial', value: 10 }, 0),
+    dial.validMove(g, { type: 'dial', author: 1, value: 10 }, 1),
     false,
-    'the author never guesses',
+    'nobody dials their own clue',
   );
-  const point = g.cards[0].point;
-  g = dial.play(g, { type: 'dial', value: point }, 1);
-  assert.equal(dial.observe(g, 2).guesses[1].value, -1);
+  const points = g.cards.map((c) => c.point);
+  g = dial.play(g, { type: 'dial', author: 0, value: points[0] }, 1);
+  assert.equal(dial.observe(g, 2).guesses[1].values[0], null, 'dials stay private');
   g = dial.play(g, { type: 'lock' }, 1);
+  assert.equal(g.guesses[1].values[2], null, 'an untouched dial sits mid-way');
+  g = dial.play(g, { type: 'dial', author: 1, value: points[1] }, 0);
+  g = dial.play(g, { type: 'lock', author: 2, value: points[2] }, 0);
+  assert.equal(g.phase, 'guess');
   g = dial.play(
     g,
-    { type: 'lock', value: point > 50 ? point - 8 : point + 8 },
+    { type: 'dial', author: 0, value: points[0] > 50 ? points[0] - 8 : points[0] + 8 },
     2,
   );
-  assert.equal(g.phase, 'reveal');
+  g = dial.play(g, { type: 'lock', author: 1, value: points[1] }, 2);
+  assert.equal(g.phase, 'reveal', 'the reveals start once everyone has locked');
+  assert.equal(g.target, 0);
+  assert.equal(g.result.point, points[0]);
   assert.deepEqual(g.result.gains, [3, 4, 2]);
-  assert.deepEqual(g.scores, [3, 4, 2]);
-  assert.equal(dial.observe(g, 2).cards[0].point, point);
+  assert.equal(dial.observe(g, 2).cards[0].point, points[0]);
+  assert.equal(dial.observe(g, 2).cards[1].point, -1, 'later points wait their reveal');
   g = dial.play(g, { type: 'next' }, 0);
   assert.equal(g.target, 1);
-  assert.equal(g.phase, 'guess', 'the next clue is read straight away');
-  assert.deepEqual(dial.actingSeats(g), [0, 2]);
-  assert.equal(dial.observe(g, 0).cards[1].clue, 'Tea');
+  assert.equal(g.phase, 'reveal', 'the next clue is revealed straight away');
+  assert.equal(g.result.gains[0], 4);
+  assert.equal(g.result.gains[2], 4);
+  assert.deepEqual(dial.actingSeats(g), []);
   assert.ok(standaloneGames.dial.isSavedGame(JSON.parse(JSON.stringify(g))));
 });
 
@@ -292,6 +331,7 @@ await test('the what-next vote picks the most popular party game and starts it w
       gameId: 'orin',
       difficulty: 'medium',
       capacity: 2,
+      partyVotes: true,
     });
     t = tables.join(t.token, guest);
     t = cmd(t, host, { type: 'start' });
@@ -471,6 +511,7 @@ await test('development: the host’s pick in the opening vote starts that game 
       gameId: 'orin',
       difficulty: 'medium',
       capacity: 2,
+      partyVotes: true,
     });
     t = tables.join(t.token, guest);
     t = cmd(t, host, { type: 'start' });

@@ -107,3 +107,92 @@ These came back nearly silent or too thin (peaks of -23 to -36 dBFS, or only
 - hit-melee-2 (0.5 s): Cartoon punch hit: a meaty thwack with a soft bounce, single impact, no music.
 - tower-hit-1 (0.6 s): Impact on a stone tower wall: a hard punchy thud with small rock chips crumbling off, cartoon game, no music.
 - duelist-deploy (1.2 s): A samurai lands ready to fight: a katana drawn from its sheath with a bright ringing metallic shing, then one short sharp wordless warrior shout. No music.
+
+## Opening cue v2 (28 September 2026)
+
+One single short cheerful brass battle horn chord, bright rounded cartoon orchestral timbre, immediate confident attack and clean quick decay, total sound less than one second. An original mobile strategy game start signal. No percussion, no drum hit, no second sound, no voice, no melody, no ambience, no long reverb.
+
+ElevenLabs eleven_text_to_sound_v2, flow `6OyABLHBr0w9u5MKeEPq`, selected generation `NMMTqjaYvoMsyzvE6rL0` (1 second). Source `battle-start-v2.mp3`.
+
+
+### 28 September: gentle final minute and two Sound Lab alternatives
+
+`music-v2/process.py` keeps the current battle recording and derives its final
+minute from that same recording at 1.08×, with stronger low end and restrained
+compression. Sound Lab offers the previously unused take 2 and take 3, each
+with its own battle/final pair. Native stereo 48 kHz, 192 kbps MP3; loops are
+normalized to -20 LUFS with a -2 dBTP target and a one-bar circular crossfade.
+The new ElevenLabs requests failed with insufficient funds; their exact prompt,
+flow and generation IDs are in `music-v2/generation.json`. No new generated
+composition is claimed. Audio was measured, not listened to in browser.
+
+
+## Quest troops and Quest screens (29 September 2026)
+
+Clips for the eight new troops, their abilities and the Quest map, generated
+with the same MCP tool and settings as above (`eleven_text_to_sound_v2`
+default, `mp3_44100_128`, no loop). The list, prompts, requested lengths and
+levels are in `quest-v1/clips.json`; raw takes are `raw/<id>.mp3`.
+`python3 assets/arena/audio/process-effects.py assets/arena/audio/quest-v1/clips.json`
+reproduces the processing described under Settings (rebuilt as a script: it
+matches the existing clips within 0.1 LU on crown, ogre-death and sting-lose;
+clips from 0.9 s are gained by integrated loudness, shorter ones by max
+momentary on a padded copy) and writes the entries into
+`lib/games/arena/audio.json`. `medic-death` allows 12 dB of limiting
+(`maxLimit`) because one glass clink peaks 20 dB above the rest.
+
+The account is on the free tier and had 256 credits left (10 per second of
+audio), so every clip is a single take and some are missing: no
+`<troop>-attack` clips (the melee troops keep `hit-melee` on each swing, the
+Inventor and Gunner shots use `zap-chain` / `shell-shot`, the Balloon's bomb
+is heard as `drop-blast`), no `miner-deploy` (`miner-dig` and
+`miner-emerge` carry his arrival) and no `balloon-death` (`balloon-crash` is
+its fall). `sound.ts` skips missing ids, so they can be added after the
+credits reset (26 October) without code changes. 251 credits used, 5 left.
+
+Measured after processing: every clip at -1.6 dBTP or lower, max momentary
+-16.4 to -21 LUFS except `medic-death` (-24) and `quest-victory` (-14.9);
+nothing clips. Weakest takes worth replacing: `gladiator-death` (0.18 s, a
+single bonk), `medic-deploy` (0.3 s) and `medic-death` (quiet). Measured,
+not listened to.
+
+| id | requested | processed | prompt |
+| --- | --- | --- | --- |
+| shell-shot | 0.8 | 0.8 | A small bronze field cannon fires one shell: a deep punchy round boom with a wooden carriage thump and a short smoke hiss, cartoon game, no music. |
+| zap-chain | 0.6 | 0.6 | Crackling cartoon electric lightning arc jumping quickly between targets: three fast snapping zaps with a buzzing tesla hum, sci-fi, no music. |
+| shell-blast | 0.7 | 0.57 | Cannon shell landing on a dirt battlefield: an earthy thudding explosion with clods of soil scattering, punchy cartoon game, no music. |
+| drop-blast | 0.9 | 0.88 | Heavy bomb dropped from a hot-air balloon explodes on the ground: a big deep punchy boom with a burst of dirt and debris, cartoon game, no music. |
+| balloon-crash | 1.2 | 1.1 | Cartoon hot-air balloon deflating fast with a rubbery flapping raspberry, then a wicker basket crashing into the ground with a big bang, no voices, no music. |
+| medic-heal | 0.7 | 0.37 | Soft warm healing spell: a gentle glassy chime with a rising twinkle of sparkles, soothing and magical, cartoon game, no music, no voices. |
+| shield-break | 0.7 | 0.68 | Wooden shield with a bronze boss shattering: a sharp splintering wood crack and a ringing bronze clang with pieces clattering, cartoon game, no music. |
+| miner-dig | 0.9 | 0.76 | Digging fast underground: a muffled low rumble with scraping pickaxe and shovel sounds through the earth, cartoon game, no music, no voices. |
+| miner-emerge | 0.7 | 0.68 | Bursting up out of the ground: a quick crunchy dirt eruption with a spray of pebbles and soil pattering down, cartoon game, no music, no voices. |
+| pirate-leap | 0.5 | 0.34 | Quick cartoon jump: a short airy whoosh swooping up and over with a light springy hop, single leap, no music, no voices. |
+| viking-rage | 0.7 | 0.68 | Viking warrior battle roar: one short fierce wordless bellow from a big bearded man, gruff and powerful, cartoon game, no words, no music. |
+| stun | 0.5 | 0.48 | Tiny cartoon dizzy sound: a quick twinkly circling sparkle of little stars chirping, very short, light and cute, no music. |
+| pirate-deploy | 0.7 | 0.68 | A swaggering pirate arrives: a cutlass swished from its scabbard with a bright ring and a quick confident boot stomp on wooden planks, no words, no music. |
+| viking-deploy | 0.7 | 0.61 | Norse warrior lands: one heavy boot stomp, a long iron axe hefted onto a shoulder with a clank, and a short gruff wordless grunt, no music. |
+| gladiator-deploy | 0.6 | 0.39 | Loud close-up clang: a short sword struck hard against a bronze shield boss, one bright ringing metal bang with a wooden thump, cartoon game, no music. |
+| medic-deploy | 0.7 | 0.3 | Field medic arrives: a leather satchel buckle snap, glass bottles clinking softly and a small warm magical chime, cartoon game, no voices, no music. |
+| balloon-deploy | 0.7 | 0.55 | Hot-air balloon floats in: a roaring gas burner whoosh and creaking wicker basket with ropes straining, short, cartoon game, no voices, no music. |
+| inventor-deploy | 0.7 | 0.62 | Retro inventor arrives: a backpack tesla coil powering up with a rising electric hum, a crackle and a brass switch click, cartoon sci-fi, no voices, no music. |
+| gunner-deploy | 0.7 | 0.48 | Small bronze field cannon rolled into place: wooden spoked wheels creaking and rumbling, stopping with a heavy clunk and a metal ramrod rattle, no voices, no music. |
+| pirate-death | 0.6 | 0.54 | Cartoon pirate defeated: a cutlass clattering on the ground, a comic splash-like flop and a soft thud with a little poof of smoke, no voices, no music. |
+| viking-death | 0.7 | 0.68 | Big cartoon viking defeated: a heavy iron axe and helmet clanging down, a deep body thud and a dust poof, comic knock-out, no voices, no music. |
+| gladiator-death | 0.5 | 0.18 | Cartoon gladiator knocked out: a bronze helmet clonks down and rolls around wobbling with metallic rattles, then a soft body thud and a dust poof, no voices, no music. |
+| medic-death | 0.6 | 0.33 | Cartoon field medic knocked out: glass tonic bottles clinking in a leather satchel, a soft cloth flop and a gentle descending sparkle fizzle, no voices, no music. |
+| miner-death | 0.6 | 0.4 | Miner defeated: a metal pickaxe clanging onto rocks, a tin hard hat bonking and rolling, and a soft dusty thud, cartoon, no voices, no music. |
+| inventor-death | 0.6 | 0.6 | Inventor gadget short-circuits: a sputtering electric fizzle, a spring sproing and a small comic pop of smoke, cartoon, no voices, no music. |
+| gunner-death | 0.6 | 0.6 | Old artilleryman defeated: a wooden cannon wheel creaking over and clattering down, a tall hat flopping and a soft thud, cartoon, no voices, no music. |
+| quest-step | 0.5 | 0.37 | Loud clear close-up magical bell ping: one bright crystal chime note with a quick sparkle, a map marker lighting up in a cartoon game, present and crisp. |
+| quest-reward | 0.9 | 0.61 | Bright game reward chime: a sparkling rising glockenspiel arpeggio with a shimmering magical finish, cheerful and short, no drums, no voices. |
+| quest-coin | 0.6 | 0.6 | Handful of gold coins dropped into a pile: a bright jingling clink of a few coins, crisp and satisfying, game reward sound, no music. |
+| quest-upgrade | 0.9 | 0.42 | Card levelling up in a fantasy game: a quick rising magical whoosh climbing in pitch into a bright sparkling twinkle burst, no music, no voices. |
+| quest-heart-lost | 0.6 | 0.6 | Losing a life in a cartoon game: a soft sad low thud with a gentle descending two-note wooden bonk, muted and short, no music, no voices. |
+| quest-victory | 2.4 | 1.76 | Short triumphant cartoon brass fanfare for completing a quest: a bold rising trumpet flourish with a timpani roll, ending on a bright held major chord. |
+
+### Replaced first takes (`raw/rejected/`)
+
+- quest-step (0.5 s, peak -32.6 dBFS): Game map marker lighting up: a single soft bright magical ping with a small warm glow shimmer, clean user interface sound, no music.
+- gladiator-deploy (0.7 s, peak -26 dBFS): Roman gladiator arrives: a short sword banged twice on a big wooden shield with a bronze boss, a solid thumping clang, cartoon game, no voices, no music.
+- gladiator-death (0.6 s, 0.13 s of sound): Gladiator knocked out: a bronze helmet bonking and rolling with a metallic wobble, a short sword clinking and a soft thud, cartoon, no voices, no music.

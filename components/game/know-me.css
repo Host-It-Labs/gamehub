@@ -1,0 +1,350 @@
+/* Know Me's shared pieces and its Ten Coins table, in the
+ * retro game-show look of tribu.css: cream cards, chunky ink outlines, hard
+ * offset shadows, mustard, tomato and teal. */
+
+/* The other players as tabs while everyone guesses everyone. */
+.author-tabs {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.party-table .author-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 4px 14px 4px 4px;
+  border-radius: 999px;
+  font-size: 14px;
+  max-width: 11em;
+}
+.party-table .author-tab b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.party-table .author-tab .party-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+.party-table.is-tribu .author-tab.is-current {
+  background: var(--t-sun);
+  box-shadow: 3px 4px 0 var(--t-ink);
+  transform: translateY(-2px);
+}
+.party-table.is-tribu .author-tab.is-done:not(.is-current) {
+  background: color-mix(in srgb, var(--t-teal) 16%, var(--t-card));
+}
+.author-tab-done {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--t-teal, #1f9e94);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--t-ink, #2b1a12);
+}
+
+/* The host's Next names what it opens. */
+.party-table .next-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(100%, 26em);
+}
+.party-table .next-step .party-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  flex: none;
+  box-shadow: 0 0 0 2px #fff;
+}
+.next-step-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.next-step-art {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.next-step-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Ten Coins: the prompt on a marquee card, a tray of ten gold coins, and
+ * four striped rows of coin slots, one per option. */
+.coins-stage {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(10px, 2.4vh, 20px);
+}
+.coins-prompt {
+  flex: none;
+  margin: 0 auto;
+  max-width: 24em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-radius: 20px;
+  background: var(--t-mustard);
+  border: 2.5px solid var(--t-ink);
+  box-shadow: 4px 5px 0 var(--t-ink), inset 0 2px 0 #ffffff70;
+  outline: 6px dotted #fff3a8;
+  outline-offset: 6px;
+  font: 900 clamp(19px, 3vw, 30px) / 1.1 var(--t-display);
+  color: var(--t-ink);
+  text-align: center;
+  text-wrap: balance;
+  animation: coins-marquee 1.2s steps(2) infinite;
+}
+.party-table.is-tribu .coins-prompt .party-avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+@keyframes coins-marquee {
+  50% { outline-color: #ffd23f; }
+}
+.coins-switch {
+  flex: none;
+  margin: 0 auto;
+  padding: 4px;
+  width: min(760px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  border: 2.5px solid var(--t-line);
+  border-radius: 999px;
+  background: var(--t-card);
+  box-shadow: 3px 4px 0 var(--t-ink);
+}
+.party-table.is-tribu .coins-switch button {
+  min-height: 52px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 0 !important;
+  background: transparent;
+  font: 900 clamp(15px, 1.8vw, 19px) / 1.1 var(--t-display);
+  text-wrap: balance;
+  color: var(--t-soft);
+}
+.party-table.is-tribu .coins-switch button.chosen {
+  background: var(--t-mustard);
+  color: var(--t-ink);
+  box-shadow: inset 0 0 0 2px var(--t-ink);
+}
+.party-table.is-tribu .coins-switch button:not(:disabled):hover {
+  transform: none;
+  box-shadow: inset 0 0 0 2px var(--t-ink);
+}
+.coins-board {
+  flex: none;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  border-radius: 26px;
+  background: var(--t-card);
+  border: 2.5px solid var(--t-line);
+  box-shadow: 5px 6px 0 var(--t-ink);
+}
+/* The coins still to place, as a tray. */
+.coins-purse {
+  justify-self: center;
+  display: flex;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #4a3426;
+  box-shadow: inset 0 3px 6px #00000066, 0 2px 0 #ffffff60;
+}
+.coins-purse i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2b1a12;
+  box-shadow: inset 0 2px 3px #00000088;
+  transition: background 160ms ease, transform 160ms ease;
+}
+.coins-purse i.is-left {
+  background: radial-gradient(circle at 35% 30%, #fff3a8, #f2b531 55%, #c98a12);
+  box-shadow: 0 0 0 1.5px var(--t-ink), inset 0 0 0 3px #ffffff40;
+}
+.coins-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.coins-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(7em, 0.8fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px 8px 24px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--row) 12%, var(--t-card));
+  border: 2px solid #2b1a1230;
+  overflow: hidden;
+}
+.coins-row:before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 11px;
+  background: var(--row);
+  border-right: 2px solid var(--t-ink);
+}
+.coins-row.row-0 { --row: var(--t-tomato); }
+.coins-row.row-1 { --row: var(--t-mustard); }
+.coins-row.row-2 { --row: var(--t-teal); }
+.coins-row.row-3 { --row: var(--t-sky); }
+.coins-row > strong {
+  font: 900 clamp(16px, 2.1vw, 22px) / 1.1 var(--t-display);
+  text-wrap: balance;
+}
+.coins-row.is-top { border-color: var(--t-ink); box-shadow: 0 0 0 3px #ffd23f; }
+.coin-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.coin-slots {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+}
+.party-table.is-tribu .coin,
+.coin {
+  display: block;
+  width: 100%;
+  max-width: 30px;
+  aspect-ratio: 1;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px dashed #2b1a1240 !important;
+  background: transparent;
+  box-shadow: none;
+}
+.party-table.is-tribu .coin.is-filled,
+.coin.is-filled {
+  border: 2px solid var(--t-ink) !important;
+  background: radial-gradient(circle at 35% 30%, #fff3a8, #f2b531 55%, #c98a12);
+  box-shadow: inset 0 0 0 3px #ffffff45, 0 2px 0 var(--t-ink);
+}
+.party-table.is-tribu .coin.is-out { opacity: 0.35; }
+.party-table.is-tribu button.coin:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 0 var(--t-ink);
+}
+.party-table.is-tribu button.coin.is-filled:not(:disabled):hover {
+  box-shadow: inset 0 0 0 3px #ffffff45, 0 3px 0 var(--t-ink);
+}
+.party-table.is-tribu .coin-step {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+.coin-count {
+  flex: none;
+  width: 1.4em;
+  text-align: center;
+  font: 900 clamp(20px, 2.4vw, 26px) var(--t-display);
+}
+.coins-guesses {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.coins-guesses > i {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px 2px 2px;
+  border-radius: 999px;
+  background: var(--t-card);
+  border: 1.5px solid #2b1a1240;
+  font: 900 13px var(--t-display);
+  font-style: normal;
+}
+.coins-guesses > i.is-right { background: var(--t-teal); color: #fff; border-color: var(--t-ink); }
+.coins-guesses > i.is-mine { box-shadow: 0 0 0 2px var(--t-ink); }
+.party-table.is-tribu .coins-guesses .party-avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  /* Clear the badge row above, tick marks included. */
+  .author-tabs { gap: 6px; padding-top: 10px; }
+  .party-table .author-tab { min-height: 36px; padding: 3px 10px 3px 3px; font-size: 12px; }
+  .party-table .author-tab .party-avatar { width: 28px; height: 28px; }
+  .coins-stage { justify-content: flex-start; gap: 12px; padding-top: 6px; }
+  .coins-prompt { padding: 9px 14px; border-radius: 16px; outline-width: 4px; outline-offset: 4px; }
+  .party-table.is-tribu .coins-switch { border-radius: 22px; }
+  .party-table.is-tribu .coins-switch button { min-height: 52px; padding: 6px 8px; border-radius: 18px; font-size: 14px; }
+  .coins-board { padding: 10px 8px 12px; border-radius: 20px; gap: 10px; }
+  .coins-purse { gap: 4px; padding: 5px 9px; }
+  .coins-purse i { width: 15px; height: 15px; }
+  .coins-row { grid-template-columns: 1fr; gap: 4px; padding: 6px 8px 8px 18px; border-radius: 14px; }
+  .coins-row:before { width: 8px; }
+  .coins-row > strong { font-size: 16px; }
+  .coin-track { gap: 5px; }
+  .party-table.is-tribu .coin-step { width: 30px; height: 30px; }
+  .coins-guesses { grid-column: 1; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .coins-stage { gap: 8px; }
+  .coins-prompt { padding: 6px 16px; font-size: 17px; outline-width: 4px; }
+  .coins-board { padding: 8px 12px; gap: 6px; }
+  .coins-rows { gap: 4px; }
+  .coins-row { padding-block: 3px; }
+  .coin { max-width: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coins-prompt { animation: none; }
+  .coins-purse i { transition: none; }
+}
+.party-table.is-tribu .party-host-wait {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--t-soft);
+}

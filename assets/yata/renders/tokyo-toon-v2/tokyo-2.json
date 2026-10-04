@@ -1,0 +1,66 @@
+{
+  "kind": 2,
+  "semantic_inventory": {
+    "name": "Yakitori",
+    "servings": 3,
+    "vessel": "compact charcoal rectangular tray",
+    "features": [
+      "three lower-right-facing bamboo skewers",
+      "three large chicken bites on every skewer",
+      "two lime leek sections on every skewer",
+      "broad grill marks"
+    ]
+  },
+  "measured_object_inventory": {
+    "skewers": 3,
+    "chicken_bites": 9,
+    "leeks": 6
+  },
+  "object_inventory_audit_passed": true,
+  "source_recipe_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+  "blender_version": "5.2.2 LTS",
+  "material_node_types": [
+    "ShaderNodeAttribute",
+    "ShaderNodeBsdfDiffuse",
+    "ShaderNodeBsdfTransparent",
+    "ShaderNodeEmission",
+    "ShaderNodeLightPath",
+    "ShaderNodeMapRange",
+    "ShaderNodeMath",
+    "ShaderNodeMixShader",
+    "ShaderNodeNewGeometry",
+    "ShaderNodeOutputMaterial",
+    "ShaderNodeValToRGB",
+    "ShaderNodeVectorMath"
+  ],
+  "material_audit_passed": true,
+  "model_counts": {
+    "mesh_objects": 35,
+    "curve_objects": 22
+  },
+  "textures_used": [],
+  "source_image_inputs": [],
+  "camera": {
+    "projection": "orthographic",
+    "elevation_degrees": 47,
+    "scale": 3.1
+  },
+  "contact_shadow": {
+    "method": "modeled analytic ellipse",
+    "alpha_at_boundary": 0,
+    "cycles_shadow_catcher": false,
+    "image_postprocessing": false
+  },
+  "render": {
+    "size": 1200,
+    "samples": 96,
+    "engine": "Cycles",
+    "film_transparent": true,
+    "outline_px": 7.166666666666667,
+    "cel_band_thresholds": [
+      0.0,
+      0.48,
+      0.8
+    ]
+  }
+}

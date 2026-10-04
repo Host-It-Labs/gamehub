@@ -1,10 +1,25 @@
 'use client';
 import { useId, useRef, useState, type PointerEvent } from 'react';
-import { Check, LockKeyhole, Send } from 'lucide-react';
+import { LockKeyhole, Send } from 'lucide-react';
 import type { AnyMove } from '@/lib/games/standalone/registry';
-import { bands, clueLimit, type DialGame } from '@/lib/games/party/dial';
+import {
+  aim,
+  bands,
+  clueLimit,
+  dialAt,
+  type DialGame,
+} from '@/lib/games/party/dial';
+import {
+  AuthorTabs,
+  LockDots,
+  NextStep,
+  ScoreChips,
+  nextAuthor,
+  useAuthorTabs,
+} from './know-me-parts';
+import { GuessDock } from './top-five-table';
 import { spectrums } from '@/lib/games/party/spectrums';
-import { CountUp, stagger } from './reveal-motion';
+import { stagger } from './reveal-motion';
 import './dial-table.css';
 
 const CX = 200,
@@ -265,42 +280,54 @@ export function DialTable({
   canAdvance: boolean;
   hostName?: string;
 }) {
+  const tabs = useAuthorTabs(g.seats, viewer, `${g.round}:${g.phase}`);
   const writing = g.phase === 'clue',
+    guessing = g.phase === 'guess',
     own = g.cards[viewer],
-    // While everyone writes, you see your own spectrum; then the one being read.
-    shown = writing ? own : g.cards[g.target],
-    author = writing ? viewer : g.target,
+    // While everyone writes, you see your own spectrum; while guessing, the
+    // clue on your tab; then the one being revealed.
+    author = writing ? viewer : guessing ? tabs.current : g.target,
+    shown = g.cards[author],
     giver = author === viewer,
     card = shown && shown.card >= 0 ? spectrums[shown.card] : null,
     mine = g.guesses[viewer],
     written = writing && !!own?.locked,
-    locked = writing ? written : !!mine?.locked;
+    locked = writing ? written : !!mine?.locked,
+    // A "Me" card: the author places themselves instead of writing a clue.
+    self = !!card?.self;
   const [draft, setDraft] = useState({ key: '', text: '' }),
     [turning, setTurning] = useState<{ key: string; value: number } | null>(
       null,
     );
-  const key = `${g.round}:${g.target}`,
-    value = turning?.key === key ? turning.value : (mine?.value ?? 50),
+  const key = `${g.round}:${author}`,
+    placing = `${g.round}:place`,
+    place =
+      turning?.key === placing ? turning.value : (own?.placed ?? 50),
+    value = turning?.key === key ? turning.value : dialAt(g, viewer, author),
     // The draft survives switching spectrums and unlocking, not the next round.
     clue = draft.key === `${g.round}` ? draft.text : (own?.clue ?? '');
   const name = g.seats[author];
   function settle(v: number) {
     setTurning({ key, value: v });
-    commit({ type: 'dial', value: v });
+    commit({ type: 'dial', author, value: v });
   }
-  const others = g.seats.length - 1,
-    lockedCount = g.guesses.filter(
-      (b, s) => s !== g.target && b?.locked,
-    ).length,
-    writtenCount = g.cards.filter((c) => c.locked).length;
   return (
     <section
       className={`dial-stage phase-${g.phase} ${giver ? 'is-giver' : ''}`}
     >
+      {guessing && (
+        <AuthorTabs
+          seats={g.seats}
+          authors={tabs.authors}
+          current={tabs.current}
+          done={(a) => locked || tabs.seen.includes(a)}
+          onSelect={tabs.select}
+        />
+      )}
       <div
         className="dial-top"
         data-game-motion="change"
-        data-game-motion-key={`${shown?.card}:${g.phase}:${g.target}`}
+        data-game-motion-key={`${shown?.card}:${g.phase}:${author}`}
       >
         {writing && !written && own && own.offers.length > 1 && (
           <fieldset className="dial-switch" aria-label="Spectrum">
@@ -308,24 +335,40 @@ export function DialTable({
               <button
                 key={id}
                 type="button"
-                className={own.card === id ? 'chosen' : ''}
+                className={`${own.card === id ? 'chosen' : ''} ${spectrums[id].self ? 'is-self' : ''}`}
                 aria-pressed={own.card === id}
+                aria-label={`${spectrums[id].left} to ${spectrums[id].right}${spectrums[id].self ? ', place yourself' : ''}`}
                 disabled={disabled}
                 onClick={() => commit({ type: 'card', target: id })}
               >
                 <span>{spectrums[id].left}</span>
-                <i aria-hidden="true" />
+                {spectrums[id].self ? (
+                  <b
+                    className={`party-avatar seat-${viewer} dial-me`}
+                    aria-hidden="true"
+                  >
+                    {g.seats[viewer].slice(0, 1)}
+                  </b>
+                ) : (
+                  <i aria-hidden="true" />
+                )}
                 <span>{spectrums[id].right}</span>
               </button>
             ))}
           </fieldset>
         )}
-        {(!writing || written) && shown?.clue && (
-          <p className="dial-clue" aria-live="polite">
+        {(!writing || written) && (shown?.clue || (self && !writing)) && (
+          <p className={`dial-clue ${self ? 'is-self' : ''}`} aria-live="polite">
             <span className={`party-avatar seat-${author}`} aria-hidden="true">
               {name.slice(0, 1)}
             </span>
-            <q aria-label={`${name}’s clue: ${shown.clue}`}>{shown.clue}</q>
+            {self ? (
+              <strong aria-label={`Where ${giver ? 'you are' : `${name} is`}`}>
+                {giver ? 'You' : name}
+              </strong>
+            ) : (
+              <q aria-label={`${name}’s clue: ${shown!.clue}`}>{shown!.clue}</q>
+            )}
           </p>
         )}
       </div>
@@ -333,8 +376,18 @@ export function DialTable({
         left={card?.left ?? null}
         right={card?.right ?? null}
         waiting={!card}
-        point={shown && shown.point >= 0 ? shown.point : null}
-        needle={g.phase === 'guess' && !giver ? value : null}
+        point={
+          shown && !(self && writing) && aim(shown) >= 0 ? aim(shown) : null
+        }
+        needle={
+          guessing && !giver
+            ? value
+            : writing && self
+              ? written
+                ? (own?.placed ?? null)
+                : place
+              : null
+        }
         needles={
           g.phase === 'reveal' && g.result
             ? g.seats.flatMap((name, s) =>
@@ -353,13 +406,31 @@ export function DialTable({
         }
         disabled={disabled || locked}
         onTurn={
-          g.phase === 'guess' && !giver
+          guessing && !giver
             ? (v) => setTurning({ key, value: v })
-            : undefined
+            : writing && self && !written
+              ? (v) => setTurning({ key: placing, value: v })
+              : undefined
         }
-        onSettle={settle}
+        onSettle={
+          writing && self ? (v) => setTurning({ key: placing, value: v }) : settle
+        }
       />
-      {g.phase === 'guess' && !giver && (
+      {writing && self && !written && (
+        <input
+          className="dial-slider"
+          type="range"
+          min={0}
+          max={100}
+          value={place}
+          disabled={disabled}
+          aria-label={`Where you are between ${card!.left} and ${card!.right}`}
+          onChange={(e) =>
+            setTurning({ key: placing, value: Number(e.target.value) })
+          }
+        />
+      )}
+      {guessing && !giver && (
         <input
           className="dial-slider"
           type="range"
@@ -378,38 +449,13 @@ export function DialTable({
         />
       )}
       {g.phase === 'reveal' && g.result && (
-        <div className="dial-scores">
-          {g.seats.map((name, s) => {
-            const gain = g.result!.gains[s],
-              at = 420 + (g.seats.length - 1) * 130 + 200 + s * 90,
-              bullseye = s !== g.target && gain === 4;
-            return (
-              <span
-                key={s}
-                className={`seat-${s} ${s === viewer ? 'is-mine' : ''} ${bullseye ? 'is-bullseye reveal-burst' : ''} reveal-pop`}
-                style={stagger(0, at)}
-              >
-                <i className={`party-avatar seat-${s}`} aria-hidden="true">
-                  {name.slice(0, 1)}
-                </i>
-                <b>{s === viewer ? 'You' : name}</b>
-                <strong>
-                  +
-                  <CountUp
-                    value={gain}
-                    duration={450}
-                    delay={at}
-                    format={(v) =>
-                      Number.isInteger(gain)
-                        ? String(Math.round(v))
-                        : v.toFixed(2)
-                    }
-                  />
-                </strong>
-              </span>
-            );
-          })}
-        </div>
+        <ScoreChips
+          seats={g.seats}
+          viewer={viewer}
+          gains={g.result.gains}
+          best={4}
+          start={420 + (g.seats.length - 1) * 130 + 200}
+        />
       )}
       <div
         className="party-dock"
@@ -417,7 +463,17 @@ export function DialTable({
         data-game-motion="change"
         data-game-motion-key={`${g.phase}:${locked}`}
       >
-        {writing && !written && (
+        {writing && !written && self && (
+          <button
+            className="party-primary"
+            disabled={disabled}
+            onClick={() => commit({ type: 'place', value: place })}
+          >
+            <LockKeyhole size={17} aria-hidden="true" />
+            Lock
+          </button>
+        )}
+        {writing && !written && !self && (
           <form
             className="dial-clue-form"
             onSubmit={(e) => {
@@ -444,68 +500,42 @@ export function DialTable({
             </button>
           </form>
         )}
-        {((writing && written) || (g.phase === 'guess' && !giver)) &&
-          (locked ? (
-            <button
-              className="party-locked"
-              disabled={disabled}
-              onClick={() => commit({ type: 'unlock' })}
-            >
-              <LockKeyhole size={17} aria-hidden="true" />
-              Unlock
-            </button>
-          ) : (
-            <button
-              className="party-primary"
-              disabled={disabled}
-              onClick={() => commit({ type: 'lock', value })}
-            >
-              <LockKeyhole size={17} aria-hidden="true" />
-              Lock
-            </button>
-          ))}
+        {writing && written && (
+          <button
+            className="party-locked"
+            disabled={disabled}
+            onClick={() => commit({ type: 'unlock' })}
+          >
+            <LockKeyhole size={17} aria-hidden="true" />
+            Unlock
+          </button>
+        )}
+        {guessing && (
+          <GuessDock
+            seats={g.seats}
+            locked={locked}
+            unseen={tabs.unseen}
+            disabled={disabled}
+            onSelect={tabs.select}
+            commit={commit}
+            lock={{ type: 'lock', author, value }}
+          />
+        )}
         {writing && (
-          <span
-            className="party-lock-count"
-            aria-label={`${writtenCount} of ${g.seats.length} clues locked`}
-          >
-            {g.cards.map((c, s) => (
-              <i key={s} className={c.locked ? 'is-locked' : ''} />
-            ))}
-          </span>
+          <LockDots locked={g.cards.map((c) => c.locked)} label="clues" />
         )}
-        {g.phase === 'guess' && giver && (
-          <span
-            className="party-lock-count"
-            aria-label={`${lockedCount} of ${others} dials locked`}
-          >
-            {g.seats.flatMap((_, s) =>
-              s === g.target
-                ? []
-                : [
-                    <i
-                      key={s}
-                      className={g.guesses[s]?.locked ? 'is-locked' : ''}
-                    />,
-                  ],
-            )}
-          </span>
+        {guessing && (
+          <LockDots locked={g.guesses.map((b) => b.locked)} label="dials" />
         )}
-        {g.phase === 'reveal' &&
-          (canAdvance ? (
-            <button
-              className="party-primary"
-              disabled={disabled}
-              onClick={() => commit({ type: 'next' })}
-            >
-              {g.target === g.seats.length - 1 ? 'End of round' : 'Next'}
-              <Check size={18} />
-            </button>
-          ) : (
-            <span className="party-waiting">
-              {hostName ?? 'The host'} moves on
-            </span>
-          ))}
+        {g.phase === 'reveal' && (
+          <NextStep
+            next={nextAuthor(g.seats, g.target, viewer)}
+            canAdvance={canAdvance}
+            disabled={disabled}
+            hostName={hostName}
+            onNext={() => commit({ type: 'next' })}
+          />
+        )}
       </div>
     </section>
   );

@@ -363,17 +363,6 @@
     "gain": 0.5
   },
   {
-    "id": "mora-bed-canopy-v1",
-    "game": "wildgrove",
-    "kind": "bed",
-    "category": "base",
-    "label": "Still canopy",
-    "src": "/audio/elevenlabs/mora-bed-canopy-v1.mp3",
-    "duration": 24.0,
-    "loop": true,
-    "gain": 0.65
-  },
-  {
     "id": "mora-bed-evening-v1",
     "game": "wildgrove",
     "kind": "bed",
@@ -418,17 +407,6 @@
     "gain": 0.5
   },
   {
-    "id": "yata-bed-simmer-v1",
-    "game": "midnight",
-    "kind": "bed",
-    "category": "base",
-    "label": "Slow simmer",
-    "src": "/audio/elevenlabs/yata-bed-simmer-v1.mp3",
-    "duration": 24.0,
-    "loop": true,
-    "gain": 0.65
-  },
-  {
     "id": "yata-bed-grill-v1",
     "game": "midnight",
     "kind": "bed",
@@ -471,5 +449,38 @@
     "duration": 4.0,
     "loop": false,
     "gain": 0.5
+  },
+  {
+    "id": "mora-canopy-v2",
+    "game": "wildgrove",
+    "kind": "bed",
+    "category": "base",
+    "label": "Still canopy",
+    "duration": 30,
+    "loop": true,
+    "gain": 0.85,
+    "src": "/audio/elevenlabs/mora-canopy-v2.mp3"
+  },
+  {
+    "id": "mora-coast-v2",
+    "game": "wildgrove",
+    "kind": "bed",
+    "category": "base",
+    "label": "Calm coast",
+    "duration": 30,
+    "loop": true,
+    "gain": 0.85,
+    "src": "/audio/elevenlabs/mora-coast-v2.mp3"
+  },
+  {
+    "id": "yata-restaurant-v2",
+    "game": "midnight",
+    "kind": "bed",
+    "category": "base",
+    "label": "Quiet restaurant",
+    "duration": 30,
+    "loop": true,
+    "gain": 0.85,
+    "src": "/audio/elevenlabs/yata-restaurant-v2.mp3"
   }
 ]

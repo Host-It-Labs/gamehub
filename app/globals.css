@@ -4789,7 +4789,8 @@ svg {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
 }
-/* A costly card (Storm, or the die's 8) carries its penalty on a small red tab. */
+/* A costly card (Storm, or the die's 8) carries its penalty on a small red tab;
+ * Gold carries what it takes off on a gold one, inside a thin gold rim. */
 .tide-face .tide-cost:empty {
   display: none;
 }
@@ -4805,6 +4806,75 @@ svg {
 .tide-face.suit-4 .tide-cost {
   background: #f8ecd2;
   color: #a8221f;
+}
+/* Gold is struck in gold: foil card stock, engraved brown ink, a bright
+   inner rim and one slow glint. It reads as treasure in the hand and on the
+   table, whatever its suit. */
+.playing-face.tide-face.gold {
+  --tide-ink: #4a2e05;
+  --tide-paper: #f2c955;
+  overflow: hidden;
+  /* Deep enough to stay gold when an unplayable card is dimmed. */
+  background:
+    radial-gradient(70% 45% at 28% 16%, #fff1b0aa 0, #fff1b000 70%),
+    linear-gradient(140deg, #f1bf3a 0%, #c4860f 40%, #eebd45 62%, #a06606 100%);
+}
+.tide-face .tide-foil {
+  position: absolute;
+  inset: 4px;
+  border: 1.5px solid #fff3c4cc;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1px #9a650f55;
+  pointer-events: none;
+}
+.tide-face .tide-foil::after {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% -60%;
+  width: 40%;
+  background: linear-gradient(100deg, #fff8dc00, #fff8dcaa, #fff8dc00);
+  transform: skewX(-18deg);
+  animation: tide-glint 4.5s ease-in-out infinite;
+}
+@keyframes tide-glint {
+  0%,
+  62% {
+    left: -60%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+.tide-face.gold .tide-cost {
+  background: #4a2e05;
+  color: #fbe39a;
+}
+/* The Anchor (the Storm 1) wears a navy tab with its ×2 and a cream rope rim. */
+.tide-face.anchor .tide-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
+  background: #041c33;
+  color: #f4ddb0;
+}
+.tide-face.anchor .tide-cost svg {
+  width: 1.05em;
+  height: 1.05em;
+  stroke-width: 2.6;
+}
+.tide-face.anchor::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 2px dashed #f4ddb0cc;
+  border-radius: 7px;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tide-face .tide-foil::after {
+    animation: none;
+    display: none;
+  }
 }
 .hand.card-hand.tide-hand {
   --hand-card-width: 100px;
@@ -5206,11 +5276,6 @@ svg {
   color: #24566a;
   border-color: #6b9bab;
   box-shadow: 0 3px 0 #537a89;
-}
-.extension-action-shield.piece {
-  background: #e4e7fa;
-  color: #444e83;
-  border-color: #8a91bb;
 }
 .extension-count {
   position: absolute;
@@ -6031,21 +6096,6 @@ svg {
 .hand-controls .extension-action.piece,
 .hand-controls .ward-token {
   box-sizing: border-box;
-}
-.hand-abilities > .wards,
-.hand-abilities > .piece-wrap:has(.extension-action-shield) {
-  position: relative;
-  margin-left: 10px;
-}
-.hand-abilities > .wards::before,
-.hand-abilities > .piece-wrap:has(.extension-action-shield)::before {
-  content: '';
-  position: absolute;
-  left: -11px;
-  top: 6px;
-  bottom: 6px;
-  width: 1px;
-  background: #b8a795;
 }
 .festival-controls > .piece-wrap:has(.extension-action-stall) {
   padding-left: 0;
@@ -6901,9 +6951,6 @@ button.primary {
   font-size: 16px;
   font-weight: 800;
 }
-.salvage-decision {
-  justify-content: center;
-}
 .game-controls:empty {
   display: none;
 }
@@ -6952,36 +6999,6 @@ button.primary {
     transform: translateX(0);
     opacity: 1;
   }
-}
-.migration-picker {
-  flex-basis: 100%;
-  padding: 12px;
-  border: 1px dashed #5a664f;
-  background: #e6e3ce;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  border-radius: 6px;
-}
-.migration-picker button {
-  min-height: 42px;
-  border: 1px solid #777e66;
-  border-radius: 4px;
-  background: #f3eddc;
-  padding: 6px;
-}
-.migration-picker img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-.migration-habitat {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.migration-habitat small {
-  flex-basis: 100%;
 }
 .mora-board {
   background: #d6d2ae;
@@ -7231,14 +7248,9 @@ button.primary {
     transform: none;
   }
 }
-.capture-score .salvage-score-detail {
-  position: static;
-  display: block;
-  color: inherit;
-  background: none;
-  font-size: 9px;
-  padding: 1px 0 0;
-  white-space: nowrap;
+.capture-score svg {
+  vertical-align: -2px;
+  margin-right: 3px;
 }
 .habitat-die-marks {
   font:
@@ -7330,10 +7342,6 @@ button.primary {
 }
 .modal.extension-rules-modal {
   overflow-y: auto;
-}
-.mora-habitat.migration-preview-region {
-  outline: 2px dashed #dbbe70;
-  outline-offset: 3px;
 }
 /* Compact mobile boxes; desktop dimensions expand below. */
 /* Keep legacy tile rotation and image zoom out of the physical box animation. */

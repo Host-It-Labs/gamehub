@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { devSession } from '@/lib/online/client';
+import { floorProjectors } from './relic-factory/anchor';
 
 export type DeskTab = 'tickets' | 'factory' | 'upgrades';
 /** The pointer, anchored to what is under it: floor cells in the factory,
@@ -60,6 +61,11 @@ export function anchorOf(event: {
     area = el.dataset.rsArea!;
   if (!r.width || !r.height) return null;
   if (area === 'floor') {
+    const projector = floorProjectors.get(el);
+    if (projector) {
+      const p = projector.toFloor(event.clientX, event.clientY);
+      return p ? { area, x: round(p.x), y: round(p.y) } : null;
+    }
     const cell = Number(el.dataset.cell) || 48,
       rows = Number(el.dataset.rows) || 0,
       sx = (event.clientX - r.left) / cell,
@@ -88,6 +94,8 @@ export function pointFor(
   const r = el.getBoundingClientRect();
   if (!r.width || !r.height) return null;
   if (cursor.area === 'floor') {
+    const projector = floorProjectors.get(el);
+    if (projector) return projector.toPage(cursor.x, cursor.y);
     const cell = Number(el.dataset.cell) || 48,
       rows = Number(el.dataset.rows) || 0,
       turned = el.dataset.turned !== undefined;

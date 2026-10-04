@@ -1,5 +1,1123 @@
 # Gamehub design direction
 
+## Diner: a night diner, co-op, with mimics (3 October 2026)
+
+William asked for a solo and co-op game in the spirit of the impostor party
+game combined with Diner Dash, played with a joystick and buttons on phones,
+working on phones and computers, with little content but all of it good.
+**Diner** (`diner`, plain literal name) is listed first under Solo & co-op.
+Rules, numbers, online play and code are in [diner.md](diner.md).
+
+- **The twist.** Every party of guests wears the same outfit; a mimic in a
+  party of three or four gets exactly one part wrong (hat, shirt colour,
+  stripes, dark glasses). Out! throws out the guest you face: a mimic pops
+  into purple goo (+15 coins), a real guest takes the party and a star with
+  them. Missed mimics burst out with the bill and leave goo to mop. Skin and
+  hair vary freely and are never a clue. Night 1 teaches the loop with no
+  mimics and no Out! button.
+- **Readable on a phone.** Waiting parties stand side by side in one row
+  facing the room (a 2×2 huddle hid the back row's shirts), figures are drawn
+  1.3 times life size with chunky hats and wraparound shades, and the patience
+  ring sits beside the row, never over it.
+- **Real-time and real 3D**, a third exception to the painted-plate rule
+  after Arena and Rota: an orthographic camera at 52° fits the whole room on
+  every screen; everything is modelled in code as chunky toys with vertex
+  colours, merged per material (vinyl, enamel, chrome, neon, glass).
+- **Its own world.** A 1950s roadside diner at night: cherry and cream
+  checkerboard, cherry enamel counter with chrome bands, pastel pink walls,
+  mint booths, a jukebox and a pink-and-teal neon cup, each night with its own
+  sky and moon. The HUD is diner hardware: chrome-rimmed cherry buttons, a
+  cream enamel clock pill, menu-card plates with a striped awning edge, a pink
+  neon script for the name. No text on the table beyond names, numbers and
+  the one word on the Use button.
+- **Controls.** Phones: the room on top, a cherry counter front beneath with
+  a floating joystick (one finger, so a second can press a button), a big
+  mint Use button showing what it will do now, and a red Out!. Tablets on
+  their side put the stick and buttons on rails beside the room. Computers:
+  WASD or arrows, Space or E, Q or X, Escape.
+- **Top bar, by decision:** back and name left, the shift clock as the centred
+  pill (it is the shift's only progress, like a round count), coins, the
+  medal track and stars with the menu on the right; phones keep back, clock
+  and menu only, with coins and stars on the counter front.
+- **Online co-op is server-authoritative** rather than lockstep (Arena's
+  lockstep is too slow for walking a character): each device predicts its own
+  waiter and replays its unacknowledged steps on every snapshot, everyone
+  else is interpolated a few steps behind.
+- **Sound is synthesised** (bell, sizzle, blender, coins, goo) with a soft
+  doo-wop jukebox loop at the Ambient level; nothing to download.
+
+## Impostor: draw the secret word, find the odd one out (3 October 2026)
+
+William asked for an imposter party game in the spirit of the Jackbox one
+where everyone gets the same prompt and the impostor gets something a little
+different, playable on phones and computers, with little content but all of
+it good. **Impostor** (`impostor`, a plain literal party name) is its own box
+on the Party shelf, 3–8 players, human-only online like Know Me and Quiz.
+
+- **Rules.** Everyone gets the same secret word; the impostor gets its close
+  neighbour (Cat and Fox, Moon and Banana, Ice cream and Microphone) and is
+  **not told**, so part of every round is realising it might be you, as in
+  Undercover. Everyone draws their word at once against an 80-second clock
+  (Done to finish early), then every drawing goes up on the board and
+  everyone writes one word (the server refuses a word that names your own),
+  then everyone accuses one player and locks. Accusing an impostor scores 2;
+  an impostor without the most accusations escapes and scores 5 (a tie at
+  the top catches them). Seven or eight players have two impostors with the
+  same word. The role goes round: nobody is the impostor twice before
+  everyone has been once. The reveal stays up while the host picks Next
+  round or End (or, with Votes on, the table has ten seconds). Rules marker
+  1; engine `lib/games/party/impostor.ts`, tests `tests/impostor.test.mjs`.
+- **Content.** 40 word pairs (`impostor-words.ts`): concrete, quick to draw
+  with a finger, simple English, no brands or people, each pair drawing
+  alike but not the same. A table gets pairs it has not drawn first (the
+  content history now covers Impostor as it does Atlas).
+- **Look: an evidence wall at night.** Ink-navy walls, one warm lamp from
+  above, a cork board in a dark wooden frame, cream index cards held by red
+  pushpins, manila tags for the secret words, typewriter labels, red string.
+  The reveal strings every accuser to their suspect, counts the pins, stamps
+  IMPOSTOR on the impostor's card and tags every card with the word it had.
+  Drawings use three inks (graphite, red, blue) and three nibs on a square
+  card; strokes are packed two characters a coordinate and sent one by one
+  (requests are capped at 8 KB), so the clock never loses a card.
+- **Viewport.** The board picks the column count that gives the cards the
+  most room, so three to eight cards fit one screen on phones and desktops.
+  Up to eight badges stay on one row: when names do not fit, a badge
+  contracts to the avatar with its score on a chip and its state on its
+  shoulder. With seven or eight players the finale lists the standings in two
+  columns so the next pick stays on screen. Table seat counts now go to
+  eight (other games keep their own limits).
+
+## Yata: the cards' drawings on every counter (3 October 2026, evening)
+
+William asked to bring back the card illustrations on the counter instead of
+the 3D renders, keeping the new presentation of each dish's name and score,
+on every menu. Supersedes the two Tokyo 3D sections below.
+
+- **Every menu's counter shows the card drawing** (`tokenImage`), Tokyo,
+  Bangkok, Mexico and Puebla alike, in Others and inspections too.
+  `dishRender` is gone; the Blender sources and 3D renders stay in
+  `assets/yata` and `public/art/optimized` but nothing serves them.
+- **The 3D layout stays:** no plate rings, the drawn dish stands on the
+  counter, up to three more servings peek out behind it with a ×N chip, an
+  uncollected dish is a dim imprint, and one cream tag carries the name and
+  the score coin (the name folds away on small counters). Hot dishes steam on
+  every menu (Gyoza, Ramen, Takoyaki; Bao, Rice; Tacos, Tamales; Quesadilla,
+  Pozole, Mole).
+- **Nothing spills out of its cell.** The phone counter no longer enlarges the
+  dish past its tall cell; the drawing sits low on its tag, and the servings
+  behind it are offset so every copy stays inside the cell.
+
+## Yata: Tokyo's 3D dishes match the cards (3 October 2026, later)
+
+William confirmed that the counter should keep modeled 3D dishes, with the
+same cartoon style, vessels, ingredients and portions as the existing tickets.
+The glossy v1 renders had sparse Ramen noodles, small toppings and an empty
+Yakitori tray; they also introduced realistic surface grain.
+
+`assets/yata/blender/tokyo_toon.py` rebuilds the six servings with clean cel
+colour bands and dark ink contours, using chunky card-matched geometry.
+Ramen fills its blue wave bowl with thick noodles and large egg, scallion,
+fishcake and nori toppings. The skewers fill their tray, the pickle cuts stay
+readable, and Takoyaki sits in an angular paper boat. There are no image
+textures, photographic noise, bump maps, glossy materials or raster edits.
+
+The new source PNGs live in `assets/yata/renders/tokyo-toon-v2`; the exporter
+fits them to the same 720×540 counter frames and writes lossless v2 WebPs.
+`dishRender` selects them for Tokyo, including Others and inspections.
+`ArtworkLoading` now decodes the six counter renders before lifting its curtain.
+The current ticket illustrations, counter layout, collection interactions,
+scoring and other menus are preserved. Earlier source models and v1 exports
+remain available. The written brief is in
+`docs/concepts/2026-10-03-yata-card-matched-3d/README.md`.
+
+
+## Yata: Tokyo's dishes in 3D on the counter (3 October 2026)
+
+William asked for the Tokyo counter to be redone with a high-quality 3D model
+of each of its six dishes, kept close to the drawings, laid on the table, with
+the score and name redesigned around them. Tokyo is the trial; Bangkok and the
+plaza menus keep their drawn dishes until he has seen it.
+
+- **Models are code, renders are stills.** `assets/yata/blender/tokyo.py`
+  builds Gyoza, Ramen, Yakitori, Pickles, Takoyaki and Dango over a small kit
+  (`dishkit.py`): lathed plates and bowls, parametric dumplings, swept
+  noodles and skewers, garnish dropped onto the food by raycast, and
+  procedural node materials (no small baked images, the reason the 25
+  September 3D stages failed). Cycles renders each one with the same
+  orthographic three-quarter camera, the stall lantern's warm key from the
+  far side, a thin ink outline and a shadow catcher, so the contact shadow is
+  in the alpha. `node scripts/yata-dish-renders.mjs tokyo` trims each render
+  into a 720×540 webp (`yata-dish3d-tokyo-<kind>-v1.webp`, `dishRender` in the
+  engine). Live three.js was not used: stills are sharper for food and cost
+  nothing at play time.
+- **The dishes stand on the enamel themselves.** The toon plate rings are gone
+  for Tokyo; each dish brings its own vessel and shadow and takes most of its
+  cell. Extra servings peek out behind the front one (up to four shown, a ×N
+  chip from two), set higher on the counter, a little smaller and in the
+  lantern's shade. A dish not yet collected is a dim sepia imprint of itself.
+  Ramen, Takoyaki and Gyoza steam gently (off under reduced motion).
+- **One tag per dish:** a cream pill with the name and a dark score coin,
+  hanging over the bottom of the dish. When the counter is small (phones,
+  opponents' mats in Others) a container query folds the name away and leaves
+  the coin. On phones the dish spills a little past its tall cell rather than
+  leave a gap above the score. Inspecting a dish shows the render on a tile of
+  red enamel.
+- The hand tickets keep the drawings for now.
+
+## Quiz: its own pick and splash, a 3D Sizes table, even scores (2 October 2026)
+
+William's request: Quiz's pick and the splash before each game looked too
+much like Know Me's. Keep the idea, make it feel different, maybe more 3D.
+Sizes felt clunky; its silhouettes should be 3D things you can move around
+and try at different sizes. Years' pin head should take a click. And no
+Quiz game should hand out far more points than another.
+Supersedes the scoring numbers in the 29 and 23 September sections below.
+
+- **The pick is a row of index cards** (`QuizPick`, `quiz-pick.tsx` and
+  `quiz-pick.css`). The 3D enamel blocks tried first the same day were
+  dropped at William's request: no 3D, Know Me's format, Quiz's own
+  materials, nothing that reads as a new style. Each game is a cream index
+  card lying on the desk, a window of cutting mat in its colour (Atlas
+  cobalt, Sizes tomato, Years sun, Order the game's green, End kraft) with
+  its mark on the mat, its name on the ruled card under a red margin line.
+  Cards deal in, lift and straighten on hover, play their mark, and a picked
+  one takes a big enamel pin at the top. Votes are enamel pin heads along
+  the bottom edge. Phones: two cards a row, End a low card beneath.
+- **The splash is Know Me's burst on the desk** (`QuizIntro`,
+  `quiz-intro.tsx` and `quiz-intro.css`, the same length): the game's
+  cutting mat slides in under the lamp, its mark lands, its name drops on an
+  index card, then it zooms away. Each game has its own motion: Atlas' globe
+  spins and a pin drops in, Sizes' tape runs out and the big block grows,
+  Years' pin arcs onto the ruler and sparks, Order's cards stand up one by
+  one. Off under reduced motion.
+- No sunbursts, rays or game-show plates in Quiz. Know Me keeps `TribuVote`
+  and `GameIntro`; `standalone-table.tsx` picks by set.
+- **Sizes is a 3D table.** Every silhouette is now a solid piece extruded
+  from its outline (`size-scene.ts`, three.js) on the green cutting mat,
+  lit by the desk lamp with real shadows: the reference in cream, yours in
+  glossy tomato enamel. Animals, objects and landmarks stand up like thick
+  standees; countries lie flat like map pieces, seen from above. Drag either
+  piece to move it; drag the red one over the cream one and it steps in front
+  (or lies on top, for countries) so the two compare outline to outline.
+  The camera cannot be moved (3 October 2026): one fixed angle, turned and
+  raised enough to show the pieces' depth, always framing both pieces, so
+  there is no orbit and no zoom. Size the red piece with the tape measure up the right
+  edge (a log scale, so tiny and huge sizes are equally easy; a cream notch
+  marks the reference's size), its corner knob (a large tomato grip with resize arrows and a pinging
+  halo, so it reads as a handle), the wheel, a pinch or the
+  arrow keys on the tape. The recentre button puts the pieces back. The reveal raises the reference, the true size in gold and every
+  guess in its player's colour out of the mat in a row, best first, the
+  labels pinned under each piece; hovering or tapping one fades the others.
+  Outlines are traced from the silhouette masks by
+  `scripts/build-sizes-outlines.mjs` into `size-outlines.json`. Without
+  WebGL the flat board remains.
+- **Years: the pin's head is a handle.** Its round head stands above the
+  ruler and used to let clicks through; grabbing it now drags the year from
+  where it is, without jumping.
+- **Even scores.** A Monte Carlo model of weak, average and strong players
+  on the real content (Atlas places, Sizes pairs, Years events by era,
+  Order sets) showed Order far too generous: a weak Order player outscored a
+  strong Atlas player, and a random order scored 36. Every game is now tuned
+  so the model's average player scores about 50 a prompt and a strong one
+  70–80, with a random guess near nothing (Sizes about 18):
+  - **Atlas**: 100 within 50 km, 72 at 300 km, 30 at 1,200 km, nothing at
+    4,000 km.
+  - **Sizes** scores how many times too big or too small, so double and
+    half cost the same: 100 within 10%, 78 at ×1.2, 48 at ×1.4, 22 at
+    ×1.6, nothing at twice or half. The reveal's *Off* is the same measure.
+  - **Years**: older events give more room. Years off count a fifth before
+    1800 and half from 1800 to 1949, then 100 for the right year, 80 one
+    counted year off, 55 at four, 20 at fifteen, nothing at thirty: nothing
+    at 150 years off before 1800, 60 from 1800 to 1949, 30 since 1950.
+  - **Order** scores by pairs the wrong way round: 100 perfect, 50 for one
+    pair, 20 for two, nothing for more (it was 20 a thing in place, 10 one
+    off). Sorting five things is still the easiest of the four; tighter sets
+    would let a gentler rule return.
+  The model's assumptions and tables are in
+  [the verification note](verification/2026-10-02-quiz-3d-and-scoring.md);
+  no real play has calibrated it.
+
+## Know Me: Ten Coins, Me cards, a livelier pick (2 October 2026)
+
+William's request: This or That and How Many felt binary and rigid next to
+Top Five and Dial; How Many's rate-yourself slider was fine but not a whole
+game. A first replacement pair, Who Said It (match unsigned answers) and
+Most Likely (point at a player), was rejected the same day: answers gave
+their authors away, and pointing at people was not interesting. Know Me is
+now three games: Top Five, Dial and Ten Coins. Picking a game should feel
+exciting.
+
+- **Ten Coins** (`coins`): everyone at once gets their own prompt with four
+  options (A perfect weekend: Sleep, Friends, Adventure, Food), picks one of
+  two, and shares exactly ten coins between the options the way they really
+  are. Then everyone guesses every other player's split, one tab per player,
+  and locks once; the splits are revealed one by one. A perfect read scores
+  10, like a perfect Top Five, and every coin out of place costs 2. It reads
+  how much, not only what: 7-1-1-1 and 3-3-2-2 are different people. Tap a
+  slot to set a pile, tap its top coin to take one back, or use − and +; a
+  tray of ten coins shows what is left. Content in `coin-prompts.ts` (60
+  prompts, every option something a reasonable person could pile coins on).
+- **This or That, How Many, Who Said It and Most Likely are gone**; saves
+  mid-game in any of them no longer load.
+- **Dial's Me cards** keep How Many's good idea: each player's second offer
+  is a "Me" spectrum (Night owl – Early bird) marked with their face. Taking
+  it, you turn the dial to where you really are instead of writing a clue,
+  and the table aims for that. Same bands and author average.
+- **The pick is a row of lit cards** (`set-pick.css`): each game in its own
+  colour with a turning sunburst, its mark big, its name on a plate. They
+  deal in, lift on hover, play their mark (the needle swings, the coin
+  flips) and ring when chosen. Know Me's marks are chunky ink-outlined
+  objects (`know-me-marks.tsx`). Three games sit in one row with End
+  beneath on phones.
+- **Every pick opens with a burst** of about a second (`GameIntro`,
+  `game-intro.tsx`): the game's colours flood in as a sunburst, its mark and
+  name land with a motion of their own (Top Five's ribbons race in, Dial's
+  needle whips, Ten Coins' stacks rise and the last coin spins down), then
+  it zooms away. Never on a reload or at End; off under reduced motion.
+
+## Arena: the field turned on wide screens, calmer wind, a pop-up cannon (2 October 2026)
+
+William's review of the living field and the desktop view:
+
+- **Wide screens look across the field.** Looking down the field on a
+  landscape screen left a narrow strip in the middle with forest on both
+  sides, and everything on it felt small. Wherever the free area is at
+  least 1.3 times as wide as it is tall, the camera now stands off the near
+  side wall at 50°: your king at the left, the other at the right, the
+  lanes running across the screen and the river down the middle. The field
+  fills the width and is drawn about 1.4 times larger; with their own
+  growth below, troops are about 1.6 times their old size. Phones
+  and portrait tablets keep the steep view down the field. The desktop
+  hover card lies on its side in the meadow under the field, right of the
+  hand. Numbers in [arena.md](arena.md).
+- **Everything on the field grew about 15%**: troops (and with them their
+  rings, shots and bars) and the towers (drawn at 0.8 of the model, from
+  0.7). The scenery keeps its size.
+- **The trees no longer wobble.** Each crown rippled vertex by vertex and
+  bent with the square of its height, so the trees looked like they were in
+  a microwave. A tree now leans stiffly from its foot as one piece, slowly
+  and only a little; bushes and grass keep their bend and flutter.
+- **The flags wave in a light breeze**, about a quarter of the old swing,
+  slower.
+- **The king's deck is clear.** The rear keep, its tiled roof, chimney and
+  pennant are gone. While the king sleeps a round iron hatch sits in the
+  middle of the deck; when it wakes a cannon about twice the old size
+  springs up through it with a puff of dust.
+
+## Arena: drafts, eight more troops, a living field (1 October 2026)
+
+William's round of feedback, all at once. The brief, roster and draft designs
+are in [concepts/2026-10-01-arena-draft](concepts/2026-10-01-arena-draft/brief.md);
+numbers in [arena.md](arena.md).
+
+- **Deck choice leaves the setup box.** It keeps one **Draft** choice, Off by
+  default. With Draft off every Versus battle opens with a deck picker over
+  the loading screen: your last eight ready, every card below it cheapest
+  first, the ready-made decks one tap, the average elixir as a bare number,
+  one Ready. Online the room waits for everyone's Ready, at most 30 s.
+- **Split draft** (Draft on, `lib/games/arena/draft.ts`): two simultaneous
+  12 s rounds. Each offers four cards, one per role (win condition, air,
+  splash, spell or support, derived from tags and stats); you keep two and
+  the two you leave go to the player across, so every pick costs something
+  and everyone ends with eight different cards. The clock running out keeps
+  the highest-rated pair; bots draft instantly. In 2 v 2 you watch your
+  teammate's offer and picks live. The room runs it online.
+- **Quest starts with a Bundle draft**, not a charm: three rounds of three
+  pairs, take one, six cards. Pairs are built for hard choices (a standout
+  tied to a weak card, a tank with no air answer, the Meteor against two
+  troops); every outcome can take towers and answer flyers.
+- **Eight new troops, three of them tanks**, so a deck without the Dino has
+  a front line: Diver (armour), Sumo (landing taunt, slaps push), Linebacker
+  (3-elixir tackle), Beekeeper (bees), Drummer (beat aura), Firefighter
+  (pushing water cone), Jetpack (fast flyer), Explorer (frost slows). The
+  Medic, Drummer and Beekeeper are supports that follow the nearest friend.
+  In 10 000 seeded bot duels every new card wins 45–56%. Cowboy, Viking,
+  Gladiator shield and Balloon were nudged. Sumo and Drummer unlock in
+  Quest; the other six start in the pool. Until ElevenLabs credits return
+  (about 26 October) the new troops borrow existing sounds.
+- **Card portraits v7, all 24**: caught mid-action, eyes on a target off to
+  the right, never smiling at the viewer; still big and centred.
+- **Natural walks**: feet plant and never slide; hip, knee and ankle are
+  solved onto them each frame, with heel-to-toe roll, a pelvis that drops
+  and rises, counter-turning shoulders and lagging arms. Each troop picks a
+  gait profile (`lib/games/arena/gait.ts`). The Robots keep their clockwork
+  scurry; Biplane and Balloon are unchanged.
+- **A living field**: about 150 000 grass blades coloured by the turf under
+  them, one valley wind through grass, flowers, bushes and trees, drifting
+  cloud shadows, flickering torches, chimney smoke, butterflies, birds,
+  falling leaves, water churning at the bridges; towers carry waving team
+  cloth and the king a tiled roof and lit windows. Grass thins on the
+  pacer's lower rungs; reduced motion keeps only gentle movement.
+- **The Meteor is hurled from the caster's own king**, a flash and smoke on
+  its roof and a burning arc that lands on the engine's 30th step.
+- **Quest map in the painting**: new crisp region paintings (the old ones
+  were upscaled, low-contrast and blurred behind panels), stops as emblems
+  on plinths in perspective, worn trails with footprints, flags on cleared
+  stops, fog that rolls back, a token that walks to the chosen stop.
+- **Card stats**: a Cards button in the setup and a Cards entry in the
+  battle menu open a browser of every card; on desktop, hovering a hand
+  card or any troop shows its card in the forest right of the field,
+  outlined in its side's colour (`lib/games/arena/card-facts.ts` derives
+  every number and ability line from the card itself).
+
+## Alto: a longer strategy game where everyone plays at once (30 September 2026)
+
+William asked for a more strategic, longer game (10–20 minutes) that keeps
+everyone playing at the same time, without Seven Wonders' need to know what
+the deck holds, a simple base and extensions and variants from the start.
+**Alto** (`alto`, an abstract short name) is sky-island trade: every turn
+everyone picks an island and may build one plan with goods already held;
+alone you load the pile up to your hold, together you split it. Nothing is
+hidden but the turn's picks: every plan of the match is on the table from the
+first turn. Rules, numbers, balance and code map: [docs/alto.md](alto.md).
+
+- **Look.** Luminous gouache storybook: a peach-and-powder-blue morning sky,
+  eight painted floating islands (each good twice, all distinct), plan
+  miniatures on linen cards with brass rims, enamel captain medallions and
+  cream airships carrying a pennant in the seat colour. Not paper, not a flat
+  poster, not toon, not 3D. One sun, upper left; shadows fall down-right.
+- **Table.** Islands float in the sky between the top bar and a linen tray;
+  the tray holds your goods, hold, All plans and Undo in its top row and the
+  season's six plans beneath (three by two on phones). Tap a plan to prepare
+  it (your goods show what it takes), tap an island to fly: that tap is the
+  move. The reveal flies every ship in with its load; a season word drifts in
+  on a cloud. No helper text on the table.
+- **Variants.** Voyage: Quick (4 turns a season) or Full (6). Plans: First
+  Flight (fixed) or Random (six of nine a season, all shown). Extensions:
+  Winds, Orders, Flags, Captains.
+- **Online** follows Rota: the table launches an Alto room; bots take empty
+  seats and fly for anyone away.
+- **3D planets (2 October 2026).** William asked for the islands to become
+  3D planets that look different from one another, a real ship in each
+  player's colour flying to the planet picked, and 3D objects for the plans,
+  built at full detail first and optimised later. Every island is now a small
+  planet drawn by code over the painted sky (forest, terraced quarry, meadow
+  with wandering sheep, ice and crystal with a ring; the second island of each
+  good is a variation: autumn wood, red canyon, lavender downs with windmills,
+  rose crystal). Your airship leaves the tray when you pick; at the reveal
+  every ship flies in from its badge, circles its planet and flies home. In
+  the tray Shrine, Kite and Sawmill are animated 3D objects for now; the other
+  plans keep their painted miniatures until the first round of feedback. The
+  DOM keeps every control and number; without WebGL the paintings stay.
+- **Space theme (2 October 2026), replacing the look above.** William asked
+  to move Alto right away from its sky-island theme and layout while keeping
+  the planets: ordinary, relatable space hauling, not hard sci-fi, with
+  spaceships instead of balloons, new cargo, new things to buy that match,
+  and upgrades that show on your ship and the opponents' ships. The rules and
+  numbers did not change; only words, pictures and layout did, and every id
+  stayed so saves and rooms still load.
+  - **Words.** Cargo is food, metal, ice and crystal (crystal the rare one);
+    plans are *upgrades* bolted onto your ship (tools load more, gear carries
+    more, trophies and extras score); seasons are *trips*; Winds became
+    **Comets**, Captains became **Crew** (Pilot, Farmer, Miner, Ice Fisher,
+    Jeweller, Scout, Trader, Collector). Planets: Orchard and Pumpkin (food),
+    Rust and Anvil (metal), Frost and Floe (ice), Prism and Shard (crystal).
+  - **Look.** Soft painted toy-space: a deep navy and violet night with a
+    warm sun on the left; cream hulls with one bright stripe in the seat
+    colour; controls in the hull's cream enamel; the deck at the bottom a
+    dark navy hangar; Futura-style rounded display type. Planets carry about
+    a dozen big things each (apple trees, greenhouses, pumpkins and
+    sunflowers, mining towers, a furnace, igloos, ice floes and a whale, big
+    crystals) instead of hundreds of specks, so they read on a phone.
+  - **Table.** Planets are laid out as large as the stage allows. On wide
+    screens they zig-zag between an upper and a lower lane (2 October
+    feedback: one straight row left them small on desktop), otherwise rows
+    whose shorter ones sit in the gaps; the pile under each.
+    The deck: your own 3D ship standing on a lit pad (it lifts off when you
+    pick and lands back after the reveal), your cargo, All upgrades and Undo
+    in the row above the shop, and the shop's upgrades as 3D objects on lit
+    pads rather than cards. Tapping an upgrade shows it see-through on your
+    docked ship; every ship carries everything its player has built.
+  - **Costs (2 October feedback).** A short upgrade used to fade as a whole,
+    hiding the very cargo you were missing. Now a cost is one cargo icon per
+    unit on a small tray, measured against your hold: bright for cargo you
+    have, ringed gold where a swap (two of any others) covers it, an empty
+    red socket where you are short, faint where a discount takes it. Only
+    the name and effect of a short upgrade step back. Orders and
+    inspections use the same row.
+  - **Models (2 October feedback).** The first models read as basic shapes;
+    every planet feature, the ship and the six upgrades were rebuilt with
+    many more polygons and real sub-parts (bevels, trim, panels, rivets,
+    layered foliage), within per-object triangle and draw budgets.
+  - **Every upgrade modelled (2 October, after William approved the six).**
+    Tools and gear bolt onto the hull at their own mounts (Robot Arm under
+    the right flank, Cutter on the left, Trailer towed under the tail,
+    Magnet swinging under the belly, a Sidecar with a dog in goggles, a
+    retro Fridge strapped on the left). There is no room for trophies and
+    extras on a hull, so they ride as die-cut souvenir stickers, like a
+    travel suitcase, each showing its own picture; in the shop they are
+    small dioramas (a lighthouse on rocks, a museum with a dinosaur, a pool
+    with a rubber duck, a market stall with all four cargo). A cost unit a
+    discount takes off is struck through in green.
+  - **Scope of the first pass.** The first trip's six First Flight
+    upgrades were modelled first (Cargo Pod, Harvester, Drill, Scoop,
+    Telescope, Radar), by William's request, so he could react before the
+    rest. Captains' crew badges, cargo icons,
+    the space plates and both covers were generated fresh.
+
+## Rota: a roll-and-draw route game on a surveyor's desk (30 September 2026)
+
+William asked for a game highly inspired by Railroad Ink, fully built and
+balanced, with extensions and maps and as much content as the other games.
+**Rota** (`rota`) is its own game: its name, look, maps, extensions and
+numbers are Gamehub's. Rules, content, code map and the balance runs are in
+[rota.md](rota.md).
+
+- **Play.** Everyone rolls the same dice and draws roads and rails on their
+  own survey sheet at once: three route dice and a junction die a round, one
+  special a round (three a match). Networks score by the exits they link,
+  the longest road and rail a point a square, the centre a point a square;
+  loose ends cost one each. Four maps (Meadow, Harbour, Ridge, Capital) and
+  four extensions (Rivers, Plans, Towns, Rockfall), each one mechanic and
+  independent. 1–6 seats; solo against bots, or online from a table.
+- **Look.** A surveyor's cyanotype sheet on a walnut drafting desk at
+  night, one brass lamp from the top-left. Routes are white ink drawn by the
+  app (cased roads with a dashed centre line, rails on sleepers, pale river
+  channels, stations as small buildings, bridges with parapets), hazards in
+  red pencil, towns in gold ink. The dice are the shared cube in ivory with
+  blue printed routes (junction die brass-tinted, river die pale blue and
+  dashed as optional); specials are a brass stencil strip; the score is the
+  drawing's title block; plans are taped cream notes. Condensed engineering
+  lettering throughout. A compass, set square and red pencil rest on the
+  desk where there is room.
+- **Pacing.** Players lock their own round with Done; the round resolves
+  once all have and the next dice roll at once, with no host Next (nothing
+  is revealed that the table needs to talk over, as in Mora's picks). A
+  person away 45 seconds has a bot build their round. The table admin
+  starts another match from the results.
+- **Layout.** One viewport everywhere: the sheet takes the height between
+  the top bar and the dock; on wide screens plans sit left and the title
+  block right, narrower screens put them in a strip under the sheet. Undo
+  has its own slot in the dock row above the dice; Done sits beside them.
+  Phones use the shared top bar; six badges fit as contracted badges.
+
+### Rota in 2.5D: a model railway (2 October 2026)
+
+William: rethink Rota as "3D elements that we place on the map", with
+"little trains and little cars that go around the map", towns in 3D, "2.5D",
+high-resolution models made in Blender; "you can completely redesign
+everything". The rules and numbers did not change. Brief and asset list:
+[concepts/2026-10-02-rota-3d/brief.md](concepts/2026-10-02-rota-3d/brief.md).
+
+- **Look.** The cyanotype desk is retired. Rota is a hand-built model
+  railway layout in late-afternoon sun, rendered live with three.js from a
+  fixed three-quarter camera (41 degrees down, a long lens) with a soft
+  tilt-shift on the scenery above and below the board. The plot is fresh
+  flock grass with mown grid lines and warm hay-toned centre squares,
+  framed by a dry-stone wall that opens where exits leave; the landscape
+  fills the screen to every edge (rolling farmland with fields, hedges,
+  farms and woods; Harbour's sea and lighthouse, Ridge's mountains and
+  pines, Capital's town blocks; villages along roads that leave the board).
+- **Pieces.** Roads, rails and rivers are swept in code along the same
+  paths the vehicles follow: asphalt with cream kerbs and dashes, ballast
+  with sleepers and steel rails, river channels carved into the ground with
+  one water plane under the whole land. Overpasses hump over the rail on
+  stone piers; bridges carry parapets; stations, towns, tunnel portals,
+  rubble, buffer stops and road barriers (the loose ends) are Blender
+  models with high-resolution tiled textures (generated tiles, made
+  seamless, with normal and ORM maps). Pieces drop onto the board with a
+  small bounce.
+- **Traffic.** Cars drive on the right of every road network, trains of a
+  locomotive and two or three cars run every rail network in the sheet
+  owner's seat colour; they stop at stations, turn back at dead ends,
+  arrive and leave by the exits joined to the network, and vanish into
+  station halls and tunnels. Reduced motion parks them.
+- **Controls.** The DOM keeps every control: the squares are real buttons
+  laid over the drawn ground through a perspective transform (matrix3d
+  from the camera), so tapping, dragging dice, the keyboard and screen
+  readers work as before. Without WebGL (or while the models load) the
+  drawn sheet shows instead. Dice faces and specials show the pieces as
+  small 3D tiles once the board has rendered them; Others shows a picture
+  of each opponent's board.
+- **Signage.** Controls are railway enamel: deep green and cream, Gill Sans
+  at semibold, the score as a green enamel board, specials on a cream plate.
+
+### Rota as a cel-shaded picture book (2 October 2026, later)
+
+William on the first 3D pass: "too realistic … but basic at the same
+time"; the grass ugly, everything too small, "on mobile the game looks
+completely" broken. Make it more cartoony, bigger and cleaner, make cut
+routes clear, animate vehicles meeting them and turning back, and keep
+Rota's own style apart from the other 3D games. Supersedes the look and
+traffic bullets above; rules, layout of controls and numbers unchanged.
+
+- **Look.** A cel-shaded picture book: every surface a clean flat colour
+  (the Blender tints brightened and more saturated), three hard light
+  tones (`MeshToonMaterial` with a three-step ramp), softened baked AO,
+  and dark ink lines round every silhouette from a depth-edge pass
+  (`three/ink.ts`). No photographic tiles (the 27 MB of texture downloads
+  are gone; `public/3d/rota/tex` is no longer shipped), no tilt-shift
+  blur. Neutral tone mapping, a bright sky fill so shade is never black.
+  Arena stays glossy plastic toys under realistic light; Rota is drawn
+  ink-and-colour.
+- **Palette.** Two clean meadow greens in big soft patches; the plot a
+  fresh lawn mown in a checker with pale grid lines; butter-yellow centre
+  squares; slate-blue asphalt with cream kerbs and dashes; warm sand
+  ballast with toffee sleepers and pale steel; bright turquoise water
+  with white foam along every shore; terracotta and cornflower roofs.
+- **Scale.** Roads 0.40 wide (lanes ±0.10), track gauge 0.126 on 0.34
+  ballast, cars at 1.55× and trains at 1.4× their models, stations 1.35×,
+  town houses 1.22×, trees 1.3×, barriers and buffer stops 1.45×.
+  Overpasses rise to 0.36 so trains clear them. The camera has a longer
+  lens (26°) and frames the board tighter.
+- **Phones.** Tall stages look down more steeply (49° up to 72°), so the
+  board fills the width and grows taller instead of a squat strip; the
+  score plate sits centred under it when there are no plans.
+- **Cut routes.** Every loose end has a big barrier or buffer stop and a
+  pulsing red half ring on its open edge.
+- **Traffic at dead ends.** Vehicles brake evenly to a stop short of the
+  barrier. A car swings round in a half-ellipse U-turn into the other
+  lane, leaning out of the turn; a train bumps the buffer stop with a
+  small spring back, waits and runs back, the locomotive pushing. Cars
+  avoid dead ends too short to turn in when there is another way. New
+  vehicles pop in with a small overshoot; ones whose road is taken up
+  shrink away instead of vanishing.
+
+### Rota as a mill town (3 October 2026)
+
+William on the picture book: three squares of rail sitting between two
+things "just seems weird"; cars drive up to stations and vanish; cars are
+as big as the houses; cars sink into the road going uphill and trains drive
+through each other. "It shouldn't feel toy-like" (it is not an easy game),
+and when someone builds a loop of road the board should fill up around it,
+"so it kind of builds up to be a town". He chose a mill town over a canal
+town and a valley ringed by tunnels. Supersedes the look, scale and traffic
+of the two sections above; the rules, numbers and controls are unchanged.
+Brief, scale table and model list:
+[concepts/2026-10-03-rota-mill-town/brief.md](concepts/2026-10-03-rota-mill-town/brief.md).
+
+- **The world.** The board is a cleared site in the middle of a northern
+  industrial town, about 1950. The town round it already exists: its
+  streets and its railway arrive at the edge of the site, and those are
+  the exits. Roads are cobbled **streets** with flagstone pavements; rail
+  is a **works railway**, so a short piece of rail is a siding serving a
+  works and a shunting engine works it. Stations are **goods stations**
+  (a shed with doors on every side), overpasses brick road bridges over a
+  brick-walled cutting, centre squares the town's civic heart. Ridge's
+  peaks are gritstone outcrops with a tunnel through; Harbour's sea is the
+  docks, its piers stone wharves with a crane; rubble is old workings caved
+  in; the Towns extension is called **Mills** (id `towns` unchanged).
+- **The town grows** (`lib/games/rota/growth.ts`). Terraces line every
+  street, mills, warehouses, sheds and coal drops every track, corner pubs
+  and corner shops take the corners where routes meet or bend, civic
+  buildings the centre, gas lamps the pavements. The more exits a network
+  links, the grander it grows (cottages, then terraces, then three storeys
+  and five-storey mills with chimneys). A loop of street becomes a block
+  lined inside and out. Nothing stands on a route or leaves its square,
+  and nothing is so tall that it hides the middle of a route or an open
+  square from the camera: on the near side of a street the town steps down
+  to cottages and lock-ups. New buildings rise out of the ground. When the
+  match ends the empty squares fill too (allotments, a park with a
+  bandstand, back-to-backs).
+- **One scale.** A square is 25 m and every model is its true size divided
+  by 25 (a car 0.16 long, a two-storey terrace 0.31 to the ridge); only the
+  track gauge is widened a little. There are no per-family multipliers.
+- **Traffic** (`lib/games/rota/traffic-sim.ts`, pure and tested). Every
+  vehicle rests on two axles on the routes' one height profile, so it
+  tilts up and over a bridge and down into the cutting. Trains hold the
+  squares they stand on and the next before they enter it, so two never
+  meet; one kept waiting backs off. Street crossings and a goods shed's
+  yard take one vehicle at a time; turning vehicles keep their patch of
+  street clear. A lorry calls at a goods shed door, waits and turns round
+  in a three-point turn; a shunter meets the buffers gently and backs off.
+  Vehicles come and go only out of sight: trains in a tunnel mouth off the
+  board, street traffic past the edge of the picture. A network with no
+  way out keeps one resident vehicle. Nothing is ever hidden on the board.
+- **Look.** Sooty red-brown brick, blue-grey slate, sandstone, cobbles and
+  flags under a low golden sun in a smoky haze, chimney smoke drifting
+  east; still drawn in flat toon tones with ink lines, but sober colours.
+  Liveries are railway paint in the seat colours. The old town round the
+  site is a grid of cobbled streets on the half-squares (where the exits
+  run) with blocks of terraces, mills, chapels and a gasholder, thinning
+  into moorland.
+
+### Rota: crisp surfaces and adaptive quality (3 October 2026, later)
+
+William asked for much higher-quality ground, houses and streets, with
+automatic reductions only when the client cannot keep up, and natural
+traffic around cut routes. The mill town, its proportions, camera and
+rules stay the same.
+
+- **Surfaces are procedural** (`three/surfaces.ts`), drawn at the actual
+  canvas resolution: running-bond brick, overlapping slates, worn setts,
+  sandstone flags, cinder, grass, ballast and timber grain. Model UVs use
+  their physical material scale; generated streets and town rows use a
+  world-space projection. The grid and the town's surrounding streets use
+  the same material functions. Recessed joints, per-stone variation and
+  fine relief keep the three-tone lighting and ink. Pixel derivatives
+  filter subpixel detail rather than letting roofs and ground shimmer.
+  There is no low-resolution colour atlas to enlarge or texture download.
+- **Quality starts high on phones too** (`lib/games/rota/quality.ts`).
+  Native density up to 3×, with a six-million-pixel budget (never below one
+  pixel per CSS pixel), 4096 shadows and up to four-sample antialiasing where
+  the GPU supports it. Dense displays already supply fine edge sampling, so
+  only lower display densities add multisampling; lowering quality never
+  switches it on. Only the scene target allocates
+  depth; the ink target stores HDR colour without duplicate depth/MSAA.
+  Sustained slow frames step down to balanced, then low: lower shadow and
+  sampling budgets, canvas density and fine-grain octaves. Sustained
+  headroom recovers quality gradually. Loading, hidden pages and resizing
+  get a grace period; a single stall does not lower quality. A lost GPU
+  context restores at low quality before trying larger buffers again. Buildings,
+  routes, simulation and the grid's tap targets never change with quality.
+- **Traffic keeps its direction.** Fork and cross segments only join when
+  their tangents agree, including the trail behind a train. Small cars and
+  vans use three steering arcs with a pause at each gear change, with the
+  whole body checked inside the kerbs and clear of sheds and barriers.
+  Buses and lorries avoid branches without space to leave. Curved and raised
+  connections, and adjoining junctions, reserve a clear way through before
+  entry. A shunter reverses along the same track with its physical axles,
+  body heading, pitch and wagon positions intact; a short siding receives a
+  consist that fits. Harbour's short wharves are visible scenery, never a
+  place for traffic to appear or vanish.
+- **Small phones.** Six contracted badges, including three-digit scores,
+  fit at 320 px without sideways scrolling; the material quality changes
+  neither the controls nor their hit boxes.
+
+### Rota: clear edges, readable points and phones (3 October 2026, evening)
+
+William: the old town's small streets also touched the board, so they
+looked like more places to connect; on phones the view was "completely
+messed up", the points were hard to follow, the specials were tiny, and
+other players' boards were hard to read at an angle.
+
+- **Only exits touch the board.** The first ring round the site is an
+  unbroken terrace backing onto the hoarding, two rows back to back across
+  their yards, broken only where a main road or the railway leaves. A
+  narrow back lane rings the terrace, and the old town's lanes start
+  beyond it. Back lanes are narrower and paler than the streets you build
+  (`LANE_HALF`, `RING` in `three/ground.ts`; the terrace in
+  `three/scenery.ts`).
+- **Phones look almost straight down.** Tall stages pitch the camera up
+  to 76°, so the squares stay square instead of flattening into a wedge.
+  Dice faces and specials are pictures of the piece seen straight down,
+  never a tilted tile inside the tilted cube.
+- **Points you can open.** The score block (the whole breakdown on wide
+  screens, the total on phones) opens the points panel: each category's
+  workings (every network and the exits it links, the longest routes,
+  centre squares, mills, plans, loose ends) and the one-line rule behind
+  it (`scoreParts` in `lib/games/rota/score.ts`). Phones put the plans and
+  the total in one row under the board.
+- **Bigger specials**: 60 px on wide screens, 44 px on phones.
+- **Others shows plans.** Each other sheet is pictured straight down
+  through a long lens, cropped to the board, larger.
+
+## Know Me and Quiz: everyone guesses everyone, four games each, the host picks (29 September 2026)
+
+William's request, all at once:
+
+- **Know Me guesses everyone at once.** Every Know Me game now runs in three
+  steps: everyone answers for themselves at once; then everyone guesses
+  **every other player at once**, one tab per player (their face and name),
+  with **Next** walking to a player not yet seen and **one Lock** for all
+  of them; then the answers are revealed one player after another, the host
+  pressing Next between them. Points land as each player is revealed. Top
+  Five (rules 7) and Dial (rules 3) moved to this format; saves from the
+  one-list-at-a-time rules are retired. Top Five's team play, already off in
+  setup, is gone from the engine.
+- **Next says what comes next.** In every Know Me and Quiz reveal the
+  host's Next names what it opens: the next player (avatar and name) in
+  Know Me, the next place in Atlas (the photo's thumbnail and *Final* for
+  the final), the next item in Sizes, the next event in Years, the next set
+  in Order, and *End of round* (a flag) at the end. One shared piece,
+  `NextStep` in `components/game/know-me-parts.tsx`.
+- **Two new Know Me games.** **This or That** (`pick`): five shared pairs a
+  round (Beach or Mountains?); pick your own side of each, then everyone's;
+  2 points a right guess, 10 for all five, like a perfect Top Five. **How
+  Many** (`many`): pick one of two questions about yourself (How many alarms
+  do you set? Out of 10, how competitive are you?) and set your real number
+  on a slider; the others guess it. The exact number scores 4, then 3, 2, 1
+  inside bands that grow with the question's range (5%, 12%, 25%, never
+  tighter than 1, 2, 3). The reveal is a ruler: the answer glows teal inside
+  its bands and every guess drops in as an avatar. Both use the game-show
+  look (cream cards, ink outlines, hard shadows). Content in
+  `pick-pairs.ts` (150 pairs) and `many-questions.ts` (90 questions).
+- **Two new Quiz games**, after the timeline and sorting dailies, on the
+  measuring desk like Atlas and Sizes: three prompts a round, lock once,
+  the host reveals them one at a time, up to 100 each. **Years** (`year`):
+  one event from before 1800, one from 1800–1949, one since 1950, in a
+  shuffled order (the eras are never labelled on screen); drag a tomato pin
+  along a cream timeline (1000–2025) and fine-tune on the close-up ruler
+  beneath it, joined to the timeline by a loupe funnel. The step tabs show
+  each event's number and year so far; the other events' numbered markers
+  stay on the timeline, so the three read in order, and tapping one picks
+  it. No nudge buttons (2 October 2026). Right year 100,
+  2 off 90, 5 off 78, 10 off 62, 20 off 45, 40 off 25, 75 off 10, 120 or
+  more nothing, straight lines between. The reveal zooms the timeline to
+  where everyone landed, the true year in gold. **Order** (`order`): five
+  things to sort by a measure (Tallest first) on cream strips on the mat;
+  20 per thing in its place, 10 one place off. The reveal lays the true
+  order out with every value. Content in `year-events.ts` (74 events,
+  undisputed years only) and `order-sets.ts` (39 live sets, neighbours at least
+  about 15% apart so sources never disagree). Every set must be one an
+  ordinary player can reason about: planet masses, lake depths, waterfall
+  heights, desert sizes and capitals' altitudes were retired on 2 October
+  2026 for everyday sets (inventions, games, brands, temperatures,
+  pregnancies, team sizes, speeds).
+- **The host picks by default.** Setup has a **Next round** choice: *Host
+  picks* (the default) or *Everyone votes*. With the host picking, the
+  opening pick, every end-of-round pick and the next-game pick after a match
+  wait on the table host alone, with no clock; everyone else sees the tiles
+  and who picks. The server refuses anyone else's pick. *Everyone votes*
+  keeps the ten-second votes as they were. Stored as `votes` on the set
+  state and `partyVotes` on the table.
+- **Four games and End** on the pick: five tiles in a row on wide screens,
+  two columns with End across the bottom on phones.
+
+## Arena: eight new troops, Quest, a real loading screen (29 September 2026)
+
+William's round of feedback, all at once (brief in
+[concepts/2026-09-29-arena-quest](concepts/2026-09-29-arena-quest/brief.md)):
+
+- **Two ways to play.** The box opens on **Versus** (the 1 v 1 and 2 v 2
+  battles, as before) or **Quest**, a roguelite played alone or by a table of
+  two. Versus now takes a **deck of eight** from the sixteen cards, built in
+  a larger modal above the setup (`deck-editor.tsx`); each player brings
+  their own online, and bots draw one of five ready-made decks
+  (`lib/games/arena/decks.ts`).
+- **Eight new troops, each a new role**, not a variant: the Pirate (cheap,
+  fast, leaps at the first enemy for a double blow), the Viking (spins his
+  axe round, rages below half health), the Gladiator (a shield soaks the
+  first hits), the Medic (heals, never fights), the Miner (digs to any spot
+  on the field), the Balloon (slow air tank for towers, crashes with a bang),
+  the Inventor (lightning that jumps to three enemies and stuns) and the
+  Gunner (a cannon that outranges towers, helpless up close). Four women and
+  four men from eight eras; silhouettes never repeat an existing figure's
+  (no second long coat or pointed hat). Numbers in [arena.md](arena.md).
+- **Quest** (`lib/games/arena/quest.ts`, pure and shared with the server):
+  three regions (Greenwood, Sunstone, Frostpeak), each a map of stops in five
+  rows up to a boss. Battles (two minutes) pay gold and a choice of a new
+  card or an upgrade (+10% a level, up to 5); elites and bosses give charms
+  (fourteen passive boosts); camps rest or train; shops sell and remove;
+  strangers offer a trade. Three hearts; a loss costs one. Each boss beaten
+  unlocks one of five held-back cards for every later quest. Two players
+  share one run and deck and fight two against two; the host makes each
+  choice and the other player's taps show as suggestions, as in Folio.
+- **Loading screen**: a painted splash with the title in the art, the deck's
+  cards lighting up one by one as it loads, and one thick progress bar with
+  a percentage. No sizes, no explanations. Decoding and shader warm-up fill
+  the last part of the bar, so it never sits full while nothing happens.
+- **A little less bright, better textures.** About 13–15% less bright with
+  deeper, more saturated greens and real shadows; new painted tiles for the
+  meadow, clay paths, forest floor and stone at full strength, and more
+  painted detail on bark, foliage and rock.
+- **Looser walks and a coat that trails.** See the walk notes below; the
+  Cowboy's duster hangs from the waist on its own parts and follows the
+  legs with a lag instead of swinging rigidly with each thigh.
+
+## Mora: two new boards, Census, and goals you can read (29 September 2026)
+
+- **Goal pictures.** Every Sanctuary Goal draws what it asks for in the board's
+  own language (`components/game/goal-icon.tsx`): square or round pads (the die's
+  two shapes), creatures as coloured dots (one colour is one species, different
+  colours are different species, brown is any species) and dashed outlines for
+  whole habitats. "Three alike in the Mangroves" shows three same-colour dots on
+  three square pads; "A–B–A–B on the Pier" shows alternating dots on round pads
+  with an arrow. The generic Lucide icons per goal type are gone.
+- **Migration is retired.** William found it did the same job as Roam without
+  being interesting. Old saves load: `upgradeSave` drops the flag, and a locked
+  move that used it is withdrawn so that player chooses again.
+- **Census replaces it.** At the end each species is counted across the table:
+  the most on one board earns +3, tied leaders +1 each. It is the only Mora
+  extension that looks at other players' boards, so it adds denial drafting. The
+  crown in the dock shows your points; tapping it opens the count per species.
+  Others shows each player's Census points.
+- **Sunset Motel** (`desert`, intermediate, three rounds, 23 spaces) and
+  **Glacier Dam** (`alpine`, advanced, four rounds, 28 spaces), each with six
+  habitats, its own creatures and its own twelve goals; scoring in
+  [the board rules](mora-board-rules.md). Motel: a desert roadside motel taken
+  back by the desert (terracotta, sand, cactus green, faded turquoise). Dam: a
+  mountain hydro dam taken back by snow and alpine plants (snow, ice blue, slate,
+  pine, larch gold, a red cable car). Road and Spillway fill in order, like the
+  Pier. Generation briefs and choices:
+  [new boards record](concepts/2026-09-29-mora-new-boards/README.md).
+
+## Yata: four menus in two places (29 September 2026)
+
+William found **After Hours** and **Side B** confusing: nothing in either name
+says what you will eat or why it is called that. The menus are now named for a
+city, which says the cuisine at once and reads the same in any language. The two
+Asian menus stay at the night-market counter; two new Mexican menus play on a
+new plaza plate. Internal ids stay stable (`beginner`, `intermediate`), so
+saves, accounts and online tables keep working.
+
+| Menu | Id | Level | Rounds | Place | Dishes |
+| --- | --- | --- | --- | --- | --- |
+| **Tokyo** (was After Hours) | `beginner` | Beginner | 2 | counter | Gyoza, Ramen, Yakitori, Pickles, Takoyaki, Dango |
+| **Bangkok** (was Side B) | `intermediate` | Intermediate | 3 | counter | Bao, Roti, Chilli, Rice, Spring roll, Coconut |
+| **Mexico** | `plaza` | Intermediate | 3 | plaza | Tacos, Salsa, Elote, Tamales, Guacamole, Churros |
+| **Puebla** | `fiesta` | Advanced | 4 | plaza | Quesadilla, Pozole, Mole, Tostada, Cactus, Flan |
+
+- **Asian dishes that did not read as Asian were redrawn, not rescored.** Sesame
+  balls became **Takoyaki**, the Western-looking pudding became **Dango** (three
+  balls on a skewer suits its sets of three), Corn became **Spring roll** (Elote
+  now belongs to Mexico), and the Coconut lost its cocktail umbrella for a Thai
+  street-vendor coconut. Every dish keeps its kind index and scoring.
+- **Mexico** keeps one idea per dish, new to Yata: a topping that needs a base
+  (Salsa counts your Tacos), a race with second place (Elote), big sets of four
+  (Tamales), a dish that rewards a short menu (Guacamole counts dish types you
+  lack) and a capped square (Churros 1 · 4 · 9 · 16).
+- **Puebla** is the advanced menu: pairs that grow (Quesadilla 5 · 7 · 9…), a
+  race with a loser (Pozole: most +8, fewest −8, never at two players), a dish
+  that snowballs (Mole, 1 per other Mole, up to 4), a crowd to avoid (Tostada is
+  worth nothing to whoever has the most, ties included), odd counts (Cactus) and
+  timing (Flan is dessert: 6 in the last round, 2 before). Flan was first "2 per
+  dish type you have 3 of"; with 24 picks everyone always has that, so it paid
+  8 a pick and was replaced.
+- Round counts come from `yataRounds(contentSet)`; every menu longer than two
+  rounds carries the `menuRounds` marker, and the Mexican ones must. Unmarked
+  Bangkok saves still play their original two rounds. The supply is six of each
+  dish per round, enough for six seats. Orders offer three recipes each round
+  (12 of 26 at four rounds), and Seasons features every dish once a round.
+- Bots add a look-ahead for the Mexican menus (`setPotential` in
+  `lib/games/trio/bot.ts`): the best average gain of the next few copies of a
+  dish, so they start sets, pairs, squares and odd counts. Balance:
+  `node --experimental-strip-types scripts/yata-menus-balance.mjs 40`. Medium
+  bots average about 39 (Tokyo), 62 (Bangkok), 55 (Mexico) and 66 (Puebla)
+  points per player, and every Mexican dish earns between 2 and 3.6 per pick,
+  except Tostada at two players (1.4), where "most, ties included" is a race to
+  take fewer. These are bot figures, not human balance.
+- **The plaza** (`yataWorldFor` → `plaza`, plates in
+  `lib/games/yata-plaza-{landscape,portrait,phone}.json`) is a Mexican taco stand
+  at dusk, drawn in the same toon language and plan view as the counter so the
+  plates, tickets and menu boards sit in the same places: a turquoise enamel
+  counter under a punched-tin star lantern, a comal and tortilla basket on the
+  cook's side, terracotta tiles, marigold petals and flag strings. Hot pink
+  takes the lantern red's place (`--market-accent`), plate rings avoid
+  turquoise, and the Mexican dishes are drawn on non-turquoise vessels.
+  Prompts and attempts: [new menus](concepts/2026-09-29-yata-new-menus/README.md).
+
+## Setup boxes: one height, paged rows (1 October 2026)
+
+Setups used to be as tall as their settings: Know Me 516px, Rota over 1000px
+with a scroll. Every setup now has one height, set by Nox, the reference: a
+deck pair beside three extensions (744px on a desktop, about 706px of it
+used; 620px on a phone), capped by the screen. `components/game/setup-pages.tsx`
+holds the pieces:
+
+- `SetChoiceRow` shows boards, maps, menus and decks **two at a time** and
+  `ExtensionRow` shows extensions **three at a time**. More sit behind a pager
+  at the end of the row's label: one small capsule holding arrows either side
+  of one dot per page, the More arrow in the game's colour. It stays inside
+  the label's line with a few pixels clear of the cards beneath (the old 28px
+  arrows sat on the cards' top edge), and its finger-sized targets never
+  reach into the row below. A dot on another page carries a ring when
+  that page holds the pick or a switched-on extension, and a setup opens on
+  the page with its pick.
+- `SetupOptions` is the settings grid. When its rows still do not fit (an
+  online table adds Leads and Next round, a phone stacks Alto's rows) it
+  splits at a visual row and the rest wait on a second page, with the same
+  pager centred above Play. Waiting rows are hidden, not unmounted, so
+  nothing picked or typed on them is lost. Fewer settings sit in the middle
+  of the room rather than above a gap.
+- On short screens the lid trims to its middle band (down to the phone cut)
+  before a row has to wait; 720px-tall laptops fit every game on one page.
+- Order is the same everywhere: Players, Bots, then the game's own choice
+  (board, map, menu, deck, voyage and plans), then Extensions. Alto puts
+  Players, Bots and Voyage in one row of three; Rota's map cards are the same
+  2:1 card as every other board.
+
+## Nox: the Papayoo deck, three players and the Anchor (2 October 2026)
+
+William did not understand Mutiny and asked for a rule that also works at three
+players on the Fast deck, for Nox to follow Papayoo more closely, and for the
+Fast deck to be exactly half of the normal one.
+
+- **The deck.** Four plain suits of 1 to 10 and Storm, the bad suit, of 1 to
+  20: 60 cards, as in Papayoo. The **Fast deck is the normal deck halved in
+  every way**: plain suits 1 to 5, Storm 1 to 10 (30 cards), the marked 4
+  worth 20 against the 8's 40, Gold 10 against 20, Dawn 10 against 20, and
+  half the cards to pass (2 against 4). `stormRanks`, `tideDeck` and the
+  value helpers in the engine hold this; a test checks every value is half.
+- **Seats.** Nox needs **three players**; the duel deck and two-player Nox
+  are gone. The Fast deck plays **three or four**: its 30 cards deal 10 or 7
+  each (two stay face down at four). `seatRange` in the engine drives the
+  setup (two never shows, five and six grey out under Fast), the online
+  configure command (a seat count it no longer allows moves to the nearest
+  one) and save validation (two-player saves and Fast saves above four no
+  longer resume). Passing: 4 cards at three or four players, 3 at five or six.
+- **Mutiny is retired**, replaced by **Anchor** (`anchor`): the **Storm 1**
+  doubles every card in the trick that holds it, Gold included; Dawn's extra
+  points are added after. Nothing new to press: the lowest Storm card is the
+  perfect card to sink under someone else's bigger Storm. It first sat on the
+  1 of the die's suit, but medium bots found a scoring trick for it in only
+  10% of normal three-player rounds (that suit rarely carries points). The
+  Storm 1 lands in a scoring trick every round on both decks; over 40 medium
+  bot matches per setup it adds 4% (normal, three players) to 12% (six, or
+  Fast at four) of all points and changes the winner in 12–30% of matches.
+  `upgradeSave` strips `mutiny`, every `haul` and Mutiny's event marks.
+- **Showing the stakes.** Gold is struck in gold: foil card stock, brown ink,
+  a bright inner rim and a slow glint, with its value on a dark tab (the
+  cabin table strips card shadows, so the old thin rim never showed). The
+  Anchor card carries an anchor ×2 tab and a cream rope rim. At the heart of
+  the table, Dawn's sun with its +20 waits small all round and rises, bright
+  and glowing, for the last trick; an anchor ×2 disc drops in while the
+  Storm 1 lies in the trick. Score pops carry an anchor or a sunrise.
+
+## Nox: Gold and Mutiny replace the old extensions (29 September 2026)
+
+*Mutiny and the duel deck were retired on 2 October 2026, see above.*
+
+William did not like any of Nox's extensions. Shields, Turning Tide and Salvage
+each added a layer that was more annoying than interesting: something new to
+press, or a rule to keep checking. He pointed to Yata as the model: its best
+extensions give a known choice a new reason, with no new button. All three are
+removed from the engine, bots, setup, table, rules and online tables. Nox's
+extensions now follow one test: **no new control, only a new reason to play a
+card.** You still only pick cards to pass and cards to play.
+
+- **Gold** (`gold`). The top card of the die's suit (the 10, or the 5 in Fast)
+  takes half the marked card's value off whoever wins it: 20, or 5 in Fast.
+  Suddenly some tricks are worth winning, and the Gold trick is where the
+  marked card gets dumped. The card shows its value on a gold tab inside a
+  thin gold rim; the die's popover names it. Scores can go below zero.
+- **Mutiny** (`mutiny`, three or more players, normal deck). Win every Storm card and the
+  marked card dealt in a round and they cost you nothing: every other player
+  takes those points instead. It settles on the trick that brings in the last
+  penalty card (the score pop carries a skull), so everyone watches the player
+  who is hoarding and sometimes eats a small card to stop them. Players carry
+  `haul`, the round's penalty points from penalty cards. `mutinyPlays` turns
+  it off, and greys the setup tile, in two cases measured with bots: with
+  two players one perfect dodge hands the other a Mutiny in about 60% of
+  rounds, and in the Fast deck's five-card suits whoever holds the lead takes
+  everything (hard bots managed it in about 40% of rounds). With the normal
+  deck and three or more players it is a long shot: about 0–2% of rounds for
+  medium bots and about 7% for hard bots at three players. Medium bots do not
+  chase or block it; hard bots' rollouts score it for real.
+- **Dawn** (`dawn`, added 1 October 2026 as the third extension). Whoever wins
+  the round's last trick takes extra points, as much as Gold takes off: 20, or
+  5 in Fast. Nothing new to press: it only changes which card you keep for the
+  end (a low one) and makes the last lead a threat. The score pop on that trick
+  carries a sunrise. Measured with medium bots over 150 matches each, Dawn is
+  about 18% of all points and changes the match winner in about 13% of
+  three-player matches, 7% at four and 2% in the duel.
+- **Old saves.** `upgradeSave` in the engine strips the retired fields from
+  solo saves and online tables before validation; a match that used them
+  plays on under the plain rules with its scores kept (a Salvage decision in
+  progress becomes the trick's first play). The retired sixth `createGame`
+  argument stays as an ignored slot so positional callers keep their meaning.
+
+## Floodline: use the phone's lower stage (28 September 2026)
+
+Portrait phones up to 600 CSS px wide use a taller fresh composition,
+`mora-phone-floodline-v7-a`, with larger vertical gaps between habitat rows.
+The lowest label centre is about 56 px lower at 390×844, while creature size
+stays 28.42 px. Portrait tablets keep v6-c, which already fills their shorter
+stage; desktop keeps its existing landscape source. The board, placement
+coordinates, scene camera, miniatures and preload list use the same phone
+selection. The hand and controls retain their existing positions.
+
+This source was generated independently from text, with no image references or
+edits. Six normal-phone coverage and full-landmark checks pass. Two short-phone
+windows still need the existing soft scenery margins. Live browser verification
+was unavailable in this follow-up because the browser connection timed out.
+Measurements and sources are in [the taller composition record](concepts/2026-09-28-mora-clean-boards/floodline-v7-review.md).
+
+## Mora: artwork quality follow-up (28 September 2026)
+
+Observatory's Watchpost and Glasshouse label groups sit 4 CSS px lower in
+portrait, keeping each title, score and explanation together. Courtyard stays
+in place because its explanation is already close to Watchpost.
+
+Floodline's repeatedly edited v5-g source was rejected for degraded detail.
+Generate every replacement candidate afresh from its written brief without
+image references. This also applies to framing corrections: improve the brief
+and start again. Image edits require an explicit user request. This rule is
+saved globally in Codex AGENTS.md and in the project artwork skill.
+The replacement is `mora-phone-floodline-v6-c`: a fresh text-only source with
+23 measured pads, the same gameplay crop and creature size, and no image edits.
+Its Release label sits below the middle-row explanations with clear spacing.
+
+## Mora: clean phone boards and compact information (28 September 2026)
+
+Both portrait boards were generated afresh from written briefs, then corrected
+for framing: Observatory `mora-phone-observatory-v5-c` and Floodline
+`mora-phone-floodline-v5-g`. Organic ground and water replace the horizontal
+strips in front of habitats. The 17 and 23 placement spaces keep their capacities;
+measured coordinates follow the new pictures. Creature sizing remains close to
+the previous phone boards. Complete structures fit the normal phone frames,
+including Floodline's shorter lighthouse and signal mast below the badge row.
+
+Habitat explanation cards have less padding on all sides. In Others, Roam and
+Migration are small icon-and-count columns beside the three goals, on one row
+with room between goals. At 360 px and below, one opponent board per row keeps
+that information readable. Goal inspection still opens from the shared control.
+
+The shared scene camera's landmark containment interval now has the correct
+lower and upper bounds: a feasible full-landmark fit wins over the preferred
+horizontal nudge, without changing scale. Sources, prompts, measurements and
+validation are in [the artwork record](concepts/2026-09-28-mora-clean-boards/README.md).
+
+## Arena: heraldry, articulated walks and calmer musical urgency (28 September 2026)
+
+Tower backs now carry heraldic shields; their sides and backs have restrained
+vertical team-colour ribbons. The castle adds gold pinstripes, rear lanterns,
+a crown crest and a small roof pennant, within the existing size envelope.
+Meadow paint has slightly more colour variation and the terracotta paths
+have warm shoulders and broad painted strokes, without fine texture noise.
+
+All walking figures have separate knee and ankle joints in their Blender
+assets. A recovering leg bends at the knee, the ankle counters the hip and
+knee to keep the sole level, and late stance includes a small toe-off.
+Body bob is reduced. These joints also exist in deployment previews;
+head proportions and the smaller Dino stay unchanged.
+
+Troops retain a living, targetable troop lock through walk/attack transitions
+while that target stays within sight plus a small tolerance. Death, invalid
+target type or leaving sight releases it. Approaching a tower can still be
+interrupted by defenders. Placement warnings are amber exclamation badges
+above enemies that could hit the new unit, replacing the ground range discs.
+
+Sound Lab offers two alternative Arena music pairs from unused original
+ElevenLabs takes 2 and 3. New generation attempts failed for insufficient
+funds; the exact prompt and result are preserved in `music-v2/generation.json`.
+Each final-minute loop uses the same recording as its battle loop, remastered
+with an 8% pitch-preserving tempo lift, bass/low-mid emphasis and gentle
+compression. The game retains take 1 with the same revised final-minute
+processing. Previewing never changes the game's music selection.
+
+## Arena: one cartoon world and expressive faces (28 September 2026)
+
+Mobile and desktop use the same simplified tower shells, figures, scenery
+and native-resolution texture sources. Device performance controls only
+rendering quality: full screen density (up to 3× DPR) and 4096 shadows at
+entry, then measured frame pacing adjusts resolution and shadow cadence.
+The lower rungs retain native density on 1× screens and at least 1.5× on
+denser screens; shadow detail drops before render resolution.
+Phone troop framing remains tied to the viewport, not the quality tier.
+
+The world uses jade meadow without a checkerboard, terracotta paths,
+pale sandstone towers, teal trees and muted lavender rocks. Fresh grass,
+forest-floor, foliage and stone textures are retained at their native
+1254-square resolution; grass repeats every 3.2 metres instead of stretching
+one tile over 12.8 metres. Texture anisotropy uses the GPU's supported maximum.
+Trees have fewer small canopy clumps and softer surfaces; bark, masonry,
+bridges and rocks use restrained painted detail and low relief throughout.
+Tower footprints, platform heights, the 0.7 scale and the camera are retained.
+Tower bodies now use a continuous rounded sandstone shell with a subtly
+tapered wall, softened lip, one heraldic shield and a clean team-colour
+parapet. The king has a nested hipped terracotta roof. The projecting foot
+and horizontal stacked courses are removed.
+The Dino's whole visual model is 22% smaller, including the placement
+preview and articulated limbs; gameplay collision and stats stay unchanged.
+
+The oversized-head experiment is removed. Adult head proportions stay at
+1×. The Blender sculpts use clearer ivory eyes, dark pupils, catchlights and
+shaped brows; the Samurai's full face mask is removed, helmet openings are
+wider, hat fronts are shortened and lifted, and the pilot parks his goggles
+above exposed eyes. The refinement removes the craned-back neck: humans
+lift only 5°, robots and pilot 4°, and the Dino is neutral. Eyes and brows
+are larger within the unchanged skull; clear mouth shapes distinguish the
+confident Cowboy/Cadets and focused guard/Samurai. These are
+painted expressions, with the existing head/attack animation joints intact;
+placement ghosts and battle figures share the same model.
+
+The ready moment lasts one second and every seat starts at 7/10 elixir.
+One short original brass cue marks battle start, at a consistent pitch;
+music begins with battle rather than during the ready moment. Refill rates
+stay unchanged. These are Arena tuning choices inspired by the genre, not
+a claim to reproduce Clash Royale's exact rules.
+
 ## Arena: smaller towers, full-size archers (27 September 2026)
 
 Both side towers and the central castle are drawn 30% smaller on both teams.
@@ -16,6 +1134,19 @@ with another 12% across both horizontal model axes so their silhouettes
 read from either team's end. Placement previews use the same proportions.
 The existing portrait size boost remains, and tower guards follow the shared
 figure proportions. This updates the higher-camera direction below.
+
+## Lucky: a 3D factory you can read (3 October 2026)
+
+William found the painted factory cold and hard to read: it was not obvious how the machines worked or what state they were in, and tickets flying into machines and money going up looked poor. He asked for a 3D factory where everything is animated, still efficient on desktop and phones, and nicely balanced.
+
+- **The floor is live 3D**, an explicit exception to the 2D board games like Arena and Rota: enamel-and-brass toy machines modelled in code, on the painted tile floor in a brass frame with chasing marquee bulbs, under warm light with real shadows. Rounded housings, mechanical fittings and distinct enamel, metal, rubber and glass materials retain their detail close up. The camera fits the whole floor and turns it upright on phones, so building works as before (tap, drag lines, drag machines, marquee, keys).
+- **Inspect the factory:** zoom from the complete overview to 4× with the wheel, a pinch or the +/− buttons. Pan with the arrow button or a middle-mouse drag; Fit restores the overview. Zoom keeps the viewing angle and the floor under the pointer still. A pinch cancels a pending edit, and neither finger can place, move or remove a machine when it lifts. Resizing preserves zoom. Full model geometry, antialiasing and mipmapped full-size tickets stay sharp at every distance; close views start with finer shadows. Frame pacing reduces shadow refreshes before making a modest resolution reduction, never below 85% of native resolution or one drawing pixel per CSS pixel.
+- **Every machine shows how it works**: the printer's drum and press, the bot's coin arm scrubbing the ticket on its platen, the stamper slamming, the till's drawer and flag, the splitter's arrow to its next exit. Boosters glow and link to what they help only while they help.
+- **Every machine shows its state**: a lamp (green working, amber full, red stuck with a warning disc, dark idle), gauges on printers and bots, a one-word state in the inspector, and in/out arrows on the selected or held machine. Belts with a stuck ticket stop.
+- **Tickets and money move properly**: tickets glide and slide into intakes, lie on platens while worked and drop into the till; each sale bursts coins from the till, a coin arcs into the purse and the amount rises over the till.
+- **Balance**: a printer now takes a third of a scratch bot's time on its book, so one printer keeps three bots busy on every book (it used to starve Fast printers and ink wells completely); the gilder, charm and bundler blueprints arrive with Ladder, Gold Mine and Sun & Moon instead of all being bought by minute 26. Pacing milestones are unchanged.
+
+Details in [relic.md](relic.md).
 
 ## Lucky: unlimited book levels (27 September 2026)
 
@@ -259,7 +1390,8 @@ William's direction, all decided by him:
   mute, help and fullscreen buttons moved into it.
 - **No Confirm moves, no Advanced view.** Both settings and the account
   preference behind Confirm moves were removed: tapping or dropping a card
-  plays it at once. Nox's pass and Secret Salvage keep their lock plate.
+  plays it at once. Nox's pass keeps its lock plate (Secret Salvage, which
+  also had one, was retired on 29 September 2026).
 - **Leaving shows that the game is saved.** (Superseded the same evening:
   the Saving screen was replaced by one leave dialog that says the game is
   saved; see the section above.)
@@ -308,8 +1440,7 @@ possible, not only the board.
   the hand, the confirm plate and Undo, which is a round cream button at the
   tray's right end (it had been drawn off-screen on wide desktops). Elsewhere
   the hand's own tray takes the rope edge. The die is the shared cube in cream
-  stock; Shields, Salvage and Turning Tide are round navy tokens edged in
-  cream, red when selected. Pass, Lock and Play are flat red plates; Clear and
+  stock. (Nox's extensions have no tokens since 29 September 2026.) Pass, Lock and Play are flat red plates; Clear and
   the other choices are cream-edged navy; disabled plates stay solid.
 - **Navigation.** Back and the Nox wordmark share one navy pill (it reads over
   the moon), Menu is a round cream button with three bars, and the round pill
@@ -879,10 +2010,11 @@ The observatory uses lazily loaded Three.js with an orthographic camera and simp
 | Public identity | Internal ID | World | Content sets |
 | --- | --- | --- | --- |
 | Nox | `undertow` | Improvised boats, pirate radio, nocturnal harbour, communal salvage | One deck; normal and Fast rules |
-| Mora | `wildgrove` | Strange wildlife reclaiming human infrastructure | The Observatory; Floodline Station |
-| Yata | `midnight` | Underground street food and night culture | After Hours; Side B |
+| Mora | `wildgrove` | Strange wildlife reclaiming human infrastructure | The Observatory; Floodline Station; Sunset Motel; Glacier Dam |
+| Yata | `midnight` | Street food: an Asian night-market counter and a Mexican plaza | Tokyo; Bangkok; Mexico; Puebla |
 | My Top Five | `orin` | Personal rankings and shared guesses | Two rounds |
 | Atlas | `miro` | Satellite globe and shared destinations | Places; Photos; Three facts |
+| Rota | `rota` | A mill town that grows round the routes, ink lines, live 3D (3 October 2026) | Meadow; Harbour; Ridge; Capital |
 
 Nox, Mora and Yata share one rules module (`lib/games/trio/engine.ts`) because they
 share a deck, a die and a trick. My Top Five and Atlas use their own party
@@ -906,9 +2038,10 @@ Render gameplay numbers, names, suit symbols, formulas and explanatory text as c
 
 One extension means one mechanic. Content sets are independent of extensions. Every extension works alone and in every combination for its game.
 
-- Nox: Shields; Turning Tide; Salvage.
-- Elsewild: Roam; Migration; Sanctuary Goals.
+- Nox: Gold (29 September 2026; Shields, Turning Tide and Salvage retired); Dawn (1 October 2026); Anchor (2 October 2026, replacing Mutiny).
+- Elsewild: Roam; Sanctuary Goals; Census (Migration retired 29 September 2026).
 - Nightshift: Customer Orders; Specialty Stalls; Market Seasons.
+- Rota: Rivers; Plans; Mills; Rockfall.
 
 Setup has one Extensions heading. Tiles contain the same emblem used in-game, a short title, an unmistakable enabled state, and a separate information button within the tile boundary. Never nest interactive controls. Opening rules must not change selection.
 
@@ -918,17 +2051,17 @@ Game actions are tactile graphical pieces with clear available, selected, waitin
 
 ## Attention and confirmation
 
-The top player display is the source of turn and readiness information. Identify who can act and who is still deciding, including simultaneous exchanges, drafting and Salvage. Do not restore the bottom status strip. Use the shared animated, nonverbal status indicators for deciding, committed and waiting, plus a separate die-roller indicator. Shapes and accessible labels remain meaningful with reduced motion. Connection problems must remain visible near these states.
+The top player display is the source of turn and readiness information. Identify who can act and who is still deciding, including simultaneous exchanges and drafting. Do not restore the bottom status strip. Use the shared animated, nonverbal status indicators for deciding, committed and waiting, plus a separate die-roller indicator. Shapes and accessible labels remain meaningful with reduced motion. Connection problems must remain visible near these states.
 
-Use a brief animation and a distinct sound when a player becomes actionable, respecting mute and reduced motion. Do not loop attention effects or replay cues on ordinary rerenders. Place confirmation immediately beside the hand in every game. There is no move-confirmation preference (removed 26 September 2026): moves play at once, and only exchanges and secret Salvage commitments have an explicit lock action.
+Use a brief animation and a distinct sound when a player becomes actionable, respecting mute and reduced motion. Do not loop attention effects or replay cues on ordinary rerenders. Place confirmation immediately beside the hand in every game. There is no move-confirmation preference (removed 26 September 2026): moves play at once, and only exchanges have an explicit lock action.
 
-Nox seats players around a table, anchored to the viewer. Card position communicates ownership; a clockwise marker and lead badge communicate order. Reveal completed tricks before gathering them toward the winner. Display ordinary penalties and Salvage adjustments distinctly. Process capture events once and in sequence; do not infer captures from current cards after a round reset.
+Nox seats players around a table, anchored to the viewer. Card position communicates ownership; a clockwise marker and lead badge communicate order. Reveal completed tricks before gathering them toward the winner. Display ordinary penalties, Gold, Anchor and Dawn swings distinctly. Process capture events once and in sequence; do not infer captures from current cards after a round reset.
 
 Ambient animation enhances the place without becoming another game object. Floodline water uses a transparent masked canvas with DOM hit targets above it. Suspend it off-screen and in hidden tabs; reduced motion gets a static frame. No wandering CSS rabbits.
 
 ## Rules and data
 
-Salvage claims are secret simultaneous submissions from eligible non-leaders before any card is played. One claim per round; no final-trick claims. Reveal only after all eligible players commit. A successful claimant gets −6, an unsuccessful claimant +3, after Shields modify ordinary trick penalties. Negative scores are valid. Printed ranks and follow-suit rules never change.
+Gold subtracts its value from the trick that holds it; the Anchor doubles the cards of the trick that holds it, Gold included, before Dawn adds its points. Negative scores are valid. Printed ranks and follow-suit rules never change.
 
 Migration moves one sheltered creature once per match before normal placement. It ignores the die for relocation, excludes Release, requires destination capacity, preserves remaining source order, and appends to the destination. Normal placement is validated against that resulting board. Submit both changes atomically; cancellation spends nothing. Roam can accompany the normal placement.
 
@@ -940,7 +2073,7 @@ State version 4 replaces earlier playable saves. Old solo resumptions are remove
 
 Run tests, typecheck, lint and build. Cover independent extensions, combination matrices, normal/Fast decks, both content sets, all seat counts, private submissions, invalid actions, reconnects, stale requests, state resets and bots using only public information.
 
-Use `node --experimental-strip-types scripts/simulate-salvage.mjs 25` to reproduce the automated policy comparison. The result measures particular bots, not proven human balance. Report counterexamples and limits honestly.
+Bot simulations measure particular bots, not proven human balance. Report counterexamples and limits honestly.
 
 Inspect generated art and verify all asset references. Browser, touch, sound and motion acceptance require actual interactive checks; static checks do not establish them. Follow the user's explicit browser-tool permission constraint. Never report deployment or production acceptance from local validation.
 
@@ -1147,7 +2280,7 @@ v3 candidates (`mora-paper-world-{landscape,portrait}-v3-{a,b}.png`, one-storey 
 
 Nox and Yata now play on full-table environment plates, the way the Observatory does. `lib/games/table-world.ts` holds the measured geometry for each plate (`nox-world-{landscape,portrait}.json`, `yata-world-{landscape,portrait}.json`): the painted table or counter, the seat ring, blank signboards, protected landmarks and animation layers. `frameScene` in `mora-world.ts` is the shared framing rule for every world; `paperWorldFrame` and `tableWorldFrame` only supply their play box. `components/game/world-scene.tsx` paints one plate across the table with a soft copy where it cannot cover, breathing lantern pools and shifting sea behind the cabin windows, and publishes the plate's placement as `--world-x`, `--world-y` and `--world-scale` so CSS can pin controls to painted objects. `scroll-area.tsx` stages any board carrying `data-paper-world` and `data-world`.
 
-Nox is the captain's cabin. The chart table is painted; the DOM table only anchors the crew's seat tags and played cards. Each player's avatar, name, penalty score and turn state sit on the painted stool for that seat (`seats` per player count in the plate metadata), so Nox has no top player row; the spoken turn status and connection warning remain. The hand is a plank shelf whose cards overlap along it and fold into a second overlapping row only when one row would overflow (flex wrap; never a horizontal scroll). Shields, Salvage and Turning Tide are hung iron objects beside the same bone cube die as Mora, its faces cut with the four suits (spades and hearts repeat on the last two); confirm is a brass plate beside the hand on wide screens and above it elsewhere. Since 19 September 2026 (evening) Nox has no Sort, Pass-to or seating-popover controls and no selection count: a selected card rises out of the overlapping fan and comes to the front instead of relying on an outline the next card would hide; the round note sits top centre as an iron version of Mora's paper label; and four brass arrows chased into the table rim show the round's direction (clockwise on odd rounds, the other way on even), changing once per round rather than per trick.
+Nox is the captain's cabin. The chart table is painted; the DOM table only anchors the crew's seat tags and played cards. Each player's avatar, name, penalty score and turn state sit on the painted stool for that seat (`seats` per player count in the plate metadata), so Nox has no top player row; the spoken turn status and connection warning remain. The hand is a plank shelf whose cards overlap along it and fold into a second overlapping row only when one row would overflow (flex wrap; never a horizontal scroll). the extension tokens (since retired) were hung iron objects beside the same bone cube die as Mora, its faces cut with the four suits (spades and hearts repeat on the last two); confirm is a brass plate beside the hand on wide screens and above it elsewhere. Since 19 September 2026 (evening) Nox has no Sort, Pass-to or seating-popover controls and no selection count: a selected card rises out of the overlapping fan and comes to the front instead of relying on an outline the next card would hide; the round note sits top centre as an iron version of Mora's paper label; and four brass arrows chased into the table rim show the round's direction (clockwise on odd rounds, the other way on even), changing once per round rather than per trick.
 
 Yata is the toon night market. The collection board stands on the painted red counter as six outlined plates; the hand is a row of tickets on the wooden ledge, two rows of three in portrait. On wide screens the chosen menus, the stall permit and the Market Seasons forecast hang on the painted left signboards and passing on the right ones; narrower screens use the bottom dock. Player tags are outlined pennants under the lantern string.
 
@@ -1185,7 +2318,7 @@ Across every game, align the top player badges with the floating navigation cont
 
 The library opens with the six implemented IDs on one shelf and concept games below. Developed games have dedicated illustrated fronts and spines, varied compact proportions and a complete bottom face. Setup keeps its cover and tag strip, uses a quiet plain insert and places equally prominent Play and Continue actions together.
 
-Nox uses a centered table-plane arrow, larger seat labels and played cards, and a centered near-side seat at two or three players. Fast exchanges 3 cards at 2–3 players and 2 at 4–6. Normal exchanges about a quarter of the dealt hand, bounded to 2–4 cards: 3/4/3/3/2 at 2/3/4/5/6 players. Fast’s marked 4 costs 10 penalty points; normal’s marked 8 remains 40. New duels retain five ranks per suit in normal mode and three in fast mode, including the penalty rank. Already-started exchanges and older full decks finish with their saved configuration.
+Nox uses a centered table-plane arrow, larger seat labels and played cards, and a centered near-side seat at three players. *Exchange sizes and deck values superseded 2 October 2026 (see the Papayoo deck section).* Already-started exchanges finish with their saved configuration.
 
 Glasshouse now scores 2 per creature plus 4 for a full matching pair and a different guest, maximum 10. New matches receive one Roam. Floodline uses landscape A with its own measured geometry; both orientations have a two-slot cave. Mangrove rewards matching pairs (9; different 0; single 1), the cave rewards different pairs (7; matching 2; single 1), and Lighthouse scores 5 only for a species sheltered nowhere else. Matching goals and explanations follow these rules, superseding earlier tuning notes above.
 

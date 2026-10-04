@@ -64,7 +64,7 @@ await test('a full deck of eight cards deals four to each hand', () => {
     assert.equal(hand.length, 4);
     assert.equal(queue.length, 4);
     assert.deepEqual([...hand, ...queue].sort(), [...deck].sort());
-    assert.equal(player.elixir, 5);
+    assert.equal(player.elixir, 7);
   }
   assert.deepEqual(
     m.players.map((p) => p.side),
@@ -80,6 +80,26 @@ await test('nothing can be played during the ready count', () => {
   assert.equal(deploy(m, 0, 0, 9, 10).ok, false);
   advance(m, READY + TICK);
   assert.equal(m.phase, 'battle');
+});
+
+await test('solo and team openings are playable after one second and fill in 8.4 seconds', () => {
+  for (const mode of ['duel', 'team']) {
+    const m = createMatch(42, 'medium', mode);
+    for (let tick = 0; tick < 29; tick++) step(m);
+    assert.equal(m.phase, 'ready');
+    for (const p of m.players) assert.equal(p.elixir, 7);
+    step(m);
+    // Floating point sums can put the crossing on the next fixed tick.
+    if (m.phase === 'ready') step(m);
+    assert.equal(m.phase, 'battle');
+    assert.equal(
+      m.events.filter((e) => e.type === 'phase' && e.phase === 'battle').length,
+      1,
+    );
+    for (const p of m.players) assert.equal(p.elixir, 7);
+    advance(m, 8.4 + TICK);
+    for (const p of m.players) assert.equal(p.elixir, 10);
+  }
 });
 
 await test('played cards go to the back of the deck and the next card comes in', () => {
@@ -326,7 +346,7 @@ await test('after overtime the weaker tower loses, equal towers draw', () => {
   assert.equal(b.winner, 'draw');
 });
 
-await test('the deck holds seven toys and the Meteor, a spell', () => {
+await test('the starting deck holds seven troops and the Meteor, a spell', () => {
   assert.deepEqual(
     deck.map((id) => cards[id].name),
     [
@@ -344,10 +364,13 @@ await test('the deck holds seven toys and the Meteor, a spell', () => {
   assert.equal(cards.meteor.kind, 'spell');
   assert.equal(isSpell('meteor'), true);
   assert.equal(isSpell('archers'), false);
+  // Every troop card, the starting seven first.
   assert.deepEqual(
-    troopDeck,
+    troopDeck.slice(0, 7),
     deck.filter((id) => id !== 'meteor'),
   );
+  // Twenty-three troop cards and the Beekeeper's Bee.
+  assert.equal(troopDeck.length, 24);
   for (const id of troopDeck) {
     assert.equal(cards[id].kind, 'troop');
     assert.equal(troopCards[id], cards[id]);
@@ -686,7 +709,7 @@ await test('a team battle seats two players a side with sturdier towers', () => 
   const samurai = m.units.find((u) => u.id === id);
   assert.equal(samurai.side, 0);
   assert.equal(samurai.owner, 2);
-  assert.equal(m.players[0].elixir, 5);
+  assert.equal(m.players[0].elixir, 7);
   assert.equal(m.players[2].elixir, 10 - cards.duelist.cost);
   assert.equal(deploy(m, 3, 0, 12, 10).ok, false, 'not on the other half');
 });
@@ -872,9 +895,36 @@ await test('the camera keeps the whole field between the top bar and the hand', 
       Math.max(usedH, usedW) > 0.93,
       `${label}: uses ${usedH.toFixed(2)} / ${usedW.toFixed(2)}`,
     );
-    // Phones keep the steep view; desktops show more of the figures' fronts.
-    if (frame.width < frame.height) assert.equal(lens.elevation, 70);
-    if (frame.width / frame.height > 1.7) assert.equal(lens.elevation, 42);
+    // Phones keep the steep view down the field; wide screens look across
+    // it (2 October 2026), where the field is drawn far larger.
+    if (frame.width < frame.height) {
+      assert.equal(lens.elevation, 70);
+      assert.ok(!lens.side, `${label} looks down the field`);
+    }
+    if (frame.width / frame.height > 1.7) {
+      assert.ok(lens.side, `${label} looks across the field`);
+      const length = (c) => {
+        const cam2 = new THREE.PerspectiveCamera(
+          c.fov,
+          frame.width / frame.height,
+          0.5,
+          500,
+        );
+        cam2.position.set(...c.position);
+        cam2.lookAt(new THREE.Vector3(...c.target));
+        cam2.updateMatrixWorld();
+        const [a, b] = [13, -13].map((z) => {
+          const v = new THREE.Vector3(0, 0, z).project(cam2);
+          return [v.x * frame.width, v.y * frame.height];
+        });
+        return Math.hypot(a[0] - b[0], a[1] - b[1]) / 2;
+      };
+      const down = fitCamera(frame, { elevation: 42, fov: 36, wide: 1 });
+      assert.ok(
+        length(cam) > length(down) * 1.4,
+        `${label}: king to king ${length(cam).toFixed(0)} px, not ${length(down).toFixed(0)}`,
+      );
+    }
     // Level on both sides: the field is centred across the screen.
     assert.ok(
       Math.abs(left + right - frame.width) < 2,
@@ -1085,8 +1135,9 @@ await test('troops grow on every screen and portrait phones retain their extra s
   const { lensFor, troopScale } = await import('../lib/games/arena/layout.ts');
   const phone = lensFor({ width: 390, height: 844, top: 60, bottom: 170 });
   const desk = lensFor({ width: 1440, height: 900, top: 60, bottom: 160 });
-  assert.ok(troopScale(phone, true) >= 2.6 && troopScale(phone, true) <= 2.8);
-  assert.ok(troopScale(desk, false) > 2 && troopScale(desk, false) < 2.2);
+  // 18%, then another 15% on 2 October 2026.
+  assert.ok(troopScale(phone, true) >= 3 && troopScale(phone, true) <= 3.25);
+  assert.ok(troopScale(desk, false) > 2.3 && troopScale(desk, false) < 2.45);
   assert.equal(troopScale(desk, true), troopScale(desk, false));
   assert.ok(troopScale(phone, false) < troopScale(phone, true));
 });
@@ -1117,7 +1168,10 @@ await test('troops keep the lane they were dropped in', () => {
     'one robot starts right of the middle',
   );
   for (const x of crossing(m, ids))
-    assert.ok(Math.abs(x - BRIDGES[0]) <= BRIDGE_HALF + 0.05, `crossed at ${x}`);
+    assert.ok(
+      Math.abs(x - BRIDGES[0]) <= BRIDGE_HALF + 0.05,
+      `crossed at ${x}`,
+    );
   // The left small tower down: a Samurai dropped on the left goes on over
   // the left bridge towards the king.
   m = battle(22);
@@ -1202,4 +1256,59 @@ await test('the pacer steps down under load, climbs back and does not hunt', asy
   run(15000, cost);
   assert.ok(changes() - before <= 2, `${changes() - before} changes in 15 s`);
   assert.equal(pacer.level, 1);
+});
+
+await test('a troop pursues its existing enemy through a walk tick beside a nearer tower', () => {
+  const m = battle();
+  const a = deploy(m, 0, give(m, 0, 'duelist'), 9, 12);
+  const b = deploy(m, 1, give(m, 1, 'ranger'), 9, 20);
+  assert.ok(a.ok && b.ok);
+  const attacker = m.units.find((u) => u.id === a.ids[0]);
+  const enemy = m.units.find((u) => u.id === b.ids[0]);
+  const nearerTower = tower(m, 1, 'princess', 0);
+  attacker.x = nearerTower.x;
+  attacker.y = nearerTower.y - 2;
+  enemy.x = nearerTower.x + 3;
+  enemy.y = nearerTower.y - 2;
+  attacker.state = 'walking';
+  enemy.state = 'walking';
+  attacker.targetId = enemy.id;
+  step(m);
+  assert.equal(
+    attacker.targetId,
+    enemy.id,
+    'crowd movement does not steal the troop lock',
+  );
+  enemy.hp = 0;
+  step(m);
+  assert.notEqual(attacker.targetId, enemy.id, 'a dead target is released');
+});
+
+await test('a target that leaves sight can be released for a nearby enemy', () => {
+  const m = battle();
+  const a = deploy(m, 0, give(m, 0, 'duelist'), 9, 12);
+  const b = deploy(m, 1, give(m, 1, 'ranger'), 9, 20);
+  assert.ok(a.ok && b.ok);
+  const attacker = m.units.find((u) => u.id === a.ids[0]);
+  const enemy = m.units.find((u) => u.id === b.ids[0]);
+  attacker.state = 'walking';
+  enemy.state = 'walking';
+  attacker.targetId = enemy.id;
+  step(m);
+  assert.notEqual(attacker.targetId, enemy.id);
+});
+
+await test('towers stand taller than the troops, larger still on portrait phones', async () => {
+  const { lensFor, towerScale, troopScale } =
+    await import('../lib/games/arena/layout.ts');
+  const wide = lensFor({ width: 1280, height: 800, top: 56, bottom: 150 });
+  const phone = lensFor({ width: 390, height: 844, top: 60, bottom: 170 });
+  // A model at 1.0 fills its footprint; both are drawn at least that size.
+  assert.ok(towerScale(wide) >= 1);
+  assert.ok(towerScale(phone) > towerScale(wide));
+  // The troops grow on phones too, the towers keep ahead of them.
+  assert.ok(
+    towerScale(phone) / towerScale(wide) >=
+      (troopScale(phone, true) / troopScale(wide, false)) * 0.9,
+  );
 });

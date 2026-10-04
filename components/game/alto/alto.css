@@ -1,0 +1,2521 @@
+/* Alto: little cargo ships between toy-like planets in deep space, and the
+   home base every player builds up over three years.
+   A painted night of navy and violet behind; the planets, bases, ships and
+   shop objects are live 3D (alto-scene.tsx) drawn between the background and
+   the controls. Controls take the ships' own materials: cream hull enamel
+   with a bright stripe, and a dark navy deck at the bottom where your base
+   stands and the shop's upgrades sit on lit pads. Ship parts are sky blue,
+   base modules amber, everywhere. The sun is on the left.
+   Everything here is scoped to .alto-world or Alto's own dialogs. */
+
+.alto-world {
+  --alto-ink: #1b2045;
+  --alto-muted: #5b6088;
+  --alto-cream: #f6efe2;
+  --alto-cream-2: #ece2cf;
+  --alto-orange: #f0a040;
+  --alto-orange-dark: #c4741f;
+  --alto-navy: #121838;
+  --alto-deck: #161d44;
+  --alto-deck-2: #222a5a;
+  --alto-line: #f6efe233;
+  --alto-glow: #ffcf7a;
+  --alto-ship: #7cc0ff;
+  --alto-ship-deep: #2a6fb0;
+  --alto-base: #f5b94c;
+  --alto-base-deep: #b4731c;
+  --alto-shadow: 0 8px 22px #04061a66, 0 1px 3px #04061a55;
+  --alto-display:
+    Futura, 'Futura PT', 'Century Gothic', 'Avenir Next', 'Trebuchet MS',
+    sans-serif;
+  --alto-sans: 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --round-bg: #f6efe2f2;
+  --round-fg: var(--alto-ink);
+  --round-line: #f0a04099;
+  --stage-top: 100px;
+  --dock-h: 220px;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--alto-cream);
+  font-family: var(--alto-sans);
+  background: radial-gradient(
+    ellipse at 20% 30%,
+    #2a2a6a,
+    #0d1230 60%,
+    #070a20
+  );
+  isolation: isolate;
+}
+.alto-space {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.alto-space img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 30% 40%;
+}
+.alto-world::after {
+  /* Warm sunlight from the left and a darker floor, so the deck and the
+     lowest planets keep their contrast. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 60% at 0% 35%, #ffb45a1f, transparent 70%),
+    linear-gradient(180deg, transparent 60%, #05071a66 100%);
+}
+/* The one 3D layer: over the backgrounds and the deck, under every control. */
+.alto-3d {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---- Loading: nothing shows until everything is built ---- */
+.alto-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 26px;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 45%, #2a2f7acc, transparent 75%),
+    linear-gradient(180deg, #0b1030f2, #070a20fa);
+}
+.alto-loading-cover {
+  width: min(720px, calc(100vw - 32px));
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+  border-radius: 26px;
+  box-shadow:
+    0 0 0 2px #f0a04066,
+    0 30px 80px #000a;
+}
+.alto-loading-orbit {
+  position: relative;
+  width: 72px;
+  height: 72px;
+}
+.alto-loading-planet {
+  position: absolute;
+  inset: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #b9e88f, #5aa548 60%, #2d5a2e);
+  box-shadow: 0 0 18px #b9e88f66;
+}
+.alto-loading-ship {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  justify-items: center;
+  color: var(--alto-cream);
+  animation: alto-spin 1.6s linear infinite;
+}
+.alto-loading-ship svg {
+  /* Lucide's rocket points north-east. At the top of a clockwise orbit,
+     a 45 degree turn points it along the path. */
+  rotate: 45deg;
+  filter: drop-shadow(0 0 6px #ffcf7a);
+}
+.alto-loading-bar {
+  position: relative;
+  width: min(360px, calc(100vw - 64px));
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f6efe21f;
+  box-shadow: inset 0 0 0 1px #f6efe233;
+}
+.alto-loading-bar i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f0a040, #ffe08a);
+  transform-origin: left;
+  scale: var(--p, 0) 1;
+  transition: scale 0.25s ease-out;
+}
+/* Under the loading screen the table is laid out (so it can be measured)
+   but never shown. */
+.alto-world[data-loading]
+  :is(.game-navigation, .alto-players, .alto-stage, .alto-dock) {
+  visibility: hidden;
+}
+
+/* Navigation takes the hull's cream enamel. */
+.alto-world .game-navigation button,
+.alto-world .game-navigation-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid #f0a04088;
+  border-radius: 999px;
+  background: var(--alto-cream);
+  color: var(--alto-ink);
+  box-shadow: var(--alto-shadow);
+  font-family: var(--alto-display);
+  font-weight: 700;
+}
+.alto-world .game-navigation-back span {
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+.alto-world .game-progress.is-round {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--alto-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  --round-drop: 10px;
+}
+/* The whole match at a glance: three years, each a bar of turns. */
+.alto-years {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.alto-year {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #1b20451a;
+}
+.alto-year[data-state='now'] {
+  background: #f0a04033;
+  box-shadow: inset 0 0 0 1px #f0a040aa;
+}
+.alto-year i {
+  width: 5px;
+  height: 9px;
+  border-radius: 2px;
+  background: #1b204533;
+}
+.alto-year i[data-on] {
+  background: var(--alto-orange);
+}
+.alto-year[data-state='done'] i {
+  background: #1b20458c;
+}
+
+/* ---- Players ---- */
+.alto-players {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  left: 180px;
+  right: 190px;
+  z-index: 9;
+  display: flex;
+  justify-content: safe center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  pointer-events: none;
+}
+.alto-players[data-fit='compact'] .alto-player-copy {
+  display: none;
+}
+.alto-player {
+  pointer-events: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 4px 8px 4px 4px;
+  border: 1.5px solid color-mix(in srgb, var(--seat) 70%, transparent);
+  border-radius: 999px;
+  background: #f6efe2ee;
+  color: var(--alto-ink);
+  box-shadow: var(--alto-shadow);
+  font-size: 13px;
+}
+.alto-player.is-you {
+  background: var(--alto-cream);
+  box-shadow:
+    0 0 0 2.5px color-mix(in srgb, var(--seat) 60%, transparent),
+    var(--alto-shadow);
+}
+.alto-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--seat, #8a7a9a);
+  color: #fff;
+  font-family: var(--alto-display);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow:
+    inset 0 -2px 0 #0000002e,
+    0 0 0 2px #fff8;
+}
+.alto-player-copy b {
+  font-weight: 650;
+  white-space: nowrap;
+}
+.alto-player small {
+  min-width: 18px;
+  color: var(--alto-ink);
+  font-family: var(--alto-display);
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.alto-status {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+}
+.alto-player.is-choosing .alto-status {
+  background: #8b8fb3;
+}
+.alto-player.is-choosing .alto-status svg {
+  animation: alto-spin 1.2s linear infinite;
+}
+.alto-player.is-ready .alto-status {
+  background: #4ea36a;
+}
+.alto-world[data-phase='over'] .alto-status {
+  display: none;
+}
+.alto-player.is-away {
+  opacity: 0.6;
+}
+.alto-players[data-fit='compact'] .alto-player {
+  padding-right: 4px;
+}
+@keyframes alto-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.alto-notice {
+  position: absolute;
+  top: calc(var(--stage-top) - 2px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 9;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #f6efe2;
+  color: var(--alto-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---- The stage: planets, and everyone else's base ---- */
+.alto-stage {
+  position: absolute;
+  top: var(--stage-top);
+  /* Room under the lowest row for its pile chips. */
+  bottom: calc(var(--dock-h) + max(10px, env(safe-area-inset-bottom)) + 34px);
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 3;
+}
+.alto-planets,
+.alto-bases {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+/* Each slot is placed by arrangeStage; the 3D fills it, everything it
+   carries included. */
+.alto-planet,
+.alto-base {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  pointer-events: auto;
+  transition:
+    left 0.35s ease,
+    top 0.35s ease,
+    width 0.35s ease,
+    height 0.35s ease;
+}
+
+/* Another player's base: their ship stands on its pad between flights. The
+   tile is wider than tall; the 3D fills it above the tag. */
+.alto-base {
+  width: var(--w, var(--s));
+  height: var(--h, var(--s));
+  container-type: size;
+}
+.alto-base-button {
+  position: absolute;
+  inset: 0 0 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: radial-gradient(
+    ellipse 52% 48% at 50% 58%,
+    color-mix(in srgb, var(--seat) 16%, transparent),
+    transparent 72%
+  );
+  cursor: pointer;
+}
+.alto-base-button:focus-visible {
+  outline: 3px solid var(--alto-glow);
+  outline-offset: 2px;
+}
+.alto-base-fallback {
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+.alto-world[data-3d] .alto-base-fallback {
+  visibility: hidden;
+}
+.alto-base-tag {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 999px;
+  background: #f6efe2ee;
+  color: var(--alto-ink);
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--seat) 70%, transparent),
+    var(--alto-shadow);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.alto-base-tag .alto-avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+}
+.alto-base-tag .alto-goods {
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+.alto-base-tag .alto-goods-chip b {
+  font-family: var(--alto-display);
+  font-size: 12px;
+}
+.alto-base-tag .alto-goods-chip[data-empty] {
+  opacity: 0.35;
+}
+@container (max-width: 190px) {
+  .alto-base-tag {
+    gap: 3px;
+  }
+  .alto-base-tag .alto-goods {
+    gap: 1px;
+  }
+  .alto-base-tag .alto-good {
+    width: 13px;
+    height: 13px;
+  }
+  .alto-base-tag .alto-goods-chip b {
+    font-size: 11px;
+  }
+}
+/* A small tile shows only the avatar, on the base's corner, and gives the
+   3D the whole tile. */
+@container (max-width: 135px) {
+  .alto-base-tag .alto-goods {
+    display: none;
+  }
+  .alto-base-tag {
+    left: 0;
+    bottom: 2px;
+    translate: none;
+    padding: 2px;
+  }
+  .alto-base-button {
+    inset: 0;
+  }
+}
+/* What they built this turn, rising over their base at the reveal. */
+.alto-base-built {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  z-index: 1;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 120%;
+  padding: 2px 9px 2px 6px;
+  border-radius: 999px;
+  background: var(--alto-cream);
+  color: var(--alto-ink);
+  box-shadow:
+    0 0 0 2px var(--seat),
+    var(--alto-shadow);
+  font-family: var(--alto-display);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: alto-arrive 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  animation-delay: var(--reveal-delay, 300ms);
+}
+.alto-base-built svg {
+  flex: none;
+}
+
+.alto-planet > .piece-wrap {
+  position: absolute;
+  inset: 0;
+}
+.alto-planet-button {
+  position: absolute;
+  inset: 9%;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.alto-world .piece.alto-planet-button.selected {
+  outline: none;
+}
+.alto-planet-button:focus-visible {
+  outline: 3px solid var(--alto-glow);
+  outline-offset: 6px;
+}
+/* Without WebGL a planet is a painted disc in its cargo's colours. */
+.alto-planet-fallback {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 30%,
+    var(--p1),
+    var(--p2) 58%,
+    var(--p3)
+  );
+  box-shadow: 0 0 30px color-mix(in srgb, var(--p1) 45%, transparent);
+}
+.alto-planet[data-good='0'] {
+  --p1: #b9e88f;
+  --p2: #5aa548;
+  --p3: #2d5a2e;
+}
+.alto-planet[data-good='1'] {
+  --p1: #f6b37a;
+  --p2: #c4572e;
+  --p3: #5a2414;
+}
+.alto-planet[data-good='2'] {
+  --p1: #ffffff;
+  --p2: #bcd8f0;
+  --p3: #5e86b5;
+}
+.alto-planet[data-good='3'] {
+  --p1: #efe2ff;
+  --p2: #9a7ae0;
+  --p3: #3b2a74;
+}
+.alto-world[data-3d] .alto-planet-fallback {
+  display: none;
+}
+.alto-world[data-locked] .alto-planet:not(.is-mine) .alto-pile {
+  opacity: 0.82;
+}
+/* The pile: big cargo icon and count, tucked under the planet's body
+   (--body is its radius over the slot's size, set by the 3D layer). */
+.alto-pile {
+  position: absolute;
+  left: 50%;
+  /* The chip sits in the planet's button, 82% of the slot. */
+  top: calc(50% + var(--body, 0.4) * 122%);
+  translate: -50% -55%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px 3px 5px;
+  border-radius: 999px;
+  background: var(--alto-cream);
+  color: var(--alto-ink);
+  box-shadow: var(--alto-shadow);
+  pointer-events: none;
+  transition:
+    scale 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.alto-pile b {
+  font-family: var(--alto-display);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* A full planet stops filling: its count turns gold. */
+.alto-planet[data-full] .alto-pile {
+  background: linear-gradient(135deg, #fff3cf, #ffd98a);
+  box-shadow:
+    0 0 0 2px #f0a040,
+    var(--alto-shadow);
+}
+.alto-planet.is-mine .alto-pile {
+  box-shadow:
+    0 0 0 3px var(--alto-glow),
+    var(--alto-shadow);
+  scale: 1.08;
+}
+.alto-planet-button:hover .alto-pile {
+  scale: 1.06;
+}
+/* Comets: this turn's bonus, and where the next one lands. */
+.alto-comet {
+  position: absolute;
+  top: 6%;
+  right: 6%;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffe08a, #f0a040);
+  color: #4a2a08;
+  box-shadow:
+    0 0 18px #ffc46a99,
+    var(--alto-shadow);
+  pointer-events: none;
+  animation: alto-comet 2.4s ease-in-out infinite;
+}
+.alto-comet b {
+  font-family: var(--alto-display);
+  font-size: 14px;
+  font-weight: 800;
+}
+.alto-comet.is-next {
+  padding: 4px;
+  background: #f6efe2cc;
+  color: var(--alto-orange-dark);
+  box-shadow: var(--alto-shadow);
+  animation: none;
+}
+@keyframes alto-comet {
+  50% {
+    translate: 0 -3px;
+    box-shadow:
+      0 0 26px #ffd88acc,
+      var(--alto-shadow);
+  }
+}
+.alto-flags {
+  position: absolute;
+  top: 6%;
+  left: 4%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+}
+.alto-flags > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px 1px 4px;
+  border-radius: 999px;
+  background: #f6efe2e6;
+  color: var(--seat);
+  font-size: 11px;
+  font-weight: 800;
+}
+.alto-flags > span[data-top] {
+  background: var(--seat);
+  color: #fff;
+}
+/* What each ship took, popping up over the planet's body. */
+.alto-arrivals {
+  position: absolute;
+  bottom: calc(50% + var(--body, 0.4) * 122%);
+  left: 50%;
+  translate: -50% 40%;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+.alto-arrival {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 999px;
+  background: var(--alto-cream);
+  box-shadow:
+    0 0 0 2px var(--seat),
+    var(--alto-shadow);
+  animation: alto-arrive 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+.alto-arrival .alto-avatar {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+}
+.alto-arrival b {
+  color: var(--alto-ink);
+  font-family: var(--alto-display);
+  font-size: 14px;
+  font-weight: 800;
+}
+@keyframes alto-arrive {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.6;
+  }
+}
+.alto-ship {
+  display: block;
+  flex: none;
+  filter: drop-shadow(0 1px 1px #04061a55);
+}
+
+/* ---- Cargo chips ---- */
+.alto-good {
+  display: block;
+  flex: none;
+  object-fit: contain;
+}
+.alto-goods {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.alto-goods-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.alto-goods-chip b {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+.alto-goods-chip[data-empty] {
+  opacity: 0.45;
+}
+.alto-goods-delta {
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--alto-orange);
+  color: #2a1606;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 800;
+  animation: alto-pop 0.25s ease-out both;
+}
+/* A cost against your hold: one icon per cargo, overlapping like a stack. */
+.alto-cost {
+  --unit: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--unit) * 0.3);
+}
+.alto-cost-units {
+  display: contents;
+}
+.alto-cost-kind {
+  display: inline-flex;
+}
+.alto-cost-unit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--unit);
+  height: var(--unit);
+  border-radius: 50%;
+}
+.alto-cost-unit + .alto-cost-unit {
+  margin-left: calc(var(--unit) * -0.16);
+}
+.alto-cost-unit .alto-good {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 1.5px #04061acc);
+}
+/* Covered by a swap: two of your other cargo pay for it. */
+.alto-cost-unit[data-unit='swap'] {
+  background: #ffcf7a2e;
+  box-shadow: 0 0 0 1.5px var(--alto-glow);
+}
+.alto-cost-unit[data-unit='swap'] .alto-good {
+  opacity: 0.55;
+}
+/* Missing: an empty red socket with the cargo's ghost in it. */
+.alto-cost-unit[data-unit='missing'] {
+  z-index: 1;
+  background: radial-gradient(circle, #ff8a7a55, #ff5a4a33 70%);
+  box-shadow:
+    0 0 0 2px #ff6b5a,
+    0 0 10px #ff5a4a88;
+}
+.alto-cost-unit[data-unit='missing'] .alto-good {
+  opacity: 0.6;
+  filter: grayscale(0.5) brightness(1.3);
+  scale: 0.72;
+}
+.alto-cost-unit[data-unit='free'] .alto-good {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+/* Taken off by a discount: struck through in green. */
+.alto-cost-unit[data-unit='free']::after {
+  content: '';
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  top: calc(50% - 1.5px);
+  height: 3px;
+  border-radius: 2px;
+  background: #6fe09a;
+  box-shadow: 0 0 0 1px #04061a99;
+  rotate: -35deg;
+}
+@keyframes alto-pop {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
+}
+
+/* ---- The deck: your base and ship, your cargo, the shop ---- */
+.alto-dock {
+  /* No z-index: the deck's panel paints under the 3D layer, its controls
+     (z-index 3) over it, so your base and the shop objects stand on it. */
+  /* Centred with margins, never a transform: a transform would make the
+     deck its own layer and lift it over the 3D. */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  margin-inline: auto;
+  width: min(1240px, calc(100% - 24px));
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+  grid-template-areas:
+    'home row'
+    'home orders'
+    'home shop';
+  align-items: stretch;
+  column-gap: 12px;
+  row-gap: 8px;
+  padding: 10px 12px 12px;
+  border-radius: 26px;
+  color: var(--alto-cream);
+}
+.alto-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 30% 90% at 8% 100%, #f0a0402e, transparent 70%),
+    linear-gradient(180deg, #232b62f2, #141a40f5);
+  border: 1.5px solid #f6efe22a;
+  border-top-color: #f0a04070;
+  box-shadow:
+    0 -10px 40px #04061a88,
+    inset 0 1px 0 #ffffff1a;
+  backdrop-filter: blur(6px);
+}
+.alto-dock > * {
+  position: relative;
+  z-index: 3;
+}
+/* Your home: the 3D base with your ship on its pad. The bay reaches above
+   the deck's edge so the base can stand tall. */
+.alto-home {
+  grid-area: home;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 150px;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.alto-home-bay {
+  position: absolute;
+  inset: -44px -6px 22px;
+  display: grid;
+  place-items: center;
+}
+.alto-home-fallback {
+  position: relative;
+}
+.alto-world[data-3d] .alto-home-fallback {
+  visibility: hidden;
+}
+.alto-hold {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 12px 3px 9px;
+  border-radius: 999px;
+  background: var(--alto-cream);
+  color: var(--alto-ink);
+  box-shadow: var(--alto-shadow);
+}
+.alto-hold b {
+  font-family: var(--alto-display);
+  font-size: 17px;
+  font-weight: 800;
+}
+.alto-home:focus-visible {
+  outline: 3px solid var(--alto-glow);
+}
+.alto-dock-row {
+  grid-area: row;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alto-stock {
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.alto-stock .alto-goods-chip {
+  padding: 3px 10px 3px 4px;
+  border-radius: 999px;
+  background: #f6efe214;
+  border: 1px solid var(--alto-line);
+}
+.alto-stock .alto-goods-chip b {
+  font-family: var(--alto-display);
+  font-size: 18px;
+}
+.alto-dock-row > button {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: 1.5px solid #f6efe244;
+  border-radius: 50%;
+  background: #f6efe214;
+  color: var(--alto-cream);
+  cursor: pointer;
+}
+.alto-dock-row > button:hover:not(:disabled) {
+  background: #f6efe22a;
+}
+.alto-undo:not(:disabled) {
+  background: var(--alto-cream) !important;
+  color: var(--alto-ink) !important;
+}
+.alto-undo:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.alto-orders {
+  grid-area: orders;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.alto-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1.5px dashed #f6efe266;
+  border-radius: 12px;
+  background: #f6efe20f;
+  color: var(--alto-cream);
+  cursor: pointer;
+}
+.alto-order.is-short {
+  border-color: #f6efe233;
+  background: transparent;
+}
+.alto-order.is-picked {
+  border: 1.5px solid var(--alto-glow);
+  background: #ffcf7a26;
+  box-shadow: 0 0 16px #ffcf7a55;
+}
+.alto-order .alto-cost {
+  --unit: 18px;
+}
+.alto-order-points {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--alto-glow);
+  font-family: var(--alto-display);
+  font-weight: 800;
+}
+
+/* The shop: this year's six upgrades on two shelves, ship parts (blue) and
+   base modules (amber), each shelf as wide as it has items. */
+.alto-shop {
+  grid-area: shop;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+.alto-shelf {
+  --tint: var(--alto-ship);
+  --deep: var(--alto-ship-deep);
+  position: relative;
+  flex: var(--count) 1 0;
+  display: grid;
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 6px 6px;
+  border-radius: 20px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tint) 13%, transparent),
+    color-mix(in srgb, var(--tint) 4%, transparent)
+  );
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tint) 30%, transparent);
+}
+.alto-shelf[data-family='base'] {
+  --tint: var(--alto-base);
+  --deep: var(--alto-base-deep);
+}
+.alto-shelf-label {
+  position: absolute;
+  top: -9px;
+  left: 14px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 9px 1px 6px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: #10142f;
+  font-family: var(--alto-display);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px #04061a66;
+}
+.alto-shelf > .piece-wrap {
+  min-width: 0;
+}
+.alto-item {
+  --tint: var(--alto-ship);
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 4px 4px 7px;
+  border: 1.5px solid transparent;
+  border-radius: 16px;
+  background: radial-gradient(
+    ellipse 70% 42% at 50% 46%,
+    #ffffff17,
+    transparent 72%
+  );
+  color: var(--alto-cream);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    translate 0.2s,
+    opacity 0.2s;
+}
+.alto-item.is-base,
+.alto-item[data-family='base'] {
+  --tint: var(--alto-base);
+}
+/* Which shelf an upgrade belongs on, at its top left. */
+.alto-family {
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--alto-ship);
+  color: #10142f;
+  box-shadow: 0 1px 4px #04061a88;
+}
+.alto-family[data-family='base'] {
+  background: var(--alto-base);
+}
+/* On a shelf the shelf's label says it; the mark returns on phones. */
+.alto-shelf .alto-family {
+  display: none;
+}
+.alto-item-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 92px;
+  aspect-ratio: 1 / 0.76;
+}
+.alto-item-art::after {
+  /* The pad the object floats over, in its family's colour. */
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 2%;
+  height: 16%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--tint) 40%, transparent),
+    transparent 70%
+  );
+  border: 1px solid color-mix(in srgb, var(--tint) 30%, transparent);
+}
+.alto-item-art .alto-mark {
+  position: relative;
+  z-index: 1;
+  width: 78%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.alto-world[data-3d] .alto-item-art[data-model] .alto-mark {
+  visibility: hidden;
+}
+.alto-mark {
+  display: block;
+  object-fit: contain;
+}
+.alto-item-body {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.alto-item-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--alto-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alto-effects {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.alto-effect {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.alto-effect svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.alto-effect i {
+  font-style: normal;
+  opacity: 0.6;
+}
+.alto-effect.is-points {
+  background: linear-gradient(135deg, #ffe08a, #f0a040);
+  color: #3a2006;
+}
+.alto-effect.is-points > svg:first-child {
+  fill: currentColor;
+}
+.alto-effect.is-ability {
+  background: #7cc0ff2e;
+  color: #dcecff;
+  border: 1px solid #7cc0ff55;
+}
+.alto-effect .alto-good {
+  margin-left: -3px;
+}
+.alto-effect-set {
+  display: inline-flex;
+}
+.alto-effect-set .alto-good {
+  margin: 0 -2px 0 0;
+}
+/* The cost always fits its item: the pips shrink and overlap only as far
+   as their number needs (a Year 3 upgrade can ask for ten). */
+.alto-item {
+  container-type: inline-size;
+}
+.alto-item-cost {
+  --unit: clamp(
+    12px,
+    calc((100cqi - 18px) / (var(--units, 6) * 0.7 + 1.2)),
+    21px
+  );
+  gap: calc(var(--unit) * 0.25);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #04061a66;
+  box-shadow: inset 0 0 0 1px #f6efe214;
+}
+.alto-item-cost .alto-cost-unit + .alto-cost-unit {
+  margin-left: calc(var(--unit) * -0.3);
+}
+.alto-item-cost .alto-goods-chip b {
+  font-size: 13px;
+}
+.alto-item.is-ready:hover {
+  translate: 0 -2px;
+  background: radial-gradient(
+    ellipse 70% 50% at 50% 46%,
+    color-mix(in srgb, var(--tint) 22%, transparent),
+    transparent 72%
+  );
+}
+.alto-item.is-picked,
+.alto-world .piece.alto-item.selected {
+  border-color: var(--alto-glow);
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 46%,
+    #ffcf7a40,
+    #ffcf7a0d 80%
+  );
+  box-shadow: 0 0 22px #ffcf7a44;
+  outline: none;
+}
+.alto-item.is-short {
+  background: none;
+}
+/* A short item stays readable: only its name and effect step back, so the
+   red pips of what is missing stand out. */
+.alto-item.is-short .alto-item-name,
+.alto-item.is-short .alto-effects,
+.alto-item.is-short .alto-item-art::after {
+  opacity: 0.6;
+}
+.alto-item.is-built {
+  background: linear-gradient(180deg, #6fc58c24, #6fc58c08);
+  border-color: #87d5a65e;
+}
+.alto-item-seal,
+.alto-item-choice {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+  background: #b7e4c6;
+  color: #17462e;
+  box-shadow: 0 0 0 1px var(--alto-deck);
+}
+.alto-item-choice {
+  background: var(--alto-glow);
+  color: #36200a;
+}
+
+/* ---- Crew pick ---- */
+.alto-captains {
+  position: absolute;
+  inset: var(--stage-top) 12px calc(var(--dock-h) + 20px);
+  z-index: 12;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.alto-captain {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(240px, 42vw);
+  padding: 16px 14px;
+  border: 2px solid var(--alto-orange);
+  border-radius: 24px;
+  background: var(--alto-cream);
+  box-shadow: 0 16px 40px #04061aaa;
+  color: var(--alto-ink);
+  cursor: pointer;
+  animation: alto-arrive 0.5s ease-out both;
+}
+.alto-captain:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.alto-captain img {
+  width: 96px;
+  height: 96px;
+}
+.alto-captain b {
+  font-family: var(--alto-display);
+  font-size: 19px;
+}
+.alto-captain small {
+  color: var(--alto-muted);
+  font-size: 13px;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.alto-captain:hover {
+  translate: 0 -4px;
+  box-shadow:
+    0 0 0 3px var(--alto-glow),
+    0 16px 40px #04061aaa;
+}
+
+/* ---- Year banner ---- */
+.alto-banner {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  z-index: 11;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px 34px 14px;
+  border-radius: 28px;
+  background: var(--alto-cream);
+  color: var(--alto-ink);
+  box-shadow:
+    0 0 0 3px var(--alto-orange),
+    0 20px 50px #04061aaa;
+  translate: -50% -50%;
+  pointer-events: none;
+  animation: alto-banner 2.2s ease-in-out both;
+}
+.alto-banner b {
+  font-family: var(--alto-display);
+  font-size: clamp(28px, 6vw, 44px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.alto-banner .alto-year i {
+  width: 7px;
+  height: 12px;
+}
+@keyframes alto-banner {
+  0% {
+    opacity: 0;
+    scale: 0.85;
+  }
+  15%,
+  80% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.04;
+  }
+}
+
+/* ---- Coach ---- */
+.alto-coach {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--dock-h) + max(18px, env(safe-area-inset-bottom)));
+  translate: -50% 0;
+  z-index: 13;
+  width: min(460px, calc(100% - 24px));
+  padding: 10px 14px 12px;
+  border: 2px solid var(--alto-orange);
+  border-radius: 18px;
+  background: #f6efe2f8;
+  color: var(--alto-ink);
+  box-shadow: 0 14px 30px #04061a88;
+}
+.alto-coach b {
+  font-family: var(--alto-display);
+  font-size: 15px;
+}
+.alto-coach p {
+  margin: 4px 0 8px;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.alto-coach div {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.alto-coach button {
+  padding: 5px 12px;
+  border: 1.5px solid #1b204533;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--alto-ink);
+  font-weight: 700;
+}
+.alto-coach button.is-primary {
+  background: var(--alto-ink);
+  border-color: var(--alto-ink);
+  color: var(--alto-cream);
+}
+.alto-world [data-tutorial-active] {
+  outline: 3px solid var(--alto-glow);
+  outline-offset: 4px;
+  border-radius: 20px;
+}
+
+/* ---- Finale ---- */
+.alto-finale {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 14;
+  translate: -50% -50%;
+  width: min(520px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 22px 18px 18px;
+  border: 2px solid var(--alto-orange);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #fbf6ec, #efe4cf);
+  color: var(--alto-ink);
+  box-shadow: 0 30px 70px #04061acc;
+}
+.alto-finale h2 {
+  margin: 0;
+  font-family: var(--alto-display);
+  font-size: 28px;
+  text-wrap: balance;
+}
+.alto-finale-crown {
+  color: var(--alto-orange-dark);
+}
+.alto-finale-rows {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alto-finale-rows li {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: #fff9;
+  border: 1.5px solid color-mix(in srgb, var(--seat) 45%, transparent);
+}
+.alto-finale-rows li.is-winner {
+  background: #fff1d2;
+  border-color: var(--alto-orange);
+}
+.alto-finale-name {
+  font-weight: 700;
+}
+.alto-finale-parts {
+  display: inline-flex;
+  gap: 8px;
+  color: var(--alto-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.alto-finale-parts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.alto-finale-total {
+  font-family: var(--alto-display);
+  font-size: 22px;
+  font-weight: 800;
+}
+.alto-finale-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.alto-finale-actions > * {
+  padding: 9px 18px;
+  border: 1.5px solid #1b204533;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--alto-ink);
+  font-weight: 800;
+}
+.alto-finale-actions > :first-child {
+  background: var(--alto-ink);
+  border-color: var(--alto-ink);
+  color: var(--alto-cream);
+}
+
+/* ---- Dialogs ---- */
+.modal.alto-dialog {
+  --rules-heading: #1b2045;
+  --rules-muted: #5b6088;
+  --rules-accent: #c4741f;
+  --rules-note-ink: #3a2a6a;
+  --alto-ink: #1b2045;
+  --alto-muted: #5b6088;
+  --alto-cream: #f6efe2;
+  --alto-orange: #f0a040;
+  --alto-ship: #7cc0ff;
+  --alto-ship-deep: #2a6fb0;
+  --alto-base: #f5b94c;
+  --alto-base-deep: #b4731c;
+  --alto-display:
+    Futura, 'Futura PT', 'Century Gothic', 'Avenir Next', 'Trebuchet MS',
+    sans-serif;
+  --alto-shadow: 0 4px 10px #04061a26;
+  background: linear-gradient(180deg, #fbf6ec, #f1e7d3) !important;
+  border: 2px solid var(--alto-orange) !important;
+  color: var(--alto-ink);
+  max-width: min(560px, calc(100% - 24px)) !important;
+}
+.modal.alto-dialog.is-wide {
+  max-width: min(860px, calc(100% - 24px)) !important;
+}
+.modal.alto-dialog [data-slot='dialog-title'] {
+  font-family: var(--alto-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.modal.alto-dialog [data-slot='dialog-description'] {
+  color: var(--alto-muted);
+}
+.alto-dialog-body {
+  min-height: 0;
+}
+.alto-rules .rule-list-mark img,
+.alto-rules .rule-list-mark .alto-mark {
+  width: 36px;
+  height: 36px;
+}
+.alto-rules .rule-list b .alto-goods {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.alto-inspect-plan {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.alto-inspect-plan > .alto-mark {
+  flex: none;
+  width: 140px;
+  height: 140px;
+}
+.alto-inspect-plan > div {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.alto-inspect-family {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px 2px 7px;
+  border-radius: 999px;
+  background: var(--alto-ship);
+  color: #10142f;
+  font-family: var(--alto-display);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.alto-inspect-family[data-family='base'] {
+  background: var(--alto-base);
+}
+.modal.alto-dialog .alto-effect.is-ability {
+  background: #2a6fb01a;
+  color: #1f4f80;
+  border-color: #2a6fb040;
+}
+.alto-ladder {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alto-ladder li {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffe7b0;
+  font-weight: 800;
+  font-size: 12px;
+}
+.alto-ladder li[data-taken] {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+.alto-builders {
+  display: inline-flex;
+  gap: 3px;
+}
+.alto-builders i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--seat);
+}
+.alto-inspect-island {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.alto-inspect-island > img {
+  flex: none;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #1b2045 40%, #2a3270);
+}
+.alto-flag-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alto-flag-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--seat);
+  font-weight: 700;
+}
+.alto-others {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+/* One player: their cargo and hold, their ship's parts and their base's
+   modules on two rows, and the score so far. */
+.alto-sheet {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid color-mix(in srgb, var(--seat) 50%, transparent);
+  border-radius: 18px;
+  background: #fff8;
+}
+.alto-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--alto-display);
+  font-size: 17px;
+}
+.alto-sheet-score {
+  margin-left: auto;
+  font-size: 20px;
+}
+.alto-sheet-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.alto-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 3px 6px 3px 3px;
+  border-radius: 14px;
+  background: #2a6fb012;
+}
+.alto-sheet-row[data-family='base'] {
+  background: #b4731c14;
+}
+.alto-sheet-family {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--alto-ship);
+  color: #10142f;
+}
+.alto-sheet-row[data-family='base'] .alto-sheet-family {
+  background: var(--alto-base);
+}
+.alto-sheet-empty {
+  color: var(--alto-muted);
+}
+.alto-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1b20450f;
+  font-size: 12px;
+  font-weight: 800;
+}
+.alto-stat-captain img {
+  border-radius: 50%;
+}
+.alto-built {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alto-built button {
+  padding: 1px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff8c;
+  cursor: pointer;
+}
+.alto-built button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.alto-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 4px 10px;
+  margin: 0;
+}
+.alto-breakdown div {
+  display: flex;
+  justify-content: space-between;
+}
+.alto-breakdown dt {
+  color: var(--alto-muted);
+  font-size: 12px;
+}
+.alto-breakdown dd {
+  margin: 0;
+  font-weight: 800;
+}
+.alto-overview {
+  display: grid;
+  gap: 14px;
+}
+.alto-overview-season h3 {
+  margin: 0 0 6px;
+  font-family: var(--alto-display);
+  font-size: 15px;
+}
+.alto-overview-season[data-past] {
+  opacity: 0.55;
+}
+.alto-overview-season[data-now] h3 {
+  color: var(--alto-orange-dark);
+}
+.alto-overview-season ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alto-overview .alto-item.is-static {
+  padding-top: 8px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1f2756, #141a40);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tint) 45%, transparent);
+  cursor: default;
+}
+.alto-overview .alto-item.is-static .alto-builders {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.alto-overview > .rule-section {
+  display: none;
+}
+
+/* The shared menu and leave dialog take the hull's cream and the stripe's orange. */
+:is(.game-menu, .table-manager-trigger)[data-menu-theme='alto'] {
+  --menu-bg: #f6efe2;
+  --menu-ink: #1b2045;
+  --menu-muted: #5b6088;
+  --menu-line: #e2d6bf;
+  --menu-hover: #ece0c8;
+  --menu-icon: #c4741f;
+  --menu-radius: 20px;
+  --menu-font:
+    Futura, 'Futura PT', 'Century Gothic', 'Avenir Next', 'Trebuchet MS',
+    sans-serif;
+  --menu-border: 1.5px solid #f0a040;
+  --menu-shadow: 0 18px 44px #04061a88, 0 2px 6px #04061a44;
+}
+.leave-dialog[data-leave-theme='alto'] {
+  border: 2px solid #f0a040;
+  background: linear-gradient(180deg, #fbf6ec, #f1e7d3);
+  color: #1b2045;
+  font-family:
+    Futura, 'Futura PT', 'Century Gothic', 'Avenir Next', 'Trebuchet MS',
+    sans-serif;
+}
+
+/* Two bays, ship above base: both are wider than tall, like what they hold.
+   Phones set them side by side. */
+.alto-home:has(.alto-preview) {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  min-height: 158px;
+}
+.alto-preview {
+  --tint: var(--alto-ship);
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--tint) 38%, transparent);
+  border-radius: 19px;
+  background: radial-gradient(
+    ellipse at 50% 70%,
+    color-mix(in srgb, var(--tint) 16%, transparent),
+    transparent 75%
+  );
+  color: var(--alto-cream);
+  cursor: pointer;
+}
+.alto-preview[data-family='base'] {
+  --tint: var(--alto-base);
+}
+.alto-preview .alto-home-bay {
+  inset: 4px 6px;
+}
+/* The bay's name sits in its bottom left corner, clear of the 3D. */
+.alto-preview-label {
+  position: absolute;
+  left: 9px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--alto-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tint);
+}
+.alto-preview-hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--alto-cream);
+  margin-left: 5px;
+}
+.alto-preview:focus-visible {
+  outline: 2px solid var(--alto-glow);
+  outline-offset: 2px;
+}
+/* What you own, beside your cargo: names while they fit, then pictures,
+   then counts (useOwnedFit sets data-fit on the row). */
+.alto-owned {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.alto-owned-family {
+  --tint: var(--alto-ship);
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  height: 34px;
+  padding: 0 4px 0 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tint) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 28%, transparent);
+}
+.alto-owned-family[data-family='base'] {
+  --tint: var(--alto-base);
+}
+.alto-owned-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  height: 28px;
+  padding: 0 7px 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tint);
+  color: #10142f;
+  cursor: pointer;
+}
+.alto-owned-count b {
+  font-family: var(--alto-display);
+  font-size: 15px;
+  font-weight: 800;
+}
+.alto-owned-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alto-owned-list li {
+  flex: none;
+}
+.alto-owned-list button {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+  padding: 0 7px 0 2px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--alto-cream);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.alto-owned-list button:hover {
+  background: #f6efe21c;
+}
+.alto-dock-row[data-fit] .alto-owned-list span {
+  display: none;
+}
+.alto-dock-row[data-fit] .alto-owned-list button {
+  padding-right: 2px;
+}
+.alto-dock-row[data-fit='count'] .alto-owned-list {
+  display: none;
+}
+.alto-sheet-row {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: start;
+  padding: 8px;
+}
+.alto-sheet-family {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  height: auto;
+  padding: 5px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.alto-built {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+}
+.alto-built button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 5px;
+  text-align: left;
+}
+.alto-built-detail {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.alto-built-detail > b {
+  font-size: 12px;
+}
+.alto-built-detail .alto-effects {
+  justify-content: start;
+}
+.alto-built-detail .alto-effect {
+  font-size: 10px;
+}
+
+/* ---- Tablets: a narrower home ---- */
+@media (max-width: 900px) {
+  .alto-dock {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+  .alto-item-name {
+    font-size: 12.5px;
+  }
+  .alto-shop {
+    gap: 6px;
+  }
+  .alto-shelf {
+    padding-inline: 4px;
+  }
+}
+
+.alto-cost-space {
+  visibility: hidden;
+}
+
+/* ---- Phones: one top bar, badges beneath; the deck is a row (home,
+   cargo, Undo) on a three-by-two shop whose items carry their family ---- */
+@media (max-width: 600px) {
+  .alto-world {
+    --stage-top: calc(max(8px, env(safe-area-inset-top)) + 92px);
+  }
+  .alto-world .game-progress.is-round {
+    gap: 6px;
+    padding-inline: 9px;
+  }
+  .alto-years {
+    gap: 3px;
+  }
+  .alto-year i {
+    width: 3px;
+    height: 8px;
+  }
+  .alto-players {
+    top: calc(max(8px, env(safe-area-inset-top)) + 48px);
+    left: max(6px, env(safe-area-inset-left));
+    right: max(6px, env(safe-area-inset-right));
+    gap: 5px;
+    padding: 3px;
+  }
+  .alto-player {
+    min-height: 34px;
+    padding: 3px 6px 3px 3px;
+    gap: 4px;
+    font-size: 12px;
+  }
+  .alto-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+  .alto-players[data-fit='compact'] {
+    display: grid;
+    grid-template-columns: repeat(var(--seats), minmax(0, 1fr));
+    gap: 4px;
+  }
+  .alto-players[data-fit='compact'] .alto-player {
+    position: relative;
+    min-width: 0;
+    justify-content: center;
+    gap: 3px;
+    padding-inline: 2px;
+  }
+  .alto-players[data-fit='compact'] .alto-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+  .alto-players[data-fit='compact'] .alto-player small {
+    font-size: 13px;
+  }
+  .alto-players[data-fit='compact'] .alto-status {
+    position: absolute;
+    left: 17px;
+    bottom: 1px;
+    width: 12px;
+    height: 12px;
+  }
+  .alto-players[data-fit='compact'] .alto-status svg {
+    width: 9px;
+    height: 9px;
+  }
+  .alto-stage {
+    left: 6px;
+    right: 6px;
+    bottom: calc(var(--dock-h) + max(6px, env(safe-area-inset-bottom)) + 22px);
+  }
+  .alto-pile {
+    padding: 2px 9px 2px 3px;
+  }
+  .alto-pile .alto-good {
+    width: 24px;
+    height: 24px;
+  }
+  .alto-pile b {
+    font-size: 18px;
+  }
+  .alto-base-tag .alto-avatar {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+  .alto-base-built {
+    font-size: 10.5px;
+  }
+  /* The deck: your ship and base bays beside your cargo (with what you own
+     beneath it, Undo at the end), then the six upgrades. */
+  .alto-dock {
+    width: calc(100% - 12px);
+    bottom: max(6px, env(safe-area-inset-bottom));
+    grid-template-columns: minmax(118px, 36%) minmax(0, 1fr);
+    grid-template-areas:
+      'home row'
+      'orders orders'
+      'shop shop';
+    column-gap: 6px;
+    row-gap: 6px;
+    padding: 6px 6px 7px;
+    border-radius: 22px;
+  }
+  .alto-home:has(.alto-preview),
+  .alto-preview {
+    min-height: 74px;
+  }
+  .alto-home:has(.alto-preview) {
+    grid-template-rows: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .alto-preview {
+    border-radius: 13px;
+  }
+  .alto-preview .alto-home-bay {
+    inset: 0 0 15px;
+  }
+  .alto-preview-label {
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    justify-content: center;
+    gap: 2px;
+    font-size: 11px;
+  }
+  .alto-preview-label > .alto-family-word {
+    display: none;
+  }
+  .alto-preview-hold {
+    margin-left: 3px;
+  }
+  .alto-preview-hold svg {
+    width: 10px;
+  }
+  .alto-dock-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px;
+    grid-template-rows: 34px 34px;
+    align-items: center;
+    gap: 4px 5px;
+  }
+  .alto-dock-row .alto-stock {
+    grid-column: 1;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+  }
+  .alto-dock-row .alto-owned {
+    grid-column: 1;
+    grid-row: 2;
+    gap: 4px;
+  }
+  .alto-dock-row > .alto-all {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .alto-dock-row > .alto-undo {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .alto-dock-row > button {
+    width: 32px;
+    height: 32px;
+  }
+  .alto-stock .alto-goods-chip {
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    height: 32px;
+    padding: 0 4px 0 2px;
+  }
+  .alto-stock .alto-good {
+    width: 20px;
+    height: 20px;
+  }
+  .alto-stock .alto-goods-chip b {
+    font-size: 15px;
+  }
+  .alto-owned-family {
+    height: 32px;
+    gap: 1px;
+    padding: 0 2px;
+  }
+  .alto-owned-count {
+    height: 26px;
+    padding: 0 6px 0 5px;
+  }
+  .alto-owned-count b {
+    font-size: 14px;
+  }
+  .alto-owned-list {
+    gap: 0;
+  }
+  .alto-owned-list .alto-mark {
+    width: 18px;
+    height: 18px;
+  }
+  .alto-owned-list button {
+    height: 26px;
+    padding-left: 1px;
+    font-size: 10.5px;
+  }
+  .alto-orders {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    min-width: 0;
+    height: 34px;
+    scrollbar-width: thin;
+  }
+  .alto-order {
+    flex: none;
+    gap: 4px;
+    padding: 3px 6px;
+  }
+  .alto-order .alto-cost {
+    --unit: 14px;
+  }
+  .alto-sheet-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .alto-sheet-family {
+    font-size: 10px;
+  }
+  /* One grid of six; the shelves dissolve and each item keeps its colour. */
+  .alto-shop {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .alto-shelf {
+    display: contents;
+  }
+  .alto-shelf-label {
+    display: none;
+  }
+  /* A shop item: the object at the left, its name and effect beside it, the
+     cost across the bottom. Owned or picked shows as a corner badge. */
+  .alto-item {
+    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'art name'
+      'art effect'
+      'cost cost';
+    align-items: center;
+    justify-items: start;
+    column-gap: 4px;
+    row-gap: 1px;
+    padding: 4px 4px 4px 3px;
+    border-radius: 14px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tint) 16%, transparent),
+      color-mix(in srgb, var(--tint) 5%, transparent)
+    );
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 30%, transparent);
+    text-align: left;
+  }
+  .alto-item-seal,
+  .alto-item-choice {
+    top: -5px;
+    right: -3px;
+    padding: 1px 5px;
+    font-size: 9px;
+  }
+  .alto-item-seal > span {
+    display: none;
+  }
+  .alto-item-seal {
+    padding: 2px;
+  }
+  .alto-shelf .alto-family {
+    display: grid;
+  }
+  .alto-family {
+    top: 2px;
+    left: 2px;
+    width: 15px;
+    height: 15px;
+  }
+  .alto-family svg {
+    width: 9px;
+    height: 9px;
+  }
+  .alto-item-art {
+    grid-area: art;
+    width: 36px;
+    aspect-ratio: 1;
+  }
+  .alto-item-art::after {
+    left: 4%;
+    right: 4%;
+  }
+  .alto-item-body {
+    display: contents;
+  }
+  .alto-item-name {
+    grid-area: name;
+    font-size: 12.5px;
+  }
+  .alto-effects {
+    grid-area: effect;
+    justify-content: start;
+    flex-wrap: nowrap;
+  }
+  .alto-effects {
+    gap: 2px;
+  }
+  .alto-effect {
+    gap: 1px;
+    padding: 0 4px;
+    font-size: 10.5px;
+  }
+  .alto-effect .alto-good,
+  .alto-effect > svg {
+    width: 13px;
+    height: 13px;
+  }
+  /* Two effects share the line beside the object. */
+  .alto-effects:has(> :nth-child(2)) .alto-effect {
+    padding: 0 3px;
+    font-size: 10px;
+  }
+  .alto-effects:has(> :nth-child(2)) :is(.alto-good, svg) {
+    width: 12px;
+    height: 12px;
+  }
+  .alto-item-cost {
+    grid-area: cost;
+    justify-self: stretch;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 3px;
+    padding: 2px;
+  }
+  .alto-cost-space {
+    height: 18px;
+    visibility: hidden;
+  }
+  .alto-item-cost .alto-cost-unit + .alto-cost-unit {
+    margin-left: calc(var(--unit) * -0.3);
+  }
+  .alto-cost-unit[data-unit='missing'] {
+    box-shadow:
+      0 0 0 1.5px #ff6b5a,
+      0 0 6px #ff5a4a88;
+  }
+  .alto-comet {
+    top: 2%;
+    right: 2%;
+  }
+  .alto-inspect-plan,
+  .alto-inspect-island {
+    flex-direction: column;
+  }
+}
+
+/* Tall phones have height to spare: bigger bays and shop objects. */
+@media (max-width: 600px) and (min-height: 780px) {
+  .alto-home:has(.alto-preview),
+  .alto-preview {
+    min-height: 92px;
+  }
+  .alto-item {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+  .alto-item-art {
+    width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alto-comet,
+  .alto-arrival,
+  .alto-base-built,
+  .alto-banner,
+  .alto-captain,
+  .alto-loading-ship,
+  .alto-player.is-choosing .alto-status svg {
+    animation: none;
+  }
+  .alto-planet,
+  .alto-base {
+    transition: none;
+  }
+}
+
+/* ---- Lab (/alto/lab, development only) ---- */
+.alto-lab-bar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+}
+.alto-lab-bar > * {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--alto-cream);
+  color: var(--alto-ink);
+  font-weight: 700;
+}
+.alto-lab-bar .alto-player {
+  color: #fff;
+}
+.alto-lab-planets {
+  position: absolute;
+  inset: 60px 20px 230px;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.alto-lab-planets.is-one {
+  grid-template-columns: 1fr;
+}
+.alto-lab-planets .alto-planet {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: auto;
+  height: auto;
+}
+.alto-lab-planets .alto-planet-button {
+  inset: 6%;
+}
+.alto-lab-planets b {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--alto-cream);
+  color: var(--alto-ink);
+  font-size: 13px;
+}
+.alto-lab-dock {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 16px;
+  height: 200px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, #232b62f2, #141a40f5);
+}
+.alto-lab-dock > * {
+  position: relative;
+  z-index: 3;
+  grid-area: auto;
+}
+.alto-lab-dock .alto-home {
+  z-index: 1;
+}
+.alto-lab-dock .alto-shop {
+  align-self: center;
+}
+.alto-lab-stills {
+  color: #fff;
+  padding: 20px;
+}
+.alto-lab-view-host {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}
+.alto-lab-view .alto-lab-stills {
+  position: fixed;
+  left: 16px;
+  bottom: 12px;
+  z-index: 3;
+}
+/* On the cream dialog the sockets are ink, not cream. */
+.modal.alto-dialog .alto-cost {
+  --unit: 26px;
+}
+.modal.alto-dialog .alto-cost-unit[data-unit='missing'] {
+  background: #e0442f14;
+  outline-color: #d9442f;
+}
+.modal.alto-dialog .alto-cost-unit[data-unit='swap'] {
+  background: #f0a04026;
+  box-shadow: 0 0 0 1.5px var(--alto-orange);
+}
+/* The family mark sits inline in the rules' upgrade lists. */
+.alto-rules .rule-list .alto-family {
+  position: static;
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  margin-right: 5px;
+  vertical-align: -3px;
+  box-shadow: none;
+}

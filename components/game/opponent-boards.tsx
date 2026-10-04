@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Footprints, MoveRight, Store } from 'lucide-react';
-import { passingStep, scores, type PublicGame } from '@/lib/games/trio/engine';
+import { ChevronRight, Crown, Footprints, Store } from 'lucide-react';
+import { censusBreakdown, passingStep, scores, type PublicGame } from '@/lib/games/trio/engine';
 import type { Inspect } from './interactions';
 import { SanctuaryBadges } from './mora-extension';
 import { Board } from './boards';
@@ -13,11 +13,13 @@ import './others-panel.css';
  *  Where a stall opened shows on the mat itself, so only the permits left do here. */
 export function PlayerResources({ g, player, inspect, compact = false }: { g: PublicGame; player: number; inspect?: Inspect; compact?: boolean }) {
   const p = g.players[player];
+  // Census is public: everyone's boards decide who leads each species.
+  const census = g.id === 'wildgrove' && g.census ? censusBreakdown(g.players.map((q) => q.zones))[player].points : null;
   if (compact && g.id === 'wildgrove')
     return <div className="player-resources compact">
-      {(g.roamEnabled || g.migration) && <dl className="nature-reserves">
+      {(g.roamEnabled || census !== null) && <dl className="nature-reserves">
         {g.roamEnabled && <div title="Roam uses left"><dt><Footprints size={16} aria-hidden="true" /><span className="sr-only">Roam</span></dt><dd>{p.roams ?? 0}</dd></div>}
-        {g.migration && <div title="Migration uses left"><dt><MoveRight size={16} aria-hidden="true" /><span className="sr-only">Migration</span></dt><dd>{p.migrations ?? 0}</dd></div>}
+        {census !== null && <div title="Census points"><dt><Crown size={16} aria-hidden="true" /><span className="sr-only">Census</span></dt><dd>+{census}</dd></div>}
       </dl>}
       {g.sanctuaryGoalsEnabled && <SanctuaryBadges zones={p.zones} goals={g.sanctuaryGoals} contentSet={g.contentSet} inspect={inspect} />}
     </div>;
@@ -31,9 +33,9 @@ export function PlayerResources({ g, player, inspect, compact = false }: { g: Pu
     </dl>}
     {g.id === 'midnight' && g.marketSeasons && <SeasonTrack g={g} player={player} results />}
     {g.id === 'wildgrove' && <>
-      {(g.roamEnabled || g.migration) && <dl className="nature-reserves">
+      {(g.roamEnabled || census !== null) && <dl className="nature-reserves">
         {g.roamEnabled && <div><dt><Footprints size={18} aria-hidden="true" />Roam</dt><dd>{p.roams ?? 0} left</dd></div>}
-        {g.migration && <div><dt><MoveRight size={18} aria-hidden="true" />Migration</dt><dd>{p.migrations ?? 0} / 1 left</dd></div>}
+        {census !== null && <div><dt><Crown size={18} aria-hidden="true" />Census</dt><dd>+{census}</dd></div>}
       </dl>}
       {g.sanctuaryGoalsEnabled && <SanctuaryBadges zones={p.zones} goals={g.sanctuaryGoals} contentSet={g.contentSet} inspect={inspect} />}
     </>}

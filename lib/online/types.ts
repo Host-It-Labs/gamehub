@@ -2,7 +2,7 @@ import type { StandaloneId } from '../games/standalone/types.ts';
 import type { AnyGame, AnyMove } from '../games/standalone/registry.ts';
 export type OnlineGameId = GameId | StandaloneId;
 /** Everything the table shelf offers: its own games plus Folio and Relic, which run in their own rooms. */
-export type ShelfGameId = OnlineGameId | 'folio' | 'relic' | 'arena';
+export type ShelfGameId = OnlineGameId | 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner';
 import type {
   Difficulty,
   GameOptions,
@@ -30,11 +30,12 @@ export type Table = GameOptions & {
   token: string;
   gameId: OnlineGameId;
   difficulty: Difficulty;
-  shields?: boolean;
   customerOrders?: boolean;
   sanctuaryGoalsEnabled?: boolean;
   ambienceEnabled?: boolean;
   fastMode?: boolean;
+  /** Party games: the table votes between rounds; otherwise the host picks. */
+  partyVotes?: boolean;
   capacity: number;
   revision: number;
   status: 'lobby' | 'playing' | 'finished' | 'closed';
@@ -52,10 +53,16 @@ export type Table = GameOptions & {
   botError: boolean;
   setupOpen?: boolean;
   votes?: Partial<Record<ShelfGameId, string[]>>;
-  /** Open for ten seconds after a party match: member id → the game they want next. */
-  nextVote?: { endsAt: number; ballots: Record<string, StandaloneId> } | null;
+  /** After a party match: member id → the game they want next. Open for ten
+   *  seconds when the table votes; without a deadline the host picks alone. */
+  nextVote?: NextGameVote | null;
   /** The table moved on to Folio, Relic or Arena, which run in their own rooms. */
-  handoff?: { kind: 'folio' | 'relic' | 'arena'; url: string; at: number } | null;
+  handoff?: { kind: 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner'; url: string; at: number } | null;
+};
+export type NextGameVote = {
+  endsAt: number | null;
+  ballots: Record<string, StandaloneId>;
+  host?: true;
 };
 export type TableCommand =
   | {
@@ -63,17 +70,18 @@ export type TableCommand =
       openSetup?: boolean;
       contentSet?: GameOptions['contentSet'];
       roamEnabled?: boolean;
-      turningTide?: boolean;
+      gold?: boolean;
       marketSeasons?: boolean;
-      migration?: boolean;
-      salvage?: boolean;
+      census?: boolean;
+      anchor?: boolean;
+      dawn?: boolean;
       specialtyStalls?: boolean;
       gameId: OnlineGameId;
       difficulty: Difficulty;
-      shields?: boolean;
       customerOrders?: boolean;
       sanctuaryGoalsEnabled?: boolean;
       fastMode?: boolean;
+      partyVotes?: boolean;
       capacity: number;
     }
   | { type: 'adventure-move'; move: AnyMove; key: string }

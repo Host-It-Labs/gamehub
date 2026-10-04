@@ -6,11 +6,13 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
-import { Anchor, Shield } from 'lucide-react';
+import { Anchor, Sunrise } from 'lucide-react';
 import { PlayerStatus } from './player-status';
 import { SeatEmblem } from './nox-emblems';
 import {
   canAct,
+  dawnValue,
+  isAnchor,
   tableOrderStep,
   readySeats,
   scores,
@@ -102,6 +104,13 @@ export function BlackwakeTable({
     anchors?.[(seat - viewer + count) % count] ?? seatPosition(seat, viewer, count, ...geometry.seats);
   const winner = reveal ? seatAt(reveal.player) : null;
   const totals = seatTags ? scores(g) : null;
+  // Dawn's prize waits at the centre all round and rises for the last trick;
+  // the Anchor's ×2 shows while it lies in the trick.
+  const lastTrick = g.phase === 'play' && g.players.every((p) => p.hand.length <= 1);
+  const dawn = g.dawn && g.phase !== 'over' && g.phase !== 'pass' && !reveal?.dawn
+    ? lastTrick && !reveal ? 'rising' : 'waiting'
+    : null;
+  const anchored = trick.some((t) => isAnchor(g, t.card));
   return (
     <div
       className={`blackwake-table ${reveal ? 'collecting' : ''} ${seatTags ? 'seat-tags' : ''}`}
@@ -113,17 +122,34 @@ export function BlackwakeTable({
       {seatTags && g.phase !== 'over' && <DirectionMarks clockwise={tableOrderStep(g) === 1} passing={g.phase === 'pass'} />}
       <div className="blackwake-centre" aria-live="polite" data-game-motion="change" data-game-motion-key={`${g.phase}:${reveal?.id ?? trick[0]?.card.id ?? 'empty'}`}>
         {!seatTags && <span className="table-direction" aria-label={tableOrderStep(g) === 1 ? "Clockwise" : "Counterclockwise"}>{tableOrderStep(g) === 1 ? "↻" : "↺"}</span>}
-        {g.salvage && <Anchor aria-label="Salvage" />}
         <span>
           {reveal
             ? g.players[reveal.player].name
             : trick.length
               ? `${suits[trick[0].card.kind]} ${suitNames[trick[0].card.kind]}`
-              : g.phase === 'salvage'
-                ? 'Secret claims'
-                : ''}
+              : ''}
         </span>
       </div>
+      {(dawn || anchored) && (
+        <div className="table-stakes">
+          {anchored && (
+            <span className="stake-anchor" aria-label="Anchor: this trick counts double">
+              <Anchor aria-hidden="true" />
+              <b>×2</b>
+            </span>
+          )}
+          {dawn && (
+            <span
+              className="stake-dawn"
+              data-state={dawn}
+              aria-label={`Dawn: the last trick takes ${dawnValue(g)} extra points${dawn === 'rising' ? '. This is the last trick' : ''}`}
+            >
+              <Sunrise aria-hidden="true" />
+              <b>+{dawnValue(g)}</b>
+            </span>
+          )}
+        </div>
+      )}
       {g.players.map((player, seat) => {
         const position = seatAt(seat);
         const edge = Math.abs(position.x - 50) > Math.abs(position.y - 50)
@@ -158,32 +184,20 @@ export function BlackwakeTable({
               />
             )}
             {(reveal?.trick?.[0]?.player ??
-              g.trickLeader ??
               g.trick[0]?.player ??
               g.active) === seat && <small>LEAD</small>}
-            {(reveal
-              ? !!reveal.salvageChanges?.[seat]
-              : (g.salvageClaimants ?? []).includes(seat)) && (
-              <Anchor size={16} aria-label="Salvage claimed" />
+            {delta !== undefined && delta !== 0 && (
+              <b
+                key={reveal!.id}
+                className={`capture-score ${delta < 0 ? 'reward' : ''}`}
+                aria-label={`${reveal?.anchor && reveal.player === seat ? 'Anchor. ' : ''}${reveal?.dawn && reveal.player === seat ? 'Dawn. ' : ''}${delta < 0 ? 'Score reduction' : 'Penalty'} ${Math.abs(delta)}`}
+              >
+                {reveal?.anchor && reveal.player === seat && <Anchor size={14} aria-hidden="true" />}
+                {reveal?.dawn && reveal.player === seat && <Sunrise size={14} aria-hidden="true" />}
+                {delta > 0 ? '+' : '−'}
+                {Math.abs(delta)}
+              </b>
             )}
-            {delta !== undefined &&
-              (delta !== 0 || !!reveal?.salvageChanges?.[seat]) && (
-                <b
-                  key={reveal!.id}
-                  className={`capture-score ${delta < 0 ? 'reward' : ''}`}
-                  aria-label={`${delta < 0 ? 'Score reduction' : 'Penalty'} ${Math.abs(delta)}`}
-                >
-                  {delta > 0 ? '+' : delta < 0 ? '−' : ''}
-                  {Math.abs(delta)}
-                  {reveal?.salvageChanges?.[seat] ? (
-                    <small className="salvage-score-detail">
-                      {seat === reveal.player
-                        ? `+${reveal.points ?? 0} / −6`
-                        : 'Salvage +3'}
-                    </small>
-                  ) : null}
-                </b>
-              )}
           </Tag>
         );
       })}
@@ -211,7 +225,6 @@ export function BlackwakeTable({
           >
             <span className="played-order" aria-label={order === 0 ? 'Lead card' : undefined}>
               {order === 0 ? 'LEAD' : order + 1}
-              {entry.ward && <Shield size={13} />}
             </span>
             <div className="static-face">
               {face(entry.card, reveal?.hazard ?? g.hazard)}

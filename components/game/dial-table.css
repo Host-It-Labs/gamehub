@@ -67,6 +67,13 @@
   box-shadow: inset 0 0 0 2px var(--t-ink);
 }
 .dial-switch button.chosen i { opacity: 1; }
+.dial-switch .dial-me {
+  justify-self: center;
+  width: 30px;
+  height: 30px;
+  font: 900 13px var(--t-display);
+  box-shadow: 0 0 0 2px var(--t-ink);
+}
 .party-table.is-tribu .dial-switch button:not(:disabled):hover {
   transform: none;
   box-shadow: inset 0 0 0 2px var(--t-ink);
@@ -89,7 +96,8 @@
   font-size: 17px;
   box-shadow: inset 0 0 0 2px var(--t-ink), 2px 2px 0 var(--t-ink);
 }
-.dial-clue q {
+.dial-clue q,
+.dial-clue.is-self strong {
   font-family: var(--t-display);
   font-size: clamp(24px, 4vw, 40px);
   font-weight: 900;
@@ -373,7 +381,8 @@
     z-index: 1;
     margin-top: 0;
   }
-  .dial-clue q { font-size: 24px; }
+  .dial-clue q,
+  .dial-clue.is-self strong { font-size: 24px; }
   .dial-ends span { font-size: 15px; }
 }
 /* Short landscape: the dial on the left, clue and action on the right. */

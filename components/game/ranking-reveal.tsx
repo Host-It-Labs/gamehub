@@ -3,13 +3,9 @@ import { useState } from 'react';
 import { Users } from 'lucide-react';
 import {
   tiers,
-  guessSlot,
-  guessName,
   guessPoints,
   guessOffsets,
   itemPoints,
-  guessingTeams,
-  groupName,
   perfectPoints,
   type RankingGame,
 } from '@/lib/games/party/ranking';
@@ -43,19 +39,14 @@ export function RankingReveal({
   const [open, setOpen] = useState(false);
   const result = g.result!,
     author = g.seats[g.target],
-    slots = guessingTeams(g),
-    mine = viewer === g.target ? -1 : guessSlot(g, viewer),
+    mine = viewer === g.target ? -1 : viewer,
     // The viewer first, then everyone else in seat order.
-    ordered = [...slots].sort(
-      (a, b) => Number(b === mine) - Number(a === mine),
-    ),
-    name = (slot: number) => (slot === mine ? 'You' : guessName(g, slot)),
-    order = (slot: number) => result.guesses[slot]!.order,
-    // A shared team guess wears its team colour; everyone else their seat.
-    avatar = (slot: number) =>
-      g.mode === 'teams' && slot < 2
-        ? `team-${slot}`
-        : `seat-${g.mode === 'teams' ? slot - 2 : slot}`,
+    ordered = g.seats
+      .flatMap((_, s) => (s === g.target ? [] : [s]))
+      .sort((a, b) => Number(b === mine) - Number(a === mine)),
+    name = (slot: number) => (slot === mine ? 'You' : g.seats[slot]),
+    order = (slot: number) => result.guesses[slot]!,
+    avatar = (slot: number) => `seat-${slot}`,
     scoresAt = result.order.length * ROW + 300;
   return (
     <div className="ranking-reveal">
@@ -100,7 +91,7 @@ export function RankingReveal({
                                   style={stagger(j, i * ROW + 160, DROP)}
                                   title={name(slot)}
                                 >
-                                  {name(slot).slice(0, 1)}
+                                  {g.seats[slot].slice(0, 1)}
                                 </i>,
                               ]
                             : [],
@@ -116,7 +107,7 @@ export function RankingReveal({
       </ol>
       <div className="rank-scores">
         {ordered.map((slot, j) => {
-          const points = guessPoints(order(slot), result.order, g.kind),
+          const points = guessPoints(order(slot), result.order),
             perfect = points === perfectPoints,
             at = scoresAt + j * 90;
           return (
@@ -126,7 +117,7 @@ export function RankingReveal({
               style={stagger(0, at)}
             >
               <i className={`party-avatar ${avatar(slot)}`} aria-hidden="true">
-                {name(slot).slice(0, 1)}
+                {g.seats[slot].slice(0, 1)}
               </i>
               <b>{name(slot)}</b>
               <strong>
@@ -145,16 +136,6 @@ export function RankingReveal({
           <Users size={16} aria-hidden="true" />
         </button>
       </div>
-      {g.mode === 'teams' && (
-        <p className="guess-team-summary">
-          {result.gains
-            .map(
-              (gain, team) =>
-                `${groupName(g, team)} +${Number(gain.toFixed(2))}`,
-            )
-            .join(' · ')}
-        </p>
-      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="party-dialog">
           <DialogTitle>Every guess for {author}’s list</DialogTitle>
@@ -179,7 +160,7 @@ export function RankingReveal({
                 <div key={slot}>
                   <h4>
                     {name(slot)}{' '}
-                    <b>+{guessPoints(order(slot), result.order, g.kind)}</b>
+                    <b>+{guessPoints(order(slot), result.order)}</b>
                   </h4>
                   <ol>
                     {order(slot).map((v, i) => {

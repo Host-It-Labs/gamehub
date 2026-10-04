@@ -79,7 +79,7 @@ void test('goal scoring uses only the drawn goals and rejects invalid saved goal
 void test('every game randomizes its starting seat without skipping simultaneous players', async () => {
   const { readySeats, passCount, simultaneous } = await import('../lib/games/trio/engine.ts');
   for (const id of ['undertow', 'wildgrove', 'midnight']) {
-    for (let seats = 2; seats <= 6; seats++) {
+    for (let seats = id === 'undertow' ? 3 : 2; seats <= 6; seats++) {
       const starts = new Set();
       for (let sample = 1; sample <= 300; sample++) {
         const seed = Math.imul(sample, 2654435761) >>> 0;

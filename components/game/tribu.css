@@ -581,24 +581,20 @@
 .party-table.is-tribu .party-finale > svg { color: var(--t-mustard); }
 .party-table.is-tribu .party-scores > div { background: var(--t-cream); border: 2px solid var(--t-line); }
 
-/* --- Votes: big graphic tiles, the clock, the dots. ---------------------- */
-.tribu-vote {
-  width: min(760px, 100%);
-  margin: auto;
-  display: grid;
-  gap: 18px;
-  justify-items: center;
-}
+/* --- Votes: the clock, and each game's colours on the shared pick cards
+ * (set-pick.css) and starting burst (game-intro.css). ------------------- */
 .party-table.is-tribu .vote-clock {
   width: min(360px, 80%);
   height: 14px;
   background: var(--t-card);
   border: 2px solid var(--t-line);
   box-sizing: border-box;
+  overflow: visible;
 }
 .party-table.is-tribu .vote-clock i {
   background: var(--t-spectrum);
   opacity: 1;
+  border-radius: 999px;
 }
 .party-table.is-tribu .vote-clock b {
   position: absolute;
@@ -607,88 +603,14 @@
   font-weight: 800;
   color: var(--t-ink);
 }
-.party-table.is-tribu .vote-clock { overflow: visible; }
-.party-table.is-tribu .vote-clock i { border-radius: 999px; }
-.tribu-vote-options {
-  width: 100%;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 16px;
-}
-/* Each option is a door on the game-show stage. */
-.party-table.is-tribu .tribu-tile {
-  position: relative;
-  flex-direction: column;
-  gap: 14px;
-  padding: 26px 14px 18px;
-  min-height: min(290px, 48dvh);
-  border-radius: 26px;
-  border: 2.5px solid var(--t-line);
-  background:
-    linear-gradient(var(--tile), var(--tile)) top / 100% 14px no-repeat,
-    var(--t-card);
-  box-shadow: 5px 6px 0 var(--t-ink);
-}
-.party-table.is-tribu .tribu-tile.tile-orin { --tile: var(--t-mustard); }
-.party-table.is-tribu .tribu-tile.tile-dial { --tile: var(--t-teal); }
-.party-table.is-tribu .tribu-tile.tile-finish { --tile: #c9b49a; }
-.party-table.is-tribu .tribu-tile:disabled { opacity: 1; }
-.party-table.is-tribu .tribu-tile.is-mine {
-  background:
-    linear-gradient(var(--tile), var(--tile)) top / 100% 14px no-repeat,
-    color-mix(in srgb, var(--tile) 18%, var(--t-card));
-  box-shadow: 5px 6px 0 var(--t-ink), 0 0 0 4px var(--tile);
-}
-.tribu-tile-art {
-  position: relative;
-  width: min(120px, 60%);
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--tile) 22%, var(--t-cream));
-  box-shadow: inset 0 0 0 2px #2b1a1222;
-}
-.tribu-mark {
-  width: 80%;
-  height: 80%;
-}
-.tile-finish .tribu-mark {
-  width: 52%;
-  height: 52%;
-  color: var(--t-soft);
-}
-.tribu-mark .mark-bar { fill: var(--t-mustard); stroke: var(--t-ink); stroke-width: 1.5; }
-.tribu-mark .mark-bar-1 { fill: #f0603f; }
-.tribu-mark .mark-bar-2 { fill: #f28a3c; }
-.tribu-mark .mark-bar-3 { fill: #2fb3a8; }
-.tribu-mark .mark-bar-4 { fill: #6c9bf0; }
-.tribu-mark .mark-needle { stroke: var(--t-ink); stroke-linecap: round; }
-.tribu-mark .mark-hub { fill: var(--t-ink); }
-.tribu-again {
-  position: absolute;
-  right: 2px;
-  bottom: 6px;
-  padding: 5px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid var(--t-ink);
-  background: var(--tile);
-  color: var(--t-ink);
-}
-.tribu-tile strong {
-  font-family: var(--t-display);
-  font-size: clamp(20px, 2.6vw, 28px);
-  font-weight: 900;
-}
-.party-table.is-tribu .vote-count i {
-  background: var(--tile);
-  box-shadow: inset 0 0 0 2px var(--t-ink);
-}
-.party-table.is-tribu .vote-check { color: var(--t-ink); }
-.party-table.is-tribu .tribu-tile.is-mine .vote-check { color: var(--t-ink); }
+.party-table.is-tribu .tile-orin,
+.party-table.is-tribu .intro-orin { --g-bg: #f2b531; --g-bg-2: #ffd56e; --g-accent: #fffaf0; --g-glow: #fff3c4; }
+.party-table.is-tribu .tile-dial,
+.party-table.is-tribu .intro-dial { --g-bg: #1f9e94; --g-bg-2: #49c4b8; --g-accent: #fffaf0; --g-glow: #c9fff5; }
+.party-table.is-tribu .tile-coins,
+.party-table.is-tribu .intro-coins { --g-bg: #e5482e; --g-bg-2: #f6785a; --g-accent: #fffaf0; --g-glow: #ffe6a8; }
+.party-table.is-tribu .tile-finish,
+.party-table.is-tribu .tile-more { --g-bg: #e2cfae; --g-bg-2: #f1e3c8; --g-accent: #fffaf0; --g-glow: #fff8e8; }
 
 @media (max-width: 700px) {
   .party-orin.is-tribu .topic-choices:not(.compact) {
@@ -711,19 +633,8 @@
     height: 40px;
   }
   .party-table.is-tribu .compact .topic-card strong { font-size: 11px; }
-  .tribu-vote-options { gap: 8px; }
-  .party-table.is-tribu .tribu-tile {
-    min-height: 0;
-    padding: 18px 6px 12px;
-    border-radius: 20px;
-    gap: 8px;
-  }
-  .tribu-tile strong { font-size: 16px; }
 }
 @media (orientation: landscape) and (max-height: 600px) {
-  .party-table.is-tribu .tribu-tile { min-height: 0; padding: 12px 8px; gap: 6px; }
-  .tribu-tile-art { width: min(90px, 26dvh); }
-  .tribu-vote { gap: 10px; }
   .party-orin.is-tribu .topic-choices.compact { display: flex; flex-direction: column; }
   .party-orin.is-tribu .compact .topic-option { flex: 1; }
   .party-orin.is-tribu .topic-choices:not(.compact) .topic-card { min-height: 0; }

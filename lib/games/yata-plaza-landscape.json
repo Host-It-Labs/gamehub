@@ -1,0 +1,116 @@
+{
+  "game": "midnight",
+  "source": "/art/yata-plaza-landscape-v2-a.png",
+  "image": "/art/optimized/yata-plaza-landscape-v2.webp",
+  "width": 1536,
+  "height": 1024,
+  "crop": {
+    "left": 175,
+    "top": 125,
+    "width": 1185,
+    "height": 590
+  },
+  "table": {
+    "left": 275,
+    "top": 225,
+    "width": 985,
+    "height": 390
+  },
+  "signboards": [
+    {
+      "left": 126,
+      "top": 285,
+      "width": 124,
+      "height": 262
+    },
+    {
+      "left": 1288,
+      "top": 285,
+      "width": 124,
+      "height": 262
+    }
+  ],
+  "ledge": {
+    "left": 200,
+    "top": 650,
+    "width": 1140,
+    "height": 260
+  },
+  "landmarks": {
+    "protectedBounds": [
+      {
+        "name": "counter",
+        "bounds": [
+          272,
+          225,
+          993,
+          392
+        ]
+      },
+      {
+        "name": "left menu board",
+        "bounds": [
+          105,
+          265,
+          170,
+          305
+        ]
+      },
+      {
+        "name": "right menu board",
+        "bounds": [
+          1265,
+          265,
+          170,
+          305
+        ]
+      },
+      {
+        "name": "lantern",
+        "bounds": [
+          600,
+          0,
+          340,
+          140
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "glows": [
+      {
+        "x": 770,
+        "y": 40,
+        "radius": 330,
+        "color": "255, 170, 70",
+        "alpha": 0.15,
+        "period": 4100
+      },
+      {
+        "x": 1425,
+        "y": 740,
+        "radius": 120,
+        "color": "255, 160, 60",
+        "alpha": 0.16,
+        "period": 3400
+      },
+      {
+        "x": 450,
+        "y": 215,
+        "radius": 90,
+        "color": "255, 110, 50",
+        "alpha": 0.12,
+        "period": 2900
+      }
+    ],
+    "water": [],
+    "motes": false
+  },
+  "overview": {
+    "left": 175,
+    "top": 125,
+    "width": 1185,
+    "height": 590
+  },
+  "overviewImage": "/art/optimized/yata-plaza-landscape-v2-overview.webp"
+}

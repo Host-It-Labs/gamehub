@@ -6,8 +6,9 @@ import { audioBuffer, audioContext } from '@/lib/games/audio-context';
 /**
  * Arena's own sound: a looping battle theme (more urgent in the last minute
  * and in overtime), a whoosh and thump when a card lands, a cue as each
- * troop arrives, its attack, its fall, the towers' shots and collapse, the
- * Meteor, and a sting at the end. Generated with ElevenLabs; the list and
+ * troop arrives, its attack, its fall, its abilities (heals, leaps, shields,
+ * rage, lightning, the Miner digging), the towers' shots and collapse, the
+ * Meteor, and a sting at the end. Quest screens use `playQuestSound`. Generated with ElevenLabs; the list and
  * levels are in lib/games/arena/audio.json (prompts in
  * assets/arena/audio/README.md).
  *
@@ -18,6 +19,69 @@ import { audioBuffer, audioContext } from '@/lib/games/audio-context';
  */
 type Entry = { srcs: string[]; duration: number; gain: number; loop?: boolean };
 const sounds = manifest as Record<string, Entry>;
+
+/** The engine's newer events (Quest troops), read by their `type` string so
+ *  this file keeps compiling while the engine gains them. */
+type AbilityEvent =
+  | { type: 'heal'; id: number; x: number; y: number; radius: number }
+  | { type: 'leap'; id: number }
+  | { type: 'shield'; id: number; x: number; y: number }
+  | { type: 'emerge'; id: number; x: number; y: number }
+  | { type: 'rage'; id: number }
+  | { type: 'stun'; id: number; x: number; y: number };
+type SoundEvent = ArenaEvent | AbilityEvent;
+
+/** The 1 October troops (and the bees) have no clips of their own yet (the
+ *  ElevenLabs credits ran out): each borrows the nearest fitting one. */
+const BORROWED: Record<string, string> = {
+  'diver-deploy': 'gladiator-deploy',
+  'diver-attack': 'imps-attack',
+  'diver-death': 'viking-death',
+  'sumo-deploy': 'viking-deploy',
+  'sumo-attack': 'hit-melee',
+  'sumo-death': 'ogre-death',
+  'linebacker-deploy': 'pirate-leap',
+  'linebacker-attack': 'hit-melee',
+  'linebacker-death': 'gladiator-death',
+  'beekeeper-deploy': 'medic-deploy',
+  'beekeeper-death': 'medic-death',
+  'drummer-deploy': 'pirate-deploy',
+  'drummer-death': 'gunner-death',
+  'firefighter-deploy': 'ranger-deploy',
+  'firefighter-attack': 'balloon-deploy',
+  'firefighter-death': 'miner-death',
+  'jetpack-deploy': 'archers-deploy',
+  'jetpack-attack': 'archers-attack',
+  'jetpack-death': 'drake-death',
+  'explorer-deploy': 'ranger-deploy',
+  'explorer-attack': 'ranger-attack',
+  'explorer-death': 'ranger-death',
+  'bee-death': 'mage-death',
+};
+/** Swings that are not blows landing (the water jet, a bee's sting). */
+const SOFT_SWING = new Set(['firefighter', 'bee']);
+
+/** Shots whose own sound replaces or joins the troop's attack clip. */
+const SHOT_SOUND: Record<string, string> = {
+  zap: 'zap-chain',
+  shell: 'shell-shot',
+};
+const IMPACT_SOUND: Record<string, [string, number]> = {
+  meteor: ['meteor-crash', 1],
+  bomb: ['bomb-blast', 0.8],
+  fire: ['fire-blast', 0.8],
+  shell: ['shell-blast', 0.8],
+  drop: ['drop-blast', 0.9],
+  crash: ['balloon-crash', 1],
+};
+
+export type QuestSoundId =
+  | 'quest-step'
+  | 'quest-reward'
+  | 'quest-coin'
+  | 'quest-upgrade'
+  | 'quest-heart-lost'
+  | 'quest-victory';
 
 /** How many copies of one sound may play at once, and how soon it may
  *  start again (seconds). */
@@ -30,6 +94,7 @@ const FOREGROUND = new Set([
   'tower-fall',
   'crown',
   'meteor-crash',
+  'balloon-crash',
   'sting-win',
   'sting-lose',
   'sting-draw',
@@ -62,7 +127,7 @@ export class ArenaSound {
   private disposed = false;
   private lastSecond = -1;
 
-  /** Preload every clip so the first card already has its sound. */
+  /** Preload gameplay clips; Sound Lab alternatives load only on audition. */
   constructor() {
     try {
       this.context = audioContext();
@@ -77,9 +142,11 @@ export class ArenaSound {
       this.effects.connect(this.output);
       this.musicGain = this.context.createGain();
       this.musicGain.connect(this.output);
-      for (const entry of Object.values(sounds))
+      for (const [id, entry] of Object.entries(sounds)) {
+        if (id.startsWith('music-option-') || id.startsWith('quest-')) continue;
         for (const src of entry.srcs)
           void audioBuffer(this.context, src).catch(() => {});
+      }
     } catch {
       /* Sound is optional. */
     }
@@ -159,6 +226,7 @@ export class ArenaSound {
 
   /** Play a sound; `pan` runs -1 (left) to 1 (right). */
   play(id: string, pan = 0, level = 1) {
+    if (!sounds[id] && BORROWED[id]) id = BORROWED[id];
     const entry = sounds[id];
     const c = this.context;
     if (!entry || !c || !this.effects || this.disposed || this.volume <= 0)
@@ -192,7 +260,8 @@ export class ArenaSound {
         if (c.currentTime - now > 0.25) return;
         const source = c.createBufferSource();
         source.buffer = buffer;
-        source.playbackRate.value = 0.94 + Math.random() * 0.12;
+        source.playbackRate.value =
+          id === 'battle-start' ? 1 : 0.94 + Math.random() * 0.12;
         const gain = c.createGain();
         gain.gain.value = entry.gain * level;
         const panner = c.createStereoPanner();
@@ -277,7 +346,11 @@ export class ArenaSound {
     viewer: Side,
     pan: (x: number, y: number) => number,
   ) {
-    for (const e of events) {
+    const unitAt = (id: number) => {
+      const u = m.units.find((x) => x.id === id);
+      return u ? pan(u.x, u.y) : 0;
+    };
+    for (const e of events as SoundEvent[]) {
       switch (e.type) {
         case 'deploy': {
           const p = pan(e.x, e.y);
@@ -287,10 +360,31 @@ export class ArenaSound {
           }
           this.play('card-drop', p, e.side === viewer ? 1 : 0.7);
           const card = e.card as TroopId;
-          // The troop's own cue as it lands.
-          this.later(() => this.play(`${card}-deploy`, p), 260);
+          // The troop's own cue as it lands; the Miner digs in instead and
+          // is heard again when he bursts out.
+          if (card === 'miner')
+            this.later(() => this.play('miner-dig', p), 200);
+          else this.later(() => this.play(`${card}-deploy`, p), 260);
           break;
         }
+        case 'emerge':
+          this.play('miner-emerge', pan(e.x, e.y));
+          break;
+        case 'heal':
+          this.play('medic-heal', pan(e.x, e.y), 0.7);
+          break;
+        case 'leap':
+          this.play('pirate-leap', unitAt(e.id));
+          break;
+        case 'shield':
+          this.play('shield-break', pan(e.x, e.y));
+          break;
+        case 'rage':
+          this.play('viking-rage', unitAt(e.id));
+          break;
+        case 'stun':
+          this.play('stun', pan(e.x, e.y), 0.6);
+          break;
         case 'shot': {
           const tower = m.towers.find((t) => t.id === e.id);
           const unit = tower ? undefined : m.units.find((u) => u.id === e.id);
@@ -302,31 +396,53 @@ export class ArenaSound {
               p,
               0.8,
             );
-          else if (unit) this.play(`${unit.card}-attack`, p);
+          else if (unit) {
+            // The Inventor's lightning and the Gunner's cannon carry their
+            // own sound; the troop's clip joins it underneath.
+            const own = SHOT_SOUND[e.kind];
+            if (own) this.play(own, p);
+            this.play(`${unit.card}-attack`, p, own ? 0.5 : 1);
+          }
           break;
         }
         case 'swing': {
           const u = m.units.find((x) => x.id === e.id);
           if (!u) break;
           const p = pan(u.x, u.y);
-          this.play(`${u.card}-attack`, p);
-          this.play('hit-melee', p, 0.6);
+          this.play(`${u.card}-attack`, p, u.card === 'firefighter' ? 0.45 : 1);
+          if (!SOFT_SWING.has(u.card)) this.play('hit-melee', p, 0.6);
           break;
         }
         case 'hit': {
           if (m.towers.some((t) => t.id === e.id))
             this.play('tower-hit', pan(e.x, e.y), 0.6);
+          // The Diver's armour turning a blow: a tin clank.
+          else if (e.armour) this.play('imps-attack', pan(e.x, e.y), 0.45);
           break;
         }
+        // The 1 October abilities, on borrowed clips.
+        case 'taunt':
+          this.play('shell-blast', pan(e.x, e.y), 0.8);
+          this.later(() => this.play('viking-rage', pan(e.x, e.y), 0.7), 120);
+          break;
+        case 'tackle':
+          this.play('hit-melee', pan(e.x, e.y), 1);
+          break;
+        case 'spawn':
+          this.play('inventor-deploy', pan(e.x, e.y), 0.4);
+          break;
+        case 'slow':
+          this.play('medic-heal', pan(e.x, e.y), 0.35);
+          break;
         case 'impact': {
-          const p = pan(e.x, e.y);
-          if (e.kind === 'meteor') this.play('meteor-crash', p);
-          else if (e.kind === 'bomb') this.play('bomb-blast', p, 0.8);
-          else if (e.kind === 'fire') this.play('fire-blast', p, 0.8);
+          const hit = IMPACT_SOUND[e.kind];
+          if (hit) this.play(hit[0], pan(e.x, e.y), hit[1]);
           break;
         }
         case 'death':
-          this.play(`${e.card}-death`, pan(e.x, e.y), 0.85);
+          // A Balloon's fall is its crash impact (balloon-crash).
+          if (e.card !== 'balloon')
+            this.play(`${e.card}-death`, pan(e.x, e.y), 0.85);
           break;
         case 'tower': {
           const t = m.towers.find((x) => x.id === e.id);
@@ -365,11 +481,7 @@ export class ArenaSound {
     }
     if (this.paused || document.hidden) return;
     this.setMusic(
-      m.phase === 'ready'
-        ? 'music-battle'
-        : urgent
-          ? 'music-final'
-          : 'music-battle',
+      m.phase === 'ready' ? null : urgent ? 'music-final' : 'music-battle',
     );
     const second = Math.ceil(left);
     if (
@@ -398,5 +510,51 @@ export class ArenaSound {
     this.effects?.disconnect();
     this.musicGain?.disconnect();
     this.output?.disconnect();
+  }
+}
+
+/** A Quest screen's cue (map, rewards, upgrades), played once outside a
+ *  battle at the given effects volume (0 mutes). Shares the clip cache. */
+export function playQuestSound(id: QuestSoundId, volume: number) {
+  const entry = sounds[id];
+  const level = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0;
+  if (!entry || level <= 0 || document.hidden) return;
+  let c: AudioContext;
+  try {
+    c = audioContext();
+  } catch {
+    return;
+  }
+  const asked = c.currentTime;
+  const src = entry.srcs[Math.floor(Math.random() * entry.srcs.length)];
+  void audioBuffer(c, src)
+    .then((buffer) => {
+      // A first decode that comes back late is dropped, not heard late.
+      if (c.state === 'closed' || document.hidden) return;
+      if (c.currentTime - asked > 0.6) return;
+      const source = c.createBufferSource();
+      source.buffer = buffer;
+      const gain = c.createGain();
+      // The same level as the battle's effects bus.
+      gain.gain.value = entry.gain * level * 0.35;
+      source.connect(gain).connect(c.destination);
+      source.onended = () => {
+        source.disconnect();
+        gain.disconnect();
+      };
+      source.start();
+    })
+    .catch(() => {});
+}
+
+/** Fetch and decode the Quest cues ahead of the map screen. */
+export function preloadQuestSounds() {
+  try {
+    const c = audioContext();
+    for (const [id, entry] of Object.entries(sounds))
+      if (id.startsWith('quest-'))
+        for (const src of entry.srcs) void audioBuffer(c, src).catch(() => {});
+  } catch {
+    /* Sound is optional. */
   }
 }

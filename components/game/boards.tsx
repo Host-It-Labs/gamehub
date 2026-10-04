@@ -1,6 +1,6 @@
 'use client';
 import { BlackwakeTable, type TableGeometry } from './blackwake-table';
-import { paperWorldFor, paperWorldIdFor } from '@/lib/games/mora-world';
+import { paperWorldAlt, paperWorldFor, paperWorldIdFor } from '@/lib/games/mora-world';
 import {
   cropPercent,
   phoneWorldQuery,
@@ -16,7 +16,6 @@ import {
   decisionKey,
   readySeats,
   simultaneous,
-  migratedZones,
 } from '@/lib/games/trio/engine';
 import { Fragment, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -32,9 +31,8 @@ import {
 import { festivalBreakdown } from '@/lib/games/trio/engine';
 import { moraMapFor } from '@/lib/games/trio/mora-map';
 import { MoraTrash } from './mora-trash';
-import { Store, UsersRound } from 'lucide-react';
+import { Anchor as AnchorIcon, Store, UsersRound } from 'lucide-react';
 import { ScrollArea } from './scroll-area';
-import { dropTargetNear } from './drag-preview';
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { Piece, type Inspect } from './interactions';
 import {
@@ -49,7 +47,11 @@ import {
   habitatOrder,
   dice,
   cardName,
-  penalty,
+  cardPoints,
+  goldValue,
+  isAnchor,
+  isGold,
+  stormRanks,
   tideRanks,
   tidePenaltyRank,
   tidePenaltyValue,
@@ -60,6 +62,7 @@ import {
   canAct,
   passCount,
   counts,
+  yataWorldFor,
   type PublicGame as Game,
   type GameId,
   type Card,
@@ -95,15 +98,14 @@ export function Face({
   card,
   id,
   hazard = -1,
-  penaltyRank = 8,
-  penaltyValue = 40,
+  rules = {},
   contentSet,
 }: {
   card: Card;
   id: GameId;
   hazard?: number;
-  penaltyRank?: number;
-  penaltyValue?: number;
+  /** Nox's deck and extensions, which set what each card is worth. */
+  rules?: Pick<Game, 'fastMode' | 'gold' | 'anchor'>;
   contentSet?: ContentSet;
 }) {
   if (id === 'wildgrove')
@@ -124,13 +126,22 @@ export function Face({
         </span>
       </>
     );
-  const cost = penalty(card, hazard, penaltyRank, penaltyValue);
+  const cost = cardPoints(rules, card, hazard);
+  const gold = isGold(rules, card, hazard);
+  const anchor = isAnchor(rules, card);
   return (
-    <div className={`playing-face tide-face suit-${card.kind}${cost > 0 ? ' costly' : ''}`}>
+    <div className={`playing-face tide-face suit-${card.kind}${cost > 0 ? ' costly' : ''}${gold ? ' gold' : ''}${anchor ? ' anchor' : ''}`}>
+      {gold && <span className="tide-foil" aria-hidden="true" />}
       <span className="tide-index">
         <strong className="tide-rank">{card.rank}</strong>
         <span className="tide-suit">{suits[card.kind]}</span>
-        <span className="tide-cost">{cost > 0 ? `+${cost}` : ''}</span>
+        <span className="tide-cost">
+          {anchor ? (
+            <>
+              <AnchorIcon aria-hidden="true" />×2
+            </>
+          ) : cost > 0 ? `+${cost}` : cost < 0 ? `−${-cost}` : ''}
+        </span>
       </span>
       <span className="tide-mark" aria-hidden="true">{suits[card.kind]}</span>
       <span className="tide-pips" aria-hidden="true">
@@ -159,8 +170,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
           id={g.id}
           contentSet={g.contentSet}
           hazard={g.hazard}
-          penaltyRank={tidePenaltyRank(g)}
-          penaltyValue={tidePenaltyValue(g)}
+          rules={g}
         />
       </div>
     ),
@@ -169,17 +179,22 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
         <>
           <p>
             <b>
-              {penalty(c, g.hazard, tidePenaltyRank(g), tidePenaltyValue(g))}{' '}
-              penalty points
+              {cardPoints(g, c, g.hazard) < 0
+                ? `−${-cardPoints(g, c, g.hazard)} points`
+                : `${cardPoints(g, c, g.hazard)} penalty points`}
             </b>{' '}
             if captured in a trick.
           </p>
           <p>
-            {c.kind === 4
+            {isAnchor(g, c)
+              ? 'Anchor: the trick it falls in counts double.'
+              : c.kind === 4
               ? 'Storm is its own suit, not trump.'
               : c.rank === tidePenaltyRank(g)
                 ? `This ${tidePenaltyRank(g)} costs ${tidePenaltyValue(g)} when its suit matches the die.`
-                : 'Follow the first card’s suit if you can.'}
+                : g.gold && c.rank === tideRanks(g)
+                  ? `Gold: this ${tideRanks(g)} takes ${goldValue(g)} off when its suit matches the die.`
+                  : 'Follow the first card’s suit if you can.'}
           </p>
           <p>
             {g.phase === 'pass'
@@ -191,9 +206,7 @@ export function cardInspection(g: Game, c: Card, viewer = 0) {
                   : 'You must follow the led suit when possible.'}
           </p>
           <p>
-            One of {tideRanks(g)} cards in {suitNames[c.kind]}.
-            {g.shields === true &&
-              ' A selected Shield halves the trick’s penalty points, rounded up.'}
+            One of {c.kind === 4 ? stormRanks(g) : tideRanks(g)} cards in {suitNames[c.kind]}.
           </p>
         </>
       ) : g.id === 'midnight' ? (
@@ -268,13 +281,9 @@ export function Board({
   onPlace,
   preparedZone,
   onCapturesSettled,
-  onMigrate,
 }: {
   g: Game;
-  natureChoice?: {
-    roam?: boolean;
-    migration?: { card: number; from: number; to: number };
-  };
+  natureChoice?: { roam?: boolean };
   player?: number;
   viewer?: number;
   mini?: boolean;
@@ -283,15 +292,9 @@ export function Board({
   onPlace?: (z: number) => void;
   preparedZone?: number | null;
   onCapturesSettled?: (lastEventId: number) => void;
-  /** Migration: a placed creature is tapped or dragged straight to another habitat. */
-  onMigrate?: (migration?: { card: number; from: number; to: number }) => void;
 }) {
   const [portrait, setPortrait] = useState(false);
   const [phone, setPhone] = useState(false);
-  const [resident, setResident] = useState<{
-    card: number;
-    from: number;
-  } | null>(null);
   useEffect(() => {
     // Every full-table world has its own portrait plate; miniatures follow the
     // same plate, so another player's mat looks like the viewer's own board.
@@ -301,9 +304,9 @@ export function Board({
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
   }, [g.id]);
-  // A miniature Yata counter takes the phone plate wherever phones show it.
+  // Mora and miniature Yata boards follow the phone artwork breakpoint.
   useEffect(() => {
-    if (!mini || g.id !== 'midnight') return;
+    if (g.id !== 'wildgrove' && (!mini || g.id !== 'midnight')) return;
     const small = window.matchMedia(phoneWorldQuery);
     const update = () => setPhone(small.matches);
     update();
@@ -331,6 +334,7 @@ export function Board({
             width: stage.clientWidth,
             height: stage.clientHeight,
           },
+          yataWorldFor(g.contentSet),
         ),
       );
     };
@@ -343,41 +347,25 @@ export function Board({
       resize.disconnect();
       small.removeEventListener('change', update);
     };
-  }, [mini, g.id, portrait]);
+  }, [mini, g.id, portrait, g.contentSet]);
   // Mora's two worlds keep separate candidate picks; the Observatory uses the legacy key.
   const worldId = paperWorldIdFor(g.contentSet);
   const [variant] = useArtVariant(
     g.id === 'wildgrove' ? (worldId === 'floodline' ? 'floodline' : undefined) : g.id,
   );
-  const world = paperWorldFor(portrait, variant, worldId);
+  const world = paperWorldFor(portrait, variant, worldId, phone);
   // Miniatures show the main board's own crop, so a mat reads like your board.
-  const baseMap = moraMapFor(g.contentSet, portrait);
+  const baseMap = moraMapFor(g.contentSet, portrait, false, phone);
   // Candidate artwork shares the measured geometry; only the image differs.
   const map = { ...baseMap, image: world.boardImage };
-  const p =
-    natureChoice.migration && player === viewer
-      ? {
-          ...g.players[player],
-          zones: migratedZones(g.players[player].zones, natureChoice.migration),
-        }
-      : g.players[player];
-  const migrating =
-    !mini &&
-    player === viewer &&
-    !!onMigrate &&
-    !!g.migration &&
-    (g.players[player].migrations ?? 0) > 0 &&
-    canAct(g, viewer) &&
-    g.phase === 'play';
-  const pending = natureChoice.migration;
+  const p = g.players[player];
   if (g.id === 'undertow') {
     const face = (card: Card, hazard: number) => (
       <Face
         card={card}
         id={g.id}
         hazard={hazard}
-        penaltyRank={tidePenaltyRank(g)}
-        penaltyValue={tidePenaltyValue(g)}
+        rules={g}
       />
     );
     if (mini)
@@ -424,14 +412,7 @@ export function Board({
                     title: `${g.players[seat].name} · ${totals[seat]} penalty points`,
                     body: (
                       <p>
-                        {g.players[seat].hand.length} cards remaining
-                        {g.shields === true
-                          ? ` · ${g.players[seat].wards} shields`
-                          : ''}
-                        {g.salvage
-                          ? ` · ${g.players[seat].salvageClaims ?? 0} salvage claim`
-                          : ''}
-                        .
+                        {g.players[seat].hand.length} cards remaining.
                       </p>
                     ),
                   })
@@ -455,15 +436,12 @@ export function Board({
         }
         data-paper-world={portrait ? 'portrait' : 'landscape'}
         data-world={worldId}
+        data-phone-art={phone ? 'true' : undefined}
       >
         <img
           className="mora-landscape"
           src={map.image}
-          alt={
-            worldId === 'floodline'
-              ? 'Floodline Station: shore wildlife reclaiming an abandoned coastal field station.'
-              : 'The Observatory: wildlife reclaiming an abandoned inland observatory.'
-          }
+          alt={paperWorldAlt[worldId]}
           draggable={false}
         />
         {!mini && <ObservatoryScene art={world} />}
@@ -480,18 +458,8 @@ export function Board({
                 m.type === 'play' &&
                 m.card === selected &&
                 m.zone === z &&
-                !!m.roam === !!natureChoice.roam &&
-                m.migration?.card === natureChoice.migration?.card &&
-                m.migration?.from === natureChoice.migration?.from &&
-                m.migration?.to === natureChoice.migration?.to,
+                !!m.roam === !!natureChoice.roam,
             );
-          const migrationTarget =
-            migrating &&
-            !pending &&
-            resident !== null &&
-            z !== resident.from &&
-            z !== 5 &&
-            (p.zones[z]?.length ?? 0) < h.cap;
           const [x, y, width, height] = art.bounds;
           const relative = (point: [number, number]): CSSProperties => ({
             left: `${((point[0] - x) / width) * 100}%`,
@@ -546,83 +514,18 @@ export function Board({
                 const creature = p.zones[z]?.[i];
                 return (
                   <span
-                    className={`mora-nest ${creature ? 'occupied' : 'empty'} ${[0, 1, 2].includes(z) ? 'square-space' : 'round-space'} ${creature && !mini && migrating && (!pending || pending.card === creature.id) ? 'migratable' : ''}`}
+                    className={`mora-nest ${creature ? 'occupied' : 'empty'} ${[0, 1, 2].includes(z) ? 'square-space' : 'round-space'}`}
                     key={creature ? `c${creature.id}` : `e${i}`}
                     style={{
                       ...relative(point),
                       width: `${(art.tokenWidth / width) * 100}%`,
                     }}
                   >
-                    {/* Only the Pier is filled in order. */}
-                    {z === 3 && g.contentSet === 'intermediate' && (
+                    {/* Pier, Road and Spillway fill in order; the Observatory has no ordered place. */}
+                    {z === 3 && g.contentSet !== 'beginner' && (
                       <span className="mora-trail-step">{i + 1}</span>
                     )}
-                    {creature && !mini && player === viewer && !!onMigrate ? (
-                      <Piece
-                        className={`board-creature ${pending?.card === creature.id ? 'migrated' : ''}`}
-                        label={`${creaturesFor(g.contentSet)[creature.kind]} in ${h.name}. ${pending?.card === creature.id ? 'Tap to cancel its migration.' : 'Tap or drag to migrate it to another habitat.'}`}
-                        selected={
-                          resident?.card === creature.id ||
-                          pending?.card === creature.id
-                        }
-                        unavailable={
-                          !migrating ||
-                          (!!pending && pending.card !== creature.id)
-                        }
-                        draggable={migrating && !pending}
-                        inspect={() =>
-                          inspect?.({
-                            title: 'Migration',
-                            body: (
-                              <p>
-                                Move this creature to another habitat with
-                                space, once per match. Then make your normal
-                                placement.
-                              </p>
-                            ),
-                          })
-                        }
-                        onTap={() => {
-                          if (!migrating) return;
-                          if (pending) {
-                            if (pending.card === creature.id) {
-                              onMigrate?.(undefined);
-                              setResident(null);
-                            }
-                          } else
-                            setResident(
-                              resident?.card === creature.id
-                                ? null
-                                : { card: creature.id, from: z },
-                            );
-                        }}
-                        onLift={() =>
-                          migrating &&
-                          !pending &&
-                          setResident({ card: creature.id, from: z })
-                        }
-                        onDrop={(x, y) => {
-                          const target = dropTargetNear(x, y, art.tokenWidth);
-                          const to = target?.dataset.drop?.startsWith('zone:')
-                            ? Number(target.dataset.drop.split(':')[1])
-                            : null;
-                          if (
-                            to !== null &&
-                            to !== z &&
-                            to !== 5 &&
-                            (p.zones[to]?.length ?? 0) <
-                              habitatsFor(g.contentSet)[to].cap
-                          )
-                            onMigrate?.({ card: creature.id, from: z, to });
-                          setResident(null);
-                        }}
-                      >
-                        <TokenArt
-                          contentSet={g.contentSet}
-                          kind={creature.kind}
-                        />
-                      </Piece>
-                    ) : creature ? (
+                    {creature ? (
                       <TokenArt
                         contentSet={g.contentSet}
                         kind={creature.kind}
@@ -658,7 +561,7 @@ export function Board({
           return (
             <div
               key={z}
-              className={`mora-habitat mora-habitat-${z} ${allowed || migrationTarget ? 'legal-region' : ''} ${preparedZone === z ? 'prepared-region' : ''} ${natureChoice.migration && [natureChoice.migration.from, natureChoice.migration.to].includes(z) ? 'migration-preview-region' : ''}`}
+              className={`mora-habitat mora-habitat-${z} ${allowed ? 'legal-region' : ''} ${preparedZone === z ? 'prepared-region' : ''}`}
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
@@ -712,10 +615,7 @@ export function Board({
                     })
                   }
                   onTap={() => {
-                    if (migrationTarget && resident) {
-                      onMigrate?.({ ...resident, to: z });
-                      setResident(null);
-                    } else if (allowed) onPlace?.(z);
+                    if (allowed) onPlace?.(z);
                   }}
                 >
                   <span className="mora-habitat-target" />
@@ -748,10 +648,11 @@ export function Board({
       g.contentSet,
     );
   // The night market: the collection board stands on the painted counter.
-  const market = tableWorldFor('midnight', portrait, variant, phone);
+  const market = tableWorldFor('midnight', portrait, variant, phone, yataWorldFor(g.contentSet));
   const marketBoard = (
     <div
-      className={`market-board counter-board ${g.customerOrders || g.specialtyStalls ? 'festival-board' : ''} ${mini ? 'mini-board' : ''}`}
+      className={`market-board counter-board pile-board ${g.customerOrders || g.specialtyStalls ? 'festival-board' : ''} ${mini ? 'mini-board' : ''}`}
+      data-menu-rounds={g.menuRounds}
       data-drop={mini ? undefined : 'menu'}
       aria-label={`${p.name}’s dishes`}
       data-coach={mini ? undefined : 'board'}
@@ -761,30 +662,40 @@ export function Board({
         const stall = g.specialtyStalls
           ? festivalBreakdown(p).stalls.find((item) => item.kind === k)
           : undefined;
+        // The card's drawn dish stands on the counter: the front serving, with up
+        // to three more peeking out behind it; one tag carries the name and score.
+        const copies = Math.max(1, Math.min(c[k], 4));
         const content = (
           <>
-            <div className={`dish-stack ${c[k] ? 'has-dish' : ''}`} data-game-motion="piece" data-game-motion-key={c[k]}>
-              {Array.from(
-                { length: Math.max(1, Math.min(c[k], 6)) },
-                (_, i) => (
-                  <span
-                    className="stack-layer"
-                    style={
-                      {
-                        '--layer': i,
-                        '--layers': Math.max(1, Math.min(c[k], 6)),
-                      } as CSSProperties
-                    }
-                    key={i}
-                  >
-                    <TokenArt contentSet={g.contentSet} kind={k} food />
-                  </span>
-                ),
+            <div
+              className={`dish-pile ${c[k] ? 'has-dish' : ''}`}
+              data-copies={copies}
+              data-game-motion="piece"
+              data-game-motion-key={c[k]}
+            >
+              {Array.from({ length: copies }, (_, i) => (
+                <img
+                  className="dish-copy"
+                  key={copies - 1 - i}
+                  src={tokenImage(k, true, g.contentSet)}
+                  alt=""
+                  draggable={false}
+                  data-copy={copies - 1 - i}
+                />
+              ))}
+              {c[k] > 0 && hotDishes[g.contentSet ?? 'beginner']?.has(k) && (
+                <span className="dish-steam" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
               )}
-              <b className="quantity">×{c[k]}</b>
+              {c[k] > 1 && <b className="quantity">×{c[k]}</b>}
             </div>
-            <strong>{f.name}</strong>
-            <span className="collection-score" data-game-motion="change" data-game-motion-key={sc[k]}>{sc[k]} pts</span>
+            <span className="dish-tag">
+              <strong>{f.name}</strong>
+              <span className="collection-score" data-game-motion="change" data-game-motion-key={sc[k]}>{sc[k]}</span>
+            </span>
             {stall && (
               <span
                 className="dish-permit"
@@ -797,12 +708,12 @@ export function Board({
           </>
         );
         return (
-          <div className="serving-dish" key={k}>
+          <div className="serving-dish serving-pile" key={k}>
             {mini ? (
               <div>{content}</div>
             ) : (
               <Piece
-                label={f.name}
+                label={`${f.name}: ${c[k]} collected, ${sc[k]} points`}
                 inspect={() =>
                   inspect?.({
                     title: f.name,
@@ -839,6 +750,7 @@ export function Board({
       <div
         className="market-world mini-market"
         data-paper-world={phone ? 'phone' : portrait ? 'portrait' : 'landscape'}
+        data-market={yataWorldFor(g.contentSet)}
         style={{ aspectRatio: `${t.width} / ${t.height}` }}
       >
         <img
@@ -863,12 +775,20 @@ export function Board({
       className="market-world"
       data-paper-world={phone ? 'phone' : portrait ? 'portrait' : 'landscape'}
       data-world="midnight"
+      data-market={yataWorldFor(g.contentSet)}
     >
       <WorldScene art={market} tint="rgba(14, 18, 48, 0.45)" />
       {marketBoard}
     </div>
   );
 }
+/** Dishes served hot enough to steam on the counter, by menu. */
+const hotDishes: Partial<Record<ContentSet, Set<number>>> = {
+  beginner: new Set([0, 1, 4]), // Gyoza, Ramen, Takoyaki
+  intermediate: new Set([0, 3]), // Bao, Rice
+  plaza: new Set([0, 3]), // Tacos, Tamales
+  fiesta: new Set([0, 1, 2]), // Quesadilla, Pozole, Mole
+};
 /** Crew seats sit on the painted stools just outside the chart table; played
  *  cards gather well inside its rim. Percentages of the table box. */
 const cabinGeometry: TableGeometry = { seats: [57, 66], cards: [27, 26] };
@@ -917,23 +837,17 @@ export function Players({
   const waiting = g.players.flatMap((player, seat) =>
     canAct(g, seat) ? [seat === viewer ? 'you' : player.name] : [],
   );
-  const committed =
-    simultaneous(g) &&
-    readySeats(g)[viewer] &&
-    (g.phase !== 'salvage' ||
-      (viewer !== g.trickLeader && (g.players[viewer].salvageClaims ?? 0) > 0));
+  const committed = simultaneous(g) && readySeats(g)[viewer];
   const status = disabled
     ? (connectionStatus ?? 'Connecting…')
     : g.phase === 'over'
       ? 'Final scores'
       : actionable
-        ? g.phase === 'salvage'
-          ? 'Your decision · claim or pass'
-          : g.phase === 'pass'
-            ? 'Your exchange · choose cards'
-            : g.phase === 'roll'
-              ? 'Rolling…'
-              : 'Your turn'
+        ? g.phase === 'pass'
+          ? 'Your exchange · choose cards'
+          : g.phase === 'roll'
+            ? 'Rolling…'
+            : 'Your turn'
         : `${committed ? 'Locked · waiting for' : 'Waiting for'} ${waiting.join(', ')}`;
   const sc = scores(g);
   return (
@@ -988,7 +902,7 @@ export function Players({
                 body:
                   g.id === 'undertow' ? (
                     <p>
-                      {p.hand.length} cards remaining · {p.wards} shields.
+                      {p.hand.length} cards remaining.
                     </p>
                   ) : (
                     <>
@@ -1121,8 +1035,7 @@ export function Hand({
               id={g.id}
               contentSet={g.contentSet}
               hazard={g.hazard}
-              penaltyRank={tidePenaltyRank(g)}
-              penaltyValue={tidePenaltyValue(g)}
+              rules={g}
             />
           </Piece>
         );

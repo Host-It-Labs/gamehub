@@ -1,6 +1,6 @@
 # Mora — woodland sanctuary
 
-Six illustrated scoring habitats occupy two groups of woodland terraces. The die still restricts placement by row,
+Six illustrated scoring habitats occupy each board (four boards: the Observatory, Floodline Station, Sunset Motel and Glacier Dam). The die still restricts placement by row,
 side or occupancy; the roller ignores the die but never capacity. Each illustrated
 space holds exactly one creature. New creatures fill the spaces in a fixed order; Trail spaces are numbered, shared by the main board and opponent previews.
 
@@ -27,6 +27,33 @@ Floodline Station (three rounds, 23 spaces):
 | Pier | 4 | 2 each, +6 for A–B–A–B in placement order. |
 | Cave | 4 | 3 each if its species lives in another habitat. |
 | Lighthouse | 2 | 4 each if its species lives nowhere else on your board. |
+
+Sunset Motel (three rounds, 23 spaces; added 29 September 2026):
+
+| Place | Capacity | Scoring |
+| --- | --- | --- |
+| Pool | 5 | Your biggest group of one species: 3 each; the rest 1 each. |
+| Rooms | 4 | At most two species here: 3 each. A third species: 0. |
+| Garage | 3 | 4 each if its species is also on the Road, otherwise 1. |
+| Road | 5 | Fills in order. 1 each, or 3 if it matches the one before it. |
+| Diner | 4 | 3 each for a creature with no other of its species here. |
+| Sign | 2 | 4 each if its species is also in the Pool, otherwise 1. |
+
+Glacier Dam (four rounds, 28 spaces; added 29 September 2026):
+
+| Place | Capacity | Scoring |
+| --- | --- | --- |
+| Reservoir | 6 | Each species on its own: 1 / 3 / 6 / 10 / 15 / 21 for 1–6. |
+| Turbine hall | 5 | 7 per matching pair, −2 per creature without a partner. |
+| Cable car | 4 | Four of one species: 16. Anything else: 0. |
+| Spillway | 5 | Fills in order. Each creature earns its step (1–5) unless an earlier step holds its species. |
+| Ice cave | 5 | 1 per habitat holding its species, this one included, up to 3 each. |
+| Summit hut | 3 | 1 per other creature of its species on your board, up to 4 each. |
+
+Both boards keep the die groups: Pool/Rooms/Garage and Reservoir/Turbine hall/Cable car
+have square pads; Road/Diner/Sign and Spillway/Ice cave/Summit hut have round pads; the
+four biggest habitats are zones 0, 1, 3 and 4 on every board. Each board has its own twelve
+Sanctuary Goals (`desertGoals`, `alpineGoals` in `lib/games/trio/engine.ts`).
 
 The paragraphs below describe the earlier Herd/Variety/Trail board and are kept for history.
 

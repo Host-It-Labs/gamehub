@@ -319,6 +319,21 @@
   width: 80px;
   height: 8px;
 }
+/* A shield rides over the hit points as a bronze band. */
+.arena-bar-track {
+  position: relative;
+}
+.arena-bar-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #f1d9a2, #b98a3e);
+  transform: scaleX(var(--shield, 0));
+  transform-origin: left;
+  transition: transform 0.15s;
+  pointer-events: none;
+}
 .arena-bar[data-asleep='true']::after {
   content: '☾';
   position: absolute;
@@ -673,7 +688,7 @@
   background: radial-gradient(circle, #2b2c31f2, #141518f2);
   box-shadow: 0 0 40px #efd6a044;
   transform: translate(-50%, -50%);
-  animation: arena-ready 1s ease-in-out infinite;
+  animation: arena-ready 1s ease-out both;
   pointer-events: none;
 }
 .arena-ready svg {
@@ -695,8 +710,12 @@
   inset: 0;
   z-index: 30;
   display: grid;
-  place-items: center;
-  background: #1a1b1f;
+  place-items: end center;
+  overflow: hidden;
+  /* Behind the art while it arrives: the valley's sky and meadow. */
+  background:
+    radial-gradient(120% 70% at 50% 110%, #3f8f4a 0%, transparent 60%),
+    linear-gradient(180deg, #5aa7e8 0%, #9ed3f2 55%, #7cc16a 100%);
 }
 .arena-loading-art {
   position: absolute;
@@ -706,14 +725,150 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.8);
+  animation: arena-loading-drift 18s ease-in-out infinite alternate;
 }
+/* A soft floor of shade so the cards and bar sit on the picture. */
+.arena-loading::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 38%;
+  background: linear-gradient(180deg, transparent, #0b1a2ccc 78%, #0b1a2cee);
+  pointer-events: none;
+}
+.arena-loading-foot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(620px, calc(100% - 32px));
+  padding-bottom: max(28px, env(safe-area-inset-bottom));
+}
+.arena-loading-cards {
+  display: flex;
+  justify-content: center;
+  gap: clamp(4px, 1.2vw, 10px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arena-loading-cards li {
+  width: clamp(38px, 10vw, 64px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #ffffff1f;
+  box-shadow:
+    0 0 0 2px #ffffff33,
+    0 8px 18px #0006;
+  opacity: 0.35;
+  filter: grayscale(1) brightness(0.7);
+  transform: translateY(8px) scale(0.9);
+  transition:
+    opacity 0.35s,
+    filter 0.35s,
+    transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.arena-loading-cards li[data-in='true'] {
+  opacity: 1;
+  filter: none;
+  transform: translateY(0) rotate(calc((var(--i) - 3.5) * 2deg));
+  box-shadow:
+    0 0 0 2px var(--brass-hi),
+    0 10px 22px #0008;
+}
+.arena-loading-cards img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.arena-loading-bar {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0c0f1a, #1c2133);
+  box-shadow:
+    inset 0 2px 5px #000c,
+    0 0 0 2px #ffffff26,
+    0 0 0 5px #0b1a2c88,
+    0 10px 26px #0008;
+}
+.arena-loading-bar i {
+  position: absolute;
+  inset: 3px;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--violet-deep),
+    var(--violet) 55%,
+    #ffcf6e
+  );
+  box-shadow:
+    inset 0 2px 0 #ffffff66,
+    inset 0 -3px 5px #2a0c6a88,
+    0 0 16px #b98bff99;
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+  transition: transform 0.35s ease-out;
+}
+/* A glint that runs along the filled part. */
+.arena-loading-bar i::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -30%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, #ffffffa6, transparent);
+  animation: arena-loading-glint 1.6s ease-in-out infinite;
+}
+.arena-loading-bar b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 6px #0009;
+}
+@keyframes arena-loading-glint {
+  to {
+    transform: translateX(440%);
+  }
+}
+@keyframes arena-loading-drift {
+  from {
+    transform: scale(1.04) translate3d(-0.6%, 0, 0);
+  }
+  to {
+    transform: scale(1.08) translate3d(0.6%, -0.8%, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arena-loading-art img,
+  .arena-loading-bar i::after {
+    animation: none;
+  }
+  .arena-loading-cards li {
+    transition: none;
+  }
+}
+/* The error panel reuses the loading backdrop. */
 .arena-loading-panel {
   position: relative;
+  z-index: 1;
   display: grid;
   gap: 10px;
   width: min(420px, calc(100% - 32px));
-  margin-top: 38vh;
+  margin-bottom: 30vh;
   padding: 16px 18px;
   border: 1px solid color-mix(in srgb, var(--brass) 70%, transparent);
   border-radius: 16px;
@@ -725,33 +880,6 @@
   margin: 0;
   font-size: 15px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.arena-loading-panel small {
-  color: var(--ink-soft);
-  font-size: 12px;
-  line-height: 1.35;
-}
-.arena-loading-bar {
-  height: 10px;
-  overflow: hidden;
-  border-radius: 5px;
-  background: #0a0b0e;
-  box-shadow: 0 0 0 1px #ffffff14;
-}
-.arena-loading-bar i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--violet-deep),
-    var(--violet),
-    var(--violet-hot)
-  );
-  box-shadow: 0 0 10px #9b5cff;
-  transform: scaleX(var(--p, 0));
-  transform-origin: left;
-  transition: transform 0.2s;
 }
 
 .arena-button {
@@ -1151,4 +1279,17 @@
 }
 .arena-game.dragging.over-hand .arena-dock {
   opacity: 1;
+}
+
+/* A card whose portrait is not built yet shows its name. */
+.arena-card-name {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: linear-gradient(160deg, #3b3f52, #1d1f29);
+  color: var(--brass-hi);
+  font-size: 13px;
+  font-weight: 900;
 }

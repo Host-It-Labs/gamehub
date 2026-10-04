@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import observatoryArt from '../lib/games/observatory-art.json' with { type: 'json' };
 import { catalog, tokenImage, habitatsFor } from '../lib/games/trio/engine.ts';
-import { moraMap, floodlineMap } from '../lib/games/trio/mora-map.ts';
+import { moraMap, floodlineMap, moraMapFor } from '../lib/games/trio/mora-map.ts';
 const coastalMap = floodlineMap();
 
 await test('production artwork resolves, responsive covers decode, and all tokens retain alpha', async () => {
@@ -23,7 +23,7 @@ await test('production artwork resolves, responsive covers decode, and all token
     }
   }
   for (const food of [false, true])
-    for (const set of ['beginner', 'intermediate'])
+    for (const set of food ? ['beginner', 'intermediate'] : ['beginner', 'intermediate', 'desert', 'alpine'])
       for (let kind = 0; kind < 6; kind++) {
         const result = await metadata(tokenImage(kind, food, set));
         assert.equal(result.hasAlpha, true);
@@ -49,6 +49,7 @@ await test('independent Mora world geography preserves every capacity and access
   for (const [map, set] of [
     [moraMap, 'beginner'],
     [coastalMap, 'intermediate'],
+    ...['desert', 'alpine'].flatMap((set) => [false, true].map((tall) => [moraMapFor(set, tall), set])),
   ]) {
     assert.deepEqual(
       map.habitats.map((h) => h.zone).sort(),

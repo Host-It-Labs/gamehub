@@ -1336,6 +1336,40 @@ await test('a selection of machines moves and turns together, never onto another
     ],
   );
 });
+await test('one printer keeps three bots busy on every book; faster bots need ink', () => {
+  const run = (book, pieces, bots = 0) => {
+    const g = game();
+    g.scratch.upgrades.bots = bots;
+    line(g);
+    unlock(g, book);
+    g.coins = 1e6;
+    actFactory(g, { type: 'factory-remove', cells: [1, 2, 3, 4].map((x) => ({ x, y: 0 })) });
+    actFactory(g, { type: 'factory-move', x: 0, y: 0, to: { x: 0, y: 1 } });
+    g.coins = 1e6;
+    actFactory(g, { type: 'factory-blueprint', id: 'splitter' });
+    actFactory(g, { type: 'factory-blueprint', id: 'ink' });
+    actFactory(g, { type: 'factory-build', pieces });
+    actFactory(g, { type: 'factory-book', x: 0, y: 1, book });
+    advanceFactory(g, 30 * 60000);
+    return g.scratch.factory.sold;
+  };
+  const p = (kind, x, y) => ({ kind, x, y, dir: 0 });
+  for (const book of ['twins', 'ladder']) {
+    const one = run(book, [p('belt', 1, 1), p('bot', 2, 1), p('belt', 3, 1), p('cashier', 4, 1)]);
+    // Printer → splitter → three bots, each into its own cashier.
+    const line = [
+      p('splitter', 1, 1), p('bot', 2, 1), p('cashier', 3, 1),
+      p('bot', 1, 0), p('cashier', 2, 0), p('bot', 1, 2), p('cashier', 2, 2),
+    ];
+    const three = run(book, line);
+    assert.ok(three >= one * 2.8, `${book}: ${one} → ${three}`);
+    // Fast bots outrun the printer until an ink well touches it.
+    const fast = run(book, line, 1),
+      inked = run(book, [...line, p('ink', 0, 0)], 1);
+    assert.ok(fast < three * 1.1, `${book}: ${three} → ${fast}`);
+    assert.ok(inked > fast * 1.3, `${book}: ${fast} → ${inked}`);
+  }
+});
 await test('a careful player with simple factory lines opens the factory in minutes and every book in hours', () => {
   const g = game(7),
     s = g.scratch,

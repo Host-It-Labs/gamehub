@@ -1,7 +1,15 @@
 /** Dial spectrums: two opposite ends of a scale. The clue-giver names something
  * that sits at the hidden point between them. Original pairs; no brands.
  * Ids are row positions, so rows are only ever appended or retired. */
-export type Spectrum = { id: number; left: string; right: string; retired?: true };
+export type Spectrum = {
+  id: number;
+  left: string;
+  right: string;
+  /** A "Me" card: the author places themselves on it instead of writing a
+   * clue for a hidden point. */
+  self?: true;
+  retired?: true;
+};
 const rows: [string, string][] = [
   ['Cold', 'Hot'],
   ['Underrated', 'Overrated'],
@@ -111,12 +119,60 @@ const retired = new Set([
   'Harmless',
   'Worst smell',
 ]);
-export const spectrums: Spectrum[] = rows.map(([left, right], id) => ({
-  id,
-  left,
-  right,
-  ...(retired.has(left) ? { retired: true as const } : {}),
-}));
+/** "Me" cards (2 October 2026), How Many's self-ratings folded into Dial:
+ * two ends of a person, and the author drags the needle to where they
+ * really are. Appended after the clue spectrums so ids stay stable. */
+const selfRows: [string, string][] = [
+  ['Night owl', 'Early bird'],
+  ['Homebody', 'Always out'],
+  ['Planner', 'Spontaneous'],
+  ['Saver', 'Spender'],
+  ['Shy', 'Outgoing'],
+  ['Calm', 'Hot-headed'],
+  ['Never late', 'Always late'],
+  ['Picky eater', 'Eats anything'],
+  ['Couch potato', 'Gym regular'],
+  ['Bad cook', 'Great cook'],
+  ['Hates surprises', 'Loves surprises'],
+  ['Sore loser', 'Good loser'],
+  ['Replies at once', 'Replies days later'],
+  ['Plays it safe', 'Takes risks'],
+  ['Spills every secret', 'Keeps every secret'],
+  ['Packs light', 'Packs everything'],
+  ['Follows the rules', 'Bends the rules'],
+  ['Never cries at films', 'Always cries at films'],
+  ['Always lost', 'Born navigator'],
+  ['Can’t sing', 'Can really sing'],
+  ['Hates the cold', 'Loves the cold'],
+  ['Lets it go', 'Holds a grudge'],
+  ['Zero patience', 'Endless patience'],
+  ['Not competitive', 'Very competitive'],
+  ['Never dances', 'First on the dance floor'],
+  ['Overthinks everything', 'Goes with the flow'],
+  ['Says little', 'Talks a lot'],
+  ['Indoors person', 'Outdoors person'],
+  ['Messy room', 'Spotless room'],
+  ['Last-minute', 'Weeks ahead'],
+];
+export const spectrums: Spectrum[] = [
+  ...rows.map(([left, right], id) => ({
+    id,
+    left,
+    right,
+    ...(retired.has(left) ? { retired: true as const } : {}),
+  })),
+  ...selfRows.map(([left, right], i) => ({
+    id: rows.length + i,
+    left,
+    right,
+    self: true as const,
+  })),
+];
+/** The clue spectrums still dealt. */
 export const liveSpectrumIds = spectrums.flatMap((s) =>
-  s.retired ? [] : [s.id],
+  s.retired || s.self ? [] : [s.id],
+);
+/** The "Me" cards still dealt. */
+export const liveSelfIds = spectrums.flatMap((s) =>
+  s.retired || !s.self ? [] : [s.id],
 );
