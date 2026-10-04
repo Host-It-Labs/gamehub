@@ -39,14 +39,6 @@
     "preview": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4ILIAAADwBACdASokAAwAPwFsrU+rJaQiKqwBYCAJbACdMt9OABt7RggtMqR/aaxZas366oAA+2vdqrpCuZ0cUv2NwdEPG4aNKPN5nBuVdo6u1K9nFUGbfRgoFWjUo64LD6+gpJxluMFzuv7cBBvI01YDSiDRSegHHL5KXtOj2614UXm+gwSpeM5mv35ZxtBUoTa8eGNvhEHH9srjS1UAsJRxFW5ZwbLMmZAk268lf5L90Zs9u2AA",
     "srcSet": "/art/optimized/box-lucky-wide-v1-768.webp 768w, /art/optimized/box-lucky-wide-v1.webp 1536w"
   },
-  "/art/optimized/box-arena-blind-v1.webp": {
-    "preview": "data:image/webp;base64,UklGRvQAAABXRUJQVlA4IOgAAABwBgCdASoYABgAPwF2s1OrJySiqAgBYCAJZACdMt13pNRLLVz4XGt/q/YD5Yre0eQUY2vXXVbpWKgp4AAA/pRk6i19FTBr1kzSlIDEDrfjqNCYDvBniTvUhzyJD3jQUvrs4UW2F9TKWzgnvRZlmw+AEp2zprL+lT+sOS/4bdUJ5z+IFoBw9eQBNDnoBYSy4Md36hlXokF49KM3firT5Pj1aOLljBgIJS33aTAGgKOs7pgVwVl9Wy7LYbVpk/qrZyHbHflKiqibycNv5anwKIaotz5TE5a1fUy2ynmzOD+dkBl9WG7OQAAA",
-    "srcSet": "/art/optimized/box-arena-blind-v1-320.webp 320w, /art/optimized/box-arena-blind-v1-640.webp 640w, /art/optimized/box-arena-blind-v1.webp 1024w"
-  },
-  "/art/optimized/box-arena-wide-v1.webp": {
-    "preview": "data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAACQBACdASokAAwAPvVqqk6qpiOiNVgIAVAeiWMAs6Dugcuf2RtLhlEGk8RYkcwA+7YJ1lttxBvU10b8/hH4vvrQk34e0zcvYuO0oaHLNqVvGG3tg1k6ASAIxCYOvHu/O9ZMrmXZ+kH6ehMNwB1H1ooKqGOa1gP3CD7amDkApoghBHmxqs9XAAAA",
-    "srcSet": "/art/optimized/box-arena-wide-v1-768.webp 768w, /art/optimized/box-arena-wide-v1.webp 1536w"
-  },
   "/art/optimized/box-nox-blind-v2.webp": {
     "preview": "data:image/webp;base64,UklGRhgBAABXRUJQVlA4IAwBAABwBgCdASoYABgAPwFyrFGrJqOiqA1RYCAJbACdMoM0hV/kVUD/2hbYmaFpeHrhWyXLaR2YUnuIxe39xAAA/kz7FhH4hGvHyAtrUCUJ5Mudtej5ZbGmIE23WHafrEpQ4TXd0ztx4Z9HXXs0hvF8EHBKww3lBsvWnIPlPSeGmAQfsf/Wit5mH4BN66qfqyRElze30JO2adK4SQ1P3BYX7AiiMeX/eMdHDheqExzuswB0IAjmr8DvpN2wIr3pTY5kb5RDeiPrvcDLvqUSQ0gyVCIRGBvahxHxszBL78+FtQARlx6KsRSlQhIzzzyukaQbxkEtdlQ7AkYY72SViZ2Qj17whXO0fWfGAbNEVgAA",
     "srcSet": "/art/optimized/box-nox-blind-v2-320.webp 320w, /art/optimized/box-nox-blind-v2-640.webp 640w, /art/optimized/box-nox-blind-v2.webp 1024w"
@@ -62,5 +54,53 @@
   "/art/optimized/box-mora-game-wide-v2.webp": {
     "preview": "data:image/webp;base64,UklGRroAAABXRUJQVlA4IK4AAABwBACdASokAAwAPu1ip06ppaOiNUgBMB2JaACdOUAA0bht8fJfEQahTvVUMAD+d2hvmEo6jTdNogwRyd+MLz4bGxsr8jMLrZX+co+hXtma6ukuPcXc5QJdhqNQlaaJTx9dpkFJQrLFzEf3U/5I6mkWmwAoQ6Q5g5cm7SF8STfo1ReiZFDqahxet7S3EKaZ0rzCHzPvYMLLqKaUXb5jcfyfUD1RNqMS1+k3LIGEwAA=",
     "srcSet": "/art/optimized/box-mora-game-wide-v2-768.webp 768w, /art/optimized/box-mora-game-wide-v2.webp 1536w"
+  },
+  "/art/optimized/box-alto-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRgoBAABXRUJQVlA4IP4AAABQBgCdASoYABgAPwFyr1KrJqQiqAqpYCAJbACdMtP0kmqLsAJX8K5E2fYuQ2VS2+nBBHHZ/4EK/yREAAD+xqo0Mo1HTXc02ZCSjU5Wq3jwZFPIVVnYFgJrpSY2AFIcXbv8FXN7A3L0MEt2Vw/5nQO1fo6bGdyaMRuG2/gHVAa5QqfrPxG4DnVI55p1H4IAxEK7R7xDFQ9zS3UszPwKTNv0MtIyOhq/cLkd3HIt3oe/Z952TCe3TILRMhHEGWZXjLwkbhbzYA1iVZ/kVvTIHOp3TUuIvSkzyTCisOU1ammh2twZZ9pFhp6Ryuu1ju0uIsUTwcOLVAr0d6LTT5UAAA==",
+    "srcSet": "/art/optimized/box-alto-blind-v1-320.webp 320w, /art/optimized/box-alto-blind-v1-640.webp 640w, /art/optimized/box-alto-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-alto-wide-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRrQAAABXRUJQVlA4IKgAAABwBQCdASokAAwAPwFsrk+rJiQiKqwBYCAJaACdMzRCmBw1lM1l+ofgr2M1BITnm1GcEVTQAP61/k6WSZSOIV15xsFxHZuTTBcBAGj7HlqWagtpfVd+VAlg9NZZLi0a5kvj1gXwbAzwU1+imZv7mrb3rpqf3tgTdhCAkrgVB3ZfBj/pisE4Wn7CLYGHEf8wm+jRAzFY1IBSMsFOSfXsOJdR1wVmo42AAAA=",
+    "srcSet": "/art/optimized/box-alto-wide-v1-768.webp 768w, /art/optimized/box-alto-wide-v1.webp 1536w"
+  },
+  "/art/optimized/box-rota-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRvAAAABXRUJQVlA4IOQAAADwBQCdASoYABgAPwF2s1QrJySjKAgBYCAJZACdMt8luwpf7/UAMJeirzhqzylkLaR+Y1dDzmOEQAD7mYPemDU4ngnMG32AOw922kEkTZLg7dz54ozFDlDH255p6zXXJdCZd77UsZmxUpzy5lt6RZVNYKsO81OJYbGdOuTJcwqcjkV9uwOifzCtmDDEbpnhDFPKFORRbcg2ecPJSGLpdB88b05H8ZdPxz2UVqdID7T2Bz2ghlwP8UNicGqXesK7aoJtW/TLBVJAYDt9JMTaTPEovIWYLFUxhEwCYcckTWCOYingAAA=",
+    "srcSet": "/art/optimized/box-rota-blind-v1-320.webp 320w, /art/optimized/box-rota-blind-v1-640.webp 640w, /art/optimized/box-rota-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-rota-wide-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRpYAAABXRUJQVlA4IIoAAABQBACdASokAAwAPwFyslIrJqSiqqgBYCAJQBOmXRAVE7JrE2WNbL1pXcQAAP6g/EIuJ+Mr6SgvlzeHzezucF0lKsWnIMApmXizMGlXYTzsBZeWuo655MglVxqKS8ArtNWUv49iP+VGbHaaufOLaX+nZ+9HQlk5b4XdxKG/myCze+Pn86XeiEnvAAA=",
+    "srcSet": "/art/optimized/box-rota-wide-v1-768.webp 768w, /art/optimized/box-rota-wide-v1.webp 1536w"
+  },
+  "/art/optimized/box-arena-blind-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRk4BAABXRUJQVlA4IEIBAADwBgCdASoYABgAPwFwsFIrJiSiqAqpYCAJbACdIHG6Au00ugJVi23PgAwtuM5z89gg3f/3HhGorFQ/zbx4jTrgAP7U8wSycMsKm8BlvXhA5DhT0E52kUG1Z9D9g9ARNjcGr2yWgT7fd84SN5bZluAYUCDk8azNN+zksJA/HwaoVNHwNcfJrsenYLaCH2FWIfDO93nZnlboHEzQOBq7fiSwycEpxmjOUDN/cMGjRLU8KcNE5FAlEW8CAEBwoUwHeVKaZkNsYQ7RryGUi674g2Uk8cxMqlBjxKVpAEXgFNbvJ6kTCtyDVv3ahvtj8ZW3al3tmER8lHFX6dcNni4DptF+4BaMltjNJe/dOhiiQUrqnWI/VIkYU2vVYMDxptq18BWKhnnkD9Hd4X4l8/GNlBVEfVLGjRVm3qfk+39Df62uAAAA",
+    "srcSet": "/art/optimized/box-arena-blind-v2-320.webp 320w, /art/optimized/box-arena-blind-v2-640.webp 640w, /art/optimized/box-arena-blind-v2.webp 1024w"
+  },
+  "/art/optimized/box-arena-wide-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRtQAAABXRUJQVlA4IMgAAACwBQCdASokAAwAPu1kqE6ppaQiNUgBMB2JbACsMoR2WkgBz11ZK6LLFrkjKWru5C2Kt5ubbmAAzhk0MmCxkXHoGkrTRDFJ3pnOMDXsVBGCUEjB59iIrfxYMacaFXezssFaJSFlNL/g3PnTF72Kdp9+JEI1w1850GvjK41u9Ot1toYdOfavO/ccgiV1tH5HUhYsjTwALiptD3LrBEM5DLQuNI29BOwE98U9DOZ/TBnR4359TKg7h1HIvyo/OZ4qLFj7w+sGIUQAAA==",
+    "srcSet": "/art/optimized/box-arena-wide-v2-768.webp 768w, /art/optimized/box-arena-wide-v2.webp 1536w"
+  },
+  "/art/optimized/box-alto-blind-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRh4CAABXRUJQVlA4WAoAAAAQAAAAFwAAFwAAQUxQSOMAAAABfyAkIP4/lmg2RETSKyDV1t64sRlYMoHM95lA/u8fAtavlHVGTlu6IUgFUAE0AgFRkQRI9iER0f98vP/YlNK2b5eX95v38+kkw6MNbXFxmFNKmHtf6lGfxuOUdmehWM5SGqfUmVoI3TRl0NqmejYB5sNwET09vHgotsdyCuQ8hiYZ8wi5kwlAxmgndzBQZJcmBIwwkqmD0cxAMRkIAyAZDMwdDSgykZkgJZo7M1AAY5HLikssIcnV2pGXUkOh1oYW//JY79VNHXpFeKvr56vFYhE1Vpfrp9/Hq23b3NXV/d/PLQBWUDggFAEAALAFAJ0BKhgAGAA/AW6tUKsmJCKoDVFgIAlsAJ0ygy6XRzR3vX5qIYMa8gHIfbPEe7B5i000AAD+s0RhrCCaDRnrQ+jbuday+rhe71bo2ZS2qEXmHn2Wq1SPsmn6gOIXY6LZxMZXeU4JLJ9j+ZgK94lDuP21PU/VFJwi15MCZ2GDJ1HUzD97ox7F+rf6kKssZAMHwS1hdvKxtZrLu5GRa1f0KLPvW0Nbwc4DCoL0sBbs9/g1sBElcVjyQTTkO8CE2f1ILYjTRm9DcIJXkGB43BRVlSePJ96o2ZpaqxMO+8Ln32Be44l9kDeg7xUGluWCHzEzG5b3VfZUJhAQy8XbZy67W5C5K3CHBwlq3WgIB60eCsmAAA==",
+    "srcSet": "/art/optimized/box-alto-blind-v2-320.webp 320w, /art/optimized/box-alto-blind-v2-640.webp 640w, /art/optimized/box-alto-blind-v2.webp 1024w"
+  },
+  "/art/optimized/box-alto-wide-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4ILIAAACwBACdASokAAwAPu1ip06ppaOiNUgBMB2JZgCdMoBOAC2p4cGIhtt5EQ7yhKAAAP0ARQfZuRtaSMJsUtgwjDCkVLOuQ6Hgc2qEfxWiRoWEXz2uab1klm1O7MQesGevpgHkshuYqYaMUjpW0luucSQv2ktXSteBpuDb8XAaEsbyR/U3JFikfkUHMVBcZKH2ck5KEAABv33H7tetpqAitP+QmMeo4IUVoeNPzIfThxxMAAAA",
+    "srcSet": "/art/optimized/box-alto-wide-v2-768.webp 768w, /art/optimized/box-alto-wide-v2.webp 1536w"
+  },
+  "/art/optimized/box-impostor-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRhABAABXRUJQVlA4IAQBAADwBQCdASoYABgAPwFysFKrJqSiqAqpYCAJagCdMoR+A8AVxEZhfnN19kV6GrVuR5t1i6gInRHqXAD+idhqIURs1tAuUElhxc9Pp5jSYq/vL4CGfFURKiaHEreHoilBhWByHqTm/bRHCT8bPM+BDvYYtu2qie9HC5I45LTUWKp8YoJuwNTGVTP/HutElb131Z1NT2nx3hSz5BY6LfHl/QgNyY9fQFNfcgo5/N+4Tf18vgUkW9cG8t2u4rZThrRpZi3SQKqEtzwsXHj/F1dGrsUGHAPaPIEzbM73GErJ0cRsYS06vx6b3+gVS0dECMpTNR6QR0+CTtM32MYw1iE0YA19zMAAAA==",
+    "srcSet": "/art/optimized/box-impostor-blind-v1-320.webp 320w, /art/optimized/box-impostor-blind-v1-640.webp 640w, /art/optimized/box-impostor-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-diner-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRkQBAABXRUJQVlA4IDgBAACQBgCdASoYABgAPwFwrVErJiQiqA1RYCAJbACdMoR3HaawoAuwRfwVgMuwY3syl4PbkRlxwfPtPHznuFcAAOIoY19AN/B56gc5mPCVFIrJa/mNhAbZlHQpPfxi7a9a70cygEnGqfeU4IQCDNPB2APTqp9/P+irjhEAzMUeHCEC+HiR4sZtSxonbL0jivPR4NkzEaYx58STILOQ9PTPS9JZP4L9qTu8Y3S2XNGXBjsLtwQ+VkSL3wnw05/lpuvnG2ocTY6EHo/K5VcME0k525A6yU2rS7sjICn409jmq+bFDZMg4qgwXZVMB+GtW3mw0mziwQmoA0MyfrUVgUDSim+OcPHLbDLF86lJ/pwl/h4LxXRAd/oNXo/XE/KRP13E7TSTsCvKuJNKUrD6tp4itt2Y8csLgdVcAAA=",
+    "srcSet": "/art/optimized/box-diner-blind-v1-320.webp 320w, /art/optimized/box-diner-blind-v1-640.webp 640w, /art/optimized/box-diner-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-impostor-wide-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRo4AAABXRUJQVlA4IIIAAACQBACdASokAAwAPu1iqE6ppaQiNUgBMB2JaACdMoR6SDdJGq2Hl7DXVhECptgA/MoGG6TMkDHxdv4vt/6u6u/NG23crMPz4wTLAnvEHAAa7XY8QFTUzeUrZ6chzCU1mgzAid9kJtwTT3ttBuLjX1vPQcaQjp11D4tOQi1oEKNyPAAA",
+    "srcSet": "/art/optimized/box-impostor-wide-v1-768.webp 768w, /art/optimized/box-impostor-wide-v1.webp 1536w"
+  },
+  "/art/optimized/box-diner-wide-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRtIAAABXRUJQVlA4IMYAAACwBACdASokAAwAPu1ip06ppaOiNUgBMB2JbACdIJVJtqUAMHl+teAmaSlIGaqIAP1wjtI+STY5Yo/JoJzce4WMSUHYoDFPjlgTCUnkdh+Qei2gyu0vLqARduWDWK3cNA7CB2GPCPzUnPWid2YKlzxE4Xnue255B079DFCcwnIRYQg3hHYyDxG63nSwcg8c5X9Fn+T3KL/WBB3lnDhDnQJ1BVfbn4ZalhVSfZkwT7sGRdebaZfN16yRlwTEx9Nkthmdv9HAAAA=",
+    "srcSet": "/art/optimized/box-diner-wide-v1-768.webp 768w, /art/optimized/box-diner-wide-v1.webp 1536w"
   }
 }

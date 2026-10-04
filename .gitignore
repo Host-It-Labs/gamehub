@@ -47,3 +47,4 @@ next-env.d.ts
 
 # per-conversation worktree environments (created by the harness)
 /.worktrees/
+/public/3d/arena/dev/

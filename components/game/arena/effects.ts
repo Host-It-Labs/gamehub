@@ -20,7 +20,8 @@ import {
 import { figureDimensions, toWorld } from '@/lib/games/arena/layout';
 import { teamColours, type Team } from './materials';
 import { FLY_HEIGHT, TROOP_SCALE } from './troops';
-import { TOWER_SCALE, type ArenaWorld } from './world';
+import { standHeight, type ArenaWorld } from './world';
+import { TroopStatuses } from './status';
 
 // ---------------------------------------------------------------- particles
 
@@ -375,6 +376,20 @@ export class Particles {
         g: rand(0.45, 0.65),
         b: 0.12,
       });
+    else if (kind === 'frost')
+      // Cold sparkles shed along the frost shot's path.
+      this.glow.add({
+        x: x + rand(-0.06, 0.06),
+        y: y + rand(-0.06, 0.06),
+        z: z + rand(-0.06, 0.06),
+        vy: -0.3,
+        life: 0.3,
+        size: rand(0.08, 0.14),
+        grow: -0.06,
+        r: 0.72,
+        g: 0.92,
+        b: 1,
+      });
     else if (kind === 'cannon')
       this.smoke.add({
         x,
@@ -453,6 +468,61 @@ export class Particles {
       g: 1,
       b: 1,
     });
+  }
+
+  /** A crackling bolt from one troop to the next: glowing beads along a
+   *  jagged line, bright at both ends. */
+  bolt(ax: number, ay: number, az: number, bx: number, by: number, bz: number) {
+    const steps = 12;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const j = i === 0 || i === steps ? 0 : 0.18;
+      this.glow.add({
+        x: ax + (bx - ax) * t + rand(-j, j),
+        y: ay + (by - ay) * t + rand(-j, j),
+        z: az + (bz - az) * t + rand(-j, j),
+        life: rand(0.12, 0.22),
+        size: rand(0.16, 0.26),
+        r: 0.7,
+        g: 0.9,
+        b: 1,
+      });
+    }
+    this.zap(bx, by, bz, [0.6, 0.85, 1]);
+  }
+
+  /** The Medic's pulse: a ring of green light and sparkles rising. */
+  heal(x: number, z: number, radius: number) {
+    const n = 26;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      this.glow.add({
+        x: x + Math.cos(a) * radius * 0.3,
+        y: 0.25,
+        z: z + Math.sin(a) * radius * 0.3,
+        vx: Math.cos(a) * radius * 1.8,
+        vz: Math.sin(a) * radius * 1.8,
+        drag: 3,
+        life: 0.55,
+        size: 0.22,
+        grow: -0.2,
+        r: 0.45,
+        g: 1,
+        b: 0.55,
+      });
+    }
+    for (let i = 0; i < 8; i++)
+      this.glow.add({
+        x: x + rand(-0.4, 0.4),
+        y: rand(0.4, 1.2),
+        z: z + rand(-0.4, 0.4),
+        vy: rand(0.8, 1.6),
+        life: rand(0.5, 0.8),
+        size: rand(0.12, 0.2),
+        r: 0.7,
+        g: 1,
+        b: 0.7,
+      });
   }
 
   /** The Meteor's crash: a white flash, a fireball, a ring of dust racing
@@ -614,6 +684,9 @@ export class ProjectileViews {
   private glowGeometry = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
   private glowMaterial: THREE.MeshBasicMaterial;
   private team = new Map<number, Team>();
+  /** A shot drawn leaving its shooter's hand (a tower archer's bow) rather
+   *  than the engine's launch spot: the gap, closed as it flies. */
+  private offsets = new Map<number, THREE.Vector3>();
 
   constructor(
     private world: ArenaWorld,
@@ -768,7 +841,33 @@ export class ProjectileViews {
       cannon: () => new THREE.Mesh(ball, plastic),
       fire: () => new THREE.Mesh(fireball, flame),
       bomb: () => new THREE.Mesh(bomb, plastic),
+      drop: () => new THREE.Mesh(bomb, plastic),
+      shell: () => new THREE.Mesh(ball, plastic),
+      zap: () => new THREE.Mesh(core, hot),
+      // The Explorer's frost shot: a glowing ice shard in a cold halo.
+      frost: () => {
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(shard, ice), new THREE.Mesh(halo, frostHalo));
+        return g;
+      },
     };
+    // The frost shard: a long ice crystal, white-hot at its core.
+    const shard = new THREE.OctahedronGeometry(0.1, 0).scale(0.75, 0.75, 2.4);
+    const halo = new THREE.OctahedronGeometry(0.16, 0).scale(0.8, 0.8, 2);
+    const ice = new THREE.MeshBasicMaterial({
+      color: '#d8f6ff',
+      toneMapped: false,
+    });
+    const frostHalo = new THREE.MeshBasicMaterial({
+      color: '#5fc8ff',
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    this.geometries.push(shard, halo);
+    this.mats.push(ice, frostHalo);
     const c = document.createElement('canvas');
     c.width = c.height = 64;
     const g = c.getContext('2d')!;
@@ -801,7 +900,14 @@ export class ProjectileViews {
   }
 
   /** Height of a projectile's target: chest height of a troop or tower. */
-  sync(m: Match, alpha: number, targetHeight: (id: number) => number) {
+  /** `origin` gives where a shooter's shot is drawn leaving it, if it
+   *  knows (a tower archer's nocked arrow). */
+  sync(
+    m: Match,
+    alpha: number,
+    targetHeight: (id: number) => number,
+    origin?: (sourceId: number) => THREE.Vector3 | null,
+  ) {
     const seen = new Set<number>();
     for (const p of m.projectiles) {
       seen.add(p.id);
@@ -815,6 +921,17 @@ export class ProjectileViews {
         mesh.scale.setScalar(this.size);
         this.meshes.set(p.id, mesh);
         this.world.scene.add(mesh);
+        // (Seen within its first ticks: a shot seen late, after a resync,
+        // has long left the bow.)
+        const fresh = p.travelled <= p.speed * TICK * 2.5;
+        const from = fresh ? origin?.(p.sourceId) : null;
+        if (from) {
+          const [sx, , sz] = toWorld(p.sx, p.sy);
+          this.offsets.set(
+            p.id,
+            from.clone().sub(this.tmpStart.set(sx, this.startHeight(p), sz)),
+          );
+        }
         if (p.kind === 'fire') {
           const glow = new THREE.Mesh(this.glowGeometry, this.glowMaterial);
           glow.renderOrder = 4;
@@ -838,6 +955,7 @@ export class ProjectileViews {
         this.world.scene.remove(mesh);
         this.meshes.delete(id);
         this.team.delete(id);
+        this.offsets.delete(id);
         const glow = this.glows.get(id);
         if (glow) this.world.scene.remove(glow);
         this.glows.delete(id);
@@ -845,6 +963,19 @@ export class ProjectileViews {
   }
 
   private next = new THREE.Vector3();
+  private tmpStart = new THREE.Vector3();
+
+  /** The height a shot leaves from: a small tower's archer stands lower
+   *  than the engine's platform, the king's cannon is scaled with it. */
+  private startHeight(p: Projectile) {
+    const tower = this.world.towers.get(p.sourceId);
+    return tower
+      ? tower.kind === 'king'
+        ? p.sz * this.world.towerScale
+        : p.sz - tower.guardDrop
+      : p.sz;
+  }
+
   private place(
     mesh: THREE.Object3D,
     p: Projectile,
@@ -860,31 +991,30 @@ export class ProjectileViews {
     const t = Math.min(1, (p.travelled + ahead) / Math.max(0.01, p.distance));
     // Rays and bullets fly straight; balls and bombs lob.
     const arc =
-      p.kind === 'cannon'
-        ? 1.4
-        : p.kind === 'bomb'
-          ? 0.25
-          : p.kind === 'fire'
-            ? 0.5
-            : p.kind === 'laser'
-              ? 0.05
-              : p.kind === 'arrow'
-                ? 0.45
-                : 0.2;
+      p.kind === 'shell'
+        ? 3.2
+        : p.kind === 'drop' || p.kind === 'zap'
+          ? 0
+          : p.kind === 'cannon'
+            ? 1.4
+            : p.kind === 'bomb'
+              ? 0.25
+              : p.kind === 'fire'
+                ? 0.5
+                : p.kind === 'laser'
+                  ? 0.05
+                  : p.kind === 'arrow'
+                    ? 0.45
+                    : 0.2;
     const lift = Math.sin(t * Math.PI) * arc * Math.min(1, p.distance / 6);
     // A bomb falls away from the plane, accelerating down.
-    const fall = p.kind === 'bomb' ? t * t : t;
-    const tower = this.world.towers.get(p.sourceId);
-    const startHeight = tower
-      ? tower.kind === 'king'
-        ? p.sz * TOWER_SCALE
-        : p.sz - tower.guardDrop
-      : p.sz;
+    const fall = p.kind === 'bomb' || p.kind === 'drop' ? t * t : t;
+    const startHeight = this.startHeight(p);
     const h = startHeight + (endHeight - startHeight) * fall + lift;
     const [wx, , wz] = toWorld(fx, fy);
     // Aim along the path, a little ahead.
     const t2 = Math.min(1, t + 0.04);
-    const fall2 = p.kind === 'bomb' ? t2 * t2 : t2;
+    const fall2 = p.kind === 'bomb' || p.kind === 'drop' ? t2 * t2 : t2;
     const h2 =
       startHeight +
       (endHeight - startHeight) * fall2 +
@@ -895,12 +1025,17 @@ export class ProjectileViews {
     );
     mesh.position.set(wx, h, wz);
     this.next.set(nx, h2, nz);
+    const offset = this.offsets.get(p.id);
+    if (offset) {
+      mesh.position.addScaledVector(offset, 1 - t);
+      this.next.addScaledVector(offset, 1 - t2);
+    }
     if (this.next.distanceToSquared(mesh.position) > 1e-6)
       mesh.lookAt(this.next);
     this.particles.trail(
-      wx,
-      h,
-      wz,
+      mesh.position.x,
+      mesh.position.y,
+      mesh.position.z,
       p.kind,
       laserColours[this.team.get(p.id) ?? 0],
     );
@@ -922,22 +1057,30 @@ export class ProjectileViews {
 
 // ---------------------------------------------------------------- spells
 
+/** One Meteor in flight. */
+type MeteorView = {
+  rock: THREE.Object3D;
+  ring: THREE.Mesh;
+  disc: THREE.Mesh;
+  spin: THREE.Vector3;
+  /** Where it was hurled from (the caster's king's roof), or null for
+   *  the old fall out of the sky (no king to throw it). */
+  from: THREE.Vector3 | null;
+  /** The arc's height above the straight line, at its middle. */
+  lob: number;
+};
+
 /**
- * Falling Meteors. Each is drawn from the engine's spell (its time left), so
- * it lands exactly on the crash: a glowing rock streaking down out of the
- * light with a fiery trail, and on the mat a ring in the caster's colour
- * that tightens as it comes.
+ * Meteors. The caster's king hurls the rock from its roof (a flash, a burst
+ * of flame and smoke), it arcs over the field trailing fire and smoke and
+ * lands on the crash: each is drawn from the engine's spell (its time
+ * left), so the rock reaches the ground exactly on the 30th step. On the
+ * mat a ring in the caster's colour tightens as it comes. The flight is
+ * the same from either end and in team battles: it always starts at the
+ * casting side's king.
  */
 export class SpellViews {
-  private views = new Map<
-    number,
-    {
-      rock: THREE.Object3D;
-      ring: THREE.Mesh;
-      disc: THREE.Mesh;
-      spin: THREE.Vector3;
-    }
-  >();
+  private views = new Map<number, MeteorView>();
   private ringGeometry = new THREE.RingGeometry(0.93, 1, 64).rotateX(
     -Math.PI / 2,
   );
@@ -968,10 +1111,33 @@ export class SpellViews {
     );
   }
 
+  /** Burning copies of the modelled rock's materials. */
+  private burning = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+
   private rock() {
     const { towers } = this.world.assets;
-    if (towers.scene.getObjectByName('meteor'))
-      return this.world.instance(towers, 'meteor', 0);
+    if (towers.scene.getObjectByName('meteor')) {
+      const rock = this.world.instance(towers, 'meteor', 0);
+      // A fireball, not a stone: its surface glows from within.
+      rock.traverse((n) => {
+        const mesh = n as THREE.Mesh;
+        if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+        const source = mesh.material as THREE.MeshStandardMaterial;
+        if (!source.isMeshStandardMaterial) return;
+        let hot = this.burning.get(source);
+        if (!hot) {
+          hot = source.clone();
+          hot.onBeforeCompile = source.onBeforeCompile.bind(source);
+          hot.customProgramCacheKey = source.customProgramCacheKey.bind(source);
+          hot.emissive.set('#ff8a1e');
+          hot.emissiveIntensity = 1.05;
+          this.burning.set(source, hot);
+          this.mats.push(hot);
+        }
+        mesh.material = hot;
+      });
+      return rock;
+    }
     // Until the modelled rock is built: a dark lumpy stone with a glow.
     if (!this.rockGeometry) {
       const g = new THREE.IcosahedronGeometry(0.6, 1);
@@ -994,6 +1160,82 @@ export class SpellViews {
     return new THREE.Mesh(this.rockGeometry, this.rockMaterial);
   }
 
+  /** The roof spot a side's king hurls its Meteors from. */
+  private launchSpot(m: Match, sp: Spell) {
+    const king = m.towers.find((t) => t.side === sp.side && t.kind === 'king');
+    if (!king) return null;
+    const [kx, , kz] = toWorld(king.x, king.y);
+    const [tx, , tz] = toWorld(sp.x, sp.y);
+    // From the front of the roof deck, towards the target.
+    const dx = tx - kx;
+    const dz = tz - kz;
+    const d = Math.hypot(dx, dz) || 1;
+    const reach = Math.min(0.55, d * 0.5);
+    return new THREE.Vector3(
+      kx + (dx / d) * reach,
+      3.75 * this.world.towerScale,
+      kz + (dz / d) * reach,
+    );
+  }
+
+  /** The king's throw: a flash on its roof, flame bursting towards the
+   *  target, and a ring of smoke rolling off the deck. */
+  private launch(from: THREE.Vector3, to: THREE.Vector3) {
+    const p = this.particles;
+    const dir = to.clone().sub(from).setY(0).normalize();
+    p.glow.add({
+      x: from.x,
+      y: from.y + 0.2,
+      z: from.z,
+      life: 0.24,
+      size: 2.6,
+      grow: 1.4,
+      r: 1,
+      g: 0.86,
+      b: 0.55,
+    });
+    for (let i = 0; i < 22; i++) {
+      const v = rand(2, 6);
+      p.glow.add({
+        x: from.x + rand(-0.2, 0.2),
+        y: from.y + rand(0, 0.3),
+        z: from.z + rand(-0.2, 0.2),
+        vx: dir.x * v + rand(-1.2, 1.2),
+        vy: rand(2, 5.5),
+        vz: dir.z * v + rand(-1.2, 1.2),
+        drag: 3.2,
+        life: rand(0.25, 0.5),
+        size: rand(0.4, 0.8),
+        grow: 0.5,
+        r: 1,
+        g: rand(0.45, 0.72),
+        b: 0.15,
+      });
+    }
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      const v = rand(1.4, 2.4);
+      p.smoke.add({
+        x: from.x + Math.cos(a) * 0.4,
+        y: from.y - 0.2,
+        z: from.z + Math.sin(a) * 0.4,
+        vx: Math.cos(a) * v,
+        vz: Math.sin(a) * v,
+        vy: rand(0.3, 1),
+        drag: 2.4,
+        life: rand(0.8, 1.3),
+        size: rand(0.45, 0.75),
+        grow: 1.3,
+        r: 0.9,
+        g: 0.88,
+        b: 0.86,
+        alpha: 0.6,
+      });
+    }
+    p.smokePuff(from.x, from.y, from.z, 1.1);
+    p.sparks(from.x, from.y + 0.3, from.z, 16, [1, 0.8, 0.35]);
+  }
+
   sync(m: Match, alpha: number, time: number) {
     const seen = new Set<number>();
     const turn = this.world.viewSide === 1 ? -1 : 1;
@@ -1011,13 +1253,25 @@ export class SpellViews {
         ring.renderOrder = 4;
         disc.renderOrder = 4;
         this.world.scene.add(rock, ring, disc);
+        const from = this.launchSpot(m, sp);
+        const [tx, , tz] = toWorld(sp.x, sp.y);
+        const reach = from ? Math.hypot(tx - from.x, tz - from.z) : 0;
         v = {
           rock,
           ring,
           disc,
           spin: new THREE.Vector3(rand(-4, 4), rand(-4, 4), rand(-4, 4)),
+          from,
+          // Higher for a longer throw, so it always reads as a lob; kept
+          // low enough that the steep camera still sees it cross the field.
+          lob: 2.2 + reach * 0.11,
         };
         this.views.set(sp.id, v);
+        // A cast seen late (a resync) has already left the roof; the
+        // shader warm-up's pretend cast never throws.
+        const t = 1 - sp.left / Math.max(0.01, sp.delay);
+        if (from && sp.id >= 0 && t < 0.35)
+          this.launch(from, new THREE.Vector3(tx, 0, tz));
       }
       this.place(v, sp, alpha, time, turn);
     }
@@ -1029,12 +1283,7 @@ export class SpellViews {
   }
 
   private place(
-    v: {
-      rock: THREE.Object3D;
-      ring: THREE.Mesh;
-      disc: THREE.Mesh;
-      spin: THREE.Vector3;
-    },
+    v: MeteorView,
     sp: Spell,
     alpha: number,
     time: number,
@@ -1043,31 +1292,71 @@ export class SpellViews {
     const left = Math.max(0, sp.left - alpha * TICK);
     const t = 1 - left / Math.max(0.01, sp.delay);
     const [wx, , wz] = toWorld(sp.x, sp.y);
-    // In from high up, out of the window's light, falling faster and faster.
-    const k = t * t;
-    const from = new THREE.Vector3(wx - 9 * turn, 24, wz + 7 * turn);
-    const x = from.x + (wx - from.x) * k;
-    const y = from.y + (0.4 - from.y) * k;
-    const z = from.z + (wz - from.z) * k;
+    let x: number;
+    let y: number;
+    let z: number;
+    if (v.from) {
+      // A lob: steady across the ground, up and over, down onto the mark.
+      const f = v.from;
+      x = f.x + (wx - f.x) * t;
+      z = f.z + (wz - f.z) * t;
+      y = f.y + (0.4 - f.y) * t + 4 * v.lob * t * (1 - t);
+    } else {
+      // No king to throw it: in from high up, falling faster and faster.
+      const k = t * t;
+      const from = new THREE.Vector3(wx - 9 * turn, 24, wz + 7 * turn);
+      x = from.x + (wx - from.x) * k;
+      y = from.y + (0.4 - from.y) * k;
+      z = from.z + (wz - from.z) * k;
+    }
     v.rock.position.set(x, y, z);
     v.rock.rotation.set(time * v.spin.x, time * v.spin.y, time * v.spin.z);
-    const size = 1.1 + t * 0.4;
+    // Small on the roof, a blazing boulder by the time it lands.
+    const size = v.from ? 0.75 + t * 0.6 : 1.1 + t * 0.4;
     v.rock.scale.setScalar(size);
     for (let i = 0; i < 3; i++)
       this.particles.trail(
-        x + rand(-0.3, 0.3),
-        y + rand(-0.3, 0.3),
-        z + rand(-0.3, 0.3),
+        x + rand(-0.3, 0.3) * size,
+        y + rand(-0.3, 0.3) * size,
+        z + rand(-0.3, 0.3) * size,
         'fire',
       );
-    if (Math.random() < 0.5)
+    if (v.from) {
+      // It burns as it flies: a halo round the rock and a long tail of
+      // flame and dark smoke behind it.
+      this.particles.glow.add({
+        x,
+        y,
+        z,
+        life: 0.06,
+        size: 2.3 * size,
+        r: 1,
+        g: 0.62,
+        b: 0.16,
+        alpha: 0.85,
+      });
+      for (let i = 0; i < 3; i++)
+        this.particles.glow.add({
+          x: x + rand(-0.25, 0.25) * size,
+          y: y + rand(-0.25, 0.25) * size,
+          z: z + rand(-0.25, 0.25) * size,
+          vy: 0.6,
+          life: rand(0.4, 0.6),
+          size: rand(0.5, 0.85) * size,
+          grow: -0.4,
+          r: 1,
+          g: rand(0.38, 0.62),
+          b: 0.1,
+        });
+    }
+    if (Math.random() < (v.from && t < 0.3 ? 0.9 : 0.5))
       this.particles.smoke.add({
         x,
         y: y + 0.3,
         z,
         vy: 0.3,
-        life: 0.7,
-        size: 0.5,
+        life: v.from ? 0.9 : 0.7,
+        size: 0.5 * size,
         grow: 1,
         r: 0.35,
         g: 0.3,
@@ -1214,8 +1503,10 @@ export class DeployOverlay {
 
   /** Recompute which half-tiles accept a troop (pockets open as towers
    *  fall). A spell may land anywhere, so the whole field lights up. */
-  refresh(m: Match, side: Side, spell = false) {
-    const key = `${spell ? 's' : 't'}${m.towers.map((t) => (t.destroyed ? 1 : 0)).join('')}`;
+  /** `spell` lights the whole field; `card` asks the rules for one troop
+   *  (a burrowing Miner may go anywhere off the water). */
+  refresh(m: Match, side: Side, spell = false, card?: CardId) {
+    const key = `${spell ? 's' : (card ?? 't')}${m.towers.map((t) => (t.destroyed ? 1 : 0)).join('')}`;
     if (key === this.key) return;
     this.key = key;
     for (let r = 0; r < this.rows; r++)
@@ -1223,7 +1514,7 @@ export class DeployOverlay {
         // Row 0 of the texture is the bottom of the plane (your side).
         const x = (c + 0.5) / 2;
         const y = LENGTH - (r + 0.5) / 2;
-        const ok = spell || canDeployAt(m, side, x, LENGTH - y) ? 255 : 0;
+        const ok = spell || canDeployAt(m, side, x, LENGTH - y, card) ? 255 : 0;
         const i = (r * this.cols + c) * 4;
         this.data[i] = ok;
         this.data[i + 3] = 255;
@@ -1247,88 +1538,80 @@ export class DeployOverlay {
   }
 }
 
-/**
- * The placement warning: while a troop card is held, every enemy tower and
- * troop that would shoot it where it would land shows its reach as a red
- * ring on the ground, a dashed edge turning slowly over a faint fill. Rings
- * fade in and out as the finger moves.
- */
-export class ThreatRings {
-  private geometry = new THREE.CircleGeometry(1, 96).rotateX(-Math.PI / 2);
-  private base = new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uOpacity: { value: 0 }, uR: { value: 1 } },
-    transparent: true,
-    depthWrite: false,
-    toneMapped: false,
-    vertexShader: `
-      varying vec2 vP;
-      void main() { vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `
-      uniform float uTime, uOpacity, uR;
-      varying vec2 vP;
-      void main() {
-        float d = length(vP);
-        // The edge is about 0.14 tiles wide whatever the ring's size.
-        float w = 0.14 / uR;
-        float edge = smoothstep(1.0 - w * 1.6, 1.0 - w, d) * (1.0 - smoothstep(0.995, 1.0, d));
-        float a = atan(vP.y, vP.x);
-        float dash = step(0.42, fract(a * uR * 0.9 / 6.2831 * 6.0 + uTime * 0.35));
-        float fill = 0.14 * smoothstep(0.0, 1.0, d);
-        float alpha = (edge * (0.55 + 0.45 * dash) + fill) * uOpacity;
-        gl_FragColor = vec4(vec3(1.0, 0.3, 0.24), alpha);
-      }`,
-  });
-  private rings = new Map<
-    number,
-    { mesh: THREE.Mesh; material: THREE.ShaderMaterial; on: boolean }
-  >();
+/** Compact, camera-facing warnings above enemies that can hit a placement. */
+export class ThreatMarkers {
+  private texture: THREE.CanvasTexture;
+  private markers = new Map<number, { sprite: THREE.Sprite; on: boolean }>();
 
-  constructor(private world: ArenaWorld) {}
+  constructor(private world: ArenaWorld) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#452c20';
+    ctx.beginPath();
+    ctx.roundRect(27, 7, 74, 111, 26);
+    ctx.fill();
+    ctx.fillStyle = '#ffcb58';
+    ctx.beginPath();
+    ctx.roundRect(33, 13, 62, 99, 21);
+    ctx.fill();
+    ctx.fillStyle = '#432516';
+    ctx.beginPath();
+    ctx.roundRect(56, 28, 16, 45, 7);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(64, 90, 8, 0, Math.PI * 2);
+    ctx.fill();
+    this.texture = new THREE.CanvasTexture(canvas);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
+  }
 
-  /** Show the rings for these threats (`[]` hides them all). */
-  show(threats: { id: number; x: number; y: number; reach: number }[]) {
-    for (const ring of this.rings.values()) ring.on = false;
+  show(threats: { id: number; x: number; y: number; height: number }[]) {
+    for (const marker of this.markers.values()) marker.on = false;
     for (const t of threats) {
-      let ring = this.rings.get(t.id);
-      if (!ring) {
-        const material = this.base.clone();
-        const mesh = new THREE.Mesh(this.geometry, material);
-        mesh.renderOrder = 5;
-        this.world.scene.add(mesh);
-        ring = { mesh, material, on: true };
-        this.rings.set(t.id, ring);
+      let marker = this.markers.get(t.id);
+      if (!marker) {
+        const material = new THREE.SpriteMaterial({
+          map: this.texture,
+          transparent: true,
+          depthTest: false,
+          depthWrite: false,
+          toneMapped: false,
+          opacity: 0,
+        });
+        const sprite = new THREE.Sprite(material);
+        sprite.renderOrder = 20;
+        sprite.scale.set(1.05, 1.05, 1);
+        this.world.scene.add(sprite);
+        marker = { sprite, on: true };
+        this.markers.set(t.id, marker);
       }
-      ring.on = true;
-      const [wx, , wz] = toWorld(t.x, t.y);
-      ring.mesh.position.set(wx, 0.09, wz);
-      ring.mesh.scale.setScalar(t.reach);
-      ring.material.uniforms.uR.value = t.reach;
+      marker.on = true;
+      const [x, , z] = toWorld(t.x, t.y);
+      marker.sprite.position.set(x, t.height, z);
     }
   }
 
-  update(dt: number, time: number) {
-    for (const [id, ring] of this.rings) {
-      const u = ring.material.uniforms;
-      const k = Math.min(1, dt * 14);
-      u.uOpacity.value += ((ring.on ? 1 : 0) - u.uOpacity.value) * k;
-      u.uTime.value = time;
-      ring.mesh.visible = u.uOpacity.value > 0.01;
-      if (!ring.on && !ring.mesh.visible) {
-        this.world.scene.remove(ring.mesh);
-        ring.material.dispose();
-        this.rings.delete(id);
+  update(dt: number, _time: number) {
+    for (const [id, marker] of this.markers) {
+      const material = marker.sprite.material;
+      material.opacity +=
+        ((marker.on ? 1 : 0) - material.opacity) * Math.min(1, dt * 18);
+      if (!marker.on && material.opacity < 0.01) {
+        this.world.scene.remove(marker.sprite);
+        material.dispose();
+        this.markers.delete(id);
       }
     }
   }
 
   dispose() {
-    for (const ring of this.rings.values()) {
-      this.world.scene.remove(ring.mesh);
-      ring.material.dispose();
+    for (const { sprite } of this.markers.values()) {
+      this.world.scene.remove(sprite);
+      sprite.material.dispose();
     }
-    this.rings.clear();
-    this.geometry.dispose();
-    this.base.dispose();
+    this.markers.clear();
+    this.texture.dispose();
   }
 }
 
@@ -1492,5 +1775,471 @@ export class Ghost {
     this.badMat.dispose();
     this.area.geometry.dispose();
     (this.area.material as THREE.Material).dispose();
+  }
+}
+
+// ------------------------------------------- abilities of 1 October 2026
+// The eight troops' ability visuals (figures agent): the Drummer's beat,
+// the Sumo's stomp, the Firefighter's water jet, the Explorer's frost on
+// what it slows, the Diver's armour sparks, the Linebacker's tackle and
+// every knock-back, the Jetpack's exhaust and the Beekeeper's smoke.
+// The bees themselves are ordinary figures (figure_bee.py, moves/bee.ts).
+
+/** A ground ring that grows and fades: one InstancedMesh per look, the
+ *  fade written into the instance colour (additive blending). */
+class RingPulses {
+  readonly mesh: THREE.InstancedMesh;
+  private list: {
+    x: number;
+    y: number;
+    z: number;
+    r0: number;
+    r1: number;
+    life: number;
+    age: number;
+    c: THREE.Color;
+  }[] = [];
+  private m = new THREE.Matrix4();
+  private c = new THREE.Color();
+
+  constructor(
+    scene: THREE.Scene,
+    inner: number,
+    private max = 48,
+  ) {
+    const geometry = new THREE.RingGeometry(inner, 1, 48).rotateX(-Math.PI / 2);
+    const material = new THREE.MeshBasicMaterial({
+      color: '#ffffff',
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    this.mesh = new THREE.InstancedMesh(geometry, material, max);
+    this.mesh.instanceColor = new THREE.InstancedBufferAttribute(
+      new Float32Array(max * 3),
+      3,
+    );
+    this.mesh.count = 0;
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 4;
+    scene.add(this.mesh);
+  }
+
+  add(
+    x: number,
+    y: number,
+    z: number,
+    r0: number,
+    r1: number,
+    life: number,
+    colour: THREE.ColorRepresentation,
+  ) {
+    if (this.list.length >= this.max) this.list.shift();
+    this.list.push({
+      x,
+      y,
+      z,
+      r0,
+      r1,
+      life,
+      age: 0,
+      c: new THREE.Color(colour),
+    });
+  }
+
+  update(dt: number) {
+    this.list = this.list.filter((p) => (p.age += dt) < p.life);
+    this.list.forEach((p, i) => {
+      const t = p.age / p.life;
+      const r = p.r0 + (p.r1 - p.r0) * (1 - (1 - t) * (1 - t));
+      this.m.makeScale(r, 1, r).setPosition(p.x, p.y, p.z);
+      this.mesh.setMatrixAt(i, this.m);
+      const fade = Math.min(1, t * 6) * (1 - t) * (1 - t);
+      this.mesh.setColorAt(i, this.c.copy(p.c).multiplyScalar(fade));
+    });
+    this.mesh.count = this.list.length;
+    this.mesh.instanceMatrix.needsUpdate = true;
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+  }
+
+  dispose() {
+    this.mesh.removeFromParent();
+    this.mesh.geometry.dispose();
+    (this.mesh.material as THREE.Material).dispose();
+  }
+}
+
+const jetVertex = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }`;
+/** Streaks of water racing out along the cone, brightest at its core and
+ *  breaking up toward the end. */
+const jetFragment = `
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform float uFade;
+  void main() {
+    float along = vUv.y;
+    float streak = 0.5 + 0.5 * sin(vUv.x * 40.0 + sin(vUv.x * 13.0) * 2.0);
+    float flow = 0.5 + 0.5 * sin(along * 18.0 - uTime * 26.0 + vUv.x * 9.0);
+    float a = (0.5 + 0.5 * streak * flow) * smoothstep(0.0, 0.08, along) *
+      (1.0 - smoothstep(0.7, 1.0, along)) * uFade;
+    gl_FragColor = vec4(mix(vec3(0.5, 0.78, 1.0), vec3(1.0), flow * 0.55),
+      a * 0.78);
+  }`;
+
+/** Where a drawn troop is: its feet on the ground and its chest (where
+ *  shots land, raised with a flyer's body), or null. */
+export type TroopSpot = (
+  id: number,
+) => { at: THREE.Vector3; chest: THREE.Vector3; head?: THREE.Vector3 } | null;
+
+export class AbilityEffects {
+  private statuses: TroopStatuses;
+  private motion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
+  private beats: RingPulses;
+  private shocks: RingPulses;
+  private chills: RingPulses;
+  private jets = new Map<
+    number,
+    { mesh: THREE.Mesh; life: number; material: THREE.ShaderMaterial }
+  >();
+  private jetGeometry: THREE.CylinderGeometry;
+  private time = 0;
+  private puff = 0;
+  /** World units per figure unit: the troops' drawn scale (troopScale
+   *  in layout.ts, larger on portrait phones). */
+  size = TROOP_SCALE;
+
+  constructor(
+    private world: ArenaWorld,
+    private particles: Particles,
+  ) {
+    this.statuses = new TroopStatuses(world.scene, world.camera);
+    this.beats = new RingPulses(world.scene, 0.9);
+    this.shocks = new RingPulses(world.scene, 0.72, 16);
+    this.chills = new RingPulses(world.scene, 0.55, 96);
+    // An open cone along +z from its tip at the origin to its mouth at 1.
+    this.jetGeometry = new THREE.CylinderGeometry(1, 0.06, 1, 20, 1, true)
+      .translate(0, 0.5, 0)
+      .rotateX(Math.PI / 2);
+  }
+
+  heal(ids: number[]) {
+    this.statuses.heal(ids);
+  }
+
+  /** The Drummer's beat: a ring of his team's light colour sweeping out
+   *  to the edge of his aura, a few golden sparkles over the drum. */
+  beat(x: number, z: number, radius: number, team: Team) {
+    const y = standHeight(x, z) + 0.07;
+    this.beats.add(x, y, z, 0.4, radius, 0.55, teamColours[team].light);
+    this.particles.glow.add({
+      x: x + rand(-0.2, 0.2),
+      y: standHeight(x, z) + 0.75 * this.size,
+      z: z + rand(-0.2, 0.2),
+      vy: 0.9,
+      life: 0.45,
+      size: rand(0.12, 0.2),
+      r: 1,
+      g: 0.86,
+      b: 0.4,
+    });
+  }
+
+  /** The Sumo's landing stomp: a heavy shock ring out to the taunt's
+   *  reach, dust thrown up all round and a flash of his team's colour. */
+  stomp(x: number, z: number, radius: number, team: Team) {
+    const y = standHeight(x, z) + 0.08;
+    this.shocks.add(x, y, z, 0.5, radius, 0.7, '#fff1d6');
+    this.shocks.add(x, y, z, 0.3, radius * 0.7, 0.5, teamColours[team].main);
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      this.particles.dust(
+        x + Math.cos(a) * 0.9,
+        0.05,
+        z + Math.sin(a) * 0.9,
+        1,
+        undefined,
+        1.4,
+      );
+    }
+  }
+
+  /** A taunted troop: a red flick over its head now and then. */
+  private taunted(p: THREE.Vector3, high: number) {
+    this.particles.glow.add({
+      x: p.x + rand(-0.15, 0.15),
+      y: p.y + high,
+      z: p.z + rand(-0.15, 0.15),
+      vy: 0.6,
+      life: 0.35,
+      size: rand(0.12, 0.18),
+      r: 1,
+      g: 0.3,
+      b: 0.2,
+    });
+  }
+
+  /** The Firefighter's blow: the jet from his nozzle to (bx, bz), the cone
+   *  `cos` wide, held on until the next blow; spray and a splash where it
+   *  lands. */
+  spray(
+    id: number,
+    ax: number,
+    az: number,
+    bx: number,
+    bz: number,
+    cos: number,
+  ) {
+    let jet = this.jets.get(id);
+    if (!jet) {
+      const material = new THREE.ShaderMaterial({
+        uniforms: { uTime: { value: 0 }, uFade: { value: 0 } },
+        vertexShader: jetVertex,
+        fragmentShader: jetFragment,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(this.jetGeometry, material);
+      mesh.renderOrder = 6;
+      mesh.frustumCulled = false;
+      this.world.scene.add(mesh);
+      jet = { mesh, life: 0, material };
+      this.jets.set(id, jet);
+    }
+    const dx = bx - ax;
+    const dz = bz - az;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.01) return;
+    const ux = dx / len;
+    const uz = dz / len;
+    // The nozzle's mouth: ahead of him at hip height.
+    const nx = ax + ux * 0.5 * this.size;
+    const nz = az + uz * 0.5 * this.size;
+    const ny = standHeight(ax, az) + 0.72 * this.size;
+    const reach = Math.max(0.5, len - 0.5 * this.size);
+    // Wide enough to read as the cone that hits, narrower than its edge.
+    const half = Math.acos(Math.max(-1, Math.min(1, cos)));
+    const mouth = Math.tan(half) * reach * 0.55;
+    jet.mesh.position.set(nx, ny, nz);
+    jet.mesh.lookAt(nx + ux, ny - 0.5 / reach, nz + uz);
+    jet.mesh.scale.set(mouth, mouth * 0.7, reach);
+    jet.life = 0.5;
+    // Droplets flung along the cone and falling.
+    for (let i = 0; i < 16; i++) {
+      const s = rand(4, 8);
+      const spread = rand(-1, 1) * Math.tan(half) * 0.5;
+      this.particles.glow.add({
+        x: nx,
+        y: ny,
+        z: nz,
+        vx: (ux - uz * spread) * s,
+        vz: (uz + ux * spread) * s,
+        vy: rand(0.4, 1.6),
+        gravity: 7,
+        drag: 0.9,
+        life: rand(0.35, 0.6),
+        size: rand(0.14, 0.24),
+        r: 0.7,
+        g: 0.88,
+        b: 1,
+        alpha: 0.9,
+      });
+    }
+    // The splash where it lands, and spray mist.
+    const ex = nx + ux * reach;
+    const ez = nz + uz * reach;
+    for (let i = 0; i < 9; i++) {
+      const a = rand(0, Math.PI * 2);
+      this.particles.smoke.add({
+        x: ex + Math.cos(a) * 0.3,
+        y: standHeight(ex, ez) + 0.2,
+        z: ez + Math.sin(a) * 0.3,
+        vx: Math.cos(a) * rand(0.6, 1.6) + ux * 1.2,
+        vz: Math.sin(a) * rand(0.6, 1.6) + uz * 1.2,
+        vy: rand(0.6, 1.8),
+        drag: 2.4,
+        life: rand(0.4, 0.7),
+        size: rand(0.4, 0.7),
+        grow: 0.8,
+        r: 0.88,
+        g: 0.95,
+        b: 1,
+        alpha: 0.6,
+      });
+    }
+  }
+
+  /** The Diver's armour turning a blow: bright metal sparks off brass. */
+  armour(x: number, y: number, z: number, amount: number) {
+    const n = Math.min(16, 6 + Math.round(amount / 6));
+    this.particles.sparks(x, y, z, n, [1, 0.93, 0.62]);
+    this.particles.glow.add({
+      x,
+      y,
+      z,
+      life: 0.16,
+      size: 0.9,
+      grow: -0.5,
+      r: 1,
+      g: 0.95,
+      b: 0.8,
+    });
+  }
+
+  /** The Linebacker's tackle landing: a burst of dust, white stars and a
+   *  ring at the spot. */
+  tackle(x: number, z: number) {
+    const y = standHeight(x, z);
+    this.particles.dust(x, y + 0.05, z, 14, undefined, 1.3);
+    this.particles.sparks(x, y + 0.6 * this.size, z, 10, [1, 1, 0.9]);
+    this.shocks.add(x, y + 0.08, z, 0.2, 1.4, 0.4, '#fff4dc');
+  }
+
+  /** A troop knocked back (a slap, a tackle, the jet): a skid of dust. */
+  push(x: number, z: number, fx = x, fz = z) {
+    // A trail along the actual impulse, rather than a puff at its endpoint.
+    const distance = Math.hypot(x - fx, z - fz);
+    const steps = Math.max(1, Math.min(6, Math.ceil(distance * 4)));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const px = fx + (x - fx) * t;
+      const pz = fz + (z - fz) * t;
+      this.particles.dust(
+        px,
+        standHeight(px, pz) + 0.02,
+        pz,
+        2,
+        undefined,
+        0.55,
+      );
+    }
+  }
+
+  /** The Beekeeper lets out her bees: a puff of grey smoke from the
+   *  smoker and the hive. */
+  release(x: number, z: number) {
+    this.particles.smokePuff(x, standHeight(x, z) + 0.75 * this.size, z, 0.55);
+  }
+
+  /** Per frame: frost on slowed troops, a red flick over taunted ones,
+   *  the Jetpack's exhaust, and the water jets fading out. */
+  update(dt: number, m: Match, spot: TroopSpot) {
+    this.time += dt;
+    this.puff += dt;
+    const tick = this.puff >= 0.05;
+    if (tick) this.puff = 0;
+    this.statuses.size = this.size;
+    this.statuses.begin(dt, this.motion?.matches ?? false);
+    for (const u of m.units) {
+      const where = spot(u.id);
+      if (!where) continue;
+      const p = where.at;
+      const s = troopCards[u.card].unit;
+      this.statuses.show(u, s, where.head ?? where.chest);
+      if (u.state === 'deploying') continue;
+      const flyer = s.flying;
+      // The body's height off the ground (a flyer's hover), from its
+      // chest as TroopView.chest() places it.
+      const body = flyer
+        ? where.chest.y - p.y - FLY_HEIGHT * (this.size / 1.3) * 0.6
+        : 0;
+      const high = body + 1.35 * this.size;
+      if (u.slow > 0 && tick) {
+        // A ring of frost on the ground and flakes drifting round it.
+        const y = flyer ? 0.07 : standHeight(p.x, p.z) + 0.07;
+        const k = s.radius * (this.size / 1.3);
+        if (Math.random() < 0.35)
+          this.chills.add(p.x, y, p.z, k * 1.0, k * 1.35, 0.6, '#4f9fc4');
+        const a = rand(0, Math.PI * 2);
+        const r = s.radius * this.size * rand(0.45, 0.8);
+        this.particles.glow.add({
+          x: p.x + Math.cos(a) * r,
+          y: p.y + body + rand(0.15, 1.1) * this.size,
+          z: p.z + Math.sin(a) * r,
+          vy: -rand(0.2, 0.5),
+          vx: -Math.sin(a) * 0.5,
+          vz: Math.cos(a) * 0.5,
+          life: rand(0.5, 0.8),
+          size: rand(0.14, 0.22),
+          r: 0.75,
+          g: 0.93,
+          b: 1,
+        });
+      }
+      if (u.taunt > 0 && tick && Math.random() < 0.25) this.taunted(p, high);
+      if (u.card === 'jetpack' && tick) {
+        // Two flames under the pack and grey smoke drifting off.
+        for (const side of [-1, 1]) {
+          this.particles.glow.add({
+            x: p.x + side * 0.12 * this.size + rand(-0.03, 0.03),
+            y: p.y + body + 0.6 * this.size,
+            z: p.z + rand(-0.03, 0.03),
+            vy: -rand(1.5, 2.5),
+            life: 0.18,
+            size: rand(0.16, 0.24) * this.size,
+            grow: -0.12,
+            r: 1,
+            g: rand(0.55, 0.75),
+            b: 0.2,
+          });
+        }
+        if (Math.random() < 0.5)
+          this.particles.smoke.add({
+            x: p.x,
+            y: p.y + body + 0.45 * this.size,
+            z: p.z,
+            vy: -0.6,
+            vx: rand(-0.3, 0.3),
+            vz: rand(-0.3, 0.3),
+            drag: 1.5,
+            life: 0.8,
+            size: 0.25,
+            grow: 0.7,
+            r: 0.85,
+            g: 0.85,
+            b: 0.88,
+            alpha: 0.3,
+          });
+      }
+    }
+    this.statuses.end();
+    for (const [id, jet] of this.jets) {
+      jet.life -= dt;
+      jet.material.uniforms.uTime.value = this.time;
+      jet.material.uniforms.uFade.value = Math.max(
+        0,
+        Math.min(1, jet.life * 5),
+      );
+      jet.mesh.visible = jet.life > 0;
+      const alive = m.units.some((u) => u.id === id);
+      if (!alive && jet.life <= 0) {
+        jet.mesh.removeFromParent();
+        jet.material.dispose();
+        this.jets.delete(id);
+      }
+    }
+    this.beats.update(dt);
+    this.shocks.update(dt);
+    this.chills.update(dt);
+  }
+
+  dispose() {
+    this.statuses.dispose();
+    this.beats.dispose();
+    this.shocks.dispose();
+    this.chills.dispose();
+    for (const jet of this.jets.values()) {
+      jet.mesh.removeFromParent();
+      jet.material.dispose();
+    }
+    this.jets.clear();
+    this.jetGeometry.dispose();
   }
 }

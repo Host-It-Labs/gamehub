@@ -1,4 +1,5 @@
 'use client';
+import { resolutionFloor } from './quality';
 import {
   useCallback,
   useEffect,
@@ -14,12 +15,13 @@ import {
   Crown,
   LogOut,
   Pause,
+  LayoutGrid,
   RotateCcw,
   Settings2,
   Swords,
   WifiOff,
 } from 'lucide-react';
-import { cards, isSpell, type CardId } from '@/lib/games/arena/cards';
+import { cards, deck, isSpell, type CardId } from '@/lib/games/arena/cards';
 import {
   MAX_ELIXIR,
   nearestLegal,
@@ -40,14 +42,16 @@ import {
 } from '@/components/ui/dialog';
 import * as THREE from 'three';
 import { toWorld } from '@/lib/games/arena/layout';
-import { totalBytes, filesFor, type Progress } from './assets';
+import { arenaManifest, totalBytes, filesFor, type Progress } from './assets';
 import { pickQuality, prepare, type Prepared } from './load';
 import { ArenaView, type Bar } from './view';
 import { TROOP_SCALE } from './troops';
 import { ArenaRules } from './arena-rules';
+import { CardBrowser, CardPeek } from './card-info';
 import { GameMenu } from '../game-menu';
 import { recordCompletedGame } from '../play-experience';
-import { SoloSession, type Session } from './session';
+import { SoloSession, type Session, type SoloSetup } from './session';
+import { DeckLayer } from './deck-layer';
 import type { OnlineSession } from './online';
 import { Pacer, ladder } from './pacer';
 import { ArenaSound } from './sound';
@@ -137,6 +141,7 @@ type BarEl = {
   asleep: boolean;
   pinned: boolean;
   text: number;
+  shield: number;
 };
 
 export default function ArenaGame({
@@ -148,9 +153,19 @@ export default function ArenaGame({
   music = 0.6,
   onExit,
   sound,
+  setup,
+  onFinish,
+  leaveNote,
 }: {
   difficulty?: Difficulty;
   mode?: Mode;
+  /** Decks and boosts for a battle on this device (Versus decks, Quest). */
+  setup?: SoloSetup;
+  /** A Quest battle: the results offer only Continue, which reports the
+   *  outcome here. */
+  onFinish?: (outcome: 'won' | 'lost' | 'draw', crowns: number) => void;
+  /** What leaving keeps, said in the leave dialog (a Quest run is saved). */
+  leaveNote?: string;
   /** An online room; without one the battle is against bots here. */
   online?: OnlineSession;
   learn?: boolean;
@@ -162,7 +177,7 @@ export default function ArenaGame({
   sound: ReactNode;
 }) {
   const [session] = useState<Session>(
-    () => online ?? new SoloSession(difficulty, mode),
+    () => online ?? new SoloSession(difficulty, mode, setup),
   );
   const subscribe = useCallback(
     (listener: () => void) => session.subscribe(listener),
@@ -177,6 +192,12 @@ export default function ArenaGame({
         : String(session.round),
     () => '',
   );
+  // The deck phase before a Versus battle (deck-layer.tsx) covers the HUD.
+  const decking = useSyncExternalStore(
+    subscribe,
+    () => session.phase !== null,
+    () => false,
+  );
   const [quality] = useState(pickQuality);
   const [progress, setProgress] = useState<Progress>({
     loaded: 0,
@@ -190,9 +211,9 @@ export default function ArenaGame({
   const [hud, setHud] = useState<Hud | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [dragSlot, setDragSlot] = useState<number | null>(null);
-  const [panel, setPanel] = useState<'menu' | 'rules' | 'leave' | null>(
-    learn ? 'rules' : null,
-  );
+  const [panel, setPanel] = useState<
+    'menu' | 'rules' | 'leave' | 'cards' | null
+  >(learn ? 'rules' : null);
   const [showResults, setShowResults] = useState(false);
   const [shake, setShake] = useState(0);
   const [attempt, setAttempt] = useState(0);
@@ -352,9 +373,9 @@ export default function ArenaGame({
     if (root.current) observer.observe(root.current);
     if (dock.current) observer.observe(dock.current);
     window.visualViewport?.addEventListener('resize', measure);
-    // Never below about a density of 1.2 unless the screen's is lower.
+    // Preserve native clarity even at the lowest rendering rung.
     const pacer = new Pacer(
-      ladder(quality.shadowSize, Math.min(0.7, 1.2 / quality.pixelRatio)),
+      ladder(quality.shadowSize, resolutionFloor(quality.pixelRatio)),
       (rung) => v.setRung(rung),
     );
     if (process.env.NODE_ENV === 'development')
@@ -394,6 +415,7 @@ export default function ArenaGame({
             x: NaN,
             y: NaN,
             hp: -1,
+            shield: -1,
             visible: false,
             asleep: false,
             pinned: false,
@@ -426,6 +448,11 @@ export default function ArenaGame({
         if (hp !== bar.hp) {
           bar.hp = hp;
           bar.el.style.setProperty('--hp', String(hp));
+        }
+        const shield = Math.round((b.shield ?? 0) * 100) / 100;
+        if (shield !== bar.shield) {
+          bar.shield = shield;
+          bar.el.style.setProperty('--shield', String(shield));
         }
         const asleep = !!b.asleep;
         if (asleep !== bar.asleep) {
@@ -528,14 +555,20 @@ export default function ArenaGame({
       if (card && at && spot)
         v.ghost.show(card, spot[0], spot[1], elixir >= cards[card].cost, at);
       else v.ghost.show(null, 0, 0, false);
-      // What would shoot the troop there shows its reach in red.
-      v.threats.show(
-        card && at && spot && m.phase !== 'over'
+      // Enemies that could hit the placement show a compact warning above them.
+      v.showThreats(
+        m,
+        spot && card && elixir >= cards[card].cost
           ? threatsAt(m, seat.side, card, spot[0], spot[1])
           : [],
       );
       // A held spell may land anywhere: the whole field lights up.
-      v.overlay.refresh(m, seat.side, card !== null && isSpell(card));
+      v.overlay.refresh(
+        m,
+        seat.side,
+        card !== null && isSpell(card),
+        card ?? undefined,
+      );
       v.frame(m, alpha, dt, now / 1000);
       drawBars(v.bars(m));
       // The elixir beads and card fills move every frame; the rest on change.
@@ -714,12 +747,15 @@ export default function ArenaGame({
 
   const cardUrl = (id: CardId) => prepared?.cards[id];
   const loading = (!prepared || warming) && !error;
-  const pct =
-    prepared || !progress.total
-      ? prepared
-        ? 1
-        : 0
-      : Math.min(1, progress.loaded / progress.total);
+  // Downloading is most of the bar; decoding and building the shaders
+  // fill the rest, so it never sits full while the battle is not ready.
+  const pct = prepared
+    ? warming
+      ? 0.94
+      : 1
+    : progress.total
+      ? Math.min(1, progress.loaded / progress.total) * 0.86
+      : 0;
   const room = online?.room;
   const waiting = !!room && room.status === 'waiting' && !loading;
   void roomKey;
@@ -744,6 +780,7 @@ export default function ArenaGame({
       className="arena-game at-table"
       data-phase={hud?.phase ?? 'loading'}
       data-selected={selected !== null ? 'true' : 'false'}
+      data-decking={decking ? 'true' : undefined}
     >
       <canvas
         ref={canvas}
@@ -816,11 +853,17 @@ export default function ArenaGame({
             }
             onResume={session.canPause ? () => {} : undefined}
             onRules={() => setPanel('rules')}
-            items={
-              session.kind === 'solo'
+            items={[
+              ...(session.kind === 'solo' && !onFinish
                 ? [{ label: 'Restart', icon: RotateCcw, onSelect: again }]
-                : []
-            }
+                : []),
+              // Every card's stats (card-info.tsx).
+              {
+                label: 'Cards',
+                icon: LayoutGrid,
+                onSelect: () => setPanel('cards'),
+              },
+            ]}
             sound={sound}
             onLeave={() => setPanel('leave')}
           />
@@ -830,9 +873,9 @@ export default function ArenaGame({
         <div className="arena-overtime" aria-hidden="true" />
       )}
       {hud?.phase === 'ready' && prepared && !waiting && (
-        <div className="arena-ready" aria-hidden="true">
+        <output className="arena-ready" aria-label="Ready to battle">
           <Swords />
-        </div>
+        </output>
       )}
       {waiting && room && (
         <section className="arena-waiting" aria-label="Players">
@@ -893,8 +936,12 @@ export default function ArenaGame({
                     }
                   }}
                 >
-                  {cardUrl(id) && (
+                  {cardUrl(id) ? (
                     <img src={cardUrl(id)} alt="" draggable={false} />
+                  ) : (
+                    <span className="arena-card-name" aria-hidden="true">
+                      {cards[id].name}
+                    </span>
                   )}
                   <span className="arena-card-short" aria-hidden="true" />
                   <span className="arena-cost">{cards[id].cost}</span>
@@ -933,6 +980,23 @@ export default function ArenaGame({
           </>
         )}
       </div>
+      {/* Hovering a hand card or a troop shows its card at the right
+          (desktop); card-info.tsx. */}
+      <CardPeek
+        root={root}
+        canvas={canvas}
+        view={view}
+        session={session}
+        hand={cardEls}
+        art={prepared?.cards}
+        enabled={!!prepared && !warming && panel === null && !showResults}
+      />
+      <CardBrowser
+        open={panel === 'cards'}
+        onOpenChange={(open) => setPanel(open ? 'cards' : null)}
+        boost={session.match.players[session.you]?.boost}
+        art={prepared?.cards}
+      />
       {dragSlot !== null && hud && cardUrl(hud.hand[dragSlot]) && (
         <img
           className="arena-drag-card"
@@ -944,26 +1008,61 @@ export default function ArenaGame({
       {loading && (
         <div className="arena-loading" aria-busy="true">
           <picture className="arena-loading-art">
-            <img src="/art/optimized/box-arena-wide-v1.webp" alt="" />
+            <source
+              media="(max-aspect-ratio: 4/5)"
+              srcSet="/art/optimized/arena-loading-tall.webp"
+            />
+            <img
+              src="/art/optimized/arena-loading-wide.webp"
+              alt=""
+              onError={(e) => {
+                e.currentTarget.style.visibility = 'hidden';
+              }}
+            />
           </picture>
-          <div className="arena-loading-panel">
+          <div className="arena-loading-foot">
+            <ul className="arena-loading-cards" aria-hidden="true">
+              {(session.match.players[session.you]?.deck ?? deck)
+                .slice(0, 8)
+                .map((id, i, list) => (
+                  <li
+                    key={id}
+                    style={{ '--i': i } as CSSProperties}
+                    data-in={pct >= (i + 1) / (list.length + 1)}
+                  >
+                    {arenaManifest.cards[id] && (
+                      <img
+                        src={arenaManifest.cards[id].path}
+                        alt=""
+                        draggable={false}
+                      />
+                    )}
+                  </li>
+                ))}
+            </ul>
+            <progress
+              className="sr-only"
+              max={100}
+              value={Math.round(pct * 100)}
+              aria-label="Loading"
+            />
             <div
               className="arena-loading-bar"
+              aria-hidden="true"
               style={{ '--p': pct } as CSSProperties}
             >
               <i />
+              <b>{Math.round(pct * 100)}%</b>
             </div>
-            <p>
-              {progress.cached
-                ? 'Opening from this device'
-                : `${(progress.loaded / 1048576).toFixed(1)} / ${(progress.total / 1048576).toFixed(1)} MB`}
-            </p>
-            <small>
-              The first battle downloads the 3D art once; after that it opens
-              from this device.
-            </small>
           </div>
         </div>
+      )}
+      {!error && (
+        <DeckLayer
+          session={session}
+          loading={loading}
+          art={(id) => cardUrl(id) ?? arenaManifest.cards[id]?.path}
+        />
       )}
       {error && (
         <div className="arena-loading">
@@ -1022,20 +1121,31 @@ export default function ArenaGame({
               })}
             </div>
             <div
-              className={`arena-results-actions ${session.host ? '' : 'single'}`}
+              className={`arena-results-actions ${session.host && !onFinish ? '' : 'single'}`}
             >
-              {session.host && (
+              {onFinish && (
+                <button
+                  type="button"
+                  className="arena-button"
+                  onClick={() => onFinish(hud.outcome ?? 'draw', hud.mine)}
+                >
+                  <Swords aria-hidden="true" /> Continue
+                </button>
+              )}
+              {session.host && !onFinish && (
                 <button type="button" className="arena-button" onClick={again}>
                   <RotateCcw aria-hidden="true" /> Again
                 </button>
               )}
-              <button
-                type="button"
-                className="arena-button quiet"
-                onClick={onExit}
-              >
-                {online ? 'Table' : 'Games'}
-              </button>
+              {!onFinish && (
+                <button
+                  type="button"
+                  className="arena-button quiet"
+                  onClick={onExit}
+                >
+                  {online ? 'Table' : 'Games'}
+                </button>
+              )}
             </div>
           </section>
         </div>
@@ -1066,9 +1176,10 @@ export default function ArenaGame({
             <>
               <DialogTitle>Leave the battle?</DialogTitle>
               <DialogDescription>
-                {online
-                  ? 'A bot plays your seat until you come back.'
-                  : 'This battle ends when you leave.'}
+                {leaveNote ??
+                  (online
+                    ? 'A bot plays your seat until you come back.'
+                    : 'This battle ends when you leave.')}
               </DialogDescription>
               <button type="button" className="arena-button" onClick={onExit}>
                 <LogOut aria-hidden="true" /> Leave

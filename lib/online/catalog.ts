@@ -8,6 +8,10 @@ export const onlineCatalog = [
     name: standaloneGames[id].name,
     cover: boxCover(id)!,
     genre:
-      id === 'orin' ? 'Knowing each other' : 'Trivia',
+      id === 'orin'
+        ? 'Knowing each other'
+        : id === 'impostor'
+          ? 'Drawing & deduction'
+          : 'Trivia',
   })),
 ];

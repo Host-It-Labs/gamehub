@@ -1,4 +1,5 @@
 import { printedBoxArt } from './box-covers.ts';
+import { isGameAvailable } from './availability.ts';
 import type { GameId } from './trio/engine';
 import { standaloneGames } from './standalone/registry.ts';
 import type { StandaloneId } from './standalone/types.ts';
@@ -76,7 +77,7 @@ export const realGames: Record<GameId, LibraryGame> = {
     world: 'A pirate treasure map at night, and a table of tricks nobody wants',
     duration: '5–10 min',
     durationSpoken: '5 to 10 minutes',
-    players: [2, 6],
+    players: [3, 6],
     mode: 'Competitive',
     weight: 2,
     genre: 'Trick taking',
@@ -144,7 +145,7 @@ const partyBoxes = {
     playing: [],
   }),
   miro: own('miro', {
-    world: 'Quick trivia rounds: pin places on the globe, size things up',
+    world: 'Quick trivia rounds: pin places, size things up, date events, put things in order',
     duration: '5–60 min+',
     durationSpoken: '5 to 60 minutes or more',
     players: [2, 6],
@@ -156,16 +157,33 @@ const partyBoxes = {
     motif: 'flame',
     playing: [],
   }),
+  impostor: own('impostor', {
+    world:
+      'Everyone draws the same secret word, except the impostor, who got a close one and doesn’t know it. Find them',
+    duration: '10–40 min',
+    durationSpoken: '10 to 40 minutes',
+    players: [3, 8],
+    mode: 'Competitive',
+    weight: 1,
+    genre: 'Drawing & deduction',
+    material: 'kraft',
+    palette: ['#18213a', '#d2372b', '#f5ecd6'],
+    motif: 'grid',
+    playing: [],
+  }),
 };
-/** Dial is played inside Tribu and Sizes inside Sabi; their old tables open
- * the set's box. */
+/** The games inside Know Me and Quiz have no box of their own; their
+ * tables open the set's box. */
 export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
   ...partyBoxes,
   dial: partyBoxes.orin,
+  coins: partyBoxes.orin,
   size: partyBoxes.miro,
+  year: partyBoxes.miro,
+  order: partyBoxes.miro,
 };
 
-export const libraryGames: LibraryGame[] = [
+const allLibraryGames: LibraryGame[] = [
   {
     id: 'folio',
     name: 'Folio',
@@ -220,10 +238,66 @@ export const libraryGames: LibraryGame[] = [
     motif: 'tent',
     playing: [],
   },
+  {
+    id: 'rota',
+    name: 'Rota',
+    href: '/rota',
+    ...printedBoxArt('rota'),
+    world:
+      'Everyone rolls the same dice and draws roads and rails on their own survey map. Link the exits, dodge loose ends',
+    duration: '10–20 min',
+    durationSpoken: '10 to 20 minutes',
+    players: [1, 6],
+    mode: 'Competitive',
+    weight: 2,
+    genre: 'Roll & draw',
+    material: 'board',
+    palette: ['#1f5498', '#f1f6ff', '#d8b26a'],
+    motif: 'train',
+    playing: [],
+  },
+  {
+    id: 'alto',
+    name: 'Alto',
+    href: '/alto',
+    ...printedBoxArt('alto'),
+    world:
+      'Fly your little ship between planets, share their cargo and build up your ship and your home base over three years',
+    duration: '10–20 min',
+    durationSpoken: '10 to 20 minutes',
+    players: [2, 6],
+    mode: 'Competitive',
+    weight: 3,
+    genre: 'Engine building',
+    material: 'cloth',
+    palette: ['#1d2550', '#f3eadb', '#f0a040'],
+    motif: 'wind',
+    playing: [],
+  },
+  {
+    id: 'diner',
+    name: 'Diner',
+    href: '/diner',
+    ...printedBoxArt('diner'),
+    world:
+      'Run a roadside diner at night: seat, cook, serve and clear, and throw out the mimics hiding among your guests',
+    duration: '3 min',
+    durationSpoken: '3 minutes',
+    players: [1, 4],
+    mode: 'Co-op',
+    weight: 2,
+    genre: 'Real-time diner',
+    material: 'board',
+    palette: ['#c8162f', '#fff4de', '#7fd6c2'],
+    motif: 'cup',
+    playing: [],
+  },
   ...Object.values(realGames),
   standaloneLibraryGames.orin,
   standaloneLibraryGames.miro,
+  standaloneLibraryGames.impostor,
 ];
+export const libraryGames = allLibraryGames.filter((game) => isGameAvailable(game.id));
 export const playableGame = (id: string) =>
   libraryGames.find(
     (g) => g.id === id && (g.gameId || g.standaloneId || g.href),
@@ -240,10 +314,14 @@ const sectionsById = {
   strategy: {
     id: 'strategy',
     title: 'Strategy',
-    games: ['arena', 'undertow', 'wildgrove', 'midnight'],
+    games: ['arena', 'alto', 'rota', 'undertow', 'wildgrove', 'midnight'],
   },
-  party: { id: 'party', title: 'Party', games: ['orin', 'miro'] },
-  solo: { id: 'solo', title: 'Solo & co-op', games: ['folio', 'relic'] },
+  party: {
+    id: 'party',
+    title: 'Party',
+    games: ['impostor', 'orin', 'miro'],
+  },
+  solo: { id: 'solo', title: 'Solo & co-op', games: ['diner', 'folio', 'relic'].filter(isGameAvailable) },
 } satisfies Record<string, LibrarySection>;
 /** On the landing page strategy leads, then the games you can start by
  * yourself. */

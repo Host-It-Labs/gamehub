@@ -12,6 +12,7 @@ import {
   foodBreakdown,
   cardName,
   sanctuaryGoalsFor,
+  upgradeSave,
 } from '../lib/games/trio/engine.ts';
 import { chooseMove } from '../lib/games/trio/bot.ts';
 const card = (kind, id = kind, rank = 0) => ({ kind, id, rank });
@@ -131,39 +132,161 @@ await test('Roam enforces die, capacity and private locking', () => {
     false,
   );
 });
-await test('Turning Tide changes only the led-suit winner on even tricks', () => {
-  for (const pick of [1, 2]) {
-    let g = createGame(
-      'undertow',
-      'easy',
-      7,
-      false,
-      3,
-      true,
-      false,
-      false,
-      false,
-      { turningTide: true },
-    );
-    g.phase = 'play';
-    g.active = 0;
-    g.pick = pick;
-    g.hazard = 0;
-    g.players[0].hand = [card(0, 1, 3), card(1, 10, 1)];
-    g.players[1].hand = [card(0, 2, 8), card(1, 11, 2)];
-    g.players[2].hand = [card(4, 3, 1), card(1, 12, 3)];
-    for (let actor = 0; actor < 3; actor++)
-      g = play(g, { type: 'play', card: actor + 1 }, actor);
-    assert.equal(g.active, pick === 1 ? 1 : 0);
-    assert.equal(g.players[g.active].score, 41);
+const noxAt = (options, fastMode = false) => {
+  const g = createGame('undertow', 'easy', 7, false, 3, false, fastMode, false, false, options);
+  g.phase = 'play';
+  g.active = 0;
+  g.hazard = 0;
+  return g;
+};
+const trick = (g, cards) => {
+  const lead = g.active;
+  cards.forEach((id, i) => {
+    g = play(g, { type: 'play', card: id }, (lead + i) % 3);
+  });
+  return g;
+};
+await test('Gold takes its value off whoever wins the top card of the die suit', () => {
+  for (const { fast, top, marked, value } of [
+    { fast: false, top: 10, marked: 8, value: 20 },
+    { fast: true, top: 5, marked: 4, value: 10 },
+  ]) {
+    let g = noxAt({ gold: true }, fast);
+    g.players[0].hand = [card(0, 1, top), card(1, 11, 1)];
+    g.players[1].hand = [card(0, 2, marked), card(1, 12, 2)];
+    g.players[2].hand = [card(4, 3, 3), card(1, 13, 3)];
+    g = trick(g, [1, 2, 3]);
+    const markedValue = fast ? 20 : 40;
+    assert.equal(g.players[0].score, markedValue + 3 - value);
+    assert.equal(g.events.findLast((e) => e.type === 'trick').points, markedValue + 3 - value);
+    // Scores may go below zero.
+    let alone = noxAt({ gold: true }, fast);
+    alone.players[0].hand = [card(0, 1, top), card(1, 11, 1)];
+    alone.players[1].hand = [card(0, 2, 1), card(1, 12, 2)];
+    alone.players[2].hand = [card(0, 3, 2), card(1, 13, 3)];
+    alone = trick(alone, [1, 2, 3]);
+    assert.equal(alone.players[0].score, -value);
+    assert.ok(isSavedGame(alone));
   }
+  // Without the extension the same card is worth nothing.
+  let plain = noxAt({});
+  plain.players[0].hand = [card(0, 1, 10), card(1, 11, 1)];
+  plain.players[1].hand = [card(0, 2, 1), card(1, 12, 2)];
+  plain.players[2].hand = [card(0, 3, 2), card(1, 13, 3)];
+  plain = trick(plain, [1, 2, 3]);
+  assert.equal(plain.players[0].score, 0);
+});
+await test('Anchor doubles the trick that holds the Storm 1', () => {
+  for (const fast of [false, true]) {
+    const marked = fast ? 4 : 8;
+    const markedValue = fast ? 20 : 40;
+    const deal = (g) => {
+      // Storm is led; seat 2 sinks the Anchor under seat 1's bigger Storm card.
+      g.players[0].hand = [card(4, 1, 3), card(1, 11, 1)];
+      g.players[1].hand = [card(4, 2, 6), card(1, 12, 2)];
+      g.players[2].hand = [card(4, 3, 1), card(1, 13, 3)];
+      return g;
+    };
+    let g = deal(noxAt({ anchor: true }, fast));
+    g = trick(g, [1, 2, 3]);
+    const settled = g.events.findLast((e) => e.type === 'trick');
+    assert.equal(settled.anchor, true);
+    assert.equal(settled.player, 1);
+    assert.deepEqual(settled.scoreChanges, [0, (3 + 6 + 1) * 2, 0]);
+    assert.ok(isSavedGame(g));
+    // Everything in the trick counts double: the marked card, and Gold.
+    let both = noxAt({ anchor: true, gold: true }, fast);
+    both.players[0].hand = [card(0, 1, marked), card(1, 11, 1)];
+    both.players[1].hand = [card(0, 2, fast ? 5 : 10), card(1, 12, 2)];
+    both.players[2].hand = [card(4, 3, 1), card(1, 13, 3)];
+    both = trick(both, [1, 2, 3]);
+    assert.equal(both.players[1].score, (markedValue - markedValue / 2 + 1) * 2);
+    // Without the extension the Storm 1 is just a card.
+    let plain = deal(noxAt({}, fast));
+    plain = trick(plain, [1, 2, 3]);
+    assert.deepEqual(scores(plain), [0, 10, 0]);
+    assert.equal(plain.events.findLast((e) => e.type === 'trick').anchor, undefined);
+  }
+  // The Anchor plays with every deck and seat count; other games never carry it.
+  for (const [count, fast] of [[3, true], [4, true], [6, false]])
+    assert.equal(createGame('undertow', 'easy', 7, false, count, false, fast, false, false, { anchor: true }).anchor, true);
+  assert.equal(createGame('wildgrove', 'easy', 7, false, 3, false, false, false, false, { anchor: true }).anchor, false);
+});
+await test('saves from the retired Mutiny play on as plain Nox', () => {
+  const g = noxAt({});
+  g.mutiny = true;
+  g.players.forEach((p) => (p.haul = 3));
+  g.events.push({ id: 9998, type: 'trick', player: 0, text: 'Mutiny!', mutiny: 0 });
+  const upgraded = upgradeSave(JSON.parse(JSON.stringify(g)));
+  assert.ok(isSavedGame(upgraded));
+  assert.equal('mutiny' in upgraded, false);
+  assert.ok(upgraded.players.every((p) => !('haul' in p)));
+  assert.ok(upgraded.events.every((e) => !('mutiny' in e)));
+});
+await test('Dawn adds its points to whoever wins the last trick of the round', () => {
+  for (const { fast, value } of [
+    { fast: false, value: 20 },
+    { fast: true, value: 10 },
+  ]) {
+    const deal = (g) => {
+      // No penalty cards at all: only Dawn can cost anything.
+      g.players[0].hand = [card(1, 1, 1), card(2, 4, 3)];
+      g.players[1].hand = [card(1, 2, 2), card(2, 5, 1)];
+      g.players[2].hand = [card(1, 3, 3), card(3, 6, 2)];
+      return g;
+    };
+    let g = deal(noxAt({ dawn: true }, fast));
+    g = trick(g, [1, 2, 3]);
+    // Not the last trick yet: nothing extra.
+    assert.deepEqual(scores(g), [0, 0, 0]);
+    assert.equal(g.events.findLast((e) => e.type === 'trick').dawn, undefined);
+    // Seat 2 won the first trick, leads its Diamond and takes the last one.
+    g = trick(g, [6, 4, 5]);
+    const last = g.events.findLast((e) => e.type === 'trick');
+    assert.equal(last.dawn, true);
+    assert.equal(last.player, 2);
+    assert.deepEqual(last.scoreChanges, [0, 0, value]);
+    assert.ok(isSavedGame(g));
+    // Without the extension the last trick is free.
+    let plain = deal(noxAt({}, fast));
+    plain = trick(trick(plain, [1, 2, 3]), [6, 4, 5]);
+    assert.deepEqual(scores(plain), [0, 0, 0]);
+  }
+  // Other games never carry Dawn.
+  assert.equal(createGame('wildgrove', 'easy', 7, false, 3, false, false, false, false, { dawn: true }).dawn, false);
+});
+await test('saves from the retired Shields, Turning Tide and Salvage play on as plain Nox', () => {
+  const g = noxAt({});
+  Object.assign(g, {
+    shields: true,
+    turningTide: true,
+    salvage: true,
+    phase: 'salvage',
+    trickLeader: 2,
+    salvageClaimants: [],
+    pending: [null, null, null],
+    ready: [false, true, true],
+  });
+  g.players.forEach((p) => Object.assign(p, { wards: 2, salvageClaims: 1 }));
+  g.lastTrick = [{ player: 0, card: card(3, 90, 2), ward: true }];
+  g.events.push({ id: 9999, type: 'salvage', player: -1, text: 'No salvage claims.' });
+  const upgraded = upgradeSave(JSON.parse(JSON.stringify(g)));
+  assert.ok(isSavedGame(upgraded));
+  assert.equal(upgraded.phase, 'play');
+  assert.equal(upgraded.active, 2);
+  for (const key of ['shields', 'turningTide', 'salvage', 'trickLeader', 'pending', 'ready'])
+    assert.equal(key in upgraded, false, key);
+  assert.ok(upgraded.players.every((p) => !('wards' in p) && !('salvageClaims' in p)));
+  assert.equal('ward' in upgraded.lastTrick[0], false);
+  assert.ok(upgraded.events.every((e) => e.type !== 'salvage'));
+  assert.ok(legalMoves(upgraded).length > 0);
 });
 await test('all extensions compose across content, seat counts and saved pending choices', () => {
   for (const id of ['undertow', 'wildgrove', 'midnight'])
     for (const contentSet of id === 'undertow'
       ? ['beginner']
       : ['beginner', 'intermediate'])
-      for (const count of [2, 3, 6]) {
+      for (const count of id === 'undertow' ? [3, 4] : [2, 3, 6]) {
         let g = createGame(
           id,
           'easy',
@@ -177,7 +300,9 @@ await test('all extensions compose across content, seat counts and saved pending
           {
             contentSet,
             roamEnabled: true,
-            turningTide: true,
+            gold: true,
+            anchor: true,
+            dawn: true,
             marketSeasons: true,
           },
         );
@@ -262,11 +387,12 @@ await test('online settings preserve both extensions and content through practic
         difficulty: 'easy',
         capacity: 3,
         contentSet: gameId === 'undertow' ? 'beginner' : 'intermediate',
-        shields: true,
         customerOrders: true,
         sanctuaryGoalsEnabled: true,
         roamEnabled: true,
-        turningTide: true,
+        gold: true,
+        anchor: true,
+        dawn: true,
         marketSeasons: true,
       });
       command({ type: 'configure', gameId, difficulty: 'medium', capacity: 3 });
@@ -277,13 +403,13 @@ await test('online settings preserve both extensions and content through practic
       );
       const key =
         gameId === 'undertow'
-          ? 'turningTide'
+          ? 'gold'
           : gameId === 'wildgrove'
             ? 'roamEnabled'
             : 'marketSeasons';
       const first =
         gameId === 'undertow'
-          ? 'shields'
+          ? 'anchor'
           : gameId === 'wildgrove'
             ? 'sanctuaryGoalsEnabled'
             : 'customerOrders';

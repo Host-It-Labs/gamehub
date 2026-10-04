@@ -14,25 +14,45 @@ facing +y, with jointed children "<id>.<part>"). Ids:
   ranger    the Cowboy
   drake     the Biplane
   mage      the Wizard
+  pirate    the Pirate          viking    the Viking
+  gladiator the Gladiator       medic     the Medic
+  miner     the Miner           balloon   the Balloon
+  inventor  the Inventor        gunner    the Gunner
+  diver     the Diver           sumo      the Sumo
+  linebacker the Linebacker     beekeeper the Beekeeper
+  drummer   the Drummer         firefighter the Firefighter
+  jetpack   the Jetpack         explorer  the Explorer
+  bee       the Beekeeper's bees (a spawned troop, no card)
+
+ARENA_FIGURES=guard,ranger limits a build to those ids (a figure still
+being written elsewhere then never breaks the others).
 
 One file per figure, `figure_<id>.py`, with a build() that returns the root.
 
   Blender -b --factory-startup --python assets/arena/blender/figures.py -- out.glb [preview.png] [only]
 """
 
+import math
 import importlib
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import kit  # noqa: E402
+import articulation
 
 kit.reset(seed=33)
 # "team", "team2" (dark) and "team3" (light) follow the side at runtime.
 kit.TINTS["team3"] = (0.28, 0.45, 1.0)
 
 ORDER = ["guard", "duelist", "ogre", "archers", "imps", "ranger", "drake",
-         "mage"]
+         "mage", "pirate", "viking", "gladiator", "medic", "miner", "balloon",
+         "inventor", "gunner",
+         # The eight of 1 October 2026 (figure_folk_kit.py) and the bee.
+         "diver", "sumo", "linebacker", "beekeeper", "drummer",
+         "firefighter", "jetpack", "explorer", "bee"]
+if os.environ.get("ARENA_FIGURES"):
+    ORDER = [f for f in ORDER if f in os.environ["ARENA_FIGURES"].split(",")]
 only = None
 argv = sys.argv
 if "--" in argv and len(argv) > argv.index("--") + 3:
@@ -48,10 +68,26 @@ for i, figure in enumerate(ORDER):
     if not os.path.exists(path):
         continue
     r = importlib.import_module(f"figure_{figure}").build()
+    articulation.legs(r, figure)
+    # Readability comes from larger features, not a craned-back neck.
+    head = next((o for o in kit.descendants(r)
+                 if o.name == f"{figure}.head"), None)
+    if head:
+        head.rotation_euler.x += math.radians(
+            {"ogre": 0, "drake": 4, "imps": 4}.get(figure, 5))
+    if figure == "ogre":
+        # An inner visual root survives the runtime's shared figure scaling.
+        # Every limb/joint and the placement preview shrink together.
+        children = list(r.children)
+        visual = kit.empty("ogre.visual")
+        kit.parent(visual, r)
+        for child in children:
+            kit.parent(child, visual)
+        visual.scale = (0.78, 0.78, 0.78)
     r.location = (i * 2.4, 0, 0)
     roots.append(r)
 
-meshes = [o for r in roots for o in kit.descendants(r) if o.type == "MESH"]
+meshes = [o for r in roots for o in kit.descendants(r) if o.type == "MESH" and len(o.data.polygons)]
 for r in roots:
     tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons)
                for o in kit.descendants(r) if o.type == "MESH")

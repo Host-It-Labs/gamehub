@@ -1,0 +1,341 @@
+/* Years on the measuring desk: a brass-and-cream timeline across the green
+ * mat, a close-up vernier ruler beneath it, the year in sun-yellow enamel
+ * digits. The reveal zooms the timeline to where everyone landed. */
+.year-board {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(18px, 4vh, 40px);
+  padding: clamp(18px, 4vh, 44px) clamp(20px, 4vw, 54px);
+}
+.year-readout {
+  align-self: center;
+  font-family: var(--s-display);
+  font-size: clamp(64px, 12vw, 132px);
+  font-weight: 800;
+  line-height: 0.9;
+  color: var(--s-sun);
+  text-shadow:
+    0 4px 0 #b88900,
+    0 18px 40px #0007;
+  font-variant-numeric: tabular-nums;
+}
+.year-readout.is-answer {
+  color: #ffe68a;
+}
+.year-line {
+  position: relative;
+  height: 64px;
+  margin: 0 8px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, #ffffff66, transparent 40%),
+    linear-gradient(90deg, #f1e3bf, #fff5d8 50%, #f1e3bf);
+  box-shadow:
+    0 0 0 1px #0d2a22,
+    0 3px 0 #b9a472,
+    0 12px 26px #0006;
+  touch-action: none;
+  color: var(--s-ink);
+}
+.year-line.is-live {
+  cursor: pointer;
+}
+.year-line:has(.year-range:focus-visible) {
+  outline: 3px solid var(--s-sun);
+  outline-offset: 4px;
+}
+/* Invisible, but it takes focus and arrow keys for the whole ruler. */
+.year-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.year-tick {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 22px;
+  translate: -1px 0;
+  background: #1b2a2466;
+}
+.year-tick small {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  translate: -50% 0;
+  font-family: var(--s-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--s-soft);
+  white-space: nowrap;
+}
+.year-tick.is-first small { translate: 0 0; }
+.year-tick.is-last small { translate: -100% 0; }
+/* The enamel marker: a tomato head on a thin stem through the ruler. */
+.year-pin {
+  position: absolute;
+  top: -22px;
+  bottom: -6px;
+  width: 4px;
+  translate: -2px 0;
+  border-radius: 4px;
+  background: var(--s-tomato-deep);
+  pointer-events: none;
+}
+/* The pin's head is a handle: it stands above the ruler, so it takes its
+ * own pointer and the ruler drags from it. */
+.year-line.is-live .year-pin:before {
+  pointer-events: auto;
+  cursor: grab;
+}
+.year-line.is-live .year-pin:after {
+  /* a wider invisible ring around the head for fingers */
+  pointer-events: auto;
+  cursor: grab;
+  padding: 9px;
+  margin: -9px 0 0;
+  box-sizing: content-box;
+}
+.year-line.is-held .year-pin:before,
+.year-line.is-held .year-pin:after {
+  cursor: grabbing;
+}
+.year-pin:before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffb09c, var(--s-tomato) 45%, var(--s-tomato-deep));
+  box-shadow: 0 4px 8px #0006;
+}
+.year-vernier {
+  position: relative;
+  height: 54px;
+  margin: 0 8px;
+  overflow: hidden;
+  border-radius: 10px;
+  /* the close-up ruler: the same cream as the timeline, shaded at the ends
+   * like a drum turning under the glass */
+  background:
+    linear-gradient(90deg, #1b2a2440, transparent 16%, transparent 84%, #1b2a2440),
+    linear-gradient(180deg, #ffffff66, transparent 40%),
+    linear-gradient(90deg, #f1e3bf, #fff5d8 50%, #f1e3bf);
+  box-shadow:
+    0 0 0 1px #0d2a22,
+    0 3px 0 #b9a472,
+    0 12px 26px #0006;
+  touch-action: none;
+  user-select: none;
+}
+.year-vernier.is-live {
+  cursor: ew-resize;
+}
+.vernier-tick {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 14px;
+  translate: -1px 0;
+  background: #1b2a2466;
+}
+.vernier-tick.is-major {
+  height: 24px;
+  background: var(--s-ink);
+}
+.vernier-tick.is-out {
+  opacity: 0.25;
+}
+.vernier-tick small {
+  position: absolute;
+  top: 27px;
+  left: 50%;
+  translate: -50% 0;
+  font-family: var(--s-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--s-soft);
+}
+.vernier-tick.is-major small {
+  color: var(--s-ink);
+}
+.vernier-needle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  translate: -50% 0;
+  background: var(--s-tomato);
+  box-shadow: 0 0 12px #ff5a3c99;
+}
+/* The main ruler, the loupe's funnel and the close-up ruler, one stack. */
+.year-zoom {
+  display: grid;
+  grid-template-rows: auto 30px auto;
+  /* room for the marker heads standing above the ruler */
+  margin-top: 26px;
+}
+.year-loupe {
+  display: block;
+  width: calc(100% - 16px);
+  height: 100%;
+  margin: 0 8px;
+  overflow: visible;
+}
+.year-loupe polygon {
+  fill: #fff5d82e;
+  stroke: #fff5d88c;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  transition: points 0.22s;
+}
+/* Markers glide between years, except under a dragging finger. */
+.year-pin,
+.party-table.is-sabi .year-mark {
+  transition: left 0.22s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.year-line.is-held .year-pin { transition: none; }
+.year-pin { animation: year-pin-in 0.32s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+.year-pin:after {
+  content: attr(data-step);
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--s-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+}
+@keyframes year-pin-in {
+  from { transform: translateY(-18px) scale(0.6); opacity: 0; }
+}
+/* The other events' markers: small cream enamel heads with their number. */
+.party-table.is-sabi .year-mark {
+  position: absolute;
+  top: -15px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--s-cream) 50%, #d9c79c);
+  color: var(--s-ink);
+  font-family: var(--s-display);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 3px 6px #0005;
+  cursor: pointer;
+}
+.party-table.is-sabi .year-mark:after {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  width: 2px;
+  height: 52px;
+  translate: -1px 0;
+  background: #1b2a2466;
+  pointer-events: none;
+}
+.party-table.is-sabi .year-mark:disabled { opacity: 1; cursor: default; }
+.party-table.is-sabi .year-mark:not(:disabled):hover { scale: 1.12; }
+/* An event not yet placed shows the starting year faintly. */
+.year-readout { transition: opacity 0.2s, scale 0.2s; }
+.year-readout.is-unset { opacity: 0.6; }
+.year-card .sabi-steps span { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .year-pin, .party-table.is-sabi .year-mark { transition: none; animation: none; }
+}
+.year-event {
+  margin: 0;
+  font-family: var(--s-display);
+  font-size: clamp(19px, 2.2vw, 25px);
+  font-weight: 800;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+/* The reveal: the true year in gold, everyone's pins in their colours. */
+.year-line.is-reveal {
+  margin-top: 48px;
+}
+.year-truth {
+  position: absolute;
+  top: -30px;
+  bottom: -4px;
+  width: 6px;
+  translate: -3px 0;
+  border-radius: 6px;
+  background: linear-gradient(#ffe68a, #d9a400);
+  box-shadow: 0 0 22px #ffd23fcc;
+}
+.year-guess {
+  position: absolute;
+  bottom: 100%;
+  translate: -50% 0;
+  padding-bottom: 6px;
+}
+.year-guess:after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -40px;
+  width: 2px;
+  height: 46px;
+  translate: -1px 0;
+  background: var(--seat);
+}
+.year-guess .party-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  font-style: normal;
+  box-shadow: 0 0 0 2px #fff, 0 4px 8px #0005;
+}
+.year-guess.is-you .party-avatar {
+  box-shadow: 0 0 0 3px var(--s-sun), 0 4px 8px #0005;
+}
+.year-guess:nth-child(even of .year-guess) {
+  padding-bottom: 38px;
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  .year-board { gap: 14px; padding: 14px 14px 16px; }
+  .year-line { height: 52px; margin: 0; }
+  .year-tick small { font-size: 10px; }
+  .year-tick.is-odd small { display: none; }
+  .year-vernier { height: 46px; margin: 0; }
+  .year-loupe { width: 100%; margin: 0; }
+  .vernier-tick.is-odd small { display: none; }
+  .year-zoom { grid-template-rows: auto 22px auto; }
+  .year-event { font-size: 18px; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .year-board { gap: 10px; padding: 10px 16px; }
+  .year-readout { font-size: 56px; }
+  .year-line { height: 46px; }
+  .year-vernier { height: 40px; }
+}
+/* The tabs only hold years, short enough to keep all three on any card. */
+@container (max-width: 300px) {
+  .year-card .sabi-steps { display: grid; }
+  .year-card .sabi-steps > :not(.is-current) span { display: inline; }
+  .party-table .year-card .sabi-steps > * { min-width: 0; padding-inline: 4px; }
+}

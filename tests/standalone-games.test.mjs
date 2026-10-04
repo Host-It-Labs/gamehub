@@ -28,6 +28,20 @@ const finish = (entry, g) => {
       g = entry.play(g, { type: 'next' }, 0);
       continue;
     }
+    // Unless the table votes, the host (seat 0) picks what comes next.
+    if (g.phase === 'vote' && g.vote?.host) {
+      g = entry.play(g, {
+        type: 'vote',
+        choice: g.vote.opening
+          ? g.vote.options[g.seats.length % g.vote.options.length]
+          : g.round >= 2
+            ? 'finish'
+            : (g.vote.options ?? []).includes(g.kind)
+              ? g.kind
+              : 'more',
+      }, 0);
+      continue;
+    }
     const waiting = entry.actingSeats(g);
     assert.ok(waiting.length, `${entry.id} is always waiting on somebody`);
     for (const seat of waiting) {
@@ -53,7 +67,11 @@ await test('every standalone game plays through at every table size it offers', 
       // Every set match, under either id, opens on its team game's state.
       assert.equal(
         fresh.kind,
-        id === 'dial' ? 'orin' : id === 'size' ? 'miro' : id,
+        ['dial', 'coins'].includes(id)
+          ? 'orin'
+          : ['size', 'year', 'order'].includes(id)
+            ? 'miro'
+            : id,
       );
       assert.equal(
         fresh.seats.length,
@@ -184,6 +202,10 @@ await test('every box shows its match length on the time badge', () => {
     folio: '5–60 min+',
     relic: '60 min+',
     arena: '5 min',
+    rota: '10–20 min',
+    alto: '10–20 min',
+    ...(process.env.NODE_ENV === 'development' ? { diner: '3 min' } : {}),
+    impostor: '10–40 min',
   });
   for (const game of libraryGames) {
     assert.doesNotMatch(game.duration, /\bh\b/, `${game.id} counts minutes`);

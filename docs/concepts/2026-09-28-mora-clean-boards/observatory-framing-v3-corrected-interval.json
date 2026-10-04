@@ -1,0 +1,581 @@
+{
+  "assumption": "Read-only simulation correcting reversed landmark-origin interval in frameScene; no runtime file changes",
+  "frames": [
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "covers": true,
+      "scale": 0.5348542458808618,
+      "creatureWidth": 37.97465145754119,
+      "image": {
+        "x": -94.13434727503169,
+        "y": 0,
+        "width": 533.2496831432193,
+        "height": 844
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            11.77,
+            126.23,
+            135.85,
+            183.46
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            174.9,
+            100.02,
+            202.71,
+            230.52
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            0,
+            313.42,
+            180.25,
+            165.8
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            207.52,
+            318.77,
+            164.2,
+            181.32
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            1.07,
+            468,
+            162.6,
+            177.04
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            184.52,
+            518.81,
+            194.15,
+            148.69
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    },
+    {
+      "viewport": [
+        393,
+        852
+      ],
+      "covers": true,
+      "scale": 0.5399239543726235,
+      "creatureWidth": 38.33460076045627,
+      "image": {
+        "x": -95.02661596958174,
+        "y": 1.1368683772161603e-13,
+        "width": 538.3041825095056,
+        "height": 851.9999999999999
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            11.88,
+            127.42,
+            137.14,
+            185.19
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            176.56,
+            100.97,
+            204.63,
+            232.71
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            0,
+            316.4,
+            181.95,
+            167.38
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            209.49,
+            321.79,
+            165.76,
+            183.03
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            1.08,
+            472.43,
+            164.14,
+            178.71
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            186.27,
+            523.73,
+            195.99,
+            150.1
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    },
+    {
+      "viewport": [
+        430,
+        932
+      ],
+      "covers": true,
+      "scale": 0.5906210392902408,
+      "creatureWidth": 41.9340937896071,
+      "image": {
+        "x": -103.94930291508238,
+        "y": 0,
+        "width": 588.8491761723701,
+        "height": 932
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            12.99,
+            139.39,
+            150.02,
+            202.58
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            193.13,
+            110.45,
+            223.85,
+            254.56
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            0,
+            346.1,
+            199.04,
+            183.09
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            229.16,
+            352.01,
+            181.32,
+            200.22
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            1.18,
+            516.79,
+            179.55,
+            195.5
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            203.76,
+            572.9,
+            214.4,
+            164.19
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    },
+    {
+      "viewport": [
+        375,
+        812
+      ],
+      "covers": true,
+      "scale": 0.514575411913815,
+      "creatureWidth": 36.53485424588086,
+      "image": {
+        "x": -90.56527249683143,
+        "y": 0,
+        "width": 513.0316856780735,
+        "height": 812
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            11.32,
+            121.44,
+            130.7,
+            176.5
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            168.27,
+            96.23,
+            195.02,
+            221.78
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            0,
+            301.54,
+            173.41,
+            159.52
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            199.66,
+            306.69,
+            157.97,
+            174.44
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            1.03,
+            450.25,
+            156.43,
+            170.32
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            177.53,
+            499.14,
+            186.79,
+            143.05
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    },
+    {
+      "viewport": [
+        360,
+        780
+      ],
+      "covers": true,
+      "scale": 0.49429657794676807,
+      "creatureWidth": 35.09505703422053,
+      "image": {
+        "x": -86.99619771863118,
+        "y": 0,
+        "width": 492.8136882129278,
+        "height": 780
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            10.87,
+            116.65,
+            125.55,
+            169.54
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            161.63,
+            92.43,
+            187.34,
+            213.04
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            0,
+            289.66,
+            166.58,
+            153.23
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            191.79,
+            294.6,
+            151.75,
+            167.57
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            0.99,
+            432.51,
+            150.27,
+            163.61
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            170.53,
+            479.47,
+            179.43,
+            137.41
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    },
+    {
+      "viewport": [
+        412,
+        915
+      ],
+      "covers": true,
+      "scale": 0.5798479087452472,
+      "creatureWidth": 41.16920152091255,
+      "image": {
+        "x": -102.0532319391635,
+        "y": 0,
+        "width": 578.1083650190114,
+        "height": 915
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            12.76,
+            136.84,
+            147.28,
+            198.89
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            189.61,
+            108.43,
+            219.76,
+            249.91
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            0,
+            339.79,
+            195.41,
+            179.75
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            224.98,
+            345.59,
+            178.01,
+            196.57
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            1.16,
+            507.37,
+            176.27,
+            191.93
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            200.05,
+            562.45,
+            210.48,
+            161.2
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    },
+    {
+      "viewport": [
+        390,
+        664
+      ],
+      "covers": false,
+      "scale": 0.4207858048162231,
+      "creatureWidth": 29.875792141951838,
+      "image": {
+        "x": -29.523447401774433,
+        "y": -27.472750316856775,
+        "width": 419.52344740177443,
+        "height": 664
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            53.79,
+            71.83,
+            106.88,
+            144.33
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            182.13,
+            51.21,
+            159.48,
+            181.36
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            44.53,
+            219.11,
+            141.8,
+            130.44
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            207.8,
+            223.32,
+            129.18,
+            142.65
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            45.38,
+            340.71,
+            127.92,
+            139.28
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            189.71,
+            380.69,
+            152.75,
+            116.98
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    },
+    {
+      "viewport": [
+        768,
+        1024
+      ],
+      "covers": true,
+      "scale": 0.7703109327983951,
+      "creatureWidth": 54.692076228686055,
+      "image": {
+        "x": 0,
+        "y": -110.96288866599795,
+        "width": 768,
+        "height": 1215.5506519558676
+      },
+      "landmarks": [
+        {
+          "name": "roof garden",
+          "rect": [
+            152.52,
+            70.83,
+            195.66,
+            264.22
+          ]
+        },
+        {
+          "name": "observatory",
+          "rect": [
+            387.47,
+            33.09,
+            291.95,
+            332
+          ]
+        },
+        {
+          "name": "root hollow",
+          "rect": [
+            135.57,
+            340.44,
+            259.59,
+            238.8
+          ]
+        },
+        {
+          "name": "watchpost",
+          "rect": [
+            434.46,
+            348.14,
+            236.49,
+            261.14
+          ]
+        },
+        {
+          "name": "glasshouse",
+          "rect": [
+            137.12,
+            563.06,
+            234.17,
+            254.97
+          ]
+        },
+        {
+          "name": "dry channel",
+          "rect": [
+            401.33,
+            636.24,
+            279.62,
+            214.15
+          ]
+        }
+      ],
+      "allLandmarksOnSurface": true
+    }
+  ]
+}

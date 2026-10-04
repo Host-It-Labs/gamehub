@@ -70,8 +70,8 @@ export function LuckyRules() {
         note="Early print lowers these counts."
       >
         <p>
-          Difficulty <b>II</b> opens after <b>{LEVEL_AT[1]}</b> tickets of a book
-          and <b>III</b> after <b>{LEVEL_AT[2]}</b>, paying{' '}
+          Difficulty <b>II</b> opens after <b>{LEVEL_AT[1]}</b> tickets of a
+          book and <b>III</b> after <b>{LEVEL_AT[2]}</b>, paying{' '}
           <b>×{levelMult(0, 1)}</b> and <b>×{levelMult(0, 2)}</b>. Easier ones
           stay open.
         </p>
@@ -97,7 +97,23 @@ export function LuckyRules() {
           The <b>factory</b> costs {formatNumber(BLUEPRINTS[0].price)} and runs
           while someone has Lucky open. <b>Printers</b> print free tickets at a
           book&rsquo;s highest difficulty, <b>bots</b> scratch them,{' '}
-          <b>cashiers</b> sell them and <b>belts</b> link them.
+          <b>cashiers</b> sell them and <b>belts</b> link them. One printer
+          keeps <b>three bots</b> busy.
+        </p>
+        <p>
+          Each machine&rsquo;s lamp shows how it is doing: <b>green</b> working,{' '}
+          <b>amber</b> waiting for room, <b>red</b> stuck, dark with nothing to
+          do. Pick a machine to see where tickets go in (green arrows) and come
+          out (orange).
+        </p>
+      </RuleSection>
+      <RuleSection
+        title="Inspect the floor"
+        note="Keys: + and − zoom, F fits the floor, P pans."
+      >
+        <p>
+          Use the <b>wheel</b> or <b>pinch</b> to zoom. Pick <b>Pan</b> to drag
+          the view, or <b>Fit</b> to see the whole factory again.
         </p>
       </RuleSection>
       <RuleSection title="Play together">

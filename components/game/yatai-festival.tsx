@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { ReceiptText } from 'lucide-react';
 import { Piece, type Inspect } from './interactions';
-import { RuleSection } from './rules';
+import { RuleList, RuleSection } from './rules';
 import { ExtensionAction } from './extension-action';
 import {
   availableOrders,
@@ -168,9 +168,28 @@ export function FestivalControls({
     );
   const locked = disabled || !canAct(g, viewer);
   const orders = festivalBreakdown(g.players[viewer]).orders;
+  const longMenu = (g.menuRounds ?? 2) >= 3 && g.customerOrders;
+  const past = orders.filter((_, i) => orderSettled(g, viewer, i));
+  const inspectPast = () => inspect({
+    title: 'Completed orders',
+    body: <RuleSection note="Only each order’s own round counts. Your dishes still score as usual.">
+      <RuleList items={past.map((entry, i) => ({
+        name: `Round ${i + 1} · ${festivalOrders[entry.order].name}`,
+        text: `${entry.progress} of 3 dishes · +${entry.points} points`,
+      }))} />
+    </RuleSection>,
+  });
   return (
-    <div className="festival-controls">
-      {orders.map((entry, i) => (
+    <div className={`festival-controls${longMenu ? ' festival-long-menu' : ''}`}>
+      {longMenu && past.length > 0 && (
+        <Piece className="festival-order settled festival-history"
+          label={`Completed orders: ${past.length}, +${past.reduce((sum, entry) => sum + entry.points, 0)} points. Open history.`}
+          onTap={inspectPast} inspect={inspectPast}>
+          <ReceiptText size={18} aria-hidden="true" />
+          <span className="order-reward">+{past.reduce((sum, entry) => sum + entry.points, 0)}</span>
+        </Piece>
+      )}
+      {orders.map((entry, i) => longMenu && orderSettled(g, viewer, i) ? null : (
         <Piece
           key={`chosen-${i}`}
           className={`festival-order ${orderSettled(g, viewer, i) ? 'settled' : ''}`}
@@ -258,7 +277,6 @@ export function FestivalControls({
       )}
       {g.specialtyStalls && (
         <ExtensionAction
-          kind="stall"
           label="Open a stall"
           selected={!!choice.stall}
           count={2 - stalls.length}

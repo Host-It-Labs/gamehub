@@ -7,6 +7,7 @@ import previews from '@/lib/artwork-previews.json';
 import {
   catalog,
   tokenImage,
+  yataWorldFor,
   type ContentSet,
   type GameId,
 } from '@/lib/games/trio/engine';
@@ -101,8 +102,8 @@ export function ArtworkLoading({
         : game === 'wildgrove'
           ? [
               '/art/optimized/mora-paper-fibers-v1.webp',
-              ...[false, true].flatMap((tall) => {
-                const world = paperWorldFor(tall, undefined, paperWorldIdFor(contentSet));
+              ...[[false, false], [true, false], [true, true]].flatMap(([tall, phone]) => {
+                const world = paperWorldFor(tall, undefined, paperWorldIdFor(contentSet), phone);
                 return [world.image, world.boardImage, world.overviewImage];
               }),
               ...Array.from({ length: 6 }, (_, i) =>
@@ -111,8 +112,8 @@ export function ArtworkLoading({
             ]
           : game === 'midnight'
             ? [
-                tableWorldFor('midnight', false).image,
-                tableWorldFor('midnight', true).image,
+                tableWorldFor('midnight', false, undefined, false, yataWorldFor(contentSet)).image,
+                tableWorldFor('midnight', true, undefined, false, yataWorldFor(contentSet)).image,
                 ...Array.from({ length: 6 }, (_, i) =>
                   tokenImage(i, true, contentSet),
                 ),

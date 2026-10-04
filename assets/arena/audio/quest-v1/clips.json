@@ -1,0 +1,291 @@
+[
+  {
+    "id": "shell-shot",
+    "dur": 0.8,
+    "gain": 0.75,
+    "prompt": "A small bronze field cannon fires one shell: a deep punchy round boom with a wooden carriage thump and a short smoke hiss, cartoon game, no music.",
+    "raw": [
+      "shell-shot.mp3"
+    ]
+  },
+  {
+    "id": "zap-chain",
+    "dur": 0.6,
+    "gain": 0.7,
+    "prompt": "Crackling cartoon electric lightning arc jumping quickly between targets: three fast snapping zaps with a buzzing tesla hum, sci-fi, no music.",
+    "raw": [
+      "zap-chain.mp3"
+    ]
+  },
+  {
+    "id": "shell-blast",
+    "dur": 0.7,
+    "gain": 0.8,
+    "prompt": "Cannon shell landing on a dirt battlefield: an earthy thudding explosion with clods of soil scattering, punchy cartoon game, no music.",
+    "raw": [
+      "shell-blast.mp3"
+    ]
+  },
+  {
+    "id": "drop-blast",
+    "dur": 0.9,
+    "gain": 0.85,
+    "prompt": "Heavy bomb dropped from a hot-air balloon explodes on the ground: a big deep punchy boom with a burst of dirt and debris, cartoon game, no music.",
+    "raw": [
+      "drop-blast.mp3"
+    ]
+  },
+  {
+    "id": "balloon-crash",
+    "dur": 1.2,
+    "gain": 0.9,
+    "prompt": "Cartoon hot-air balloon deflating fast with a rubbery flapping raspberry, then a wicker basket crashing into the ground with a big bang, no voices, no music.",
+    "raw": [
+      "balloon-crash.mp3"
+    ]
+  },
+  {
+    "id": "medic-heal",
+    "dur": 0.7,
+    "gain": 0.6,
+    "prompt": "Soft warm healing spell: a gentle glassy chime with a rising twinkle of sparkles, soothing and magical, cartoon game, no music, no voices.",
+    "raw": [
+      "medic-heal.mp3"
+    ]
+  },
+  {
+    "id": "shield-break",
+    "dur": 0.7,
+    "gain": 0.8,
+    "prompt": "Wooden shield with a bronze boss shattering: a sharp splintering wood crack and a ringing bronze clang with pieces clattering, cartoon game, no music.",
+    "raw": [
+      "shield-break.mp3"
+    ]
+  },
+  {
+    "id": "miner-dig",
+    "dur": 0.9,
+    "gain": 0.7,
+    "prompt": "Digging fast underground: a muffled low rumble with scraping pickaxe and shovel sounds through the earth, cartoon game, no music, no voices.",
+    "raw": [
+      "miner-dig.mp3"
+    ]
+  },
+  {
+    "id": "miner-emerge",
+    "dur": 0.7,
+    "gain": 0.8,
+    "prompt": "Bursting up out of the ground: a quick crunchy dirt eruption with a spray of pebbles and soil pattering down, cartoon game, no music, no voices.",
+    "raw": [
+      "miner-emerge.mp3"
+    ]
+  },
+  {
+    "id": "pirate-leap",
+    "dur": 0.5,
+    "gain": 0.7,
+    "prompt": "Quick cartoon jump: a short airy whoosh swooping up and over with a light springy hop, single leap, no music, no voices.",
+    "raw": [
+      "pirate-leap.mp3"
+    ]
+  },
+  {
+    "id": "viking-rage",
+    "dur": 0.7,
+    "gain": 0.75,
+    "prompt": "Viking warrior battle roar: one short fierce wordless bellow from a big bearded man, gruff and powerful, cartoon game, no words, no music.",
+    "raw": [
+      "viking-rage.mp3"
+    ]
+  },
+  {
+    "id": "stun",
+    "dur": 0.5,
+    "gain": 0.55,
+    "prompt": "Tiny cartoon dizzy sound: a quick twinkly circling sparkle of little stars chirping, very short, light and cute, no music.",
+    "raw": [
+      "stun.mp3"
+    ]
+  },
+  {
+    "id": "pirate-deploy",
+    "dur": 0.7,
+    "gain": 0.75,
+    "prompt": "A swaggering pirate arrives: a cutlass swished from its scabbard with a bright ring and a quick confident boot stomp on wooden planks, no words, no music.",
+    "raw": [
+      "pirate-deploy.mp3"
+    ]
+  },
+  {
+    "id": "viking-deploy",
+    "dur": 0.7,
+    "gain": 0.75,
+    "prompt": "Norse warrior lands: one heavy boot stomp, a long iron axe hefted onto a shoulder with a clank, and a short gruff wordless grunt, no music.",
+    "raw": [
+      "viking-deploy.mp3"
+    ]
+  },
+  {
+    "id": "gladiator-deploy",
+    "dur": 0.6,
+    "gain": 0.75,
+    "prompt": "Loud close-up clang: a short sword struck hard against a bronze shield boss, one bright ringing metal bang with a wooden thump, cartoon game, no music.",
+    "raw": [
+      "gladiator-deploy.mp3"
+    ]
+  },
+  {
+    "id": "medic-deploy",
+    "dur": 0.7,
+    "gain": 0.75,
+    "prompt": "Field medic arrives: a leather satchel buckle snap, glass bottles clinking softly and a small warm magical chime, cartoon game, no voices, no music.",
+    "raw": [
+      "medic-deploy.mp3"
+    ]
+  },
+  {
+    "id": "balloon-deploy",
+    "dur": 0.7,
+    "gain": 0.75,
+    "prompt": "Hot-air balloon floats in: a roaring gas burner whoosh and creaking wicker basket with ropes straining, short, cartoon game, no voices, no music.",
+    "raw": [
+      "balloon-deploy.mp3"
+    ]
+  },
+  {
+    "id": "inventor-deploy",
+    "dur": 0.7,
+    "gain": 0.75,
+    "prompt": "Retro inventor arrives: a backpack tesla coil powering up with a rising electric hum, a crackle and a brass switch click, cartoon sci-fi, no voices, no music.",
+    "raw": [
+      "inventor-deploy.mp3"
+    ]
+  },
+  {
+    "id": "gunner-deploy",
+    "dur": 0.7,
+    "gain": 0.75,
+    "prompt": "Small bronze field cannon rolled into place: wooden spoked wheels creaking and rumbling, stopping with a heavy clunk and a metal ramrod rattle, no voices, no music.",
+    "raw": [
+      "gunner-deploy.mp3"
+    ]
+  },
+  {
+    "id": "pirate-death",
+    "dur": 0.6,
+    "gain": 0.6,
+    "prompt": "Cartoon pirate defeated: a cutlass clattering on the ground, a comic splash-like flop and a soft thud with a little poof of smoke, no voices, no music.",
+    "raw": [
+      "pirate-death.mp3"
+    ]
+  },
+  {
+    "id": "viking-death",
+    "dur": 0.7,
+    "gain": 0.6,
+    "prompt": "Big cartoon viking defeated: a heavy iron axe and helmet clanging down, a deep body thud and a dust poof, comic knock-out, no voices, no music.",
+    "raw": [
+      "viking-death.mp3"
+    ]
+  },
+  {
+    "id": "gladiator-death",
+    "dur": 0.5,
+    "gain": 0.6,
+    "prompt": "Cartoon gladiator knocked out: a bronze helmet clonks down and rolls around wobbling with metallic rattles, then a soft body thud and a dust poof, no voices, no music.",
+    "raw": [
+      "gladiator-death.mp3"
+    ]
+  },
+  {
+    "id": "medic-death",
+    "dur": 0.6,
+    "gain": 0.6,
+    "prompt": "Cartoon field medic knocked out: glass tonic bottles clinking in a leather satchel, a soft cloth flop and a gentle descending sparkle fizzle, no voices, no music.",
+    "raw": [
+      "medic-death.mp3"
+    ],
+    "maxLimit": 12
+  },
+  {
+    "id": "miner-death",
+    "dur": 0.6,
+    "gain": 0.6,
+    "prompt": "Miner defeated: a metal pickaxe clanging onto rocks, a tin hard hat bonking and rolling, and a soft dusty thud, cartoon, no voices, no music.",
+    "raw": [
+      "miner-death.mp3"
+    ]
+  },
+  {
+    "id": "inventor-death",
+    "dur": 0.6,
+    "gain": 0.6,
+    "prompt": "Inventor gadget short-circuits: a sputtering electric fizzle, a spring sproing and a small comic pop of smoke, cartoon, no voices, no music.",
+    "raw": [
+      "inventor-death.mp3"
+    ]
+  },
+  {
+    "id": "gunner-death",
+    "dur": 0.6,
+    "gain": 0.6,
+    "prompt": "Old artilleryman defeated: a wooden cannon wheel creaking over and clattering down, a tall hat flopping and a soft thud, cartoon, no voices, no music.",
+    "raw": [
+      "gunner-death.mp3"
+    ]
+  },
+  {
+    "id": "quest-step",
+    "dur": 0.5,
+    "gain": 0.6,
+    "prompt": "Loud clear close-up magical bell ping: one bright crystal chime note with a quick sparkle, a map marker lighting up in a cartoon game, present and crisp.",
+    "raw": [
+      "quest-step.mp3"
+    ]
+  },
+  {
+    "id": "quest-reward",
+    "dur": 0.9,
+    "gain": 0.8,
+    "prompt": "Bright game reward chime: a sparkling rising glockenspiel arpeggio with a shimmering magical finish, cheerful and short, no drums, no voices.",
+    "raw": [
+      "quest-reward.mp3"
+    ]
+  },
+  {
+    "id": "quest-coin",
+    "dur": 0.6,
+    "gain": 0.7,
+    "prompt": "Handful of gold coins dropped into a pile: a bright jingling clink of a few coins, crisp and satisfying, game reward sound, no music.",
+    "raw": [
+      "quest-coin.mp3"
+    ]
+  },
+  {
+    "id": "quest-upgrade",
+    "dur": 0.9,
+    "gain": 0.8,
+    "prompt": "Card levelling up in a fantasy game: a quick rising magical whoosh climbing in pitch into a bright sparkling twinkle burst, no music, no voices.",
+    "raw": [
+      "quest-upgrade.mp3"
+    ]
+  },
+  {
+    "id": "quest-heart-lost",
+    "dur": 0.6,
+    "gain": 0.7,
+    "prompt": "Losing a life in a cartoon game: a soft sad low thud with a gentle descending two-note wooden bonk, muted and short, no music, no voices.",
+    "raw": [
+      "quest-heart-lost.mp3"
+    ]
+  },
+  {
+    "id": "quest-victory",
+    "dur": 2.4,
+    "gain": 0.9,
+    "prompt": "Short triumphant cartoon brass fanfare for completing a quest: a bold rising trumpet flourish with a timpani roll, ending on a bright held major chord.",
+    "raw": [
+      "quest-victory.mp3"
+    ]
+  }
+]

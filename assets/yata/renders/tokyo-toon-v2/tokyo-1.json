@@ -1,0 +1,72 @@
+{
+  "kind": 1,
+  "semantic_inventory": {
+    "name": "Ramen",
+    "servings": 1,
+    "vessel": "deep royal-blue bowl with broad cream waves",
+    "features": [
+      "seventeen thick noodle paths covering the surface",
+      "one large half egg",
+      "one large pink spiral fishcake",
+      "one large nori rectangle",
+      "eight large open scallion rings",
+      "brown broth only in narrow gaps"
+    ]
+  },
+  "measured_object_inventory": {
+    "noodle_paths": 17,
+    "half_eggs": 1,
+    "fishcakes": 1,
+    "nori_sheets": 1,
+    "scallion_rings": 8
+  },
+  "object_inventory_audit_passed": true,
+  "source_recipe_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+  "blender_version": "5.2.2 LTS",
+  "material_node_types": [
+    "ShaderNodeAttribute",
+    "ShaderNodeBsdfDiffuse",
+    "ShaderNodeBsdfTransparent",
+    "ShaderNodeEmission",
+    "ShaderNodeLightPath",
+    "ShaderNodeMapRange",
+    "ShaderNodeMath",
+    "ShaderNodeMixRGB",
+    "ShaderNodeMixShader",
+    "ShaderNodeNewGeometry",
+    "ShaderNodeOutputMaterial",
+    "ShaderNodeSeparateXYZ",
+    "ShaderNodeValToRGB",
+    "ShaderNodeVectorMath"
+  ],
+  "material_audit_passed": true,
+  "model_counts": {
+    "mesh_objects": 21,
+    "curve_objects": 18
+  },
+  "textures_used": [],
+  "source_image_inputs": [],
+  "camera": {
+    "projection": "orthographic",
+    "elevation_degrees": 47,
+    "scale": 3.1
+  },
+  "contact_shadow": {
+    "method": "modeled analytic ellipse",
+    "alpha_at_boundary": 0,
+    "cycles_shadow_catcher": false,
+    "image_postprocessing": false
+  },
+  "render": {
+    "size": 1200,
+    "samples": 96,
+    "engine": "Cycles",
+    "film_transparent": true,
+    "outline_px": 7.166666666666667,
+    "cel_band_thresholds": [
+      0.0,
+      0.48,
+      0.8
+    ]
+  }
+}

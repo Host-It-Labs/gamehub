@@ -6,6 +6,7 @@ import {
   type CardId,
   type SpellStats,
   type TroopCard,
+  type TroopTag,
 } from './cards.ts';
 import {
   BRIDGES,
@@ -16,6 +17,7 @@ import {
   dist,
   onField,
   sideOf,
+  supports,
   unitStats,
   type Difficulty,
   type Match,
@@ -169,9 +171,12 @@ const atDepth = (side: Side, depth: number) =>
 const laneX = (lane: 0 | 1) => BRIDGES[lane];
 const laneOf = (x: number): 0 | 1 => (x < WIDTH / 2 ? 0 : 1);
 
-/** Elixir worth of one troop of a card. */
+/** Elixir worth of one troop of a card; a spawned bee counts for half an
+ *  elixir, so a swarm of them is worth answering. */
 const each = (u: Unit) =>
-  troopCards[u.card].cost / troopCards[u.card].formation.length;
+  troopCards[u.card].token
+    ? 0.5
+    : troopCards[u.card].cost / troopCards[u.card].formation.length;
 
 /** Whether a spell our side already cast will finish this troop. */
 function doomed(m: Match, side: Side, u: Unit) {
@@ -216,11 +221,9 @@ function threats(m: Match, side: Side): Threat[] {
       cost,
       air: units.filter((u) => unitStats(u).flying).length / units.length,
       swarm: units.filter((u) => u.maxHp < 400).length,
-      tank: units.some((u) => u.card === 'ogre' && u.hp > 900),
-      fighter: units.some((u) => u.card === 'duelist' && u.hp > 400),
-      ranged: units.some(
-        (u) => u.card === 'mage' || u.card === 'ranger' || u.card === 'archers',
-      ),
+      tank: units.some((u) => tagged(u, 'tank') && u.hp + u.shield > 900),
+      fighter: units.some((u) => tagged(u, 'fighter') && u.hp > 400),
+      ranged: units.some((u) => tagged(u, 'ranged')),
       lead,
       depth: depthOf(side, lead.y),
       covered,
@@ -231,6 +234,8 @@ function threats(m: Match, side: Side): Threat[] {
 
 const bonus = (table: Partial<Record<CardId, number>>, id: CardId) =>
   table[id] ?? 0;
+const tagged = (u: Unit, tag: TroopTag) =>
+  troopCards[u.card].tags.includes(tag);
 
 /** How well a troop card answers a threat; higher is better. */
 export function counterScore(card: TroopCard, t: Threat) {
@@ -238,14 +243,72 @@ export function counterScore(card: TroopCard, t: Threat) {
   let score = 1;
   if (t.air > 0) score += (u.targets === 'any' ? 4 : -8) * t.air;
   // Splash clears a swarm; the Cadets pick it apart from range.
-  if (t.swarm >= 2) score += u.splash ? 4 : card.id === 'archers' ? 1 : -1.5;
+  if (t.swarm >= 2)
+    score +=
+      u.splash || u.spin || u.chain || u.cone
+        ? 4
+        : u.armour
+          ? 3
+          : card.id === 'archers'
+            ? 1
+            : -1.5;
   if (t.tank)
-    score += bonus({ duelist: 6, imps: 4, archers: 1, ranger: 1 }, card.id);
+    score += bonus(
+      {
+        duelist: 6,
+        imps: 4,
+        pirate: 3,
+        inventor: 2,
+        viking: 2,
+        gladiator: 1,
+        archers: 1,
+        ranger: 1,
+        // Frost and tackles hold a tank back while the towers shoot it.
+        explorer: 3,
+        linebacker: 2,
+        jetpack: 1,
+      },
+      card.id,
+    );
   // The Samurai cannot touch a Biplane and wastes its blows on Robots.
-  if (t.fighter) score += bonus({ imps: 3, drake: 3, archers: 1 }, card.id);
-  if (t.ranged) score += bonus({ duelist: 2, imps: 2, drake: 2 }, card.id);
-  // A tower-only tank never defends.
+  if (t.fighter)
+    score += bonus(
+      {
+        imps: 3,
+        drake: 3,
+        gladiator: 2,
+        inventor: 2,
+        archers: 1,
+        firefighter: 3,
+        linebacker: 2,
+        explorer: 2,
+        jetpack: 2,
+        diver: 1,
+      },
+      card.id,
+    );
+  if (t.ranged)
+    score += bonus(
+      {
+        duelist: 2,
+        imps: 2,
+        drake: 2,
+        pirate: 3,
+        miner: 2,
+        jetpack: 3,
+        linebacker: 2,
+      },
+      card.id,
+    );
+  // A tower-only tank never defends, nor does a healer or a siege gun.
+  // The Beekeeper's bees do defend, slowly; ground-only fighters lose
+  // nothing to a flyer when bees answer it.
   if (u.targets === 'buildings') score -= 12;
+  if (u.spawn) score += t.air > 0 ? 0.5 : -1;
+  else if (supports(u)) score -= 12;
+  // A big tank is a poor answer unless the threat is big too.
+  if (card.tags.includes('tank') && card.cost >= 5 && t.cost < 5) score -= 2;
+  if (u.minRange) score -= 1.5;
   // Cheap answers keep the elixir lead.
   score -= 0.6 * Math.max(0, card.cost - t.cost);
   return score;
@@ -256,6 +319,7 @@ function place(
   side: Side,
   x: number,
   y: number,
+  card?: CardId,
 ): [number, number] | null {
   // Try the spot, then rings around it, until the rules allow one.
   for (let r = 0; r <= 4; r += 0.5) {
@@ -264,7 +328,7 @@ function place(
       const a = (i / steps) * Math.PI * 2;
       const px = Math.round((x + Math.cos(a) * r) * 2) / 2;
       const py = Math.round((y + Math.sin(a) * r) * 2) / 2;
-      if (canDeployAt(m, side, px, py)) return [px, py];
+      if (canDeployAt(m, side, px, py, card)) return [px, py];
     }
   }
   return null;
@@ -277,7 +341,8 @@ function play(
   x: number,
   y: number,
 ): BotMove | null {
-  const spot = place(m, mem.side, x, y);
+  const card = m.players[mem.player].hand.cards[slot];
+  const spot = place(m, mem.side, x, y, card);
   return spot ? { player: mem.player, slot, x: spot[0], y: spot[1] } : null;
 }
 
@@ -323,7 +388,11 @@ function defend(m: Match, mem: BotMemory, t: Threat) {
   const lead = t.lead;
   let x: number;
   let depth: number;
-  if (choice.card.unit.projectile) {
+  if (choice.card.unit.minRange) {
+    // A siege gun stands far back and shells them on the way in.
+    x = laneX(t.lane);
+    depth = 2;
+  } else if (choice.card.unit.projectile) {
     // Ranged help stands back, between the towers, out of reach.
     x = t.lane === 0 ? laneX(0) + 2.5 : laneX(1) - 2.5;
     depth = Math.min(t.depth - choice.card.unit.range + 1, 6);
@@ -367,17 +436,29 @@ function attack(m: Match, mem: BotMemory): BotMove | null {
       )
       .sort((a, b) => b.maxHp - a.maxHp)[0];
     if (push && elixir >= 4) {
-      const ranged = troopSlot(m, mem, (c) => !!c.unit.projectile);
-      // The Dino, or a Samurai walking back from a defence, leads the push.
-      const tank = push.card === 'ogre' || push.card === 'duelist';
+      const ranged = troopSlot(
+        m,
+        mem,
+        (c) => !!c.unit.projectile && !c.unit.minRange,
+      );
+      // Support (the Medic, the Drummer, the Beekeeper) walks behind.
+      const medic = troopSlot(m, mem, (c) => supports(c.unit));
+      // A tank, or a fighter walking back from a defence, leads the push.
+      const tank = tagged(push, 'tank') || tagged(push, 'fighter');
       const slot =
-        ranged >= 0 && tank
-          ? ranged
-          : troopSlot(
-              m,
-              mem,
-              (c) => c.unit.targets !== 'buildings' && c.cost <= 4,
-            );
+        medic >= 0 && tank && random(mem) < (tagged(push, 'tank') ? 0.65 : 0.4)
+          ? medic
+          : ranged >= 0 && tank
+            ? ranged
+            : troopSlot(
+                m,
+                mem,
+                (c) =>
+                  c.unit.targets !== 'buildings' &&
+                  !c.unit.burrow &&
+                  !(c.tags.includes('tank') && c.cost >= 5) &&
+                  c.cost <= 4,
+              );
       if (slot >= 0) {
         const behind = troopOf(hand[slot])?.unit.projectile ? 2.5 : 1;
         return play(
@@ -419,24 +500,74 @@ function attack(m: Match, mem: BotMemory): BotMove | null {
       atDepth(side, 3 + random(mem) * 11),
     );
   }
-  const ogre = hand.indexOf('ogre');
+  // A big tank (the Dino, the Balloon, the Diver, the Sumo) starts a push
+  // from the back, where it has time to gather support.
+  const heavy = hand.findIndex((id) => {
+    const c = troopOf(id);
+    return (
+      !!c &&
+      (c.unit.targets === 'buildings' ||
+        (c.tags.includes('tank') && c.cost >= 5))
+    );
+  });
   if (
     !punish &&
-    ogre >= 0 &&
-    elixir >= Math.max(cards.ogre.cost, level.attackAt)
+    heavy >= 0 &&
+    elixir >= Math.max(cards[hand[heavy]].cost, level.attackAt)
   )
-    return play(m, mem, ogre, laneX(lane) + jitter(), atDepth(side, 1.5));
-  // Otherwise a quick fighter at the bridge, keeping ranged cards back.
-  const order: CardId[] = punish
-    ? ['imps', 'duelist', 'drake']
-    : ['duelist', 'drake', 'imps', 'archers'];
-  for (const id of order) {
-    const slot = hand.indexOf(id);
-    if (slot >= 0 && cards[id].cost <= elixir)
-      return play(m, mem, slot, laneX(lane) + jitter(), atDepth(side, 14));
+    return play(m, mem, heavy, laneX(lane) + jitter(), atDepth(side, 1.5));
+  // The Miner digs up right beside the tower it goes for.
+  const miner = hand.findIndex((id) => !!troopOf(id)?.unit.burrow);
+  if (miner >= 0 && cards[hand[miner]].cost <= elixir) {
+    const target = enemy.find((t) => t.lane === lane && !t.destroyed);
+    if (target)
+      return play(
+        m,
+        mem,
+        miner,
+        target.x + (target.x < WIDTH / 2 ? 1 : -1) * (target.radius + 0.5),
+        target.y + (side === 0 ? -1 : 1) * (target.radius + 0.5),
+      );
   }
+  // A siege gun sets up at the bridge; a quick fighter goes with it.
+  const gun = hand.findIndex((id) => !!troopOf(id)?.unit.minRange);
+  if (!punish && gun >= 0 && cards[hand[gun]].cost <= elixir)
+    return play(m, mem, gun, laneX(lane) + jitter(), atDepth(side, 12));
+  // Otherwise a quick fighter at the bridge, keeping ranged cards back.
+  const lead: CardId[] = punish
+    ? ['imps', 'linebacker', 'duelist', 'drake']
+    : ['duelist', 'linebacker', 'drake', 'imps', 'archers'];
+  const rank = (id: CardId) => {
+    const i = lead.indexOf(id);
+    if (i >= 0) return i;
+    if (punish && id === 'archers') return 99;
+    return lead.length + (punish ? cards[id].cost : 10 - cards[id].cost);
+  };
+  const fighters = hand
+    .map((id, slot) => ({ id, slot, card: troopOf(id) }))
+    .filter(
+      (o) =>
+        o.card &&
+        o.card.cost <= elixir &&
+        !supports(o.card.unit) &&
+        !o.card.unit.burrow &&
+        (o.card.tags.includes('fighter') ||
+          o.card.tags.includes('swarm') ||
+          o.card.tags.includes('air')),
+    )
+    // Cheap ones first when punishing, the strongest otherwise; the
+    // Samurai, the Biplane and the Robots lead, as they always have.
+    .sort((a, b) => rank(a.id) - rank(b.id));
+  if (fighters.length)
+    return play(
+      m,
+      mem,
+      fighters[0].slot,
+      laneX(lane) + jitter(),
+      atDepth(side, 14),
+    );
   if (punish) return null;
-  const slot = troopSlot(m, mem, () => true);
+  const slot = troopSlot(m, mem, (c) => !supports(c.unit));
   return slot >= 0
     ? play(m, mem, slot, laneX(lane) + 2 * (lane ? -1 : 1), atDepth(side, 5))
     : null;

@@ -5,7 +5,7 @@ import { useGameSound } from '../game/use-game-sound';
 import { useResultsFeedback, WinnerCelebration } from '../game/results-feedback';
 import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
 import { CountUp, stagger } from '../game/reveal-motion';
-import { decisionKey, previewPlacement, totalRounds } from '@/lib/games/trio/engine';
+import { decisionKey, previewPlacement, totalRounds, yataWorldFor } from '@/lib/games/trio/engine';
 import { dropTargetNear } from '../game/drag-preview';
 import {
   ExtensionControls,
@@ -20,7 +20,6 @@ import { SoundSettings } from '../game/sound-settings';
 import { ArtworkLoading } from '../game/artwork';
 import { ScrollArea } from '../game/scroll-area';
 import { SanctuaryBadges } from '@/components/game/mora-extension';
-import { ExtensionAction } from '../game/extension-action';
 import { useEffect, useRef, useState } from 'react';
 import { Board, Hand, Players } from '@/components/game/boards';
 import { DieControl } from '@/components/game/die';
@@ -77,7 +76,6 @@ export function OnlineMatch({
     [preparedZone, setPreparedZone] = useState<number | null>(null),
     [passed, setPassed] = useState<number[]>([]),
     [order, setOrder] = useState<number[]>([]),
-    [ward, setWard] = useState(false),
     [inspection, setInspection] = useState<Inspection | null>(null),
     [inspectorOpen, setInspectorOpen] = useState(false),
     [panel, rememberPanel] = useState<'rules' | 'reference' | 'log' | null>(
@@ -101,7 +99,6 @@ export function OnlineMatch({
     setSelected(null);
     setPreparedZone(null);
     setPassed([]);
-    setWard(false);
   }
   const festival = useFestivalChoice(g, viewer);
   function setPanel(value: typeof panel) {
@@ -165,7 +162,6 @@ export function OnlineMatch({
       setSelected(null);
       setPreparedZone(null);
       setPassed([]);
-      setWard(false);
     }
   }
   useAutoRoll(
@@ -196,7 +192,6 @@ export function OnlineMatch({
     const move: Move = {
       type: 'play',
       card: c.id,
-      ...(ward ? { ward: true } : {}),
     };
     if (validMove(g, festival.withChoice(move), viewer)) void commit(move);
     else setSelected((previous) => (previous === c.id ? null : c.id));
@@ -282,8 +277,7 @@ export function OnlineMatch({
       void commit({
         type: 'play',
         card: c.id,
-        ...(ward ? { ward: true } : {}),
-      });
+        });
   }
   const sc = scores(g),
     winning = g.id === 'undertow' ? Math.min(...sc) : Math.max(...sc);
@@ -294,6 +288,7 @@ export function OnlineMatch({
       className={`table-layout ${g.id} ${world ? 'world-table' : ''}`}
       data-game={g.id}
       data-environment={environment}
+      data-market={g.id === 'midnight' ? yataWorldFor(g.contentSet) : undefined}
     >
       <ArtworkLoading
         key={`${g.id}:${g.contentSet}`}
@@ -387,7 +382,6 @@ export function OnlineMatch({
               inspect={inspect}
               onPlace={place}
               preparedZone={preparedZone}
-              onMigrate={(migration) => nature.setChoice({ ...nature.choice, migration })}
             />
           </ScrollArea>
 
@@ -411,25 +405,6 @@ export function OnlineMatch({
                 inspect={inspect}
                 disabled={disabled}
               />
-              {g.id === 'undertow' && g.shields === true && (
-                <ExtensionAction
-                  kind="shield"
-                  label="Shield"
-                  selected={ward}
-                  count={g.players[viewer].wards}
-                  disabled={
-                    disabled ||
-                    g.phase !== 'play' ||
-                    !mine ||
-                    !g.players[viewer].wards
-                  }
-                  onTap={() => {
-                    setWard(!ward);
-                  }}
-                  inspect={inspect}
-                  description="Select before playing to halve the trick's penalties, rounding up, if you win it. Spent even if you lose. Two Shields refresh each round. Tap again to cancel."
-                />
-              )}
             </div>
 
             {g.id === 'undertow' ? (
@@ -441,10 +416,10 @@ export function OnlineMatch({
             ) : null}
           </div>
           <UndoChoice g={g} viewer={viewer}
-            drafted={selected !== null || passed.length > 0 || !!nature.choice.migration || !!nature.choice.roam || !!ward}
+            drafted={selected !== null || passed.length > 0 || !!nature.choice.roam}
             disabled={disabled}
             onUndo={() => { void commit({ type: 'undo' }); nature.setChoice({}); }}
-            onClear={() => { setSelected(null); setPreparedZone(null); setPassed([]); setWard(false); nature.setChoice({}); }} />
+            onClear={() => { setSelected(null); setPreparedZone(null); setPassed([]); nature.setChoice({}); }} />
           <MoveConfirmation
             g={g}
             viewer={viewer}

@@ -1,7 +1,16 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomInt } from 'node:crypto';
 import { check, HttpError, token, type Identity } from './auth.ts';
-import { cards } from '../lib/games/arena/cards.ts';
+import { cards, validDeck, type CardId } from '../lib/games/arena/cards.ts';
+import { presetFor } from '../lib/games/arena/decks.ts';
+import {
+  LOCKED,
+  battleSetup,
+  newQuest,
+  questAct,
+  type QuestAction,
+  type QuestState,
+} from '../lib/games/arena/quest.ts';
 import {
   LENGTH,
   WIDTH,
@@ -12,6 +21,7 @@ import {
   step,
   type Difficulty,
   type Match,
+  type MatchOptions,
   type Mode,
   type Side,
 } from '../lib/games/arena/engine.ts';
@@ -23,7 +33,21 @@ import {
   type Play,
   type TickMessage,
 } from '../lib/games/arena/net.ts';
-import type { ArenaRoomView, ArenaSnapshot } from '../lib/games/arena/room.ts';
+import {
+  DECK_MS,
+  type ArenaDecks,
+  type ArenaRoomView,
+  type ArenaSnapshot,
+} from '../lib/games/arena/room.ts';
+import {
+  advance as advanceDraft,
+  choose as chooseDraft,
+  decksOf,
+  draftView,
+  newDraft,
+  type Draft,
+  type DraftTimes,
+} from '../lib/games/arena/draft.ts';
 
 /**
  * Online Arena rooms. A table launches one with its people seated and bots in
@@ -45,6 +69,14 @@ export type ArenaOptions = {
   idleMs?: number;
   /** Whether a stream's session is still signed in, checked on each heartbeat. */
   authorized?: (req: IncomingMessage) => boolean;
+  /** How long the deck phase waits for everyone's Ready (then each plays
+   *  the deck they have). */
+  deckMs?: number;
+  /** How long the deck phase or a draft waits for everyone to open the
+   *  room before its clock starts anyway. */
+  joinMs?: number;
+  /** The draft's stage lengths (tests run them faster). */
+  draftTimes?: Partial<DraftTimes>;
 };
 
 type Participant = { id: string; name: string };
@@ -83,6 +115,23 @@ export type ArenaRoom = {
   startTimer: ReturnType<typeof setTimeout> | null;
   /** Since when nobody has had the room open. */
   emptySince: number | null;
+  /** Each seat's Versus deck (bots draw a ready-made one). */
+  decks: (CardId[] | undefined)[];
+  /** A Quest room's run, shared by its one or two people. */
+  quest: QuestState | null;
+  /** What each seat last suggested in a Quest (a key of quest-view). */
+  suggestions: Map<number, string>;
+  /** Versus decks picked before each battle, drafted, or (null) as sent. */
+  picking: ArenaDecks | null;
+  /** Per seat: Ready pressed in this deck phase. */
+  ready: boolean[];
+  /** Per seat: the battle's art has loaded on their device. */
+  loaded: boolean[];
+  /** When the deck phase's cap ends (Date.now ms); 0 until it starts. */
+  phaseEnds: number;
+  /** The draft before this battle (Versus with Draft on). */
+  draft: Draft | null;
+  phaseTimer: ReturnType<typeof setTimeout> | null;
 };
 
 /** A refused command, with the reason the client shows. */
@@ -119,6 +168,9 @@ export class ArenaRooms {
   private readonly awayMs: number;
   private readonly idleMs: number;
   private readonly authorized?: (req: IncomingMessage) => boolean;
+  private readonly deckMs: number;
+  private readonly joinMs: number;
+  private readonly draftTimes?: Partial<DraftTimes>;
   private pump: ReturnType<typeof setInterval> | null = null;
   private readonly heartbeat: ReturnType<typeof setInterval>;
   private readonly sweeper: ReturnType<typeof setInterval>;
@@ -130,6 +182,9 @@ export class ArenaRooms {
     this.awayMs = options.awayMs ?? 5000;
     this.idleMs = options.idleMs ?? 10 * 60_000;
     this.authorized = options.authorized;
+    this.deckMs = options.deckMs ?? DECK_MS;
+    this.joinMs = options.joinMs ?? 8000;
+    this.draftTimes = options.draftTimes;
     this.heartbeat = setInterval(() => {
       for (const room of this.rooms.values())
         for (const s of room.streams) {
@@ -157,7 +212,19 @@ export class ArenaRooms {
     members: Participant[],
     input: Record<string, unknown>,
   ) {
-    const { mode, difficulty, teams } = input;
+    if (input.quest === true)
+      return this.launchQuest(table, owner, members, input);
+    const { mode, difficulty, teams, deck, decks } = input;
+    check(
+      deck === undefined || (validDeck(deck) && deck.length === 8),
+      400,
+      'Choose eight cards.',
+    );
+    check(
+      decks === undefined || decks === 'pick' || decks === 'draft',
+      400,
+      'Pick or draft the decks.',
+    );
     check(
       mode === 'duel' || mode === 'team',
       400,
@@ -252,24 +319,228 @@ export class ArenaRooms {
       startAt: 0,
       startTimer: null,
       emptySince: now,
+      decks: seats.map((s) =>
+        s.id === owner ? (deck as CardId[]) : undefined,
+      ),
+      quest: null,
+      suggestions: new Map(),
+      picking: (decks as ArenaDecks | undefined) ?? null,
+      ready: seats.map((s) => !s.id),
+      loaded: seats.map((s) => !s.id),
+      phaseEnds: 0,
+      draft: null,
+      phaseTimer: null,
     };
     this.reset(room);
     this.rooms.set(room.token, room);
     return room.token;
   }
 
+  /**
+   * A Quest for a table of one or two: its people sit on the blue side
+   * (seats 0 and 2), bots play each stop's foe. The room opens on the map.
+   */
+  private launchQuest(
+    table: string,
+    owner: string,
+    members: Participant[],
+    input: Record<string, unknown>,
+  ) {
+    check(
+      members.length >= 1 && members.length <= 2,
+      409,
+      'A quest seats one or two players.',
+    );
+    const unlocked = Array.isArray(input.unlocked)
+      ? LOCKED.filter((c) => (input.unlocked as unknown[]).includes(c))
+      : [];
+    const people = [
+      ...members.filter((m) => m.id === owner),
+      ...members.filter((m) => m.id !== owner),
+    ];
+    const players = people.length as 1 | 2;
+    const mode: Mode = players === 2 ? 'team' : 'duel';
+    const seats: Seat[] = Array.from({ length: seatCount(mode) }, (_, i) => {
+      const p = i % 2 === 0 ? people[i / 2] : undefined;
+      return p ? { id: p.id, name: p.name } : { id: null, name: '' };
+    });
+    for (const room of this.rooms.values())
+      if (room.table === table) this.remove(room);
+    check(
+      this.rooms.size < 1000,
+      503,
+      'Too many battles are running. Please try again soon.',
+    );
+    const now = Date.now();
+    const room: ArenaRoom = {
+      token: token(),
+      table,
+      owner,
+      mode,
+      difficulty: 'medium',
+      seats,
+      status: 'map',
+      round: 1,
+      seed: randomInt(4294967296),
+      match: createMatch(0, 'medium', mode),
+      queue: [],
+      bots: [],
+      away: seats.map(() => now),
+      streams: new Set(),
+      startAt: 0,
+      startTimer: null,
+      emptySince: now,
+      decks: seats.map(() => undefined),
+      quest: newQuest(randomInt(4294967296), players, unlocked),
+      suggestions: new Map(),
+      picking: null,
+      ready: seats.map((s) => !s.id),
+      loaded: seats.map((s) => !s.id),
+      phaseEnds: 0,
+      draft: null,
+      phaseTimer: null,
+    };
+    this.rooms.set(room.token, room);
+    return room.token;
+  }
+
+  /** The seats' decks and boosts for the next battle. */
+  private options(room: ArenaRoom): MatchOptions {
+    const q = room.quest;
+    if (q && q.screen.kind === 'battle') {
+      const stop = q.stops.find(
+        (s) => s.id === (q.screen as { stop: number }).stop,
+      )!;
+      return battleSetup(q, stop).options;
+    }
+    // A draft deals every seat's deck, bots' too.
+    return {
+      decks: room.seats.map((s, i) =>
+        s.id || (room.picking === 'draft' && room.decks[i])
+          ? room.decks[i]
+          : presetFor(room.seed + i * 7).cards,
+      ),
+    };
+  }
+
   /** A fresh battle with the same seats, waiting for everyone to connect. */
   private reset(room: ArenaRoom) {
     room.seed = randomInt(4294967296);
-    room.match = createMatch(room.seed, room.difficulty, room.mode);
+    const q = room.quest;
+    if (q && q.screen.kind === 'battle') {
+      const stop = q.stops.find(
+        (s) => s.id === (q.screen as { stop: number }).stop,
+      )!;
+      const setup = battleSetup(q, stop);
+      room.difficulty = setup.difficulty;
+      room.mode = setup.mode;
+      room.seats.forEach((s) => {
+        if (!s.id) s.name = stop.foe!.name;
+      });
+    }
+    room.match = createMatch(
+      room.seed,
+      room.difficulty,
+      room.mode,
+      this.options(room),
+    );
     room.bots = room.seats.map((_, i) =>
       botMemory(i, room.difficulty, room.seed),
     );
     room.queue = [];
     room.status = 'waiting';
     if (room.startTimer) clearTimeout(room.startTimer);
+    room.startTimer = null;
+    if (room.picking && !room.quest) return this.openPhase(room);
     room.startTimer = setTimeout(() => this.begin(room), this.startTimeoutMs);
     room.startTimer.unref();
+  }
+
+  /**
+   * The deck phase before a Versus battle: everyone picks a deck (or the
+   * draft runs) while the battle loads. Its clock starts once everyone has
+   * the room open, or after `joinMs` anyway.
+   */
+  private openPhase(room: ArenaRoom) {
+    room.status = room.picking === 'draft' ? 'draft' : 'deck';
+    room.ready = room.seats.map((s) => !s.id);
+    room.phaseEnds = 0;
+    room.draft = null;
+    if (room.picking === 'draft')
+      room.seats.forEach((s, i) => {
+        room.decks[i] = s.id ? room.decks[i] : undefined;
+      });
+    this.schedule(room, this.joinMs, () => this.armPhase(room));
+    if (this.ready(room)) this.armPhase(room);
+  }
+
+  private schedule(room: ArenaRoom, ms: number, run: () => void) {
+    if (room.phaseTimer) clearTimeout(room.phaseTimer);
+    room.phaseTimer = setTimeout(
+      () => {
+        room.phaseTimer = null;
+        if (!this.stopping && this.rooms.get(room.token) === room) run();
+      },
+      Math.max(0, ms),
+    );
+    room.phaseTimer.unref();
+  }
+
+  /** Starts the deck phase's clock, or the draft's first round. */
+  private armPhase(room: ArenaRoom) {
+    if (room.status === 'deck' && !room.phaseEnds) {
+      room.phaseEnds = Date.now() + this.deckMs;
+      this.schedule(room, this.deckMs, () => this.endPhase(room));
+      this.broadcastRoom(room);
+    } else if (room.status === 'draft' && !room.draft) {
+      room.draft = newDraft(
+        (room.seed ^ 0x9e3779b9) >>> 0,
+        room.mode,
+        room.seats.map((s) => !s.id),
+        Date.now(),
+        { times: this.draftTimes as DraftTimes | undefined },
+      );
+      this.driveDraft(room);
+    }
+  }
+
+  /** Moves the draft to now and waits for its next stage. */
+  private driveDraft(room: ArenaRoom) {
+    if (room.status !== 'draft' || !room.draft) return;
+    const now = Date.now();
+    room.draft = advanceDraft(room.draft, now);
+    if (room.draft.stage === 'done') return this.endPhase(room);
+    this.schedule(room, room.draft.endsAt - now, () => this.driveDraft(room));
+    this.broadcastRoom(room);
+  }
+
+  /** The decks are in: deal the battle, which starts once everyone is here
+   *  (and, after a draft, loaded), or after the start timeout. */
+  private endPhase(room: ArenaRoom) {
+    if (room.status !== 'deck' && room.status !== 'draft') return;
+    if (room.phaseTimer) clearTimeout(room.phaseTimer);
+    room.phaseTimer = null;
+    if (room.draft) decksOf(room.draft).forEach((d, i) => (room.decks[i] = d));
+    room.status = 'waiting';
+    room.match = createMatch(
+      room.seed,
+      room.difficulty,
+      room.mode,
+      this.options(room),
+    );
+    room.startTimer = setTimeout(() => this.begin(room), this.startTimeoutMs);
+    room.startTimer.unref();
+    if (this.startable(room)) this.begin(room, false);
+    this.broadcastSnapshot(room);
+  }
+
+  /** Everyone is here, and after a draft every device has loaded. */
+  private startable(room: ArenaRoom) {
+    return (
+      this.ready(room) &&
+      (room.picking !== 'draft' ||
+        room.seats.every((s, i) => !s.id || room.loaded[i]))
+    );
   }
 
   /** Starts the clock: the first tick follows a short lead time. */
@@ -361,6 +632,8 @@ export class ArenaRooms {
   }
 
   view(room: ArenaRoom, id: string): ArenaRoomView {
+    const seat = room.seats.findIndex((s) => s.id === id);
+    const now = Date.now();
     return {
       token: room.token,
       mode: room.mode,
@@ -375,6 +648,21 @@ export class ArenaRooms {
       status: room.status,
       round: room.round,
       table: room.table,
+      quest: room.quest,
+      suggestions: [...room.suggestions].map(([seat, key]) => ({
+        key,
+        name: room.seats[seat].name,
+      })),
+      decks: room.picking,
+      ready: room.status === 'deck' ? [...room.ready] : [...room.loaded],
+      left:
+        room.status === 'deck' && room.phaseEnds
+          ? Math.max(0, room.phaseEnds - now)
+          : undefined,
+      draft:
+        room.status === 'draft' && room.draft && seat >= 0
+          ? draftView(room.draft, seat, now)
+          : null,
     };
   }
   private snapshotFor(
@@ -453,8 +741,13 @@ export class ArenaRooms {
     );
     res.on('close', () => this.drop(room, stream));
     if (!joined) return;
-    if (room.status === 'waiting' && this.ready(room)) this.begin(room);
-    else this.broadcastRoom(room);
+    if (room.status === 'waiting' && this.startable(room)) this.begin(room);
+    else if (
+      (room.status === 'deck' || room.status === 'draft') &&
+      this.ready(room)
+    )
+      this.armPhase(room);
+    this.broadcastRoom(room);
   }
   private drop(room: ArenaRoom, stream: Stream) {
     if (!room.streams.delete(stream) || this.stopping) return;
@@ -522,10 +815,136 @@ export class ArenaRooms {
       'Only the host can start the next battle.',
     );
     check(room.status === 'over', 409, 'The battle is still on.');
+    if (room.quest) {
+      const m = room.match;
+      // A draw is fought again; otherwise the run takes the result.
+      if (m.winner !== 'draw') {
+        const next = questAct(room.quest, {
+          type: 'result',
+          won: m.winner === 0,
+          crowns: m.crowns[0],
+        });
+        if (next) room.quest = next;
+      }
+      room.suggestions.clear();
+      if (room.quest.screen.kind !== 'battle') {
+        room.status = 'map';
+        this.broadcastRoom(room);
+        return { ok: true };
+      }
+    }
     room.round++;
     this.reset(room);
+    // A deck phase or draft starts the battle itself once it is done.
     if (this.ready(room)) this.begin(room, false);
     this.broadcastSnapshot(room);
+    return { ok: true };
+  }
+
+  /**
+   * Your Versus deck for the next battle; a waiting one deals it at once.
+   * `ready` ends your part of the deck phase; `loaded` says the battle's
+   * art is in on your device. A drafted battle takes no deck.
+   */
+  deck(invite: string, who: Identity | null, input: Record<string, unknown>) {
+    const room = this.find(invite);
+    const seat = this.seatOf(room, who);
+    check(!room.quest, 409, 'A quest brings its own deck.');
+    const drafted = room.picking === 'draft';
+    check(
+      (drafted && input.deck === undefined) ||
+        (validDeck(input.deck) && (input.deck as CardId[]).length === 8),
+      400,
+      'Choose eight cards.',
+    );
+    check(
+      input.ready === undefined || typeof input.ready === 'boolean',
+      400,
+      'Ready is yes or no.',
+    );
+    if (input.loaded === true) room.loaded[seat] = true;
+    if (!drafted) room.decks[seat] = input.deck as CardId[];
+    if (room.status === 'deck') {
+      if (typeof input.ready === 'boolean') room.ready[seat] = input.ready;
+      if (room.ready.every(Boolean)) this.endPhase(room);
+      else this.broadcastRoom(room);
+    } else if (room.status === 'waiting') {
+      if (!drafted) {
+        room.match = createMatch(
+          room.seed,
+          room.difficulty,
+          room.mode,
+          this.options(room),
+        );
+        this.broadcastSnapshot(room);
+      }
+      if (this.startable(room)) this.begin(room);
+    } else if (room.status === 'draft') this.broadcastRoom(room);
+    return { ok: true };
+  }
+
+  /**
+   * Your cards kept this draft round so far (`picks`, up to two of your
+   * offer); two lock them in. Your teammate sees them live.
+   */
+  draftPick(
+    invite: string,
+    who: Identity | null,
+    input: Record<string, unknown>,
+  ) {
+    const room = this.find(invite);
+    const seat = this.seatOf(room, who);
+    check(
+      room.status === 'draft' && room.draft,
+      409,
+      'The draft is not on.',
+    );
+    check(
+      input.round === room.draft!.round,
+      409,
+      'That draft round is over.',
+    );
+    const next = chooseDraft(room.draft!, seat, input.picks, Date.now());
+    check(next, 409, 'Those cards are not yours to keep.');
+    room.draft = next;
+    this.driveDraft(room);
+    return { ok: true };
+  }
+
+  /**
+   * A Quest choice. The host makes it; anyone else's becomes a suggestion
+   * every seat sees (the same one again takes it back). Choosing a battle
+   * sets it up and starts it once everyone is here.
+   */
+  questCommand(
+    invite: string,
+    who: Identity | null,
+    input: Record<string, unknown>,
+  ) {
+    const room = this.find(invite);
+    const seat = this.seatOf(room, who);
+    check(room.quest, 409, 'This is not a quest.');
+    if (typeof input.suggest === 'string') {
+      check(input.suggest.length <= 40, 400, 'Suggest something on the map.');
+      if (room.suggestions.get(seat) === input.suggest)
+        room.suggestions.delete(seat);
+      else room.suggestions.set(seat, input.suggest);
+      this.broadcastRoom(room);
+      return { ok: true };
+    }
+    check(who!.id === room.owner, 403, 'The host makes the choices.');
+    check(room.status === 'map', 409, 'A battle is on.');
+    check(input.type !== 'result', 400, 'Battles report themselves.');
+    const next = questAct(room.quest!, input as QuestAction);
+    check(next, 409, 'That choice is not open now.');
+    room.quest = next;
+    room.suggestions.clear();
+    if (next.screen.kind === 'battle') {
+      room.round++;
+      this.reset(room);
+      if (this.ready(room)) this.begin(room, false);
+      this.broadcastSnapshot(room);
+    } else this.broadcastRoom(room);
     return { ok: true };
   }
 
@@ -537,6 +956,7 @@ export class ArenaRooms {
 
   private remove(room: ArenaRoom) {
     if (room.startTimer) clearTimeout(room.startTimer);
+    if (room.phaseTimer) clearTimeout(room.phaseTimer);
     this.rooms.delete(room.token);
     const left = [...room.streams];
     room.streams.clear();
@@ -565,6 +985,7 @@ export class ArenaRooms {
     this.pump = null;
     for (const room of this.rooms.values()) {
       if (room.startTimer) clearTimeout(room.startTimer);
+      if (room.phaseTimer) clearTimeout(room.phaseTimer);
       for (const s of room.streams) s.res.end();
       room.streams.clear();
     }

@@ -7,6 +7,7 @@ import {
   type ProjectileKind,
   type SpellId,
   type TroopId,
+  type UnitStats,
 } from './cards.ts';
 
 /**
@@ -38,9 +39,9 @@ export const BRIDGE_HALF = 1;
 export const REGULATION = 180;
 export const OVERTIME = 60;
 /** Seconds of standing still before the first second of battle. */
-export const READY = 2;
+export const READY = 1;
 export const DEPLOY_TIME = 1;
-export const START_ELIXIR = 5;
+export const START_ELIXIR = 7;
 export const MAX_ELIXIR = 10;
 export const ELIXIR_SECONDS = 2.8;
 /** The last minute of regulation runs double elixir; overtime runs at 2.5×. */
@@ -99,7 +100,50 @@ export type Unit = {
    *  tower never change it; only chasing a troop across the middle does. */
   lane: 0 | 1;
   bridge: number;
+  /** Damage and speed multipliers from the owner's card level and boosts. */
+  power: number;
+  pace: number;
+  /** Hit points left on a shield (0 without one). */
+  shield: number;
+  /** Seconds it is stopped by a stun. */
+  stun: number;
+  /** Leaping at its target (the Pirate). */
+  dash: boolean;
+  /** Its next hit lands a leap's bonus. */
+  charged: boolean;
+  /** Seconds until it may leap again, or until the Medic's next pulse. */
+  cooldown: number;
+  /** Raging (the Viking below half its hit points). */
+  raged: boolean;
+  /** Seconds it must still fight `tauntId` (a Sumo's stomp). */
+  taunt: number;
+  tauntId: number | null;
+  /** Seconds it is slowed (an Explorer's frost), and to what share of
+   *  its pace; `slowFactor` is 1 when not slowed. */
+  slow: number;
+  slowFactor: number;
+  /** How much faster a Drummer's beat makes it move and strike this step
+   *  (1 outside every beat). */
+  beat: number;
 };
+
+/*
+ * What the renderer can read for the newer abilities (1 October 2026):
+ * - Armour (Diver): a `hit` event on an armoured troop carries `armour`,
+ *   the damage the armour took off (draw sparks).
+ * - Taunt (Sumo): a `taunt` event when he lands (`ids` are the troops
+ *   turned on him); each taunted unit has `taunt` > 0 and `tauntId`.
+ * - Slaps (Sumo) and tackles (Linebacker): a `push` event per troop
+ *   knocked back; a tackle also sends a `tackle` event and a `stun` one.
+ * - Bees (Beekeeper): a `spawn` event with the new bees' ids each release;
+ *   the bees are ordinary flying units of card 'bee'.
+ * - Beat (Drummer): a `beat` event every half second with his aura's
+ *   radius; every unit inside has `beat` > 1.
+ * - Water jet (Firefighter): a `spray` event each blow, from (x, y) along
+ *   the jet's axis to (tx, ty), `cos` the cone's half angle.
+ * - Frost (Explorer): 'frost' shots, and a `slow` event on each troop hit;
+ *   a slowed unit has `slow` > 0 and `slowFactor` < 1.
+ */
 
 /**
  * A cast spell on its way down. It lands at (x, y) when `left` runs out,
@@ -124,7 +168,7 @@ export type Spell = {
 };
 
 /** What hit the ground: a shot, or a spell crashing. */
-export type ImpactKind = ProjectileKind | SpellId;
+export type ImpactKind = ProjectileKind | SpellId | 'crash';
 
 export type Projectile = {
   id: number;
@@ -147,6 +191,14 @@ export type Projectile = {
   air: boolean;
   travelled: number;
   distance: number;
+  /** Seconds each troop it hits is stunned. */
+  stun: number;
+  /** How many more enemies it jumps on to, and how far each jump reaches. */
+  chain: number;
+  chainRange: number;
+  /** Seconds the troop it hits is slowed, and to what share of its pace. */
+  slow: number;
+  slowFactor: number;
 };
 
 export type ArenaEvent =
@@ -158,7 +210,15 @@ export type ArenaEvent =
       x: number;
       y: number;
     }
-  | { type: 'hit'; id: number; x: number; y: number; damage: number }
+  | {
+      type: 'hit';
+      id: number;
+      x: number;
+      y: number;
+      damage: number;
+      /** Damage the Diver's armour took off the hit. */
+      armour?: number;
+    }
   | { type: 'swing'; id: number }
   | { type: 'shot'; id: number; kind: ProjectileKind }
   | {
@@ -167,7 +227,63 @@ export type ArenaEvent =
       x: number;
       y: number;
       splash: number;
+      /** Where a chained zap jumped from. */
+      fx?: number;
+      fy?: number;
     }
+  | {
+      type: 'heal';
+      id: number;
+      x: number;
+      y: number;
+      radius: number;
+      /** Friendly troops whose hit points actually rose on this pulse. */
+      ids?: number[];
+    }
+  | { type: 'leap'; id: number }
+  | { type: 'shield'; id: number; x: number; y: number }
+  | { type: 'emerge'; id: number; x: number; y: number }
+  | { type: 'rage'; id: number }
+  | { type: 'stun'; id: number; x: number; y: number }
+  | {
+      type: 'taunt';
+      id: number;
+      x: number;
+      y: number;
+      radius: number;
+      ids: number[];
+    }
+  | { type: 'tackle'; id: number; target: number; x: number; y: number }
+  /** A troop knocked back by `from`'s blow (a troop or falling spell). */
+  | {
+      type: 'push';
+      id: number;
+      from: number;
+      x: number;
+      y: number;
+      /** The victim's position immediately before the push. */
+      fx?: number;
+      fy?: number;
+    }
+  | {
+      type: 'spawn';
+      id: number;
+      card: TroopId;
+      ids: number[];
+      x: number;
+      y: number;
+    }
+  | { type: 'beat'; id: number; x: number; y: number; radius: number }
+  | {
+      type: 'spray';
+      id: number;
+      x: number;
+      y: number;
+      tx: number;
+      ty: number;
+      cos: number;
+    }
+  | { type: 'slow'; id: number; x: number; y: number }
   | {
       type: 'death';
       id: number;
@@ -189,17 +305,55 @@ export type Hand = {
   queue: CardId[];
 };
 
+/**
+ * What a player brings beyond the cards (Quest levels and charms, a boss's
+ * advantages). Multipliers default to 1; tower fields are read from the
+ * first player of each side.
+ */
+export type Boost = {
+  /** Card levels, 1 the base: each level above adds 10% to a troop's hit
+   *  points and damage, or to a spell's damage. */
+  levels?: Partial<Record<CardId, number>>;
+  troopHp?: number;
+  troopDamage?: number;
+  troopSpeed?: number;
+  spellDamage?: number;
+  /** Elixir at the start, instead of START_ELIXIR. */
+  elixirStart?: number;
+  elixirRate?: number;
+  towerHp?: number;
+  towerDamage?: number;
+  /** The king is awake from the start. */
+  kingAwake?: boolean;
+  /** Elixir each player of the side gains when one of its towers falls. */
+  towerElixir?: number;
+};
+
 export type Player = {
   side: Side;
   elixir: number;
   hand: Hand;
   /** Elixir spent, for the results. */
   spent: number;
+  /** The cards this player brought (4 to 8). */
+  deck: CardId[];
+  boost: Boost;
+};
+
+/** How a match is set up beyond seed, difficulty and mode. */
+export type MatchOptions = {
+  /** A deck per seat; a missing one is the starting deck. */
+  decks?: (CardId[] | undefined)[];
+  boosts?: (Boost | undefined)[];
+  /** Seconds of regulation time. */
+  regulation?: number;
 };
 
 export type Match = {
-  version: 4;
+  version: 5;
   mode: Mode;
+  /** Seconds of regulation time; overtime follows. */
+  regulation: number;
   rngState: number;
   difficulty: Difficulty;
   tick: number;
@@ -260,14 +414,20 @@ export const dist = (dx: number, dy: number) => Math.sqrt(dx * dx + dy * dy);
 export const seatCount = (mode: Mode) => (mode === 'team' ? 4 : 2);
 export const sideOf = (player: number): Side => (player % 2) as Side;
 
+/** A card's level multiplier: +10% a level above the first. */
+export const levelScale = (boost: Boost | undefined, card: CardId) =>
+  1 + 0.1 * Math.max(0, (boost?.levels?.[card] ?? 1) - 1);
+
 export function createMatch(
   seed: number,
   difficulty: Difficulty = 'medium',
   mode: Mode = 'duel',
+  options: MatchOptions = {},
 ) {
   const m: Match = {
-    version: 4,
+    version: 5,
     mode,
+    regulation: options.regulation ?? REGULATION,
     rngState: seed >>> 0,
     difficulty,
     tick: 0,
@@ -284,17 +444,24 @@ export function createMatch(
     events: [],
   };
   for (let i = 0; i < seatCount(mode); i++) {
-    const order = shuffled(m, deck);
+    const own = options.decks?.[i];
+    const cardsOf = own && own.length >= 5 ? own : deck;
+    const boost = options.boosts?.[i] ?? {};
+    const order = shuffled(m, cardsOf);
     m.players.push({
       side: sideOf(i),
-      elixir: START_ELIXIR,
+      elixir: boost.elixirStart ?? START_ELIXIR,
       hand: { cards: order.slice(0, 4), queue: order.slice(4) },
       spent: 0,
+      deck: [...cardsOf],
+      boost,
     });
   }
-  const hp = mode === 'team' ? TEAM_TOWER_HP : 1;
-  const hit = mode === 'team' ? TEAM_TOWER_DAMAGE : 1;
   for (const side of [0, 1] as Side[]) {
+    const boost = m.players[side].boost;
+    const hp = (mode === 'team' ? TEAM_TOWER_HP : 1) * (boost.towerHp ?? 1);
+    const hit =
+      (mode === 'team' ? TEAM_TOWER_DAMAGE : 1) * (boost.towerDamage ?? 1);
     for (const t of towerLayout) {
       const s = towerStats[t.kind];
       m.towers.push({
@@ -312,7 +479,7 @@ export function createMatch(
         hitSpeed: s.hitSpeed,
         cooldown: 0,
         targetId: null,
-        active: t.kind === 'princess',
+        active: t.kind === 'princess' || !!boost.kingAwake,
         destroyed: false,
       });
     }
@@ -323,17 +490,17 @@ export function createMatch(
 export const elixirMultiplier = (m: Match) =>
   m.phase === 'overtime'
     ? 2.5
-    : m.phase === 'battle' && m.time >= DOUBLE_FROM
+    : m.phase === 'battle' && m.time >= m.regulation - 60
       ? 2
       : 1;
 
 /** Seconds left on the clock: regulation first, then overtime. */
 export function clock(m: Match) {
-  if (m.phase === 'ready') return REGULATION;
+  if (m.phase === 'ready') return m.regulation;
   if (m.phase === 'overtime')
-    return Math.max(0, REGULATION + OVERTIME - m.time);
+    return Math.max(0, m.regulation + OVERTIME - m.time);
   if (m.phase === 'over') return 0;
-  return Math.max(0, REGULATION - m.time);
+  return Math.max(0, m.regulation - m.time);
 }
 
 export const onBridge = (x: number, y: number, margin = 0) =>
@@ -350,9 +517,24 @@ const inRiver = (x: number, y: number, r: number) =>
 export const onField = (x: number, y: number) =>
   x >= 0.5 && x <= WIDTH - 0.5 && y >= 0.5 && y <= LENGTH - 0.5;
 
-/** Whether a side may drop a troop at (x, y) right now. */
-export function canDeployAt(m: Match, side: Side, x: number, y: number) {
+/** Whether a side may drop a troop at (x, y) right now. A troop that
+ *  burrows (the Miner) may go anywhere on the field off the water. */
+export function canDeployAt(
+  m: Match,
+  side: Side,
+  x: number,
+  y: number,
+  card?: CardId,
+) {
   if (!onField(x, y)) return false;
+  const burrows = !!card && !isSpell(card) && !!troopCards[card].unit.burrow;
+  if (burrows)
+    return (
+      !inRiver(x, y, 0.3) &&
+      !m.towers.some(
+        (t) => !t.destroyed && dist(x - t.x, y - t.y) < t.radius + 0.4,
+      )
+    );
   // Your own half, or a pocket past the river once that lane's tower fell.
   const own = side === 0 ? y <= RIVER[0] - 0.5 : y >= RIVER[1] + 0.5;
   let pocket = false;
@@ -380,7 +562,7 @@ export function canPlayAt(
   x: number,
   y: number,
 ) {
-  return isSpell(card) ? onField(x, y) : canDeployAt(m, side, x, y);
+  return isSpell(card) ? onField(x, y) : canDeployAt(m, side, x, y, card);
 }
 
 /** Where a card dropped at (x, y) goes: the nearest spot on the half-tile
@@ -449,7 +631,7 @@ export function threatsAt(
   for (const u of m.units) {
     if (u.side === side || u.hp <= 0) continue;
     const s = unitStats(u);
-    if (s.targets === 'buildings') continue;
+    if (s.targets === 'buildings' || supports(s)) continue;
     if (s.targets === 'ground' && c.unit.flying) continue;
     if (reaches(u.x, u.y, s.range + r))
       out.push({ id: u.id, x: u.x, y: u.y, reach: s.range + r });
@@ -488,8 +670,11 @@ export function deploy(
   hand.queue.push(id);
   const ids: number[] = [];
   m.events.push({ type: 'deploy', side, player, card: id, x, y });
+  const boost = seat.boost;
+  const level = levelScale(boost, id);
   if (card.kind === 'spell') {
     const s = card.spell;
+    const power = level * (boost.spellDamage ?? 1);
     const spell: Spell = {
       id: m.nextId++,
       side,
@@ -500,8 +685,8 @@ export function deploy(
       left: s.delay,
       delay: s.delay,
       radius: s.radius,
-      damage: s.damage,
-      towerDamage: s.towerDamage,
+      damage: Math.round(s.damage * power),
+      towerDamage: Math.round(s.towerDamage * power),
       knockback: s.knockback,
       knockMass: s.knockMass,
     };
@@ -513,40 +698,125 @@ export function deploy(
   // the lane of the spot it was dropped on.
   const dir = side === 0 ? 1 : -1;
   const lane = laneAt(x);
-  for (const [ox, oy] of card.formation) {
-    const ux = clamp(x + ox * dir, card.unit.radius, WIDTH - card.unit.radius);
-    const uy = clamp(y + oy * dir, card.unit.radius, LENGTH - card.unit.radius);
-    const u: Unit = {
-      id: m.nextId++,
-      side,
-      owner: player,
-      card: card.id,
-      x: ux,
-      y: uy,
-      px: ux,
-      py: uy,
-      hp: card.unit.hp,
-      maxHp: card.unit.hp,
-      state: 'deploying',
-      deployLeft: DEPLOY_TIME,
-      targetId: null,
-      attackTimer: card.unit.firstHit,
-      facing: side === 0 ? 0 : Math.PI,
-      sinceHit: 99,
-      lane,
-      bridge: -1,
-    };
-    m.units.push(u);
-    ids.push(u.id);
-  }
+  for (const [ox, oy] of card.formation)
+    ids.push(summon(m, player, card.id, x + ox * dir, y + oy * dir, lane).id);
   return { ok: true, ids };
+}
+
+/**
+ * Puts one troop of `card` on the field for `player` at (x, y), deploying,
+ * with the player's level and boosts. `deploy` calls it for every troop of
+ * a card; tests and the lab use it to set up a scene.
+ */
+export function summon(
+  m: Match,
+  player: number,
+  card: TroopId,
+  x: number,
+  y: number,
+  lane: 0 | 1 = laneAt(x),
+  /** A troop spawned by another (a Bee) takes its parent's level and a
+   *  shorter deploy. */
+  parent?: { card: TroopId; deploy: number },
+): Unit {
+  const seat = m.players[player];
+  const side = seat.side;
+  const boost = seat.boost;
+  const level = levelScale(boost, parent?.card ?? card);
+  const stats = troopCards[card].unit;
+  const hp = Math.round(stats.hp * level * (boost.troopHp ?? 1));
+  const ux = clamp(x, stats.radius, WIDTH - stats.radius);
+  const uy = clamp(y, stats.radius, LENGTH - stats.radius);
+  const u: Unit = {
+    id: m.nextId++,
+    side,
+    owner: player,
+    card,
+    x: ux,
+    y: uy,
+    px: ux,
+    py: uy,
+    hp,
+    maxHp: hp,
+    state: 'deploying',
+    deployLeft: parent?.deploy ?? stats.burrow ?? DEPLOY_TIME,
+    targetId: null,
+    attackTimer: stats.firstHit,
+    facing: side === 0 ? 0 : Math.PI,
+    sinceHit: 99,
+    lane,
+    bridge: -1,
+    power: level * (boost.troopDamage ?? 1),
+    pace: boost.troopSpeed ?? 1,
+    shield: Math.round((stats.shield ?? 0) * level * (boost.troopHp ?? 1)),
+    stun: 0,
+    dash: false,
+    charged: false,
+    cooldown: stats.heal
+      ? stats.heal.every
+      : stats.spawn
+        ? stats.spawn.first
+        : stats.aura
+          ? BEAT
+          : 0,
+    raged: false,
+    taunt: 0,
+    tauntId: null,
+    slow: 0,
+    slowFactor: 1,
+    beat: 1,
+  };
+  m.units.push(u);
+  return u;
 }
 
 const clamp = (v: number, lo: number, hi: number) =>
   v < lo ? lo : v > hi ? hi : v;
 
 type Body = { x: number; y: number };
+
+/** The ability fields of a troop that has none in play, for code that
+ *  builds units by hand (the lab, the shader warm-up, tests). */
+export const plainUnit = {
+  power: 1,
+  pace: 1,
+  shield: 0,
+  stun: 0,
+  dash: false,
+  charged: false,
+  cooldown: 0,
+  raged: false,
+  taunt: 0,
+  tauntId: null,
+  slow: 0,
+  slowFactor: 1,
+  beat: 1,
+} satisfies Partial<Unit>;
+
+/** The stun and chain fields of a shot that has none. */
+export const plainShot = {
+  stun: 0,
+  chain: 0,
+  chainRange: 0,
+  slow: 0,
+  slowFactor: 1,
+} satisfies Partial<Projectile>;
 export const unitStats = (u: Unit) => troopCards[u.card].unit;
+/** A troop that never attacks: it follows its friends (the Medic, the
+ *  Drummer, the Beekeeper). */
+export const supports = (s: UnitStats) => !!(s.follows || s.heal);
+/** Seconds between a Drummer's beats (the aura itself is steady). */
+export const BEAT = 0.5;
+/** Where spawned troops (bees) appear around their parent, its facing
+ *  forward. */
+const SPAWN_SPOTS: [number, number][] = [
+  [0, 0.6],
+  [-0.55, -0.3],
+  [0.55, -0.3],
+  [-0.6, 0.35],
+  [0.6, 0.35],
+  [0, -0.65],
+];
 
 function findById(m: Match, id: number | null): Unit | Tower | undefined {
   if (id === null) return undefined;
@@ -596,10 +866,39 @@ function laneTower(m: Match, u: Unit): Tower | undefined {
 
 function acquire(m: Match, u: Unit) {
   const s = unitStats(u);
+  // Only a siege gun has a blind spot; a flyer right over a ground troop
+  // (a bee on the Diver's helmet) is at a negative edge and still hits it.
+  const near = s.minRange ?? -Infinity;
+  // A Sumo's stomp: it fights him while the taunt lasts, wherever he is.
+  if (u.taunt > 0) {
+    const sumo = findById(m, u.tauntId);
+    if (sumo && !isTower(sumo) && sumo.side !== u.side) {
+      if (edge(u, sumo) >= near) return sumo;
+    } else {
+      u.taunt = 0;
+      u.tauntId = null;
+    }
+  }
   const current = findById(m, u.targetId);
-  // Once swinging, a troop stays on its target while it can reach it.
-  if (current && u.state === 'attacking' && edge(u, current) <= s.range + 0.1)
-    return current;
+  // Keep a living troop target through crowd separation and pursuit. A
+  // one-tick walk between swings must not hand the lock to a nearer tower.
+  // Tower approach is still interruptible by defending troops.
+  if (
+    current &&
+    current.side !== u.side &&
+    canTarget(s.targets, current) &&
+    edge(u, current) >= near
+  ) {
+    const reach = edge(u, current);
+    if (
+      !isTower(current) &&
+      current.state !== 'deploying' &&
+      reach <= s.sight + 0.25
+    )
+      return current;
+    if (isTower(current) && u.state === 'attacking' && reach <= s.range + 0.1)
+      return current;
+  }
   let best: Unit | Tower | undefined;
   let bestD = Infinity;
   if (s.targets !== 'buildings') {
@@ -607,7 +906,7 @@ function acquire(m: Match, u: Unit) {
       if (e.side === u.side || e.hp <= 0 || e.state === 'deploying') continue;
       if (!canTarget(s.targets, e)) continue;
       const d = edge(u, e);
-      if (d <= s.sight && d < bestD) {
+      if (d <= s.sight && d >= near && d < bestD) {
         bestD = d;
         best = e;
       }
@@ -616,12 +915,29 @@ function acquire(m: Match, u: Unit) {
   for (const t of m.towers) {
     if (t.side === u.side || t.destroyed) continue;
     const d = edge(u, t);
-    if (d <= s.sight && d < bestD) {
+    if (d <= s.sight && d >= near && d < bestD) {
       bestD = d;
       best = t;
     }
   }
   return best ?? laneTower(m, u);
+}
+
+/** The nearest living friendly troop a support follows, other supports
+ *  and spawned bees aside. */
+function nearestFriend(m: Match, u: Unit, sight: number) {
+  let best: Unit | undefined;
+  let bestD = Infinity;
+  for (const f of m.units) {
+    if (f === u || f.side !== u.side || f.hp <= 0) continue;
+    if (supports(unitStats(f)) || troopCards[f.card].token) continue;
+    const d = dist(f.x - u.x, f.y - u.y);
+    if (d <= sight && d < bestD) {
+      bestD = d;
+      best = f;
+    }
+  }
+  return best;
 }
 
 /** Where a ground troop walks next on its way to (tx, ty); `own` is true
@@ -735,18 +1051,220 @@ function damage(m: Match, target: Unit | Tower, amount: number, from: Side) {
         m.crowns[from] = Math.min(3, m.crowns[from] + 1);
         wake(m, target.side);
       }
+      const back = m.players.find((p) => p.side === target.side)?.boost
+        .towerElixir;
+      if (back)
+        for (const p of m.players)
+          if (p.side === target.side)
+            p.elixir = Math.min(MAX_ELIXIR, p.elixir + back);
     }
     return;
   }
   if (target.hp <= 0) return;
-  target.hp -= amount;
+  // Armour takes a flat bite out of every hit, but never all of it.
+  const armour = unitStats(target).armour;
+  let blocked = 0;
+  if (armour) {
+    const kept = Math.max(
+      Math.round(amount * armour.min),
+      amount - armour.flat,
+    );
+    blocked = amount - kept;
+    amount = kept;
+  }
+  if (target.shield > 0) {
+    // A shield takes the whole hit, however much is left of it.
+    target.shield -= amount;
+    if (target.shield <= 0) {
+      target.shield = 0;
+      m.events.push({
+        type: 'shield',
+        id: target.id,
+        x: target.x,
+        y: target.y,
+      });
+    }
+  } else target.hp -= amount;
   m.events.push({
     type: 'hit',
     id: target.id,
     x: target.x,
     y: target.y,
     damage: amount,
+    ...(blocked > 0 ? { armour: blocked } : {}),
   });
+}
+
+/** Pushes a troop (nx, ny) by `by` tiles; a ground troop never crosses the
+ *  middle of the river (it stops at a bridge's middle), and `separate`
+ *  settles it clear of the water and the towers afterwards. */
+function shove(e: Unit, nx: number, ny: number, by: number) {
+  const y0 = e.y;
+  e.x += nx * by;
+  e.y += ny * by;
+  const crossed = y0 < MID ? e.y >= MID : e.y < MID;
+  if (!unitStats(e).flying && crossed)
+    e.y = y0 < MID ? MID - 0.001 : MID + 0.001;
+}
+
+/** The unit vector from a to b; dead on top of it, towards the far side
+ *  of `a`'s field. */
+function away(a: Unit, b: Body): [number, number] {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const d = dist(dx, dy);
+  if (d > 1e-6) return [dx / d, dy / d];
+  return [0, a.side === 0 ? 1 : -1];
+}
+
+/** A blow that knocks its target back (a slap, a tackle). */
+function knock(
+  m: Match,
+  u: Unit,
+  target: Unit | Tower,
+  distance: number,
+  mass: number,
+) {
+  if (isTower(target) || target.hp <= 0 || target.state === 'deploying') return;
+  if (unitStats(target).mass >= mass) return;
+  const [nx, ny] = away(u, target);
+  const { x: fx, y: fy } = target;
+  shove(target, nx, ny, distance);
+  pushed(m, target, u.id, fx, fy);
+}
+
+/** Presentation only: report the movement the existing push rules made. */
+function pushed(m: Match, target: Unit, from: number, fx: number, fy: number) {
+  if (target.x === fx && target.y === fy) return;
+  m.events.push({
+    type: 'push',
+    id: target.id,
+    from,
+    x: target.x,
+    y: target.y,
+    fx,
+    fy,
+  });
+}
+
+/** Frost: the target's steps and blows run at `factor` for `seconds`. */
+function chill(
+  m: Match,
+  target: Unit | Tower,
+  seconds: number,
+  factor: number,
+) {
+  if (isTower(target) || target.hp <= 0 || seconds <= 0) return;
+  target.slow = Math.max(target.slow, seconds);
+  target.slowFactor = Math.min(target.slowFactor, factor);
+  m.events.push({ type: 'slow', id: target.id, x: target.x, y: target.y });
+}
+
+/** The Sumo lands: every enemy troop nearby that can hit him turns on him. */
+function stomp(m: Match, u: Unit, taunt: { radius: number; seconds: number }) {
+  const ids: number[] = [];
+  for (const e of m.units) {
+    if (e.side === u.side || e.hp <= 0) continue;
+    const s = unitStats(e);
+    if (supports(s) || !canTarget(s.targets, u)) continue;
+    if (dist(e.x - u.x, e.y - u.y) > taunt.radius + s.radius) continue;
+    e.taunt = taunt.seconds;
+    e.tauntId = u.id;
+    ids.push(e.id);
+  }
+  m.events.push({
+    type: 'taunt',
+    id: u.id,
+    x: u.x,
+    y: u.y,
+    radius: taunt.radius,
+    ids,
+  });
+}
+
+/**
+ * The Firefighter's jet: a cone from the troop towards its target. Every
+ * enemy it can hit inside (within its range of the troop, edge to edge,
+ * and within the cone) takes the blow, and ground troops lighter than the
+ * cone's mass are pushed along the jet. A tower it aims at takes the blow
+ * too.
+ */
+function spray(
+  m: Match,
+  u: Unit,
+  s: UnitStats,
+  target: Unit | Tower,
+  amount: number,
+) {
+  const cone = s.cone!;
+  const [nx, ny] = away(u, target);
+  for (const e of m.units) {
+    if (e.side === u.side || e.hp <= 0) continue;
+    if (!canTarget(s.targets, e)) continue;
+    const es = unitStats(e);
+    const dx = e.x - u.x;
+    const dy = e.y - u.y;
+    const d = dist(dx, dy);
+    if (d - es.radius > s.range + 0.05) continue;
+    // Inside the cone, or right against the nozzle.
+    if (d > es.radius + s.radius && dx * nx + dy * ny < cone.cos * d) continue;
+    damage(m, e, amount, u.side);
+    if (!es.flying && e.state !== 'deploying' && es.mass < cone.mass) {
+      const { x: fx, y: fy } = e;
+      shove(e, nx, ny, cone.push);
+      pushed(m, e, u.id, fx, fy);
+    }
+  }
+  if (isTower(target)) damage(m, target, amount, u.side);
+  const reach = s.range + s.radius;
+  m.events.push({
+    type: 'spray',
+    id: u.id,
+    x: u.x,
+    y: u.y,
+    tx: u.x + nx * reach,
+    ty: u.y + ny * reach,
+    cos: cone.cos,
+  });
+}
+
+/** A spawner (the Beekeeper) lets out its troops around itself. */
+function release(m: Match, u: Unit, spawn: NonNullable<UnitStats['spawn']>) {
+  const dir = u.side === 0 ? 1 : -1;
+  const ids: number[] = [];
+  for (let i = 0; i < spawn.count; i++) {
+    const [ox, oy] = SPAWN_SPOTS[i % SPAWN_SPOTS.length];
+    const bee = summon(
+      m,
+      u.owner,
+      spawn.unit,
+      u.x + ox * dir,
+      u.y + oy * dir,
+      u.lane,
+      { card: u.card, deploy: 0.3 },
+    );
+    ids.push(bee.id);
+  }
+  m.events.push({
+    type: 'spawn',
+    id: u.id,
+    card: spawn.unit,
+    ids,
+    x: u.x,
+    y: u.y,
+  });
+}
+
+function stun(m: Match, target: Unit | Tower, seconds: number) {
+  if (isTower(target) || target.hp <= 0 || seconds <= 0) return;
+  target.stun = Math.max(target.stun, seconds);
+  target.dash = false;
+  if (target.state === 'attacking')
+    target.attackTimer = Math.max(
+      target.attackTimer,
+      unitStats(target).firstHit,
+    );
+  m.events.push({ type: 'stun', id: target.id, x: target.x, y: target.y });
 }
 
 function wake(m: Match, side: Side) {
@@ -791,6 +1309,7 @@ function launch(
   speed: number,
   amount: number,
   splash: number,
+  stats?: UnitStats,
 ) {
   const d = dist(target.x - from.x, target.y - from.y);
   m.projectiles.push({
@@ -809,23 +1328,88 @@ function launch(
     speed,
     damage: amount,
     splash,
-    air: kind !== 'cannon',
+    // Cannonballs, shells and dropped bombs roll along the ground.
+    air: kind !== 'cannon' && kind !== 'shell' && kind !== 'drop',
     travelled: 0,
     distance: Math.max(0.01, d),
+    stun: stats?.stun ?? 0,
+    chain: stats?.chain ? stats.chain.count - 1 : 0,
+    chainRange: stats?.chain?.range ?? 0,
+    slow: stats?.slow?.seconds ?? 0,
+    slowFactor: stats?.slow?.factor ?? 1,
   });
   m.events.push({ type: 'shot', id: sourceId, kind });
 }
 
+/** Every Drummer's beat, before anyone moves: friends inside it get the
+ *  strongest aura they stand in (auras do not add up). */
+function beats(m: Match) {
+  for (const u of m.units) u.beat = 1;
+  for (const d of m.units) {
+    if (d.hp <= 0 || d.state === 'deploying') continue;
+    const aura = unitStats(d).aura;
+    if (!aura) continue;
+    for (const f of m.units) {
+      if (f === d || f.side !== d.side || f.hp <= 0) continue;
+      if (dist(f.x - d.x, f.y - d.y) <= aura.radius + unitStats(f).radius)
+        f.beat = Math.max(f.beat, aura.boost);
+    }
+  }
+}
+
 function stepUnits(m: Match) {
+  beats(m);
+  // Bees let out this step are in the list too; they only start deploying.
   for (const u of m.units) {
     u.px = u.x;
     u.py = u.y;
     if (u.hp <= 0) continue;
     const s = unitStats(u);
     u.sinceHit += TICK;
+    if (u.cooldown > 0 && !supports(s)) u.cooldown -= TICK;
+    if (u.taunt > 0) {
+      u.taunt -= TICK;
+      if (u.taunt <= 0) {
+        u.taunt = 0;
+        u.tauntId = null;
+      }
+    }
+    if (u.slow > 0) {
+      u.slow -= TICK;
+      if (u.slow <= 0) {
+        u.slow = 0;
+        u.slowFactor = 1;
+      }
+    }
     if (u.state === 'deploying') {
       u.deployLeft -= TICK;
-      if (u.deployLeft <= 0) u.state = 'walking';
+      if (u.deployLeft <= 0) {
+        u.state = 'walking';
+        if (s.burrow)
+          m.events.push({ type: 'emerge', id: u.id, x: u.x, y: u.y });
+        if (s.taunt) stomp(m, u, s.taunt);
+      }
+      continue;
+    }
+    if (u.stun > 0) {
+      u.stun -= TICK;
+      continue;
+    }
+    // Rage: faster steps and blows once badly hurt.
+    let quick = 1;
+    if (s.rage && u.hp < u.maxHp * s.rage.below) {
+      quick = s.rage.boost;
+      if (!u.raged) {
+        u.raged = true;
+        m.events.push({ type: 'rage', id: u.id });
+      }
+    }
+    // A Drummer's beat and an Explorer's frost speed up or slow down both
+    // the steps and the countdown to the next blow.
+    const tempo = u.beat * (u.slow > 0 ? u.slowFactor : 1);
+    const speed = s.speed * u.pace * quick * tempo;
+    if (supports(s)) {
+      support(m, u, s, speed);
       continue;
     }
     const target = acquire(m, u);
@@ -839,16 +1423,29 @@ function stepUnits(m: Match) {
     if (target.id !== u.targetId) {
       u.targetId = target.id;
       u.attackTimer = s.firstHit;
+      u.dash = false;
+      // A new target: the Linebacker's next blow is a tackle.
+      if (s.tackle) u.charged = true;
       if (u.state === 'attacking') u.state = 'walking';
     }
     const reach = edge(u, target);
     if (reach <= s.range) {
+      if (u.dash) {
+        // Landing a leap: the blow falls at once, twice as hard.
+        u.dash = false;
+        u.charged = true;
+        u.attackTimer = 0;
+      }
       u.state = 'attacking';
       u.facing = Math.atan2(target.x - u.x, target.y - u.y);
-      u.attackTimer -= TICK;
+      u.attackTimer -= TICK * tempo;
       if (u.attackTimer <= 0) {
-        u.attackTimer += s.hitSpeed;
+        u.attackTimer += s.hitSpeed / quick;
         u.sinceHit = 0;
+        let amount = Math.round(s.damage * u.power);
+        if (u.charged && s.leap) amount = Math.round(amount * s.leap.bonus);
+        const tackling = u.charged && !!s.tackle;
+        u.charged = false;
         if (s.projectile) {
           launch(
             m,
@@ -859,46 +1456,181 @@ function stepUnits(m: Match) {
             target,
             s.projectile.kind,
             s.projectile.speed,
-            s.damage,
+            amount,
             s.splash ?? 0,
+            s,
           );
         } else {
           m.events.push({ type: 'swing', id: u.id });
-          if (s.splash)
+          if (s.cone) spray(m, u, s, target, amount);
+          else if (s.spin)
+            // All the way round: everything near the troop itself.
+            splashAt(
+              m,
+              u.side,
+              u.x,
+              u.y,
+              s.spin,
+              amount,
+              s.targets === 'any',
+              true,
+            );
+          else if (s.splash)
             splashAt(
               m,
               u.side,
               target.x,
               target.y,
               s.splash,
-              s.damage,
+              amount,
               true,
               true,
             );
-          else damage(m, target, s.damage, u.side);
+          else damage(m, target, amount, u.side);
+          if (s.stun) stun(m, target, s.stun);
+          if (s.slow) chill(m, target, s.slow.seconds, s.slow.factor);
+          if (s.knockback)
+            knock(m, u, target, s.knockback.distance, s.knockback.mass);
+          if (tackling && s.tackle && !isTower(target) && target.hp > 0) {
+            m.events.push({
+              type: 'tackle',
+              id: u.id,
+              target: target.id,
+              x: target.x,
+              y: target.y,
+            });
+            knock(m, u, target, s.tackle.distance, s.tackle.mass);
+            stun(m, target, s.tackle.stun);
+          }
         }
       }
       continue;
     }
     u.state = 'walking';
     u.attackTimer = s.firstHit;
-    const [wx, wy] = steer(u, target.x, target.y, isTower(target));
-    const dx = wx - u.x;
-    const dy = wy - u.y;
-    const d = dist(dx, dy);
-    if (d > 0.001) {
-      const step = Math.min(d, s.speed * TICK);
-      const [vx, vy] = skirt(m, u, target, dx / d, dy / d, step);
-      u.x += vx * step;
-      u.y += vy * step;
-      // Turn smoothly towards the direction of travel.
-      const want = Math.atan2(vx, vy);
-      let turn = want - u.facing;
-      while (turn > Math.PI) turn -= Math.PI * 2;
-      while (turn < -Math.PI) turn += Math.PI * 2;
-      u.facing += turn * Math.min(1, TICK * 10);
+    // A leap at a troop that has come into reach.
+    if (
+      s.leap &&
+      !u.dash &&
+      u.cooldown <= 0 &&
+      !isTower(target) &&
+      reach <= s.leap.range
+    ) {
+      u.dash = true;
+      u.cooldown = s.leap.cooldown;
+      m.events.push({ type: 'leap', id: u.id });
+    }
+    walkTowards(
+      m,
+      u,
+      target,
+      target.x,
+      target.y,
+      u.dash && s.leap ? s.leap.speed : speed,
+    );
+  }
+}
+
+/** One step towards (tx, ty) on the way to `target`, round towers and over
+ *  the bridges, turning smoothly. */
+function walkTowards(
+  m: Match,
+  u: Unit,
+  target: Unit | Tower | null,
+  tx: number,
+  ty: number,
+  speed: number,
+) {
+  const [wx, wy] = steer(u, tx, ty, !!target && isTower(target));
+  const dx = wx - u.x;
+  const dy = wy - u.y;
+  const d = dist(dx, dy);
+  if (d <= 0.001) return;
+  const step = Math.min(d, speed * TICK);
+  const [vx, vy] = target
+    ? skirt(m, u, target, dx / d, dy / d, step)
+    : [dx / d, dy / d];
+  u.x += vx * step;
+  u.y += vy * step;
+  // Turn smoothly towards the direction of travel.
+  const want = Math.atan2(vx, vy);
+  let turn = want - u.facing;
+  while (turn > Math.PI) turn -= Math.PI * 2;
+  while (turn < -Math.PI) turn += Math.PI * 2;
+  u.facing += turn * Math.min(1, TICK * 10);
+}
+
+/**
+ * A support that never attacks. The Medic's pulse heals every friendly
+ * troop around her (never towers, never herself); the Beekeeper lets out
+ * her bees; the Drummer beats (his aura works all the time, see `beats`).
+ * Each follows the nearest friend, standing a step behind it, and with
+ * nobody to follow walks its lane and waits outside the reach of the tower
+ * ahead.
+ */
+function support(m: Match, u: Unit, s: UnitStats, speed: number) {
+  u.cooldown -= TICK;
+  if (u.cooldown <= 0) {
+    u.sinceHit = 0;
+    if (s.heal) {
+      const heal = s.heal;
+      u.cooldown += heal.every;
+      const amount = Math.round(heal.amount * u.power);
+      const ids: number[] = [];
+      for (const f of m.units) {
+        if (f === u || f.side !== u.side || f.hp <= 0) continue;
+        if (dist(f.x - u.x, f.y - u.y) > heal.radius + unitStats(f).radius)
+          continue;
+        const before = f.hp;
+        f.hp = Math.min(f.maxHp, f.hp + amount);
+        if (f.hp > before) ids.push(f.id);
+      }
+      m.events.push({
+        type: 'heal',
+        id: u.id,
+        x: u.x,
+        y: u.y,
+        radius: heal.radius,
+        ids,
+      });
+    } else if (s.spawn) {
+      u.cooldown += s.spawn.every;
+      release(m, u, s.spawn);
+    } else {
+      u.cooldown += BEAT;
+      if (s.aura)
+        m.events.push({
+          type: 'beat',
+          id: u.id,
+          x: u.x,
+          y: u.y,
+          radius: s.aura.radius,
+        });
     }
   }
+  const friend = nearestFriend(m, u, s.sight * 2);
+  if (friend) {
+    u.targetId = null;
+    const d = dist(friend.x - u.x, friend.y - u.y);
+    const keep = unitStats(friend).radius + s.radius + 0.9;
+    if (d <= keep) {
+      u.state = 'attacking';
+      if (d > 0.001) u.facing = Math.atan2(friend.x - u.x, friend.y - u.y);
+      return;
+    }
+    u.state = 'walking';
+    walkTowards(m, u, null, friend.x, friend.y, speed);
+    return;
+  }
+  const tower = laneTower(m, u);
+  if (!tower) return;
+  // Wait just outside the tower's reach.
+  if (edge(u, tower) <= tower.range + s.radius + 1) {
+    u.state = 'attacking';
+    return;
+  }
+  u.state = 'walking';
+  walkTowards(m, u, tower, tower.x, tower.y, speed);
 }
 
 /**
@@ -1027,12 +1759,14 @@ function crash(m: Match, s: Spell) {
     // Straight out from the centre; dead centre pushes towards their side.
     const nx = d > 1e-6 ? dx / d : 0;
     const ny = d > 1e-6 ? dy / d : s.side === 0 ? 1 : -1;
+    const fx = e.x;
     const y0 = e.y;
     e.x += nx * s.knockback;
     e.y += ny * s.knockback;
     // A ground troop shoved along a bridge stops at its middle.
     const crossed = y0 < MID ? e.y >= MID : e.y < MID;
     if (!st.flying && crossed) e.y = y0 < MID ? MID - 0.001 : MID + 0.001;
+    pushed(m, e, s.id, fx, y0);
   }
   for (const t of m.towers) {
     if (t.side === s.side || t.destroyed) continue;
@@ -1110,6 +1844,8 @@ function stepProjectiles(m: Match) {
       if (p.splash > 0)
         splashAt(m, p.side, p.x, p.y, p.splash, p.damage, p.air, true);
       else if (target) damage(m, target, p.damage, p.side);
+      if (target && p.stun) stun(m, target, p.stun);
+      if (target && p.slow) chill(m, target, p.slow, p.slowFactor);
       m.events.push({
         type: 'impact',
         kind: p.kind,
@@ -1117,6 +1853,7 @@ function stepProjectiles(m: Match) {
         y: p.y,
         splash: p.splash,
       });
+      if (p.chain > 0 && target) jump(m, p, target);
       continue;
     }
     p.x += (dx / d) * step;
@@ -1127,9 +1864,52 @@ function stepProjectiles(m: Match) {
     m.projectiles = m.projectiles.filter((p) => p.speed > 0);
 }
 
+/**
+ * A chained shot jumps from the troop it hit to the nearest other enemy
+ * troop within reach (never a tower, never one already hit), hitting and
+ * stunning each in turn, up to its count.
+ */
+function jump(m: Match, p: Projectile, first: Unit | Tower) {
+  const hit = new Set<number>([first.id]);
+  let from: Body = first;
+  for (let n = 0; n < p.chain; n++) {
+    let best: Unit | undefined;
+    let bestD = Infinity;
+    for (const e of m.units) {
+      if (e.side === p.side || e.hp <= 0 || hit.has(e.id)) continue;
+      if (e.state === 'deploying') continue;
+      const d = dist(e.x - from.x, e.y - from.y) - unitStats(e).radius;
+      if (d <= p.chainRange && d < bestD) {
+        bestD = d;
+        best = e;
+      }
+    }
+    if (!best) return;
+    hit.add(best.id);
+    damage(m, best, p.damage, p.side);
+    stun(m, best, p.stun);
+    m.events.push({
+      type: 'impact',
+      kind: p.kind,
+      x: best.x,
+      y: best.y,
+      splash: 0,
+      fx: from.x,
+      fy: from.y,
+    });
+    from = best;
+  }
+}
+
+/** Fallen troops leave the field; a Balloon crashes onto what is below. */
 function sweepDead(m: Match) {
-  for (const u of m.units)
-    if (u.hp <= 0)
+  const gone = new Set<number>();
+  for (let again = true; again;) {
+    again = false;
+    for (const u of m.units) {
+      if (u.hp > 0 || gone.has(u.id)) continue;
+      gone.add(u.id);
+      again = true;
       m.events.push({
         type: 'death',
         id: u.id,
@@ -1138,7 +1918,20 @@ function sweepDead(m: Match) {
         x: u.x,
         y: u.y,
       });
-  if (m.units.some((u) => u.hp <= 0)) m.units = m.units.filter((u) => u.hp > 0);
+      const blast = unitStats(u).deathBlast;
+      if (blast) {
+        splashAt(m, u.side, u.x, u.y, blast.radius, blast.damage, false, true);
+        m.events.push({
+          type: 'impact',
+          kind: 'crash',
+          x: u.x,
+          y: u.y,
+          splash: blast.radius,
+        });
+      }
+    }
+  }
+  if (gone.size) m.units = m.units.filter((u) => u.hp > 0);
 }
 
 function lowestTower(m: Match, side: Side) {
@@ -1164,13 +1957,13 @@ function checkEnd(m: Match, crownsBefore: [number, number]) {
     (a !== crownsBefore[0] || b !== crownsBefore[1])
   )
     return finish(m, a > b ? 0 : 1);
-  if (m.phase === 'battle' && m.time >= REGULATION) {
+  if (m.phase === 'battle' && m.time >= m.regulation) {
     if (a !== b) return finish(m, a > b ? 0 : 1);
     m.phase = 'overtime';
     m.events.push({ type: 'phase', phase: 'overtime' });
     return;
   }
-  if (m.phase === 'overtime' && m.time >= REGULATION + OVERTIME) {
+  if (m.phase === 'overtime' && m.time >= m.regulation + OVERTIME) {
     if (a !== b) return finish(m, a > b ? 0 : 1);
     // Still level: the side whose weakest tower is lower loses.
     const mine = lowestTower(m, 0);
@@ -1194,7 +1987,10 @@ export function step(m: Match) {
   }
   const rate = elixirMultiplier(m) / ELIXIR_SECONDS;
   for (const p of m.players)
-    p.elixir = Math.min(MAX_ELIXIR, p.elixir + rate * TICK);
+    p.elixir = Math.min(
+      MAX_ELIXIR,
+      p.elixir + rate * (p.boost.elixirRate ?? 1) * TICK,
+    );
   const crownsBefore: [number, number] = [m.crowns[0], m.crowns[1]];
   stepUnits(m);
   // After the troops move, so a knock-back is drawn over the step and the

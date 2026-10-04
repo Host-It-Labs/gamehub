@@ -1,15 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
-import { paperWorldFor, paperWorldFrame, paperWorldPlayBox, paperWorldTarget } from '../lib/games/mora-world.ts';
+import { frameScene, paperWorldFor, paperWorldFrame, paperWorldPlayBox, paperWorldTarget } from '../lib/games/mora-world.ts';
 import { moraMapFor } from '../lib/games/trio/mora-map.ts';
 import { habitatsFor } from '../lib/games/trio/engine.ts';
 import { coverReport } from '../scripts/check-board-cover.mjs';
 const close = (a,b) => assert.ok(Math.abs(a-b)<1e-7, `${a} != ${b}`);
 const devices = [[320,568],[375,667],[390,844],[430,932],[768,1024],[568,320],[667,375],[844,390],[932,430],[1133,744],[1194,834],[1280,720],[1440,900],[1912,952],[3440,1440], ...[1.1,1.25,1.5].map(z=>[1512/z,850/z])];
-for (const [world,set] of [['observatory','beginner'],['floodline','intermediate']]) for (const tall of [false,true]) {
-  const art=paperWorldFor(tall,undefined,world);
-  const name=`${world} ${tall?'portrait':'landscape'}`;
+await test('a feasible full landmark fit wins over the preferred camera nudge without changing scale', () => {
+  const art = {
+    width: 1000, height: 1600,
+    crop: { left: 200, top: 200, width: 600, height: 1000 },
+    landmarks: { protectedBounds: [{ name: 'complete structure', bounds: [180, 200, 760, 1000] }] },
+  };
+  const frame = frameScene(art, art.crop, { width: 400, height: 800 }, { x: 10, y: 100, width: 380, height: 600 });
+  close(frame.scale, .5);
+  assert.equal(frame.covers, true);
+  assert.ok(frame.image.x + 180 * frame.scale >= 0);
+  assert.ok(frame.image.x + 940 * frame.scale <= 400);
+});
+for (const [world,set] of [['observatory','beginner'],['floodline','intermediate'],['motel','desert'],['dam','alpine']]) for (const [tall,phone] of [[false,false],[true,false],...(world==='floodline'?[[true,true]]:[])]) {
+  const art=paperWorldFor(tall,undefined,world,phone);
+  const name=`${world} ${phone?'phone':tall?'portrait':'landscape'}`;
   await test(`${name} source and crop match actual native files`, async()=>{
     const full=await sharp(`public${art.image}`).metadata();
     const crop=await sharp(`public${art.boardImage}`).metadata();
@@ -20,8 +32,8 @@ for (const [world,set] of [['observatory','beginner'],['floodline','intermediate
     assert.equal(mini.width,art.overview.width);assert.equal(mini.height,art.overview.height);
   });
   await test(`${name} pads retain every rule capacity and source alignment`,()=>{
-    const map=moraMapFor(set,tall);
-    assert.equal(map.habitats.reduce((n,h)=>n+h.slots.length,0),world==='floodline'?23:17);
+    const map=moraMapFor(set,tall,false,phone);
+    assert.equal(map.habitats.reduce((n,h)=>n+h.slots.length,0),{observatory:17,floodline:23,motel:23,dam:28}[world]);
     for(const h of map.habitats){
       assert.equal(h.slots.length,habitatsFor(set)[h.zone].cap);
       const original=art.habitats.find(a=>a.zone===h.zone);
@@ -30,14 +42,14 @@ for (const [world,set] of [['observatory','beginner'],['floodline','intermediate
         close(art.crop.top+y/100*art.crop.height,original.slots[i][1]);
       });
     }
-    const mini=moraMapFor(set,tall,true);
+    const mini=moraMapFor(set,tall,true,phone);
     for(const h of mini.habitats) for(const [x,y] of [...h.slots,h.label]) assert.ok(x>=0&&x<=100&&y>=0&&y<=100);
   });
 }
-for (const world of ['observatory','floodline']) await test(`${world}: the crop stays inside the stage while scenery covers the surface wherever it can`,()=>{
+for (const world of ['observatory','floodline','motel','dam']) await test(`${world}: the crop stays inside the stage while scenery covers the surface wherever it can`,()=>{
   for(const [w,h] of devices){
     const tall=h>w,phone=!tall&&h<=500;
-    const art=paperWorldFor(tall,undefined,world);
+    const art=paperWorldFor(tall,undefined,world,tall&&w<=600);
     // Same fixed stage reserves as CSS, independent of extensions and hand count.
     const stage=tall?{x:8,y:100,width:w-16,height:h-292}:phone?{x:110,y:12,width:w-220,height:h-24}:{x:0,y:Math.min(h*.16,180),width:w,height:h-Math.min(h*.16,180)-118};
     const f=paperWorldFrame(art,{width:w,height:h},stage), target=paperWorldTarget(art,f);
@@ -65,15 +77,42 @@ for (const world of ['observatory','floodline']) await test(`${world}: the crop 
 });
 // Side borders on desktop came back more than once: every landscape board must
 // fill common browser windows edge to edge (scripts/check-board-cover.mjs).
-for (const world of ['observatory','floodline']) for (const tall of [false,true]) await test(`${world}: common ${tall?'phones':'desktop browser windows'} show no borders`,()=>{
-  const gaps=coverReport(paperWorldFor(tall,undefined,world)).filter(r=>!r.covers&&!r.informational).map(r=>`${r.w}x${r.h} needs play box <= ${Math.round(r.maxHeight)} tall${r.maxWidth?`, ${Math.round(r.maxWidth)} wide`:''}`);
+for (const world of ['observatory','floodline','motel','dam']) for (const tall of [false,true]) await test(`${world}: common ${tall?'phones':'desktop browser windows'} show no borders`,()=>{
+  const gaps=coverReport(paperWorldFor(tall,undefined,world,tall)).filter(r=>!r.covers&&!r.informational).map(r=>`${r.w}x${r.h} needs play box <= ${Math.round(r.maxHeight)} tall${r.maxWidth?`, ${Math.round(r.maxWidth)} wide`:''}`);
   assert.deepEqual(gaps,[]);
 });
-for (const world of ['observatory','floodline']) await test(`${world}: desktop and tablet screens are fully covered by the scenery`,()=>{
+for (const world of ['observatory','floodline','motel','dam']) await test(`${world}: desktop and tablet screens are fully covered by the scenery`,()=>{
   for(const [w,h] of [[1440,900],[1512,982],[1194,834],[1133,744]]){
     const y=Math.min(h*.16,180);
     const f=paperWorldFrame(paperWorldFor(false,undefined,world),{width:w,height:h},{x:0,y,width:w,height:h-y-118});
     assert.ok(f.covers,`${w}×${h}`);
+  }
+});
+for (const world of ['observatory', 'floodline']) await test(`${world}: refreshed portrait boards keep complete landmarks visible on phones and tablets`, () => {
+  const devices = coverReport(paperWorldFor(true, undefined, world, true)).filter(r => !r.informational).map(r => [r.w, r.h]);
+  for (const [width, height] of [...devices, [768, 1024]]) {
+    const art = paperWorldFor(true, undefined, world, width <= 600);
+    const frame = paperWorldFrame(art, { width, height }, { x: 8, y: 100, width: width - 16, height: height - 292 });
+    for (const landmark of art.landmarks.protectedBounds) {
+      const [x, y, w, h] = landmark.bounds;
+      const left = frame.image.x + x * frame.scale;
+      const top = frame.image.y + y * frame.scale;
+      assert.ok(left >= -1e-6 && top >= -1e-6 && left + w * frame.scale <= width + 1e-6 && top + h * frame.scale <= height + 1e-6,
+        `${width}×${height}: complete ${landmark.name} silhouette`);
+    }
+  }
+});
+await test('Floodline uses the lower phone stage while keeping portrait tablets covered', () => {
+  for (const [width, height] of [[360, 780], [390, 844], [430, 932], [768, 1024]]) {
+    const art = paperWorldFor(true, undefined, 'floodline', width <= 600);
+    const stage = { x: 8, y: 100, width: width - 16, height: height - 292 };
+    const frame = paperWorldFrame(art, { width, height }, stage);
+    assert.ok(frame.covers, `${width}×${height}: continuous source coverage`);
+    const lastLabel = frame.image.y + Math.max(...art.habitats.map(h => h.label[1])) * frame.scale;
+    assert.ok(lastLabel + 24 <= stage.y + stage.height, `${width}×${height}: explanation clears dock reserve`);
+    if (width <= 600) {
+      assert.ok(lastLabel >= stage.y + stage.height * .86, `${width}×${height}: lower habitats use the available height`);
+    }
   }
 });
 await test('orientation and world select genuinely different geography and static empty geometry stays finite',()=>{
@@ -99,7 +138,7 @@ await test('accepted Floodline artwork and pad geometry are the same revision', 
     const art = paperWorldFor(tall, undefined, 'floodline');
     // Three rounds of six need room: 5 + 5 + 3 + 4 + 4 + 2 spaces.
     assert.deepEqual([0, 1, 2, 3, 4, 6].map(zone => art.habitats.find(h => h.zone === zone).slots.length), [5, 5, 3, 4, 4, 2]);
-    assert.match(art.source, /(overgrown-floodline-landscape-v3-b|phone-floodline-v4-f-tall)/);
-    assert.match(art.boardImage, /(overgrown-floodline-landscape-v3-b|phone-floodline-v4-f-tall)-board/);
+    assert.match(art.source, /(overgrown-floodline-landscape-v3-b|phone-floodline-v6-c)/);
+    assert.match(art.boardImage, /(overgrown-floodline-landscape-v3-b|phone-floodline-v6-c)-board/);
   }
 });

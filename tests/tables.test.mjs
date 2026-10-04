@@ -233,7 +233,7 @@ await test('persistent match and deduplication survive reopening SQLite', () => 
   }
 });
 
-await test('host expansion choice reaches shared game and the shortened duel exchange is accepted', () => {
+await test('host extension choice reaches the shared game, and Nox seats three or more', () => {
   const { db, tables, host } = setup();
   try {
     let t = tables.create(host);
@@ -242,23 +242,30 @@ await test('host expansion choice reaches shared game and the shortened duel exc
       gameId: 'undertow',
       capacity: 2,
       difficulty: 'medium',
-      shields: true,
+      gold: true,
+      anchor: true,
     });
+    // Two seats are no longer a Nox table: the nearest allowed count is three.
+    assert.equal(t.capacity, 3);
     t = tables.join(t.token, actor('guest'));
-    assert.equal(tables.view(t, host).shields, true);
+    assert.equal(tables.view(t, host).gold, true);
+    assert.equal(tables.view(t, host).anchor, true);
+    // The Fast deck deals four hands at most.
+    t = command(tables, t, host, { type: 'configure', gameId: 'undertow', capacity: 6, difficulty: 'medium', fastMode: true });
+    assert.equal(t.capacity, 4);
+    t = command(tables, t, host, { type: 'configure', gameId: 'undertow', capacity: 3, difficulty: 'medium', fastMode: false });
     t = command(tables, t, host, { type: 'start' });
-    assert.equal(t.game.shields, true);
-    assert.ok(
-      t.game.players.every((p) => p.wards === 2 && p.salvageClaims === 0),
-    );
+    assert.equal(t.game.gold, true);
+    assert.equal(t.game.anchor, true);
+    assert.equal(t.game.players.length, 3);
     t = command(tables, t, host, {
       type: 'move',
       move: {
         type: 'pass',
-        cards: t.game.players[0].hand.slice(0, 3).map((c) => c.id),
+        cards: t.game.players[0].hand.slice(0, 4).map((c) => c.id),
       },
     });
-    assert.equal(t.game.active, 1);
+    assert.notEqual(t.game.active, 0);
   } finally {
     db.close();
   }
@@ -346,12 +353,16 @@ await test('shared practice accepts moves while only the host controls lessons a
   try {
     for (const gameId of ['undertow', 'wildgrove', 'midnight']) {
       const guest = actor('guest');
+      // Nox needs three players: a second guest takes the third seat.
+      const third = actor('third-guest');
       let t = tables.join(tables.create(host).token, guest);
+      if (gameId === 'undertow') t = tables.join(t.token, third);
+      const people = gameId === 'undertow' ? [host, guest, third] : [host, guest];
       t = command(tables, t, host, {
         type: 'configure',
         gameId,
         difficulty: 'medium',
-        capacity: 2,
+        capacity: people.length,
       });
       t = command(tables, t, host, { type: 'start', learning: true });
       const practiceId = t.matchId;
@@ -371,7 +382,7 @@ await test('shared practice accepts moves while only the host controls lessons a
       assert.equal(tables.view(tables.get(t.token), guest).game.lesson, 1);
       for (let i = 0; i < 6; i++) {
         const seat = t.game.active;
-        t = command(tables, t, seat === 0 ? host : guest, {
+        t = command(tables, t, people[seat], {
           type: 'move',
           move: chooseMove(observe(t.game)),
         });
@@ -408,7 +419,7 @@ await test('Tide Fast mode survives settings, shared practice, and match start',
       gameId: 'undertow',
       difficulty: 'easy',
       capacity: 3,
-      shields: true,
+      gold: true,
     };
     t = command(tables, t, host, { ...settings, fastMode: true });
     assert.equal(tables.view(t, host).fastMode, true);
@@ -419,10 +430,10 @@ await test('Tide Fast mode survives settings, shared practice, and match start',
     );
     t = command(tables, t, host, { type: 'start', learning: true });
     assert.equal(t.game.fastMode, true);
-    assert.equal(t.game.shields, true);
+    assert.equal(t.game.gold, true);
     assert.ok(
       t.game.players.every(
-        (p) => p.hand.length === 8 && p.hand.every((c) => c.rank <= 5),
+        (p) => p.hand.length === 10 && p.hand.every((c) => c.rank <= (c.kind === 4 ? 10 : 5)),
       ),
     );
     t = command(tables, t, host, { type: 'begin-match' });
@@ -470,11 +481,14 @@ await test('shared lobby setup persists, follows the host, and rejects guest cha
       { type: 'configure', gameId: 'midnight', difficulty: 'hard', capacity: 4 },
       { type: 'start' },
     ]) assert.throws(() => command(tables, t, guest, action), /Only the host/);
-    t = command(tables, t, host, { type: 'configure', gameId: 'wildgrove', difficulty: 'hard', capacity: 4, contentSet: 'intermediate', migration: true });
+    t = command(tables, t, host, { type: 'configure', gameId: 'wildgrove', difficulty: 'hard', capacity: 4, contentSet: 'alpine', census: true });
     view = tables.view(tables.get(t.token), guest);
     assert.equal(view.setupOpen, true);
     assert.equal(view.difficulty, 'hard');
-    assert.equal(view.migration, true);
+    assert.equal(view.census, true);
+    assert.equal(view.contentSet, 'alpine');
+    // Mora's boards are Mora's alone.
+    assert.throws(() => command(tables, t, host, { type: 'configure', gameId: 'midnight', difficulty: 'hard', capacity: 4, contentSet: 'alpine' }), /content set/);
     t = tables.join(t.token, actor('late-setup-guest'));
     assert.equal(tables.view(t, actor('late-setup-guest')).setupOpen, true);
     t = command(tables, t, host, { type: 'setup', open: false });

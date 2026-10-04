@@ -1,0 +1,66 @@
+{
+  "kind": 3,
+  "semantic_inventory": {
+    "name": "Pickles",
+    "servings": 1,
+    "vessel": "lime green square tray",
+    "features": [
+      "four chunky yellow half moons left/back",
+      "four cucumber rounds with three modeled cream seeds each",
+      "ten broad folded faceted pink ginger petals right"
+    ]
+  },
+  "measured_object_inventory": {
+    "yellow_half_moons": 4,
+    "cucumber_rounds": 4,
+    "cucumber_seeds": 12,
+    "ginger_petals": 10
+  },
+  "object_inventory_audit_passed": true,
+  "source_recipe_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+  "blender_version": "5.2.2 LTS",
+  "material_node_types": [
+    "ShaderNodeAttribute",
+    "ShaderNodeBsdfDiffuse",
+    "ShaderNodeBsdfTransparent",
+    "ShaderNodeEmission",
+    "ShaderNodeLightPath",
+    "ShaderNodeMapRange",
+    "ShaderNodeMath",
+    "ShaderNodeMixShader",
+    "ShaderNodeNewGeometry",
+    "ShaderNodeOutputMaterial",
+    "ShaderNodeValToRGB",
+    "ShaderNodeVectorMath"
+  ],
+  "material_audit_passed": true,
+  "model_counts": {
+    "mesh_objects": 36,
+    "curve_objects": 0
+  },
+  "textures_used": [],
+  "source_image_inputs": [],
+  "camera": {
+    "projection": "orthographic",
+    "elevation_degrees": 47,
+    "scale": 3.1
+  },
+  "contact_shadow": {
+    "method": "modeled analytic ellipse",
+    "alpha_at_boundary": 0,
+    "cycles_shadow_catcher": false,
+    "image_postprocessing": false
+  },
+  "render": {
+    "size": 1200,
+    "samples": 96,
+    "engine": "Cycles",
+    "film_transparent": true,
+    "outline_px": 7.166666666666667,
+    "cel_band_thresholds": [
+      0.0,
+      0.48,
+      0.8
+    ]
+  }
+}

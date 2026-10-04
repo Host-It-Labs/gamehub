@@ -19,19 +19,38 @@ import sharp from 'sharp';
 
 const BLENDER =
   process.env.BLENDER ?? '/Applications/Blender.app/Contents/MacOS/Blender';
-const MODELS = ['towers', 'troops', 'props', 'figures'];
+const MODELS = ['towers', 'troops', 'props', 'figures', 'cartoon_towers'];
 /** The chosen portrait per card: each character as polished cartoon art,
- *  as many troops as the card deploys, in front of its era (27 September
- *  2026, v5; see docs/concepts/2026-09-26-arena-retheme/README.md). */
+ *  caught in action (attacking, charging, casting, firing, bracing), as many
+ *  troops as the card deploys, in front of its era (1 October 2026, v7; see
+ *  docs/concepts/2026-10-01-arena-draft/portraits.md). The v1–v6 sets are
+ *  kept beside them in assets/arena/cards. */
 const CARD_ART = {
-  archers: 'v5-a',
-  ogre: 'v5-a',
-  imps: 'v5-a',
-  duelist: 'v5-b',
-  ranger: 'v5-a',
-  drake: 'v5-b',
-  mage: 'v5-a',
-  meteor: 'v5-a',
+  archers: 'v7-b',
+  ogre: 'v7-b',
+  imps: 'v7-a',
+  duelist: 'v7-a',
+  ranger: 'v7-b',
+  drake: 'v7-a',
+  mage: 'v7-a',
+  meteor: 'v7-b',
+  pirate: 'v7-b',
+  viking: 'v7-a',
+  gladiator: 'v7-b',
+  medic: 'v7-b',
+  miner: 'v7-b',
+  balloon: 'v7-b',
+  inventor: 'v7-b',
+  gunner: 'v7-a',
+  // The eight troops of 1 October 2026 (docs/concepts/2026-10-01-arena-draft).
+  diver: 'v7-b',
+  sumo: 'v7-b',
+  linebacker: 'v7-b',
+  beekeeper: 'v7-a',
+  drummer: 'v7-b',
+  firefighter: 'v7-b',
+  jetpack: 'v7-a',
+  explorer: 'v7-a',
 };
 const CARDS = Object.keys(CARD_ART);
 const MANIFEST = 'lib/games/arena/assets.json';
@@ -111,10 +130,9 @@ if (want('cards')) {
 if (want('covers')) {
   const previewsPath = 'lib/artwork-previews.json';
   const previews = JSON.parse(await readFile(previewsPath, 'utf8'));
-  // Collector's Diorama covers (v4, the game's own look); the served names keep v1, as Arena
-  // had not shipped.
-  const square = 'assets/arena/concepts/box-arena-square-v4-a.png';
-  const cover = '/art/optimized/box-arena-blind-v1.webp';
+  // Cartoon covers in the loading screen's style (v5, 1 October 2026), served as v2.
+  const square = 'assets/arena/concepts/box-arena-square-v5-a.png';
+  const cover = '/art/optimized/box-arena-blind-v2.webp';
   await sharp(square)
     .resize(1024, 1024, { kernel: 'lanczos3' })
     .webp({ quality: 88 })
@@ -141,8 +159,8 @@ if (want('covers')) {
     preview: `data:image/webp;base64,${tiny.toString('base64')}`,
     srcSet: variants.join(', '),
   };
-  const wideSrc = 'assets/arena/concepts/box-arena-wide-v4-b.png';
-  const wide = '/art/optimized/box-arena-wide-v1.webp';
+  const wideSrc = 'assets/arena/concepts/box-arena-wide-v5-a.png';
+  const wide = '/art/optimized/box-arena-wide-v2.webp';
   const { width, height } = await sharp(wideSrc).metadata();
   const band = Math.round(width / 3);
   const cut = () =>

@@ -1,0 +1,46 @@
+{
+  "original_cards_unchanged": [
+    "public/art/optimized/yata-counter-lane-0-v3.webp",
+    "public/art/optimized/yata-counter-lane-1-v3.webp",
+    "public/art/optimized/yata-counter-lane-2-v3.webp",
+    "public/art/optimized/yata-counter-lane-3-v3.webp",
+    "public/art/optimized/yata-counter-lane-4-v4.webp",
+    "public/art/optimized/yata-counter-lane-5-v4.webp"
+  ],
+  "new_assets_verified": [
+    "assets/yata/renders/tokyo-toon-v2/tokyo-0.png",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-0.json",
+    "public/art/optimized/yata-dish3d-tokyo-0-v2.webp",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-1.png",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-1.json",
+    "public/art/optimized/yata-dish3d-tokyo-1-v2.webp",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-2.png",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-2.json",
+    "public/art/optimized/yata-dish3d-tokyo-2-v2.webp",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-3.png",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-3.json",
+    "public/art/optimized/yata-dish3d-tokyo-3-v2.webp",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-4.png",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-4.json",
+    "public/art/optimized/yata-dish3d-tokyo-4-v2.webp",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-5.png",
+    "assets/yata/renders/tokyo-toon-v2/tokyo-5.json",
+    "public/art/optimized/yata-dish3d-tokyo-5-v2.webp"
+  ],
+  "old_v1_retained": [
+    "public/art/optimized/yata-dish3d-tokyo-0-v1.webp",
+    "public/art/optimized/yata-dish3d-tokyo-1-v1.webp",
+    "public/art/optimized/yata-dish3d-tokyo-2-v1.webp",
+    "public/art/optimized/yata-dish3d-tokyo-3-v1.webp",
+    "public/art/optimized/yata-dish3d-tokyo-4-v1.webp",
+    "public/art/optimized/yata-dish3d-tokyo-5-v1.webp"
+  ],
+  "code_draft_matches": {
+    "lib/games/trio/engine.ts": true,
+    "components/game/artwork.tsx": true,
+    "scripts/yata-dish-renders.mjs": true,
+    "tests/yata-dish-renders.test.mjs": true
+  },
+  "recipe_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+  "helper_sha256": "5a8f61969b68edae40421e36b42cadd15caace518a25fa9e469584603404b3ea"
+}

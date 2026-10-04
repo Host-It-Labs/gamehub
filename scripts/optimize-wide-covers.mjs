@@ -18,11 +18,18 @@ const sources = {
   orin: 'box-know-me-wide-v1-a.png',
   miro: 'box-quiz-wide-v1-b.png',
   folio: 'box-folio-wide-v1-b.png',
+  // docs/concepts/2026-10-03-impostor-diner-covers
+  impostor: 'box-impostor-wide-v1-b.png',
+  diner: 'box-diner-wide-v2-a.png',
   // Lucky (relic) cuts its own lid in scripts/optimize-lucky-art.mjs.
 };
 const manifestPath = 'lib/artwork-previews.json';
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+// Optional ids on the command line limit the run to those covers (and skip
+// the board previews).
+const only = process.argv.slice(2);
 for (const [id, file] of Object.entries(sources)) {
+  if (only.length && !only.includes(id)) continue;
   const source = `${archive}/${file}`;
   // Without the archive the committed delivery files stay as they are.
   if (!existsSync(source)) continue;
@@ -55,7 +62,7 @@ for (const [id, file] of Object.entries(sources)) {
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
 // Board previews: the middle 2:1 of each Mora overview plate.
-for (const [plate, name] of [
+for (const [plate, name] of only.length ? [] : [
   ['mora-paper-world-landscape-v5-a-overview', 'mora-observatory-preview-v1'],
   ['mora-floodline-landscape-v5-b-overview', 'mora-floodline-preview-v1'],
 ]) {

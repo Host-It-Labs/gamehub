@@ -1,23 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  Check,
-  Circle,
-  Copy,
-  Flower2,
-  Footprints,
-  Grid2x2,
-  Heart,
-  Lightbulb,
-  Waypoints,
-  PawPrint,
-  Package,
-  Home,
-  Square,
-  Trees,
-  Eye,
-  Sparkles,
-  Users,
-} from 'lucide-react';
+import { Check } from 'lucide-react';
 import {
   sanctuaryGoalsFor,
   tokenImage,
@@ -28,6 +10,7 @@ import {
 } from '@/lib/games/trio/engine';
 import { Piece, type Inspect } from './interactions';
 import { RuleList, RuleSection, type RuleListItem } from './rules';
+import { GoalIcon } from './goal-icon';
 
 function GoalArt({
   goal,
@@ -48,25 +31,7 @@ function GoalArt({
         </span>
       </span>
     );
-  const Icon = ({
-    full: Home,
-    squares: Square,
-    rounds: Circle,
-    herd: PawPrint,
-    mirror: Copy,
-    family: Users,
-    diversity: Sparkles,
-    habitats: Trees,
-    pairs: Heart,
-    variety: Flower2,
-    twins: Grid2x2,
-    fill: Package,
-    trail: Footprints,
-    lookout: Eye,
-    spread: Waypoints,
-    lighthouse: Lightbulb,
-  } satisfies Record<SanctuaryGoal['type'], unknown>)[goal.type];
-  return <Icon size={30} aria-hidden="true" />;
+  return <GoalIcon goal={goal} />;
 }
 
 /** One drawn goal as a reference line, with live progress when a board is given. */

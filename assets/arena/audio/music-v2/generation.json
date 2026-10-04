@@ -1,0 +1,10 @@
+{
+  "requestedPrompt": "Original instrumental soundtrack for Arena, a colorful miniature castle battle game in a jade woodland and terracotta courtyard. Memorable playful heroic melody, polished orchestral production, no voices, no vocals, no game sound effects. One 120-second piece with TWO versions of the SAME melody and harmonic progression in D major. Seconds 0-60: warm adventurous 96 BPM groove, pizzicato strings, woody marimba, flute and clarinet melody, light hand percussion, relaxed buoyant movement, ample space for gameplay sounds. At exactly 60 seconds keep the SAME theme, key and phrase structure and develop it into the final-minute arrangement at only 104 BPM, NOT double time: fuller rounded double bass and cellos, deeper warm bass drum and timpani, broad low-brass support, energetic string counterlines and more dramatic harmonic emphasis. The added drama must come from orchestration, low end and percussion, not frantic speed, volume jumps, harsh treble or new unrelated music. The final-minute theme remains clearly recognizable as the first-minute melody. Each 60-second section starts on a downbeat and ends on a clean musical phrase boundary without silence, fades or a long ending so it can be looped separately. Friendly confident fantasy battle mood, premium mobile game score. Fully original composition.",
+  "flow": "https://elevenlabs.io/app/flows/iK2XhMP9gSN68kxXcC4z",
+  "generationIds": [
+    "yIOCixfjctFGfCqm7Rvu",
+    "Bean10bpzM64odeaIp1x"
+  ],
+  "status": "Both new generations failed: Insufficient funds.",
+  "fallback": "Option A is unused original music-v1/take-2.mp3; Option B is unused original music-v1/take-3.mp3. Battle loops use their first 60 seconds. Final-minute loops use that same recording with pitch-preserving atempo=1.08, fuller bass/low-mid EQ and gentle compression, normalized to -20 LUFS. The game's existing take-1 stays selected and its final-minute version gets the same treatment. These are remasters of existing original generations, not new generated compositions."
+}

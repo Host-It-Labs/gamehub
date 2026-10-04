@@ -23,14 +23,7 @@ const permutations = (n) =>
         ]),
       );
 function ranked(id = 'orin', n = 4) {
-  let g = skipOpening(
-    standaloneGames[id].create(
-      n,
-      77,
-      'medium',
-      n === 2 ? 'individual' : 'teams',
-    ),
-  );
+  let g = skipOpening(standaloneGames[id].create(n, 77, 'medium'));
   for (let s = 0; s < n; s++) {
     g = ranking.play(g, { type: 'topic', target: g.offers[s][0] }, s);
     g = ranking.play(
@@ -71,7 +64,8 @@ await test('every seat count completes reproducibly, preserves inputs and saves 
     for (const seats of standaloneGames[id].seatChoices)
       for (let seed = 1; seed <= 12; seed++) {
         const e = standaloneGames[id];
-        let g = e.create(seats, seed, 'hard'),
+        // With Votes on, so bots can vote each round away.
+        let g = e.create(seats, seed, 'hard', undefined, undefined, undefined, true),
           steps = 0;
         while (!g.over && steps++ < 1000) {
           assert.ok(
@@ -98,30 +92,28 @@ await test('every seat count completes reproducibly, preserves inputs and saves 
         assert.ok(e.outcome(g).winners.length > 0);
       }
 });
-await test('ranking drafts, offers, future lists, team guesses and seeds stay private', () => {
-  for (const id of ['orin']) {
-    let g = ranked(id);
-    const answer = g.ballots[0].order;
-    const team = 1,
-      s = ranking.captain(g, team);
-    g = ranking.play(g, { type: 'arrange', order: [...answer] }, s);
-    for (let viewer = -1; viewer < 4; viewer++) {
-      const v = observe(g, viewer);
-      assert.equal(v.rngState, 0);
-      assert.deepEqual(v.deck, []);
-      for (let other = 0; other < 4; other++) {
-        if (other !== viewer) {
-          assert.deepEqual(v.offers[other], []);
-          assert.deepEqual(v.ballots[other].order, []);
-        }
-        if (other !== viewer && other !== g.target)
-          assert.equal(v.ballots[other].topic, -1);
-      }
-      if (viewer === g.target || g.teams[viewer] !== team) {
-        assert.deepEqual(v.guesses[team].order, []);
-      } else assert.deepEqual(v.guesses[team].order, answer);
+await test('ranking drafts, offers, future lists, guesses and seeds stay private', () => {
+  let g = ranked('orin');
+  assert.equal(g.phase, 'guess');
+  const answer = g.ballots[0].order;
+  g = ranking.play(g, { type: 'arrange', author: 0, order: [...answer] }, 1);
+  for (let viewer = -1; viewer < 4; viewer++) {
+    const v = observe(g, viewer);
+    assert.equal(v.rngState, 0);
+    assert.deepEqual(v.deck, []);
+    for (let other = 0; other < 4; other++) {
+      if (other === viewer) continue;
+      assert.deepEqual(v.offers[other], []);
+      assert.deepEqual(v.ballots[other].order, []);
+      assert.equal(v.ballots[other].topic, g.ballots[other].topic);
+      assert.ok(v.guesses[other].orders.every((o) => o === null));
     }
   }
+  assert.deepEqual(observe(g, 1).guesses[1].orders[0], answer);
+  // Before the guessing starts, other prompts are hidden too.
+  const early = skipOpening(standaloneGames.orin.create(3, 4, 'medium'));
+  const e1 = ranking.play(early, { type: 'topic', target: early.offers[0][0] }, 0);
+  assert.equal(observe(e1, 1).ballots[0].topic, -1);
 });
 await test('all permutations are accepted; duplicate, incomplete, outsider and hostile moves are rejected', () => {
   for (const id of ['orin']) {
@@ -176,6 +168,8 @@ await test('withdraw before final lock; one next moves the reveal on without wai
   g = ranking.play(g, { type: 'unlock' }, 0);
   assert.equal(g.ballots[0].locked, false);
   g = ranked('orin', 2);
+  g = ranking.play(g, { type: 'lock' }, 0);
+  assert.equal(g.phase, 'guess');
   g = ranking.play(g, { type: 'lock' }, 1);
   assert.equal(g.phase, 'reveal');
   const key = decisionKey(g);
@@ -184,7 +178,7 @@ await test('withdraw before final lock; one next moves the reveal on without wai
   assert.equal(ranking.play(g, { type: 'ready' }, 0), g);
   g = ranking.play(g, { type: 'next' }, 0);
   assert.equal(g.target, 1);
-  assert.equal(g.phase, 'guess');
+  assert.equal(g.phase, 'reveal', 'every list was guessed at once');
   assert.notEqual(decisionKey(g), key);
 });
 await test('save markers reject all retired games and malformed structures', () => {
@@ -193,12 +187,16 @@ await test('save markers reject all retired games and malformed structures', () 
       g = e.create(4, 5, 'easy');
     for (const change of [
       { rules: 2 },
-      { rules: id === 'dial' ? 99 : 1 },
+      { rules: ['dial', 'impostor'].includes(id) ? 99 : 1 },
       { seats: [] },
       { round: 0 },
       { round: 13 },
       { phase: 'unknown' },
-      id === 'dial' ? { guesses: [] } : { ready: [] },
+      ['miro', 'size', 'year', 'order'].includes(id)
+        ? { ready: [] }
+        : id === 'impostor'
+          ? { sketches: [] }
+          : { guesses: [] },
       { phase: 'vote', vote: null },
       { rngState: null },
       { scores: [NaN] },

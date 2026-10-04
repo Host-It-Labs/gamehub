@@ -1,0 +1,392 @@
+[
+  {
+    "dishes": [
+      {
+        "box": [
+          19.81812286376953,
+          94.47396850585938,
+          120.22313690185548,
+          120.36750793457033
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-0-v2.webp"
+      },
+      {
+        "box": [
+          134.864990234375,
+          94.47396850585938,
+          120.22314453125,
+          120.36750793457033
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-1-v2.webp"
+      },
+      {
+        "box": [
+          249.9093780517578,
+          94.47396850585938,
+          120.24375915527344,
+          120.36750793457033
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-2-v2.webp"
+      },
+      {
+        "box": [
+          19.81812286376953,
+          231.63021850585935,
+          120.22313690185548,
+          120.36752319335938
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-3-v2.webp"
+      },
+      {
+        "box": [
+          134.864990234375,
+          231.63021850585935,
+          120.22314453125,
+          120.36752319335938
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-4-v2.webp"
+      },
+      {
+        "box": [
+          249.9093780517578,
+          231.63021850585935,
+          120.24375915527344,
+          120.36752319335938
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-5-v2.webp"
+      }
+    ],
+    "document": [
+      390,
+      844
+    ],
+    "viewport": [
+      390,
+      844
+    ]
+  },
+  {
+    "dishes": [
+      {
+        "box": [
+          58.9631233215332,
+          92.08682250976562,
+          92.73001098632812,
+          93.1631317138672
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-0-v2.webp"
+      },
+      {
+        "box": [
+          148.61936950683594,
+          92.08682250976562,
+          92.73001098632812,
+          93.1631317138672
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-1-v2.webp"
+      },
+      {
+        "box": [
+          238.27313232421875,
+          92.08682250976562,
+          92.7506103515625,
+          93.1631317138672
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-2-v2.webp"
+      },
+      {
+        "box": [
+          58.9631233215332,
+          198.0711975097656,
+          92.73001098632812,
+          93.16311645507812
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-3-v2.webp"
+      },
+      {
+        "box": [
+          148.61936950683594,
+          198.0711975097656,
+          92.73001098632812,
+          93.16311645507812
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-4-v2.webp"
+      },
+      {
+        "box": [
+          238.27313232421875,
+          198.0711975097656,
+          92.7506103515625,
+          93.16311645507812
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-5-v2.webp"
+      }
+    ],
+    "document": [
+      390,
+      664
+    ],
+    "viewport": [
+      390,
+      664
+    ]
+  },
+  {
+    "dishes": [
+      {
+        "box": [
+          243.609375,
+          185.09375,
+          208.796875,
+          113.953125
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-0-v2.webp"
+      },
+      {
+        "box": [
+          462.078125,
+          185.09375,
+          208.796875,
+          113.953125
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-1-v2.webp"
+      },
+      {
+        "box": [
+          680.546875,
+          185.09375,
+          208.796875,
+          113.953125
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-2-v2.webp"
+      },
+      {
+        "box": [
+          243.609375,
+          322.421875,
+          208.796875,
+          113.953125
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-3-v2.webp"
+      },
+      {
+        "box": [
+          462.078125,
+          322.421875,
+          208.796875,
+          113.953125
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-4-v2.webp"
+      },
+      {
+        "box": [
+          680.546875,
+          322.421875,
+          208.796875,
+          113.953125
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-5-v2.webp"
+      }
+    ],
+    "document": [
+      1133,
+      744
+    ],
+    "viewport": [
+      1133,
+      744
+    ]
+  },
+  {
+    "dishes": [
+      {
+        "box": [
+          345.78125,
+          74.375,
+          273.03125,
+          154.546875
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-0-v2.webp"
+      },
+      {
+        "box": [
+          631.46875,
+          74.375,
+          273.03125,
+          154.546875
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-1-v2.webp"
+      },
+      {
+        "box": [
+          917.15625,
+          74.375,
+          273.03125,
+          154.546875
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-2-v2.webp"
+      },
+      {
+        "box": [
+          345.78125,
+          253.953125,
+          273.03125,
+          154.5625
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-3-v2.webp"
+      },
+      {
+        "box": [
+          631.46875,
+          253.953125,
+          273.03125,
+          154.5625
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-4-v2.webp"
+      },
+      {
+        "box": [
+          917.15625,
+          253.953125,
+          273.03125,
+          154.5625
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-5-v2.webp"
+      }
+    ],
+    "document": [
+      1536,
+      730
+    ],
+    "viewport": [
+      1536,
+      730
+    ]
+  },
+  {
+    "dishes": [
+      {
+        "box": [
+          412.875,
+          101.96875,
+          353.8125,
+          205.609375
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-0-v2.webp"
+      },
+      {
+        "box": [
+          783.09375,
+          101.96875,
+          353.8125,
+          205.609375
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-1-v2.webp"
+      },
+      {
+        "box": [
+          1153.3125,
+          101.96875,
+          353.8125,
+          205.609375
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-2-v2.webp"
+      },
+      {
+        "box": [
+          412.875,
+          334.703125,
+          353.8125,
+          205.609375
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-3-v2.webp"
+      },
+      {
+        "box": [
+          783.09375,
+          334.703125,
+          353.8125,
+          205.609375
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-4-v2.webp"
+      },
+      {
+        "box": [
+          1153.3125,
+          334.703125,
+          353.8125,
+          205.609375
+        ],
+        "inViewport": true,
+        "ready": true,
+        "src": "/art/optimized/yata-dish3d-tokyo-5-v2.webp"
+      }
+    ],
+    "document": [
+      1920,
+      969
+    ],
+    "viewport": [
+      1920,
+      969
+    ]
+  }
+]

@@ -1,7 +1,7 @@
 'use client';
 import { Check } from 'lucide-react';
 
-/** Sabi's three-step strip, shared by Atlas and Sizes: numbered index-card
+/** Quiz's three-step strip, shared by every Quiz game: numbered index-card
  * tabs, the current one lifted, finished ones ticked. Atlas lets players pick
  * a step; Sizes only shows where the round is. */
 export function SabiSteps({
@@ -36,7 +36,7 @@ export function SabiSteps({
     const className = `${i === current ? 'is-current' : ''} ${done(i) ? 'is-done' : ''}`;
     return onSelect ? (
       <button
-        key={step}
+        key={i}
         type="button"
         role="tab"
         aria-selected={i === current}
@@ -47,7 +47,7 @@ export function SabiSteps({
       </button>
     ) : (
       <li
-        key={step}
+        key={i}
         aria-current={i === current ? 'step' : undefined}
         className={className}
       >

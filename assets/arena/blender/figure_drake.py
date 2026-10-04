@@ -4,33 +4,47 @@ World War scout biplane built like a museum-grade scale model, wingspan
 
 Two stacked, staggered wings of doped linen in the team colour, the fabric
 drawn tight over raised rib tapes and sagging a touch between them, the
-trailing edges scalloped between the ribs and the ailerons hinged on a
-groove; cream-and-team roundels (plain concentric rings) on the upper
+trailing edges scalloped between the ribs, the upper ailerons hinged
+surfaces and the lower ones marked by a groove; cream-and-team roundels (plain concentric rings) on the upper
 wing, under the lower wing and on the fuselage sides; varnished wooden
 interplane and cabane struts with metal fittings and fine silver rigging
 (flying, landing, incidence and cabane wires). A slim fabric fuselage
 with short aluminium panels behind a polished rotary-engine cowling,
 nine finned cylinders and their pushrods inside it; a two-blade
-laminated wooden propeller with brass-sheathed tips (`spin`); fixed
+laminated wooden propeller with brass-sheathed tips and a polished
+spinner (`spin`); fixed
 wire-spoked wheels on a wooden V undercarriage with bungee-wrapped axle;
 a tailplane with elevators and a fin and rudder striped team and cream;
-a tail skid; a small iron bomb with a brass fuze slung under the belly;
-and in the open, leather-padded cockpit the pilot in a leather coat, a
-brown leather flying helmet with ear flaps and brass-rimmed goggles, and a
-white silk scarf streaming behind (`head` is the pilot's head).
+a tail skid; a chunky iron bomb with a brass fuze slung under the belly;
+and in the open, leather-padded cockpit a cartoon ace, his head and
+shoulders well above scale so he reads from the game's camera: a
+leather coat with a cross strap and a fleece collar, a brown leather
+flying helmet with ear flaps and chunky brass goggles parked on it,
+heavy brows over a gritted grin, gauntlet gloves on the rim, and a
+silk scarf knotted at his nape, its two tails streaming behind.
 
 Part contract (figures.py / troops.py): the root empty `drake` sits on
 the ground under the centre of mass, facing +y, the wheels touching the
 ground. `drake.torso` is the whole plane, its pivot on the centre of
-mass (0, 0, 0.42 above the root); `drake.head` pivots at the pilot's
-neck; `drake.spin` is the propeller, its pivot on the prop shaft so it
-turns about the forward axis (Blender y) through it; the empty
+mass (0, 0, 0.42 above the root). On it: `drake.spin`, the propeller and
+its polished spinner, pivoting on the prop shaft (turns about Blender y);
+`drake.wingL` / `drake.wingR`, the upper wing's ailerons, and
+`drake.tail`, both elevators, hinged on their straight hinge lines
+(about x); `drake.extra`, the rudder, on its hinge (about z);
+`drake.wheels`, both wheels on the axle (about x); `drake.weapon`, the
+bomb (lifted into the belly when it drops); `drake.neck`, the pilot from
+the waist up, carrying `drake.head` (pivot at his neck), his arms
+`drake.armL` / `drake.armR` (shoulders) with `drake.foreL` /
+`drake.foreR` (elbows), and `drake.cape`, the scarf's tails: drape cloth
+built hanging from the knot and turned back by its rest turn
+(SCARF_REST) so the game's ripple runs across them. The empty
 `drake.bomb` (child of the torso) marks where bombs drop from.
 """
 
 import math
 
 import kit
+import face_rig
 import figure_drake_kit as pk
 from figure_drake_kit import V, X, Y, Z, TAU, lerp, clamp01, smooth, table
 from mathutils import Matrix, Vector
@@ -56,7 +70,10 @@ NOSE = V(0, 0, 0.36)            # the cowling and propeller axis (z)
 PROP_Y = 0.585
 COCKPIT_Y = -0.19
 WHEEL = dict(x=0.18, y=0.2, r=0.078)
-BOMB_AT = V(0, 0.0, 0.195)
+# A chunky bomb, a fifth larger than scale; its centre sits so its top
+# meets the rack.
+BOMB_SIZE = 1.2
+BOMB_AT = V(0, 0.0, 0.2315 - 0.03 * BOMB_SIZE)
 # The centre of mass in the build coordinates; the plane is moved back by
 # its y so the root (the ground point below the pivot) sits under it.
 COM = V(0, 0.035, 0.42)
@@ -159,7 +176,7 @@ def fuselage(t):
     out = [pk.loft(f"{t}-fuselage", rings, LINEN, face_mat=fm,
                    start="flat", end="pole")]
     # The brass fuel filler cap ahead of the cockpit.
-    y = -0.1
+    y = -0.035
     out.append(pk.lathe(f"{t}-filler", [(0.013, -0.004), (0.013, 0.003),
                                         (0.009, 0.006), (0.0, 0.006)],
                         V(0, y, deck_z(y) - 0.001), Z, BRASS, segments=10,
@@ -248,7 +265,7 @@ class Wing:
     def __init__(self, name, half, chord, lead, z, thick, dihedral=0.0,
                  tip=0.12, rib=0.095, root=0.0, aileron=None, camber=0.035,
                  sag=0.0032, tape=0.0, tape_w=0.0, scallop=0.0035,
-                 groove=0.0035, mirror=True, sag_rings=True):
+                 groove=0.0035, mirror=True, sag_rings=True, split=None):
         self.__dict__.update(locals())
         del self.__dict__["self"]
         self.x0 = half - tip
@@ -310,12 +327,73 @@ class Wing:
                 list(self.half_stations)]
 
     def build(self, mat=LINEN):
-        out = []
-        for side, st in enumerate(self.stations()):
-            rings = [self.ring(x, k) for x, k in st]
-            out.append(pk.loft(f"{self.name}{side}", rings, mat,
-                               start="flat", end="flat"))
-        return out
+        """The fixed wing, and with `split` (span from, span to, hinge y,
+        gap) its hinged trailing surfaces: ({-1: [...], 1: [...]}), one
+        set per side, cut on a straight hinge line."""
+        if not self.split:
+            out = []
+            for side, st in enumerate(self.stations()):
+                rings = [self.ring(x, k) for x, k in st]
+                out.append(pk.loft(f"{self.name}{side}", rings, mat,
+                                   start="flat", end="flat"))
+            return out
+        a0, a1, yh, gap = self.split
+        fixed, moving = [], {-1: [], 1: []}
+        n = 0
+        for st in self.stations():
+            runs = []
+            for a, b in zip(st, st[1:]):
+                inside = a0 - 1e-6 < abs((a[0] + b[0]) / 2) < a1 + 1e-6
+                if runs and runs[-1][0] == inside:
+                    runs[-1][1].append(b)
+                else:
+                    runs.append((inside, [a, b]))
+            for inside, run in runs:
+                n += 1
+                if not inside:
+                    fixed.append(pk.loft(
+                        f"{self.name}{n}", [self.ring(x, k) for x, k in run],
+                        mat, start="flat", end="flat"))
+                    continue
+                fixed.append(pk.loft(
+                    f"{self.name}{n}m",
+                    [self.cut_ring(x, k, yh, True) for x, k in run], mat,
+                    start="flat", end="flat"))
+                sx = 1 if run[0][0] + run[-1][0] > 0 else -1
+                moving[sx].append(pk.loft(
+                    f"{self.name}{n}a",
+                    [self.cut_ring(x, k, yh - gap, False) for x, k in run],
+                    mat, start="flat", end="flat"))
+        return fixed, moving
+
+    def u_at(self, x, kind, y):
+        """Chord fraction of the line y at a station."""
+        lead, trail, s = self.plan(abs(x))
+        if kind == "sag":
+            trail += self.scallop * (1 - s)
+        return (lead - y) / (lead - trail)
+
+    def cut_ring(self, x, kind, y, main):
+        """A section cut at the hinge line y: the wing ahead of it (main)
+        or the hinged surface behind it. Point counts stay fixed along a
+        run (the cut moves a hair with the scallops)."""
+        u = self.u_at(x, kind, y)
+        ref = self.u_at(self.x0 / 2, "rib", y)
+        if main:
+            top = [v for v in TOP_U if v < ref - 0.03] + [u]
+            bot = [u] + [v for v in BOT_U if v < ref - 0.03]
+        else:
+            top = [u] + [v for v in TOP_U if v > ref + 0.025]
+            bot = [v for v in BOT_U if v > ref + 0.025] + [u]
+        return ([self.section(x, kind, v, True) for v in top]
+                + [self.section(x, kind, v, False) for v in bot])
+
+    def hinge(self, x, y):
+        """A point on the hinge line at span x, midway through the wing."""
+        u = self.u_at(x, "rib", y)
+        a = self.section(x, "rib", u, True)
+        b = self.section(x, "rib", u, False)
+        return (a + b) / 2
 
     def surface(self, x, u, top=True):
         """The built surface at (x, u), interpolated between stations."""
@@ -357,8 +435,11 @@ class Wing:
               width=0.0075, height=0.0021):
         """Raised rib tapes across the top of each rib, crisp enough to
         read from above; they stop short of the roundels in `avoid`
-        ((x, y, r) discs)."""
+        ((x, y, r) discs). With a `split` they stop at the hinge, and
+        the hinged surfaces' own tapes come back apart:
+        (fixed, {-1: [...], 1: [...]})."""
         out = []
+        moving = {-1: [], 1: []}
         xs = [r for r in self.ribs if r > 1e-6]
         xs = [-x for x in reversed(xs)] + xs if self.mirror else xs
         if self.root == 0:
@@ -385,11 +466,29 @@ class Wing:
                     if b - c1 > 0.04:
                         nxt.append((c1, b))
                 spans = nxt
+            hinged = None
+            if self.split:
+                a0, a1, yh, gap = self.split
+                if a0 - 1e-6 <= abs(x) <= a1 + 1e-6:
+                    uc = self.u_at(x, "rib", yh)
+                    ua = self.u_at(x, "rib", yh - gap)
+                    cut = []
+                    for a, b in spans:
+                        if a < uc - 0.01:
+                            cut.append((a, min(b, uc - 0.006)))
+                    if a0 + 1e-6 < abs(x) < a1 - 1e-6:
+                        hinged = (ua + 0.006, us[-1])
+                    spans = cut
             for k, (a, b) in enumerate(spans):
                 u_list = [a] + [u for u in us if a + 0.02 < u < b - 0.02] + [b]
                 out.append(self._tape(f"{t}-tape{self.name[-5:]}", x, u_list,
                                       width, height))
-        return out
+            if hinged:
+                a, b = hinged
+                u_list = [a] + [u for u in us if a + 0.02 < u < b - 0.02] + [b]
+                moving[1 if x > 0 else -1].append(self._tape(
+                    f"{t}-tape{self.name[-5:]}h", x, u_list, width, height))
+        return (out, moving) if self.split else out
 
     def _tape(self, name, x, u_list, width, height):
         rings = []
@@ -414,8 +513,12 @@ class Wing:
                         segments=16, lift=0.003)
 
 
+# The upper wing's ailerons are hinged surfaces (`wingL`, `wingR`) on the
+# straight run of the trailing edge, between the ribs at 0.36 and 0.72.
+AIL_Y = 0.285 - 0.77 * 0.34
 UPPER = Wing("drake-upper", half=0.85, chord=0.34, lead=0.285, z=0.625,
-             thick=0.029, tip=0.13, rib=0.095, aileron=(0.4, 0.8))
+             thick=0.029, tip=0.13, rib=0.095,
+             split=(0.36, 0.72, AIL_Y, 0.0045))
 LOWER = Wing("drake-lower", half=0.75, chord=0.30, lead=0.245, z=0.257,
              thick=0.026, dihedral=math.radians(4), tip=0.11, rib=0.095,
              root=0.1, aileron=(0.38, 0.7), sag_rings=False)
@@ -448,16 +551,24 @@ def _open_strip(name, rings):
 
 
 def wings(t):
-    out = UPPER.build() + LOWER.build()
-    up_r, lo_r = 0.105, 0.092
-    out += UPPER.tapes(t, [(sx * 0.6, UPPER.centre_of(0.6, 0.47), up_r)
-                           for sx in (-1, 1)])
+    """The wings fixed to the plane, and the ailerons per side."""
+    out, ail = UPPER.build()
+    out += LOWER.build()
+    up_r, up_u = 0.1, 0.42
+    tapes, hinged = UPPER.tapes(t, [(sx * 0.6, UPPER.centre_of(0.6, up_u),
+                                     up_r) for sx in (-1, 1)])
+    out += tapes
     out += LOWER.tapes(t)
     for sx in (-1, 1):
-        out.append(UPPER.roundel(t, f"up{sx}", sx * 0.6, 0.47, 0.105))
+        ail[sx] += hinged[sx]
+        out.append(UPPER.roundel(t, f"up{sx}", sx * 0.6, up_u, up_r))
         out.append(LOWER.roundel(t, f"lo{sx}", sx * 0.52, 0.5, 0.092,
                                  top=False))
-    return out
+    return out, ail
+
+
+def aileron_pivot(sx):
+    return UPPER.hinge(sx * 0.54, AIL_Y - 0.00225)
 
 
 def fitting(name, at, n):
@@ -545,10 +656,13 @@ def rigging(t):
 
 # ------------------------------------------------------------- tail
 
+# The elevators (`tail`, both halves) hinge on the straight run of the
+# stabiliser's trailing edge; the rudder (`extra`) on the fin's.
+ELEV_Y = -0.505 - 0.66 * 0.2
 STAB = Wing("drake-stab", half=0.29, chord=0.2, lead=-0.505, z=0.412,
             thick=0.016, tip=0.11, rib=0.09, root=0.012,
-            aileron=(0.0, 0.3), camber=0.0, sag=0.0025, scallop=0.0025,
-            groove=0.003)
+            camber=0.0, sag=0.0025, scallop=0.0025,
+            split=(0.012, 0.18, ELEV_Y, 0.004))
 # The fin and rudder outline: top and bottom z along y (front to back).
 FIN_TOP = [(-0.705 - 0.086, 0.43), (-0.789, 0.475), (-0.784, 0.53),
            (-0.772, 0.575), (-0.752, 0.61), (-0.728, 0.63),
@@ -585,27 +699,46 @@ def fin(t):
         rings.append(pts)
     ys_sorted = sorted(ys, reverse=True)
 
-    def fm(i, j):
-        if isinstance(i, tuple):
-            return LINEN
-        y = (ys_sorted[i] + ys_sorted[i + 1]) / 2
-        if y > HINGE_Y:
-            return LINEN
-        # The rudder: cream, team, cream stripes.
-        if y > -0.7315:
+    def painted(ys_run):
+        def fm(i, j):
+            if isinstance(i, tuple):
+                return LINEN
+            y = (ys_run[i] + ys_run[i + 1]) / 2
+            if y > HINGE_Y:
+                return LINEN
+            # The rudder: cream, team, cream stripes.
+            if y > -0.7315:
+                return CREAM
+            if y > -0.7565:
+                return LINEN
             return CREAM
-        if y > -0.7565:
-            return LINEN
-        return CREAM
-    return [pk.loft(f"{t}-fin", rings, LINEN, face_mat=fm, start="flat",
-                    end="flat")]
+        return fm
+    # The fin ends on the hinge; the rudder starts a hair behind it.
+    k = ys_sorted.index(HINGE_Y)
+    fin_ys, rud_ys = ys_sorted[:k + 1], ys_sorted[k + 1:]
+    return ([pk.loft(f"{t}-fin", rings[:k + 1], LINEN,
+                     face_mat=painted(fin_ys), start="flat", end="flat")],
+            [pk.loft(f"{t}-rudder", rings[k + 1:], LINEN,
+                     face_mat=painted(rud_ys), start="flat", end="flat")])
+
+
+RUDDER_AT = V(0, HINGE_Y - 0.0018, 0.49)
+
+
+def elevator_pivot():
+    p = STAB.hinge(0.1, ELEV_Y - 0.002)
+    return V(0, p.y, p.z)
 
 
 def tail(t):
-    out = STAB.build()
-    out += STAB.tapes(t, us=(0.1, 0.35, 0.62, 0.95), width=0.006,
-                      height=0.0017)
-    out += fin(t)
+    """The fixed tail, the elevators and the rudder."""
+    out, elev = STAB.build()
+    tapes, hinged = STAB.tapes(t, us=(0.1, 0.35, 0.62, 0.95), width=0.006,
+                               height=0.0017)
+    out += tapes
+    elev = elev[-1] + elev[1] + hinged[-1] + hinged[1]
+    fin_, rudder = fin(t)
+    out += fin_
     # Tail skid: a sprung ash skid with a steel shoe.
     y0 = -0.6
     z0 = station(y0)[1]
@@ -620,18 +753,18 @@ def tail(t):
     # Control horns and cables: elevator horns under the stab, rudder
     # horns low on the rudder, cables running into the fuselage.
     for sx in (-1, 1):
-        hp = STAB.surface(sx * 0.07, 0.62, False)
+        hp = STAB.surface(sx * 0.07, 0.72, False)
         horn = pk.slab(f"{t}-elhorn{sx}", [(-0.012, 0.0), (0.012, 0.0),
                                             (0.0, -0.028)], 0.003, ALU,
                        pk.basis(Y, Z, X, hp + Z * 0.002))
-        out.append(horn)
+        elev.append(horn)
         tip = hp - Z * 0.026
         into = V(sx * side_x(-0.5, 0.33) * 0.95, -0.5, 0.33)
         out.append(pk.wire(f"{t}-elcable{sx}", tip, into, 0.0012, ALU, n=3))
         rh = V(sx * 0.0065, -0.716, 0.36)
-        out.append(pk.slab(f"{t}-ruhorn{sx}", [(-0.01, 0.0), (0.01, 0.0),
-                                               (0.0, 0.024)], 0.003, ALU,
-                           pk.basis(Y, X * sx, -Z * sx, rh)))
+        rudder.append(pk.slab(f"{t}-ruhorn{sx}", [(-0.01, 0.0), (0.01, 0.0),
+                                                  (0.0, 0.024)], 0.003, ALU,
+                              pk.basis(Y, X * sx, -Z * sx, rh)))
         tip = rh + X * sx * 0.022
         into = V(sx * side_x(-0.55, 0.36) * 0.98, -0.55, 0.36)
         out.append(pk.wire(f"{t}-rucable{sx}", tip, into, 0.0012, ALU, n=3))
@@ -643,7 +776,7 @@ def tail(t):
         out.append(pk.wire(f"{t}-bbrace{sx}", s,
                            V(0, -0.6, station(-0.6)[1] + 0.004), 0.0012,
                            ALU, n=3))
-    return out
+    return out, elev, rudder
 
 
 # ------------------------------------------------------------- gear
@@ -689,11 +822,17 @@ def wheel(t, sx):
     return out
 
 
+AXLE = V(0, WHEEL["y"], WHEEL["r"] - 0.0016)
+
+
 def gear(t):
+    """The undercarriage, and the two wheels (`wheels`, turning on the
+    axle)."""
     x, y, r = WHEEL["x"], WHEEL["y"], WHEEL["r"]
     out = []
+    wheels = []
     for sx in (-1, 1):
-        out += wheel(t, sx)
+        wheels += wheel(t, sx)
         foot = V(sx * 0.14, y, r + 0.004)
         for k, fy in enumerate((0.34, 0.11)):
             top = V(sx * 0.074, fy, station(fy)[1] + 0.012)
@@ -724,79 +863,114 @@ def gear(t):
         rings.append([V(xx, y + u, r + 0.004 + v) for u, v in sec])
     out.append(pk.loft(f"{t}-spreader", rings, WOOD, start="flat",
                        end="flat"))
-    return out
+    return out, wheels
 
 
 # ------------------------------------------------------------- bomb
 
 def bomb(t):
+    """The rack under the belly, and the bomb on it (`weapon`: drawn up
+    into the belly when it drops, lowered again to reload)."""
     c = BOMB_AT
+    k = BOMB_SIZE
     out = []
+    rack = []
     prof = [(0.0, -0.066), (0.012, -0.062), (0.021, -0.05), (0.028, -0.03),
             (0.03, -0.01), (0.03, 0.02), (0.027, 0.045), (0.02, 0.064),
             (0.011, 0.076), (0.0, 0.08)]
-    out.append(pk.rounded_lathe(f"{t}-bomb", [(r, h) for r, h in prof], c,
-                                Y, BOMB, segments=14))
+    out.append(pk.rounded_lathe(f"{t}-bomb", [(r * k, h * k)
+                                              for r, h in prof], c,
+                                Y, BOMB, segments=16))
     # The brass nose fuze with its arming vane.
-    out.append(pk.lathe(f"{t}-fuze", [(0.009, 0.074), (0.009, 0.088),
-                                      (0.006, 0.092), (0.0, 0.093)],
+    out.append(pk.lathe(f"{t}-fuze", [(0.009 * k, 0.074 * k),
+                                      (0.009 * k, 0.088 * k),
+                                      (0.006 * k, 0.092 * k),
+                                      (0.0, 0.093 * k)],
                         c, Y, BRASS, segments=8, end="pole"))
-    for k in range(2):
-        a = k * math.pi + 0.4
+    for j in range(2):
+        a = j * math.pi + 0.4
         d = V(math.cos(a), 0, math.sin(a))
-        m = pk.basis(d, Y, d.cross(Y), c + Y * 0.087 + d * 0.012)
-        out.append(pk.slab(f"{t}-vane{k}", [(-0.009, -0.003),
-                                            (0.009, -0.003),
-                                            (0.009, 0.003),
-                                            (-0.009, 0.003)], 0.0012, BRASS,
-                           m))
+        m = pk.basis(d, Y, d.cross(Y), c + Y * 0.087 * k + d * 0.012 * k)
+        out.append(pk.slab(f"{t}-vane{j}", [(-0.009 * k, -0.003),
+                                            (0.009 * k, -0.003),
+                                            (0.009 * k, 0.003),
+                                            (-0.009 * k, 0.003)], 0.0012,
+                           BRASS, m))
     # A drum tail: four fins and a ring.
-    for k in range(4):
-        a = k * math.pi / 2 + math.pi / 4
+    for j in range(4):
+        a = j * math.pi / 2 + math.pi / 4
         d = V(math.cos(a), 0, math.sin(a))
         n = d.cross(Y)
-        m = pk.basis(-Y, d, n, c - Y * 0.052)
-        out.append(pk.slab(f"{t}-bfin{k}", [(0.0, 0.004), (0.045, 0.004),
-                                            (0.045, 0.028), (0.02, 0.028),
-                                            (0.0, 0.016)], 0.0022, BOMB, m))
-    out.append(pk.lathe(f"{t}-bring", [(0.027, -0.1), (0.029, -0.098),
-                                       (0.029, -0.082), (0.027, -0.08),
-                                       (0.025, -0.082), (0.025, -0.098),
-                                       (0.027, -0.1)],
+        m = pk.basis(-Y, d, n, c - Y * 0.052 * k)
+        out.append(pk.slab(f"{t}-bfin{j}",
+                           [(x * k, y * k) for x, y in
+                            [(0.0, 0.004), (0.045, 0.004), (0.045, 0.028),
+                             (0.02, 0.028), (0.0, 0.016)]], 0.0022, BOMB, m))
+    out.append(pk.lathe(f"{t}-bring", [(r * k, h * k) for r, h in
+                                       [(0.027, -0.1), (0.029, -0.098),
+                                        (0.029, -0.082), (0.027, -0.08),
+                                        (0.025, -0.082), (0.025, -0.098),
+                                        (0.027, -0.1)]],
                         c, Y, BOMB, segments=14, start=None))
-    out.append(pk.lathe(f"{t}-bband", [(0.0305, -0.008), (0.0305, 0.004)],
-                        c, Y, BRASS, segments=14))
+    out.append(pk.lathe(f"{t}-bband", [(0.0305 * k, -0.008 * k),
+                                       (0.0305 * k, 0.004 * k)],
+                        c, Y, BRASS, segments=16))
     # The rack: a slim beam under the belly, two shackle lugs and bands
     # holding the bomb, and sway braces from the beam's ends.
     zb = station(0.0)[1]
-    top = c.z + 0.0295
-    out.append(pk.box(f"{t}-rack", (0.011, 0.094, 0.011),
-                      V(0, 0.005, zb - 0.003), ALU))
+    top = c.z + 0.0295 * k
+    rack.append(pk.box(f"{t}-rack", (0.011, 0.094, 0.011),
+                       V(0, 0.005, zb - 0.003), ALU))
     for sy in (-1, 1):
         yy = 0.005 + sy * 0.026
-        out.append(pk.box(f"{t}-lug{sy}", (0.006, 0.008, zb - 0.006 - top),
-                          V(0, yy, (zb - 0.006 + top) / 2), IRON))
+        rack.append(pk.box(f"{t}-lug{sy}", (0.006, 0.008, zb - 0.006 - top),
+                           V(0, yy, (zb - 0.006 + top) / 2), IRON))
         out.append(pk.lathe(f"{t}-shackle{sy}",
-                            [(0.0302, -0.003), (0.0312, 0.0),
-                             (0.0302, 0.003)],
-                            c + Y * (yy - c.y), Y, BRASS, segments=12))
+                            [(0.0302 * k, -0.003), (0.0312 * k, 0.0),
+                             (0.0302 * k, 0.003)],
+                            c + Y * (yy - c.y), Y, BRASS, segments=14))
         a = V(0, 0.005 + sy * 0.045, zb - 0.006)
         for sx in (-1, 1):
-            b = c + V(sx * 0.022, sy * 0.045, 0.016)
-            out.append(pk.wire(f"{t}-sway{sy}{sx}", a + X * sx * 0.005, b,
-                               0.0016, ALU))
-    return out
+            b = c + V(sx * 0.022 * k, sy * 0.045, 0.016 * k)
+            rack.append(pk.wire(f"{t}-sway{sy}{sx}", a + X * sx * 0.005, b,
+                                0.0016, ALU))
+    return rack, out
 
 
 # ------------------------------------------------------------- cockpit
 
-NECK = V(0, COCKPIT_Y - 0.006, 0.508)
+# The pilot is a cartoon: a head and shoulders well above scale, so he
+# reads from the game's high camera. `neck` is his body from the waist up
+# (he leans into banks), `head` turns on it, his arms (`armL`/`armR` and
+# `foreL`/`foreR`) rest on the cockpit rim and come up to cheer, and the
+# silk scarf's tails (`cape`, drape cloth) stream from a knot at his nape.
+CY = COCKPIT_Y
+COCK_RX, COCK_RY = 0.064, 0.086
+WAIST = V(0, CY - 0.012, 0.44)
+NECK = V(0, CY - 0.008, 0.553)
+HEAD_R = 0.043
+HEAD_C = NECK + V(0, 0.006, 0.046)
+KNOT = V(0, NECK.y - 0.03, 0.556)
+SCARF_REST = math.radians(-84)
+EYE_WHITE = "resin:" + kit.tint("pilot-eye", "#fff4de")
+SILK = "drape:" + kit.tint("plane-linen", "#efe6cf")
+
+
+def arm_points(sx):
+    """Shoulder, elbow, wrist and fist of one arm at rest, the hands
+    gripping the front of the rim."""
+    s = V(sx * 0.058, CY - 0.012, 0.516)
+    e = V(sx * 0.075, CY + 0.014, 0.484)
+    w = V(sx * 0.05, CY + 0.064, 0.494)
+    g = w + (w - e).normalized() * 0.014
+    return s, e, w, g
 
 
 def cockpit(t):
+    """The cockpit opening and its padded rim (on the plane)."""
     out = []
-    cy = COCKPIT_Y
-    rx, ry = 0.052, 0.07
+    cy = CY
+    rx, ry = COCK_RX, COCK_RY
 
     def surf(a, r):
         x = rx * r * math.cos(a)
@@ -807,71 +981,121 @@ def cockpit(t):
         dzdy = (deck_z(y + e, x) - deck_z(y - e, x)) / (2 * e)
         return p, V(-dzdx, -dzdy, 1).normalized()
     # The dark cockpit opening, then the leather-padded coaming round it.
-    out.append(pk.decal(f"{t}-well", [(1.0, IRON)], surf, segments=18,
+    out.append(pk.decal(f"{t}-well", [(1.0, IRON)], surf, segments=20,
                         lift=0.0012, skirt=0.002))
     path = []
-    for i in range(18):
-        a = i / 18 * TAU
+    for i in range(22):
+        a = i / 22 * TAU
         p, n = surf(a, 1.05)
-        path.append(p + n * 0.0025)
-    out.append(pk.tube(f"{t}-coaming", path, [(0.0062, 0.0048)] * 18,
-                       LEATHER, n=5, closed_path=True, up=Z))
-    # The pilot's shoulders and upper arms in a leather flying coat.
-    z0 = deck_z(cy) - 0.03
-    angs = [(i + 0.5) / 16 * TAU for i in range(16)]
-    rows = [(z0, 0.044, 0.034, 2.4), (0.474, 0.047, 0.035, 2.6),
-            (0.488, 0.05, 0.034, 3.2), (0.497, 0.046, 0.031, 2.8),
-            (0.503, 0.033, 0.025, 2.2), (0.507, 0.018, 0.016, 2.0)]
-    rings = []
-    for z, ax_, ay_, pw in rows:
-        rings.append([V(ax_ * spow(math.cos(a), 2 / pw),
-                        cy - 0.006 + ay_ * spow(math.sin(a), 2 / pw), z)
-                      for a in angs])
-    out.append(pk.loft(f"{t}-coat", rings, LEATHER, start="flat",
-                       end="pole"))
-    for sx in (-1, 1):
-        out.append(pk.tube(f"{t}-arm{sx}", [V(sx * 0.038, cy - 0.008, 0.49),
-                                            V(sx * 0.041, cy + 0.008, 0.474),
-                                            V(sx * 0.038, cy + 0.03,
-                                              0.46)],
-                           [0.0105, 0.0102, 0.0098], LEATHER, n=6))
-    # A turned-up collar, and the white silk scarf wrapped round the neck
-    # with its ends streaming back in the slipstream.
-    out.append(pk.lathe(f"{t}-collar", [(0.019, -0.006), (0.024, 0.002),
-                                        (0.026, 0.008), (0.023, 0.009)],
-                        NECK + V(0, 0, -0.004), Z, LEATHER, segments=14))
-    out.append(pk.lathe(f"{t}-wrap", [(0.0165, 0.0), (0.0195, 0.004),
-                                      (0.0195, 0.011), (0.016, 0.014)],
-                        NECK, Z, SCARF, segments=12))
-    n = NECK + V(0, 0, 0.007)
-    long_end = [V(0.006, -0.016, 0.0), V(0.014, -0.05, 0.006),
-                V(0.01, -0.09, 0.014), V(0.021, -0.13, 0.019),
-                V(0.016, -0.17, 0.029), V(0.027, -0.21, 0.031)]
-    short_end = [V(0.0, -0.017, -0.002), V(-0.004, -0.045, 0.001),
-                 V(-0.01, -0.075, 0.008), V(-0.006, -0.105, 0.012)]
-    for k, (pts, w0, w1) in enumerate(((long_end, 0.018, 0.007),
-                                       (short_end, 0.013, 0.005))):
-        path = kit.smooth_path([n + p for p in pts], samples=2)
-        m = len(path)
-        widths = [lerp(w0, w1, (i / (m - 1)) ** 1.3) for i in range(m)]
-        out.append(ribbon(f"{t}-scarf{k}", path, widths, SCARF, seed=k))
+        path.append(p + n * 0.003)
+    out.append(pk.tube(f"{t}-coaming", path, [(0.0072, 0.0058)] * 22,
+                       LEATHER, n=6, closed_path=True, up=Z))
     return out
 
 
-def ribbon(name, path, widths, mat, thick=0.0032, seed=0):
-    """A fluttering flat ribbon: a thin lens along the path, rolling
-    gently as it goes."""
-    fr = pk.path_frames(path, Z)
+def pilot_body(t):
+    """His leather coat from the waist up, a fleece collar and the
+    scarf wrapped round his neck."""
+    out = []
+    yc = CY - 0.012
+    angs = [(i + 0.5) / 18 * TAU for i in range(18)]
+    rows = [(0.43, 0.05, 0.04, 2.4), (0.47, 0.055, 0.042, 2.6),
+            (0.497, 0.062, 0.044, 2.9), (0.517, 0.065, 0.043, 3.1),
+            (0.533, 0.058, 0.038, 2.8), (0.543, 0.042, 0.031, 2.4),
+            (0.548, 0.024, 0.02, 2.0)]
     rings = []
-    for i, ((p, d, side, lift), w) in enumerate(zip(fr, widths)):
-        roll = math.sin(i * 0.8 + seed * 2.0) * 0.4 + 0.12
-        s2 = side * math.cos(roll) + lift * math.sin(roll)
-        l2 = -side * math.sin(roll) + lift * math.cos(roll)
-        h = thick / 2
-        rings.append([p + s2 * w / 2, p + s2 * w / 6 + l2 * h,
-                      p - s2 * w / 6 + l2 * h, p - s2 * w / 2,
-                      p - s2 * w / 6 - l2 * h, p + s2 * w / 6 - l2 * h])
-    return pk.loft(name, rings, mat, start="flat", end="flat")
+    for z, ax_, ay_, pw in rows:
+        rings.append([V(ax_ * spow(math.cos(a), 2 / pw),
+                        yc + ay_ * spow(math.sin(a), 2 / pw), z)
+                      for a in angs])
+    out.append(pk.loft(f"{t}-coat", rings, LEATHER, start="flat",
+                       end="pole"))
+    # A zip placket and two pocket flaps down the front of the coat.
+    zf = [(0.474, 0.0), (0.5, 0.0), (0.526, 0.0)]
+    out.append(pk.tube(f"{t}-placket", [V(0.006, yc + 0.0455, z)
+                                        for z, _ in zf],
+                       [(0.0032, 0.0016)] * 3, WALNUT, n=4, up=Y))
+    # A leather cross strap over the chest from his right shoulder, with
+    # a brass buckle, so the coat reads as more than one brown lump.
+
+    def front(x, z, off):
+        ax_, ay_, pw = table(rows, z)
+        f = min(0.999, abs(x) / ax_)
+        return V(x, yc + ay_ * (1 - f ** pw) ** (1 / pw) + off, z)
+    strap = [front(x, z, 0.0016) for x, z in
+             ((0.052, 0.522), (0.027, 0.508), (0.0, 0.494), (-0.026, 0.48),
+              (-0.046, 0.469))]
+    out.append(pk.tube(f"{t}-strap", strap, [(0.0058, 0.0017)] * 5, WALNUT,
+                       n=4, up=Y))
+    out.append(pk.box(f"{t}-strapbuckle", (0.011, 0.004, 0.009),
+                      front(0.013, 0.501, 0.0034), BRASS))
+    # The fleece collar, turned up round the neck, and the scarf's wrap.
+    out.append(pk.lathe(f"{t}-collar", [(0.027, -0.014), (0.037, -0.006),
+                                        (0.04, 0.003), (0.036, 0.011),
+                                        (0.028, 0.013)],
+                        NECK, Z, CREAM, segments=18))
+    out.append(pk.lathe(f"{t}-wrap", [(0.02, 0.006), (0.0245, 0.009),
+                                      (0.025, 0.019), (0.02, 0.023)],
+                        NECK, Z, CREAM, segments=14))
+    return out
+
+
+def pilot_arm(t, sx):
+    """One arm: the sleeve from the shoulder to the elbow, then the
+    forearm and the gauntlet glove, a fist with its thumb up."""
+    s, e, w, g = arm_points(sx)
+    upper = [pk.ball(f"{t}-shoulder{sx}", 0.0195, s, LEATHER,
+                     scale=(1.0, 1.0, 0.95), seg=10, rings=6),
+             pk.tube(f"{t}-sleeve{sx}", [s, s.lerp(e, 0.5), e],
+                     [0.0172, 0.0165, 0.0158], LEATHER, n=8),
+             pk.ball(f"{t}-elbow{sx}", 0.0158, e, LEATHER, seg=8, rings=5)]
+    d = (w - e).normalized()
+    fore = [pk.tube(f"{t}-forearm{sx}", [e, e.lerp(w, 0.55), w - d * 0.006],
+                    [0.0155, 0.015, 0.0145], LEATHER, n=8),
+            # The gauntlet's flared cuff, then the fist.
+            pk.lathe(f"{t}-cuff{sx}", [(0.0158, -0.016), (0.0185, -0.012),
+                                       (0.0178, -0.002), (0.015, 0.0)],
+                     w, d, WALNUT, segments=10),
+            pk.ball(f"{t}-fist{sx}", 0.0158, g, WALNUT,
+                    scale=(1.05, 1.15, 0.92), seg=10, rings=6),
+            pk.tube(f"{t}-thumb{sx}", [g + V(-sx * 0.004, 0.004, 0.008),
+                                       g + V(-sx * 0.005, 0.007, 0.022)],
+                    [0.0062, 0.0056], WALNUT, n=6, caps=("flat", "pole"))]
+    return upper, fore, s, e
+
+
+def scarf_tails(t):
+    """The scarf's two tails, built hanging straight down from the knot
+    (their width across x, thickness along y) and turned back to stream
+    behind him by the joint's rest turn; the game ripples them."""
+    out = []
+    k = KNOT
+    out.append(pk.ball(f"{t}-knot", 0.0135, k + V(0.004, 0.002, -0.004),
+                       CREAM, scale=(1.35, 0.85, 1.0), seg=10, rings=6))
+    for j, (length, w0, w1, drift, dy) in enumerate(
+            ((0.31, 0.056, 0.038, 0.045, 0.0), (0.2, 0.044, 0.03, 0.02,
+                                                0.006))):
+        rings = []
+        n = 13
+        for i in range(n):
+            f = i / (n - 1)
+            z = -0.006 - f * length
+            x = drift * f ** 1.3 + 0.005 * math.sin(f * 7 + j)
+            y = dy + 0.005 * math.sin(f * 9 + 1.3 * j)
+            w = lerp(w0, w1, f ** 1.2)
+            h = 0.0024
+            # A twist down its length, so it shows its face from the side
+            # as well as from above.
+            roll = f * (0.3 + 0.75 * math.sin(f * 4.2 + j * 2.4))
+            cx = V(math.cos(roll), math.sin(roll), 0)
+            cyv = V(-math.sin(roll), math.cos(roll), 0)
+            p = k + V(x, y, z)
+            rings.append([p + cx * w / 2, p + cx * w / 6 + cyv * h,
+                          p - cx * w / 6 + cyv * h, p - cx * w / 2,
+                          p - cx * w / 6 - cyv * h, p + cx * w / 6 - cyv * h])
+        out.append(pk.loft(f"{t}-scarf{j}", rings, SILK, start="flat",
+                           end="flat"))
+    return out
 
 
 def head_dir(axis, fwd, side, phi_deg, a_deg):
@@ -882,23 +1106,27 @@ def head_dir(axis, fwd, side, phi_deg, a_deg):
 
 def pilot_head(t):
     out = []
-    c = NECK + V(0, 0.003, 0.03)
-    R = 0.026
-    out.append(pk.tube(f"{t}-neck", [NECK + V(0, 0, -0.008), c],
-                       [0.0125, 0.0125], SKIN, n=8))
+    c = HEAD_C
+    R = HEAD_R
+    q = R / 0.026
+    out.append(pk.tube(f"{t}-neck", [NECK + V(0, 0, -0.01), c - Z * 0.02],
+                       [0.0175, 0.017], SKIN, n=10))
     out.append(pk.ball(f"{t}-face", R, c + V(0, 0.002, -0.002), SKIN,
-                       scale=(0.92, 1.0, 1.1), seg=14, rings=8))
-    out.append(pk.ball(f"{t}-nose", 0.0062, c + V(0, R * 0.97, -0.004),
-                       SKIN, scale=(0.85, 1.0, 1.25), seg=8, rings=4))
+                       scale=(0.94, 0.98, 1.05), seg=18, rings=10))
+    # A big round cartoon nose and a strong chin.
+    out.append(pk.ball(f"{t}-nose", 0.0105, c + V(0, R * 0.96, -0.007),
+                       SKIN, scale=(0.95, 0.85, 1.0), seg=10, rings=6))
+    out.append(pk.ball(f"{t}-chin", 0.02, c + V(0, R * 0.62, -R * 0.72),
+                       SKIN, scale=(1.1, 0.8, 0.75), seg=10, rings=6))
     # The leather helmet: a cap about a crown tilted a little back, cut
     # round the face, its ear flaps reaching down past the jaw.
     axis = V(0, -0.2, 1).normalized()
     fwd = (Y - axis * Y.dot(axis)).normalized()
     side = fwd.cross(axis)
-    RH = R * 1.12
+    RH = R * 1.1
     edge = [(0, 56), (24, 62), (44, 86), (60, 122), (80, 128), (98, 112),
             (130, 104), (180, 110)]
-    angs = [(i + 0.5) / 18 * 360 for i in range(18)]
+    angs = [(i + 0.5) / 22 * 360 for i in range(22)]
     rows = [0.22, 0.44, 0.64, 0.82, 0.94, 1.0]
     rings = []
     for f in rows:
@@ -910,54 +1138,83 @@ def pilot_head(t):
         rings.append(ring)
     cap = pk.loft(f"{t}-helmet", list(reversed(rings)), LEATHER,
                   end=c + axis * RH, recalc=False)
-    pk.orient(cap, lambda q: q - c)
+    pk.orient(cap, lambda p: p - c)
     out.append(cap)
     # A rolled leather rim round the face and flaps, and the crown seam.
     rim = rings[-1]
-    out.append(pk.tube(f"{t}-rim", [p + (p - c).normalized() * 0.0006
+    out.append(pk.tube(f"{t}-rim", [p + (p - c).normalized() * 0.0008
                                      for p in rim],
-                       [(0.0024, 0.0024)] * len(rim), LEATHER, n=4,
+                       [(0.0034, 0.0034)] * len(rim), LEATHER, n=5,
                        closed_path=True, up=axis))
     seam = [c + head_dir(axis, fwd, side, -56 + k * 150 / 8, 0) *
-            (RH + 0.001) for k in range(9)]
-    out.append(pk.tube(f"{t}-crown", seam, [(0.0022, 0.0015)] * 9,
+            (RH + 0.0012) for k in range(9)]
+    out.append(pk.tube(f"{t}-crown", seam, [(0.0032, 0.0022)] * 9,
                        LEATHER, n=4, up=side))
     # Chin strap under the jaw between the flaps, with a brass buckle.
     ends = [c + head_dir(axis, fwd, side, 124, 80 * s) * RH for s in (-1, 1)]
     mid = c + V(0, R * 0.5, -R * 1.05)
-    strap = [ends[0], ends[0].lerp(mid, 0.5) + V(0, 0, -0.002), mid,
-             ends[1].lerp(mid, 0.5) + V(0, 0, -0.002), ends[1]]
-    out.append(pk.tube(f"{t}-chin", strap, [(0.003, 0.0012)] * 5,
+    strap = [ends[0], ends[0].lerp(mid, 0.5) + V(0, 0, -0.003), mid,
+             ends[1].lerp(mid, 0.5) + V(0, 0, -0.003), ends[1]]
+    out.append(pk.tube(f"{t}-chinstrap", strap, [(0.0045, 0.0018)] * 5,
                        LEATHER, n=4, up=V(0, 1, 0)))
-    # Goggles on, over the eyes: brass rims round glass, a bridge over
-    # the nose, and a strap running back over the ear flaps.
+    out.append(pk.box(f"{t}-buckle", (0.009, 0.004, 0.007),
+                      ends[1].lerp(mid, 0.55) + V(0, 0.001, -0.002), BRASS))
+    # Goggles parked on the forehead: chunky brass rims round glass, a
+    # bridge over the nose, and a strap running back over the ear flaps.
     lens = []
     for s in (-1, 1):
-        d = head_dir(axis, fwd, side, 80, 29 * s)
-        at = c + d * (R * 0.97)
+        d = head_dir(axis, fwd, side, 40, 29 * s)
+        at = c + d * (RH * 0.93)
         lens.append((at, d))
-        out.append(pk.lathe(f"{t}-goggle{s}", [(0.0072, -0.001),
-                                               (0.0082, 0.0028),
-                                               (0.0082, 0.0046),
-                                               (0.0068, 0.0052),
-                                               (0.006, 0.0034)],
-                            at, d, BRASS, segments=12))
-        out.append(pk.lathe(f"{t}-lens{s}", [(0.0061, 0.0034),
-                                             (0.0038, 0.0042),
-                                             (0.0, 0.0045)],
-                            at, d, ALU, segments=12, end="pole"))
+        out.append(pk.lathe(f"{t}-goggle{s}",
+                            [(r * q, h * q) for r, h in
+                             [(0.0072, -0.001), (0.0084, 0.0028),
+                              (0.0084, 0.0048), (0.0068, 0.0054),
+                              (0.006, 0.0036)]],
+                            at, d, BRASS, segments=14))
+        out.append(pk.lathe(f"{t}-lens{s}", [(0.0061 * q, 0.0036 * q),
+                                             (0.0038 * q, 0.0044 * q),
+                                             (0.0, 0.0047 * q)],
+                            at, d, ALU, segments=14, end="pole"))
     (a0, d0), (a1, d1) = lens
-    mid = c + head_dir(axis, fwd, side, 80, 0) * (R * 0.97 + 0.0065)
-    out.append(pk.tube(f"{t}-bridge", [a0.lerp(a1, 0.3) + d0 * 0.004, mid,
-                                       a0.lerp(a1, 0.7) + d1 * 0.004],
-                       [0.0015] * 3, BRASS, n=4))
+    mid = c + head_dir(axis, fwd, side, 40, 0) * (RH * 0.93 + 0.0075 * q)
+    out.append(pk.tube(f"{t}-bridge", [a0.lerp(a1, 0.3) + d0 * 0.006, mid,
+                                       a0.lerp(a1, 0.7) + d1 * 0.006],
+                       [0.0024] * 3, BRASS, n=5))
     strap = []
-    for k in range(15):
-        a = 44 + k * (360 - 88) / 14
-        phi = 80 - 12 * ((1 - math.cos(math.radians(a))) / 2)
-        strap.append(c + head_dir(axis, fwd, side, phi, a) * (RH + 0.0012))
-    out.append(pk.tube(f"{t}-gstrap", strap, [(0.001, 0.0036)] * 15,
+    for k in range(17):
+        a = 44 + k * (360 - 88) / 16
+        phi = 40 - 12 * ((1 - math.cos(math.radians(a))) / 2)
+        strap.append(c + head_dir(axis, fwd, side, phi, a) * (RH + 0.0016))
+    out.append(pk.tube(f"{t}-gstrap", strap, [(0.0016, 0.0058)] * 17,
                        WALNUT, n=4, up=axis))
+    # Eyes under heavy, determined brows; a gritted grin.
+    face_y = R * 0.98
+
+    def on_face(x, z, lift=0.0):
+        rr = R * 0.97
+        yy = math.sqrt(max(0.0, rr * rr - x * x - (z / 1.05) ** 2))
+        return c + V(x, min(yy, face_y) + lift, z)
+    for sx in (-1, 1):
+        at = on_face(sx * 0.0165, 0.004, -0.004)
+        out.append(pk.ball(f"{t}-eye-white{sx}", 0.0112, at, EYE_WHITE,
+                           scale=(0.9, 0.5, 0.95), seg=12, rings=6))
+        out.append(pk.ball(f"{t}-pupil{sx}", 0.0058,
+                           at + V(-sx * 0.0012, 0.0045, -0.0006), WALNUT,
+                           scale=(0.85, 0.5, 1.0), seg=10, rings=5))
+        b0 = on_face(sx * 0.0055, 0.0145, 0.0015)
+        b1 = on_face(sx * 0.0275, 0.0215, 0.0)
+        out.append(pk.tube(f"{t}-brow{sx}", [b0, b0.lerp(b1, 0.5)
+                                              + V(0, 0, 0.002), b1],
+                           [(0.0042, 0.003)] * 3, WALNUT, n=5,
+                           caps=("pole", "pole")))
+    teeth = on_face(0.003, -0.021, -0.003)
+    out.append(pk.ball(f"{t}-teeth", 0.0118, teeth, EYE_WHITE,
+                       scale=(1.45, 0.42, 0.52), seg=12, rings=6))
+    lip = [on_face(x, z, 0.0005) for x, z in
+           ((-0.0145, -0.0175), (0.003, -0.0265), (0.0195, -0.0155))]
+    out.append(pk.tube(f"{t}-grin", lip, [0.0019] * 3, WALNUT, n=5,
+                       caps=("pole", "pole")))
     return out
 
 
@@ -966,25 +1223,18 @@ def pilot_head(t):
 def propeller(t):
     hub = V(0, PROP_Y, NOSE.z)
     out = []
-    out.append(pk.tube(f"{t}-shaft", [hub - Y * 0.045, hub],
+    out.append(pk.tube(f"{t}-shaft", [hub - Y * 0.045, hub - Y * 0.015],
                        [0.009, 0.009], ALU, n=8, up=Z))
-    out.append(pk.rounded_lathe(f"{t}-boss", [(0.03, -0.02),
-                                              (0.034, -0.012),
-                                              (0.034, 0.012), (0.03, 0.02)],
-                                hub, Y, WOOD, segments=14))
-    out.append(pk.lathe(f"{t}-plate", [(0.024, 0.019), (0.024, 0.025),
-                                       (0.0, 0.025)], hub, Y, ALU,
-                        segments=12, end="pole"))
-    out.append(pk.lathe(f"{t}-nut", [(0.008, 0.024), (0.008, 0.033),
-                                     (0.0, 0.035)], hub, Y, BRASS,
-                        segments=6, end="pole"))
-    for k in range(6):
-        a = k / 6 * TAU
-        at = hub + Y * 0.025 + V(math.cos(a), 0, math.sin(a)) * 0.017
-        out.append(pk.lathe(f"{t}-bolt{k}", [(0.003, -0.001),
-                                             (0.003, 0.003),
-                                             (0.0, 0.004)], at, Y, ALU,
-                            segments=5, end="pole"))
+    # A polished spinner over the hub, the blades coming out of its sides,
+    # on a brass backing ring.
+    out.append(pk.lathe(f"{t}-spinner", [(0.0405, -0.019), (0.0418, -0.006),
+                                         (0.041, 0.008), (0.037, 0.024),
+                                         (0.03, 0.04), (0.021, 0.054),
+                                         (0.011, 0.065), (0.0, 0.07)],
+                        hub, Y, ALU, segments=20, end="pole"))
+    out.append(pk.lathe(f"{t}-backing", [(0.036, -0.026), (0.0435, -0.024),
+                                         (0.0445, -0.019), (0.0405, -0.017)],
+                        hub, Y, BRASS, segments=20, end="pole"))
     # The laminated blades: dark glue lines between the plies run along
     # each blade, brass sheathing on the tips.
     us = [-0.5, -0.36, -0.3, -0.12, -0.06, 0.06, 0.12, 0.3, 0.36, 0.5]
@@ -1043,15 +1293,38 @@ def build(root_name="drake"):
             o.data.transform(shift)
         return objs
 
-    pieces = (fuselage(t) + cowling(t) + wings(t) + struts(t) + rigging(t)
-              + tail(t) + gear(t) + bomb(t) + cockpit(t))
+    wing_fixed, ailerons = wings(t)
+    tail_fixed, elevators, rudder = tail(t)
+    gear_fixed, wheels = gear(t)
+    rack, bomb_ = bomb(t)
+    pieces = (fuselage(t) + cowling(t) + wing_fixed + struts(t)
+              + rigging(t) + tail_fixed + gear_fixed + rack + cockpit(t))
     report = {} if __import__("os").environ.get("DRAKE_DEBUG") else None
-    plane = pk.part(t, "torso", moved(pieces), shift @ COM, root,
-                    report=report)
-    pk.part(t, "head", moved(pilot_head(t)), shift @ NECK, plane,
-            report=report)
+
+    def part(name, objs, pivot, par):
+        if name == "head":
+            return face_rig.head(pk.part, t, moved(objs), shift @ pivot, par, report=report)
+        return pk.part(t, name, moved(objs), shift @ pivot, par,
+                       report=report)
+    plane = part("torso", pieces, COM, root)
+    for sx, name in ((-1, "wingL"), (1, "wingR")):
+        part(name, ailerons[sx], aileron_pivot(sx), plane)
+    part("tail", elevators, elevator_pivot(), plane)
+    part("extra", rudder, RUDDER_AT, plane)
+    part("wheels", wheels, AXLE, plane)
+    part("weapon", bomb_, BOMB_AT, plane)
+    # The pilot: his body from the waist, then his head, arms and scarf.
+    pilot = part("neck", pilot_body(t), WAIST, plane)
+    part("head", pilot_head(t), NECK, pilot)
+    for sx, side in ((-1, "L"), (1, "R")):
+        upper, fore, s, e = pilot_arm(t, sx)
+        arm = part(f"arm{side}", upper, s, pilot)
+        part(f"fore{side}", fore, e, arm)
+    scarf = part("cape", scarf_tails(t), KNOT, pilot)
+    kit.drape(scarf)
+    scarf.rotation_euler.x = SCARF_REST
     blades, hub = propeller(t)
-    pk.part(t, "spin", moved(blades), shift @ hub, plane, report=report)
+    part("spin", blades, hub, plane)
     drop = kit.empty(f"{t}.bomb", shift @ BOMB_AT)
     kit.parent(drop, plane)
     if report:

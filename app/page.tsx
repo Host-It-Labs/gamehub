@@ -14,9 +14,20 @@ const ArenaLab =
   process.env.NODE_ENV === 'development'
     ? lazy(() => import('@/components/game/arena/arena-lab'))
     : null;
+const AltoLab =
+  process.env.NODE_ENV === 'development'
+    ? lazy(() => import('@/components/game/alto/alto-lab'))
+    : null;
 const SoundLab = lazy(() => import('@/components/game/sound-lab'));
 // An online battle loads three.js with the rest of Arena, only when opened.
 const ArenaRoom = lazy(() => import('@/components/game/arena/arena-room'));
+const RotaRoom = lazy(() => import('@/components/game/rota/rota-room'));
+// An online Alto match loads its table only when opened.
+const AltoRoom = lazy(() => import('@/components/game/alto/alto-room'));
+// An online Diner shift loads three.js with the diner only when opened.
+const DinerRoom = process.env.NODE_ENV === 'development'
+  ? lazy(() => import('@/components/game/diner/diner-room'))
+  : null;
 const subscribe = () => () => {};
 export default function Gamehub() {
   const path = useSyncExternalStore(
@@ -55,10 +66,55 @@ export default function Gamehub() {
         <ArenaLab />
       </Suspense>
     );
+  if (path === '/alto/lab' && AltoLab)
+    return (
+      <Suspense fallback={null}>
+        <AltoLab />
+      </Suspense>
+    );
   const folio = /^\/folio\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (folio) return <Folio invite={folio[1]} />;
   const expedition = /^\/expedition\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (expedition) return <Relic invite={expedition[1]} />;
+  const shift = /^\/diner\/([A-Za-z0-9_-]{32})$/.exec(path);
+  if (shift && DinerRoom)
+    return (
+      <Suspense
+        fallback={
+          <main className="startup-loading" aria-busy="true">
+            Diner
+          </main>
+        }
+      >
+        <DinerRoom token={shift[1]} />
+      </Suspense>
+    );
+  const voyage = /^\/alto\/([A-Za-z0-9_-]{32})$/.exec(path);
+  if (voyage)
+    return (
+      <Suspense
+        fallback={
+          <main className="startup-loading" aria-busy="true">
+            Alto
+          </main>
+        }
+      >
+        <AltoRoom token={voyage[1]} />
+      </Suspense>
+    );
+  const survey = /^\/rota\/([A-Za-z0-9_-]{32})$/.exec(path);
+  if (survey)
+    return (
+      <Suspense
+        fallback={
+          <main className="startup-loading" aria-busy="true">
+            Rota
+          </main>
+        }
+      >
+        <RotaRoom token={survey[1]} />
+      </Suspense>
+    );
   const battle = /^\/arena\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (battle)
     return (

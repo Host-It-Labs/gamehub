@@ -17,6 +17,7 @@ import type { AnyMove } from '@/lib/games/standalone/registry';
 import {
   country,
   guessRange,
+  label,
   measure,
   offBy,
   thing,
@@ -28,6 +29,8 @@ import {
 import silhouettes from '@/lib/games/party/size-silhouettes.json';
 import { CountUp, stagger } from './reveal-motion';
 import { SabiSteps } from './sabi-steps';
+import { NextStep } from './know-me-parts';
+import { SizeBoard3D, SizeLineup3D, useWebGL } from './size-board-3d';
 import './size-table.css';
 
 const seatColors = [
@@ -458,72 +461,98 @@ function Comparison({
   }
 
   const tpx = { w: target.real.w * scale, h: target.real.h * scale };
+  const three = useWebGL();
+  // The 3D table works in reference units: the reference's longest side.
+  const refUnit = Math.max(refShape.real.w, refShape.real.h),
+    tUnit = Math.max(unit.w, unit.h);
 
   return (
     <section className="sabi-stage size-stage" data-game-motion="change">
-      <div ref={boardRef} className="sabi-board size-board">
-        {board.w > 0 && (
-          <>
-            <span className="size-ground" style={{ top: groundY }} />
-            <div
-              className="size-thing is-ref"
-              style={{ left: toPx(0), top: groundY - refShape.real.h * scale }}
-            >
-              <Silhouette s={refShape} scale={scale} />
-              <small style={{ top: refShape.real.h * scale + 8 }}>
-                {name(q.kind, q.ref)}
-              </small>
-            </div>
-            {!spectator && (
+      {three ? (
+        <SizeBoard3D
+          kind={q.kind}
+          refItem={q.ref}
+          targetItem={q.target}
+          refName={name(q.kind, q.ref)}
+          targetName={name(q.kind, q.target)}
+          size={(value * tUnit) / refUnit}
+          range={[0.08, 12]}
+          live={live}
+          showTarget={!spectator}
+          onSize={(r, done) => {
+            const v = clamp((r * refUnit) / tUnit);
+            if (done) settle(v);
+            else setValue(v);
+          }}
+        />
+      ) : (
+        <div ref={boardRef} className="sabi-board size-board">
+          {board.w > 0 && (
+            <>
+              <span className="size-ground" style={{ top: groundY }} />
               <div
-                className={`size-thing is-target ${live ? 'is-live' : ''} ${locked ? 'is-locked' : ''}`}
-                style={{ left: toPx(left), top: groundY - tpx.h }}
-                role="slider"
-                tabIndex={live ? 0 : -1}
-                aria-label={`${name(q.kind, q.target)} size`}
-                aria-disabled={!live}
-                aria-valuenow={value}
-                // Sizes are judged by eye: no real units while guessing.
-                aria-valuetext={`${Math.round((Math.max(target.real.w, target.real.h) / Math.max(refShape.real.w, refShape.real.h)) * 100)}% of the ${name(q.kind, q.ref)}`}
-                onKeyDown={key}
-                onPointerDown={(e) => down(e, 'move')}
-                onPointerMove={move}
-                onPointerUp={up}
-                onPointerCancel={up}
+                className="size-thing is-ref"
+                style={{
+                  left: toPx(0),
+                  top: groundY - refShape.real.h * scale,
+                }}
               >
-                <Silhouette s={target} scale={scale} />
-                {live && (
-                  <>
-                    <span className="size-frame" />
-                    <span
-                      className="size-handle"
-                      onPointerDown={(e) => down(e, 'resize')}
-                      aria-hidden="true"
-                    />
-                  </>
-                )}
+                <Silhouette s={refShape} scale={scale} />
+                <small style={{ top: refShape.real.h * scale + 8 }}>
+                  {name(q.kind, q.ref)}
+                </small>
               </div>
-            )}
-          </>
-        )}
-        <div className="size-zoom">
-          <button
-            type="button"
-            aria-label="Zoom in"
-            disabled={zoom >= 1}
-            onClick={() => setZoom((z) => Math.min(1, z * 1.5))}
-          >
-            <Plus size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label="Zoom out"
-            onClick={() => setZoom((z) => Math.max(1 / 40, z / 1.5))}
-          >
-            <Minus size={18} />
-          </button>
+              {!spectator && (
+                <div
+                  className={`size-thing is-target ${live ? 'is-live' : ''} ${locked ? 'is-locked' : ''}`}
+                  style={{ left: toPx(left), top: groundY - tpx.h }}
+                  role="slider"
+                  tabIndex={live ? 0 : -1}
+                  aria-label={`${name(q.kind, q.target)} size`}
+                  aria-disabled={!live}
+                  aria-valuenow={value}
+                  // Sizes are judged by eye: no real units while guessing.
+                  aria-valuetext={`${Math.round((Math.max(target.real.w, target.real.h) / Math.max(refShape.real.w, refShape.real.h)) * 100)}% of the ${name(q.kind, q.ref)}`}
+                  onKeyDown={key}
+                  onPointerDown={(e) => down(e, 'move')}
+                  onPointerMove={move}
+                  onPointerUp={up}
+                  onPointerCancel={up}
+                >
+                  <Silhouette s={target} scale={scale} />
+                  {live && (
+                    <>
+                      <span className="size-frame" />
+                      <span
+                        className="size-handle"
+                        onPointerDown={(e) => down(e, 'resize')}
+                        aria-hidden="true"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+          <div className="size-zoom">
+            <button
+              type="button"
+              aria-label="Zoom in"
+              disabled={zoom >= 1}
+              onClick={() => setZoom((z) => Math.min(1, z * 1.5))}
+            >
+              <Plus size={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="Zoom out"
+              onClick={() => setZoom((z) => Math.max(1 / 40, z / 1.5))}
+            >
+              <Minus size={18} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       <aside className="sabi-card size-card">
         {steps}
         <Legend q={q} />
@@ -694,100 +723,158 @@ function Reveal({
     onPointerLeave: (e: ReactPointerEvent) =>
       e.pointerType === 'mouse' && setFocus(null),
   });
+  const three = useWebGL();
+  const refUnit = Math.max(refShape.real.w, refShape.real.h),
+    answerSize = Math.max(answer.real.w, answer.real.h);
+  const score = !spectator && (
+    <div className="size-score" aria-live="polite">
+      <p
+        className={`size-points reveal-pop ${myPoints >= 90 ? 'reveal-burst' : ''}`}
+      >
+        <CountUp value={myPoints} duration={1100} delay={300} />
+        <small>/100</small>
+      </p>
+      {my !== null && (
+        <dl className="reveal-rise" style={stagger(0, 1400)}>
+          <div>
+            <dt>Off</dt>
+            <dd>{Math.round(offBy(my, q.answer) * 100)}%</dd>
+          </div>
+        </dl>
+      )}
+    </div>
+  );
 
   return (
     <section
       className={`sabi-stage size-stage is-revealed ${shown !== null ? 'has-focus' : ''}`}
     >
-      <div ref={boardRef} className="sabi-board size-board">
-        {board.w > 0 && (
-          <>
-            <span className="size-ground" style={{ top: groundY }} />
-            <div
-              className="size-slot is-ref"
-              style={{ left: slots[0].left + shift, width: slots[0].width }}
-            >
-              <div
-                className="size-thing is-ref"
-                style={{ top: groundY - refShape.real.h * scale }}
-              >
-                <Silhouette s={refShape} scale={scale} />
-              </div>
-              <small style={{ top: groundY + 8 }}>{name(q.kind, q.ref)}</small>
-            </div>
-            <div
-              className="size-slot is-answer reveal-rise"
-              style={{
-                left: slots[1].left + shift,
-                width: slots[1].width,
-                ...stagger(0, 150),
-              }}
-            >
-              <div
-                className="size-thing is-truth"
-                style={{ top: groundY - answer.real.h * scale }}
-              >
-                <Silhouette s={answer} scale={scale} />
-              </div>
-              <small style={{ top: groundY + 8 }}>
-                <b>{formatSize(q.answer, tarM.unit)}</b>
-              </small>
-            </div>
-            {guesses.map((r, i) => {
-              const slot = slots[i + 2];
-              return (
+      {three ? (
+        <SizeLineup3D
+          kind={q.kind}
+          cap={(answerSize * 3.5) / refUnit}
+          focus={shown}
+          onHover={setFocus}
+          onToggle={toggle}
+          pieces={[
+            {
+              key: 'ref',
+              item: q.ref,
+              size: 1,
+              finish: 'cream',
+              label: name(q.kind, q.ref),
+            },
+            {
+              key: 'truth',
+              item: q.target,
+              size: answerSize / refUnit,
+              finish: 'gold',
+              delay: 0.15,
+              label: <b>{formatSize(q.answer, tarM.unit)}</b>,
+            },
+            ...guesses.map((r, i) => ({
+              key: `seat-${r.s}`,
+              item: q.target,
+              size: Math.max(r.shape.real.w, r.shape.real.h) / refUnit,
+              finish: 'seat' as const,
+              color: color(r.s),
+              delay: 0.45 + i * 0.14,
+              seat: r.s,
+              label: (
                 <button
-                  key={r.s}
                   type="button"
-                  className={`size-slot is-guess reveal-rise ${shown === r.s ? 'is-focus' : ''} ${r.s === viewer ? 'is-you' : ''}`}
-                  style={{
-                    left: slot.left + shift,
-                    width: slot.width,
-                    ...stagger(i, 450, 140),
-                    ['--seat' as string]: color(r.s),
-                  }}
+                  className={r.s === viewer ? 'is-you' : ''}
                   aria-pressed={pinned === r.s}
                   aria-label={`${r.seat}: ${formatSize(r.value!, tarM.unit)}, ${r.gain} points`}
                   onClick={() => toggle(r.s)}
                   {...hover(r.s)}
                 >
-                  <span className="size-clip" style={{ height: groundY }}>
-                    <span
-                      className="size-thing is-guess"
-                      style={{ top: groundY - r.shape.real.h * scale }}
-                    >
-                      <Silhouette s={r.shape} scale={scale} />
-                    </span>
-                  </span>
-                  <small style={{ top: groundY + 8 }}>
-                    <i />
-                    {r.seat}
-                    <em>{formatSize(r.value!, tarM.unit)}</em>
-                  </small>
+                  <i />
+                  {r.seat}
+                  <em>{formatSize(r.value!, tarM.unit)}</em>
                 </button>
-              );
-            })}
-          </>
-        )}
-        {!spectator && (
-          <div className="size-score" aria-live="polite">
-            <p
-              className={`size-points reveal-pop ${myPoints >= 90 ? 'reveal-burst' : ''}`}
-            >
-              <CountUp value={myPoints} duration={1100} delay={300} />
-              <small>/100</small>
-            </p>
-            {my !== null && (
-              <dl className="reveal-rise" style={stagger(0, 1400)}>
-                <div>
-                  <dt>Off</dt>
-                  <dd>{Math.round(offBy(my, q.answer) * 100)}%</dd>
+              ),
+            })),
+          ]}
+        >
+          {score}
+        </SizeLineup3D>
+      ) : (
+        <div ref={boardRef} className="sabi-board size-board">
+          {board.w > 0 && (
+            <>
+              <span className="size-ground" style={{ top: groundY }} />
+              <div
+                className="size-slot is-ref"
+                style={{ left: slots[0].left + shift, width: slots[0].width }}
+              >
+                <div
+                  className="size-thing is-ref"
+                  style={{ top: groundY - refShape.real.h * scale }}
+                >
+                  <Silhouette s={refShape} scale={scale} />
                 </div>
-              </dl>
-            )}
-          </div>
-        )}
-      </div>
+                <small style={{ top: groundY + 8 }}>
+                  {name(q.kind, q.ref)}
+                </small>
+              </div>
+              <div
+                className="size-slot is-answer reveal-rise"
+                style={{
+                  left: slots[1].left + shift,
+                  width: slots[1].width,
+                  ...stagger(0, 150),
+                }}
+              >
+                <div
+                  className="size-thing is-truth"
+                  style={{ top: groundY - answer.real.h * scale }}
+                >
+                  <Silhouette s={answer} scale={scale} />
+                </div>
+                <small style={{ top: groundY + 8 }}>
+                  <b>{formatSize(q.answer, tarM.unit)}</b>
+                </small>
+              </div>
+              {guesses.map((r, i) => {
+                const slot = slots[i + 2];
+                return (
+                  <button
+                    key={r.s}
+                    type="button"
+                    className={`size-slot is-guess reveal-rise ${shown === r.s ? 'is-focus' : ''} ${r.s === viewer ? 'is-you' : ''}`}
+                    style={{
+                      left: slot.left + shift,
+                      width: slot.width,
+                      ...stagger(i, 450, 140),
+                      ['--seat' as string]: color(r.s),
+                    }}
+                    aria-pressed={pinned === r.s}
+                    aria-label={`${r.seat}: ${formatSize(r.value!, tarM.unit)}, ${r.gain} points`}
+                    onClick={() => toggle(r.s)}
+                    {...hover(r.s)}
+                  >
+                    <span className="size-clip" style={{ height: groundY }}>
+                      <span
+                        className="size-thing is-guess"
+                        style={{ top: groundY - r.shape.real.h * scale }}
+                      >
+                        <Silhouette s={r.shape} scale={scale} />
+                      </span>
+                    </span>
+                    <small style={{ top: groundY + 8 }}>
+                      <i />
+                      {r.seat}
+                      <em>{formatSize(r.value!, tarM.unit)}</em>
+                    </small>
+                  </button>
+                );
+              })}
+            </>
+          )}
+          {score}
+        </div>
+      )}
       <aside className="sabi-card size-card">
         <SabiSteps steps={stepNames} current={step} done={(i) => i <= step} />
         <Legend q={q} />
@@ -822,14 +909,16 @@ function Reveal({
         {!spectator &&
           (canAdvance ? (
             <div className="sabi-actions">
-              <button
-                type="button"
-                className="party-primary"
+              <NextStep
+                next={
+                  step < g.questions.length - 1
+                    ? { label: label(g.questions[step + 1]) }
+                    : null
+                }
+                canAdvance
                 disabled={disabled}
-                onClick={() => commit({ type: 'next' })}
-              >
-                Next
-              </button>
+                onNext={() => commit({ type: 'next' })}
+              />
             </div>
           ) : (
             <p className="party-host-wait">{hostName ?? 'The host'} moves on</p>

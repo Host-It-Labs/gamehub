@@ -3,21 +3,21 @@
     "grass": {
       "albedo": {
         "hq": {
-          "path": "/3d/arena/tex/grass-albedo-2048-c50ed5e1.webp",
-          "bytes": 376080
+          "path": "/3d/arena/tex/grass-albedo-1254-05798871.webp",
+          "bytes": 402906
         },
         "lite": {
-          "path": "/3d/arena/tex/grass-albedo-1024-09ec60bf.webp",
-          "bytes": 182946
+          "path": "/3d/arena/tex/grass-albedo-1254-05798871.webp",
+          "bytes": 402906
         }
       },
       "normal": {
-        "path": "/3d/arena/tex/grass-normal-1024-69383da6.webp",
-        "bytes": 153736
+        "path": "/3d/arena/tex/grass-normal-1024-0ca5d28c.webp",
+        "bytes": 183546
       },
       "orm": {
-        "path": "/3d/arena/tex/grass-orm-1024-3a91c601.webp",
-        "bytes": 60354
+        "path": "/3d/arena/tex/grass-orm-1024-8b3d0597.webp",
+        "bytes": 100224
       }
     },
     "cobble": {
@@ -43,21 +43,21 @@
     "dirt": {
       "albedo": {
         "hq": {
-          "path": "/3d/arena/tex/dirt-albedo-2048-cc1bc10c.webp",
-          "bytes": 127130
+          "path": "/3d/arena/tex/dirt-albedo-1254-6f8f859c.webp",
+          "bytes": 168342
         },
         "lite": {
-          "path": "/3d/arena/tex/dirt-albedo-1024-7aba19a0.webp",
-          "bytes": 52904
+          "path": "/3d/arena/tex/dirt-albedo-1254-6f8f859c.webp",
+          "bytes": 168342
         }
       },
       "normal": {
-        "path": "/3d/arena/tex/dirt-normal-1024-a4984c3c.webp",
-        "bytes": 85848
+        "path": "/3d/arena/tex/dirt-normal-1024-0ff1a456.webp",
+        "bytes": 75588
       },
       "orm": {
-        "path": "/3d/arena/tex/dirt-orm-1024-ee73bd4a.webp",
-        "bytes": 22434
+        "path": "/3d/arena/tex/dirt-orm-1024-9f38c8c6.webp",
+        "bytes": 37788
       }
     },
     "pebbles": {
@@ -83,41 +83,41 @@
     "forest": {
       "albedo": {
         "hq": {
-          "path": "/3d/arena/tex/forest-albedo-2048-49cecdd5.webp",
-          "bytes": 472854
+          "path": "/3d/arena/tex/forest-albedo-1254-e4b2df68.webp",
+          "bytes": 350446
         },
         "lite": {
-          "path": "/3d/arena/tex/forest-albedo-1024-88523e6a.webp",
-          "bytes": 219888
+          "path": "/3d/arena/tex/forest-albedo-1254-e4b2df68.webp",
+          "bytes": 350446
         }
       },
       "normal": {
-        "path": "/3d/arena/tex/forest-normal-1024-cf76ccf4.webp",
-        "bytes": 231546
+        "path": "/3d/arena/tex/forest-normal-1024-d956018a.webp",
+        "bytes": 146656
       },
       "orm": {
-        "path": "/3d/arena/tex/forest-orm-1024-8f876198.webp",
-        "bytes": 67370
+        "path": "/3d/arena/tex/forest-orm-1024-f9758a3a.webp",
+        "bytes": 61026
       }
     },
     "stone": {
       "albedo": {
         "hq": {
-          "path": "/3d/arena/tex/stone-albedo-2048-2887d109.webp",
-          "bytes": 178128
+          "path": "/3d/arena/tex/stone-albedo-1254-30456530.webp",
+          "bytes": 207964
         },
         "lite": {
-          "path": "/3d/arena/tex/stone-albedo-1024-fd3fbe4c.webp",
-          "bytes": 70228
+          "path": "/3d/arena/tex/stone-albedo-1254-30456530.webp",
+          "bytes": 207964
         }
       },
       "normal": {
-        "path": "/3d/arena/tex/stone-normal-1024-1279a547.webp",
-        "bytes": 118302
+        "path": "/3d/arena/tex/stone-normal-1024-606a5b64.webp",
+        "bytes": 61254
       },
       "orm": {
-        "path": "/3d/arena/tex/stone-orm-1024-e80ccaaa.webp",
-        "bytes": 27976
+        "path": "/3d/arena/tex/stone-orm-1024-8ad385ec.webp",
+        "bytes": 33570
       }
     },
     "slate": {
@@ -203,21 +203,21 @@
     "foliage": {
       "albedo": {
         "hq": {
-          "path": "/3d/arena/tex/foliage-albedo-2048-2933334e.webp",
-          "bytes": 239956
+          "path": "/3d/arena/tex/foliage-albedo-1254-304eff53.webp",
+          "bytes": 87898
         },
         "lite": {
-          "path": "/3d/arena/tex/foliage-albedo-1024-5cdaa63a.webp",
-          "bytes": 116386
+          "path": "/3d/arena/tex/foliage-albedo-1254-304eff53.webp",
+          "bytes": 87898
         }
       },
       "normal": {
-        "path": "/3d/arena/tex/foliage-normal-1024-103b55b8.webp",
-        "bytes": 134234
+        "path": "/3d/arena/tex/foliage-normal-1024-b8cb6e76.webp",
+        "bytes": 14656
       },
       "orm": {
-        "path": "/3d/arena/tex/foliage-orm-1024-bd0d3375.webp",
-        "bytes": 47892
+        "path": "/3d/arena/tex/foliage-orm-1024-a65ca42a.webp",
+        "bytes": 32082
       }
     },
     "cloth": {
@@ -291,46 +291,114 @@
       "bytes": 2954004
     },
     "props": {
-      "path": "/3d/arena/models/props-79b6418a.glb",
-      "bytes": 3062864
+      "path": "/3d/arena/models/props-03f3df46.glb",
+      "bytes": 3035148
     },
     "figures": {
-      "path": "/3d/arena/models/figures-e65fd298.glb",
-      "bytes": 5739496
+      "path": "/3d/arena/models/figures-95972600.glb",
+      "bytes": 22262132
+    },
+    "cartoon_towers": {
+      "path": "/3d/arena/models/cartoon_towers-a0a8b4fa.glb",
+      "bytes": 5172048
     }
   },
   "cards": {
     "archers": {
-      "path": "/3d/arena/cards/archers-4198f0b0.webp",
-      "bytes": 57556
+      "path": "/3d/arena/cards/archers-b3583cf3.webp",
+      "bytes": 67336
     },
     "ogre": {
-      "path": "/3d/arena/cards/ogre-1748866a.webp",
-      "bytes": 44724
+      "path": "/3d/arena/cards/ogre-9a67ce61.webp",
+      "bytes": 59254
     },
     "imps": {
-      "path": "/3d/arena/cards/imps-277066d2.webp",
-      "bytes": 59460
+      "path": "/3d/arena/cards/imps-f9c36922.webp",
+      "bytes": 64058
     },
     "duelist": {
-      "path": "/3d/arena/cards/duelist-5ce45ee2.webp",
-      "bytes": 60510
+      "path": "/3d/arena/cards/duelist-891dee11.webp",
+      "bytes": 63130
     },
     "ranger": {
-      "path": "/3d/arena/cards/ranger-fbe47951.webp",
-      "bytes": 46786
+      "path": "/3d/arena/cards/ranger-26894330.webp",
+      "bytes": 49720
     },
     "drake": {
-      "path": "/3d/arena/cards/drake-51b0cdd5.webp",
-      "bytes": 53242
+      "path": "/3d/arena/cards/drake-75fb510f.webp",
+      "bytes": 53614
     },
     "mage": {
-      "path": "/3d/arena/cards/mage-9ea99e3b.webp",
-      "bytes": 47760
+      "path": "/3d/arena/cards/mage-adda0011.webp",
+      "bytes": 50470
     },
     "meteor": {
-      "path": "/3d/arena/cards/meteor-782d95b3.webp",
-      "bytes": 44222
+      "path": "/3d/arena/cards/meteor-99b35166.webp",
+      "bytes": 49454
+    },
+    "pirate": {
+      "path": "/3d/arena/cards/pirate-899b53ae.webp",
+      "bytes": 51050
+    },
+    "viking": {
+      "path": "/3d/arena/cards/viking-37f4b40e.webp",
+      "bytes": 66004
+    },
+    "gladiator": {
+      "path": "/3d/arena/cards/gladiator-ca1ef315.webp",
+      "bytes": 59844
+    },
+    "medic": {
+      "path": "/3d/arena/cards/medic-aad3495e.webp",
+      "bytes": 53232
+    },
+    "miner": {
+      "path": "/3d/arena/cards/miner-5b6ccd17.webp",
+      "bytes": 63690
+    },
+    "balloon": {
+      "path": "/3d/arena/cards/balloon-b6ae470e.webp",
+      "bytes": 58662
+    },
+    "inventor": {
+      "path": "/3d/arena/cards/inventor-d503354a.webp",
+      "bytes": 52006
+    },
+    "gunner": {
+      "path": "/3d/arena/cards/gunner-b5d94e77.webp",
+      "bytes": 62486
+    },
+    "diver": {
+      "path": "/3d/arena/cards/diver-09fcde4f.webp",
+      "bytes": 76288
+    },
+    "sumo": {
+      "path": "/3d/arena/cards/sumo-8e180935.webp",
+      "bytes": 51516
+    },
+    "linebacker": {
+      "path": "/3d/arena/cards/linebacker-5bbeef14.webp",
+      "bytes": 65496
+    },
+    "beekeeper": {
+      "path": "/3d/arena/cards/beekeeper-1af11627.webp",
+      "bytes": 68732
+    },
+    "drummer": {
+      "path": "/3d/arena/cards/drummer-a69a4eaa.webp",
+      "bytes": 55410
+    },
+    "firefighter": {
+      "path": "/3d/arena/cards/firefighter-c07a93f5.webp",
+      "bytes": 66718
+    },
+    "jetpack": {
+      "path": "/3d/arena/cards/jetpack-7ca721ce.webp",
+      "bytes": 49896
+    },
+    "explorer": {
+      "path": "/3d/arena/cards/explorer-65503979.webp",
+      "bytes": 64110
     }
   }
 }

@@ -5,7 +5,7 @@ description: Plan, generate and integrate full-screen illustrated game worlds in
 
 # Illustrated game worlds
 
-Read `docs/DESIGN.md`. Preserve each game's identity and scoring rules; Observatory supplies layout lessons, not a universal art style. Use the imagegen skill and delegate image generation as required by AGENTS.md. Use the original user-approved style reference for fresh artwork, not only a progressively regenerated derivative. Built-in generation is the authorized workflow; do not request API credentials.
+Read `docs/DESIGN.md`. Preserve each game's identity and scoring rules; Observatory supplies layout lessons, not a universal art style. Use the imagegen skill and delegate image generation as required by AGENTS.md. Generate every candidate from a written brief without image references, unless the user explicitly requests an image edit or reference-based workflow. Built-in generation is the authorized workflow; do not request API credentials.
 
 ## All games: navigation and one-screen play
 
@@ -92,11 +92,11 @@ Every run that opened previous images as references (v3, v4, the first v6 attemp
 
 ### Generate orientations as separate fresh prompts
 
-Observed on 19 September 2026: running the landscape and portrait v2 prompts as two independent generations produced closer building, material and palette consistency than asking the landscape thread for a portrait "of this exact same world". A follow-up in the same thread drifts toward that thread's last image and its quirks. Prefer one carefully shared style paragraph copied verbatim into each orientation's prompt, generated separately; use in-thread follow-ups only for framing corrections of the same image.
+Observed on 19 September 2026: running the landscape and portrait v2 prompts as two independent generations produced closer building, material and palette consistency than asking the landscape thread for a portrait "of this exact same world". A follow-up in the same thread drifts toward that thread's last image and its quirks. Prefer one carefully shared style paragraph copied verbatim into each orientation's prompt, generated separately; correct failed framing by revising the written brief and making another independent fresh generation, never by editing the candidate unless the user explicitly requests that.
 
-### Correction pass
+### Fresh candidates for corrections
 
-When a generation misses the padding, do not regenerate from scratch. In the same thread, ask for an edit that only changes framing: "Pull the camera back so the whole sanctuary occupies only the central [55%] of the width and [50%] of the height, filling the new space on every side, especially above, with continuous forest in the same style. Keep every building, pad and path exactly as they are; do not add or remove any pad." Then count pads again.
+When a generation misses padding, detail, placement counts or any other requirement, refine the written brief and generate a new independent image from scratch. Never feed a generated candidate back as an image reference or edit it, even for a small framing correction, unless the user explicitly requests that workflow. Preserve each source and exact prompt, then measure and review the new candidate again. Repeated image edits degrade detail and material quality.
 
 ### Desktop side borders: a hard gate before "done" (25 September 2026)
 

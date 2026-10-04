@@ -14,6 +14,7 @@ import {
   SetupIntro,
   SetupShell,
 } from './setup-box';
+import { SetupOptions } from './setup-pages';
 import { SetupRow } from './setup-row';
 import './online-boxes.css';
 
@@ -137,7 +138,7 @@ export function RelicSetupBox({
           void open();
         }}
       >
-        <div className="setup-options">
+        <SetupOptions>
           {table && (
             <SetupRow label="Players">
               <span>{table.players.join(' · ')}</span>
@@ -177,7 +178,7 @@ export function RelicSetupBox({
               onChange={(e) => setTitle(e.target.value)}
             />
           </SetupRow>
-        </div>
+        </SetupOptions>
         {error && (
           <p role="alert" className="online-error">
             {error}

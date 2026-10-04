@@ -1,0 +1,7 @@
+Edit only three tiny peripheral areas of this image. Everything else must remain pixel-for-pixel unchanged, especially the centres, dimensions, shapes and colours of all 23 cream placement pads.
+
+1. Middle-left beach: erase only its excess LEFT sand rim between x50 and x120 and replace it with the adjacent turquoise paper sea. The complete connected beach island must begin at x120, immediately beside its leftmost cream squares. Preserve the beach's top/back ruin, every pad, and its right boundary.
+2. Bottom-left rock pools: erase only the excess LEFT rocky rim between x49 and x120 and replace it with adjacent turquoise paper sea. The complete connected rock-pool island must begin at x120, immediately beside the leftmost cream squares. Preserve the full stone arch, all pools, every pad, and its right boundary. No square moves even one pixel.
+3. Middle-right mangroves: shorten only the far-right few root tips and leaves between x850 and x886, replacing them with adjacent sea, so the connected mangrove silhouette ends at x850.
+
+This is a small local retouch, not a new rendition. Keep the current native946×1663 size and composition. Do NOT shift or resize the board, habitats, structures or pads. Preserve every unedited surface texture exactly. Add no horizontal strips, paths, text or UI. Exactly23 pads remain unchanged.

@@ -2,9 +2,9 @@ import { createGame, play, observe, zoneScore, scores, habitatsFor } from '../li
 import { chooseMove } from '../lib/games/trio/bot.ts';
 
 // Fixed seeds and equal seat counts make before/after tuning reproducible.
-// Usage: node --experimental-strip-types scripts/mora-balance.mjs [gamesPerSize] [beginner|intermediate]
+// Usage: node --experimental-strip-types scripts/mora-balance.mjs [gamesPerSize] [beginner|intermediate|desert|alpine]
 const gamesPerSize = Number(process.argv[2] ?? 40);
-const contentSet = process.argv[3] === 'intermediate' ? 'intermediate' : 'beginner';
+const contentSet = ['intermediate', 'desert', 'alpine'].includes(process.argv[3]) ? process.argv[3] : 'beginner';
 const totals = Array.from({ length: 7 }, () => ({ creatures: 0, points: 0, occupied: 0, full: 0 }));
 let boards = 0;
 let total = 0;

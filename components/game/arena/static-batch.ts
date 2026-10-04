@@ -224,6 +224,8 @@ export class ScatterCuller {
     matrices: THREE.Matrix4[],
     castShadow: boolean,
     receiveShadow: boolean,
+    /** A depth material for the shadow pass (one that sways, say). */
+    depth?: THREE.Material,
   ) {
     const n = matrices.length;
     if (!geometry.boundingSphere) geometry.computeBoundingSphere();
@@ -249,6 +251,7 @@ export class ScatterCuller {
     if (castShadow) {
       const shade = this.mesh(name, geometry, material, n);
       shade.castShadow = true;
+      if (depth) shade.customDepthMaterial = depth;
       // The sun draws these; the camera skips them (its list is `view`).
       shade.onBeforeRender = () => {
         shade.count = 0;

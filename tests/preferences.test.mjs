@@ -39,15 +39,17 @@ await test('rules reset preserves setup preferences while splitting retained mec
     const nature = readSetup('wildgrove');
     assert.equal(nature.sanctuaryGoalsEnabled, true);
     assert.equal(nature.options.roamEnabled, true);
-    assert.equal(nature.options.migration, false);
+    assert.equal(nature.options.census, false);
+    assert.equal('migration' in nature.options, false);
     values.set(
       'gamehub.setup.undertow.v1',
       JSON.stringify({ starter: true, fastMode: true }),
     );
     const tide = readSetup('undertow');
-    assert.equal(tide.shields, true);
+    assert.equal('shields' in tide, false);
     assert.equal(tide.fastMode, true);
-    assert.equal(tide.options.salvage, false);
+    assert.equal(tide.options.gold, false);
+    assert.equal(tide.options.anchor, false);
     values.set(
       key,
       JSON.stringify({

@@ -1,0 +1,302 @@
+{
+  "grass": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/grass-albedo-2048-328b7f06.webp",
+        "bytes": 1732404
+      },
+      "lite": {
+        "path": "/3d/rota/tex/grass-albedo-1024-0bb58896.webp",
+        "bytes": 629694
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/grass-normal-1024-8efe4525.webp",
+      "bytes": 414990
+    },
+    "orm": {
+      "path": "/3d/rota/tex/grass-orm-1024-b346eecc.webp",
+      "bytes": 210324
+    }
+  },
+  "field": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/field-albedo-2048-6d1835d3.webp",
+        "bytes": 971820
+      },
+      "lite": {
+        "path": "/3d/rota/tex/field-albedo-1024-f0af6bd3.webp",
+        "bytes": 461198
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/field-normal-1024-1c42152a.webp",
+      "bytes": 360008
+    },
+    "orm": {
+      "path": "/3d/rota/tex/field-orm-1024-47d913bf.webp",
+      "bytes": 101698
+    }
+  },
+  "asphalt": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/asphalt-albedo-2048-7be461c3.webp",
+        "bytes": 943054
+      },
+      "lite": {
+        "path": "/3d/rota/tex/asphalt-albedo-1024-15ec1690.webp",
+        "bytes": 422080
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/asphalt-normal-1024-88711746.webp",
+      "bytes": 316604
+    },
+    "orm": {
+      "path": "/3d/rota/tex/asphalt-orm-1024-7e8dc5b5.webp",
+      "bytes": 94530
+    }
+  },
+  "ballast": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/ballast-albedo-2048-5dd2a47b.webp",
+        "bytes": 1177344
+      },
+      "lite": {
+        "path": "/3d/rota/tex/ballast-albedo-1024-2d21732e.webp",
+        "bytes": 497958
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/ballast-normal-1024-be3a55e4.webp",
+      "bytes": 509424
+    },
+    "orm": {
+      "path": "/3d/rota/tex/ballast-orm-1024-56ed8f56.webp",
+      "bytes": 177724
+    }
+  },
+  "brick": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/brick-albedo-2048-a476a255.webp",
+        "bytes": 662636
+      },
+      "lite": {
+        "path": "/3d/rota/tex/brick-albedo-1024-58fb2b5f.webp",
+        "bytes": 284588
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/brick-normal-1024-a0889540.webp",
+      "bytes": 233338
+    },
+    "orm": {
+      "path": "/3d/rota/tex/brick-orm-1024-8aa73f1a.webp",
+      "bytes": 56268
+    }
+  },
+  "roof": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/roof-albedo-2048-b2f1f25b.webp",
+        "bytes": 513384
+      },
+      "lite": {
+        "path": "/3d/rota/tex/roof-albedo-1024-fdcd6b72.webp",
+        "bytes": 218684
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/roof-normal-1024-2c6a538b.webp",
+      "bytes": 175552
+    },
+    "orm": {
+      "path": "/3d/rota/tex/roof-orm-1024-305a591c.webp",
+      "bytes": 39442
+    }
+  },
+  "slate": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/slate-albedo-2048-470f42be.webp",
+        "bytes": 593320
+      },
+      "lite": {
+        "path": "/3d/rota/tex/slate-albedo-1024-03e53ae8.webp",
+        "bytes": 245162
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/slate-normal-1024-2c47028d.webp",
+      "bytes": 230324
+    },
+    "orm": {
+      "path": "/3d/rota/tex/slate-orm-1024-39edcb43.webp",
+      "bytes": 75006
+    }
+  },
+  "plaster": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/plaster-albedo-2048-8b2e36c2.webp",
+        "bytes": 1016336
+      },
+      "lite": {
+        "path": "/3d/rota/tex/plaster-albedo-1024-c6966d98.webp",
+        "bytes": 394052
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/plaster-normal-1024-6a79c346.webp",
+      "bytes": 181826
+    },
+    "orm": {
+      "path": "/3d/rota/tex/plaster-orm-1024-c3969da9.webp",
+      "bytes": 23428
+    }
+  },
+  "wood": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/wood-albedo-2048-637f6fb3.webp",
+        "bytes": 704096
+      },
+      "lite": {
+        "path": "/3d/rota/tex/wood-albedo-1024-e2ed2b9c.webp",
+        "bytes": 313898
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/wood-normal-1024-5feb931a.webp",
+      "bytes": 195262
+    },
+    "orm": {
+      "path": "/3d/rota/tex/wood-orm-1024-7e58604b.webp",
+      "bytes": 62810
+    }
+  },
+  "stone": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/stone-albedo-2048-18f68e50.webp",
+        "bytes": 494520
+      },
+      "lite": {
+        "path": "/3d/rota/tex/stone-albedo-1024-ea4101c3.webp",
+        "bytes": 225368
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/stone-normal-1024-fea29370.webp",
+      "bytes": 215444
+    },
+    "orm": {
+      "path": "/3d/rota/tex/stone-orm-1024-f4cd27bd.webp",
+      "bytes": 48866
+    }
+  },
+  "rock": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/rock-albedo-2048-c40a2a16.webp",
+        "bytes": 1406190
+      },
+      "lite": {
+        "path": "/3d/rota/tex/rock-albedo-1024-593d734a.webp",
+        "bytes": 549278
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/rock-normal-1024-b0a248b3.webp",
+      "bytes": 552554
+    },
+    "orm": {
+      "path": "/3d/rota/tex/rock-orm-1024-7caf3d3c.webp",
+      "bytes": 191428
+    }
+  },
+  "foliage": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/foliage-albedo-2048-122f7299.webp",
+        "bytes": 1515548
+      },
+      "lite": {
+        "path": "/3d/rota/tex/foliage-albedo-1024-dc52dea0.webp",
+        "bytes": 582104
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/foliage-normal-1024-cbe9e392.webp",
+      "bytes": 475750
+    },
+    "orm": {
+      "path": "/3d/rota/tex/foliage-orm-1024-692d5fd4.webp",
+      "bytes": 187452
+    }
+  },
+  "bark": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/bark-albedo-2048-fc389d73.webp",
+        "bytes": 1169962
+      },
+      "lite": {
+        "path": "/3d/rota/tex/bark-albedo-1024-bb2a4d6c.webp",
+        "bytes": 492296
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/bark-normal-1024-89fa48bb.webp",
+      "bytes": 470834
+    },
+    "orm": {
+      "path": "/3d/rota/tex/bark-orm-1024-7b31f4e3.webp",
+      "bytes": 138616
+    }
+  },
+  "sand": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/sand-albedo-2048-b34e51ea.webp",
+        "bytes": 1404430
+      },
+      "lite": {
+        "path": "/3d/rota/tex/sand-albedo-1024-2abaf1e8.webp",
+        "bytes": 541916
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/sand-normal-1024-ec0d478c.webp",
+      "bytes": 287786
+    },
+    "orm": {
+      "path": "/3d/rota/tex/sand-orm-1024-4dcf8aaa.webp",
+      "bytes": 79890
+    }
+  },
+  "cobble": {
+    "albedo": {
+      "hq": {
+        "path": "/3d/rota/tex/cobble-albedo-2048-35164e2e.webp",
+        "bytes": 859080
+      },
+      "lite": {
+        "path": "/3d/rota/tex/cobble-albedo-1024-2235fa5b.webp",
+        "bytes": 401034
+      }
+    },
+    "normal": {
+      "path": "/3d/rota/tex/cobble-normal-1024-6ccc32a2.webp",
+      "bytes": 339466
+    },
+    "orm": {
+      "path": "/3d/rota/tex/cobble-orm-1024-53bb41e0.webp",
+      "bytes": 111816
+    }
+  }
+}

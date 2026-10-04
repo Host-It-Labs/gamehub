@@ -809,3 +809,91 @@ def part(troop, name, objs, pivot, par, angle=52, dense=None):
     kit.set_pivot(obj, pivot)
     kit.parent(obj, par)
     return obj
+
+
+# ---------------------------------------------------------------- joints
+
+def cut(obj, point, normal, name, sp=None, s_cut=None, reach=0.3,
+        beyond=None):
+    """Cut a finished piece in two along the plane through `point` facing
+    `normal`: `obj` keeps what lies behind the plane and the returned new
+    object (`name`) what lies in front, both capped. With a spine, only
+    the surface within `reach` of the pivot is split by the plane;
+    elsewhere a face goes by its length along the spine (a plane across
+    the knee must not slice the back of the thigh), or by `beyond(C)`
+    (true for the far side) when given. Also returns the rim's points (the
+    cross-section where the two meet)."""
+    kit.apply_transform(obj)
+    p, n = Vector(point), Vector(normal).normalized()
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    geom = list(bm.verts) + list(bm.edges) + list(bm.faces)
+    bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-6, plane_co=p, plane_no=n)
+    bm.faces.ensure_lookup_table()
+    C = np.array([f.calc_center_median()[:] for f in bm.faces])
+    front = (C - np.array(p[:])) @ np.array(n[:]) > 0
+    if sp is not None or beyond is not None:
+        far = beyond(C) if beyond is not None else sp.coords(C)[0] > s_cut
+        near = np.linalg.norm(C - np.array(p[:]), axis=1) < reach
+        front = np.where(near, front, far)
+    halves = []
+    for want in (False, True):
+        b2 = bm.copy()
+        b2.faces.ensure_lookup_table()
+        drop = [b2.faces[i] for i in range(len(b2.faces)) if front[i] != want]
+        bmesh.ops.delete(b2, geom=drop, context="FACES")
+        rim = [e for e in b2.edges if e.is_boundary and all(
+            abs((v.co - p).dot(n)) < 1e-4 for v in e.verts)]
+        pts = [v.co.copy() for e in rim for v in e.verts]
+        if rim:
+            new = bmesh.ops.holes_fill(b2, edges=rim, sides=0)["faces"]
+            for f in new:
+                f.material_index = 0
+            bmesh.ops.triangulate(b2, faces=new)
+        me = obj.data.copy()
+        b2.to_mesh(me)
+        b2.free()
+        me.update()
+        halves.append((me, pts))
+    bm.free()
+    obj.data = halves[0][0]
+    other = bpy.data.objects.new(name, halves[1][0])
+    bpy.context.scene.collection.objects.link(other)
+    return other, halves[0][1]
+
+
+def joint_ball(name, rim, centre, along, hinge, mat, q=0.9, shrink=0.97,
+               segments=16, rings=10):
+    """An ellipsoid filling the wedge a bent joint opens: centred on the
+    pivot, as wide along the hinge as the rim and round in the plane the
+    joint turns in (so turning never shows its edge)."""
+    c = Vector(centre)
+    a = Vector(along).normalized()
+    h = Vector(hinge)
+    h = (h - a * h.dot(a)).normalized()
+    b = a.cross(h).normalized()
+    if not rim:
+        return None
+    dh = sorted(abs((r - c).dot(h)) for r in rim)
+    db = sorted(abs((r - c).dot(b)) for r in rim)
+    rh = dh[int((len(dh) - 1) * q)] * shrink
+    rb = db[int((len(db) - 1) * q)] * shrink
+    o = kit.sphere(name, 1.0, mat=mat, segments=segments, rings=rings)
+    m = Matrix.Identity(4)
+    for i, (axis, r) in enumerate(((h, rh), (b, rb), (a, rb))):
+        for j in range(3):
+            m[j][i] = axis[j] * r
+    o.data.transform(m)
+    o.data.transform(Matrix.Translation(c))
+    o.data.update()
+    return o
+
+
+def side_of(obj, point, normal):
+    """+1 when a piece's middle lies in front of the plane, else -1."""
+    kit.apply_transform(obj)
+    co, _ = arrays(obj)
+    if not len(co):
+        return -1
+    m = Vector(co.mean(axis=0))
+    return 1 if (m - Vector(point)).dot(Vector(normal)) > 0 else -1

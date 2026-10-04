@@ -7,8 +7,11 @@ import {
   type TickMessage,
 } from '@/lib/games/arena/net';
 import type { ArenaRoomView, ArenaSnapshot } from '@/lib/games/arena/room';
+import type { QuestAction } from '@/lib/games/arena/quest';
+import { rememberDeck, rememberedDeck } from './deck-editor';
 import { api, ApiError, withDevSession } from '@/lib/online/client';
-import type { Pending, PlayResult, Session } from './session';
+import type { DeckPhase, Pending, PlayResult, Session } from './session';
+import type { CardId } from '@/lib/games/arena/cards';
 
 /** Ticks the picture trails the newest tick by, to ride out network jitter. */
 const BUFFER = 2.5;
@@ -41,6 +44,8 @@ export class OnlineSession implements Session {
   private listeners = new Set<() => void>();
   private resyncing = false;
   private disposed = false;
+  phase: DeckPhase | null = null;
+  private sentLoaded = false;
 
   constructor(
     readonly token: string,
@@ -50,7 +55,23 @@ export class OnlineSession implements Session {
     this.match = first.match;
     this.latest = first.horizon;
     this.clock = first.horizon;
+    this.readPhase();
     this.connect();
+  }
+
+  /** The deck phase from the room view, timed on this device's clock. */
+  private readPhase() {
+    const r = this.room;
+    const now = performance.now();
+    if (r.status === 'deck')
+      this.phase = {
+        kind: 'pick',
+        ready: r.ready ?? [],
+        ends: r.left ? now + r.left : 0,
+      };
+    else if (r.status === 'draft')
+      this.phase = { kind: 'draft', view: r.draft ?? null, at: now };
+    else this.phase = null;
   }
 
   get round() {
@@ -86,6 +107,7 @@ export class OnlineSession implements Session {
     );
     events.addEventListener('room', (e) => {
       this.room = JSON.parse((e as MessageEvent).data) as ArenaRoomView;
+      this.readPhase();
       this.emit();
     });
     events.addEventListener('gone', () => this.gone());
@@ -146,6 +168,7 @@ export class OnlineSession implements Session {
     }
     this.clock = Math.max(s.horizon, this.latest - BUFFER);
     this.status = 'live';
+    this.readPhase();
     this.emit();
   }
 
@@ -227,6 +250,49 @@ export class OnlineSession implements Session {
     void api(this.path('/again'), {}).catch(() => {});
   }
 
+  chooseDeck(deck: CardId[], ready: boolean) {
+    if (this.room.decks === 'draft') return;
+    rememberDeck(deck);
+    void api(this.path('/deck'), {
+      deck,
+      ready,
+      ...(ready ? { loaded: true } : {}),
+    }).catch(() => {});
+  }
+
+  draftPick(picks: CardId[]) {
+    const p = this.phase;
+    if (p?.kind !== 'draft' || !p.view || p.view.stage !== 'pick') return;
+    const round = p.view.round;
+    // Show the choice at once; the room's view follows.
+    const rounds = p.view.rounds.map((r, i) =>
+      i === round ? { ...r, picks, locked: picks.length >= 2 } : r,
+    );
+    this.phase = { ...p, view: { ...p.view, rounds } };
+    this.emit();
+    void api(this.path('/draft'), { round, picks }).catch(() => {});
+  }
+
+  loaded() {
+    if (this.sentLoaded || this.room.quest || !this.room.decks) return;
+    this.sentLoaded = true;
+    // In the deck phase, Ready carries it.
+    if (this.room.decks === 'draft')
+      void api(this.path('/deck'), { loaded: true }).catch(() => {
+        this.sentLoaded = false;
+      });
+  }
+
+  /** A Quest choice (the host), refused ones simply do nothing. */
+  quest(action: QuestAction) {
+    void api(this.path('/quest'), action).catch(() => {});
+  }
+
+  /** Mark what you would pick in a Quest, for the host to see. */
+  suggest(key: string) {
+    void api(this.path('/quest'), { suggest: key }).catch(() => {});
+  }
+
   subscribe(listener: () => void) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -241,6 +307,18 @@ export class OnlineSession implements Session {
 
 /** Opens a room: the first snapshot, then the live stream. */
 export async function joinRoom(token: string) {
-  const first = await api<ArenaSnapshot>(`/api/arena/${token}`);
+  let first = await api<ArenaSnapshot>(`/api/arena/${token}`);
+  // Bring your own Versus deck before the battle deals the hands.
+  if (
+    !first.room.quest &&
+    first.room.decks !== 'draft' &&
+    (first.room.status === 'waiting' || first.room.status === 'deck')
+  )
+    try {
+      await api(`/api/arena/${token}/deck`, { deck: rememberedDeck() });
+      first = await api<ArenaSnapshot>(`/api/arena/${token}`);
+    } catch {
+      // The starting deck is fine too.
+    }
   return new OnlineSession(token, first);
 }

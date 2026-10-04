@@ -26,6 +26,10 @@ import { Expeditions } from './expeditions.ts';
 import { DeskPresence } from './desk-presence.ts';
 import { FolioRuns } from './folio.ts';
 import { ArenaRooms, ArenaRefusal, type ArenaOptions } from './arena.ts';
+import { RotaRooms, type RotaOptions } from './rota.ts';
+import { AltoRooms, type AltoRoomOptions } from './alto.ts';
+import { DinerRooms, type DinerOptions } from './diner.ts';
+import { isGameAvailable } from '../lib/games/availability.ts';
 import { flagContent, flaggedTitle } from './content-flags.ts';
 import {
   observe,
@@ -53,6 +57,12 @@ export async function makeServer(
     idleTableMs?: number;
     /** Arena clock and timeouts; tests shorten them. */
     arena?: ArenaOptions;
+    /** Rota bots and away seats; tests think inline. */
+    rota?: RotaOptions;
+    /** Alto bots and away seats; tests answer at once. */
+    alto?: AltoRoomOptions;
+    /** Diner's clock and waits; tests shorten them. */
+    diner?: DinerOptions;
     /** How long a table's admin may be away before the table passes on. */
     handOverMs?: number;
   } = {},
@@ -67,6 +77,12 @@ export async function makeServer(
   const deskPresence = new DeskPresence();
   const expeditions = new Expeditions(db, deskPresence);
   const folio = new FolioRuns(db);
+  const rota = new RotaRooms(db, options.rota);
+  const alto = new AltoRooms(db, options.alto);
+  const diner = new DinerRooms({
+    ...options.diner,
+    authorized: (req) => !!identity(db, req),
+  });
   const arena = new ArenaRooms({
     ...options.arena,
     authorized: (req) => !!identity(db, req),
@@ -163,10 +179,16 @@ export async function makeServer(
       }
     schedule(invite);
   }
-  /** A Folio run the table moved on to follows the table's admin. */
+  /** A Folio run or a Rota room the table moved on to follows the table's admin. */
   function followAdmin(t: StoredTable) {
     const run = t.handoff?.kind === 'folio' && /^\/folio\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
     if (run) folio.follow(run[1], t.owner);
+    const room = t.handoff?.kind === 'rota' && /^\/rota\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
+    if (room) rota.follow(room[1], t.owner);
+    const voyage = t.handoff?.kind === 'alto' && /^\/alto\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
+    if (voyage) alto.follow(voyage[1], t.owner);
+    const shift = t.handoff?.kind === 'diner' && /^\/diner\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
+    if (shift) diner.follow(shift[1], t.owner);
   }
   /** Once the admin has been gone a while, a player still here takes the table. */
   function handOverLater(invite: string) {
@@ -217,7 +239,8 @@ export async function makeServer(
     if(t.adventure){
       const g=t.adventure,key=adventureKey(g);
       for(const [seat,job]of seats)if(job.decision!==key||(seat!==-1&&!standaloneGames[g.kind].actingSeats(g).includes(seat))){clearTimeout(job.timer);void job.worker?.terminate();seats.delete(seat);}
-      if(t.status==='finished'&&t.nextVote){
+      // The host's pick has no clock; it waits on the host alone.
+      if(t.status==='finished'&&t.nextVote&&t.nextVote.endsAt!==null){
         const nextKey=`next:${t.matchId}`;
         for(const [seat,job]of seats)if(job.decision!==nextKey){clearTimeout(job.timer);seats.delete(seat);}
         if(!seats.has(-2))seats.set(-2,{decision:nextKey,timer:setTimeout(()=>{seats.delete(-2);if(stopping)return;tables.nextGameTick(invite);publish(invite);},Math.max(0,t.nextVote.endsAt-Date.now())+25)});
@@ -298,6 +321,8 @@ export async function makeServer(
     try {
       const url = new URL(req.url ?? '/', origin),
         path = url.pathname;
+      if (path === '/diner' || path.startsWith('/diner/') || path === '/api/diner' || path.startsWith('/api/diner/'))
+        check(isGameAvailable('diner'), 404, 'Not found.');
       if (!path.startsWith('/api/')) {
         serveStatic(path, req, res);
         return;
@@ -388,9 +413,71 @@ export async function makeServer(
         if (match && req.method === 'GET' && !match[2]) { send(res, 200, expeditions.get(match[1], who)); return; }
         throw new HttpError(405, 'Method not allowed.');
       }
+      if (path.startsWith('/api/diner/')) {
+        // Diner shifts run in memory; only the waiters seated there may open one.
+        const match = /^\/api\/diner\/([A-Za-z0-9_-]{32})(?:\/(events|input|again))?$/.exec(path);
+        check(match, 404, 'Diner route not found.');
+        const [, room, action] = match;
+        if (!action && req.method === 'GET') { send(res, 200, diner.get(room, who)); return; }
+        if (action === 'events' && req.method === 'GET') {
+          check(!req.headers.origin || process.env.NODE_ENV === 'development' || req.headers.origin === origin, 403, 'Request origin is not allowed.');
+          diner.connect(room, who, req, res);
+          return;
+        }
+        if (action === 'input' && req.method === 'POST') {
+          // Input steps arrive about twenty times a second per waiter.
+          limit(`diner:${who?.id ?? ip}`, 700, 10_000);
+          send(res, 200, diner.input(room, who, await body(req)));
+          return;
+        }
+        if (action === 'again' && req.method === 'POST') {
+          limit(`command:${who?.id ?? ip}`, 120);
+          send(res, 200, diner.again(room, who, await body(req)));
+          return;
+        }
+        throw new HttpError(405, 'Method not allowed.');
+      }
+      if (path.startsWith('/api/alto/')) {
+        // Alto rooms open from a table; only the people seated there may play.
+        const match = /^\/api\/alto\/([A-Za-z0-9_-]{32})(?:\/(commands|again))?$/.exec(path);
+        check(match, 404, 'Alto route not found.');
+        const [, room, action] = match;
+        if (!action && req.method === 'GET') { send(res, 200, alto.get(room, who)); return; }
+        if (action === 'commands' && req.method === 'POST') {
+          limit(`alto:${who?.id ?? ip}`, 120);
+          send(res, 200, alto.command(room, who, await body(req)));
+          return;
+        }
+        if (action === 'again' && req.method === 'POST') {
+          limit(`command:${who?.id ?? ip}`, 120);
+          await body(req);
+          send(res, 200, alto.again(room, who));
+          return;
+        }
+        throw new HttpError(405, 'Method not allowed.');
+      }
+      if (path.startsWith('/api/rota/')) {
+        // Rota rooms open from a table; only the people seated there may play.
+        const match = /^\/api\/rota\/([A-Za-z0-9_-]{32})(?:\/(commands|again))?$/.exec(path);
+        check(match, 404, 'Rota route not found.');
+        const [, room, action] = match;
+        if (!action && req.method === 'GET') { send(res, 200, rota.get(room, who)); return; }
+        if (action === 'commands' && req.method === 'POST') {
+          limit(`rota:${who?.id ?? ip}`, 120);
+          send(res, 200, rota.command(room, who, await body(req)));
+          return;
+        }
+        if (action === 'again' && req.method === 'POST') {
+          limit(`command:${who?.id ?? ip}`, 120);
+          await body(req);
+          send(res, 200, rota.again(room, who));
+          return;
+        }
+        throw new HttpError(405, 'Method not allowed.');
+      }
       if (path.startsWith('/api/arena/')) {
         // Arena battles run in memory; only seated players may open one.
-        const match = /^\/api\/arena\/([A-Za-z0-9_-]{32})(?:\/(events|commands|again))?$/.exec(path);
+        const match = /^\/api\/arena\/([A-Za-z0-9_-]{32})(?:\/(events|commands|again|deck|quest|draft))?$/.exec(path);
         check(match, 404, 'Arena route not found.');
         const [, room, action] = match;
         if (!action && req.method === 'GET') { send(res, 200, arena.get(room, who)); return; }
@@ -408,6 +495,12 @@ export async function makeServer(
           limit(`command:${who?.id ?? ip}`, 120);
           await body(req);
           send(res, 200, arena.again(room, who));
+          return;
+        }
+        if ((action === 'deck' || action === 'quest' || action === 'draft') && req.method === 'POST') {
+          limit(`command:${who?.id ?? ip}`, 120);
+          const input = await body(req);
+          send(res, 200, action === 'deck' ? arena.deck(room, who, input) : action === 'draft' ? arena.draftPick(room, who, input) : arena.questCommand(room, who, input));
           return;
         }
         throw new HttpError(405, 'Method not allowed.');
@@ -494,6 +587,7 @@ export async function makeServer(
           for (const c of clients)
             if (c.who.sessionHash === who.sessionHash) c.res.end();
           arena.revoke(who.sessionHash);
+          diner.revoke(who.sessionHash);
         }
         res.setHeader(
           'Set-Cookie',
@@ -603,6 +697,16 @@ export async function makeServer(
         if (input.kind === 'arena') {
           // Arena seats two in a duel and four in a team battle; bots fill the rest.
           url = `/arena/${arena.launch(invite, t.owner, t.members, input)}`;
+        } else if (input.kind === 'diner') {
+          check(isGameAvailable('diner'), 404, 'Not found.');
+          // Diner seats everyone at the table as waiters, one to four.
+          url = `/diner/${diner.launch(invite, t.owner, t.members, input)}`;
+        } else if (input.kind === 'alto') {
+          // Alto seats everyone at the table; bots take any seats left over.
+          url = `/alto/${alto.launch(invite, t.owner, t.members, input)}`;
+        } else if (input.kind === 'rota') {
+          // Rota seats everyone at the table; bots take any seats left over.
+          url = `/rota/${rota.launch(invite, t.owner, t.members, input)}`;
         } else if (input.kind === 'folio') {
           check(t.members.length <= 3, 409, 'Folio seats one to three players.');
           const run = input.token
@@ -713,9 +817,15 @@ export async function makeServer(
       path === '/relic' ||
       path === '/folio' ||
       path === '/arena' ||
+      path === '/rota' ||
+      path === '/alto' ||
+      path === '/diner' ||
       path === '/sound-lab' ||
       /^\/folio\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/arena\/[A-Za-z0-9_-]{32}$/.test(path) ||
+      /^\/rota\/[A-Za-z0-9_-]{32}$/.test(path) ||
+      /^\/alto\/[A-Za-z0-9_-]{32}$/.test(path) ||
+      /^\/diner\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/expedition\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/table\/[A-Za-z0-9_-]{32}$/.test(path)
     )
@@ -791,6 +901,8 @@ export async function makeServer(
     clearInterval(heartbeat);
     clearInterval(sweeper);
     arena.close();
+    alto.close();
+    diner.close();
     deskPresence.close();
     for (const seats of jobs.values())
       for (const j of seats.values()) {
@@ -806,7 +918,7 @@ export async function makeServer(
     });
     db.close();
   }
-  return { server, close, tables, db, sweep, arena };
+  return { server, close, tables, db, sweep, arena, diner };
 }
 if (
   process.argv[1] &&

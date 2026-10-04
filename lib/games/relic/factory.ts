@@ -50,7 +50,7 @@ export const MACHINES: Record<
   },
   printer: {
     name: 'Printer',
-    does: 'Prints a blank ticket every 4 s.',
+    does: 'Prints blank tickets fast enough for three bots.',
     base: 300,
     growth: 2.3,
     turns: true,
@@ -100,21 +100,21 @@ export const MACHINES: Record<
   gilder: {
     name: 'Gilder',
     does: 'Scratched tickets passing through pay ×1.25.',
-    base: 600_000,
+    base: 600_000_000,
     growth: 2.3,
     turns: true,
   },
   charm: {
     name: 'Charm',
     does: 'Touching printers print +5% star tickets (×5).',
-    base: 12_000_000,
+    base: 200_000_000_000,
     growth: 2.5,
     turns: false,
   },
   bundler: {
     name: 'Bundler',
     does: 'Packs 3 scratched tickets into one worth ×1.5.',
-    base: 200_000_000,
+    base: 200_000_000_000_000,
     growth: 2.5,
     turns: true,
   },
@@ -130,9 +130,11 @@ export const BLUEPRINTS: { id: string; price: number; kinds: MachineKind[] }[] =
     { id: 'lamp', price: 8_000, kinds: ['lamp'] },
     { id: 'ink', price: 20_000, kinds: ['ink'] },
     { id: 'stamper', price: 60_000, kinds: ['stamper'] },
-    { id: 'gilder', price: 1_000_000, kinds: ['gilder'] },
-    { id: 'charm', price: 20_000_000, kinds: ['charm'] },
-    { id: 'bundler', price: 300_000_000, kinds: ['bundler'] },
+    // The later blueprints arrive with the later books (Ladder, Gold Mine,
+    // Sun & Moon), so the factory keeps growing through the whole game.
+    { id: 'gilder', price: 1_000_000_000, kinds: ['gilder'] },
+    { id: 'charm', price: 300_000_000_000, kinds: ['charm'] },
+    { id: 'bundler', price: 300_000_000_000_000, kinds: ['bundler'] },
   ];
 export type Item = {
   id: number;
@@ -235,12 +237,18 @@ export function machineRefund(
 export function bestBook(s: ScratchState): PackId {
   return [...PACKS].reverse().find((p) => packOpen(s, p.id))?.id ?? 'seven';
 }
-export const PRINT_TICKS = 8;
 /** Bigger books take bots longer: more seals and finer foil. */
 export function scratchTicks(book: PackId) {
   const l = packFor(book).levels[0],
     index = PACKS.findIndex((x) => x.id === book);
   return Math.round(((12 * l.cols * l.rows) / 9) * 1.5 ** index);
+}
+/** One printer keeps this many scratch bots busy (a splitter's three exits),
+ * on every book, while Fast printers and Fast bots have the same rank. */
+export const BOTS_PER_PRINTER = 3;
+/** Ticks a printer takes per ticket of `book`: a third of a bot's. */
+export function printTicks(book: PackId) {
+  return Math.max(1, Math.round(scratchTicks(book) / BOTS_PER_PRINTER));
 }
 const key = (x: number, y: number) => y * 64 + x;
 export function machineAt(f: FactoryState, x: number, y: number) {
@@ -296,12 +304,13 @@ function step(g: ScratchHost, s: ScratchState, f: FactoryState) {
     botSpeed = 1.5 ** level(s, 'bots');
   for (const m of f.machines) {
     if (m.kind === 'printer' && !m.output) {
-      const b = boostWith(at, m);
+      const b = boostWith(at, m),
+        book = m.book && packOpen(s, m.book) ? m.book : 'seven',
+        ticks = printTicks(book);
       m.t += printSpeed * b.speed;
-      if (m.t >= PRINT_TICKS) {
-        m.t -= PRINT_TICKS;
+      if (m.t >= ticks) {
+        m.t = Math.min(m.t - ticks, ticks);
         m.printed = (m.printed ?? 0) + 1;
-        const book = m.book && packOpen(s, m.book) ? m.book : 'seven';
         m.output = {
           id: f.nextItem++,
           book,

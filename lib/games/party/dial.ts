@@ -1,4 +1,4 @@
-import { spectrums, liveSpectrumIds } from './spectrums.ts';
+import { spectrums, liveSpectrumIds, liveSelfIds } from './spectrums.ts';
 import { assertSeats } from './groups.ts';
 import {
   shuffle,
@@ -8,11 +8,13 @@ import {
   type StandaloneBase,
 } from '../standalone/types.ts';
 import {
-  openVote,
   voteClosed,
-  voteResult,
   isChoice,
-  maxRounds,
+  validVote,
+  endRound,
+  closeRound,
+  botChoice,
+  voters,
   type RoundChoice,
   type RoundVote,
   type SetGame,
@@ -20,32 +22,49 @@ import {
 import type { TribuState } from './tribu-state.ts';
 
 /** Dial: everyone at once sees a hidden point on a spectrum of their own and
- * writes a one-line clue for it, like Top Five's private lists. Then the
- * table reads the clues one after the other; everyone but the author
- * privately turns their dial to where they think the point sits. */
+ * writes a one-line clue for it, like Top Five's private lists, or takes the
+ * round's "Me" card instead and places themselves on it (Night owl – Early
+ * bird). Then everyone at once turns a dial for every other player and locks
+ * once; the answers are revealed one after the other. */
 export type DialMove =
   | { type: 'card'; target: number }
   | { type: 'clue'; text: string }
-  | { type: 'dial'; value: number }
+  /** Places the author on a "Me" card and locks it. */
+  | { type: 'place'; value: number }
+  | { type: 'dial'; author: number; value: number }
   | { type: 'vote'; choice: RoundChoice }
-  /** Locking may carry the final dial position, so one move settles both. */
-  | { type: 'lock'; value?: number }
+  /** Locking may carry the last dial turned, so one move settles both. */
+  | { type: 'lock'; author?: number; value?: number }
   | { type: 'unlock' | 'next' };
-export type DialGuess = { value: number; locked: boolean };
+/** One player's dials for every other clue, locked together; a dial left
+ * untouched sits in the middle. */
+export type DialGuess = { values: (number | null)[]; locked: boolean };
 /** One player's clue for the round. Hidden fields read -1 (or empty) for
  * everyone else until the table reaches it. */
 export type DialCard = {
-  /** Two spectrums the author chooses between. */
+  /** Two spectrums the author chooses between: a clue spectrum and, since
+   * the "Me" cards, one to place themselves on. */
   offers: number[];
   card: number;
   /** 0–100 along the spectrum; the author's secret until the reveal. */
   point: number;
   clue: string;
+  /** Where the author placed themselves on a "Me" card; hidden like `point`. */
+  placed?: number | null;
   locked: boolean;
 };
+/** Whether a card is a "Me" card. */
+export function isSelf(c: Pick<DialCard, 'card'>) {
+  return !!spectrums[c.card]?.self;
+}
+/** The point a card's dials aim for: the hidden point, or where the author
+ * placed themselves; -1 while unknown. */
+export function aim(c: DialCard) {
+  return isSelf(c) ? (c.placed ?? -1) : c.point;
+}
 export type DialGame = StandaloneBase & {
   kind: 'dial';
-  rules: 2;
+  rules: 3;
   mode: 'individual';
   /** Everyone plays for themselves; kept so shared party screens can group seats. */
   teams: number[];
@@ -53,10 +72,10 @@ export type DialGame = StandaloneBase & {
   tutorial: boolean;
   lesson: number;
   phase: 'clue' | 'guess' | 'reveal' | 'vote';
-  /** Whose clue the table is reading (guess and reveal). */
+  /** Whose clue is being revealed. */
   target: number;
   cards: DialCard[];
-  guesses: (DialGuess | null)[];
+  guesses: DialGuess[];
   scores: number[];
   deck: number[];
   vote: RoundVote | null;
@@ -82,7 +101,7 @@ export function createGame(
   const g: DialGame = {
     kind: 'dial',
     version: 1,
-    rules: 2,
+    rules: 3,
     rngState: seed >>> 0,
     difficulty,
     seats: Array.from({ length: n }, (_, i) => (i ? `Player ${i + 1}` : 'You')),
@@ -106,17 +125,23 @@ export function createGame(
   deal(g);
   return g;
 }
+/** One clue spectrum and one "Me" card from the shared deck. */
 function draw(g: DialGame) {
   // Older saves may still hold retired spectrums in the deck.
-  g.deck = g.deck.filter((id) => !spectrums[id]?.retired);
-  if (g.deck.length < 2)
-    g.deck.push(
-      ...shuffle(
-        liveSpectrumIds.filter((id) => !g.deck.includes(id)),
-        () => roll(g),
-      ),
-    );
-  return g.deck.splice(0, 2);
+  g.deck = g.deck.filter((id) => spectrums[id] && !spectrums[id].retired);
+  for (const pool of [liveSpectrumIds, liveSelfIds])
+    if (!g.deck.some((id) => pool.includes(id)))
+      g.deck.push(
+        ...shuffle(
+          pool.filter((id) => !g.deck.includes(id)),
+          () => roll(g),
+        ),
+      );
+  const clue = g.deck.findIndex((id) => !spectrums[id].self);
+  const [a] = g.deck.splice(clue, 1);
+  const self = g.deck.findIndex((id) => spectrums[id].self);
+  const [b] = g.deck.splice(self, 1);
+  return [a, b];
 }
 /** Everyone gets two spectrums and a hidden point at once. */
 function deal(g: DialGame) {
@@ -131,32 +156,40 @@ function deal(g: DialGame) {
       // Keep the point off the extreme ends so every band is reachable.
       point: 5 + Math.floor(roll(g) * 91),
       clue: '',
+      placed: null,
       locked: false,
     };
   });
-  g.guesses = g.seats.map(() => null);
+  g.guesses = g.seats.map(() => ({
+    values: g.seats.map(() => null),
+    locked: false,
+  }));
+  g.vote = null;
   g.result = null;
   note(g, `Round ${g.round}: everyone writes a clue at once.`);
 }
-/** The clue the table is reading now. */
+/** The clue being revealed. */
 export function current(g: DialGame): DialCard {
   return g.cards[g.target];
+}
+/** Where a guesser's dial for `author` sits; untouched dials sit mid-way. */
+export function dialAt(g: DialGame, guesser: number, author: number) {
+  return g.guesses[guesser]?.values[author] ?? 50;
 }
 export function actingSeats(g: DialGame): number[] {
   if (g.over) return [];
   if (g.phase === 'clue')
     return g.seats.flatMap((_, s) => (g.cards[s].locked ? [] : [s]));
   if (g.phase === 'guess')
-    return g.seats.flatMap((_, s) =>
-      s !== g.target && !g.guesses[s]?.locked ? [s] : [],
-    );
-  if (g.phase === 'vote')
-    return g.seats.flatMap((_, s) => (g.vote?.choices[s] ? [] : [s]));
+    return g.seats.flatMap((_, s) => (g.guesses[s].locked ? [] : [s]));
+  if (g.phase === 'vote') return voters(g);
   return [];
 }
 function cleanClue(text: string) {
   return text.replace(/\s+/g, ' ').trim();
 }
+const dialValue = (v: unknown) =>
+  typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
 export function validMove(
   g: DialGame,
   move: unknown,
@@ -175,7 +208,8 @@ export function validMove(
   const m = move as DialMove;
   if (
     Object.keys(m).some(
-      (k) => !['type', 'target', 'text', 'value', 'choice'].includes(k),
+      (k) =>
+        !['type', 'target', 'text', 'value', 'choice', 'author'].includes(k),
     )
   )
     return false;
@@ -192,21 +226,30 @@ export function validMove(
     if (c.locked) return false;
     if (m.type === 'card')
       return Number.isInteger(m.target) && c.offers.includes(m.target);
+    if (m.type === 'place') return isSelf(c) && dialValue(m.value);
     if (m.type === 'clue')
       return (
+        !isSelf(c) &&
         typeof m.text === 'string' &&
         cleanClue(m.text).length > 0 &&
         cleanClue(m.text).length <= clueLimit
       );
     return false;
   }
-  if (seat === g.target) return false;
   const b = g.guesses[seat];
-  if (m.type === 'unlock') return !!b?.locked;
-  if (b?.locked) return false;
-  if (m.type === 'dial' || (m.type === 'lock' && m.value !== undefined))
-    return Number.isFinite(m.value) && m.value! >= 0 && m.value! <= 100;
-  return m.type === 'lock';
+  if (m.type === 'unlock') return b.locked;
+  if (b.locked) return false;
+  const author = (a: unknown) =>
+    Number.isInteger(a) &&
+    a !== seat &&
+    (a as number) >= 0 &&
+    (a as number) < g.seats.length;
+  if (m.type === 'dial') return author(m.author) && dialValue(m.value);
+  if (m.type === 'lock')
+    return m.author === undefined && m.value === undefined
+      ? true
+      : author(m.author) && dialValue(m.value);
+  return false;
 }
 export function play(
   g: DialGame,
@@ -226,44 +269,31 @@ export function play(
       c.clue = cleanClue(m.text);
       c.locked = true;
     }
+    if (m.type === 'place') {
+      c.placed = Math.round(m.value);
+      c.locked = true;
+    }
     if (m.type === 'unlock') c.locked = false;
     if (n.cards.every((c) => c.locked)) {
       n.phase = 'guess';
       n.target = 0;
-      note(n, `Read ${n.seats[0]}'s clue: “${n.cards[0].clue}”.`, 0);
+      note(n, 'Everyone reads every other clue at once.');
     }
   } else if (n.phase === 'guess') {
-    if (m.type === 'dial')
-      n.guesses[s] = { value: Math.round(m.value), locked: false };
-    if (m.type === 'lock') {
-      n.guesses[s] ??= { value: 50, locked: false };
-      if (m.value !== undefined) n.guesses[s]!.value = Math.round(m.value);
-      n.guesses[s]!.locked = true;
-    }
-    if (m.type === 'unlock') n.guesses[s]!.locked = false;
-    if (n.seats.every((_, i) => i === n.target || n.guesses[i]?.locked))
+    const b = n.guesses[s];
+    if ((m.type === 'dial' || m.type === 'lock') && m.author !== undefined)
+      b.values[m.author] = Math.round(m.value!);
+    if (m.type === 'lock') b.locked = true;
+    if (m.type === 'unlock') b.locked = false;
+    if (n.guesses.every((x) => x.locked)) {
+      n.target = 0;
       reveal(n);
+    }
   } else if (n.phase === 'reveal') {
     if (n.target < n.seats.length - 1) {
       n.target++;
-      n.phase = 'guess';
-      n.guesses = n.seats.map(() => null);
-      n.result = null;
-      note(
-        n,
-        `Read ${n.seats[n.target]}'s clue: “${n.cards[n.target].clue}”.`,
-        n.target,
-      );
-    } else {
-      n.phase = 'vote';
-      n.vote = openVote(
-        n.seats.length,
-        now,
-        !n.tutorial,
-        n.tribu ? ['orin', 'dial', 'finish'] : undefined,
-      );
-      note(n, `Round ${n.round} complete. Another round?`);
-    }
+      reveal(n);
+    } else endRound(n, now);
   } else if (m.type === 'vote') {
     n.vote!.choices[s] = m.choice;
     if (voteClosed(n.vote!, now)) return close(n);
@@ -271,9 +301,11 @@ export function play(
   return n;
 }
 function reveal(g: DialGame) {
-  const point = current(g).point,
+  const point = aim(current(g)),
     gains = g.seats.map(() => 0),
-    values = g.guesses.map((b) => b?.value ?? -1);
+    values = g.seats.map((_, s) =>
+      s === g.target ? -1 : dialAt(g, s, g.target),
+    );
   let total = 0;
   for (let s = 0; s < g.seats.length; s++) {
     if (s === g.target) continue;
@@ -287,31 +319,11 @@ function reveal(g: DialGame) {
   g.phase = 'reveal';
   note(
     g,
-    `The point was at ${point}. ${g.seats.map((name, i) => `${name} +${gains[i]}`).join(', ')}.`,
+    `${g.seats[g.target]}'s point was at ${point}. ${g.seats.map((name, i) => `${name} +${gains[i]}`).join(', ')}.`,
   );
 }
 function close(g: DialGame): DialGame {
-  const choice = voteResult(g.vote!, g.tribu ? 'dial' : 'more', (n) =>
-    Math.floor(roll(g) * n),
-  );
-  g.vote = null;
-  if (choice === 'finish' || g.round >= maxRounds) {
-    // The finished table keeps the last reveal on screen.
-    g.phase = 'reveal';
-    g.over = true;
-    note(
-      g,
-      `The table finished after ${g.round} round${g.round === 1 ? '' : 's'}.`,
-    );
-    return g;
-  }
-  g.round++;
-  if (choice === 'orin') {
-    g.handoff = 'orin';
-    return g;
-  }
-  deal(g);
-  return g;
+  return closeRound(g, deal);
 }
 /** The server owns the vote deadline. Silent players don't count. */
 export function tick(g: DialGame, now = Date.now()): DialGame {
@@ -329,28 +341,36 @@ export function observe(g: DialGame, viewer: number): DialGame {
   n.cards = n.cards.map((c, s) =>
     s === viewer
       ? c
-      : // The table sees the clue it is reading, and its point once revealed.
-        n.phase !== 'clue' && s === n.target
-        ? { ...c, offers: [], point: shown ? c.point : -1 }
-        : { offers: [], card: -1, point: -1, clue: '', locked: c.locked },
+      : // Every clue and spectrum is public once the guessing starts; a
+        // point only at its own reveal.
+        n.phase !== 'clue'
+        ? {
+            ...c,
+            offers: [],
+            point: shown && s === n.target ? c.point : -1,
+            placed: shown && s === n.target ? (c.placed ?? null) : null,
+          }
+        : {
+            offers: [],
+            card: -1,
+            point: -1,
+            clue: '',
+            placed: null,
+            locked: c.locked,
+          },
   );
-  if (n.phase === 'guess')
-    n.guesses = n.guesses.map((b, s) =>
-      b && s !== viewer ? { value: -1, locked: b.locked } : b,
-    );
+  n.guesses = n.guesses.map((b, s) =>
+    s === viewer ? b : { values: b.values.map(() => null), locked: b.locked },
+  );
   return n;
 }
 export function botMove(g: DialGame, s: number): DialMove | null {
   if (!actingSeats(g).includes(s)) return null;
-  // Practice bots play the classic two rounds, then vote to finish.
-  if (g.phase === 'vote')
-    return {
-      type: 'vote',
-      choice: g.round >= 2 ? 'finish' : g.tribu ? 'dial' : 'more',
-    };
+  if (g.phase === 'vote') return { type: 'vote', choice: botChoice(g, s) };
   if (g.phase === 'clue') {
     const c = g.cards[s],
       sp = spectrums[c.card];
+    if (isSelf(c)) return { type: 'place', value: c.point };
     return {
       type: 'clue',
       text:
@@ -361,10 +381,12 @@ export function botMove(g: DialGame, s: number): DialMove | null {
             : 'Somewhere in the middle',
     };
   }
-  const b = g.guesses[s];
-  if (b) return { type: 'lock' };
+  const author = g.seats.findIndex(
+    (_, a) => a !== s && g.guesses[s].values[a] === null,
+  );
+  if (author < 0) return { type: 'lock' };
   // Bots never see the hidden point; they read the clue's direction only.
-  const c = current(g),
+  const c = g.cards[author],
     clue = c.clue.toLowerCase(),
     sp = spectrums[c.card];
   const base = !sp
@@ -374,18 +396,24 @@ export function botMove(g: DialGame, s: number): DialMove | null {
       : clue.includes(sp.right.toLowerCase())
         ? 78
         : 50;
-  return { type: 'dial', value: base + ((s * 7 + g.round * 3) % 11) - 5 };
+  return {
+    type: 'dial',
+    author,
+    value: base + ((s * 7 + author * 5 + g.round * 3) % 11) - 5,
+  };
 }
 export function validState(g: DialGame) {
   const n = g.seats.length,
     id = (i: unknown) => Number.isInteger(i) && !!spectrums[i as number],
     ids = (a: unknown) => Array.isArray(a) && a.every(id);
   return (
+    g.rules === 3 &&
     g.mode === 'individual' &&
     Array.isArray(g.teams) &&
     g.teams.length === n &&
     g.teams.every((t, s) => t === s) &&
     ['clue', 'guess', 'reveal', 'vote'].includes(g.phase) &&
+    (g.phase === 'vote' ? validVote(g.vote, n) : !g.vote) &&
     Number.isInteger(g.target) &&
     g.target >= 0 &&
     g.target < n &&
@@ -403,21 +431,28 @@ export function validState(g: DialGame) {
         c.point <= 100 &&
         typeof c.clue === 'string' &&
         c.clue.length <= clueLimit &&
+        (c.placed === undefined ||
+          c.placed === null ||
+          (Number.isInteger(c.placed) && c.placed >= 0 && c.placed <= 100)) &&
         typeof c.locked === 'boolean' &&
-        (!c.locked || c.clue.length > 0) &&
+        (!c.locked ||
+          (isSelf(c) ? Number.isInteger(c.placed) : c.clue.length > 0)) &&
         (g.phase === 'clue' || c.locked),
     ) &&
     Array.isArray(g.guesses) &&
     g.guesses.length === n &&
     g.guesses.every(
-      (b) =>
-        b === null ||
-        (Number.isInteger(b.value) &&
-          b.value >= 0 &&
-          b.value <= 100 &&
-          typeof b.locked === 'boolean'),
+      (b, s) =>
+        !!b &&
+        typeof b.locked === 'boolean' &&
+        Array.isArray(b.values) &&
+        b.values.length === n &&
+        b.values.every(
+          (v, a) =>
+            v === null ||
+            (a !== s && Number.isInteger(v) && v >= 0 && v <= 100),
+        ),
     ) &&
-    (g.phase === 'vote') === !!g.vote &&
     (g.phase === 'reveal' || g.phase === 'vote') === !!g.result
   );
 }

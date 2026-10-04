@@ -20,12 +20,22 @@ import {
   rippleTexture,
 } from './terrain';
 
+import { Ambient } from './ambient';
+import { Grass } from './grass';
 import type { Quality } from './quality';
+import {
+  createWind,
+  groundHeightTexture,
+  reducedMotion,
+  type SwayKind,
+  type Wind,
+} from './wind';
 export type { Quality };
 
 export type WorldAssets = {
   textures: Textures;
   towers: GLTF;
+  cartoonTowers?: GLTF;
   troops: GLTF;
   props?: GLTF;
   /** Collector figures; each replaces the troop model of the same id. */
@@ -68,7 +78,28 @@ export function find(root: THREE.Object3D, name: string) {
 /** Tower parts that move during play (the cannon turns, the guard spot
  * carries an archer); everything else in a tower is merged. */
 const LIVE_TOWER_PARTS = new Set(['king-cannon', 'princess-guard']);
-export const TOWER_SCALE = 0.7;
+/** Towers are drawn at this size until the view picks one for its screen
+ *  (`towerScale` in layout.ts; 0.7 until 2 October 2026, 0.8 until
+ *  3 October). */
+export const TOWER_SCALE = 1.05;
+/** The king's rear keep and its roof, chimney and pennant, dropped on
+ *  2 October 2026: its deck is clear for the cannon. */
+const KING_KEEP_PARTS = new Set([
+  'rear-keep',
+  'hipped-roof',
+  'roof-ridge',
+  'roof-finial',
+  'chimney',
+  'chimney-cap',
+  'chimney-smoke',
+  'keep-window',
+  'keep-sill',
+  'pennant-pole',
+  'roof-pennant',
+]);
+/** The king's cannon: in the middle of its deck, about twice the old size,
+ *  in the tower's own units. */
+export const KING_CANNON = { y: 3.2, size: 2.1 };
 
 /** Freeze an object's matrices once it is placed for good. */
 function freeze(o: THREE.Object3D) {
@@ -85,17 +116,17 @@ const onSlab = (x: number, z: number, margin: number) =>
   z > PLINTH.far + margin &&
   z < PLINTH.near - margin;
 
-/** The sky behind the valley: a clear bright blue overhead fading to a
- *  warm light haze at the horizon. */
+/** The sky behind the valley: a clear rich blue overhead fading to a
+ *  soft warm haze at the horizon. */
 function skyTexture() {
   const c = document.createElement('canvas');
   c.width = 16;
   c.height = 256;
   const g = c.getContext('2d')!;
   const v = g.createLinearGradient(0, 0, 0, 256);
-  v.addColorStop(0, '#6fb4ec');
-  v.addColorStop(0.5, '#a9d6f2');
-  v.addColorStop(1, '#e4f0e6');
+  v.addColorStop(0, '#4f9ee6');
+  v.addColorStop(0.5, '#8cc4ea');
+  v.addColorStop(1, '#cfe3dc');
   g.fillStyle = v;
   g.fillRect(0, 0, 16, 256);
   const t = new THREE.CanvasTexture(c);
@@ -124,8 +155,18 @@ export class ArenaWorld {
   readonly materials: MaterialLibrary;
   readonly sun: THREE.DirectionalLight;
   readonly towers = new Map<number, TowerView>();
+  /** The size towers are drawn at for this screen (view.ts sets it from
+   *  `towerScale` in layout.ts and places the towers again). */
+  towerScale = TOWER_SCALE;
   readonly water: THREE.Mesh;
   readonly noise: THREE.DataTexture;
+  /** The valley's wind (wind.ts), shared by grass, trees, flags and water. */
+  readonly wind: Wind;
+  private clock = { last: 0, time: 0 };
+  /** Grass blades over the meadow (grass.ts). */
+  readonly grass: Grass;
+  /** Smoke, embers, butterflies, birds and leaves (ambient.ts). */
+  readonly ambient: Ambient;
   private disposables: { dispose(): void }[] = [];
   /** This match's towers and rubble, merged by material across towers. */
   private towerStatics?: StaticMerge;
@@ -151,14 +192,15 @@ export class ArenaWorld {
     });
     renderer.setPixelRatio(quality.pixelRatio);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    // A neutral curve keeps the bright cartoon colours saturated.
+    // A neutral curve keeps the cartoon colours saturated; the exposure
+    // sits a little under 1 so the meadow reads rich rather than pastel.
     renderer.toneMapping = THREE.NeutralToneMapping;
-    renderer.toneMappingExposure = 0.98;
+    renderer.toneMappingExposure = 0.95;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = renderer;
 
-    const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    const anisotropy = renderer.capabilities.getMaxAnisotropy();
     for (const set of Object.values(assets.textures))
       for (const t of [set.map, set.normalMap, set.ormMap]) {
         t.anisotropy = anisotropy;
@@ -172,7 +214,7 @@ export class ArenaWorld {
     // distance, so the far woods fade out rather than into the dark.
     const backdrop = skyTexture();
     scene.background = backdrop;
-    scene.fog = new THREE.Fog('#d6e9ee', 80, 175);
+    scene.fog = new THREE.Fog('#c3dbe2', 85, 185);
     this.disposables.push(backdrop);
     // Reflections come from an open sky: blue above, the sun's warm disc up
     // to the left, a bright rim behind and green light off the meadow, so
@@ -199,8 +241,8 @@ export class ArenaWorld {
           uniform vec3 uRim;
           void main() {
             float h = vDir.y;
-            vec3 ground = vec3(0.32, 0.38, 0.22);
-            vec3 sky = mix(vec3(0.78, 0.88, 0.95), vec3(0.42, 0.66, 0.92), smoothstep(0.0, 0.8, h));
+            vec3 ground = vec3(0.24, 0.31, 0.17);
+            vec3 sky = mix(vec3(0.68, 0.8, 0.9), vec3(0.34, 0.58, 0.88), smoothstep(0.0, 0.8, h));
             vec3 col = mix(ground, sky, smoothstep(-0.15, 0.1, h));
             float key = smoothstep(0.86, 0.96, dot(vDir, uKey));
             float rim = smoothstep(0.9, 0.97, dot(vDir, uRim));
@@ -212,13 +254,15 @@ export class ArenaWorld {
     studio.add(dome);
     const env = pmrem.fromScene(studio, 0.02).texture;
     scene.environment = env;
-    scene.environmentIntensity = 0.75;
+    scene.environmentIntensity = 0.62;
     this.disposables.push(env, pmrem);
     dome.geometry.dispose();
     (dome.material as THREE.Material).dispose();
 
-    scene.add(new THREE.HemisphereLight('#e6f3ff', '#6f7d4a', 1.15));
-    const sun = new THREE.DirectionalLight('#fff3de', 2.8);
+    // Less sky fill than sun, so the shadows under troops, towers and trees
+    // read clearly.
+    scene.add(new THREE.HemisphereLight('#d9ebff', '#5a6b3a', 1.0));
+    const sun = new THREE.DirectionalLight('#fff0d6', 2.7);
     sun.position.set(-17 * turn, 34, 15 * turn);
     sun.target.position.set(0, 0, 0);
     sun.castShadow = true;
@@ -238,7 +282,7 @@ export class ArenaWorld {
     scene.add(sun, sun.target);
     this.sun = sun;
     // A cool rim light from behind the far side outlines towers and trees.
-    const rim = new THREE.DirectionalLight('#cddcff', 0.9);
+    const rim = new THREE.DirectionalLight('#cddcff', 0.7);
     rim.position.set(6 * turn, 14, -30 * turn);
     scene.add(rim);
 
@@ -246,21 +290,47 @@ export class ArenaWorld {
     this.noise = noiseTexture();
     const ripples = rippleTexture();
     this.disposables.push(this.noise, ripples);
+    const heights = groundHeightTexture(groundHeight, {
+      left: PLINTH.left,
+      far: PLINTH.far,
+      width: PLINTH.right - PLINTH.left,
+      depth: PLINTH.near - PLINTH.far,
+    });
+    this.disposables.push(heights.texture);
+    this.wind = createWind(this.noise, heights.texture, heights.box);
+    if (reducedMotion()) {
+      // A gentle lean and slow sway stay; the flutter and big gusts go.
+      this.wind.uWindAmp.value = 0.35;
+      this.wind.uFlutter.value = 0;
+    }
+    this.materials.wind = this.wind;
     const ground = makeGround(
       assets.textures,
       this.noise,
       quality.tier === 'lite',
+      this.wind,
     );
     scene.add(ground);
     this.disposables.push(
       ground.material as THREE.Material,
       ...(ground.userData.textures as THREE.Texture[]),
     );
+    this.grass = new Grass(assets.textures, this.noise, this.wind);
+    for (const mesh of this.grass.meshes) scene.add(mesh);
+    this.disposables.push(this.grass);
     const plinth = makePlinth(assets.textures);
     scene.add(plinth);
     this.disposables.push(...(plinth.userData.owned as { dispose(): void }[]));
     this.water = makeWater(this.noise, ripples);
     scene.add(this.water);
+    this.ambient = new Ambient(
+      scene,
+      this.wind,
+      reducedMotion(),
+      this.noise,
+      this.materials.get('fire:fire', 0) as THREE.MeshStandardMaterial,
+    );
+    this.disposables.push(this.ambient);
     const dressing: StaticPiece[] = [];
     this.buildBridgesAndWalls(dressing);
     if (assets.props) this.scatterProps(assets.props, dressing);
@@ -283,7 +353,7 @@ export class ArenaWorld {
   }
 
   private buildBridgesAndWalls(dressing: StaticPiece[]) {
-    const { towers } = this.assets;
+    const towers = this.assets.cartoonTowers ?? this.assets.towers;
     const has = (name: string) => !!find(towers.scene, name);
     // The river's stone embankments along the field.
     if (has('river'))
@@ -340,21 +410,96 @@ export class ArenaWorld {
   /** Towers for a new match, one view per engine tower. */
   placeTowers(m: Match) {
     const { towers } = this.assets;
+    const TOWER_SCALE = this.towerScale;
     const pieces: StaticPiece[] = [];
     for (const t of m.towers) {
       const [x, , z] = toWorld(t.x, t.y);
       // Colours follow the viewer: your towers are blue from either end.
       const team: Team = t.side === this.viewSide ? 0 : 1;
-      const root = this.instance(towers, t.kind, team);
+      const desktop = this.instance(towers, t.kind, team);
+      const root = new THREE.Group();
+      root.add(desktop);
+      // Keep the approved cannon and guard sockets alive under either shell.
+      desktop.updateMatrixWorld(true);
+      for (const name of LIVE_TOWER_PARTS) {
+        const live = find(desktop, name);
+        if (live) root.attach(live);
+      }
+      const shell = this.assets.cartoonTowers
+        ? this.instance(this.assets.cartoonTowers, t.kind, team)
+        : undefined;
+      if (shell) {
+        root.remove(desktop);
+        root.add(shell);
+        if (t.kind === 'king') {
+          const keep: THREE.Object3D[] = [];
+          shell.traverse((o) => {
+            if (KING_KEEP_PARTS.has(o.name.replace(/\.\d+$/, ''))) keep.push(o);
+          });
+          for (const o of keep) o.removeFromParent();
+        }
+      }
+      const cannon = find(root, 'king-cannon');
+      if (cannon) {
+        cannon.position.set(0, KING_CANNON.y, 0);
+        cannon.scale.setScalar(KING_CANNON.size);
+        // A round iron hatch in the deck, which the cannon rises through.
+        const metal = (find(cannon, 'king-cannon-barrel') as THREE.Mesh)
+          ?.material as THREE.Material | undefined;
+        if (metal)
+          for (const [radius, height] of [
+            [0.78, 0.07],
+            [0.66, 0.11],
+          ]) {
+            const geometry = new THREE.CylinderGeometry(
+              radius,
+              radius + 0.03,
+              height,
+              32,
+            );
+            // Unshaded by the baked occlusion the other parts carry.
+            geometry.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(
+                new Float32Array(geometry.attributes.position.count * 3).fill(
+                  1,
+                ),
+                3,
+              ),
+            );
+            const lid = new THREE.Mesh(geometry, metal);
+            lid.position.set(0, KING_CANNON.y - 0.02 + height / 2, 0);
+            lid.castShadow = lid.receiveShadow = true;
+            (shell ?? desktop).add(lid);
+          }
+      }
       const rubble = this.instance(towers, `${t.kind}-rubble`, team);
+      // The king's chimney smokes while the keep stands.
+      const chimney = find(root, 'chimney-smoke');
+      if (chimney) {
+        // The root is still at the origin, unscaled and unturned: place the
+        // spot as the root will be below.
+        root.updateMatrixWorld(true);
+        const at = chimney.getWorldPosition(new THREE.Vector3());
+        const turn = t.side === 1 ? -1 : 1;
+        at.set(
+          x + at.x * turn * TOWER_SCALE,
+          at.y * TOWER_SCALE,
+          z + at.z * turn * TOWER_SCALE,
+        );
+        this.ambient.chimneys.push({ at, on: () => root.visible });
+      }
       const guardSpot = find(root, 'princess-guard');
       const guardDrop = guardSpot
         ? guardSpot.getWorldPosition(new THREE.Vector3()).y * (1 - TOWER_SCALE)
         : 0;
       root.scale.multiplyScalar(TOWER_SCALE);
       rubble.scale.multiplyScalar(TOWER_SCALE);
-      // Lower the archer with its platform, but cancel the inherited scale.
-      guardSpot?.scale.multiplyScalar(1 / TOWER_SCALE);
+      // Lower the archer with its platform, and let it grow only a little
+      // with towers drawn larger than they were measured at (0.8).
+      guardSpot?.scale.multiplyScalar(
+        Math.sqrt(Math.max(1, TOWER_SCALE / 0.8)) / TOWER_SCALE,
+      );
       root.position.set(x, 0, z);
       rubble.position.set(x, 0, z);
       // Your towers face up the field; the bot's are turned round.
@@ -365,10 +510,11 @@ export class ArenaWorld {
       rubble.visible = t.destroyed;
       root.visible = !t.destroyed;
       this.scene.add(root, rubble);
+      root.updateMatrixWorld(true);
       // Their meshes merge with the other towers' below and follow the
       // root's and rubble's visibility from there.
       pieces.push(
-        ...bakeStatic(root, root, LIVE_TOWER_PARTS),
+        ...bakeStatic(shell ?? desktop, root),
         ...bakeStatic(rubble, rubble),
       );
       const view: TowerView = {
@@ -377,7 +523,7 @@ export class ArenaWorld {
         kind: t.kind,
         root,
         rubble,
-        cannon: find(root, 'king-cannon'),
+        cannon,
         barrel: find(root, 'king-cannon-barrel'),
         guardSpot,
         guardDrop,
@@ -398,6 +544,7 @@ export class ArenaWorld {
   }
 
   clearTowers() {
+    this.ambient.chimneys = [];
     for (const v of this.towers.values()) this.scene.remove(v.root, v.rubble);
     this.towers.clear();
     this.towerStatics?.dispose();
@@ -709,12 +856,22 @@ export class ArenaWorld {
       if (!onSlab(x, z, 0.5 + 0.45 * r) || !roomy(x, z, r * 0.5)) continue;
       claim(x, z, r * 0.5);
       trees.push([x, z, r]);
+      // Trees by the field drop the odd leaf (ambient.ts).
+      if (d < 4.5)
+        this.ambient.crowns.push(
+          new THREE.Vector3(x, groundHeight(x, z) + (pine ? 3.4 : 2.9) * s, z),
+        );
       // Far from the camera a tree covers a few dozen pixels: its far
-      // model has a third of the triangles. Judged from the desktop
-      // camera's spot, so every device places the same trees.
+      // model has a third of the triangles. Judged from both cameras'
+      // spots (behind your king, and off the near side wall looking
+      // across), so every device places the same trees.
       const name = pick(list);
       const far = `${name}-far`;
-      const away = Math.hypot(x, 22, z - 38 * toward) > 50 && has(far);
+      const away =
+        Math.min(
+          Math.hypot(x, 22, z - 38 * toward),
+          Math.hypot(x - 30 * toward, 26, z),
+        ) > 50 && has(far);
       put(away ? far : name, x, z, s, undefined, {
         tilt: 0.05,
         stretch: 0.9 + rnd() * 0.24,
@@ -846,6 +1003,16 @@ export class ArenaWorld {
       byName.set(p.name, list);
     }
     const scatter = new ScatterCuller();
+    /** How each prop's parts move in the wind; rocks and camp never do. */
+    const swayOf = (name: string, material: THREE.Material) => {
+      const tile = material.name.split(':')[0];
+      if (name.startsWith('tree-'))
+        return (tile === 'bark' ? 'trunk' : 'tree') as SwayKind;
+      if (name.startsWith('bush')) return 'bush' as SwayKind;
+      if (name === 'tufts' || name.startsWith('flowers'))
+        return 'tuft' as SwayKind;
+      return undefined;
+    };
     for (const [name, matrices] of byName) {
       const source = this.instance(props, name, 0);
       source.updateMatrixWorld(true);
@@ -854,13 +1021,16 @@ export class ArenaWorld {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh) return;
         const local = mesh.matrixWorld;
+        const material = mesh.material as THREE.Material;
+        const sway = swayOf(name, material);
         scatter.add(
           name,
           mesh.geometry,
-          mesh.material as THREE.Material,
+          sway ? this.materials.sway(material, sway) : material,
           matrices.map((m) => m.clone().multiply(local)),
           !small,
           true,
+          sway && !small ? this.materials.swayDepth(sway) : undefined,
         );
       });
     }
@@ -883,6 +1053,7 @@ export class ArenaWorld {
       ]) {
         const torch = this.instance(props, 'torch', 0);
         torch.position.set(x, 0, z);
+        this.ambient.torches.push(new THREE.Vector3(x, 1.75, z));
         dressing.push(...bakeStatic(torch));
       }
     }
@@ -939,7 +1110,26 @@ export class ArenaWorld {
     shadow.map = null;
   }
 
+  /** Advance the wind and the water; called by render(). */
+  private tick() {
+    const now = performance.now() / 1000;
+    // A long pause (a hidden tab) resumes where it stopped.
+    const dt = Math.min(0.1, Math.max(0, now - (this.clock.last || now)));
+    this.clock.last = now;
+    this.clock.time += dt;
+    this.wind.uWindTime.value = this.clock.time;
+    // The pacer's lower rungs draw fewer pixels; the grass thins with them.
+    const share =
+      this.renderer.getPixelRatio() / Math.max(0.01, this.quality.pixelRatio);
+    this.grass.setDensity(
+      share > 0.95 ? 1 : share > 0.8 ? 0.8 : share > 0.65 ? 0.62 : 0.45,
+    );
+    this.ambient.setViewHeight(this.renderer.getContext().drawingBufferHeight);
+    this.ambient.update(dt);
+  }
+
   render() {
+    this.tick();
     this.towerStatics?.sync();
     // Props are culled for this camera; another camera would need its own.
     this.scatter?.update(this.camera, this.sun);

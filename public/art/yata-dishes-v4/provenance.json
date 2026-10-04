@@ -1,0 +1,20 @@
+{
+  "dishes": [
+    { "set": "lane", "kind": 4, "pick": "a" },
+    { "set": "lane", "kind": 5, "pick": "b" },
+    { "set": "alley", "kind": 4, "pick": "a" },
+    { "set": "alley", "kind": 5, "pick": "a" },
+    { "set": "plaza", "kind": 0, "pick": "a" },
+    { "set": "plaza", "kind": 1, "pick": "a" },
+    { "set": "plaza", "kind": 2, "pick": "a" },
+    { "set": "plaza", "kind": 3, "pick": "b" },
+    { "set": "plaza", "kind": 4, "pick": "a" },
+    { "set": "plaza", "kind": 5, "pick": "b" },
+    { "set": "fiesta", "kind": 0, "pick": "a" },
+    { "set": "fiesta", "kind": 1, "pick": "a" },
+    { "set": "fiesta", "kind": 2, "pick": "a" },
+    { "set": "fiesta", "kind": 3, "pick": "b" },
+    { "set": "fiesta", "kind": 4, "pick": "b" },
+    { "set": "fiesta", "kind": 5, "pick": "b" }
+  ]
+}

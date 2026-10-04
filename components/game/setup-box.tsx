@@ -38,6 +38,7 @@ import {
   Flag,
   Trash2,
   Users,
+  Vote,
   Waves,
   Wind,
   type LucideIcon,
@@ -52,9 +53,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArtworkImage } from './artwork';
 import { Segmented, SetupRow } from './setup-row';
 import { ContentChoice, GameExtensionChoices } from './expansions';
+import { SetupOptions } from './setup-pages';
 import { StatStrip } from './library';
 import { boxStyle } from './game-box';
 import {
+  seatRange,
   totalRounds,
   type Difficulty,
   type Game,
@@ -93,7 +96,6 @@ const motifs: Record<string, LucideIcon> = {
 };
 
 export type SetupChoices = GameOptions & {
-  shields?: boolean;
   customerOrders?: boolean;
   sanctuaryGoalsEnabled?: boolean;
 };
@@ -191,12 +193,14 @@ function SeatCount({
   seats,
   choices,
   minPlayers,
+  maxPlayers = 8,
   onChange,
   disabled,
 }: {
   seats: number;
   choices: readonly number[];
   minPlayers: number;
+  maxPlayers?: number;
   onChange: (n: number) => void;
   disabled: boolean;
 }) {
@@ -210,7 +214,7 @@ function SeatCount({
       options={choices.map((n) => ({
         value: n,
         label: <b>{n}</b>,
-        disabled: n < minPlayers,
+        disabled: n < minPlayers || n > maxPlayers,
       }))}
     />
   );
@@ -630,6 +634,8 @@ export function StandaloneSetupBox({
   onSeats,
   players,
   onHost,
+  votes = false,
+  onVotes,
   onDifficulty,
   onPlay,
   onLearn,
@@ -647,6 +653,9 @@ export function StandaloneSetupBox({
   /** Online tables: who is seated, so the host can hand the lead to someone else. */
   players?: SetupPlayer[];
   onHost?: (id: string) => void;
+  /** Party sets: whether the table votes between rounds or the host picks. */
+  votes?: boolean;
+  onVotes?: (on: boolean) => void;
   onDifficulty: (d: Difficulty) => void;
   onPlay: () => void;
   onLearn: () => void;
@@ -660,7 +669,7 @@ export function StandaloneSetupBox({
   return (
     <SetupShell game={game}>
       <SetupIntro game={game} />
-      <div className="setup-options">
+      <SetupOptions>
         <SetupRow label="Players" Icon={Users}>
           <SeatCount
             seats={seats}
@@ -687,7 +696,21 @@ export function StandaloneSetupBox({
             disabled={disabled}
           />
         )}
-      </div>
+        {onVotes && (
+          <SetupRow label="Next round" Icon={Vote}>
+            <Segmented
+              label="Who picks the next round"
+              value={votes ? 'vote' : 'host'}
+              options={[
+                { value: 'host', label: 'Host picks' },
+                { value: 'vote', label: 'Everyone votes' },
+              ]}
+              onChange={(v) => onVotes(v === 'vote')}
+              disabled={disabled}
+            />
+          </SetupRow>
+        )}
+      </SetupOptions>
       <div className="setup-actions">
         {unavailable ? (
           <a
@@ -727,7 +750,6 @@ export function SetupBox({
   difficulty,
   fastMode,
   options,
-  shields,
   customerOrders,
   sanctuaryGoalsEnabled,
   onPlayers,
@@ -748,7 +770,6 @@ export function SetupBox({
   difficulty: Difficulty;
   fastMode: boolean;
   options: GameOptions;
-  shields: boolean;
   customerOrders: boolean;
   sanctuaryGoalsEnabled: boolean;
   onPlayers: (n: number) => void;
@@ -762,15 +783,20 @@ export function SetupBox({
 }) {
   const id = game.gameId!;
   const resumable = save && save.phase !== 'over';
+  // Nox starts at three; its Fast deck greys out five and six.
+  const fewest = seatRange(id)[0];
+  const most = seatRange(id, fastMode)[1];
+  const seatChoices = [2, 3, 4, 5, 6].filter((n) => n >= fewest);
   return (
     <SetupShell game={game}>
       <SetupIntro game={game} />
-      <div className="setup-options">
+      <SetupOptions>
         <SetupRow label="Players" Icon={Users}>
           <SeatCount
             seats={players}
-            choices={[2, 3, 4, 5, 6]}
+            choices={seatChoices}
             minPlayers={minPlayers}
+            maxPlayers={most}
             onChange={onPlayers}
             disabled={disabled}
           />
@@ -787,6 +813,7 @@ export function SetupBox({
           id={id}
           options={options}
           fastMode={fastMode}
+          seatsTaken={minPlayers}
           onChange={onOptions}
           onFastMode={onFastMode}
         />
@@ -794,12 +821,12 @@ export function SetupBox({
           disabled={disabled}
           id={id}
           options={options}
-          shields={shields}
           customerOrders={customerOrders}
           sanctuaryGoalsEnabled={sanctuaryGoalsEnabled}
+          fastMode={fastMode}
           onChange={onExtensions}
         />
-      </div>
+      </SetupOptions>
       <div className="setup-actions">
         <StartGameButton
           name={game.name}

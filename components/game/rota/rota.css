@@ -1,0 +1,1945 @@
+/* Rota: a cel-shaded picture-book toy town (2 October 2026). The board is
+   3D (three/world.ts) behind these controls; the drawn sheet stays
+   as the fallback without WebGL. Railway enamel in deep green and cream,
+   Gill Sans lettering, ivory dice with miniature pieces on their faces.
+   1. Tokens  2. Layout  3. The fallback sheet  4. Piece drawings  5. Players
+   6. Side: plans and title block  7. Dock  8. Results  9. Dialogs and menu
+   10. Setup box  11. Phones and narrow screens  12. Motion  13. The 3D board
+   14. The model railway skin (overrides the earlier tokens) */
+
+/* 1. Tokens */
+.rota-world,
+.rota-box,
+.rota-modal,
+[data-menu-theme='rota'],
+[data-leave-theme='rota'] {
+  --rota-sheet: #1f5498;
+  --rota-sheet-deep: #24493b;
+  --rota-sheet-edge: #0d2a55;
+  --rota-ink: #f1f6ff;
+  --rota-ink-soft: #f1f6ffb3;
+  --rota-grid: #ffffff21;
+  --rota-red: #ff6d57;
+  --rota-gold: #ffd27a;
+  --rota-river: #5eaaea;
+  --rota-brass: #d8b26a;
+  --rota-brass-deep: #8b6a2d;
+  --rota-ivory: #f6f0e1;
+  --rota-desk: #111c2e;
+  --rota-font:
+    'DIN Condensed', 'DIN Alternate', 'Avenir Next Condensed',
+    'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', system-ui,
+    sans-serif;
+}
+
+/* 2. Desk and layout */
+.rota-world {
+  --top: 100px;
+  /* Undo and the specials over the dice tray. */
+  --dock: 172px;
+  --side: 236px;
+  --sheet-size: min(
+    calc(100dvh - var(--top) - var(--dock) - 14px),
+    calc(100vw - 2 * var(--side) - 32px)
+  );
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  color: var(--rota-ink);
+  font-family: var(--rota-font);
+  background:
+    radial-gradient(70% 60% at 22% 4%, #f4d9a633 0%, transparent 60%),
+    radial-gradient(120% 90% at 50% 0%, #22385a 0%, #121e33 55%, #0a1220 100%),
+    var(--rota-desk);
+  isolation: isolate;
+}
+/* The desk: dark walnut grain, a brass rule along the near edge. */
+.rota-world::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    repeating-linear-gradient(
+      92deg,
+      #ffffff05 0 2px,
+      transparent 2px 9px,
+      #00000012 9px 11px,
+      transparent 11px 23px
+    ),
+    linear-gradient(180deg, transparent 70%, #00000066);
+  pointer-events: none;
+}
+.rota-desk-light {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 90%;
+  z-index: -1;
+  background: radial-gradient(ellipse at 24% 18%, #ffe6b320, transparent 55%);
+  pointer-events: none;
+}
+.rota-stage {
+  position: absolute;
+  top: var(--top);
+  bottom: calc(var(--dock) + max(10px, env(safe-area-inset-bottom)));
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--sheet-size) minmax(0, 1fr);
+  grid-template-areas: 'left desk right';
+  align-items: center;
+  gap: 18px;
+  padding: 0 16px;
+}
+.rota-world[data-over] {
+  --dock: 196px;
+}
+.rota-desk {
+  grid-area: desk;
+  width: var(--sheet-size);
+  height: var(--sheet-size);
+  position: relative;
+}
+.rota-side {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.rota-side-left {
+  grid-area: left;
+  justify-self: end;
+  width: min(210px, 100%);
+}
+.rota-side-right {
+  grid-area: right;
+  justify-self: start;
+  width: min(210px, 100%);
+}
+
+/* 3. The sheet */
+.rota-sheet {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  filter: drop-shadow(0 18px 26px #0009) drop-shadow(0 2px 0 #0a1a33);
+}
+.rota-sheet > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.rota-paper {
+  fill: var(--rota-sheet);
+  stroke: var(--rota-sheet-edge);
+  stroke-width: 3;
+}
+.rota-desk .rota-sheet > svg {
+  background:
+    radial-gradient(90% 70% at 30% 20%, #ffffff10, transparent 60%),
+    radial-gradient(60% 50% at 80% 90%, #00000022, transparent 70%);
+  border-radius: 3%;
+}
+.rota-grid-ground {
+  fill: #0a2d6122;
+}
+.rota-grid path {
+  stroke: var(--rota-grid);
+  stroke-width: 1.6;
+  fill: none;
+}
+.rota-centre {
+  fill: #ffffff08;
+  stroke: #ffffff5c;
+  stroke-width: 2.2;
+  stroke-dasharray: 7 7;
+}
+.rota-sea rect {
+  fill: #0d3570;
+}
+.rota-sea path {
+  fill: none;
+  stroke: #9fd0ff80;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.rota-peak path {
+  fill: #ffffff12;
+  stroke: #e7f0ffb0;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.rota-peak .rota-peak-snow {
+  fill: none;
+  stroke: #fff;
+}
+.rota-town path {
+  fill: #ffd27a26;
+  stroke: #ffd27acc;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+}
+.rota-rubble rect {
+  fill: #2b1520b3;
+}
+.rota-rubble path {
+  fill: #ff6d5724;
+  stroke: var(--rota-red);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.rota-rubble .rota-rubble-hatch {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.rota-strike circle,
+.rota-strike path {
+  fill: none;
+  stroke: var(--rota-red);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.rota-strike circle {
+  stroke-dasharray: 10 8;
+  fill: #ff6d5714;
+}
+.rota-strike[data-covered] {
+  opacity: 0.45;
+}
+.rota-loose circle {
+  fill: var(--rota-red);
+  stroke: var(--rota-sheet);
+  stroke-width: 3;
+}
+.rota-exit-arrow {
+  fill: none;
+  stroke: var(--rota-ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rota-exit[data-pier] .rota-exit-arrow {
+  stroke: var(--rota-gold);
+}
+.rota-round-mark {
+  fill: #ffffff80;
+  font: 700 15px var(--rota-font);
+  text-anchor: end;
+}
+.rota-placed[data-fresh] .rota-piece {
+  filter: drop-shadow(0 0 5px #bfe0ffaa);
+}
+.rota-placed[data-fresh] .rota-round-mark {
+  fill: var(--rota-gold);
+}
+.rota-placed[data-town] .rota-station rect {
+  stroke: var(--rota-gold);
+}
+.rota-ghost {
+  opacity: 0.62;
+}
+
+/* The drawing border, and paper grain with the lamp's warmth on top. */
+.rota-border {
+  fill: none;
+  stroke: #ffffff30;
+  stroke-width: 2;
+}
+.rota-desk .rota-sheet::after {
+  content: '';
+  position: absolute;
+  inset: 1%;
+  border-radius: 3%;
+  pointer-events: none;
+  background:
+    radial-gradient(80% 70% at 12% 6%, #ffe3ad2e, transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+}
+.rota-desk-kit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.rota-desk-kit svg {
+  position: absolute;
+  filter: drop-shadow(8px 12px 10px #0009);
+}
+.rota-kit-compass {
+  left: 3%;
+  bottom: 6%;
+  width: 70px;
+  rotate: -18deg;
+}
+.rota-kit-pencil {
+  right: 4%;
+  bottom: 9%;
+  width: 190px;
+  rotate: -24deg;
+}
+.rota-kit-square {
+  right: 5%;
+  top: 16%;
+  width: 150px;
+  rotate: 12deg;
+  filter: drop-shadow(4px 8px 6px #0007) !important;
+}
+@media (max-width: 1100px), (max-height: 700px) {
+  .rota-desk-kit {
+    display: none;
+  }
+}
+
+/* The squares you tap, laid over the drawing. */
+.rota-cells {
+  position: absolute;
+  inset: var(--rota-inset);
+  display: grid;
+  grid-template-columns: repeat(var(--rota-n), 1fr);
+  grid-template-rows: repeat(var(--rota-n), 1fr);
+}
+.rota-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rota-ink);
+  cursor: default;
+  touch-action: none;
+}
+.rota-cell[data-target] {
+  cursor: pointer;
+  background: #ffffff14;
+  box-shadow:
+    inset 0 0 0 2px #ffffffb0,
+    inset 0 0 14px #bfe0ff55;
+  animation: rota-target 1.6s ease-in-out infinite;
+}
+.rota-cell[data-target]:hover,
+.rota-cell[data-target]:focus-visible {
+  background: #ffffff2e;
+  outline: none;
+}
+.rota-cell[data-turn] {
+  cursor: pointer;
+}
+.rota-cell:focus-visible {
+  outline: 3px solid var(--rota-gold);
+  outline-offset: -3px;
+}
+.rota-turn-mark {
+  position: absolute;
+  top: 6%;
+  left: 6%;
+  width: 30%;
+  height: 30%;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--rota-gold);
+  color: #3a2708;
+  box-shadow: 0 2px 5px #0006;
+}
+.rota-sheet[data-targeting] .rota-cell:not([data-target]):not([data-turn]) {
+  background: #0a1d3a26;
+}
+
+/* 4. Ink: roads, rails, rivers, bridges, stations */
+.rota-piece path,
+.rota-exit path {
+  fill: none;
+}
+.rota-road-case {
+  stroke: var(--rota-ink);
+  stroke-width: 26;
+}
+.rota-road-fill {
+  stroke: var(--rota-sheet);
+  stroke-width: 19;
+}
+.rota-road-dash {
+  stroke: var(--rota-ink);
+  stroke-width: 2.6;
+  stroke-dasharray: 8 7;
+}
+.rota-rail-ties {
+  stroke: var(--rota-ink);
+  stroke-width: 21;
+  stroke-dasharray: 3.2 7;
+}
+.rota-rail-case {
+  stroke: var(--rota-ink);
+  stroke-width: 10;
+}
+.rota-rail-gap {
+  stroke: var(--rota-sheet);
+  stroke-width: 4.4;
+}
+.rota-river-bank {
+  stroke: #d8ecff;
+  stroke-width: 27;
+}
+.rota-river-water {
+  stroke: var(--rota-river);
+  stroke-width: 22;
+}
+.rota-river-flow {
+  stroke: #d8ecffcc;
+  stroke-width: 2.4;
+  stroke-dasharray: 3 11;
+  stroke-linecap: round;
+}
+.rota-bridge-rail {
+  stroke: var(--rota-ink);
+  stroke-width: 40;
+  stroke-dasharray: 0 24 52 100;
+}
+.rota-bridge-deck {
+  stroke: var(--rota-sheet);
+  stroke-width: 33;
+  stroke-dasharray: 0 24 52 100;
+}
+.rota-station rect {
+  fill: var(--rota-sheet);
+  stroke: var(--rota-ink);
+  stroke-width: 4;
+}
+.rota-station path {
+  stroke: var(--rota-ink);
+  stroke-width: 3;
+  fill: none;
+}
+/* A piece on its own: a die face, a special, a rule. */
+.rota-piece-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rota-piece-ground {
+  fill: var(--rota-sheet);
+}
+
+/* 5. Players */
+.rota-players {
+  position: absolute;
+  z-index: 9;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  gap: 8px;
+  max-width: calc(100% - 420px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px;
+}
+.rota-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #f6f0e1, #e8dfc9);
+  color: #1f3d32;
+  box-shadow:
+    0 2px 0 #a89872,
+    0 8px 18px #0006;
+  font-size: 14px;
+  line-height: 1;
+}
+.rota-badge[data-you] {
+  box-shadow:
+    0 0 0 2px var(--rota-gold),
+    0 2px 0 #a89872,
+    0 8px 18px #0006;
+}
+.rota-badge-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  background: var(--rota-sheet);
+  color: var(--rota-ink);
+  font: 700 17px/1 var(--rota-font);
+  font-style: normal;
+}
+.rota-badge[data-seat='1'] .rota-badge-mark {
+  background: #7a3b54;
+}
+.rota-badge[data-seat='2'] .rota-badge-mark {
+  background: #2f6b4f;
+}
+.rota-badge[data-seat='3'] .rota-badge-mark {
+  background: #8a5a1c;
+}
+.rota-badge[data-seat='4'] .rota-badge-mark {
+  background: #4d3f86;
+}
+.rota-badge[data-seat='5'] .rota-badge-mark {
+  background: #276b7d;
+}
+.rota-badge-name {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  max-width: 11ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rota-badge-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 17px;
+  color: #24493b;
+}
+.rota-badge .player-status-icons svg {
+  width: 14px;
+  height: 14px;
+}
+.rota-players[data-fit='compact'] .rota-badge-name {
+  display: none;
+}
+.rota-notice {
+  position: absolute;
+  z-index: 11;
+  top: calc(var(--top) - 4px);
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #2b1520e6;
+  color: #ffd9d2;
+  font-size: 13px;
+}
+.rota-world .game-navigation > .game-progress.is-round {
+  --round-bg: #f6f0e1;
+  --round-fg: #24493b;
+  --round-line: #a89872;
+  font-family: var(--rota-font);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* On wide screens the pill hangs just beneath the centred badges, clear of
+   the sheet's top exits; phones keep the shared top-bar centre. */
+@media (min-width: 601px) {
+  .rota-world .game-navigation > .game-progress.is-round {
+    top: 52px;
+  }
+}
+@media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
+  .rota-world .game-navigation > .game-progress.is-round {
+    top: 8px;
+  }
+}
+/* Navigation buttons: ivory drafting tags. */
+.rota-world .game-navigation button,
+.rota-world .table-manager-trigger {
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f6f0e1, #e5dcc5);
+  color: #24493b;
+  box-shadow:
+    0 2px 0 #a89872,
+    0 6px 14px #0005;
+  font-family: var(--rota-font);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rota-world .game-navigation button:focus-visible {
+  outline: 3px solid var(--rota-gold);
+  outline-offset: 2px;
+}
+
+/* 6. Side: plans and title block */
+.rota-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rota-plans button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 8px;
+  width: 100%;
+  padding: 10px 12px 11px;
+  border: 0;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fbf6e8, #efe6cf);
+  color: #1f3d32;
+  text-align: left;
+  font-family: var(--rota-font);
+  box-shadow:
+    0 1px 0 #cdbf9c,
+    0 10px 18px #0007;
+  rotate: -0.6deg;
+  cursor: pointer;
+}
+.rota-plans li:nth-child(2) button {
+  rotate: 0.8deg;
+}
+.rota-plans li:nth-child(3) button {
+  rotate: -0.3deg;
+}
+/* A strip of tape holds each plan to the desk. */
+.rota-plans button::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 46px;
+  height: 14px;
+  translate: -50% 0;
+  background: #f3e3b8b0;
+  box-shadow: 0 1px 2px #0003;
+}
+.rota-plans b {
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.rota-plan-points {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+.rota-plan-points s {
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 18px;
+  color: #b8452f;
+}
+.rota-plan-points s[data-gone] {
+  text-decoration: line-through;
+  color: #1f3d3266;
+}
+.rota-plan-points i {
+  font-style: normal;
+  font-size: 13px;
+  color: #1f3d3299;
+}
+.rota-plan-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rota-plan-bar i {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    #1f5498 calc(var(--p) * 100%),
+    #1f549826 0
+  );
+}
+.rota-plan-bar small {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: #1f3d32cc;
+}
+.rota-plan-stamp {
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 2px solid #b8452f;
+  border-radius: 4px;
+  color: #b8452f;
+  font-weight: 800;
+  font-size: 15px;
+  rotate: -4deg;
+  text-transform: uppercase;
+}
+.rota-plan-stamp svg {
+  width: 15px;
+  height: 15px;
+}
+.rota-plans li[data-done] button {
+  background: linear-gradient(180deg, #fff8e6, #f6e8c4);
+}
+
+/* The title block: the drawing's corner box, ruled in ink. */
+.rota-title-block {
+  display: block;
+  width: 100%;
+  margin: 0;
+  color: var(--rota-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 2px solid var(--rota-ink-soft);
+  border-radius: 3px;
+  background: #24493be6;
+  box-shadow:
+    0 14px 26px #0008,
+    inset 0 0 0 4px #24493b,
+    inset 0 0 0 5px #ffffff30;
+  padding: 6px;
+}
+.rota-title-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 6px 8px;
+  border-bottom: 2px solid var(--rota-ink-soft);
+}
+.rota-title-head > span {
+  flex: 1;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rota-ink-soft);
+}
+.rota-title-head b {
+  font-size: 40px;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.rota-title-info {
+  align-self: center;
+  width: 18px;
+  height: 18px;
+  opacity: 0.7;
+}
+.rota-title-rows {
+  display: grid;
+}
+.rota-title-rows > span {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 6px;
+  border-bottom: 1px solid #ffffff26;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.rota-title-rows > span:last-child {
+  border-bottom: 0;
+}
+.rota-title-rows b {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.rota-title-block:hover .rota-title-info,
+.rota-title-block:focus-visible .rota-title-info {
+  opacity: 1;
+}
+.rota-title-block:focus-visible {
+  outline: 3px solid var(--rota-gold);
+  outline-offset: 3px;
+}
+.rota-title-block [data-zero] {
+  opacity: 0.55;
+}
+.rota-title-rows [data-key='errors'] b {
+  color: #ffb3a6;
+}
+
+/* 7. Dock: Undo and the specials above the dice and Done */
+.rota-dock {
+  position: absolute;
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  translate: -50% 0;
+  z-index: 8;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+}
+.rota-dock-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rota-undo {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f6f0e1, #e5dcc5);
+  color: #24493b;
+  box-shadow:
+    0 2px 0 #a89872,
+    0 6px 14px #0006;
+  cursor: pointer;
+}
+.rota-undo:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.rota-undo svg {
+  width: 22px;
+  height: 22px;
+}
+/* The specials: a brass stencil plate. */
+.rota-specials {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #e7c985, #c69a4c 60%, #a8803a);
+  box-shadow:
+    inset 0 1px 0 #fff3cc,
+    0 2px 0 #6e5220,
+    0 8px 16px #0007;
+}
+.rota-special {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  padding: 3px;
+  border: 0;
+  border-radius: 7px;
+  background: #3b2a0f;
+  box-shadow: inset 0 2px 3px #000a;
+  cursor: pointer;
+}
+.rota-special .rota-piece-icon {
+  border-radius: 5px;
+}
+.rota-special:disabled {
+  cursor: default;
+}
+.rota-special:disabled .rota-piece-icon {
+  opacity: 0.35;
+}
+.rota-special[data-used] .rota-piece-icon {
+  opacity: 0.12;
+}
+.rota-special-round {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #24493b;
+  font: 800 22px var(--rota-font);
+}
+.rota-special[data-selected] {
+  box-shadow:
+    0 0 0 3px var(--rota-ink),
+    0 0 14px #bfe0ff;
+  translate: 0 -4px;
+}
+.rota-specials-count {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: 50%;
+  background: #3b2a0f;
+  color: var(--rota-gold);
+  font: 800 15px var(--rota-font);
+}
+.rota-hand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #2d3f5c, #1c2940);
+  box-shadow:
+    inset 0 1px 0 #ffffff1c,
+    0 3px 0 #0b1322,
+    0 16px 32px #000a;
+}
+.rota-dice {
+  display: flex;
+  gap: 12px;
+}
+/* The dice: the shared cube, ivory with blue printed routes. */
+.rota-world .rota-die.dice-token {
+  position: relative;
+  width: 70px;
+  min-width: 0;
+  height: 70px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: grab;
+  touch-action: none;
+  transition: translate 160ms ease;
+}
+.rota-die.dice-token .die-cube-scene {
+  --die-size: 56px;
+  --die-face: #f6f0e1;
+  --die-face-light: #fffaf0;
+  --die-face-dark: #d9cfb6;
+  --die-face-side: #e9e0ca;
+  --die-edge: #fffdf6;
+  --die-shade: #cabd9c;
+  --die-shadow: #000a;
+}
+.rota-die.dice-token .die-display {
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+.rota-die .die-face .rota-piece-icon {
+  width: 86%;
+  height: 86%;
+}
+.rota-die[data-kind='junction'] .die-cube-scene {
+  --die-face: #f1ddb0;
+  --die-face-side: #e2c98f;
+  --die-face-dark: #cdb176;
+}
+.rota-die[data-kind='river'] .die-cube-scene {
+  --die-face: #dcefff;
+  --die-face-side: #c3def5;
+  --die-face-dark: #a9c9e6;
+}
+.rota-die[data-selected] {
+  translate: 0 -8px;
+}
+.rota-die[data-selected] .die-cube-scene::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 3px var(--rota-gold),
+    0 0 22px #ffd27a88;
+}
+.rota-die[data-state='placed'] .die-cube-scene,
+.rota-die[data-state='stuck'] .die-cube-scene {
+  opacity: 0.32;
+  filter: grayscale(0.6);
+}
+.rota-die[data-optional]::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 2px dashed #9fd0ff99;
+  border-radius: 12px;
+  pointer-events: none;
+}
+.rota-die-mark {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--rota-gold);
+  color: #3a2708;
+}
+.rota-die:disabled {
+  cursor: default;
+}
+.rota-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 92px;
+  height: 58px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #6d7a8f, #525e72);
+  color: #e8edf5;
+  box-shadow:
+    0 3px 0 #2c3443,
+    0 8px 16px #0007;
+  font: 800 20px var(--rota-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: default;
+}
+.rota-done svg {
+  width: 22px;
+  height: 22px;
+}
+.rota-done[data-ready] {
+  background: linear-gradient(180deg, #ffe09a, #e8b24f);
+  color: #3a2708;
+  box-shadow:
+    0 3px 0 #9a6c1f,
+    0 0 0 0 #ffd27a88,
+    0 10px 20px #0008;
+  cursor: pointer;
+  animation: rota-ready 1.8s ease-in-out infinite;
+}
+.rota-done[data-locked] {
+  background: linear-gradient(180deg, #2f6b4f, #214d39);
+  color: #e6fff1;
+  box-shadow:
+    0 3px 0 #13301f,
+    0 8px 16px #0007;
+  cursor: pointer;
+}
+.rota-drag {
+  position: fixed;
+  z-index: 70;
+  width: 64px;
+  height: 64px;
+  translate: -50% -60%;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 12px #000a);
+}
+
+/* 8. Results */
+.rota-results {
+  position: absolute;
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  translate: -50% 0;
+  z-index: 8;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  width: min(760px, calc(100vw - 16px));
+  padding: 14px 16px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f6f0e1, #e7ddc5);
+  color: #24493b;
+  box-shadow:
+    0 3px 0 #a89872,
+    0 20px 40px #000b;
+}
+.rota-results h2 {
+  margin: 0;
+  font: 800 30px/1 var(--rota-font);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.rota-results ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rota-results li button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: inherit;
+  box-shadow: 0 0 0 1px #a8987266;
+  font: 700 16px var(--rota-font);
+  cursor: pointer;
+}
+.rota-results li[data-viewing] button {
+  box-shadow: 0 0 0 3px var(--rota-sheet);
+}
+.rota-rank {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--rota-sheet);
+  color: var(--rota-ink);
+}
+.rota-results li:first-child .rota-rank {
+  background: #c28a2b;
+}
+.rota-result-total {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.rota-results-actions {
+  display: flex;
+  gap: 10px;
+}
+.rota-plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  background: #fffaf0;
+  color: #24493b;
+  box-shadow: 0 2px 0 #a89872;
+  font: 800 17px var(--rota-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rota-plate svg {
+  width: 18px;
+  height: 18px;
+}
+.rota-again {
+  background: var(--rota-sheet);
+  color: var(--rota-ink);
+  box-shadow: 0 2px 0 var(--rota-sheet-edge);
+}
+
+/* 9. Dialogs and menu */
+[data-menu-theme='rota']:is(.game-menu, .table-manager-trigger) {
+  --menu-bg: linear-gradient(180deg, #f8f2e3, #ece2ca);
+  --menu-ink: #24493b;
+  --menu-muted: #24493ba6;
+  --menu-line: #24493b26;
+  --menu-hover: #1f549814;
+  --menu-icon: #b8452f;
+  --menu-font: var(--rota-font);
+  --menu-shadow: 0 2px 0 #a89872, 0 18px 40px #0009;
+}
+.leave-dialog[data-leave-theme='rota'] {
+  font-family: var(--rota-font);
+}
+.rota-modal {
+  --rules-accent: #1f5498;
+}
+.rota-modal .rota-rules-ext {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #1f549826;
+}
+.rota-modal .rota-rules-ext h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+.rota-rules .rota-rule-pieces .rule-list-mark {
+  width: 34px;
+  height: 34px;
+}
+.rota-others {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 420px));
+  justify-content: center;
+  gap: 16px;
+  max-height: min(70dvh, 760px);
+  overflow: auto;
+  padding: 4px;
+}
+.rota-others figure {
+  margin: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: #0f1b2e;
+}
+.rota-others figcaption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+  color: #f1f6ff;
+  font-family: var(--rota-font);
+  font-size: 16px;
+}
+.rota-others figcaption > span:not(.player-status-icons) {
+  margin-left: auto;
+  font-weight: 800;
+  font-size: 20px;
+}
+.rota-others .rota-sheet {
+  filter: none;
+}
+.modal.rota-others-modal,
+.modal.rota-score-modal {
+  width: min(920px, calc(100vw - 24px));
+  max-width: min(920px, calc(100vw - 24px)) !important;
+}
+.rota-score-table-wrap {
+  overflow-x: auto;
+}
+.rota-score-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--rota-font);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.rota-score-table th,
+.rota-score-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #1f549822;
+  text-align: right;
+}
+.rota-score-table th[scope='row'] {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 14px;
+}
+.rota-score-table thead th[data-you] {
+  color: #b8452f;
+}
+.rota-score-table tfoot td,
+.rota-score-table tfoot th {
+  font-weight: 800;
+  font-size: 19px;
+  border-bottom: 0;
+}
+.rota-plan-who {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rota-plan-who li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #1f549818;
+}
+.rota-plan-who li[data-done] span {
+  color: #b8452f;
+  font-weight: 700;
+}
+.rota-coach {
+  top: auto !important;
+  bottom: calc(var(--dock) + 16px) !important;
+}
+
+/* 10. Setup box: map cards drawn as the sheets themselves, two to a page in
+   the same 2:1 card as every other board, the sheet at the card's full height. */
+.rota-box .set-card.rota .set-preview {
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  background: radial-gradient(circle at 30% 20%, #22385a, #0f1a2c);
+}
+.rota-map-preview {
+  filter: none;
+}
+/* The preview is a 2:1 inline-size container with 5px padding: the sheet is its content height. */
+.rota-box .set-preview > .rota-map-preview {
+  width: calc(50cqw - 5px);
+  height: auto;
+  aspect-ratio: 1;
+}
+.rota-map-preview .rota-exit-arrow {
+  stroke-width: 7;
+}
+
+/* 11. Phones and narrow screens */
+@media (max-width: 1100px) {
+  .rota-world {
+    --side: 0px;
+    --strip: 66px;
+    --sheet-size: min(
+      calc(100dvh - var(--top) - var(--dock) - var(--strip) - 14px),
+      calc(100vw - 24px)
+    );
+  }
+  .rota-stage {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: var(--sheet-size) auto;
+    grid-template-areas: 'desk desk' 'left right';
+    align-content: center;
+    justify-items: center;
+    gap: 8px;
+  }
+  .rota-side-left,
+  .rota-side-right {
+    width: auto;
+    align-self: start;
+  }
+  .rota-side-left {
+    justify-self: end;
+  }
+  .rota-side-right {
+    justify-self: start;
+  }
+  .rota-plans {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .rota-plans button {
+    grid-template-columns: auto auto;
+    padding: 6px 8px;
+    rotate: 0deg !important;
+  }
+  .rota-plans button::before {
+    display: none;
+  }
+  .rota-plans b {
+    font-size: 13px;
+  }
+  .rota-plan-points s {
+    font-size: 14px;
+  }
+  .rota-plan-bar i {
+    display: none;
+  }
+  .rota-title-block {
+    padding: 3px;
+  }
+  .rota-title-rows {
+    display: none;
+  }
+  .rota-title-head {
+    gap: 12px;
+    padding: 5px 10px;
+    border: 0;
+  }
+  .rota-title-head b {
+    font-size: 28px;
+  }
+}
+@media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
+  .rota-world {
+    --top: 150px;
+  }
+  .rota-players {
+    top: 102px;
+    left: 8px;
+    right: 8px;
+    translate: none;
+    max-width: none;
+    justify-content: safe center;
+  }
+}
+@media (max-width: 600px) {
+  .rota-world {
+    --top: 100px;
+    --dock: 128px;
+    --strip: 50px;
+  }
+  .rota-players {
+    top: calc(max(8px, env(safe-area-inset-top)) + 50px);
+    left: 6px;
+    right: 6px;
+    translate: none;
+    max-width: none;
+    justify-content: safe center;
+    gap: 5px;
+  }
+  .rota-badge {
+    min-height: 34px;
+    padding: 3px 8px 3px 3px;
+    font-size: 13px;
+    gap: 5px;
+  }
+  .rota-badge-mark {
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
+  }
+  .rota-badge-score {
+    font-size: 15px;
+  }
+  .rota-stage {
+    padding: 0 8px;
+  }
+  .rota-dock {
+    gap: 6px;
+  }
+  .rota-hand {
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .rota-dice {
+    gap: 4px;
+  }
+  .rota-world .rota-die.dice-token {
+    width: 46px;
+    height: 52px;
+  }
+  .rota-die.dice-token .die-cube-scene {
+    --die-size: 39px;
+  }
+  .rota-done {
+    min-width: 62px;
+    height: 48px;
+    padding: 0 8px;
+    gap: 4px;
+    font-size: 15px;
+  }
+  .rota-done svg {
+    width: 18px;
+    height: 18px;
+  }
+  .rota-players[data-fit='compact'] {
+    gap: 3px;
+  }
+  /* Six contracted badges fit: the mark beside the score over the state. */
+  .rota-players[data-fit='compact'] .rota-badge {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: 14px 14px;
+    align-items: center;
+    justify-items: center;
+    gap: 1px 4px;
+    min-height: 0;
+    padding: 3px 6px 3px 3px;
+  }
+  .rota-players[data-fit='compact'] .rota-badge-mark {
+    grid-row: 1 / 3;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  .rota-players[data-fit='compact'] .rota-badge-score {
+    font-size: 13px;
+    line-height: 14px;
+  }
+  .rota-players[data-fit='compact'] .turn-state {
+    width: 14px;
+    height: 14px;
+    min-width: 0;
+  }
+  .rota-players[data-fit='compact'] .player-status-icons svg {
+    width: 11px;
+    height: 11px;
+  }
+  .rota-undo {
+    width: 40px;
+    height: 40px;
+  }
+  .rota-specials {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+  .rota-special {
+    width: 44px;
+    height: 44px;
+    padding: 2px;
+  }
+  .rota-plans b {
+    font-size: 12px;
+  }
+  .rota-plans button {
+    gap: 2px 5px;
+    padding: 5px 6px;
+  }
+  .rota-plan-points i {
+    display: none;
+  }
+  .rota-results h2 {
+    font-size: 24px;
+  }
+}
+
+/* 12. Motion */
+@keyframes rota-target {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 2px #ffffffa0,
+      inset 0 0 10px #bfe0ff44;
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 2px #ffffffe0,
+      inset 0 0 18px #bfe0ff88;
+  }
+}
+@keyframes rota-ready {
+  0%,
+  100% {
+    box-shadow:
+      0 3px 0 #9a6c1f,
+      0 0 0 0 #ffd27a00,
+      0 10px 20px #0008;
+  }
+  50% {
+    box-shadow:
+      0 3px 0 #9a6c1f,
+      0 0 0 6px #ffd27a44,
+      0 10px 20px #0008;
+  }
+}
+@keyframes rota-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+@keyframes rota-drop {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+.rota-desk .rota-river-flow {
+  animation: rota-flow 2.4s linear infinite;
+}
+.rota-placed[data-fresh] .rota-piece {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rota-drop 220ms ease-out;
+}
+.rota-rubble {
+  animation: rota-drop 400ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rota-cell[data-target],
+  .rota-done[data-ready],
+  .rota-desk .rota-river-flow,
+  .rota-placed[data-fresh] .rota-piece,
+  .rota-rubble {
+    animation: none;
+  }
+  .rota-die,
+  .rota-die.dice-token .die-cube.die-rolling {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* 13. The 3D board (2 October 2026): the canvas fills the table behind the
+   controls; the squares are buttons laid over the drawn ground. */
+.rota-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.rota-cells.rota-cells-3d {
+  position: absolute;
+  inset: auto;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  transform-origin: 0 0;
+  grid-template-columns: repeat(var(--rota-n), 100px);
+  grid-template-rows: repeat(var(--rota-n), 100px);
+}
+.rota-cells-3d .rota-cell,
+.rota-cells-3d .rota-cell[data-target] {
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+  border-radius: 4px;
+}
+.rota-cells-3d .rota-cell[data-target]:hover {
+  background: #fff6d81f;
+}
+.rota-cells-3d .rota-cell:focus-visible {
+  outline: 5px solid #fff2c4;
+  outline-offset: -5px;
+}
+.rota-fallback {
+  position: absolute;
+  z-index: 1;
+}
+
+/* 14. The model railway skin (2 October 2026): railway enamel in deep green
+   and cream, Gill Sans lettering, and a top-down miniature of each piece on
+   dice, specials and the fallback sheet (flock grass, asphalt with cream
+   kerbs, ballasted track on sleepers, teal water, brick stations). */
+.rota-world,
+.rota-box,
+.rota-modal,
+[data-menu-theme='rota'],
+[data-leave-theme='rota'] {
+  --rota-sheet: #2d5b48;
+  --rota-sheet-deep: #214537;
+  --rota-sheet-edge: #163126;
+  --rota-ink: #fbf5e6;
+  --rota-ink-soft: #fbf5e6bd;
+  --rota-grid: #ffffff2e;
+  --rota-red: #e0503c;
+  --rota-gold: #f1c76a;
+  --rota-river: #3d8f98;
+  --rota-desk: #a9c08a;
+  --rota-font:
+    'Gill Sans', 'Gill Sans MT', 'Seravek', 'Avenir Next', 'Trebuchet MS',
+    system-ui, sans-serif;
+  --rota-grass: #86a65e;
+}
+.rota-world {
+  background: linear-gradient(180deg, #d9e4d6, #a9c08a);
+}
+.rota-world::before {
+  display: none;
+}
+.rota-paper,
+.rota-piece-ground {
+  fill: var(--rota-grass);
+}
+.rota-paper {
+  stroke: #5f7d40;
+}
+.rota-grid-ground {
+  fill: #ffffff10;
+}
+.rota-road-case {
+  stroke: #e7e0cf;
+}
+.rota-road-fill {
+  stroke: #4b4e55;
+}
+.rota-road-dash {
+  stroke: #fbf5e6;
+}
+.rota-rail-ties {
+  stroke: #5e4a3d;
+  stroke-width: 24;
+  stroke-dasharray: 4 6;
+}
+.rota-rail-case {
+  stroke: #c3c8cf;
+  stroke-width: 11;
+}
+.rota-rail-gap {
+  stroke: #a49d92;
+  stroke-width: 5;
+}
+.rota-river-bank {
+  stroke: #d9c69a;
+}
+.rota-river-water {
+  stroke: var(--rota-river);
+}
+.rota-bridge-rail {
+  stroke: #d8d0bd;
+}
+.rota-bridge-deck {
+  stroke: #b7ab96;
+}
+.rota-station rect {
+  fill: #b4593f;
+  stroke: #fbf5e6;
+}
+.rota-station path {
+  stroke: #fbf5e6;
+}
+.rota-sea rect {
+  fill: #3d8f98;
+}
+.rota-peak path {
+  fill: #8f8d8a;
+  stroke: #f4f1ea;
+}
+.rota-town path {
+  fill: #c16a4a;
+  stroke: #fbf5e6;
+}
+.rota-centre {
+  fill: #f4d58a2e;
+  stroke: #fff4cf99;
+}
+.rota-exit-arrow {
+  stroke: #fbf5e6;
+}
+.rota-loose circle {
+  stroke: #fbf5e6;
+}
+/* Enamel signs: the title block and the navigation. */
+.rota-title-block {
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #305f4b, #234a3a);
+  box-shadow:
+    0 0 0 2px #fbf5e6,
+    0 0 0 4px #234a3a,
+    0 14px 26px #1d2a1966;
+}
+.rota-title-head b {
+  color: var(--rota-gold);
+}
+.rota-world .game-navigation button,
+.rota-world .table-manager-trigger,
+.rota-badge {
+  background: linear-gradient(180deg, #fffaf0, #efe5cf);
+  box-shadow:
+    0 2px 0 #b9a77e,
+    0 8px 16px #2a3a2040;
+}
+.rota-badge-score {
+  color: #24493b;
+}
+/* The 3D board is framed inside the whole middle of the stage. */
+.rota-stage {
+  grid-template-columns: minmax(150px, 236px) minmax(0, 1fr) minmax(
+      150px,
+      236px
+    );
+  grid-template-rows: minmax(0, 1fr);
+}
+.rota-desk {
+  width: 100%;
+  height: 100%;
+  align-self: stretch;
+}
+@media (max-width: 1100px) {
+  .rota-stage {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+}
+/* Six compact badges, including three-digit scores, fit a 320px phone. */
+@media (max-width: 360px) {
+  .rota-players[data-fit='compact'] {
+    gap: 2px;
+  }
+  .rota-players[data-fit='compact'] .rota-badge {
+    padding-right: 2px;
+    column-gap: 2px;
+  }
+  .rota-players[data-fit='compact'] .rota-badge-mark {
+    width: 20px;
+    height: 20px;
+  }
+}
+/* Gill Sans has no 700 between its semibold and its ultra bold: keep the
+   lettering at semibold so it never turns to poster black. */
+.rota-world,
+.rota-modal,
+.rota-box {
+  --rota-bold: 600;
+}
+.rota-world
+  :is(
+    b,
+    strong,
+    button,
+    .rota-badge-name,
+    .rota-badge-score,
+    .game-progress,
+    dd,
+    h2,
+    h3
+  ),
+.rota-modal :is(b, strong, button, dd, th, h2, h3) {
+  font-weight: 600;
+}
+/* The dock: a green enamel tray for the dice, a cream plate for specials. */
+.rota-hand {
+  background: linear-gradient(180deg, #326450, #224737);
+  box-shadow:
+    inset 0 1px 0 #ffffff2a,
+    0 0 0 2px #fbf5e6,
+    0 0 0 4px #224737,
+    0 16px 30px #1d2a1966;
+}
+.rota-specials {
+  background: linear-gradient(180deg, #fffaf0, #eadfc6);
+  box-shadow:
+    0 2px 0 #b9a77e,
+    0 8px 16px #2a3a2040;
+}
+.rota-special,
+.rota-specials-count {
+  background: #e3d7bb;
+  box-shadow: inset 0 1px 2px #6b5a3a55;
+  color: #24493b;
+}
+.rota-special[data-selected] {
+  box-shadow:
+    0 0 0 3px #24493b,
+    0 0 12px #f1c76a;
+}
+.rota-undo {
+  background: linear-gradient(180deg, #fffaf0, #eadfc6);
+  color: #24493b;
+  box-shadow:
+    0 2px 0 #b9a77e,
+    0 6px 14px #2a3a2040;
+}
+img.rota-piece-picture {
+  object-fit: cover;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+.rota-other-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px #fbf5e6,
+    0 8px 18px #1d2a1955;
+}
+.rota-others figure {
+  background: linear-gradient(180deg, #305f4b, #234a3a);
+  color: #fbf5e6;
+}
+.rota-others figcaption > span:not(.player-status-icons) {
+  color: var(--rota-gold);
+}
+/* Narrow screens without plans: the score plate sits centred under the
+   board rather than off to one side. */
+@media (max-width: 1100px) {
+  .rota-side-left:empty {
+    display: none;
+  }
+  .rota-side-left:empty + .rota-desk + .rota-side-right {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}
+
+/* The points panel: each category's workings, then the total. */
+.modal.rota-points-modal {
+  width: min(520px, calc(100vw - 24px));
+  max-width: min(520px, calc(100vw - 24px)) !important;
+}
+.rota-points {
+  max-height: min(68dvh, 680px);
+  overflow-y: auto;
+  font-family: var(--rota-font);
+  color: #24493b;
+}
+.rota-points ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rota-points li {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fffaf0;
+  box-shadow: 0 0 0 1px #b9a77e66;
+}
+.rota-points li[data-zero] {
+  background: #f6f0e1;
+}
+.rota-points header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.rota-points header b {
+  font-size: 17px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.rota-points header span,
+.rota-points-total span {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #24493b;
+}
+.rota-points li[data-key='errors'] header span {
+  color: #b8452f;
+}
+.rota-points p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+.rota-points p span:last-child:not(:first-child) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.rota-points small {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #24493b99;
+  text-wrap: pretty;
+}
+.rota-points-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 8px;
+  padding: 2px 12px 8px;
+  border-bottom: 2px solid #24493b33;
+  font-size: 18px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.rota-points-total span {
+  font-size: 30px;
+  color: #b8452f;
+}
+/* The narrowest phones keep Undo and the six specials on one row. */
+@media (max-width: 380px) {
+  .rota-special {
+    width: 38px;
+    height: 38px;
+  }
+  .rota-world .rota-die.dice-token {
+    width: 42px;
+  }
+  .rota-die.dice-token .die-cube-scene {
+    --die-size: 35px;
+  }
+}
+/* Phones: under the board, the plans share one row with a compact score
+   button (the total and its info mark; the map name goes). */
+@media (max-width: 600px) {
+  .rota-stage {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+  .rota-side-left {
+    justify-self: stretch;
+  }
+  .rota-plans {
+    width: 100%;
+  }
+  .rota-plans li {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .rota-plans button {
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    height: 100%;
+  }
+  .rota-plans b {
+    grid-column: 1 / -1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .rota-plan-bar,
+  .rota-plan-stamp {
+    grid-column: auto;
+    justify-self: end;
+  }
+  .rota-plan-stamp {
+    padding: 0 4px;
+    font-size: 12px;
+    rotate: 0deg;
+  }
+  .rota-title-head > span {
+    display: none;
+  }
+  .rota-title-head {
+    gap: 6px;
+    padding: 4px 8px;
+  }
+}

@@ -778,3 +778,162 @@ await test('the host starts the next battle once one is over; the old round is r
     await close();
   }
 });
+
+await test('a table plays a Quest together: the host chooses, the guest suggests, battles report back', async () => {
+  const { app, client, close } = await fixture({ tickMs: 2, startDelayMs: 10 });
+  try {
+    const { host, path, guests } = await table(client);
+    const [guest] = guests;
+    const launched = await host.request(`${path}/launch`, {
+      kind: 'arena',
+      mode: 'team',
+      difficulty: 'easy',
+      quest: true,
+      unlocked: ['viking', 'nonsense'],
+    });
+    assert.equal(launched.status, 200);
+    const room = roomOf(launched.data.url);
+    const first = (await guest.request(room)).data;
+    assert.equal(first.room.status, 'map');
+    assert.equal(first.room.quest.players, 2);
+    assert.ok(first.room.quest.pool.includes('viking'));
+    assert.equal(first.room.seats.length, 4);
+    assert.ok(!first.room.seats[0].bot && !first.room.seats[2].bot);
+    // The run opens on its draft. Only the host takes a bundle; the
+    // guest's pick is a suggestion everyone sees.
+    assert.equal(first.room.quest.screen.kind, 'draft');
+    assert.deepEqual(first.room.quest.deck, []);
+    assert.equal(
+      (await guest.request(`${room}/quest`, { type: 'bundle', bundle: 1 }))
+        .status,
+      403,
+    );
+    assert.equal(
+      (await guest.request(`${room}/quest`, { suggest: 'bundle:1' })).status,
+      200,
+    );
+    const suggested = (await host.request(room)).data.room.suggestions;
+    assert.deepEqual(suggested, [{ key: 'bundle:1', name: 'Guest' }]);
+    for (let round = 0; round < 3; round++)
+      assert.equal(
+        (await host.request(`${room}/quest`, { type: 'bundle', bundle: 1 }))
+          .status,
+        200,
+      );
+    // The old charm pick is gone.
+    assert.equal(
+      (await host.request(`${room}/quest`, { type: 'charm', charm: 'well' }))
+        .status,
+      409,
+    );
+    const map = (await host.request(room)).data.room;
+    assert.equal(map.quest.deck.length, 6);
+    assert.equal(map.quest.screen.kind, 'map');
+    assert.deepEqual(map.suggestions, []);
+    // A battle stop starts a two against two battle with the run's deck.
+    const stop = map.quest.stops.find((s) => s.row === 0).id;
+    assert.equal(
+      (
+        await host.request(`${room}/quest`, {
+          type: 'result',
+          won: true,
+          crowns: 3,
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (await host.request(`${room}/quest`, { type: 'go', stop })).status,
+      200,
+    );
+    const battle = (await host.request(room)).data;
+    assert.equal(battle.room.status, 'waiting');
+    assert.equal(battle.match.mode, 'team');
+    assert.equal(battle.match.regulation, 120);
+    assert.deepEqual(
+      [...battle.match.players[0].deck].sort((a, b) => a.localeCompare(b)),
+      [...map.quest.deck].sort((a, b) => a.localeCompare(b)),
+    );
+    // Say the battle was won with two crowns; the host continues.
+    const live = app.arena.rooms.get(room.split('/').pop());
+    live.status = 'over';
+    live.match.phase = 'over';
+    live.match.winner = 0;
+    live.match.crowns = [2, 0];
+    assert.equal((await guest.request(`${room}/again`, {})).status, 403);
+    assert.equal((await host.request(`${room}/again`, {})).status, 200);
+    const after = (await host.request(room)).data.room;
+    assert.equal(after.status, 'map');
+    assert.equal(after.quest.screen.kind, 'reward');
+    assert.ok(after.quest.gold > 0);
+  } finally {
+    await close();
+  }
+});
+
+await test('each player brings a Versus deck; a waiting battle deals it at once', async () => {
+  const { client, close } = await fixture();
+  try {
+    const { host, path, guests } = await table(client);
+    const [guest] = guests;
+    const mine = [
+      'pirate',
+      'viking',
+      'gladiator',
+      'medic',
+      'miner',
+      'balloon',
+      'inventor',
+      'gunner',
+    ];
+    assert.equal(
+      (
+        await host.request(`${path}/launch`, {
+          kind: 'arena',
+          mode: 'duel',
+          difficulty: 'easy',
+          deck: ['archers'],
+        })
+      ).status,
+      400,
+    );
+    const launched = await host.request(`${path}/launch`, {
+      kind: 'arena',
+      mode: 'duel',
+      difficulty: 'easy',
+      deck: mine,
+    });
+    const room = roomOf(launched.data.url);
+    const first = (await host.request(room)).data;
+    const seat = first.room.you;
+    assert.deepEqual(
+      [...first.match.players[seat].deck].sort((a, b) => a.localeCompare(b)),
+      [...mine].sort((a, b) => a.localeCompare(b)),
+    );
+    const theirs = [
+      'ogre',
+      'drake',
+      'mage',
+      'ranger',
+      'duelist',
+      'imps',
+      'archers',
+      'meteor',
+    ];
+    assert.equal(
+      (await guest.request(`${room}/deck`, { deck: theirs })).status,
+      200,
+    );
+    const next = (await guest.request(room)).data;
+    assert.deepEqual(
+      [...next.match.players[next.room.you].deck].sort((a, b) => a.localeCompare(b)),
+      [...theirs].sort((a, b) => a.localeCompare(b)),
+    );
+    assert.equal(
+      (await guest.request(`${room}/deck`, { deck: ['x'] })).status,
+      400,
+    );
+  } finally {
+    await close();
+  }
+});

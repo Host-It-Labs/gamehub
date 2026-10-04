@@ -1,0 +1,6 @@
+Make exactly TWO tiny local height adjustments to this image. Preserve every other pixel, all 23 cream pads, their exact centres, shapes, sizes and colours, all islands, water and foliage. No reframing, rescaling, relocation or new rendering.
+
+1. Shorten ONLY the lighthouse's upper structure at top-right. Currently its thin roof finial reaches about y168. Compress the tower/lantern vertically from the top so the COMPLETE topmost finial and roof start at y215 or lower in this native946×1663 image. The lighthouse base remains fixed and both adjacent round pads remain fixed. Keep the same little roof, lantern, balcony, cut-paper texture and silhouette, just a shorter structure. Fill its vacated top42pixels naturally with the existing turquoise sea.
+2. Shorten ONLY the wooden semaphore mast above the pier at top-left. Its entire top, including any cross-arm, ring, rope, tip or finial, must begin at y215 or lower. The pole's foot stays fixed on the pier and all four pier round pads remain exactly fixed. Fill the vacated upper part with the same sea.
+
+Nothing belonging to either of those two structures may remain above image row210. Nearby expendable rocks/sea can stay where they already are. Keep all other landmarks and every pad absolutely unchanged. Keep the natural ground with no label strips, paths, plaques or text. Output same native946×1663.

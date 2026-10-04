@@ -104,3 +104,296 @@
   width: 18px;
   height: 18px;
 }
+
+/* The deck row opens the deck builder. */
+.arena-box-deck-open {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0 26px 0 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.arena-box-edit {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  translate: 0 -50%;
+  opacity: 0.8;
+}
+.arena-box-deck .arena-box-blank {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border: 2px solid #d6ad62;
+  border-radius: 8px;
+  background: #1b2231;
+  color: #efd6a0;
+  font-style: normal;
+  font-weight: 900;
+}
+/* The Quest's collection: every card, locked ones dimmed. */
+.arena-box-deck.collection li[data-locked='true'] img,
+.arena-box-deck.collection li[data-locked='true'] .arena-box-blank {
+  filter: grayscale(1) brightness(0.45);
+}
+.arena-box-lock {
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  height: 42%;
+  margin: auto;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px #000);
+}
+.arena-box-deck.collection {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+.arena-box-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0;
+}
+.arena-box-run > span:first-of-type {
+  display: flex;
+  gap: 2px;
+}
+.arena-box-run svg {
+  width: 16px;
+  height: 16px;
+  color: #ffffff40;
+}
+.arena-box-run svg[data-on='true'] {
+  color: #ff5a6e;
+  fill: #ff5a6e;
+}
+.arena-box-run-deck {
+  display: flex;
+  gap: 4px;
+}
+.arena-box-run-deck img,
+.arena-box-run-deck .arena-box-blank {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+.arena-box-run-deck span {
+  display: none;
+}
+
+/* The deck builder: a larger dark modal above the setup box. */
+.modal.arena-deck-modal {
+  --brass: #c9a86a;
+  --brass-hi: #efd6a0;
+  display: grid;
+  gap: 12px;
+  width: min(640px, calc(100vw - 24px));
+  max-width: min(640px, calc(100vw - 24px)) !important;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  /* The shared .modal paints itself white with !important. */
+  padding: 20px 18px 18px !important;
+  gap: 12px !important;
+  border: 1px solid color-mix(in srgb, var(--brass) 70%, transparent) !important;
+  border-radius: 20px !important;
+  background: linear-gradient(180deg, #2c2d33, #17181c) !important;
+  color: #f3ede2;
+}
+.arena-deck-modal [data-slot='dialog-close'] {
+  color: #f3ede2;
+}
+.arena-deck-modal h2 {
+  margin: 0;
+  color: var(--brass-hi);
+  font-size: 22px;
+  text-align: center;
+}
+.arena-deck-slots,
+.arena-deck-all {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arena-deck-slots li {
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+.arena-deck-slots li[data-empty='true'] {
+  border: 2px dashed #ffffff30;
+}
+.arena-deck-slots button,
+.arena-deck-all button {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.arena-deck-card {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px #1a120a,
+    0 0 0 3.5px var(--brass),
+    0 5px 12px #0008;
+  background: #2b2d36;
+}
+.arena-deck-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.arena-deck-blank {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: var(--brass-hi);
+  font-size: 20px;
+  font-weight: 900;
+}
+.arena-deck-cost {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #d2b0ff, #4a1d9c);
+  box-shadow: 0 0 0 2px #1a120a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+.arena-deck-meta {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 0;
+  color: #c9c1b3;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.arena-deck-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.arena-deck-drop {
+  width: 12px;
+  height: 12px;
+  border-radius: 50% 50% 50% 0;
+  rotate: -45deg;
+  background: radial-gradient(circle at 35% 30%, #d2b0ff, #6a17b8);
+}
+.arena-deck-all {
+  padding-top: 6px;
+  border-top: 1px solid #ffffff1a;
+  grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+}
+.arena-deck-all button[aria-pressed='true'] .arena-deck-card {
+  box-shadow:
+    0 0 0 2px #1a120a,
+    0 0 0 4px #7bd96f,
+    0 5px 12px #0008;
+}
+.arena-deck-all button[aria-pressed='true'] .arena-deck-card img {
+  opacity: 0.55;
+}
+.arena-deck-all button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.arena-deck-in {
+  position: absolute;
+  top: 26%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  padding: 4px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: #2c8a3a;
+  box-shadow: 0 0 0 2px #fff;
+  color: #fff;
+}
+.arena-deck-name {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arena-deck-role {
+  min-height: 2.8em;
+  margin: 0;
+  color: #c9c1b3;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+}
+.arena-deck-role b {
+  color: #f3ede2;
+}
+.arena-deck-actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+}
+.arena-deck-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid #c9a86a88;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #5b3fbd, #37207f);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.arena-deck-actions button.quiet {
+  background: #ffffff10;
+}
+.arena-deck-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.arena-deck-actions svg {
+  width: 18px;
+  height: 18px;
+}
+@media (max-width: 480px) {
+  .arena-deck-slots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .arena-deck-all {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

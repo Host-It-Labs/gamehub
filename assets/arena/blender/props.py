@@ -49,26 +49,26 @@ def tint(name, hex_colour):
 
 
 # Foliage: a main clump colour and a lighter, warmer dusting on the tips.
-OAK = ("foliage:" + tint("oak", "#8e9865"),
-       "foliage:" + tint("oak-tip", "#b0ae77"))
-OLIVE = ("foliage:" + tint("olive", "#9e9a63"),
-         "foliage:" + tint("olive-tip", "#bcb27b"))
-HOLM = ("foliage:" + tint("holm", "#818f6c"),
-        "foliage:" + tint("holm-tip", "#a2a97d"))
-PINE = ("foliage:" + tint("pine", "#6d806d"),
-        "foliage:" + tint("pine-tip", "#a0aa7c"))
-FIR = ("foliage:" + tint("fir", "#65786b"),
-       "foliage:" + tint("fir-tip", "#97a47d"))
-BUSH = ("foliage:" + tint("bush", "#838f5d"),
-        "foliage:" + tint("bush-tip", "#a8a973"))
-BRAMBLE = ("foliage:" + tint("bramble", "#938f5b"),
-           "foliage:" + tint("bramble-tip", "#b3a974"))
+OAK = ("foliage:" + tint("oak", "#53a684"),
+       "foliage:" + tint("oak-tip", "#96cc96"))
+OLIVE = ("foliage:" + tint("olive", "#77b883"),
+         "foliage:" + tint("olive-tip", "#b9d995"))
+HOLM = ("foliage:" + tint("holm", "#4b937e"),
+        "foliage:" + tint("holm-tip", "#8ac6a0"))
+PINE = ("foliage:" + tint("pine", "#438a80"),
+        "foliage:" + tint("pine-tip", "#81b99b"))
+FIR = ("foliage:" + tint("fir", "#377b77"),
+       "foliage:" + tint("fir-tip", "#76b9a0"))
+BUSH = ("foliage:" + tint("bush", "#65a781"),
+        "foliage:" + tint("bush-tip", "#a6ce93"))
+BRAMBLE = ("foliage:" + tint("bramble", "#83ab78"),
+           "foliage:" + tint("bramble-tip", "#c3d397"))
 MOSS = "foliage:" + tint("moss", "#868b59")
 MOSS_DRY = "foliage:" + tint("moss-dry", "#a09967")
-BARK = "bark:" + tint("bark", "#968877")
-BARK_PINE = "bark:" + tint("bark-pine", "#9a7c69")
-ROCK = "rock:" + tint("rock", "#b9b7b1")
-CRAG = "rock:" + tint("crag", "#a9adb0")
+BARK = "bark:" + tint("bark", "#b08059")
+BARK_PINE = "bark:" + tint("bark-pine", "#a97955")
+ROCK = "rock:" + tint("rock", "#b2b0c2")
+CRAG = "rock:" + tint("crag", "#9499af")
 TUFT = "grass:" + tint("tuft", "#c4c587")
 TUFT_DRY = "grass:" + tint("tuft-dry", "#e8d49a")
 TUFT_DEEP = "grass:" + tint("tuft-deep", "#a3ad78")
@@ -273,7 +273,7 @@ def oak(name, seed, h, r0, r1, lean, heads, colours, clump=0.46, flare=0.9,
         # The shell: clumps spread evenly (a Fibonacci spiral) over the
         # crown from well below its middle to its top, each on a twig from
         # the nearest limb end.
-        count = head.get("shell", 16)
+        count = max(5, round(head.get("shell", 16) * 0.45))
         lo, hi_ = head.get("low", -0.5), 1.0
         for m in range(count):
             f = (m + 0.5) / count
@@ -284,12 +284,12 @@ def oak(name, seed, h, r0, r1, lean, heads, colours, clump=0.46, flare=0.9,
             q = c + Vector((math.cos(a2) * ring * rx, math.sin(a2) * ring * ry,
                             zf * rz)) * far
             end, lr = min(ends, key=lambda e: (e[0] - q).length)
-            if zf < 0.45:
+            if zf < -0.2:
                 fk.tube(wood, [end, end.lerp(q, 0.5) + Vector((0, 0, 0.08)),
                                end.lerp(q, 0.85)],
                         lambda t, lr=lr: lr * 0.42 * (1 - 0.55 * t), 4, BARK,
                         seed=seed + 80 + m)
-            clumps.append((q, clump * rnd.uniform(0.72, 1.05), "twig", c))
+            clumps.append((q, clump * rnd.uniform(1.1, 1.45), "twig", c))
         for m in range(head.get("fill", 2)):
             a2 = rnd.uniform(0, TAU)
             q = c + Vector((math.cos(a2) * rx * 0.25, math.sin(a2) * ry * 0.25,
@@ -305,18 +305,8 @@ def oak(name, seed, h, r0, r1, lean, heads, colours, clump=0.46, flare=0.9,
                       {"squash": sq, "under": 0.45,
                        "scale": (rnd.uniform(0.9, 1.15),
                                  rnd.uniform(0.9, 1.15), 1)}))
-        # Satellites: smaller lumps pushed out and up from each clump, so
-        # the surface breaks into many foam crumbs, not one ball.
-        out = (p - hc)
-        out.z = abs(out.z) + 0.4 * out.length
-        out.normalize()
-        for k in range(rnd.choice((2, 2, 3))):
-            d = (out + fk.rvec(rnd, 0.8)).normalized()
-            lumps.append((p + d * r * rnd.uniform(0.62, 0.88),
-                          r * rnd.uniform(0.42, 0.6),
-                          seed * 131 + i * 3 + k, {"squash": 0.85}))
     budget = 2990 - wood.tris()
-    bm = fk.fuse(lumps, budget, voxel=0.05, smooth=2, crumb=0.02,
+    bm = fk.fuse(lumps, budget, voxel=0.05, smooth=4, crumb=0.002,
                  grain=3.2, seed=seed)
     leaves.merge(bm, main)
     bm.free()
@@ -407,11 +397,11 @@ def pine(name, seed, H, z0, R0, r0, colours, lean=(0.0, 0.0), spacing=0.42,
             droop = lerp(0.45, 0.62, f)
             root = axis(z + rnd.uniform(-0.05, 0.05)) + \
                 Vector((math.cos(az), math.sin(az), 0)) * r0 * 0.25
-            fk.bough(crown, root, az, L, L * rnd.uniform(0.62, 0.8), rise,
+            fk.bough(crown, root, az, L, L * rnd.uniform(0.9, 1.1), rise,
                      droop, seed * 131 + level * 11 + i, main)
         phase += 2.39996
         level += 1
-        z += spacing * rnd.uniform(0.85, 1.15) * lerp(0.7, 1.0, f)
+        z += spacing * 1.5 * rnd.uniform(0.95, 1.05) * lerp(0.7, 1.0, f)
     # The leader: a last small whorl and a pointed tip.
     for i in range(3):
         az = phase + i / 3 * TAU
@@ -480,7 +470,7 @@ def bush(name, seed, clumps, colours):
         c = Vector(c)
         c.z = max(c.z, r * 0.5 - 0.05)
         fk.foam(b, c, r * rnd.uniform(0.88, 1.12), seed * 17 + i, main,
-                sub=2, rough=0.3, crumb=0.03, squash=rnd.uniform(0.78, 0.94),
+                sub=3, rough=0.08, crumb=0.002, squash=rnd.uniform(0.78, 0.94),
                 under=0.5, scale=(rnd.uniform(0.9, 1.12),
                                   rnd.uniform(0.9, 1.12), 1))
     top = max(c[1][2] for c in clumps)

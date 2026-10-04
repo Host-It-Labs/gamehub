@@ -1,0 +1,355 @@
+/* Quiz's pick (QuizPick): the same format as Know Me's lit cards, made of
+ * the measuring desk instead. Each game is a cream index card lying on the
+ * desk under the lamp (upper left), with a window of cutting mat in its own
+ * colour, its mark standing on the mat, and its name on the ruled card
+ * beneath a red margin line. No sunbursts, rays or ink outlines: soft lamp
+ * shadows, enamel pins and the mat's grid. Tones set --qc (the mat),
+ * --qc-deep, --qc-light and --qc-grid (its lines). */
+
+.qc-tone-miro {
+  --qc: #2a57e8;
+  --qc-deep: #17369c;
+  --qc-light: #4f7bff;
+  --qc-grid: #e8f0ff;
+}
+.qc-tone-size {
+  --qc: #e8492d;
+  --qc-deep: #a9301a;
+  --qc-light: #ff7254;
+  --qc-grid: #fff1e6;
+}
+.qc-tone-year {
+  --qc: #f4bb22;
+  --qc-deep: #cf9410;
+  --qc-light: #ffd95e;
+  --qc-grid: #4a3405;
+}
+.qc-tone-order {
+  --qc: #1f5a4a;
+  --qc-deep: #133a30;
+  --qc-light: #2d7a63;
+  --qc-grid: #e8f3cf;
+}
+.qc-tone-end {
+  --qc: #d8c49b;
+  --qc-deep: #bfa678;
+  --qc-light: #eadab6;
+  --qc-grid: #5b441f;
+}
+
+.quiz-pick {
+  width: min(1060px, 100%);
+  margin: auto;
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+}
+.quiz-pick-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+/* The index card. */
+.party-table .quiz-pick .quiz-card {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  min-width: 0;
+  min-height: min(300px, 46dvh);
+  padding: 10px 10px 0;
+  border: 0;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, #ffffffa6, transparent 34%), var(--s-card);
+  color: var(--s-ink);
+  rotate: -0.8deg;
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 3px 0 var(--s-card-edge),
+    0 16px 30px #5b441f2e;
+  transition:
+    transform 240ms cubic-bezier(0.2, 1.4, 0.4, 1),
+    rotate 240ms ease,
+    box-shadow 240ms ease,
+    filter 240ms ease,
+    opacity 240ms ease;
+  animation: qc-deal 480ms cubic-bezier(0.2, 1.3, 0.4, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.party-table .quiz-pick .quiz-card:nth-child(even) {
+  rotate: 0.9deg;
+}
+.party-table .quiz-pick .quiz-card:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.party-table .quiz-pick .quiz-card:not(:disabled):is(:hover, :focus-visible) {
+  transform: translateY(-8px);
+  rotate: 0deg;
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 5px 0 var(--s-card-edge),
+    0 28px 40px #5b441f3d;
+}
+.party-table .quiz-pick .quiz-card:not(:disabled):active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 1px 0 var(--s-card-edge),
+    0 8px 16px #5b441f2e;
+}
+.party-table .quiz-pick .quiz-card.is-mine {
+  transform: translateY(-6px) scale(1.03);
+  rotate: 0deg;
+  z-index: 1;
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 0 0 4px var(--qc),
+    0 4px 0 2px var(--qc-deep),
+    0 26px 40px #5b441f40;
+}
+.party-table .quiz-pick .quiz-card.is-other {
+  filter: saturate(0.55);
+  opacity: 0.8;
+}
+
+/* The window of cutting mat: its grid, ruler ticks along two edges and the
+ * lamp's light in the upper left. */
+.qc-mat {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--qc-grid) 45%, transparent) 0 1px,
+        transparent 1px 10px
+      )
+      0 0 / 100% 6px no-repeat,
+    repeating-linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--qc-grid) 45%, transparent) 0 1px,
+        transparent 1px 10px
+      )
+      0 0 / 6px 100% no-repeat,
+    linear-gradient(90deg, color-mix(in srgb, var(--qc-grid) 22%, transparent) 1px, transparent 1px) 0 0 / 50px 50px,
+    linear-gradient(0deg, color-mix(in srgb, var(--qc-grid) 22%, transparent) 1px, transparent 1px) 0 0 / 50px 50px,
+    linear-gradient(90deg, color-mix(in srgb, var(--qc-grid) 10%, transparent) 1px, transparent 1px) 0 0 / 10px 10px,
+    linear-gradient(0deg, color-mix(in srgb, var(--qc-grid) 10%, transparent) 1px, transparent 1px) 0 0 / 10px 10px,
+    radial-gradient(90% 75% at 14% 0%, #fff4d94d, transparent 62%),
+    linear-gradient(160deg, var(--qc-light), var(--qc) 48%, var(--qc-deep));
+  box-shadow:
+    inset 0 2px 0 #ffffff33,
+    inset 0 -14px 26px #0000002a,
+    0 0 0 1px #0000001f;
+}
+.quiz-pick .sabi-mark {
+  width: min(74%, 150px);
+  height: auto;
+  aspect-ratio: 1;
+  filter: drop-shadow(4px 6px 3px #0b1a1559);
+  transition: transform 280ms cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.quiz-card:not(:disabled):is(:hover, :focus-visible) .sabi-mark,
+.quiz-card.is-mine .sabi-mark {
+  transform: scale(1.08) rotate(-3deg);
+}
+.quiz-pick .is-end .sabi-mark {
+  width: min(56%, 100px);
+}
+
+/* The name, on the ruled part of the card under its red margin line. */
+.qc-name {
+  position: relative;
+  margin: 0 4px;
+  padding: 11px 6px 13px;
+  border-top: 2px solid #ff5a3c66;
+  background: linear-gradient(
+      180deg,
+      transparent calc(100% - 7px),
+      #3569ff1f calc(100% - 7px) calc(100% - 6px),
+      transparent calc(100% - 6px)
+    );
+  font-family: var(--s-display);
+  font-size: clamp(18px, 2.1vw, 25px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* Again: a cream enamel button on the mat. */
+.qc-again {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffffff, var(--s-cream));
+  color: var(--s-ink);
+  box-shadow:
+    0 2px 0 var(--s-card-edge),
+    0 4px 8px #0b1a1540;
+}
+
+/* Votes: enamel pin heads along the bottom edge of the card. */
+.qc-votes {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  translate: -50% 0;
+  display: flex;
+  gap: 4px;
+}
+.qc-votes i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #ffffffb3 0 18%, transparent 30%),
+    var(--s-tomato);
+  box-shadow:
+    0 0 0 2px var(--s-cream),
+    0 2px 4px #5b441f59;
+}
+
+/* The pick: a big enamel pin pushed into the top of the card. */
+.qc-pin {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, #ffffffa6 0 14%, transparent 34%),
+    radial-gradient(circle at 50% 60%, var(--s-tomato), var(--s-tomato-deep));
+  color: #fff8ef;
+  box-shadow:
+    0 0 0 2px var(--s-cream),
+    3px 6px 8px #5b441f66;
+  animation: qc-pin 380ms cubic-bezier(0.3, 1.6, 0.5, 1) backwards;
+}
+.qc-tone-size .qc-pin {
+  background:
+    radial-gradient(circle at 34% 28%, #ffffffa6 0 14%, transparent 34%),
+    radial-gradient(circle at 50% 60%, var(--s-cobalt), #1d3fb0);
+}
+
+@keyframes qc-deal {
+  from {
+    opacity: 0;
+    transform: translateY(40px) rotate(-6deg) scale(0.88);
+  }
+}
+@keyframes qc-pin {
+  from {
+    opacity: 0;
+    transform: translateY(-34px) scale(1.4);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(3px) scale(0.92);
+  }
+}
+
+@media (max-width: 700px) {
+  .quiz-pick {
+    gap: 12px;
+  }
+  /* Two cards a row; End lies across beneath them as a low card. */
+  .quiz-pick-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 12px;
+  }
+  .party-table .quiz-pick .quiz-card {
+    min-height: min(196px, 26dvh);
+    padding: 7px 7px 0;
+    border-radius: 16px;
+  }
+  .qc-mat {
+    border-radius: 10px;
+  }
+  .quiz-pick .sabi-mark {
+    width: min(70%, 104px);
+  }
+  .qc-name {
+    padding: 7px 4px 9px;
+    font-size: 17px;
+  }
+  .qc-again {
+    top: 12px;
+    left: 12px;
+    width: 26px;
+    height: 26px;
+  }
+  .party-table .quiz-pick .quiz-card.is-end {
+    grid-column: 1 / -1;
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 6px 14px 6px 6px;
+  }
+  .quiz-card.is-end .qc-mat {
+    flex: none;
+    width: 52px;
+    height: 52px;
+  }
+  .quiz-pick .is-end .sabi-mark {
+    width: 40px;
+  }
+  .quiz-card.is-end .qc-name {
+    margin: 0;
+    padding: 4px 8px;
+    border-top: 0;
+    border-left: 2px solid #ff5a3c66;
+    background: none;
+    min-width: 6em;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .quiz-pick {
+    gap: 10px;
+  }
+  .party-table .quiz-pick .quiz-card {
+    min-height: min(220px, 52dvh);
+  }
+  .quiz-pick .sabi-mark {
+    width: min(70%, 22dvh);
+  }
+  .qc-name {
+    padding: 6px 4px 8px;
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .party-table .quiz-pick .quiz-card,
+  .qc-pin,
+  .quiz-pick .sabi-mark * {
+    animation: none !important;
+  }
+  .party-table .quiz-pick .quiz-card,
+  .quiz-pick .sabi-mark {
+    transition: none;
+  }
+}

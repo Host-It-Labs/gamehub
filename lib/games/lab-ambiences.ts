@@ -1,5 +1,5 @@
 import { audioAssets } from './audio-catalog.ts';
-import type { Ambience } from './ambience.ts';
+import { ambiences as gameAmbiences, type Ambience } from './ambience.ts';
 type GameId = Ambience['id'];
 
 /** Experimental mixes are available in Sound Lab only. */
@@ -42,8 +42,6 @@ export const labAmbiences: Ambience[] = [
       ['crow-1', 0.3, 0.5, [-1, 1], 40],
       ['crow-2', 0.3, 0.4, [-1, 1], 40],
       ['owl', 0.3, 0.2, [-0.6, 0.6], 30],
-      ['branch-1', 0.45, 0.5, [-0.7, 0.7], 80],
-      ['branch-2', 0.45, 0.4, [-0.7, 0.7], 80],
       ['leaves', 0.4, 0.6, [-0.5, 0.5], 40],
       ['frog', 0.35, 0.4, [-0.9, 0.9], 60],
     ],
@@ -106,3 +104,11 @@ const coast = world('wildgrove' as GameId, 'coast', 0.58,
     ['wash', 0.3, 0.7, [-0.6, 0.6], 15],
   ]);
 labAmbiences.push(coast);
+
+for (const ambience of labAmbiences) {
+  const selected = gameAmbiences.find((a) => a.world === ambience.world);
+  if (!selected || ambience.world === 'ship') continue;
+  ambience.beds = selected.beds;
+  ambience.level = selected.level;
+  ambience.events = selected.events;
+}

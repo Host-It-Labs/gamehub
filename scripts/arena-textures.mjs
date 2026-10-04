@@ -3,14 +3,14 @@
  * For each chosen source in assets/arena/textures: make it tile without a
  * seam (a cross-fade for the older tiles, a soft ramp for the cartoon ones),
  * derive a tangent-space normal map and an AO/roughness/metal map from
- * its painted light, and write WebP files at two sizes (2048 for desktops,
- * 1024 for phones) under public/3d/arena/tex with content hashes in their
+ * its painted light, and write native-resolution cartoon WebP sources
+ * (legacy tiles also retain 2048/1024 variants) under public/3d/arena/tex with content hashes in their
  * names. The list lands in lib/games/arena/textures.json.
  *
  *   node scripts/arena-textures.mjs
  */
 import { createHash } from 'node:crypto';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 
 const SRC = 'assets/arena/textures';
@@ -32,15 +32,22 @@ const OUT = 'public/3d/arena/tex';
  *  derived: the generated greens came out lime and the stones near white
  *  under the brighter engine light, so grass, foliage and the forest floor
  *  are pulled to a fresh, less yellow green and cobble and stone darkened
- *  by a tenth to stand out from the grass. */
+ *  by a tenth to stand out from the grass.
+ *
+ *  The v5 tiles (29 September 2026, docs/concepts/2026-09-29-arena-quest/
+ *  textures.md) repaint the meadow, the forest floor, the lanes' terracotta
+ *  clay (served as `dirt`) and the tower sandstone with medium painted
+ *  shapes that read at the game's camera; their tone pulls the generated
+ *  lime and orange towards jade, olive and a calmer terracotta. */
 const RAMP = { x: 'ramp', y: 'ramp' };
 export const textureSources = {
   grass: {
-    src: 'grass-v4-a',
-    normal: 1.4,
-    rough: [0.86, 0.97],
+    src: 'grass-v5-b',
+    normal: 0.9,
+    rough: [0.82, 0.95],
     seam: RAMP,
-    tone: [0.79, 0.79, 1.13],
+    native: true,
+    tone: [1.1, 0.95, 1.5],
   },
   cobble: {
     src: 'cobble-v4-b',
@@ -49,7 +56,15 @@ export const textureSources = {
     seam: RAMP,
     tone: [0.9, 0.9, 0.9],
   },
-  dirt: { src: 'dirt-v4-b', normal: 1.8, rough: [0.86, 0.98], seam: RAMP },
+  // The lanes' terracotta clay (the tile is still called dirt in the game).
+  dirt: {
+    src: 'path-v5-a',
+    normal: 0.8,
+    rough: [0.84, 0.97],
+    seam: RAMP,
+    native: true,
+    tone: [0.94, 1.18, 1.4],
+  },
   pebbles: {
     src: 'pebbles-v4-a',
     normal: 2.6,
@@ -57,18 +72,19 @@ export const textureSources = {
     seam: RAMP,
   },
   forest: {
-    src: 'forest-v4-b',
-    normal: 1.6,
-    rough: [0.85, 0.97],
+    src: 'forest-v5-a',
+    normal: 0.9,
+    rough: [0.84, 0.96],
     seam: RAMP,
-    tone: [0.64, 0.73, 1.18],
+    native: true,
+    tone: [0.98, 1.04, 1.5],
   },
   stone: {
-    src: 'stone-v4-a',
-    normal: 3,
-    rough: [0.78, 0.95],
-    seam: { x: 'ramp', y: 'none' },
-    tone: [0.9, 0.9, 0.9],
+    src: 'stone-v5-b',
+    normal: 0.7,
+    rough: [0.78, 0.9],
+    seam: RAMP,
+    native: true,
   },
   slate: {
     src: 'slate-v4-b',
@@ -85,11 +101,11 @@ export const textureSources = {
   rock: { src: 'rock-v4-b', normal: 3, rough: [0.78, 0.95], seam: RAMP },
   bark: { src: 'bark-v4-a', normal: 3, rough: [0.8, 0.95], seam: RAMP },
   foliage: {
-    src: 'foliage-v4-a',
-    normal: 2,
-    rough: [0.7, 0.9],
+    src: 'cartoon-v2/foliage',
+    normal: 0.12,
+    rough: [0.8, 0.9],
     seam: RAMP,
-    tone: [0.68, 0.73, 1.05],
+    native: true,
   },
   cloth: { src: 'cloth-v1-a', normal: 1.6, rough: [0.8, 0.95] },
   leather: { src: 'leather-v1-b', normal: 2.2, rough: [0.45, 0.75] },
@@ -278,9 +294,13 @@ async function processTexture(name, spec) {
     { kind: 'normal', buffer: normal, quality: 94 },
     { kind: 'orm', buffer: orm, quality: 90 },
   ]) {
-    for (const size of [2048, 1024]) {
+    for (const size of kind === 'albedo'
+      ? spec.native
+        ? [w]
+        : [2048, 1024]
+      : [1024]) {
       // Normal and material maps top out at 1024 even on desktops.
-      if (kind !== 'albedo' && size === 2048) continue;
+      if (kind !== 'albedo' && size !== 1024) continue;
       const out = await sharp(buffer, raw)
         .resize(size, size, { kernel: 'lanczos3' })
         .webp({ quality, effort: 6, smartSubsample: true })
@@ -302,17 +322,24 @@ async function processTexture(name, spec) {
       .toLocaleString()} bytes`,
   );
   return {
-    albedo: { hq: files.albedo2048, lite: files.albedo1024 },
+    albedo: {
+      hq: files[`albedo${spec.native ? w : 2048}`],
+      lite: spec.native ? files[`albedo${w}`] : files.albedo1024,
+    },
     normal: files.normal1024,
     orm: files.orm1024,
   };
 }
 
 await mkdir(OUT, { recursive: true });
-for (const f of await readdir(OUT)) await rm(`${OUT}/${f}`);
-const manifest = {};
+const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7);
+const manifest = only
+  ? JSON.parse(await readFile('lib/games/arena/textures.json', 'utf8'))
+  : {};
+for (const f of await readdir(OUT))
+  if (!only || f.startsWith(`${only}-`)) await rm(`${OUT}/${f}`);
 for (const [name, spec] of Object.entries(textureSources))
-  manifest[name] = await processTexture(name, spec);
+  if (!only || name === only) manifest[name] = await processTexture(name, spec);
 await writeFile(
   'lib/games/arena/textures.json',
   `${JSON.stringify(manifest, null, 2)}\n`,

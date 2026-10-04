@@ -456,3 +456,44 @@ def part(troop, name, objs, pivot, par, angle=SHARP):
     kit.parent(obj, par)
     obj.rotation_euler = (0, 0, 0)
     return obj
+
+
+def scale_about(objs, centre, k):
+    """Scale pieces by `k` about `centre` (bigger fists, a chunkier face)."""
+    c = Vector(centre)
+    m = Matrix.Translation(c) @ Matrix.Scale(k, 4) @ Matrix.Translation(-c)
+    return transform(objs, m)
+
+
+def tris(obj):
+    return sum(len(p.vertices) - 2 for p in obj.data.polygons)
+
+
+# ------------------------------------------------------------- posing
+
+def runtime_quat(rx, ry, rz):
+    """The quaternion (Blender axes) of a joint turned by the game: three.js
+    applies Euler XYZ in its y-up frame, where three y is Blender z and
+    three z is Blender -y, so R = Rx(rx) Rz(ry) Ry(-rz) in Blender terms."""
+    from mathutils import Quaternion
+    return (Quaternion((1, 0, 0), rx) @ Quaternion((0, 0, 1), ry) @
+            Quaternion((0, 1, 0), -rz))
+
+
+def pose_root(root, rid, pose):
+    """Split the knees and ankles as figures.py will, then turn the parts
+    as the game would ({part: (x, y, z)} in three.js Euler terms; the
+    head keeps figures.py's 5 degree lift)."""
+    import articulation
+    articulation.legs(root, rid)
+    pose = dict(pose)
+    hx, hy, hz = pose.get("head", (0.0, 0.0, 0.0))
+    pose["head"] = (hx + math.radians(5), hy, hz)
+    for o in kit.descendants(root):
+        if o.type != "MESH" or "." not in o.name:
+            continue
+        key = o.name.split(".", 1)[1]
+        if key in pose:
+            o.rotation_mode = "QUATERNION"
+            o.rotation_quaternion = runtime_quat(*pose[key])
+    kit.refresh()

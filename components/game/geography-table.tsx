@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { CountUp, stagger } from './reveal-motion';
 import { SabiSteps } from './sabi-steps';
+import { NextStep } from './know-me-parts';
 import './geography-table.css';
 // The globe pulls in three.js; load it only once an Atlas table opens.
 const GeoPinMap = lazy(() =>
@@ -363,14 +364,12 @@ function Round({
             {!spectator &&
               (canAdvance ? (
                 <div className="sabi-actions">
-                  <button
-                    type="button"
-                    className="party-primary"
+                  <NextStep
+                    next={upNext(g)}
+                    canAdvance
                     disabled={disabled}
-                    onClick={() => commit({ type: 'next' })}
-                  >
-                    Next
-                  </button>
+                    onNext={() => commit({ type: 'next' })}
+                  />
                 </div>
               ) : (
                 <p className="party-host-wait">
@@ -382,4 +381,17 @@ function Round({
       </aside>
     </section>
   );
+}
+/** What the host's Next opens: the next place by name, or the photographed
+ * final; after the final, the end of the round. */
+function upNext(g: GeoGame) {
+  const i = challenges.indexOf(g.challenge) + 1;
+  if (i >= challenges.length) return null;
+  const p = g.prompts[i];
+  return challenges[i] === 'final'
+    ? {
+        label: challengeLabels.final,
+        art: p.photo ? <img src={p.photo} alt="" /> : undefined,
+      }
+    : { label: p.title };
 }

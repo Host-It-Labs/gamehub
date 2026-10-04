@@ -361,9 +361,8 @@ await test('party HTTP and SSE views stay private, practice resets, and geograph
       else assert.deepEqual(view.adventure.offers[0],[]);
       controller.abort();
       {
-        // Both sets open with a vote between their games; both pick the team game.
+        // Both sets open on the host's pick between their games: the first game.
         await command(host,{type:'adventure-move',move:{type:'vote',choice:gameId},key:decisionKey(t.adventure)});
-        await command(guest,{type:'adventure-move',move:{type:'vote',choice:gameId},key:decisionKey(t.adventure)});
         assert.equal(t.adventure.phase,gameId==='miro'?'guess':'rank');
       }
       const move=gameId==='miro'?{type:'pin',prompt:0,lat:10,lng:20}:standaloneGames[gameId].legalMoves(t.adventure,0)[0];

@@ -70,6 +70,7 @@ export async function prepare(
   return {
     textures,
     towers: models.towers,
+    cartoonTowers: models.cartoon_towers,
     troops: models.troops,
     props: models.props,
     figures: models.figures,

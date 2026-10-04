@@ -1,6 +1,6 @@
 /* The Observatory table: Mora's inland paper world as a full-bleed scene.
    Sections, in cascade order: scene and stage · board (pads, rings, cards,
-   Release, migration pieces, landing) · dock (die, actions, goals, tray) ·
+   Release, landing) · dock (die, actions, goals, tray) ·
    toolbar and player tags · Others inspection · phone layout.
    Landscape and portrait rules are kept in their media blocks. Values here are
    final: an earlier pass removed every declaration a later one overrode. */
@@ -303,7 +303,7 @@
   .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { min-width: 0; width: max-content; }
 }
 
-/* ===== 6. Board overlays: rings, migration pieces, round and pick chips ===== */
+/* ===== 6. Board overlays: rings, round and pick chips ===== */
 /* Nothing is painted over the pads or trail; the illustration is the board. */
 .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest::before,
 .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest::after { content: none; }
@@ -322,20 +322,6 @@
 .at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.drag-target {
   box-shadow: 0 0 0 4px #fffdf5, 0 0 0 9px #fff9e666, 0 0 26px 8px #ffe9a3a6;
 }
-.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-habitat.migration-preview-region { outline: none; background: transparent; }
-/* Placed creatures become pieces of their own while Migration is available. */
-.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.migratable { pointer-events: auto; z-index: 4; }
-.at-table .table-layout[data-environment='observatory'] .observatory-board .mora-nest.migratable .piece-wrap { width: 100%; height: 100%; }
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature {
-  width: 100%; height: 100%; padding: 0; border: 0; background: none; box-shadow: none; border-radius: 50%; cursor: grab;
-}
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature .token-art { width: 100%; height: 100%; }
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature.selected .token-art,
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature.migrated .token-art {
-  filter: drop-shadow(0 0 3px #fff9e6) drop-shadow(0 0 6px #ffe9a3) drop-shadow(0 3px 1px #38462e44);
-}
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature.selected { outline: none; transform: translateY(-6%); }
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature:focus-visible { outline: 3px solid #5c3680; outline-offset: 2px; }
 
 /* Round and pick: two separate objects, a green wax-seal stamp and a paper tally tag. */
 .at-table .table-layout[data-environment='observatory'] .table-second-line .table-progress {
@@ -551,6 +537,7 @@
 
 /* Habitat cards recede further: smaller, fainter paper, softer ink. */
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label { border: 1px solid #b7a37e66; box-shadow: none; color: #55503f;
+  padding: 2px 4px;
 }
 @media (orientation: landscape) {
   .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong { font-size: clamp(10px, 1.85cqw, 15px); font-weight: 600; }
@@ -707,9 +694,6 @@
 
 /* The bold keyword is plain inline text; only the score wears the pill. */
 .mora-ground-label small b { display: inline; min-width: 0; padding: 0; margin: 0; background: none; border: 0; border-radius: 0; text-shadow: none; }
-/* Placed creatures accept a tap or grab a little outside their outline. */
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature { position: relative; overflow: visible; }
-.at-table .table-layout[data-environment='observatory'] .observatory-board .board-creature::before { content: ''; position: absolute; inset: -22%; border-radius: 50%; }
 
 /* Keyword: plain inline bold on the same baseline as the rest of the line. */
 .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label small b,
@@ -840,9 +824,13 @@
    the score pill again, and the scoring line reads at 12px (phones) instead of
    about 9px, a little larger on portrait tablets. */
 @media (orientation: portrait) {
+  /* Keep the full label together and leave Courtyard's tight clearance alone. */
+  .observatory-board[data-world='observatory'][data-paper-world='portrait']:not(.mini-board) :is(.mora-habitat-3, .mora-habitat-6) .mora-ground-label {
+    margin-top: 4px;
+  }
   html .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label {
     max-width: clamp(128px, 20vw, 200px);
-    padding: 1.15em .5em .3em;
+    padding: .7em 4px 2px;
   }
   html .at-table .table-layout[data-environment='observatory'] .observatory-board:not(.mini-board) .mora-ground-label > strong {
     font-size: clamp(13px, 2vw, 18px);

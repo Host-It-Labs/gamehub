@@ -144,6 +144,8 @@ function fixture() {
   const sound = new exports.ArenaSound();
   return {
     sound,
+    module: exports,
+    requests,
     context,
     sources,
     gains,
@@ -258,4 +260,135 @@ await test('leaving cancels delayed troop and crown cues and releases all music 
   f.sound.dispose();
   assert.equal(f.timers.size, 0);
   assert.ok(f.sources.every((s) => s.disconnected));
+});
+
+await test('opening waits for battle and plays one cue at a stable pitch', async () => {
+  const f = fixture();
+  await f.load('music-battle');
+  await f.load('battle-start');
+  f.sound.frame({ phase: 'ready' }, 180, false);
+  await settle();
+  assert.equal(f.sources.filter((s) => s.started).length, 0);
+  f.sound.events(
+    { towers: [], phase: 'battle' },
+    [{ type: 'phase', phase: 'battle' }],
+    0,
+    () => 0,
+  );
+  f.sound.frame({ phase: 'battle' }, 180, false);
+  await settle();
+  const effects = f.sources.filter((s) => s.started && !s.loop);
+  assert.equal(effects.length, 1);
+  assert.equal(effects[0].buffer.src, manifest['battle-start'].srcs[0]);
+  assert.equal(effects[0].playbackRate.value, 1);
+  assert.equal(f.sources.filter((s) => s.started && s.loop).length, 1);
+  f.sound.dispose();
+});
+
+await test('Sound Lab has two complete music pairs with a gentle final-minute increase', async () => {
+  const { arenaMusicOptions } = await import('../lib/games/arena/music.ts');
+  assert.equal(arenaMusicOptions.length, 2);
+  const sources = new Set();
+  for (const option of arenaMusicOptions) {
+    const normal = manifest[option.battle];
+    const final = manifest[option.final];
+    assert.ok(normal.loop && final.loop);
+    assert.ok(Math.abs(normal.duration / final.duration - 1.08) < 0.01);
+    for (const entry of [normal, final]) {
+      assert.ok(
+        readFileSync(new URL(`../public${entry.srcs[0]}`, import.meta.url))
+          .length > 100000,
+      );
+      sources.add(entry.srcs[0]);
+    }
+  }
+  assert.equal(sources.size, 4);
+  assert.ok(
+    Math.abs(
+      manifest['music-battle'].duration / manifest['music-final'].duration -
+        1.08,
+    ) < 0.01,
+  );
+});
+
+await test('a match does not fetch or decode Sound Lab music alternatives', () => {
+  const f = fixture();
+  assert.ok(f.requests.has(manifest['music-battle'].srcs[0]));
+  assert.ok(f.requests.has(manifest['music-final'].srcs[0]));
+  for (const [id, entry] of Object.entries(manifest))
+    if (id.startsWith('music-option-'))
+      assert.equal(f.requests.has(entry.srcs[0]), false);
+  f.sound.dispose();
+});
+
+await test('Quest troops play their ability clips and Quest cues stay out of battle preloads', async () => {
+  const f = fixture();
+  for (const id of Object.keys(manifest))
+    if (id.startsWith('quest-'))
+      assert.equal(f.requests.has(manifest[id].srcs[0]), false);
+  const ids = [
+    'medic-heal',
+    'pirate-leap',
+    'shield-break',
+    'miner-emerge',
+    'viking-rage',
+    'stun',
+    'zap-chain',
+    'shell-shot',
+    'shell-blast',
+    'drop-blast',
+    'balloon-crash',
+  ];
+  for (const id of ids) await f.load(id);
+  const m = {
+    towers: [],
+    units: [
+      { id: 1, card: 'inventor', x: 0, y: 0 },
+      { id: 2, card: 'gunner', x: 0, y: 0 },
+      { id: 3, card: 'pirate', x: 0, y: 0 },
+    ],
+  };
+  f.sound.events(
+    m,
+    [
+      { type: 'heal', id: 9, x: 0, y: 0, radius: 2 },
+      { type: 'leap', id: 3 },
+      { type: 'shield', id: 9, x: 0, y: 0 },
+      { type: 'emerge', id: 9, x: 0, y: 0 },
+      { type: 'rage', id: 9 },
+      { type: 'stun', id: 9, x: 0, y: 0 },
+      { type: 'shot', id: 1, kind: 'zap' },
+      { type: 'shot', id: 2, kind: 'shell' },
+      { type: 'impact', kind: 'shell', x: 0, y: 0, splash: 1 },
+      { type: 'impact', kind: 'drop', x: 0, y: 0, splash: 1 },
+      { type: 'impact', kind: 'crash', x: 0, y: 0, splash: 1 },
+    ],
+    0,
+    () => 0,
+  );
+  await settle();
+  const played = new Set(f.sources.map((s) => s.buffer.src));
+  for (const id of ids) assert.ok(played.has(manifest[id].srcs[0]), id);
+  f.sound.events(
+    m,
+    [{ type: 'deploy', card: 'miner', side: 0, x: 0, y: 0 }],
+    0,
+    () => 0,
+  );
+  assert.equal(f.timers.size, 1);
+  f.sound.dispose();
+});
+
+await test('Quest cues play once at the given volume and stay silent when muted', async () => {
+  const f = fixture();
+  const { playQuestSound } = f.module;
+  playQuestSound('quest-coin', 0);
+  assert.equal(f.requests.has(manifest['quest-coin'].srcs[0]), false);
+  playQuestSound('quest-coin', 0.5);
+  await f.load('quest-coin');
+  const cue = f.sources.at(-1);
+  assert.ok(cue.started);
+  assert.equal(cue.buffer.src, manifest['quest-coin'].srcs[0]);
+  assert.ok(f.gains.at(-1).gain.value > 0);
+  f.sound.dispose();
 });

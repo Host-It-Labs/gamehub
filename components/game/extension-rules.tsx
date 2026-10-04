@@ -1,27 +1,8 @@
 import type { ReactNode } from 'react';
 import { RuleSection } from './rules';
 
-/** Shields (Nox) and Specialty Stalls (Yata). `title` only where no dialog title names it. */
-export function AbilityRules({
-  kind,
-  title,
-}: {
-  kind: 'shield' | 'stall';
-  title?: ReactNode;
-}) {
-  if (kind === 'shield')
-    return (
-      <RuleSection
-        title={title}
-        note="A Shield is spent even if you lose the trick."
-      >
-        <p>
-          You get <b>2 Shields</b> each round. Tap one, then play your card. If
-          you <b>win the trick</b>, its penalty points are <b>halved</b>,
-          rounded up.
-        </p>
-      </RuleSection>
-    );
+/** Specialty Stalls (Yata). `title` only where no dialog title names it. */
+export function AbilityRules({ title }: { title?: ReactNode }) {
   return (
     <RuleSection
       title={title}

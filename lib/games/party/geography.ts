@@ -9,13 +9,13 @@ import {
 } from '../standalone/types.ts';
 import { groups, groupName, assertSeats, type PartyMode } from './groups.ts';
 import {
-  openVote,
   voteClosed,
-  voteResult,
-  voteOptions,
   isChoice,
+  endRound,
+  closeRound as settleRound,
+  botChoice,
+  voters,
   validVote,
-  maxRounds as matchRounds,
   type RoundChoice,
   type RoundVote,
   type SetGame,
@@ -125,12 +125,12 @@ export const challengeLabels: Record<GeoChallenge, string> = {
 /** Every pin scores by its own distance: kilometres off → points out of
  * 100, straight lines between the marks, like Sizes' curve. */
 export const pinCurve = [
-  [25, 100],
-  [100, 90],
-  [250, 75],
-  [500, 55],
-  [1000, 35],
-  [2000, 15],
+  [50, 100],
+  [150, 88],
+  [300, 72],
+  [600, 52],
+  [1200, 30],
+  [2500, 10],
   [4000, 0],
 ] as const;
 export const maxPinPoints = pinCurve[0][1];
@@ -260,8 +260,7 @@ export function actingSeats(g: GeoGame) {
   if (g.over) return [];
   // Reveals wait on the table host only; see `next`.
   if (g.phase === 'reveal') return [];
-  if (g.phase === 'vote')
-    return g.seats.flatMap((_, s) => (g.vote?.choices[s] ? [] : [s]));
+  if (g.phase === 'vote') return voters(g);
   if (g.phase === 'discuss') return [captain(g, activeTeam(g))];
   return g.seats.flatMap((_, s) => (g.guesses[s].locked ? [] : [s]));
 }
@@ -365,19 +364,8 @@ export function play(
       n.over = true;
       note(n, `All ${placeRound(n) * 3} destinations complete.`);
     } else if (n.challenge === 'final') {
-      // Inside Sabi, an Atlas out of places can still hand over to Sizes.
-      n.phase = 'vote';
-      n.vote = openVote(
-        n.seats.length,
-        now,
-        !n.tutorial,
-        n.tribu
-          ? last
-            ? ['size', 'finish']
-            : ['miro', 'size', 'finish']
-          : undefined,
-      );
-      note(n, `Round ${n.round} complete. Another round?`);
+      // Inside Quiz, an Atlas out of places can still hand over.
+      endRound(n, now, last ? ['miro'] : []);
     } else {
       n.challenge = challenges[challenges.indexOf(n.challenge) + 1];
       reveal(n);
@@ -432,41 +420,16 @@ function finishDiscussion(g: GeoGame, now: number) {
   }
 }
 function closeRound(g: GeoGame) {
-  const opening = !!g.vote!.opening,
-    options = voteOptions(g.vote);
-  const keep = opening
-    ? null
-    : g.tribu
-      ? options.includes('miro')
-        ? 'miro'
-        : 'size'
-      : 'more';
-  const choice = voteResult(g.vote!, keep, (n) => Math.floor(roll(g) * n));
-  g.vote = null;
-  if (opening) {
-    // Sabi's first vote: the places are dealt, or the table goes to Sizes.
-    if (choice === 'size') g.handoff = 'size';
-    else g.phase = 'guess';
-    note(g, `The table chose ${choice === 'size' ? 'Sizes' : 'Atlas'}.`);
-    return;
-  }
-  if (choice === 'finish' || g.round >= matchRounds) {
-    // The finished table keeps the last reveal on screen.
-    g.phase = 'reveal';
-    g.over = true;
-    note(
-      g,
-      `The table finished after ${g.round} round${g.round === 1 ? '' : 's'}.`,
-    );
-    return;
-  }
-  g.round++;
-  if (choice === 'size') {
-    g.handoff = 'size';
-    return;
-  }
-  g.challenge = 'easy';
-  deal(g);
+  settleRound(
+    g,
+    (x) => {
+      x.challenge = 'easy';
+      deal(x);
+    },
+    (x) => {
+      x.phase = 'guess';
+    },
+  );
 }
 /** The server owns the deadlines. Missing selections fall back to the
  * captain's frozen pins; silent voters don't count. */
@@ -523,20 +486,7 @@ export function observe(g: GeoGame, viewer: number): GeoGame {
 }
 export function botMove(g: GeoGame, s: number): GeoMove | null {
   if (!actingSeats(g).includes(s)) return null;
-  // Practice bots play the classic two rounds, then vote to finish.
-  if (g.phase === 'vote')
-    return {
-      type: 'vote',
-      choice: g.vote?.opening
-        ? s % 2
-          ? 'size'
-          : 'miro'
-        : g.round >= 2
-          ? 'finish'
-          : g.tribu
-            ? voteOptions(g.vote)[0]
-            : 'more',
-    };
+  if (g.phase === 'vote') return { type: 'vote', choice: botChoice(g, s) };
   if (g.phase === 'discuss') {
     const t = activeTeam(g),
       prompt = g.choices[t].seats.findIndex((seat) => seat === null);

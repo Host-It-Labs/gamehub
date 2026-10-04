@@ -12,17 +12,28 @@ rifle with a brass receiver and a walnut stock held ready across the body,
 muzzle down to the left, the right fist at the stock's wrist by the lever
 and the left under the fore-end.
 
-Parts (troops.py has the contract), none with a rest rotation:
+Parts (moves/types.ts has the contract), none with a rest rotation:
 
   ranger          root at the feet, facing +y
-    legL, legR    pivots on the hips; each carries its half of the duster's
-                  skirt, split at the rear vent and hung outside from a seam
-                  at the waist (legR also the holster and revolver)
+    legL, legR    pivots on the hips: the thighs (legR also the holster and
+                  revolver), split here (not by articulation.py) into
+      kneeL/R     the shins with the boots' shafts, pivots on the knees
+        footL/R   the boots' feet with an ankle ball, pivots on the ankles
     torso         pivot at the waist; the coat goes on under the skirt
-                  halves (inset), so a swinging leg uncovers coat, never a gap
-      head        pivot at the neck, the hat on it
+                  halves (inset), so a swinging half uncovers coat, never a gap
+      skirtL, skirtR  the duster's skirt halves, split at the rear vent and
+                  hung outside from the seam at the waist, pivots on that
+                  seam above each hip; drape cloth (kit.drape) that ripples
+                  most at the back of the hem, barely at the front edges
+      beard       the neckerchief's point, hanging from the neck
+      cape2       its knot behind the right of the neck and two drape tails
+                  down the back of the coat
+      head        pivot at the neck
+        hat       pivot on the crown of the head, where the hat sits
       armL, armR  pivots on the shoulders, which share one line along x
-        weapon    the rifle, child of armR, pivot in the right fist
+        foreL, foreR  the forearms and fists, pivots on the elbows
+          weapon  the rifle, child of foreR, pivot in the right fist
+            extra2  the lever, hinged at its front pin
 
 The hold is built so that one turn of BOTH arms by the same angle about x
 (about +1.3 rad) brings the butt to the right cheek with the barrel level
@@ -36,14 +47,23 @@ behind their front edges. RANGER_POSE=<name> turns the parts as the game
 would (three.js Euler terms, see figure_ranger_kit.runtime_quat) before the
 previews: `attack` is the game's current 'rifle' attack at the brief's test
 values; `squared`, `kick3`, `lever` and `half` the two-handed variant this
-hold is built for; `walk`/`walk2` the current stride (arms swinging
-opposite), `walk3`/`walk4` a two-handed stride.
+hold is built for; `walk`/`walk2` the old stride (arms swinging opposite),
+`walk3`/`walk4` a two-handed stride with the legs alone (the skirt left
+hanging, to see what the legs do under it); `strike`, `pass`, `toeoff`,
+`lift` and `strikeR` the game's current stride at foot strike, as the legs
+pass, at the back foot's toe-off, at the swing's highest knee and at the
+other foot's strike, skirt halves following as troops.ts swings them.
+Posed previews split the knees first so the knee and ankle turns show.
 """
 
 import math
 import os
 
+import bmesh
+
 import kit
+import face_rig
+import face_paint
 import figure_ranger_kit as rk
 from figure_ranger_kit import V, gauss, lerp, smooth, spow, table
 from mathutils import Matrix, Vector
@@ -54,13 +74,17 @@ T = kit.tint
 # ------------------------------------------------------------- paints
 # Ten pots, one draw batch each at runtime; several things share a pot.
 
-SKIN = "resin:" + T("cowboy-skin", "#b07b5a")
+SKIN = "resin:" + T("cowboy-skin", "#dca078")
 FELT = "weave:" + T("cowboy-felt", "#5b4535")        # the hat
 DARK = "hide:" + T("cowboy-vest", "#3a281c")          # vest, hair, brows,
                                                      # eyes, soles, hat band
 LEATHER = "hide:" + T("cowboy-leather", "#7b4e2c")   # boots, belt, holster
-DUSTER = "weave:" + T("cowboy-duster", "#b09a72")
-TEAM = "weave:team"                                  # shirt, neckerchief
+# The duster and the team cloth are "drape" (painted weave that can ripple
+# in the game): only parts that call kit.drape() move, so the coat above
+# the waist, the sleeves and the shirt stay put while the skirt halves and
+# the neckerchief's tails ripple, all in the same two batches.
+DUSTER = "drape:" + T("cowboy-duster", "#b09a72")
+TEAM = "drape:team"                                  # shirt, neckerchief
 CHAR = "weave:" + T("cowboy-trousers", "#3c3d42")    # trousers, stubble
 BRASS = "gilt:" + T("cowboy-brass", "#c49c50")
 STEEL = "gilt:" + T("cowboy-steel", "#50555d")
@@ -103,6 +127,7 @@ X_REST = D_REST.cross(TOP_REST)
 GRIP = V(0.046, 0.214, 0.805)
 LEFT_S = 0.2                     # the left fist along the rifle
 LEFT_Z = 0.015                   # and up from the wrist line
+LEVER_PIN = (0.0, 0.038, -0.012)  # the lever's hinge, in the rifle's frame
 
 
 def rifle_frame():
@@ -144,7 +169,7 @@ def body_point(a, z, extra=0.0):
 
 
 # The duster: loose over the chest, hanging straight past the waist and
-# flaring toward the hem; the skirt below the hips rides on the legs.
+# flaring toward the hem; the skirt below the waist hangs in two halves.
 COAT = [(0.24, 0.248, 0.176, 0.205), (0.3, 0.24, 0.172, 0.196),
         (0.36, 0.232, 0.168, 0.186), (0.42, 0.224, 0.164, 0.176),
         (0.48, 0.214, 0.158, 0.166), (0.56, 0.2, 0.15, 0.152),
@@ -155,10 +180,11 @@ COAT = [(0.24, 0.248, 0.176, 0.205), (0.3, 0.24, 0.172, 0.196),
         (1.032, 0.084, 0.07, 0.08)]
 COAT_P = 2.2
 # The skirt halves hang outside from a seam at the waist; the torso's coat
-# carries on under them (inset) so a swinging leg shows coat, not a gap.
+# carries on under them (inset) so a swinging half shows coat, not a gap.
 SEAM = 0.635
 UNDER_BOTTOM = 0.47
 UNDER_INSET = 0.009
+UNDER_TUCK = 0.028
 HEM = 0.255
 
 
@@ -243,6 +269,13 @@ def boot(sx, ankle, knee, toe_out):
     place = Matrix.Translation(V(ankle.x, ankle.y, 0)) @ \
         Matrix.Rotation(math.radians(-sx * toe_out), 4, "Z")
     rk.transform(pieces, place)
+    # A leather ball at the ankle fills the joint as the foot rolls under
+    # the shaft (heel strike, toe-off).
+    pieces.append(rk.ball(f"{R}-ankle{sx}", 1.0, ankle + V(0, 0.002, 0.0),
+                          LEATHER, scale=(0.043, 0.046, 0.042), seg=12,
+                          rings=7))
+    foot_pieces = pieces
+    pieces = []
 
     # The shaft follows the shin; the top is scalloped, higher at the
     # front and back, with a pull tab on each side.
@@ -278,36 +311,49 @@ def boot(sx, ankle, knee, toe_out):
         pieces.append(rk.tube(f"{R}-tab{sx}{side}", tab,
                               [(0.0035, 0.009), (0.003, 0.008)], LEATHER,
                               n=4, up=(1, 0, 0), caps=("flat", "dome")))
-    return pieces
+    return foot_pieces, pieces
 
 
 def trouser_leg(sx, hip, knee, ankle):
-    """Charcoal trousers from the hip ball, tucked into the boot."""
+    """Charcoal trousers from the hip ball, tucked into the boot: the thigh
+    down to a round knee (the knee joint's ball, with the kneecap), and the
+    shin from inside it into the boot."""
     below = lerp(knee, ankle, 0.1)
     inside = lerp(knee, ankle, 0.22)
+    down = (knee - hip).normalized()
     path = [hip + V(0, 0, 0.035), lerp(hip, knee, 0.33), lerp(hip, knee, 0.7),
-            knee, V(below.x, below.y, 0.325), V(inside.x, inside.y, 0.285)]
-    radii = [0.07, 0.066, 0.056, 0.05, 0.054, 0.053]
-    limb = rk.tube(f"{R}-trouser{sx}", path, radii, CHAR, n=12, up=(0, 1, 0),
-                   caps=(None, None))
-    kneecap = rk.ball(f"{R}-knee{sx}", 0.03, knee + V(0, 0.026, 0.004), CHAR,
-                      scale=(1.2, 0.75, 1.3), seg=8, rings=5)
-    return [limb, kneecap]
+            knee + down * 0.004]
+    thigh = [rk.tube(f"{R}-trouser{sx}", path, [0.07, 0.066, 0.057, 0.051],
+                     CHAR, n=14, up=(0, 1, 0), caps=(None, None))]
+    thigh.append(rk.ball(f"{R}-kneeball{sx}", 1.0, knee, CHAR,
+                         scale=(0.05, 0.051, 0.05), seg=12, rings=7))
+    thigh.append(rk.ball(f"{R}-knee{sx}", 0.03, knee + V(0, 0.026, 0.004),
+                         CHAR, scale=(1.2, 0.75, 1.3), seg=8, rings=5))
+    shin_dir = (ankle - knee).normalized()
+    shin = [rk.tube(f"{R}-shin{sx}", [knee + shin_dir * 0.012,
+                                      V(below.x, below.y, 0.325),
+                                      V(inside.x, inside.y, 0.285)],
+                    [0.049, 0.054, 0.053], CHAR, n=14, up=(0, 1, 0),
+                    caps=(None, None))]
+    return thigh, shin
 
 
 def skirt(sx):
     """This leg's half of the duster's skirt: from the waist seam, where
     it laps over the torso's coat, down to the hem; the right one swept
     back behind the holster, the two overlapping at the rear vent."""
+    # The halves barely overlap at the vent: they swing apart, and a wide
+    # lap would bare the strip of the other half it shaded in the AO bake.
     if sx > 0:
-        a1 = 186.0
+        a1 = 182.0
         edge = EDGE_R
     else:
-        a1 = -186.0
+        a1 = -182.0
         edge = EDGE_L
-    zs = [SEAM, 0.61, 0.56, 0.5, 0.46, 0.43, 0.38, 0.33, 0.29, HEM]
-    us = [i / 14 for i in range(15)] if sx < 0 else [i / 10 for i in
-                                                      range(11)]
+    zs = [SEAM, 0.615, 0.585, 0.55, 0.515, 0.48, 0.445, 0.41, 0.375, 0.34,
+          0.305, 0.275, HEM]
+    us = [i / 26 for i in range(27)] if sx < 0 else [i / 18 for i in
+                                                      range(19)]
     lift = 0.0045 + (0.003 if sx > 0 else 0.0)
 
     def fn(u, v, inset=0.0):
@@ -325,17 +371,17 @@ def skirt(sx):
                     inside=V(sx * 0.06, 0, 0.45))]
     # The lining behind the front edge, where the game (which draws front
     # faces only) would otherwise show through the open coat.
-    far = fn(0.1, 4) * 3.0
+    far = fn(0.1, 6) * 3.0
     far.z = 0.45
     out.append(rk.sheet(f"{R}-skirtlining{sx}", lambda u, v: fn(u, v, 0.0058),
-                        [0.0, 0.1, 0.2, 0.3], vs, DUSTER, inside=far))
+                        [0.0, 0.06, 0.13, 0.2, 0.3], vs, DUSTER, inside=far))
     pts = []
-    for k in range(8):
-        z = lerp(SEAM - 0.006, HEM + 0.01, k / 7)
+    for k in range(12):
+        z = lerp(SEAM - 0.006, HEM + 0.01, k / 11)
         a0 = table(edge, z) * (1 if sx > 0 else -1)
         a = math.radians(a0 + 3.2 * (1 if sx > 0 else -1))
         pts.append(coat_point(a, z, lift + 0.0012))
-    out.append(rk.tube(f"{R}-sstitch{sx}", pts, [0.0012] * 8, DUSTER, n=3,
+    out.append(rk.tube(f"{R}-sstitch{sx}", pts, [0.0012] * 12, DUSTER, n=3,
                        caps=(None, None)))
     if sx < 0:
         # A flap pocket on the left hip.
@@ -348,6 +394,22 @@ def skirt(sx):
                             DUSTER, rim=0.004, inside=V(0, 0, 0.56),
                             rim_edges=("u0", "u1", "v1")))
     return out
+
+
+def skirt_freedom(sx):
+    """How freely each point of a skirt half ripples (kit.drape, object
+    space, the pivot above the hip): nothing at the waist seam, most at the
+    hem, and most at the back, where the cloth moving back (the game ripples
+    it behind the figure) swings away from the legs; the open front edges
+    barely move, so they never sink into the thighs."""
+    def free(co):
+        x = co.x + sx * HIP_X
+        y = co.y
+        z = co.z + HIP_Z
+        down = smooth(SEAM - 0.02, HEM, z) ** 1.15
+        back = smooth(-0.3, 0.85, -y / max(1e-6, math.hypot(x, y)))
+        return down * (0.22 + 0.78 * back)
+    return free
 
 
 def holster():
@@ -418,13 +480,15 @@ def holster():
 
 
 def leg(side, sx, knee, ankle, toe_out):
+    """The thigh (with the holster on the right), the shin with the boot's
+    shaft, and the boot's foot, split here at the knee and the ankle (so
+    articulation.py leaves them alone and no heavy socket balls are added)."""
     hip = V(sx * HIP_X, 0, HIP_Z)
-    pieces = trouser_leg(sx, hip, knee, ankle)
-    pieces += boot(sx, ankle, knee, toe_out)
-    pieces += skirt(sx)
+    thigh, shin = trouser_leg(sx, hip, knee, ankle)
+    foot, shaft = boot(sx, ankle, knee, toe_out)
     if sx > 0:
-        pieces += holster()
-    return pieces, hip
+        thigh += holster()
+    return thigh, shin + shaft, foot, hip
 
 
 # ------------------------------------------------------------- torso
@@ -525,8 +589,10 @@ def vest():
 
 
 def kerchief():
-    """The neckerchief: bunched round the neck, knotted at the front
-    right, its point hanging over the chest."""
+    """The neckerchief bunched round the neck (on the torso). Its point
+    hanging over the chest (`kerchief_point`) and the knot behind the right
+    side of the neck with its two tails flying down the back
+    (`kerchief_tails`) are their own soft joints."""
     pieces = []
     n = 18
     rings = []
@@ -541,39 +607,90 @@ def kerchief():
                           -0.003 + math.cos(a) * r * k, z))
         rings.append(ring)
     pieces.append(rk.loft(f"{R}-kerchief", rings, TEAM))
-    # The triangle hanging in front, with two soft folds.
+    return pieces
+
+
+KPOINT_TOP = 0.99
+KPOINT_PIVOT = V(0.004, 0.1, KPOINT_TOP)
+
+
+def kerchief_point():
+    """The triangle hanging in front, with soft folds; it swings from the
+    neck (`beard`)."""
 
     def tri(u, v):
-        w = lerp(0.052, 0.003, v ** 0.85)
+        w = lerp(0.056, 0.003, v ** 0.85)
         x = u * w
-        z = lerp(0.99, 0.912, v)
+        z = lerp(KPOINT_TOP, 0.905, v)
         y = body_point(0.0, max(0.9, z), 0.0).y + 0.016 + 0.01 * (1 - v) \
             - 0.02 * (u * u) * (1 - v)
         y += 0.004 * math.sin(u * 5.0 + 1.0) * math.sin(math.pi * v)
         y += 0.006 * (1 - abs(u)) * math.sin(math.pi * min(1.0, v * 1.3))
         return V(x + 0.004, y, z - 0.006 * u * u)
 
-    pieces.append(rk.sheet(f"{R}-kpoint", tri, [-1, -0.6, -0.2, 0.2, 0.6, 1],
-                           [0.0, 0.3, 0.6, 0.85, 1.0], TEAM, rim=0.004,
-                           inside=V(0, 0, 0.95)))
-    # The knot, front right, and two short ends.
-    k = V(0.036, 0.072, 0.992)
-    pieces.append(rk.ball(f"{R}-knot", 0.014, k, TEAM, scale=(1.15, 0.8, 0.9),
-                          seg=8, rings=5))
-    for j, (dx, dz) in enumerate(((0.012, -0.03), (0.024, -0.022))):
-        pieces.append(rk.tube(f"{R}-kend{j}", [k, k + V(dx, 0.01, dz)],
-                              [(0.004, 0.011), (0.003, 0.007)], TEAM, n=5,
-                              up=(0, 1, 0), caps=(None, "dome")))
+    return [rk.sheet(f"{R}-kpoint", tri,
+                     [-1, -0.7, -0.4, -0.13, 0.13, 0.4, 0.7, 1],
+                     [0.0, 0.2, 0.4, 0.6, 0.8, 0.92, 1.0], TEAM, rim=0.004,
+                     back=True, inside=V(0, 0, 0.95))]
+
+
+# The knot behind the right of the neck, sitting on the coat's collar.
+KNOT_A = math.radians(140)
+KNOT = V(math.sin(KNOT_A) * 0.084, -0.004 + math.cos(KNOT_A) * 0.08, 1.05)
+
+
+def kerchief_tails():
+    """The knot and two tapering tails falling over the collar and down the
+    back of the coat (`cape2`, drape cloth): they trail and flutter as he
+    walks, like the scarf on his card."""
+    pieces = [rk.ball(f"{R}-bknot", 1.0, KNOT, TEAM,
+                      scale=(0.02, 0.017, 0.016), seg=10, rings=6)]
+    for k, (a0, a1, length, width, dz) in enumerate(
+            ((138, 152, 1.0, 0.04, 0.0), (146, 172, 0.74, 0.034, 0.006))):
+        def centre(t, a0=a0, a1=a1, length=length, dz=dz):
+            # Out over the collar, then down the back clear of the coat.
+            a = math.radians(lerp(a0, a1, t))
+            z = KNOT.z - dz - 0.25 * length * t
+            off = 0.026 + 0.016 * smooth(0.0, 0.6, t)
+            p = coat_point(a, max(0.9, min(0.995, z)), off)
+            if t < 0.22:
+                # Over the collar's roll near the knot.
+                q = smooth(0.0, 0.22, t)
+                p = lerp(KNOT + V(0, -0.006, -0.004), p, q)
+                p.z = lerp(KNOT.z - dz, p.z, q)
+            p.z = z if t >= 0.22 else p.z
+            return p
+
+        def fn(u, v, centre=centre, width=width, a0=a0, a1=a1):
+            c = centre(v)
+            a = math.radians(lerp(a0, a1, v))
+            across = V(math.cos(a), -math.sin(a), 0)
+            w = width * (1 - 0.72 * v ** 1.2) * (0.6 + 0.4 * smooth(0, 0.15, v))
+            # A soft twist and a cupped section, so it reads as cloth.
+            tw = 0.35 * math.sin(math.pi * v)
+            out = V(math.sin(a), math.cos(a), 0)
+            p = c + across * (u * w * math.cos(tw)) + out * (u * w * math.sin(tw)) * 0.5
+            p += out * 0.004 * (1 - u * u)
+            # The tip cut to a point.
+            if v > 0.9:
+                p = lerp(p, c, (v - 0.9) / 0.1 * abs(u))
+            return p
+
+        pieces.append(rk.sheet(f"{R}-ktail{k}", fn, [-1, -0.5, 0, 0.5, 1],
+                               [i / 11 for i in range(12)], TEAM, rim=0.0035,
+                               back=True, inside=V(0, 0, 0.95)))
     return pieces
 
 
 def coat_upper():
     """The duster from the collar down to the waist seam, open at the
     front, with folds and a yoke across the back; below the seam it goes
-    on, inset and hidden, under the skirt halves on the legs."""
+    on, inset and hidden, under the skirt halves. It tucks in further
+    toward its bottom edge: the chest leans into the walk while the halves
+    hang from the hips, and a shallow inset would poke out through them."""
     zs = [UNDER_BOTTOM, 0.51, 0.56, 0.6, 0.618, SEAM, 0.68, 0.74, 0.8, 0.86,
           0.884, 0.892, 0.93, 0.96, 0.98, 1.0, 1.016, 1.032]
-    us = [i / 30 for i in range(31)]
+    us = [i / 40 for i in range(41)]
 
     def under(z):
         return smooth(SEAM, SEAM - 0.017, z)
@@ -583,7 +700,8 @@ def coat_upper():
         a0 = table(EDGE_R, z) + 5 * under(z)
         a1 = 360 - table(EDGE_L, z) - 5 * under(z)
         a = math.radians(lerp(a0, a1, u))
-        return coat_point(a, z, -UNDER_INSET * under(z))
+        tuck = UNDER_TUCK * smooth(SEAM - 0.02, UNDER_BOTTOM, z)
+        return coat_point(a, z, -UNDER_INSET * under(z) - tuck)
 
     obj = rk.sheet(f"{R}-coat", fn, us, list(range(len(zs))), DUSTER,
                    rim=0.006, inside=V(0, 0, 0.75),
@@ -615,8 +733,10 @@ def coat_upper():
             a = math.radians(a0 + u * w + 0.3)
             p = coat_point(a, z, 0.0055 + 0.002 * u)
             return V(side * p.x, p.y, p.z)
-        pieces.append(rk.sheet(f"{R}-lapel{side}", lap, [0, 0.5, 1],
-                               [0, 0.3, 0.55, 0.8, 1.0], DUSTER, rim=0.004,
+        pieces.append(rk.sheet(f"{R}-lapel{side}", lap,
+                               [0, 0.25, 0.5, 0.75, 1],
+                               [0, 0.15, 0.3, 0.43, 0.55, 0.67, 0.8, 0.9,
+                                1.0], DUSTER, rim=0.004,
                                inside=V(0, 0, 0.85), rim_edges=("u1", "v1")))
     # The turn-down collar round the back of the neck.
     def col(u, v):
@@ -625,13 +745,11 @@ def coat_upper():
         r_in = V(0.074 * s, -0.004 + 0.07 * c, 1.046)
         front = max(0.0, c)
         r_out = V(0.126 * s, -0.004 + 0.118 * c, 0.998 - 0.03 * front ** 2)
-        mid = lerp(r_in, r_out, 0.5) + V(0, 0, 0.012)
-        if v <= 0.5:
-            return lerp(r_in, mid, v * 2)
-        return lerp(mid, r_out, (v - 0.5) * 2)
+        # A soft roll over the fold line.
+        return lerp(r_in, r_out, v) + V(0, 0, 0.048 * v * (1 - v))
 
-    pieces.append(rk.sheet(f"{R}-collar", col, [i / 16 for i in range(17)],
-                           [0.0, 0.5, 1.0], DUSTER, rim=0.005,
+    pieces.append(rk.sheet(f"{R}-collar", col, [i / 28 for i in range(29)],
+                           [0.0, 0.25, 0.5, 0.75, 1.0], DUSTER, rim=0.005,
                            inside=V(0, 0, 0.9), rim_edges=("u0", "u1", "v1")))
     # Top-stitching a finger's width in from each front edge.
     for side, edge in ((1, EDGE_R), (-1, EDGE_L)):
@@ -866,31 +984,96 @@ def skull():
     return c.obj(outward=HC)
 
 
+EYE_Z = 1.1565
+IRIS = "resin:" + T("face-iris", "#725032")
+
+
+def paint_patch(name, ac, zc, width, top, bottom, lift, mat, tilt=0.0,
+                segs=16, rings=3, lid=0.0):
+    """A raised paint patch following the face: an oval `width` degrees
+    across, `top` up and `bottom` down from its centre (metres), its top
+    flattened by `lid` (0 round .. 1 straight, a lowered lid) and tilted
+    `tilt` metres from inner to outer corner."""
+    bm = bmesh.new()
+    side = 1 if ac >= 0 else -1
+
+    def vert(r, t):
+        c, sn = math.cos(t), math.sin(t)
+        h = top if sn > 0 else bottom
+        if sn > 0 and lid:
+            sn = lerp(sn, min(1.0, sn * 3.0) * 0.55 + 0.45 * sn, lid)
+        u = ac + c * width * r
+        v = zc + sn * h * r + c * side * tilt * r
+        p = face_point(u, v)
+        du = face_point(u + 0.4, v) - face_point(u - 0.4, v)
+        dv = face_point(u, v + 0.0004) - face_point(u, v - 0.0004)
+        nrm = du.cross(dv).normalized()
+        if (p - HC).dot(nrm) < 0:
+            nrm = -nrm
+        return bm.verts.new(p + nrm * lift)
+
+    mid = vert(0, 0)
+    prev = None
+    for k in range(1, rings + 1):
+        cur = [vert(k / rings, i / segs * math.tau) for i in range(segs)]
+        for i in range(segs):
+            j = (i + 1) % segs
+            if prev:
+                bm.faces.new((prev[i], prev[j], cur[j], cur[i]))
+            else:
+                bm.faces.new((mid, cur[i], cur[j]))
+        prev = cur
+    bm.normal_update()
+    for f in bm.faces:
+        if f.normal.dot(f.calc_center_median() - HC) < 0:
+            f.normal_flip()
+    obj = kit._from_bmesh(f"{R}-{name}", bm, mat)
+    kit.shade(obj)
+    return obj
+
+
 def eyes():
-    """Narrowed eyes: a dark almond under a heavy lid line, and low brows."""
+    """A gunslinger's narrowed, steady eyes (low lids drawn in a heavy line,
+    the left one squinting harder, his aiming eye's partner), heavy brows
+    with the right one cocked, and a closed, lopsided smirk: lighter than
+    face_paint's eyes (fewer rings), in the same paints."""
     out = []
-    for sx in (-1, 1):
-        ac, zc = sx * 25.5, 1.1565
-        lens = []
-        for i in range(12):
-            t = i / 12 * math.tau
-            x = math.cos(t)
-            y = math.sin(t) * (0.7 if math.sin(t) > 0 else 0.55)
-            lens.append((ac + x * 7.6, zc + y * 0.0052 + 0.0008 * x * sx))
-        if sx < 0:
-            lens.reverse()
-        out.append(rk.decal(f"{R}-eye{sx}", face_point, lens, 0.0024, DARK,
-                            depth=0.0018, eps=0.05, ref=HC))
-        pts = []
-        for ad, z in ((7, 1.1668), (15, 1.1702), (24, 1.1718), (33, 1.1712),
-                      (42, 1.1685)):
-            pts.append(face_point(sx * ad, z) + face_normal(sx * ad, z) *
-                       0.0024)
-        out.append(rk.tube(f"{R}-brow{sx}", pts,
-                           [(0.0042, 0.0026), (0.0044, 0.0027),
-                            (0.004, 0.0025), (0.0032, 0.0021),
-                            (0.0022, 0.0015)], DARK, n=5,
-                           caps=("dome", "dome")))
+    for side in (-1, 1):
+        ac = side * 27
+        sq = 0.78 if side < 0 else 1.0
+        out.append(paint_patch(f"eye-outline{side}", ac, EYE_Z, 15.5,
+                               0.0098 * sq + 0.001, 0.0104, 0.003,
+                               face_paint.INK, tilt=0.0012))
+        out.append(paint_patch(f"eye-white{side}", ac, EYE_Z - 0.0008, 13.4,
+                               0.0062 * sq, 0.0082, 0.004, face_paint.WHITE,
+                               tilt=0.0012))
+        out.append(paint_patch(f"iris{side}", ac + side * 0.8, EYE_Z - 0.0016,
+                               6.2, 0.0052 * sq, 0.0068, 0.005, IRIS))
+        out.append(paint_patch(f"pupil{side}", ac + side * 0.8,
+                               EYE_Z - 0.0016, 3.4, 0.0042 * sq, 0.0052,
+                               0.0058, face_paint.INK, segs=12, rings=2))
+        out.append(paint_patch(f"catch{side}", ac - 1.6, EYE_Z + 0.0008, 1.6,
+                               0.0018, 0.0018, 0.0065, face_paint.WHITE,
+                               segs=8, rings=1))
+        # Heavy brows, low over the eyes, the inner ends drawn down; his
+        # right brow cocked up.
+        up = 0.006 if side > 0 else 0.0
+        brow = [(ac - side * 17, EYE_Z + 0.009 + up * 0.4),
+                (ac, EYE_Z + 0.015 + up),
+                (ac + side * 17, EYE_Z + 0.015 + up * 0.8),
+                (ac + side * 17, EYE_Z + 0.022 + up * 0.8),
+                (ac, EYE_Z + 0.0255 + up),
+                (ac - side * 17, EYE_Z + 0.019 + up * 0.4)]
+        out.append(rk.decal(f"{R}-brow{side}", face_point, brow, 0.0048,
+                            HAIR, depth=0.0014, eps=0.05, ref=HC))
+    # The smirk: closed, the right corner of his mouth (+x) pulled up.
+    z = 1.0965
+    outline = [(-19, z + 0.0005), (-9, z - 0.0012), (2, z - 0.0016),
+               (13, z + 0.0012), (23, z + 0.0085), (21, z + 0.0058),
+               (12, z - 0.0018), (2, z - 0.0042), (-9, z - 0.0036),
+               (-18, z - 0.001)]
+    out.append(rk.decal(f"{R}-mouth", face_point, outline, 0.0035,
+                        face_paint.INK, depth=0.0005, eps=0.05, ref=HC))
     return out
 
 
@@ -931,7 +1114,7 @@ def neck():
 
 # The hat, in head space: sitting on the brow, tipped a little forward.
 HAT_Z = 1.192
-HAT_TILT = math.radians(-3)
+HAT_TILT = math.radians(-12)
 BRIM = (0.19, 0.198)
 
 
@@ -939,15 +1122,18 @@ def hat():
     pieces = []
     cy = -0.004
     # Crown rings: (z, rx, ry, crease depth, pinch).
+    # A cattleman crown: near-upright sides, front pinches, and a long
+    # crease down the middle of a flat-ish top.
     prof = [(HAT_Z - 0.006, 0.089, 0.106, 0.0, 0.0),
-            (HAT_Z + 0.03, 0.087, 0.103, 0.0, 0.1),
-            (HAT_Z + 0.066, 0.082, 0.098, 0.0, 0.35),
-            (HAT_Z + 0.097, 0.074, 0.091, 0.0, 0.7),
-            (HAT_Z + 0.119, 0.061, 0.082, 0.0, 0.95),
-            (HAT_Z + 0.131, 0.042, 0.071, 0.0, 1.0),
-            (HAT_Z + 0.128, 0.022, 0.062, 0.0, 1.0),
-            (HAT_Z + 0.11, 0.005, 0.052, 0.0, 1.0)]
-    n = 28
+            (HAT_Z + 0.03, 0.088, 0.104, 0.0, 0.1),
+            (HAT_Z + 0.066, 0.085, 0.1, 0.0, 0.35),
+            (HAT_Z + 0.094, 0.08, 0.095, 0.0, 0.7),
+            (HAT_Z + 0.113, 0.071, 0.088, 0.0, 0.95),
+            (HAT_Z + 0.124, 0.056, 0.079, 0.0, 1.0),
+            (HAT_Z + 0.126, 0.038, 0.071, 0.0, 1.0),
+            (HAT_Z + 0.117, 0.02, 0.064, 0.0, 1.0),
+            (HAT_Z + 0.102, 0.005, 0.056, 0.0, 1.0)]
+    n = 36
     rings = []
     for z, rx_, ry_, crease, pinch in prof:
         ring = []
@@ -982,20 +1168,20 @@ def hat():
                           BRASS, n=4, up=(1, 0, 0), caps=(None, None)))
 
     # The brim: wide, the sides curled up hard, the front snapped down.
-    m = 32
-    ts = [0.0, 0.4, 0.78, 1.0]
+    m = 44
+    ts = [0.0, 0.3, 0.6, 0.84, 1.0]
 
     def brim(u, v):
         a = math.radians(u)
         s, c = math.sin(a), math.cos(a)
         k0 = prof[0]
         inner = V(k0[1] * spow(s, 0.9), cy + k0[2] * spow(c, 0.9), 0)
-        outer = V(BRIM[0] * spow(s, 0.95), cy + BRIM[1] * spow(c, 0.95), 0)
+        outer = V(BRIM[0] * spow(s, 0.95), cy + BRIM[1] * spow(c, 0.95) * (0.55 if c > 0 else 1.0), 0)
         t = ts[int(round(v))]
         p = lerp(inner, outer, t)
         side = abs(s) ** 1.6
         curl = side * (0.052 * t ** 2.2)
-        dip = -0.008 * max(0.0, c) ** 2 * t ** 1.5 - \
+        dip = 0.036 * max(0.0, c) ** 2 * t ** 1.5 - \
             0.006 * max(0.0, -c) ** 2 * t ** 1.5
         # The rolled edge.
         p.z = HAT_Z - 0.004 + curl + dip + 0.004 * (t > 0.95)
@@ -1013,7 +1199,18 @@ def hat():
 
 
 def head():
-    pieces = [skull(), neck()] + stubble() + eyes() + ears() + nape() + hat()
+    pieces = [skull(), neck()] + stubble() + eyes() + ears() + nape()
+    rk.transform(pieces, Matrix.Translation(V(0, 0, HEAD_DZ)))
+    return pieces
+
+
+# The hat's joint: on the crown of the head where the hat sits, so it rocks
+# on the skull (head space, with HEAD_DZ).
+HAT_PIVOT = V(0, -0.004, HAT_Z + 0.004 + HEAD_DZ)
+
+
+def hat_part():
+    pieces = hat()
     rk.transform(pieces, Matrix.Translation(V(0, 0, HEAD_DZ)))
     return pieces
 
@@ -1025,40 +1222,42 @@ def fist(name, c, xax, kax, chir, mat=SKIN):
     """A closed fist round a pole along Z (the index finger's end), its
     fingertips toward X and knuckles toward K; the wrist is at -X (the
     tower guard's fist)."""
-    zs = [-0.036, -0.029, -0.017, -0.0085, 0.0, 0.0085, 0.017, 0.029, 0.036]
-    grooves = {-0.017, 0.0, 0.017}
-    ring_n = 10
+    # Four fingers wrapped round the pole, each a soft roll with a groove
+    # between it and the next, the little finger's end smaller.
+    zs = [-0.036 + i * 0.0045 for i in range(17)]
+    ring_n = 16
     cx, cy, hx, hy = -0.0035, 0.002, 0.0325, 0.027
     rings = []
     for z in zs:
-        k = 1.0
-        if abs(z) > 0.035:
-            k = 0.74
-        elif abs(z) > 0.03:
-            k = 0.93
+        k = 1.0 - 0.25 * smooth(0.027, 0.037, abs(z))
         if z < 0:
-            k *= 0.94
+            k *= 1.0 - 0.06 * smooth(0.0, 0.034, -z)
+        g = 1.0 - abs(math.sin(math.pi * (z + 0.034) / 0.017))
+        g = g ** 2 if abs(z) < 0.03 else 0.0
         ring = []
-        for x, y, ang in rk.sup(ring_n, hx * k, hy * k, 3.0, math.pi / 10):
+        for x, y, ang in rk.sup(ring_n, hx * k, hy * k, 2.7, math.pi / 16):
             px, py = cx + x, cy + y
-            if z in grooves and (px > 0.004 or py < -0.01):
-                px -= 0.0022 * (1 if px > 0.004 else 0.5)
-                py += 0.0016 if py < -0.01 else 0.0
-            if px > 0.01 and py > 0.012 and z not in grooves:
-                px += 0.0012
-                py += 0.0012
+            if px > 0.004 or py < -0.01:
+                # The grooves between the fingers, over the curled fingers.
+                px -= 0.0026 * g * (1 if px > 0.004 else 0.5)
+                py += 0.0018 * g if py < -0.01 else 0.0
+            if px > 0.008 and py > 0.01:
+                # The knuckles' ridge.
+                px += 0.0016 * (1 - g)
+                py += 0.0014 * (1 - g)
             ring.append(V(px, py, z))
         rings.append(ring)
-    pieces = [rk.loft(f"{name}-fist", rings, mat, start=V(cx, cy, -0.038),
-                      end=V(cx, cy, 0.039))]
-    thumb = [V(-0.024, -0.019, 0.016), V(-0.009, -0.027, 0.031),
-             V(0.011, -0.022, 0.038)]
-    pieces.append(rk.tube(f"{name}-thumb", thumb, [0.0098, 0.0086, 0.0078],
-                          mat, n=6))
+    pieces = [rk.loft(f"{name}-fist", rings, mat, start=V(cx, cy, -0.0375),
+                      end=V(cx, cy, 0.0385))]
+    thumb = [V(-0.026, -0.017, 0.012), V(-0.016, -0.026, 0.027),
+             V(-0.002, -0.028, 0.036), V(0.012, -0.022, 0.039)]
+    pieces.append(rk.tube(f"{name}-thumb", thumb,
+                          [0.0102, 0.0094, 0.0085, 0.0076], mat, n=8))
     pieces.append(rk.tube(f"{name}-heel", [V(-0.046, 0.002, -0.004),
-                                           V(-0.03, 0.0, 0.0)],
-                          [(0.022, 0.027), (0.025, 0.03)], mat, n=8,
-                          up=(0, 1, 0), caps=("flat", None)))
+                                           V(-0.038, 0.001, -0.002),
+                                           V(-0.028, 0.0, 0.0)],
+                          [(0.021, 0.026), (0.024, 0.029), (0.025, 0.03)],
+                          mat, n=12, up=(0, 1, 0), caps=("flat", None)))
     xax, kax = Vector(xax).normalized(), Vector(kax).normalized()
     zax = xax.cross(kax) * chir
     m = rk.basis(xax, kax, zax, c)
@@ -1066,52 +1265,66 @@ def fist(name, c, xax, kax, chir, mat=SKIN):
     return pieces
 
 
-def sleeve(side, s, e, w, sx):
-    """The duster's sleeve to the middle of the forearm with a turned-back
-    cuff, the team shirt's sleeve and cuff below it to the wrist."""
-    pieces = []
-    up = (e - s).normalized()
-    fo = (w - e).normalized()
-    # One tube from above the shoulder through the elbow to the cuff.
-    cuff_at = lerp(e, w, 0.58)
-    path = [s + up * 0.004, lerp(s, e, 0.3), lerp(s, e, 0.65), e,
-            lerp(e, cuff_at, 0.5), cuff_at]
-    radii = [0.052, 0.055, 0.052, 0.05, 0.047, 0.047]
-    tube = rk.tube(f"{R}-sleeve{side}", path, radii, DUSTER, n=12,
-                   caps=(None, None))
-    # Folds bunched at the inside of the elbow.
+def _bunch(tube, e, up, fo, k_len=0.08, depth=0.006):
+    """Soft folds bunched at the inside of the elbow."""
     bend = (up - fo)
     for v in tube.data.vertices:
         p = v.co
-        d = min((p - e).length, 0.08)
-        k = (1 - d / 0.08) ** 2
+        d = min((p - e).length, k_len)
+        k = (1 - d / k_len) ** 2
         out = (p - e)
         out = out - fo * out.dot(fo)
-        if out.length > 1e-6:
+        if out.length > 1e-6 and bend.length > 1e-6:
             out.normalize()
             ang = math.atan2(out.dot(bend.cross(fo).normalized()),
                              out.dot(bend.normalized()))
-            v.co = p + out * 0.006 * k * math.sin(3 * ang + 1.0)
-    pieces.append(tube)
-    pieces.append(rk.ball(f"{R}-shoulder{side}", 1.0, s + V(sx * 0.004, 0,
-                                                           -0.026),
-                          DUSTER, scale=(0.052, 0.054, 0.04), seg=10,
-                          rings=6))
-    # The turned-back cuff.
-    pieces.append(rk.tube(f"{R}-cuff{side}", [cuff_at - fo * 0.03,
-                                             cuff_at + fo * 0.006],
-                          [0.051, 0.054], DUSTER, n=12, caps=(None, None)))
+            v.co = p + out * depth * k * math.sin(3 * ang + 1.0)
+
+
+def sleeve(side, s, e, w, sx):
+    """The duster's sleeve to the middle of the forearm with a turned-back
+    cuff, the team shirt's sleeve and cuff below it to the wrist. Split at
+    the elbow: the upper sleeve ends in a round elbow (the joint's ball),
+    and the forearm's sleeve starts inside it."""
+    up = (e - s).normalized()
+    fo = (w - e).normalized()
+    cuff_at = lerp(e, w, 0.58)
+    upper = []
+    path = [s + up * 0.004, lerp(s, e, 0.3), lerp(s, e, 0.65),
+            e - up * 0.004]
+    tube = rk.tube(f"{R}-sleeve{side}", path, [0.052, 0.056, 0.053, 0.05],
+                   DUSTER, n=14, caps=(None, None))
+    _bunch(tube, e, up, fo)
+    upper.append(tube)
+    upper.append(rk.ball(f"{R}-shoulder{side}", 1.0, s + V(sx * 0.004, 0,
+                                                          -0.026),
+                         DUSTER, scale=(0.054, 0.056, 0.042), seg=14,
+                         rings=8))
+    upper.append(rk.ball(f"{R}-elbow{side}", 1.0, e, DUSTER,
+                         scale=(0.05, 0.05, 0.05), seg=12, rings=7))
+    fore = []
+    tube = rk.tube(f"{R}-foresleeve{side}", [e + fo * 0.004,
+                                             lerp(e, cuff_at, 0.5), cuff_at],
+                   [0.049, 0.048, 0.047], DUSTER, n=14, caps=(None, None))
+    _bunch(tube, e, up, fo)
+    fore.append(tube)
+    # The turned-back cuff, its upper edge rolled.
+    fore.append(rk.tube(f"{R}-cuff{side}", [cuff_at - fo * 0.03,
+                                           cuff_at - fo * 0.012,
+                                           cuff_at + fo * 0.006],
+                        [0.051, 0.054, 0.055], DUSTER, n=14,
+                        caps=(None, None)))
     # The shirt sleeve and its cuff.
-    pieces.append(rk.tube(f"{R}-shirtsleeve{side}",
-                          [cuff_at - fo * 0.01, lerp(cuff_at, w, 0.5),
-                           w - fo * 0.012],
-                          [0.04, 0.037, 0.034], TEAM, n=10,
-                          caps=(None, None)))
-    pieces.append(rk.tube(f"{R}-shirtcuff{side}", [w - fo * 0.03,
-                                                  w + fo * 0.002],
-                          [0.036, 0.035], TEAM, n=10,
-                          caps=("flat", "flat")))
-    return pieces
+    fore.append(rk.tube(f"{R}-shirtsleeve{side}",
+                        [cuff_at - fo * 0.01, lerp(cuff_at, w, 0.5),
+                         w - fo * 0.012],
+                        [0.04, 0.037, 0.034], TEAM, n=10,
+                        caps=(None, None)))
+    fore.append(rk.tube(f"{R}-shirtcuff{side}", [w - fo * 0.03,
+                                                w + fo * 0.002],
+                        [0.036, 0.035], TEAM, n=10,
+                        caps=("flat", "flat")))
+    return upper, fore
 
 
 def arm_pose(s, c, pole):
@@ -1138,9 +1351,9 @@ def build_arm(side):
         chir = 1
     e, w, xax = arm_pose(s, c, pole)
     kax = D_REST.cross(xax) if chir > 0 else xax.cross(D_REST)
-    pieces = sleeve(side, s, e, w, sx)
-    pieces += fist(f"{R}-hand{side}", c, xax, kax, chir)
-    return pieces, s, e, w
+    upper, fore = sleeve(side, s, e, w, sx)
+    fore += fist(f"{R}-hand{side}", c, xax, kax, chir)
+    return upper, fore, s, e, w
 
 
 # ------------------------------------------------------------- the rifle
@@ -1158,14 +1371,14 @@ def rifle_local():
     rings = []
     for y, zc, hz, hx in stock:
         rings.append([V(x, y, zc + z) for x, z, _ in
-                      rk.sup(10, hx, hz, 2.3, math.pi / 2)])
+                      rk.sup(14, hx, hz, 2.3, math.pi / 2)])
     P.append(rk.loft(f"{R}-stock", rings, WALNUT, start=None, end=None))
     # The brass crescent butt plate.
     last = stock[-1]
     plate = []
     for y, s in ((-0.146, 1.0), (-0.152, 1.04), (-0.157, 1.02)):
         plate.append([V(x * s, y - 0.005 * (z / last[2]) ** 2, last[1] + z * s)
-                      for x, z, _ in rk.sup(10, last[3], last[2], 2.3,
+                      for x, z, _ in rk.sup(14, last[3], last[2], 2.3,
                                             math.pi / 2)])
     P.append(rk.loft(f"{R}-buttplate", plate, BRASS, start=None, end="flat"))
     # The brass receiver, its steel loading gate on the right and a saddle
@@ -1184,12 +1397,17 @@ def rifle_local():
                                      V(0, -0.016, 0.07)],
                      [(0.0042, 0.007), (0.0038, 0.006), (0.0045, 0.006)],
                      STEEL, n=4, up=(0, 1, 0), caps=(None, "dome")))
-    # The lever: a loop under the wrist for the fingers.
+    # The lever (its own joint, `extra2`): a loop under the wrist for the
+    # fingers, hinged at its front pin; the game throws it open between
+    # shots.
     lever = [V(0, 0.038, -0.012), V(0, 0.028, -0.03), V(0, 0.006, -0.039),
              V(0, -0.02, -0.041), V(0, -0.048, -0.046), V(0, -0.068, -0.037),
              V(0, -0.07, -0.022), V(0, -0.055, -0.014)]
-    P.append(rk.tube(f"{R}-lever", lever, [0.0042] * len(lever), STEEL, n=4,
-                     caps=("dome", "dome")))
+    L = [rk.tube(f"{R}-lever", lever, [0.0046] * len(lever), STEEL, n=6,
+                 caps=("dome", "dome"))]
+    L.append(rk.tube(f"{R}-leverpin", [V(-0.0175, 0.038, -0.012),
+                                       V(0.0175, 0.038, -0.012)],
+                     [0.0052, 0.0052], STEEL, n=6, caps=("flat", "flat")))
     P.append(rk.tube(f"{R}-trigger", [V(0, 0.012, -0.012), V(0, 0.005, -0.03)],
                      [0.0026, 0.002], STEEL, n=4, caps=(None, "dome")))
     # Barrel (octagonal), magazine tube, walnut fore-end and fittings.
@@ -1207,7 +1425,7 @@ def rifle_local():
     for y, hz, hx in ((0.092, 0.024, 0.0182), (0.104, 0.0255, 0.0188),
                       (0.3, 0.024, 0.018), (0.322, 0.021, 0.0165)):
         fore.append([V(x, y, 0.015 + z) for x, z, _ in
-                     rk.sup(10, hx, hz, 2.4, math.pi / 2)])
+                     rk.sup(14, hx, hz, 2.4, math.pi / 2)])
     P.append(rk.loft(f"{R}-forend", fore, WALNUT, start="flat", end="flat"))
     P.append(rk.loft(f"{R}-forecap",
                      [[V(x, y, 0.018 + z) for x, z, _ in
@@ -1229,7 +1447,7 @@ def rifle_local():
                      0.002, DARK, matrix=rk.basis(V(1, 0, 0), V(0, 0, 1),
                                                   V(0, 1, 0),
                                                   V(0, 0.6436, bore))))
-    return P
+    return P, L
 
 
 # ------------------------------------------------------------- build
@@ -1254,25 +1472,52 @@ def build(root_name="ranger"):
     for side, sx, knee, ankle, out in (
             ("L", -1, V(-0.094, 0.022, 0.36), V(-0.108, 0.03, 0.085), 12),
             ("R", 1, V(0.094, -0.012, 0.36), V(0.11, -0.022, 0.085), 9)):
-        pieces, hip = leg(side, sx, knee, ankle, out)
-        part(f"leg{side}", pieces, hip, root)
+        thigh, shin, foot, hip = leg(side, sx, knee, ankle, out)
+        leg_obj = part(f"leg{side}", thigh, hip, root)
+        knee_obj = part(f"knee{side}", shin, knee, leg_obj)
+        part(f"foot{side}", foot, ankle, knee_obj)
 
     torso = [shirt(), hips()] + vest() + kerchief() + coat_upper() + \
         gun_belt()
     torso_obj = part("torso", torso, WAIST, root)
-    part("head", head(), NECK, torso_obj, angle=62)
+    part("beard", kerchief_point(), KPOINT_PIVOT, torso_obj, angle=70)
+    tails = part("cape2", kerchief_tails(), KNOT, torso_obj, angle=70)
+    kit.drape(tails)
+    # The skirt halves hang from the waist seam, pivots above each hip (at
+    # the hip's height, so turning them about x follows the thigh's arc).
+    for side, sx in (("L", -1), ("R", 1)):
+        # Smooth across the pipe folds: a swinging half turns them away
+        # from the light, and hard fold edges then read as dark patches.
+        half = part(f"skirt{side}", skirt(sx), V(sx * HIP_X, 0, HIP_Z),
+                    torso_obj, angle=80)
+        kit.drape(half, free=skirt_freedom(sx))
+    head_obj = face_rig.head(rk.part, R, head(), NECK, torso_obj, angle=62)
+    part("hat", hat_part(), HAT_PIVOT, head_obj, angle=50)
 
-    arm_r, s_r, _, _ = build_arm("R")
-    arm_r_obj = part("armR", arm_r, s_r, torso_obj)
-    gun = rifle_local()
+    up_r, fore_r, s_r, e_r, _ = build_arm("R")
+    arm_r_obj = part("armR", up_r, s_r, torso_obj)
+    fore_r_obj = part("foreR", fore_r, e_r, arm_r_obj)
+    gun, lever = rifle_local()
     rk.transform(gun, rifle_frame())
-    part("weapon", gun, GRIP, arm_r_obj, angle=40)
-    arm_l, s_l, _, _ = build_arm("L")
-    part("armL", arm_l, s_l, torso_obj)
+    rk.transform(lever, rifle_frame())
+    gun_obj = part("weapon", gun, GRIP, fore_r_obj, angle=40)
+    part("extra2", lever, rifle_point(*LEVER_PIN), gun_obj, angle=40)
+    up_l, fore_l, s_l, e_l, _ = build_arm("L")
+    arm_l_obj = part("armL", up_l, s_l, torso_obj)
+    part("foreL", fore_l, e_l, arm_l_obj)
+    print("RANGER elbows", tuple(round(c, 4) for c in e_r),
+          tuple(round(c, 4) for c in e_l))
+    print("RANGER rifle axes x", tuple(round(c, 5) for c in X_REST),
+          "y", tuple(round(c, 5) for c in D_REST),
+          "z", tuple(round(c, 5) for c in TOP_REST))
 
     report(root)
     pose = os.environ.get("RANGER_POSE")
     if pose in POSES:
+        # Knees first (figures.py then leaves the split legs alone), so the
+        # stride's knee and ankle turns can be posed too.
+        import articulation
+        articulation.legs(root, R)
         rk.apply_runtime(root, POSES[pose])
     return root
 
@@ -1305,6 +1550,44 @@ POSES = {
               "armR": (0.1, 0, 0), "armL": (0.1, 0, 0)},
     "walk4": {"legL": (-0.58, 0, 0), "legR": (0.58, 0, 0),
               "armR": (-0.1, 0, 0), "armL": (-0.1, 0, 0)},
+    # The game's stride (troops.ts at the Cowboy's style, springs settled):
+    # foot strike, the legs passing, toe-off of the back foot, the swing's
+    # highest knee and the other foot's strike, skirt halves following.
+    "strike": {
+        "legL": (0.394, 0, 0), "kneeL": (0, 0, 0), "footL": (-0.394, 0, 0),
+        "legR": (-0.263, 0, 0), "kneeR": (-0.032, 0, 0), "footR": (0.473, 0, 0),
+        "torso": (-0.127, 0.24, -0.008),
+        "armL": (0.133, 0, 0), "armR": (0.133, 0, 0),
+        "skirtL": (0.308, -0.12, -0.033), "skirtR": (-0.076, -0.12, 0.037),
+    },
+    "pass": {
+        "legL": (0, 0, 0), "kneeL": (-0.065, 0, 0), "footL": (0.065, 0, 0),
+        "legR": (0.44, 0, 0), "kneeR": (-0.95, 0, 0), "footR": (0.51, 0, 0),
+        "torso": (-0.1, -0.074, 0.025),
+        "armL": (-0.007, 0, 0), "armR": (-0.007, 0, 0),
+        "skirtL": (0.06, 0.037, -0.032), "skirtR": (0.306, 0.037, 0.023),
+    },
+    "lift": {
+        "legL": (0.582, 0, 0), "kneeL": (-0.672, 0, 0), "footL": (0.089, 0, 0),
+        "legR": (-0.131, 0, 0), "kneeR": (-0.056, 0, 0), "footR": (0.188, 0, 0),
+        "torso": (-0.11, 0.194, -0.02),
+        "armL": (0.167, 0, 0), "armR": (0.167, 0, 0),
+        "skirtL": (0.396, -0.097, -0.037), "skirtR": (-0.011, -0.097, 0.037),
+    },
+    "toeoff": {
+        "legL": (0.263, 0, 0), "kneeL": (-0.033, 0, 0), "footL": (-0.23, 0, 0),
+        "legR": (-0.394, 0, 0), "kneeR": (0, 0, 0), "footR": (0.394, 0, 0),
+        "torso": (-0.127, 0.194, 0.008),
+        "armL": (0.036, 0, 0), "armR": (0.036, 0, 0),
+        "skirtL": (0.234, -0.097, -0.037), "skirtR": (-0.157, -0.097, 0.033),
+    },
+    "strikeR": {
+        "legL": (-0.263, 0, 0), "kneeL": (-0.032, 0, 0), "footL": (0.473, 0, 0),
+        "legR": (0.394, 0, 0), "kneeR": (0, 0, 0), "footR": (-0.394, 0, 0),
+        "torso": (-0.127, -0.24, 0.008),
+        "armL": (-0.107, 0, 0), "armR": (-0.107, 0, 0),
+        "skirtL": (-0.076, 0.12, -0.037), "skirtR": (0.308, 0.12, 0.033),
+    },
 }
 
 

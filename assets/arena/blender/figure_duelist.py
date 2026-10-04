@@ -1,25 +1,35 @@
 """The Samurai (card id `duelist`) as a collector's miniature: a grown-up
 samurai in full armour, hand-painted resin with gloss-lacquered lames.
 
-A kabuto with a ribbed bowl, a flared shikoro and gold kuwagata horns; a
-black-iron menpo with a sculpted moustache under a stern face; a dō,
+A kabuto with a ribbed bowl, a flared shikoro, a broad gilt kuwagata U and
+a domed gold maedate; a stern face with a scowl and a great black
+handlebar moustache, the helmet's cream chin cord knotted under it; a dō,
 sode and kusazuri of stepped lacquered lames laced with raised cream
-cords; kote with iron splints; charcoal hakama with folds, haidate,
-suneate, tabi and straw waraji; a daishō scabbard on the left hip and the
-katana drawn, held two-handed in chūdan.
+cords; a thick twisted rope belt knotted at the front left; kote with iron
+splints and big fists on the hilt; charcoal hakama with folds, haidate,
+suneate, tabi and straw waraji; a daishō scabbard on the left hip, the
+katana drawn and held two-handed in chūdan, and a small team banner
+(sashimono) on the back.
 
-Part contract (figures.py / troops.py): the root empty `duelist` at the
-feet facing +y; `duelist.legL/R` pivot at the hips and carry the front and
-back tassets over the thighs; `duelist.torso` at the waist carries the
-side tassets, the head, both arms and the scabbards; `duelist.weapon` is
-the katana, a child of armR with its pivot in the right fist. Both
+Part contract (figures.py / moves/duelist.ts): the root empty `duelist` at
+the feet facing +y; `duelist.legL/R` pivot at the hips (articulation.py
+splits knees and feet); `duelist.torso` at the waist carries the head, both
+arms and the scabbards. Soft joints, all springing in the game:
+`skirtL/R` (each side's front, side and back tassets, pivoting under the
+belt), `tail` (the rope belt's two ends, from the knot), `cape` (the
+banner's pole and flag, pivoting in its bracket; the flag ripples, see
+kit.drape), `hat` (the shikoro, under the head), `beard` (the chin cord's
+knot and ends), `sleeveL/R` (the sode, under the arms). `duelist.weapon`
+is the katana, a child of armR with its pivot in the right fist. Both
 shoulders sit on one line along x, so turning both arms by the same angle
-about x keeps the left fist on the hilt through the whole cleave.
+about x keeps the left fist on the hilt through every blow.
 """
 
 import math
+import os
 
 import kit
+import face_rig
 import figure_duelist_kit as dk
 from figure_duelist_kit import V, lerp, clamp01, smooth, spow
 
@@ -28,11 +38,15 @@ from figure_duelist_kit import V, lerp, clamp01, smooth, spow
 TEAM = "lacquer:team"
 TEAM2 = "lacquer:team2"
 GOLD = "gilt:" + kit.tint("samurai-gold", "#c9a24a")
-CORD = "resin:" + kit.tint("samurai-cord", "#cfb57e")
+# The silk cords are painted cloth (the `drape` family): they share one
+# pot with the banner's crest, the only cord that ripples (kit.drape is
+# called on the banner alone; elsewhere the cords hold still).
+CORD = "drape:" + kit.tint("samurai-cord", "#d8bf86")
+FLAG = "drape:team"
 IRON = "lacquer:" + kit.tint("samurai-iron", "#24252b")
 STEEL = "gilt:" + kit.tint("samurai-steel", "#a9b1bb")
 HAMON = "gilt:" + kit.tint("samurai-hamon", "#e4e8ee")
-SKIN = "resin:" + kit.tint("samurai-skin", "#b8876a")
+SKIN = "resin:" + kit.tint("samurai-skin", "#e2ab87")
 WHISKER = "resin:" + kit.tint("samurai-whisker", "#9a9187")
 EYE = "resin:" + kit.tint("samurai-eye", "#1b1613")
 HAIR = EYE
@@ -300,6 +314,164 @@ def obi(t):
     return [belt, hips]
 
 
+def rope_ring(name, path, r, mat, n=6, strands=3, twist=1.1, depth=0.2):
+    """A closed twisted rope through `path` (a loop of points)."""
+    path = [V(p) for p in path]
+    m = len(path)
+    c = dk.Cage(name, mat)
+    rings = []
+    for i, p in enumerate(path):
+        tang = path[(i + 1) % m] - path[i - 1]
+        u, v = dk.frame_at(tang, (0, 0, 1))
+        ring = []
+        for k in range(n):
+            a = k / n * math.tau
+            rr = r * (1 + depth * math.cos(strands * a + i * twist))
+            ring.append(p + u * math.cos(a) * rr + v * math.sin(a) * rr)
+        rings.append(c.ring(ring))
+    for i in range(m):
+        c.bridge(rings[i], rings[(i + 1) % m])
+    return c.obj(levels=0, recalc=True)
+
+
+def rope_end(name, path, r, mat, n=6, twist=1.1, depth=0.2):
+    """An open twisted rope end, from `path[0]` to a frayed tassel."""
+    def wave(i, ang):
+        return 1 + depth * math.cos(3 * ang + i * twist)
+    pts = kit_path(path, 3)
+    radii = [lerp(r, r * 0.85, i / (len(pts) - 1)) for i in range(len(pts))]
+    return dk.tube(name, pts, radii, mat, n=n, levels=0,
+                   caps=("pole", "dome"), wave=wave)
+
+
+ROPE_Z = 0.62
+KNOT_A = math.radians(112)
+
+
+def rope_belt(t):
+    """The thick twisted cream rope over the belt, as on the card, knotted
+    at the front left. Its two ends hang from the knot on their own joint
+    (`tail`); the knot stays with the belt."""
+    path = [do_pt(i / 44 * math.tau, 0.615, 0.02) for i in range(44)]
+    for p in path:
+        p.z = ROPE_Z
+    pieces = [rope_ring(f"{t}-rope", path, 0.0145, CORD)]
+    knot = do_pt(KNOT_A, 0.615, 0.036)
+    knot.z = ROPE_Z - 0.004
+    pieces.append(dk.ball(f"{t}-ropeknot", 0.025, knot, CORD,
+                          scale=(1.15, 0.75, 0.95), seg=12, rings=7))
+    # Two fat loops of the bow either side of the knot.
+    out = V(math.cos(KNOT_A), math.sin(KNOT_A), 0)
+    across = V(-out.y, out.x, 0)
+    for sx in (-1, 1):
+        loop = [knot + across * sx * 0.016 + V(0, 0, 0.008),
+                knot + across * sx * 0.04 + out * 0.004 + V(0, 0, 0.024),
+                knot + across * sx * 0.06 + out * 0.002 + V(0, 0, 0.012),
+                knot + across * sx * 0.056 + V(0, 0, -0.012),
+                knot + across * sx * 0.03 - out * 0.002 + V(0, 0, -0.012),
+                knot + across * sx * 0.012 + V(0, 0, -0.004)]
+        pieces.append(dk.tube(f"{t}-ropeloop{sx}", kit_path(loop, 2),
+                              [0.0105] * 11, CORD, n=6, levels=0,
+                              caps=("pole", "pole")))
+    return pieces, knot
+
+
+def rope_ends(t, knot):
+    """The rope's two ends, hanging down over the front left tassets."""
+    pieces = []
+    for k, (da, length) in enumerate(((-7, 0.17), (6, 0.13))):
+        pts = []
+        for j in range(4):
+            f = j / 3
+            z = lerp(knot.z - 0.012, knot.z - length, f)
+            a = KNOT_A + math.radians(da * f)
+            # Out over the lames, which step out as they fall.
+            p = kusa_pt(a, z, 0.06 + 0.012 * f)
+            pts.append(p)
+        pts[0] = knot + V(0, 0, -0.01) + (pts[1] - knot) * 0.15
+        pieces.append(rope_end(f"{t}-ropeend{k}", pts, 0.0118, CORD))
+        tip = pts[-1] + (pts[-1] - pts[-2]).normalized() * 0.012
+        pieces.append(dk.ball(f"{t}-ropetassel{k}", 0.0135, tip, CORD,
+                              scale=(1, 1, 1.5), seg=8, rings=5))
+    return pieces
+
+
+# ------------------------------------------------------------- banner
+
+POLE = V(-0.085, -0.178, 0.0)
+BANNER_TOP, BANNER_BOTTOM, BANNER_W = 1.86, 1.55, 0.15
+
+
+def banner_mount(t):
+    """The sashimono's holders on the back of the dō: a cup at the waist
+    and a bracket at the shoulder blades."""
+    pieces = [dk.loft(f"{t}-ukezutsu",
+                      [dk.hring(z, r, r, 10, cx=POLE.x, cy=POLE.y)
+                       for z, r in ((0.655, 0.013), (0.66, 0.016),
+                                    (0.71, 0.016), (0.715, 0.013))],
+                      IRON, bands={0: GOLD, 2: GOLD}, start="flat",
+                      end="flat", levels=0)]
+    back = do_pt(-math.pi / 2 - 0.45, 0.975, 0.0)
+    pieces.append(dk.tube(f"{t}-gattari",
+                          [V(back.x + 0.02, back.y + 0.012, 0.975),
+                           V(POLE.x, POLE.y + 0.004, 0.975)],
+                          [(0.008, 0.013)] * 2, TEAM2, n=6, levels=0,
+                          caps=("flat", "flat"), up=(0, 0, 1)))
+    pieces.append(dk.loft(f"{t}-gattari-ring",
+                          [dk.hring(z, 0.015, 0.015, 10, cx=POLE.x,
+                                    cy=POLE.y)
+                           for z in (0.96, 0.99)],
+                          GOLD, start="flat", end="flat", levels=0))
+    return pieces
+
+
+def banner(t):
+    """The sashimono: a lacquered pole on the back carrying a narrow team
+    flag with a cream crest, hung from a crossbar on the pole's left. Its
+    own joint (`cape`, pivoting in the bracket) lets it whip and settle;
+    the flag ripples (kit.drape on the part)."""
+    pieces = [dk.tube(f"{t}-pole", [V(POLE.x, POLE.y, 0.70),
+                                    V(POLE.x, POLE.y, BANNER_TOP + 0.03)],
+                      [0.0085, 0.0075], IRON, n=8, levels=0,
+                      caps=("flat", "flat"))]
+    pieces.append(dk.ball(f"{t}-finial", 0.016,
+                          V(POLE.x, POLE.y, BANNER_TOP + 0.045), GOLD,
+                          scale=(1, 1, 1.5), seg=10, rings=6))
+    x0 = POLE.x - 0.009
+    pieces.append(dk.tube(f"{t}-crossbar",
+                          [V(x0 + 0.004, POLE.y, BANNER_TOP + 0.006),
+                           V(x0 - BANNER_W - 0.012, POLE.y,
+                             BANNER_TOP + 0.006)],
+                          [0.0058, 0.0052], IRON, n=6, levels=0,
+                          caps=("flat", "dome")))
+
+    def fl(u, v):
+        return V(x0 - u * BANNER_W, POLE.y, lerp(BANNER_TOP, BANNER_BOTTOM, v))
+
+    # Thickness grows forward (+y) from the back face at the pole's line.
+    pieces.append(dk.panel(f"{t}-flag", fl, 8, 11, FLAG, 0.006,
+                           inside=V(x0 - 0.08, POLE.y + 0.3, 1.5)))
+    # The crest, a cream disc on each face, rippling with the flag.
+    centre = fl(0.5, 0.45)
+    ring = [(x, y) for x, y, _ in dk.sup(14, 0.036, 0.036)]
+    for side, y0 in ((-1, POLE.y - 0.0003), (1, POLE.y + 0.0063)):
+        disc = dk.slab(f"{t}-crest{side}", ring, 0.0016, CORD)
+        dk.transform([disc], dk.basis(V(1, 0, 0), V(0, 0, 1),
+                                      V(0, side, 0),
+                                      V(centre.x, y0, centre.z)))
+        pieces.append(disc)
+    return pieces
+
+
+def banner_free(co):
+    """How free each point of the flag is: held along the pole and the
+    crossbar, free at the far bottom corner."""
+    x0 = POLE.x - 0.009
+    across = clamp01((x0 - co.x) / BANNER_W)
+    down = clamp01((BANNER_TOP - co.z) / (BANNER_TOP - BANNER_BOTTOM))
+    return min(1.0, across ** 0.9 * (0.25 + 0.75 * down ** 0.7) * 1.15)
+
+
 # ------------------------------------------------------------- tassets
 
 KUSA_BOTTOMS = [0.566, 0.522, 0.478, 0.434]
@@ -380,7 +552,7 @@ def leg(t, side, sx):
     path = [lerp(hip, knee, 0.42), lerp(hip, knee, 0.72),
             knee + V(0, 0.006, 0.004), knee + V(sx * 0.004, 0.0, -0.03),
             knee + V(sx * 0.006, -0.002, -0.052)]
-    radii = [0.096, 0.108, 0.11, 0.086, 0.06]
+    radii = [0.1, 0.116, 0.118, 0.09, 0.06]
     amps = [0.06, 0.13, 0.14, 0.1, 0.0]
     turn = 0.9 if sx > 0 else 0.0
 
@@ -491,14 +663,24 @@ def leg(t, side, sx):
     dk.transform([foot, sole, heel] + straps, rot)
     pieces += [foot, sole, heel] + straps
 
-    # The front and back tassets over this thigh ride with the leg.
-    if sx > 0:
-        pieces += tasset(t, f"kusaF{side}", 52, 88, cols=3)
-        pieces += tasset(t, f"kusaB{side}", 272, 308, cols=3)
-    else:
-        pieces += tasset(t, f"kusaF{side}", 92, 128, cols=3)
-        pieces += tasset(t, f"kusaB{side}", 232, 268, cols=3)
     return pieces, hip
+
+
+def kusazuri(t, side, sx):
+    """One side's tassets, front, side and back: the `skirt` joint over
+    that thigh, pivoting under the belt, so they trail the leg and swing
+    against the body's moves instead of riding the thigh rigidly."""
+    if sx > 0:
+        pieces = tasset(t, f"kusaF{side}", 52, 88, cols=3)
+        pieces += tasset(t, f"kusaB{side}", 272, 308, cols=3)
+        pieces += tasset(t, f"kusaS{side}", -49, 49, cols=4,
+                         cord_us=[-22, -17, 17, 22])
+    else:
+        pieces = tasset(t, f"kusaF{side}", 92, 128, cols=3)
+        pieces += tasset(t, f"kusaB{side}", 232, 268, cols=3)
+        pieces += tasset(t, f"kusaS{side}", 131, 229, cols=4,
+                         cord_us=[158, 163, 197, 202])
+    return pieces
 
 
 # ------------------------------------------------------------- head
@@ -552,8 +734,12 @@ def face_pt(a, z, off=0.0):
 
 
 def head(t):
+    """The head, the neck guard (`hat`, a soft joint under the head) and
+    the chin cord's knot and ends (`beard`)."""
     pieces = []
-    n = 16
+    hat = []
+    beard = []
+    n = 20
     angs = [i / n * math.tau for i in range(n)]
     rings = [[face_pt(a, z) for a in angs] for z, _, _ in FACE]
     pieces.append(dk.loft(f"{t}-face", rings, SKIN, start="pole",
@@ -561,59 +747,65 @@ def head(t):
     pieces.append(dk.tube(f"{t}-neck", [V(0, 0, 0.985), V(0, 0.004, 1.09)],
                           [0.052, 0.05], SLEEVE, n=12, levels=0,
                           caps=("flat", "flat")))
-    # Eyes: dark almond slits deep under the brow, and a stern brow.
+    # Open-faced kabuto: ivory eyes and a determined mouth on visible skin.
+    # The old full menpo hid the nose, cheeks and expression from the camera.
     for sx in (-1, 1):
         a = math.radians(90 - sx * 27)
-        at = face_pt(a, 1.177, -0.004)
-        pieces.append(dk.ball(f"{t}-eye{sx}", 0.0115, at, EYE,
-                              scale=(1.25, 0.55, 0.5), seg=8, rings=5))
-        brow = []
-        for g, z in ((10, 1.186), (26, 1.193), (42, 1.197)):
-            brow.append(face_pt(math.radians(90 - sx * g), z, 0.003))
-        pieces.append(dk.tube(f"{t}-brow{sx}", brow, [0.005, 0.0055, 0.004],
-                              HAIR, n=5, levels=0, caps=("pole", "pole")))
-
-    # Menpo: a black-iron mask from under the eyes round the chin, with a
-    # sculpted nose, a stern mouth slit, a pale horsehair moustache and a
-    # small chin tuft.
-    def mask(u, v):
-        a = math.radians(90 + u)
-        top = 1.163 + 0.007 * (abs(u) / 90) - 0.004 * math.exp(-(u / 9) ** 2)
-        z = lerp(top, 1.054, v)
-        off = 0.0065 + 0.004 * math.sin(v * math.pi)
-        p = face_pt(a, z, off)
-        g = abs(u)
-        # The nose piece stands proud; cheeks fuller; the chin firm.
-        if g < 14:
-            w = 1 - g / 14
-            p.y += 0.009 * w * math.exp(-((z - 1.142) / 0.016) ** 2)
-        if 20 < g < 70:
-            p += V(math.cos(a), math.sin(a), 0) * 0.004 * math.sin(
-                math.pi * (g - 20) / 50) * math.exp(-((z - 1.125) / 0.02)
-                                                     ** 2)
-        if v > 0.6:
-            p.y += 0.006 * (1 - g / 92) * (v - 0.6) / 0.4
-        return p
-
-    mus = [-92, -66, -42, -22, -8, 0, 8, 22, 42, 66, 92]
-    mvs = [0.0, 0.14, 0.3, 0.46, 0.62, 0.8, 1.0]
-    pieces.append(dk.panel(f"{t}-menpo", mask, mus, mvs, IRON, 0.006,
-                           inside=V(0, HEAD_CY, 1.12), rim_mat=IRON))
-    mouth = [mask(u, 0.56) + V(0, 0.0015, 0) for u in (-22, -8, 0, 8, 22)]
-    pieces.append(dk.tube(f"{t}-mouth", mouth,
-                          [0.002, 0.003, 0.0032, 0.003, 0.002], EYE, n=4,
-                          levels=0, caps=("pole", "pole")))
+        at = face_pt(a, 1.177, 0.003)
+        pieces.append(dk.ball(f"{t}-eye-white{sx}", 0.02, at,
+                              "resin:" + kit.tint("samurai-eyewhite", "#fff4de"),
+                              scale=(1.1, 0.55, 0.72), seg=12, rings=6))
+        pieces.append(dk.ball(f"{t}-pupil{sx}", 0.0098,
+                              at + V(-sx * 0.002, 0.009, 0.001), EYE,
+                              scale=(0.9, 0.5, 1.0), seg=10, rings=6))
+        # Heavy brows knitted into a scowl: low at the nose, high outside.
+        brow = [face_pt(math.radians(90 - sx * g), z, 0.005)
+                for g, z in ((5, 1.188), (17, 1.198), (31, 1.208),
+                             (46, 1.212))]
+        pieces.append(dk.tube(f"{t}-brow{sx}", brow,
+                              [0.006, 0.0095, 0.009, 0.0045], HAIR, n=6,
+                              levels=0, caps=("dome", "pole")))
+        # The great moustache: from under the nose, out over the cheeks,
+        # its ends swept up (the card's handlebar).
+        must = [face_pt(math.radians(90 - sx * g), z, off)
+                for g, z, off in ((1, 1.129, 0.013), (14, 1.123, 0.012),
+                                  (30, 1.111, 0.011), (46, 1.104, 0.012),
+                                  (59, 1.11, 0.016), (66, 1.127, 0.02))]
+        pieces.append(dk.tube(f"{t}-moustache{sx}",
+                              kit_path(must, 2),
+                              [0.0125, 0.0135, 0.0135, 0.012, 0.0105, 0.009,
+                               0.0075, 0.0062, 0.005, 0.004, 0.0032],
+                              HAIR, n=7, levels=0, caps=("dome", "pole")))
+        # The chin cord (shinobi-no-o) from inside the helmet down each
+        # cheek to the knot under the chin.
+        cord = [face_pt(math.radians(90 - sx * g), z, off)
+                for g, z, off in ((74, 1.205, 0.002), (66, 1.16, 0.006),
+                                  (52, 1.113, 0.007), (30, 1.078, 0.008))]
+        cord.append(V(sx * 0.012, HEAD_CY + 0.074, 1.066))
+        pieces.append(dk.tube(f"{t}-chincord{sx}", kit_path(cord, 2),
+                              [0.0062] * 9, CORD, n=6, levels=0,
+                              caps=("pole", "pole")))
+    # A gritted, down-turned mouth under the moustache.
+    mouth = [face_pt(math.radians(90 + a), z, 0.003)
+             for a, z in ((-17, 1.084), (-8, 1.091), (0, 1.0925),
+                           (8, 1.091), (17, 1.084))]
+    pieces.append(dk.tube(f"{t}-mouth", mouth, [0.0045, 0.006, 0.0065,
+                                                 0.006, 0.0045],
+                          EYE, n=6, levels=0, caps=("pole", "pole")))
+    # The chin cord's knot and its two short ends: `beard`, so they swing.
+    knot = V(0, HEAD_CY + 0.078, 1.064)
+    beard.append(dk.ball(f"{t}-chinknot", 0.0135, knot, CORD,
+                         scale=(1.25, 0.8, 0.9), seg=10, rings=6))
     for sx in (-1, 1):
-        pts = [mask(sx * g, v) + V(0, 0.004, 0) * (1 - g / 60)
-               for g, v in ((4, 0.41), (16, 0.44), (30, 0.5), (42, 0.6),
-                            (48, 0.72))]
-        pieces.append(dk.tube(f"{t}-moustache{sx}", pts,
-                              [0.0062, 0.0078, 0.007, 0.0052, 0.0026],
-                              WHISKER, n=5, levels=0, caps=("pole", "pole")))
-    tuft = [mask(0, 0.8) + V(0, 0.003, 0), mask(0, 0.95) + V(0, 0.006, 0),
-            mask(0, 1.0) + V(0, 0.004, -0.012)]
-    pieces.append(dk.tube(f"{t}-tuft", tuft, [0.007, 0.006, 0.0025],
-                          WHISKER, n=5, levels=0, caps=("pole", "pole")))
+        end = [knot + V(sx * 0.006, 0.004, -0.004),
+               knot + V(sx * 0.014, 0.014, -0.03),
+               knot + V(sx * 0.019, 0.022, -0.06)]
+        beard.append(dk.tube(f"{t}-chinend{sx}", end, [0.0062, 0.0058,
+                                                        0.0052],
+                             CORD, n=6, levels=0, caps=("pole", "pole")))
+        beard.append(dk.ball(f"{t}-chintip{sx}", 0.0075,
+                             knot + V(sx * 0.02, 0.023, -0.066), CORD,
+                             scale=(1, 1, 1.4), seg=6, rings=4))
     # Yodare-kake: two small laced lames hanging under the mask.
     def yk(u, v):
         a = math.radians(90 + u)
@@ -639,7 +831,7 @@ def head(t):
         for i in range(nb):
             a = i / nb * math.tau
             k = 1.0 if (i % 2 == 0 or z < 1.236 or r < 0.03) else 0.962
-            ring.append(V(math.cos(a) * r * k, cy + math.sin(a) * r * k, z))
+            ring.append(V(math.cos(a) * r * k, cy + math.sin(a) * r * k * (0.80 if math.sin(a) > 0 else 1), z))
         rings.append(ring)
     pieces.append(dk.loft(f"{t}-bowl", rings, TEAM2,
                           bands={0: GOLD, 1: GOLD}, start="flat", end="flat",
@@ -653,9 +845,9 @@ def head(t):
     # The visor (mabizashi) over the brow.
     def peak(u, v):
         a = math.radians(90 + u)
-        r = lerp(0.136, 0.176, v)
-        drop = 0.014 * v * v
-        return V(math.cos(a) * r, cy + math.sin(a) * r * 1.02,
+        r = lerp(0.136, 0.145, v)
+        drop = -0.025 * v * v
+        return V(math.cos(a) * r, cy + math.sin(a) * r * 0.76,
                  1.228 - drop - 0.004 * (abs(u) / 75) ** 2)
 
     pieces.append(dk.panel(f"{t}-peak", peak,
@@ -683,7 +875,7 @@ def head(t):
         return shik_pt(math.radians(u), z, off)
 
     us = [lerp(28, 152 - 360, i / 10) for i in range(11)]
-    pieces.append(dk.panel(f"{t}-shikoro", shik, us, list(range(len(prof))),
+    hat.append(dk.panel(f"{t}-shikoro", shik, us, list(range(len(prof))),
                            TEAM, 0.005,
                            faces=lambda i, j: GOLD if (prof[j][2] == "lip"
                                                        and j == last)
@@ -703,7 +895,7 @@ def head(t):
                 break
         return shik_pt(math.radians(u), z, best + 0.0005)
 
-    pieces += cords_on(f"{t}-shcord", ssurf,
+    hat += cords_on(f"{t}-shcord", ssurf,
                        [-20, -55, -90, -125, -160],
                        faces_z, 1.6, height=0.0024,
                        inside=lambda c: V(0, cy, c.z))
@@ -734,18 +926,20 @@ def head(t):
         mon = [(x, y) for x, y, _ in dk.sup(8, 0.011, 0.011)]
         pieces.append(dk.slab(f"{t}-mon{sx}", mon, 0.003, GOLD, matrix=m))
 
-    # Kuwagata: two tall gilt horns in a holder above the visor, opening
-    # fast so the raised fists pass between them, and a sun crest.
+    # Kuwagata: a broad gilt U standing from a holder above the visor,
+    # opening wide so the raised fists pass between its arms, and a domed
+    # gold disc (maedate) at its foot, as on the card.
     tilt = math.radians(8)
     up = V(0, math.sin(tilt), math.cos(tilt))
     fwdv = V(0, math.cos(tilt), -math.sin(tilt))
-    origin = V(0, cy + 0.152, 1.24)
+    # Seat the horn holder on the crown, clear of the elevated face sightline.
+    origin = V(0, cy + 0.102, 1.28)
     hm = dk.basis(V(1, 0, 0), up, fwdv, origin)
     for sx in (-1, 1):
-        centre = [(0.046, 0.018), (0.072, 0.042), (0.096, 0.08),
-                  (0.113, 0.128), (0.126, 0.182), (0.138, 0.235),
-                  (0.152, 0.272), (0.17, 0.296)]
-        widths = [0.044, 0.044, 0.04, 0.034, 0.028, 0.021, 0.013, 0.0]
+        centre = [(0.04, 0.016), (0.07, 0.036), (0.096, 0.07),
+                  (0.114, 0.116), (0.126, 0.168), (0.137, 0.22),
+                  (0.15, 0.262), (0.17, 0.293), (0.194, 0.31)]
+        widths = [0.064, 0.066, 0.062, 0.056, 0.05, 0.043, 0.034, 0.022, 0.0]
         left, right = [], []
         for k, ((x, y), w) in enumerate(zip(centre, widths)):
             a = centre[max(0, k - 1)]
@@ -758,15 +952,16 @@ def head(t):
         outline = right + list(reversed(left[:-1]))
         if sx < 0:
             outline = list(reversed(outline))
-        pieces.append(dk.slab(f"{t}-horn{sx}", outline, 0.007, GOLD,
-                              bevel=0.0022, matrix=hm))
-    holder = [(x, y) for x, y, _ in dk.sup(16, 0.066, 0.024, 3.2)]
-    pieces.append(dk.slab(f"{t}-horndai", holder, 0.009, GOLD,
+        pieces.append(dk.slab(f"{t}-horn{sx}", outline, 0.009, GOLD,
+                              bevel=0.003, matrix=hm))
+    holder = [(x, y) for x, y, _ in dk.sup(16, 0.07, 0.026, 3.2)]
+    pieces.append(dk.slab(f"{t}-horndai", holder, 0.011, GOLD,
                           matrix=dk.basis(V(1, 0, 0), up, fwdv,
                                           origin + V(0, -0.009, 0.004))))
-    sun = [(x, y + 0.058) for x, y, _ in dk.sup(10, 0.021, 0.021)]
-    pieces.append(dk.slab(f"{t}-sun", sun, 0.006, GOLD, matrix=hm))
-    return pieces
+    disc = origin + up * 0.042 + fwdv * 0.012
+    pieces.append(dk.ball(f"{t}-maedate", 0.031, disc, GOLD,
+                          scale=(1, 0.42, 1), seg=16, rings=8))
+    return pieces, hat, beard
 
 
 # ------------------------------------------------------------- arms
@@ -864,7 +1059,9 @@ def arm(t, side, sx, hand, pole):
     s = V(sx * SH_X, 0, SH_Z)
     e0 = dk.ik(s, hand, UPPER, FORE + 0.05, pole)
     fist_pieces, kn = fist(t, f"fist{side}", hand, hand - e0, sx)
-    w = hand - kn * 0.042
+    # Big cartoon fists that read on the hilt from the game camera.
+    dk.scale_about(fist_pieces, hand, 1.13)
+    w = hand - kn * 0.046
     e = dk.ik(s, w, UPPER, FORE, pole)
     pieces = list(fist_pieces)
     # Shoulder and upper sleeve: loose cloth with a few folds.
@@ -885,7 +1082,7 @@ def arm(t, side, sx, hand, pole):
                           rings=6))
     # Forearm: the kote's cloth with three iron splints and a gold cuff.
     fore = [e, lerp(e, w, 0.5), w]
-    pieces.append(dk.tube(f"{t}-fore{side}", fore, [0.044, 0.042, 0.034],
+    pieces.append(dk.tube(f"{t}-fore{side}", fore, [0.05, 0.048, 0.039],
                           KOTE, n=10, levels=0, caps=("dome", None)))
     fdir = (w - e).normalized()
     top = V(0, 0, 1) - fdir * fdir.z
@@ -899,8 +1096,8 @@ def arm(t, side, sx, hand, pole):
 
         def sp(u, v, nrm=nrm, tang=tang):
             c = lerp(e, w, lerp(0.16, 0.88, v))
-            r = lerp(0.047, 0.038, v)
-            wid = lerp(0.022, 0.018, v)
+            r = lerp(0.053, 0.043, v)
+            wid = lerp(0.025, 0.02, v)
             return c + nrm * r + tang * (u - 0.5) * wid
 
         pieces.append(dk.panel(f"{t}-kote{side}{k}", sp, [0.0, 0.5, 1.0],
@@ -908,10 +1105,10 @@ def arm(t, side, sx, hand, pole):
                                inside=lerp(e, w, 0.5), rim_mat=GOLD))
     pieces.append(dk.tube(f"{t}-cuff{side}", [w - fdir * 0.012,
                                                w + fdir * 0.004],
-                          [0.041, 0.04], GOLD, n=12, levels=0,
+                          [0.046, 0.045], GOLD, n=12, levels=0,
                           caps=(None, None)))
-    pieces += sode(t, sx)
-    return pieces, s
+    # The sode hang from the shoulder on their own joint (`sleeve`).
+    return pieces, s, sode(t, sx)
 
 
 # ------------------------------------------------------------- katana
@@ -1059,18 +1256,26 @@ def build(root_name="duelist"):
         pieces, hip = leg(t, side, sx)
         dk.part(t, f"leg{side}", pieces, hip, root)
 
-    torso = cuirass(t) + upper_body(t) + agemaki(t) + obi(t)
-    torso += tasset(t, "kusaSR", -49, 49, cols=4,
-                    cord_us=[-22, -17, 17, 22])
-    torso += tasset(t, "kusaSL", 131, 229, cols=4,
-                    cord_us=[158, 163, 197, 202])
-    torso += scabbards(t)
+    belt, knot = rope_belt(t)
+    torso = cuirass(t) + upper_body(t) + agemaki(t) + obi(t) + belt
+    torso += banner_mount(t) + scabbards(t)
     torso_obj = dk.part(t, "torso", torso, WAIST, root)
+    for side, sx in (("L", -1), ("R", 1)):
+        dk.part(t, f"skirt{side}", kusazuri(t, side, sx),
+                V(sx * 0.085, 0, 0.62), torso_obj)
+    dk.part(t, "tail", rope_ends(t, knot), knot, torso_obj)
+    pivot = V(POLE.x, POLE.y, 0.975)
+    flag = dk.part(t, "cape", banner(t), pivot, torso_obj)
+    kit.drape(flag, free=lambda co: banner_free(co + pivot))
 
-    dk.part(t, "head", head(t), NECK, torso_obj)
+    face, hat, beard = head(t)
+    head_obj = face_rig.head(dk.part, t, face, NECK, torso_obj)
+    dk.part(t, "hat", hat, V(0, HEAD_CY, 1.225), head_obj)
+    dk.part(t, "beard", beard, V(0, HEAD_CY + 0.078, 1.064), head_obj)
 
-    arm_r, s_r = arm(t, "R", 1, HAND_R, V(0.55, 0.0, 0.62))
+    arm_r, s_r, sode_r = arm(t, "R", 1, HAND_R, V(0.55, 0.0, 0.62))
     arm_r_obj = dk.part(t, "armR", arm_r, s_r, torso_obj)
+    dk.part(t, "sleeveR", sode_r, V(0.255, -0.004, 1.08), arm_r_obj)
     # Edge down, rolled a little outward so the flat of the blade catches
     # the high game camera.
     edge = V(0, 0, -1) + D * D.z
@@ -1083,6 +1288,37 @@ def build(root_name="duelist"):
     dk.transform(blade, m)
     dk.part(t, "weapon", blade, GRIP, arm_r_obj)
 
-    arm_l, s_l = arm(t, "L", -1, HAND_L, V(-0.55, 0.0, 0.62))
-    dk.part(t, "armL", arm_l, s_l, torso_obj)
+    arm_l, s_l, sode_l = arm(t, "L", -1, HAND_L, V(-0.55, 0.0, 0.62))
+    arm_l_obj = dk.part(t, "armL", arm_l, s_l, torso_obj)
+    dk.part(t, "sleeveL", sode_l, V(-0.255, -0.004, 1.08), arm_l_obj)
+
+    if os.environ.get("DUELIST_REPORT"):
+        for o in kit.descendants(root):
+            if o.type == "MESH":
+                loc = o.matrix_world.translation
+                print(f"DUELIST {o.name:16s} ({loc.x:.3f}, {loc.y:.3f}, "
+                      f"{loc.z:.3f}) tris {dk.tris(o)} uv "
+                      f"{len(o.data.uv_layers)}")
+    pose = os.environ.get("DUELIST_POSE")
+    if pose in POSES:
+        dk.pose_root(root, t, POSES[pose])
     return root
+
+
+# Poses in three.js Euler terms (x, y about the vertical, z), as troops.ts
+# and moves/duelist.ts set them (a torso's x there is its negated bend),
+# for checking clearances in Blender: DUELIST_POSE=jodan.
+POSES = {
+    # The top of the big cut's wind-up: the blade over the back.
+    "jodan": {"armL": (2.3, 0, 0), "armR": (2.3, 0, 0), "weapon": (0.3, 0, 0),
+              "torso": (0.16, -0.3, 0.05), "head": (0.08, 0.25, 0),
+              "sleeveL": (-1.47, 0, -0.34), "sleeveR": (-1.47, 0, 0.34)},
+    # The cut's follow-through, low in front.
+    "cut": {"armL": (-0.4, 0, 0), "armR": (-0.4, 0, 0), "weapon": (0.3, 0, 0),
+            "torso": (-0.36, 0.3, -0.2), "head": (-0.2, -0.25, 0),
+            "skirtL": (0.3, 0, 0), "skirtR": (0.3, 0, 0)},
+    # The level sweep's coil to the right.
+    "coil": {"armL": (-0.15, 0, 0), "armR": (-0.15, 0, 0),
+             "weapon": (-0.6, 0, 0), "torso": (0.0, -0.9, 0),
+             "head": (0, 0.8, 0)},
+}

@@ -1,0 +1,134 @@
+[
+  {
+    "kind": 0,
+    "name": "Gyoza",
+    "source_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+    "card_unchanged": true,
+    "raw": {
+      "width": 1200,
+      "height": 1200,
+      "border_alpha_max": 0,
+      "opaque_pixels": 384362,
+      "sha256": "994858a86b4e0a381d34d195eeb55f07daccc84d337d64eb1431b03e3a71baa5",
+      "bytes": 880416
+    },
+    "exported": {
+      "width": 720,
+      "height": 540,
+      "border_alpha_max": 0,
+      "opaque_pixels": 199765,
+      "sha256": "71a59deda378099741c6d7e50deb5c8cb3f8398c72ad46c37d00be21fb958ea2",
+      "bytes": 207950
+    }
+  },
+  {
+    "kind": 1,
+    "name": "Ramen",
+    "source_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+    "card_unchanged": true,
+    "raw": {
+      "width": 1200,
+      "height": 1200,
+      "border_alpha_max": 0,
+      "opaque_pixels": 566044,
+      "sha256": "89ceda26ba9cfb87352ea2e4ae4d611990442f9061b617932595611ed9cb8573",
+      "bytes": 1168725
+    },
+    "exported": {
+      "width": 720,
+      "height": 540,
+      "border_alpha_max": 0,
+      "opaque_pixels": 174210,
+      "sha256": "9d65c461981a01a0ff2942aa418545251b6fda2f01ff9b73be458b9bf0dd68bf",
+      "bytes": 220182
+    }
+  },
+  {
+    "kind": 2,
+    "name": "Yakitori",
+    "source_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+    "card_unchanged": true,
+    "raw": {
+      "width": 1200,
+      "height": 1200,
+      "border_alpha_max": 0,
+      "opaque_pixels": 332331,
+      "sha256": "fb30b00eeeeb651219905224ad3bb9a77ce11a1f80969a728f1f7f9ec8710f35",
+      "bytes": 790653
+    },
+    "exported": {
+      "width": 720,
+      "height": 540,
+      "border_alpha_max": 0,
+      "opaque_pixels": 168540,
+      "sha256": "ddbabfd56e05ac345b12ae7e768daf577b08269fb7807efbde5980bd3c3d345f",
+      "bytes": 169258
+    }
+  },
+  {
+    "kind": 3,
+    "name": "Pickles",
+    "source_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+    "card_unchanged": true,
+    "raw": {
+      "width": 1200,
+      "height": 1200,
+      "border_alpha_max": 0,
+      "opaque_pixels": 426063,
+      "sha256": "f03aa0a2be6ea534df01c9f7c279198bd5240bdbcdabc83ed6d1ab0b2fc6d680",
+      "bytes": 854745
+    },
+    "exported": {
+      "width": 720,
+      "height": 540,
+      "border_alpha_max": 0,
+      "opaque_pixels": 213741,
+      "sha256": "20b5c7c71b370ed70bdddcb351fc0bde38ce9f65808e6ecb6d6503f6a8682f3a",
+      "bytes": 208372
+    }
+  },
+  {
+    "kind": 4,
+    "name": "Takoyaki",
+    "source_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+    "card_unchanged": true,
+    "raw": {
+      "width": 1200,
+      "height": 1200,
+      "border_alpha_max": 0,
+      "opaque_pixels": 372782,
+      "sha256": "45898d58bf37788a0df5fb0c41ee6aaf004ab7ad0aa37d634113ac76eddba688",
+      "bytes": 918461
+    },
+    "exported": {
+      "width": 720,
+      "height": 540,
+      "border_alpha_max": 0,
+      "opaque_pixels": 165008,
+      "sha256": "d3ed624ffbf33b955d52fd22df9113e794a5e7c16e188280fe35bc2ad3bba9ab",
+      "bytes": 200536
+    }
+  },
+  {
+    "kind": 5,
+    "name": "Dango",
+    "source_sha256": "5cc6739ea0d9cbe21634807e0c784e1a0b91c6b00ea968664e1c40e8581aefc1",
+    "card_unchanged": true,
+    "raw": {
+      "width": 1200,
+      "height": 1200,
+      "border_alpha_max": 0,
+      "opaque_pixels": 524162,
+      "sha256": "16ed3305b549d31fa8a5b5d5efff6ce8b851ee2f6f39fa7ed0ae331777187ad6",
+      "bytes": 978760
+    },
+    "exported": {
+      "width": 720,
+      "height": 540,
+      "border_alpha_max": 0,
+      "opaque_pixels": 208949,
+      "sha256": "306e06585dfcec44cde580806f7128e2c25ffafa408bbb0c29877a6b4e4359ba",
+      "bytes": 185158
+    }
+  }
+]

@@ -1,0 +1,9 @@
+A very small local correction to this image: remove the overhanging LEFT edges of only the two LEFT islands.
+
+Keep all 23 cream pads exactly pixel-for-pixel where they are, same size, same colour. Keep all buildings, main stone arches, right edges, water, lighthouse, pier, mangroves and cave unchanged.
+
+On the middle-left sandy beach, replace the entire extra sand, plants, driftwood and stones LEFT of the leftmost square pads with turquoise paper water. The sea must come almost flush against the left edge of those cream squares: only a tiny 5–10 pixel sand rim may remain. Remove the diagonal driftwood plank that sticks out to the left. At every height of this beach island, the entire connected sand/stone/plant silhouette must start no farther left than x145 on this946pixel-wide image. This beach becomes visibly much narrower on its left side, while its pads and right side stay absolutely fixed.
+
+On the bottom-left rock-pool island, do exactly the same: replace all surplus rock, plants, and protruding rail pieces LEFT of the leftmost square pads with turquoise paper water. The sea must come almost flush against the leftmost cream squares: only a tiny5–10pixel stone rim remains. Every connected part of this island must start at x145 or farther right, including the lower-left rocks. Preserve its main complete stone arch and all five squares exactly.
+
+No other pixel changes. Native946×1663. No global redraw, no scaling, no moving any pad, no re-lighting. This is the removal of two small left-hand protrusions into the water, nothing else.

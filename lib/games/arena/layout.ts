@@ -7,9 +7,12 @@
  * whole field and its
  * walls on screen, level on both sides, centred in the room between the
  * top corners (the back button and clock float beside the far king) and
- * the hand; the far king's health bar is held on screen by the HUD. Wide screens tilt a little less with a wider lens so the field
- * fills the height and the valley fills the sides; the strip behind your
- * king may then sit under the hand.
+ * the hand; the far king's health bar is held on screen by the HUD.
+ * Wide screens (2 October 2026) turn the field a quarter: the camera stands
+ * off the near side wall and looks across it, your king at the left and the
+ * other at the right, so the field's long axis lies along the screen's and
+ * the battle fills the width instead of a narrow strip down the middle.
+ * The near wall's ends may then drop beside the hand.
  *
  * World axes (three.js): x across the field, y up, z towards you. Field tile
  * (x, y) sits at world (x - 9, 0, 16 - y).
@@ -37,16 +40,30 @@ export type Camera = {
   scale: number;
 };
 
-/** How the camera looks at the field: degrees of tilt and of lens. */
-export type Lens = { elevation: number; fov: number; wide: number };
+/** How the camera looks at the field: degrees of tilt and of lens, how
+ *  far towards the wide look it is, and whether it looks across the field
+ *  (`side`) rather than down it. */
+export type Lens = {
+  elevation: number;
+  fov: number;
+  wide: number;
+  side?: boolean;
+};
 const tall: Lens = { elevation: 70, fov: 26, wide: 0 };
 const wide: Lens = { elevation: 42, fov: 36, wide: 1 };
+const across: Lens = { elevation: 50, fov: 30, wide: 1, side: true };
 
-/** Tall free areas keep the steep view; wide ones blend to the low one. */
+/** The free area's width over height from which the camera looks across
+ *  the field: there the turned field is drawn larger. */
+export const SIDE_FROM = 1.3;
+
+/** Tall free areas keep the steep view looking down the field; wide ones
+ *  look across it; the few in between blend towards the lower look. */
 export function lensFor(frame: Frame): Lens {
   const free =
     (frame.width - (frame.left ?? 0) - (frame.right ?? 0)) /
     Math.max(1, frame.height - frame.top - frame.bottom);
+  if (free >= SIDE_FROM) return across;
   const k = Math.min(1, Math.max(0, (free - 0.95) / 0.65));
   const mix = (a: number, b: number) => a + (b - a) * k;
   return {
@@ -56,12 +73,13 @@ export function lensFor(frame: Frame): Lens {
   };
 }
 
-/** Figures grow 18% on every screen. Portrait phones
- *  look steeply down on a small screen, so their figures, rings, shots and
- *  bars grow; tall windows on bigger screens grow a little. */
+/** Figures grow 18% on every screen, and another 15% since 2 October 2026.
+ *  Portrait phones look steeply down on a small screen, so their figures,
+ *  rings, shots and bars grow; tall windows on bigger screens grow a
+ *  little. */
 export function troopScale(lens: Lens, phone: boolean) {
   const tallness = 1 - lens.wide;
-  return (1.75 + tallness * (phone ? 0.55 : 0.2)) * 1.18;
+  return (1.75 + tallness * (phone ? 0.55 : 0.2)) * 1.18 * 1.15;
 }
 
 /** Broader silhouettes from either end of the field, including previews. */
@@ -102,14 +120,57 @@ export const tallPoints: Vec3[] = [
   [2, 0, 15],
 ];
 
-/** The key points for a lens (the same on every screen). */
-export function pointsFor(_lens?: Lens): Vec3[] {
-  return tallPoints;
+/** Looking across the field: both side walls' tops end to end, every
+ *  tower's top and both kings whole. The near wall is sampled along its
+ *  length so its middle stays above the hand while its ends may drop
+ *  beside it. */
+export const acrossPoints: Vec3[] = [
+  [-10.3, 0.7, -17.2],
+  [-10.3, 0.7, 17.2],
+  ...[-17.2, -12, -6, 0, 6, 12, 17.2].map((z): Vec3 => [10.3, 0.7, z]),
+  [-5.5, 4.9, -9.5],
+  [5.5, 4.9, -9.5],
+  [-5.5, 4.9, 9.5],
+  [5.5, 4.9, 9.5],
+  [0, 5.4, -13],
+  [0, 5.4, 13],
+  [-1.8, 5.6, -14.8],
+  [1.8, 5.6, -14.8],
+  [-1.8, 5.6, 14.8],
+  [1.8, 5.6, 14.8],
+];
+
+/** The size towers are drawn at (their model's; the rules' footprint
+ *  either way). Since 3 October 2026 they stand taller than the troops:
+ *  1.05 looking across (0.8 before), 1.35 looking steeply down on portrait
+ *  screens, where the troops grow too and the towers take more of the
+ *  field. */
+export function towerScale(lens?: Lens) {
+  return 1.05 + (1 - (lens?.wide ?? 1)) * 0.3;
+}
+/** The tower tops in the key points were measured at 0.8. */
+const MEASURED_TOWERS = 0.8;
+
+/** The key points for a lens, the tower tops at its tower size. */
+export function pointsFor(lens?: Lens): Vec3[] {
+  const points = lens?.side ? acrossPoints : tallPoints;
+  const k = towerScale(lens) / MEASURED_TOWERS;
+  return points.map(([x, y, z]): Vec3 => [x, y > 3 ? y * k : y, z]);
 }
 
-/** The near ends of the side walls: on wide screens, where the hand covers
- *  only the middle, they may sit beside it, below its top edge. */
-export const isRim = ([x, , z]: Vec3) => z > 14 && Math.abs(x) > 9;
+/** The near ends of the side walls (the near wall, looking across): on
+ *  wide screens, where the hand covers only the middle, they may sit
+ *  beside it, below its top edge. */
+export const isRim = ([x, , z]: Vec3, lens?: Lens) =>
+  lens?.side ? x > 9 : z > 14 && Math.abs(x) > 9;
+
+/** Turns a world point into the frame the camera is solved in, where it
+ *  always looks down -z: looking across the field, a quarter turn puts the
+ *  near (+x) wall nearest and your end (+z) at the left. */
+const toSolve = ([x, y, z]: Vec3, lens: Lens): Vec3 =>
+  lens.side ? [-z, y, x] : [x, y, z];
+const fromSolve = ([x, y, z]: Vec3, lens: Lens): Vec3 =>
+  lens.side ? [z, y, -x] : [x, y, z];
 
 export const toWorld = (x: number, y: number): Vec3 => [x - 9, 0, 16 - y];
 export const toField = (wx: number, wz: number): [number, number] => [
@@ -147,7 +208,9 @@ export function fitCamera(frame: Frame, lens = lensFor(frame)): Camera {
   const { width, height } = frame;
   const fov = lens.fov;
   const elevation = (lens.elevation * Math.PI) / 180;
-  const points = pointsFor(lens);
+  const world = pointsFor(lens);
+  const points = world.map((p) => toSolve(p, lens));
+  const rims = world.map((p) => isRim(p, lens));
   const aspect = width / height;
   const left = frame.left ?? 0;
   const right = frame.right ?? 0;
@@ -179,12 +242,12 @@ export function fitCamera(frame: Frame, lens = lensFor(frame)): Camera {
     let maxX = -Infinity;
     let maxY = -Infinity;
     let below = Infinity;
-    for (const p of points) {
-      const [nx, ny] = project(p, pos, fov, aspect, elevation);
+    for (let i = 0; i < points.length; i++) {
+      const [nx, ny] = project(points[i], pos, fov, aspect, elevation);
       minX = Math.min(minX, nx);
       maxX = Math.max(maxX, nx);
       maxY = Math.max(maxY, ny);
-      const beside = dock && isRim(p) && (nx < dock[0] || nx > dock[1]);
+      const beside = dock && rims[i] && (nx < dock[0] || nx > dock[1]);
       below = Math.min(below, ny - (beside ? floor : y0));
     }
     return { minX, maxX, above: y1 - maxY, below };
@@ -220,20 +283,26 @@ export function fitCamera(frame: Frame, lens = lensFor(frame)): Camera {
   const depthAtTarget = distance;
   const tx = -midX * depthAtTarget * t * aspect;
   const position = place(distance, tz, tx);
-  // The HUD's size unit: the whole field's height on screen over 30 tiles.
+  // The HUD's size unit: the whole field's height on screen over 30 tiles,
+  // or, looking across, its width on screen (side wall to side wall) over
+  // 19.2 tiles.
   let lowY = Infinity;
   let highY = -Infinity;
   const nearZ = 16.7 - lens.wide * 2.2;
-  for (const [x, y, z] of keyPoints) {
+  const wallToWall: Vec3[] = [
+    [-9.6, 0, 0],
+    [9.6, 0, 0],
+  ];
+  for (const [x, y, z] of lens.side ? wallToWall : keyPoints) {
     const p: Vec3 = [x, y, z > 16 ? nearZ : z];
-    const [, ny] = project(p, position, fov, aspect, elevation);
+    const [, ny] = project(toSolve(p, lens), position, fov, aspect, elevation);
     lowY = Math.min(lowY, ny);
     highY = Math.max(highY, ny);
   }
-  const scale = ((highY - lowY) * (height / 2)) / 30;
+  const scale = ((highY - lowY) * (height / 2)) / (lens.side ? 19.2 : 30);
   return {
-    position,
-    target: [tx, 0, tz],
+    position: fromSolve(position, lens),
+    target: fromSolve([tx, 0, tz], lens),
     fov,
     scale,
   };

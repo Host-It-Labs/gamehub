@@ -66,3 +66,45 @@ A focused Chrome check confirmed the selected catalog and that Marimba flourish
 reaches its native ended event at 1.28 seconds. The host's ambient toggle was
 checked independently from effects; disabling ambience leaves current and
 subsequent effects playing. Physical-device audio acceptance remains separate.
+
+## September 28 auditions and balance
+
+Nox, Mora and Yata each have three pickup and three placement options in
+`audio-candidates.json`. Know Me and Quiz share another three of each;
+Folio shares their submit/reveal options and has no pickup, selection or
+cell-edit audio. A is the initial live action choice in each family. The
+universal Your turn stays Rising chimes (C), with five new candidates D–H.
+Final scores remains Marimba flourish.
+
+Mora and Yata play the local placement immediately. Their resolved table
+moves, bot placements, packet passes and automatic rolls stay silent, so
+resolution cannot echo that cue. Nox retains sounds for other seats' visible
+sequential card plays. Folio's accepted guess/group submissions sound; its
+puzzle-view changes and keyboard cell entries do not. A finished guess uses
+the reveal instead of a second submit cue.
+
+The refreshed Still canopy bed surrounds the listener with leaves, gentle
+air, insects and distant birds. Observatory branch snaps are removed from
+both catalogs. Calm coast combines light waves and coastal breeze, with
+additional gull recordings and grass rustle in the accent pool. Yata's
+Quiet restaurant replaces Slow simmer with distant chatter and tableware.
+These selected beds play in the games as well as the Lab. Older forest
+canopy and simmer sources are retained outside the active catalogs.
+
+`effectLevel` uses a 0.32 multiplier, down from 0.65. Fresh effects are
+mastered toward -24 dBFS mean level, backgrounds toward -20 dBFS, with a
+-8 dBFS limiter before MP3 encoding (encoded peaks are measured separately). The Lab uses the same effect level and leaves the
+world playing during effect auditions. Independent user volume controls can
+still mute or reduce a background; speaker listening is needed for final
+perceived balance. Background previews use 96 kbps MP3; action previews use
+128 kbps MP3. The sources remain untouched.
+
+Sources, exact final prompts, generation IDs and mastering data:
+`assets/audio/elevenlabs/2026-09-28/`. `briefs.json` preserves the initial
+briefs; `generation.json` records final corrected briefs and outputs.
+`python3 scripts/master-audio-candidates.py` remasters the retained sources.
+
+Lucky's three requested 180-second instrumental music takes all failed with
+**Insufficient funds**. Sunny pockets (jazz hop), Easy afternoon (acoustic)
+and Cloud lounge (downtempo) are saved briefs, not playable files. No music
+candidate has been selected or installed for Lucky.

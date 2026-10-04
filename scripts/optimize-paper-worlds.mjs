@@ -15,6 +15,8 @@ const worlds = [
     `lib/games/${name}.json`,
     (art) => tableVariants.filter((v) => v.game === art.game && v.orientation === (art.height > art.width ? 'portrait' : 'landscape')),
   ]),
+  // Yata's Mexican plaza has no candidate variants; the counter's belong to the night market.
+  ...['yata-plaza-landscape', 'yata-plaza-portrait', 'yata-plaza-phone'].map((name) => [`lib/games/${name}.json`, () => []]),
 ];
 for (const [f, variantsFor] of worlds) {
   const art = read(f);

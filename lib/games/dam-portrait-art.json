@@ -1,0 +1,326 @@
+{
+  "source": "/art/mora-dam-portrait-v1-b-ext.png",
+  "image": "/art/optimized/mora-dam-portrait-v1-b-ext.webp",
+  "boardImage": "/art/optimized/mora-dam-portrait-v1-b-ext-board.webp",
+  "width": 1284,
+  "height": 1986,
+  "crop": {
+    "left": 250,
+    "top": 241,
+    "width": 803,
+    "height": 1255
+  },
+  "landmarks": {
+    "roofTop": 130,
+    "protectedBounds": [
+      {
+        "name": "summit hut",
+        "bounds": [
+          250,
+          130,
+          330,
+          280
+        ]
+      },
+      {
+        "name": "cable car",
+        "bounds": [
+          720,
+          140,
+          410,
+          300
+        ]
+      },
+      {
+        "name": "spillway",
+        "bounds": [
+          330,
+          480,
+          640,
+          280
+        ]
+      },
+      {
+        "name": "reservoir",
+        "bounds": [
+          190,
+          790,
+          470,
+          310
+        ]
+      },
+      {
+        "name": "ice cave",
+        "bounds": [
+          720,
+          730,
+          410,
+          360
+        ]
+      },
+      {
+        "name": "turbine hall",
+        "bounds": [
+          330,
+          1100,
+          560,
+          440
+        ]
+      }
+    ]
+  },
+  "habitats": [
+    {
+      "zone": 0,
+      "bounds": [
+        270,
+        860,
+        282,
+        166
+      ],
+      "label": [
+        415,
+        1082
+      ],
+      "slots": [
+        [
+          315,
+          906
+        ],
+        [
+          414,
+          906
+        ],
+        [
+          513,
+          906
+        ],
+        [
+          310,
+          988
+        ],
+        [
+          411,
+          988
+        ],
+        [
+          513,
+          987
+        ]
+      ],
+      "tokenWidth": 64,
+      "summary": "*1·3·6·10* per kind"
+    },
+    {
+      "zone": 1,
+      "bounds": [
+        473,
+        1232,
+        285,
+        161
+      ],
+      "label": [
+        616,
+        1448
+      ],
+      "slots": [
+        [
+          513,
+          1278
+        ],
+        [
+          617,
+          1278
+        ],
+        [
+          719,
+          1278
+        ],
+        [
+          557,
+          1355
+        ],
+        [
+          668,
+          1355
+        ]
+      ],
+      "tokenWidth": 64,
+      "summary": "*Pair* 7 · lone −2"
+    },
+    {
+      "zone": 2,
+      "bounds": [
+        776,
+        261,
+        169,
+        150
+      ],
+      "label": [
+        863,
+        466
+      ],
+      "slots": [
+        [
+          816,
+          307
+        ],
+        [
+          901,
+          307
+        ],
+        [
+          819,
+          373
+        ],
+        [
+          906,
+          373
+        ]
+      ],
+      "tokenWidth": 64,
+      "summary": "Four *alike*: 16"
+    },
+    {
+      "zone": 3,
+      "bounds": [
+        386,
+        555,
+        510,
+        89
+      ],
+      "label": [
+        642,
+        698
+      ],
+      "slots": [
+        [
+          426,
+          606
+        ],
+        [
+          534,
+          602
+        ],
+        [
+          641,
+          601
+        ],
+        [
+          749,
+          603
+        ],
+        [
+          857,
+          605
+        ]
+      ],
+      "tokenWidth": 64,
+      "summary": "*Step* 1–5 if new"
+    },
+    {
+      "zone": 4,
+      "bounds": [
+        780,
+        892,
+        253,
+        152
+      ],
+      "label": [
+        908,
+        1100
+      ],
+      "slots": [
+        [
+          820,
+          938
+        ],
+        [
+          907,
+          938
+        ],
+        [
+          994,
+          939
+        ],
+        [
+          860,
+          1006
+        ],
+        [
+          956,
+          1006
+        ]
+      ],
+      "tokenWidth": 64,
+      "summary": "*Habitats* · max 3"
+    },
+    {
+      "zone": 6,
+      "bounds": [
+        282,
+        303,
+        260,
+        84
+      ],
+      "label": [
+        413,
+        442
+      ],
+      "slots": [
+        [
+          322,
+          349
+        ],
+        [
+          413,
+          349
+        ],
+        [
+          503,
+          349
+        ]
+      ],
+      "tokenWidth": 64,
+      "summary": "1 per *same*, max 4"
+    }
+  ],
+  "release": [
+    920,
+    1340
+  ],
+  "animation": {
+    "water": {
+      "polygon": [
+        [
+          220,
+          500
+        ],
+        [
+          340,
+          500
+        ],
+        [
+          460,
+          740
+        ],
+        [
+          430,
+          790
+        ],
+        [
+          270,
+          790
+        ]
+      ]
+    },
+    "foliage": []
+  },
+  "overview": {
+    "left": 200,
+    "top": 191,
+    "width": 903,
+    "height": 1355
+  },
+  "overviewImage": "/art/optimized/mora-dam-portrait-v1-b-ext-overview.webp"
+}

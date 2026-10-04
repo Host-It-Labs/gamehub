@@ -17,9 +17,8 @@ import {
   type PublicGame,
   type Move,
 } from '@/lib/games/trio/engine';
-/** The lock plate beside the hand for the two prepared choices: the cards
- *  you pass in Nox and a Secret Salvage claim. Every other move plays the
- *  moment its card is tapped or dropped. */
+/** The lock plate beside the hand for the cards you pass in Nox. Every
+ *  other move plays the moment its card is tapped or dropped. */
 export function MoveConfirmation({
   g,
   viewer,
@@ -38,48 +37,6 @@ export function MoveConfirmation({
   const choice: Move | null = passed.length
     ? { type: 'pass', cards: passed }
     : null;
-  const [salvageDraft, setSalvageDraft] = useState<{
-    key: string;
-    claim: boolean;
-  } | null>(null);
-  const key = `${g.round}:${g.pick}:${g.phase}`;
-  const salvageChoice = salvageDraft?.key === key ? salvageDraft.claim : null;
-
-  if (g.phase === 'salvage')
-    return canAct(g, viewer) ? (
-      <div
-        className="hand-confirmation salvage-decision"
-        data-game-motion="stage"
-        aria-label="Secret Salvage decision"
-      >
-        <button
-          className={salvageChoice === true ? 'primary' : 'secondary'}
-          aria-pressed={salvageChoice === true}
-          disabled={disabled}
-          onClick={() => setSalvageDraft({ key, claim: true })}
-        >
-          Claim · −6 / +3
-        </button>
-        <button
-          className={salvageChoice === false ? 'primary' : 'secondary'}
-          aria-pressed={salvageChoice === false}
-          disabled={disabled}
-          onClick={() => setSalvageDraft({ key, claim: false })}
-        >
-          Pass
-        </button>
-        <button
-          className="primary confirm-action"
-          disabled={disabled || salvageChoice === null}
-          onClick={() => {
-            if (salvageChoice !== null)
-              onConfirm({ type: 'salvage', claim: salvageChoice });
-          }}
-        >
-          Lock choice
-        </button>
-      </div>
-    ) : null;
   if (g.phase !== 'pass' || !canAct(g, viewer)) return null;
   return (
     <div className="hand-confirmation" data-game-motion="stage" aria-label="Lock your pass">
@@ -114,7 +71,7 @@ export function UndoChoice({ g, viewer, drafted, disabled = false, onUndo, onCle
   const committed = canUndo(g, viewer);
   return <><span ref={marker} hidden />{dock && createPortal(<button className="undo-choice" disabled={disabled || (!committed && !drafted)}
     onClick={committed ? onUndo : onClear}
-    title={committed ? 'Withdraw your choice before everyone finishes' : 'Clear your prepared move, including a migration'}>
+    title={committed ? 'Withdraw your choice before everyone finishes' : 'Clear your prepared move'}>
     <span aria-hidden="true">↶</span> Undo
   </button>, dock)}</>;
 }

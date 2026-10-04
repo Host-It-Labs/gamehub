@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import './game-progress.css';
 import './mobile-hud.css';
 
@@ -9,9 +10,12 @@ import './mobile-hud.css';
 export function GameProgress({
   label,
   round = false,
+  children,
 }: {
   label: string;
   round?: boolean;
+  /** Drawn after the label, e.g. a track of the whole match. */
+  children?: ReactNode;
 }) {
   return (
     <output
@@ -21,6 +25,7 @@ export function GameProgress({
       aria-label={label}
     >
       {label}
+      {children}
     </output>
   );
 }

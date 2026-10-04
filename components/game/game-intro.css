@@ -1,0 +1,152 @@
+/* The starting burst after a set's pick, about a second long: the game's
+ * colours flood in as a spinning sunburst, its mark pops, its name slams
+ * down, and the whole thing zooms past the camera. Each game adds its own
+ * motion on `.intro-<game>` below; Quiz has its own (quiz-intro.tsx). Colours come
+ * from --g-bg, --g-bg-2, --g-ink, --g-accent and --g-glow. */
+.game-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: clamp(8px, 2vh, 18px);
+  pointer-events: none;
+  overflow: hidden;
+  animation: intro-exit 1100ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+.game-intro-burst {
+  position: absolute;
+  /* Oversized so the turning rays never show a corner. */
+  inset: -60vmax;
+  background:
+    radial-gradient(circle at 50% 48%, var(--g-glow) 0 5%, transparent 22%),
+    repeating-conic-gradient(from 0deg at 50% 48%, var(--g-bg-2) 0deg 10deg, var(--g-bg) 10deg 20deg);
+  animation: intro-burst 1100ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.game-intro-mark {
+  position: relative;
+  width: min(42vmin, 240px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(5px 7px 0 #2b1a1266);
+  animation: intro-mark 1100ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.game-intro-mark .tribu-mark {
+  width: 100%;
+  height: 100%;
+}
+.game-intro-name {
+  position: relative;
+  padding: 0.12em 0.6em 0.1em;
+  border-radius: 0.4em;
+  background: var(--g-accent);
+  border: 3px solid var(--g-ink);
+  box-shadow: 5px 6px 0 var(--g-ink);
+  color: var(--g-ink);
+  font: 900 clamp(34px, 8vmin, 72px) / 1.05 var(--t-display, var(--s-display, system-ui));
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  animation: intro-name 1100ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes intro-exit {
+  0%, 74% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+@keyframes intro-burst {
+  0% { clip-path: circle(0% at 50% 48%); rotate: -40deg; }
+  22% { clip-path: circle(50% at 50% 48%); }
+  100% { clip-path: circle(50% at 50% 48%); rotate: 25deg; }
+}
+@keyframes intro-mark {
+  0%, 8% { opacity: 0; transform: scale(0.2) rotate(-25deg); }
+  34% { opacity: 1; transform: scale(1.08) rotate(4deg); }
+  48%, 100% { transform: none; }
+}
+@keyframes intro-name {
+  0%, 22% { opacity: 0; transform: translateY(40px) scale(0.7); }
+  42% { opacity: 1; transform: translateY(-4px) scale(1.06); }
+  54%, 100% { transform: none; }
+}
+
+/* Top Five: the ribbons race in one by one, the star spins onto the top. */
+.intro-orin .mark-rank { animation: intro-rank 1100ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.intro-orin .mark-rank-0 { animation-delay: 60ms; }
+.intro-orin .mark-rank-1 { animation-delay: 110ms; }
+.intro-orin .mark-rank-2 { animation-delay: 160ms; }
+.intro-orin .mark-rank-3 { animation-delay: 210ms; }
+.intro-orin .mark-rank-4 { animation-delay: 260ms; }
+.intro-orin .mark-star { animation: intro-star 1100ms ease-out both; }
+.intro-orin .game-intro-name { animation-name: intro-name-drop; }
+@keyframes intro-rank {
+  0% { opacity: 0; translate: -60px 0; }
+  30% { opacity: 1; translate: 4px 0; }
+  40%, 100% { translate: 0 0; }
+}
+@keyframes intro-star {
+  0%, 36% { opacity: 0; scale: 0; rotate: -180deg; }
+  56% { opacity: 1; scale: 1.6; rotate: 20deg; }
+  68%, 100% { scale: 1; rotate: 0deg; }
+}
+@keyframes intro-name-drop {
+  0%, 20% { opacity: 0; transform: translateY(-90px) rotate(-6deg); }
+  40% { opacity: 1; transform: translateY(6px) rotate(2deg); }
+  50% { transform: translateY(-3px); }
+  58%, 100% { transform: none; }
+}
+
+/* Dial: the needle whips across the arc and settles; the bulbs chase. */
+.intro-dial .mark-needle { animation: intro-needle 1100ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.intro-dial .mark-bulb { animation: intro-bulb 1100ms steps(1) both; }
+.intro-dial .mark-bulb-1 { animation-delay: 90ms; }
+.intro-dial .mark-bulb-2 { animation-delay: 180ms; }
+.intro-dial .game-intro-name { animation-name: intro-name-slide; }
+@keyframes intro-needle {
+  0%, 12% { rotate: -95deg; }
+  38% { rotate: 62deg; }
+  52% { rotate: -22deg; }
+  64%, 100% { rotate: 0deg; }
+}
+@keyframes intro-bulb {
+  0%, 20%, 40%, 60% { fill: #fff3a8; }
+  10%, 30%, 50% { fill: #e5482e; }
+  70%, 100% { fill: #fff3a8; }
+}
+@keyframes intro-name-slide {
+  0%, 22% { opacity: 0; transform: translateX(-120px) skewX(-18deg); }
+  42% { opacity: 1; transform: translateX(8px) skewX(6deg); }
+  54%, 100% { transform: none; }
+}
+
+/* Ten Coins: the stacks rise one after another, then the last coin falls,
+ * spinning, onto its pile; the name counts in with a bounce. */
+.intro-coins .mark-stack { transform-box: view-box; transform-origin: 32px 58px; animation: intro-stack 1100ms cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+.intro-coins .mark-stack-1 { animation-delay: 90ms; }
+.intro-coins .mark-stack-2 { animation-delay: 180ms; }
+.intro-coins .mark-drop { animation: intro-drop 1100ms cubic-bezier(0.5, 0, 0.6, 1.4) both; }
+.intro-coins .game-intro-name { animation-name: intro-name-bounce; }
+@keyframes intro-stack {
+  0%, 6% { scale: 1 0; opacity: 0; }
+  28% { scale: 1 1.12; opacity: 1; }
+  38%, 100% { scale: 1 1; }
+}
+@keyframes intro-drop {
+  0%, 30% { opacity: 0; translate: 0 -40px; scale: 1 1; }
+  36% { opacity: 1; scale: 0.2 1; }
+  42% { scale: 1 1; }
+  48% { scale: 0.2 1; }
+  56% { translate: 0 0; scale: 1 1; }
+  62% { translate: 0 -4px; }
+  68%, 100% { translate: 0 0; }
+}
+@keyframes intro-name-bounce {
+  0%, 22% { opacity: 0; transform: translateY(60px) scale(0.6); }
+  38% { opacity: 1; transform: translateY(-10px) scale(1.08); }
+  46% { transform: translateY(3px) scale(0.98); }
+  54%, 100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-intro { display: none; }
+}

@@ -51,27 +51,6 @@ for (const id of ['wildgrove', 'midnight']) for (const contentSet of ['beginner'
   });
 }
 
-await test('preview includes Mora migration, Roam and release without spending resources in authoritative state', () => {
-  for (const zone of [0, 5, 6]) {
-    const g = draft('wildgrove', 3, { migration: true, roamEnabled: true });
-    g.players[0].zones[1] = [{ id: 900, kind: 0, rank: 0 }];
-    g.players[0].migrations = 1;
-    g.players[0].roams = 1;
-    const move = legalMoves({ ...g, active: 0 }).find(m => m.migration && m.zone === zone);
-    assert.ok(move);
-    const before = structuredClone(g);
-    const preview = previewPlacement(g, 0, move);
-    assert.equal(preview.players[0].migrations, 0);
-    assert.equal(preview.players[0].roams, move.roam ? 0 : 1);
-    assert.equal(preview.players[0].zones.flat().filter(c => c.id === 900).length, 1);
-    assert.equal(preview.players[0].zones.flat().filter(c => c.id === move.card).length, zone === 5 ? 0 : 1);
-    let resolved = play(g, move, 0);
-    for (const actor of [1, 2]) resolved = play(resolved, legalMoves({ ...resolved, active: actor })[0], actor);
-    assert.deepEqual(preview.players[0].zones, resolved.players[0].zones);
-    assert.deepEqual(g, before);
-  }
-});
-
 await test('Mora Roam preview spends its token only in the private copy', () => {
   const g = draft('wildgrove', 3, { roamEnabled: true });
   g.roller = 1;

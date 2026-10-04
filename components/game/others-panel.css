@@ -143,6 +143,16 @@ html .at-table .table-layout.world-table[data-environment='market'] .table-other
 .others-card .sanctuary-goal-medal > svg, .others-card .sanctuary-goal-creature { width: 20px; height: 20px; }
 .others-card .sanctuary-goal-reward { min-width: 16px; height: 14px; font-size: 9px; }
 .others-card .sanctuary-goal-count { font-size: 10px; }
+/* Mora keeps both use counters beside the goals, even in a two-column phone card. */
+.others-panel[data-game='wildgrove'] .player-resources.compact { flex-wrap: nowrap; gap: 6px; }
+.others-panel[data-game='wildgrove'] .nature-reserves { flex: 0 0 auto; flex-wrap: nowrap; gap: 3px; }
+.others-panel[data-game='wildgrove'] .others-card .nature-reserves > div {
+  flex-direction: column; gap: 1px; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; font-size: 10px; line-height: 1.1;
+}
+.others-panel[data-game='wildgrove'] .nature-reserves dt svg { width: 14px; height: 14px; }
+.others-panel[data-game='wildgrove'] .player-resources > .piece-wrap { flex: 1; min-width: 0; }
+.others-panel[data-game='wildgrove'] .sanctuary-goals { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: space-evenly; gap: 6px; }
+.others-panel[data-game='wildgrove'] .piece-wrap > .sanctuary-goals { width: 100%; }
 /* Yata: stall permits are the stall itself with the number left. */
 .stall-permits.stall-permits.stall-permits {
   position: relative; min-height: 0; padding: 0; border: 0; background: none; gap: 0;
@@ -216,35 +226,12 @@ html .at-table .table-layout.world-table[data-environment='market'] .table-other
 .market-world.mini-market > .market-board.counter-board.mini-board {
   inset: 0; width: 100%; height: 100%; min-height: 0; border-radius: 0; padding: 4% 3.5% 4.5%; gap: 6% 3%;
 }
-.mini-market .counter-board.mini-board .serving-dish {
-  border-width: 2px;
-  box-shadow: 0 0 0 3px var(--plate-ring), 0 0 0 4px #1d1a1f, 0 4px 0 4px #7a1410, 0 7px 8px #0008;
-}
-.mini-market .counter-board.mini-board .serving-dish > div { display: block; padding: 7% 10% 12%; }
-.mini-market .counter-board.mini-board .serving-dish strong { display: none; }
-.mini-market .counter-board.mini-board .dish-stack { height: 100%; min-height: 0; }
-.mini-market .counter-board.mini-board .stack-layer { --dish-spread: 4px; width: auto; height: 100%; max-width: 100%; aspect-ratio: 72 / 66; }
-.mini-market .counter-board.mini-board .collection-score {
-  position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); z-index: 11; margin: 0; padding: 0 6px;
-  white-space: nowrap; font-size: 10px; line-height: 14px; border-width: 1.5px;
-}
-.mini-market .counter-board.mini-board .quantity { top: 0; right: 4%; padding: 0 4px; font-size: 10px; line-height: 14px; border-width: 1.5px; }
 /* Where a stall opened: the stall sign, big enough to spot at a glance. */
 .mini-market .counter-board.mini-board .dish-permit {
   top: -8%; left: -3%; right: auto; gap: 2px; padding: 2px 5px 2px 3px; border-radius: 8px; font-size: 12px; font-weight: 900; line-height: 1;
 }
 .mini-market .counter-board.mini-board .dish-permit svg { width: 20px; height: 20px; }
 .mini-market[data-paper-world='phone'] > .market-board.counter-board.mini-board { padding: 5% 4% 6%; gap: 0; }
-.mini-market[data-paper-world='phone'] .counter-board.mini-board .serving-dish {
-  --cell: calc(min(100cqw / 3, 50cqh) - 6px);
-  box-shadow: 0 0 0 2px var(--plate-ring), 0 0 0 3px #1d1a1f, 0 3px 0 3px #7a1410, 0 5px 6px #0008;
-}
-.mini-market[data-paper-world='phone'] .counter-board.mini-board .serving-dish > div { display: block; padding: 10%; }
-.mini-market[data-paper-world='phone'] .counter-board.mini-board .stack-layer { width: calc(var(--cell) * .66); height: calc(var(--cell) * .66); aspect-ratio: auto; }
-.mini-market[data-paper-world='phone'] .counter-board.mini-board .collection-score {
-  position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); z-index: 11; white-space: nowrap; font-size: 9px; line-height: 12px; padding: 0 4px;
-}
-.mini-market[data-paper-world='phone'] .counter-board.mini-board .quantity { top: -2px; right: -2px; font-size: 9px; line-height: 12px; padding: 0 3px; }
 /* Phone plates are small: the stall sign sits on the rim, icon only, clear of the dish. */
 .mini-market[data-paper-world='phone'] .counter-board.mini-board .dish-permit {
   top: -7px; left: -7px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%;
@@ -280,6 +267,11 @@ html .at-table .table-layout.world-table[data-environment='market'] .table-other
   .stall-permits dt svg { width: 15px; height: 15px; }
   .all-boards-modal[data-game='midnight'] .others-card { border-width: 2px; box-shadow: 0 3px 0 #1d1a1f, 0 8px 16px #0008; }
   .others-card .festival-preview-menus { gap: 4px; zoom: .78; }
+}
+
+/* Very narrow phones keep readable goals and both counters on one line. */
+@media (max-width: 360px) {
+  .all-boards-modal[data-game='wildgrove'] .others-grid { --cols: 1; }
 }
 
 /* The same six-stop route as the counter; matches replace dishes with ticks. */

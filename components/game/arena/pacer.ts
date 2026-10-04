@@ -28,8 +28,8 @@ export function ladder(full: number, min: number): Rung[] {
   const rungs: Rung[] = [
     { resolution: 1, shadowEvery: 1, shadowSize: full },
     { resolution: 1, shadowEvery: 2, shadowSize: full },
-    { resolution: 0.85, shadowEvery: 2, shadowSize: full },
-    { resolution: 0.72, shadowEvery: 2, shadowSize: full },
+    { resolution: 1, shadowEvery: 2, shadowSize: Math.min(full, 2048) },
+    { resolution: 0.85, shadowEvery: 2, shadowSize: Math.min(full, 2048) },
     { resolution: 0.72, shadowEvery: 2, shadowSize: Math.min(full, 2048) },
     { resolution: 0.6, shadowEvery: 2, shadowSize: Math.min(full, 2048) },
     { resolution: 0.5, shadowEvery: 2, shadowSize: Math.min(full, 2048) },

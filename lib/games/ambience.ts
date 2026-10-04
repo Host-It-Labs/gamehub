@@ -1,5 +1,14 @@
-import type { GameId as TrioGameId } from './trio/engine';
-type GameId = TrioGameId | 'orin' | 'miro' | 'dial' | 'size';
+import type { ContentSet, GameId as TrioGameId } from './trio/engine';
+type GameId =
+  | TrioGameId
+  | 'orin'
+  | 'miro'
+  | 'dial'
+  | 'size'
+  | 'coins'
+  | 'year'
+  | 'order'
+  | 'impostor';
 
 /**
  * Ambient soundscapes are assembled at play time from small pieces, so a
@@ -28,7 +37,7 @@ export type AmbienceEvent = {
 export type Ambience = {
   id: GameId;
   world: string;
-  /** Overall level ceiling; the environment sits well under the cues. */
+  /** Overall environmental level; action effects sit below the background. */
   level: number;
   beds: AmbienceBed[];
   /** Seconds of silence between one-shots, drawn uniformly. */
@@ -80,8 +89,6 @@ export const ambiences: Ambience[] = [
       ['crow-1', 0.3, 0.5, [-1, 1], 40],
       ['crow-2', 0.3, 0.4, [-1, 1], 40],
       ['owl', 0.3, 0.2, [-0.6, 0.6], 30],
-      ['branch-1', 0.45, 0.5, [-0.7, 0.7], 80],
-      ['branch-2', 0.45, 0.4, [-0.7, 0.7], 80],
       ['leaves', 0.4, 0.6, [-0.5, 0.5], 40],
       ['frog', 0.35, 0.4, [-0.9, 0.9], 60],
     ],
@@ -147,8 +154,37 @@ const coast = world('wildgrove' as GameId, 'coast', 0.58,
     ['wash', 0.3, 0.7, [-0.6, 0.6], 15],
   ]);
 ambiences.push(coast);
-export function ambienceFor(id: GameId | null | undefined, contentSet?: 'beginner' | 'intermediate') {
+// Sunset Motel and Glacier Dam: wind built from the forest recordings until they get their own.
+const desert = world('wildgrove' as GameId, 'desert', 0.5, [], [18, 36], []);
+desert.beds = [{ src: '/audio/ambience/forest/breeze.m4a', label: 'Desert wind', gain: 0.8 }];
+desert.events = [{ src: '/audio/ambience/forest/leaves.m4a', label: 'Dry brush', gain: 0.14, weight: 1, pan: [-0.7, 0.7], detune: 30 }];
+const alpine = world('wildgrove' as GameId, 'alpine', 0.5, [], [18, 36], []);
+alpine.beds = [{ src: '/audio/ambience/forest/breeze.m4a', label: 'Mountain wind', gain: 0.9 }];
+alpine.events = [{ src: '/audio/ambience/forest/leaves.m4a', label: 'Pines in the wind', gain: 0.14, weight: 1, pan: [-0.7, 0.7], detune: -40 }];
+// The selected fresh recordings carry the whole setting, with quiet varied accents.
+for (const ambience of ambiences) {
+  if (ambience.world === 'forest') {
+    ambience.beds = [{ src: '/audio/elevenlabs/mora-canopy-v2.mp3', label: 'Still canopy', gain: 0.85 }];
+    ambience.level = 0.65;
+  } else if (ambience.world === 'street') {
+    ambience.beds = [{ src: '/audio/elevenlabs/yata-restaurant-v2.mp3', label: 'Quiet restaurant', gain: 0.85 }];
+    ambience.events = ambience.events.filter((event) => !/wok|scooter|bike|flute/.test(event.src));
+    ambience.level = 0.6;
+  } else if (ambience.world === 'coast') {
+    ambience.beds = [{ src: '/audio/elevenlabs/mora-coast-v2.mp3', label: 'Calm coast', gain: 0.85 }];
+    ambience.events.push(
+      { src: '/audio/ambience/ship/gull-1.m4a', label: 'Passing gull', gain: 0.18, weight: 0.65, pan: [-0.9, 0.9], detune: 20 },
+      { src: '/audio/ambience/ship/gull-2.m4a', label: 'Distant gulls', gain: 0.15, weight: 0.65, pan: [-0.8, 0.8], detune: 15 },
+      { src: '/audio/ambience/forest/leaves.m4a', label: 'Breeze in dune grass', gain: 0.16, weight: 0.8, pan: [-0.5, 0.5], detune: 10 },
+    );
+  }
+  // Accents punctuate the bed without overtaking the surrounding world.
+  if (ambience.world !== 'ship') ambience.events = ambience.events.map((event) => ({ ...event, gain: Math.min(event.gain, 0.25) }));
+}
+export function ambienceFor(id: GameId | null | undefined, contentSet?: ContentSet) {
   if (id === 'wildgrove' && contentSet === 'intermediate') return coast;
+  if (id === 'wildgrove' && contentSet === 'desert') return desert;
+  if (id === 'wildgrove' && contentSet === 'alpine') return alpine;
   return ambiences.find((a) => a.id === id);
 }
 

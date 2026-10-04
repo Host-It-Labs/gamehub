@@ -4,15 +4,14 @@ import {
   Anchor,
   Award,
   Check,
+  Coins,
   Footprints,
   Info,
-  MoveRight,
-  Puzzle,
+  Crown,
   ReceiptText,
-  Shield,
   Store,
   Sun,
-  Waves,
+  Sunrise,
   type LucideIcon,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -20,22 +19,27 @@ import { NewExtensionRules } from './new-extensions';
 import { AbilityRules, CustomerOrderRules } from './extension-rules';
 import { WildTrailsRules } from './mora-extension';
 import { Piece } from './interactions';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { SetupRow } from './setup-row';
+import { RadioGroupItem } from '@/components/ui/radio-group';
+import { ExtensionRow, SetChoiceRow } from './setup-pages';
 import {
   foodsFor,
+  seatRange,
   tokenImage,
+  yataContentSets,
+  yataMenuLevels,
+  yataMenuNames,
+  yataRounds,
+  yataWorldFor,
   type ContentSet,
   type GameId,
   type GameOptions,
 } from '@/lib/games/trio/engine';
 type Choices = GameOptions & {
-  shields?: boolean;
   customerOrders?: boolean;
   sanctuaryGoalsEnabled?: boolean;
 };
 /** One extension: a switch-like toggle (long-press or I for rules) and an info mark. */
-function ExtensionChoice({
+export function ExtensionChoice({
   title,
   Icon,
   enabled,
@@ -116,14 +120,14 @@ function setCards(id: GameId): { label: string; cards: SetCard[] } {
         {
           value: 'normal',
           name: 'Normal',
-          meta: 'Cards 1 to 10',
-          preview: <DeckFan faces={[1, 6, 10]} />,
+          meta: 'Cards to 10 · Storm to 20',
+          preview: <DeckFan faces={[1, 10, 20]} />,
         },
         {
           value: 'fast',
           name: 'Fast',
-          meta: 'Cards 1 to 5',
-          preview: <DeckFan faces={[1, 3, 5]} />,
+          meta: 'Cards to 5 · Storm to 10',
+          preview: <DeckFan faces={[1, 5, 10]} />,
         },
       ],
     };
@@ -147,14 +151,30 @@ function setCards(id: GameId): { label: string; cards: SetCard[] } {
             <BoardPreview src="/art/optimized/mora-floodline-preview-v1.webp" />
           ),
         },
+        {
+          value: 'desert',
+          name: 'Sunset Motel',
+          meta: 'Intermediate · 3 rounds',
+          preview: (
+            <BoardPreview src="/art/optimized/mora-motel-preview-v1.webp" />
+          ),
+        },
+        {
+          value: 'alpine',
+          name: 'Glacier Dam',
+          meta: 'Advanced · 4 rounds',
+          preview: (
+            <BoardPreview src="/art/optimized/mora-dam-preview-v1.webp" />
+          ),
+        },
       ],
     };
   return {
     label: 'Menu',
-    cards: (['beginner', 'intermediate'] as const).map((set) => ({
+    cards: yataContentSets.map((set) => ({
       value: set,
-      name: set === 'beginner' ? 'After Hours' : 'Side B',
-      meta: set === 'beginner' ? 'Original scoring' : 'Alternate scoring',
+      name: yataMenuNames[set],
+      meta: `${yataMenuLevels[set]} · ${yataRounds(set)} rounds`,
       preview: <DishPreview set={set} />,
     })),
   };
@@ -177,7 +197,7 @@ function BoardPreview({ src }: { src: string }) {
 
 function DishPreview({ set }: { set: ContentSet }) {
   return (
-    <span className="set-dishes">
+    <span className="set-dishes" data-world={yataWorldFor(set)}>
       {foodsFor(set).map((food, kind) => (
         <img
           key={food.name}
@@ -209,6 +229,7 @@ export function ContentChoice({
   id,
   options,
   fastMode,
+  seatsTaken = 0,
   onChange,
   onFastMode,
   disabled = false,
@@ -216,6 +237,8 @@ export function ContentChoice({
   id: GameId;
   options: GameOptions;
   fastMode: boolean;
+  /** People already at an online table: the Fast deck deals four hands at most. */
+  seatsTaken?: number;
   onChange: (value: GameOptions) => void;
   onFastMode: (on: boolean) => void;
   disabled?: boolean;
@@ -228,21 +251,28 @@ export function ContentChoice({
         : 'normal'
       : (options.contentSet ?? 'beginner');
   return (
-    <SetupRow label={label} className="setup-sets">
-      <RadioGroup
-        aria-label={label}
-        disabled={disabled}
-        className="set-cards"
-        value={value}
-        onValueChange={(v) =>
-          id === 'undertow'
-            ? onFastMode(v === 'fast')
-            : onChange({ ...options, contentSet: v as ContentSet })
-        }
-      >
-        {cards.map((card) => (
-          <label key={card.value} className={`set-card ${id}`}>
-            <RadioGroupItem value={card.value} className="sr-only" />
+    <SetChoiceRow
+      label={label}
+      disabled={disabled}
+      value={value}
+      onChange={(v) =>
+        id === 'undertow'
+          ? onFastMode(v === 'fast')
+          : onChange({ ...options, contentSet: v as ContentSet })
+      }
+      cards={cards.map((card) => ({
+        value: card.value,
+        card: (
+          <label className={`set-card ${id}`}>
+            <RadioGroupItem
+              value={card.value}
+              className="sr-only"
+              disabled={
+                id === 'undertow' &&
+                card.value === 'fast' &&
+                seatsTaken > seatRange(id, true)[1]
+              }
+            />
             <span className="set-preview" aria-hidden="true">
               {card.preview}
               <span className="set-check">
@@ -254,31 +284,31 @@ export function ContentChoice({
               <small>{card.meta}</small>
             </span>
           </label>
-        ))}
-      </RadioGroup>
-    </SetupRow>
+        ),
+      }))}
+    />
   );
 }
 export function GameExtensionChoices({
   id,
   options,
-  shields,
   customerOrders,
   sanctuaryGoalsEnabled,
   onChange,
   disabled = false,
+  fastMode = false,
 }: {
   id: GameId;
   options: GameOptions;
-  shields: boolean;
   customerOrders: boolean;
   sanctuaryGoalsEnabled: boolean;
   onChange: (value: Choices) => void;
   disabled?: boolean;
+  /** Nox's Fast deck, so the rules quote its values. */
+  fastMode?: boolean;
 }) {
   const values: Choices = {
     ...options,
-    shields,
     customerOrders,
     sanctuaryGoalsEnabled,
   };
@@ -287,26 +317,28 @@ export function GameExtensionChoices({
     title: string;
     Icon: LucideIcon;
     rules: ReactNode;
+    /** The extension cannot apply with this setup. */
+    off?: boolean;
   }[] =
     id === 'undertow'
       ? [
           {
-            key: 'shields',
-            title: 'Shields',
-            Icon: Shield,
-            rules: <AbilityRules kind="shield" />,
+            key: 'gold',
+            title: 'Gold',
+            Icon: Coins,
+            rules: <NewExtensionRules kind="gold" fastMode={fastMode} />,
           },
           {
-            key: 'turningTide',
-            title: 'Turning Tide',
-            Icon: Waves,
-            rules: <NewExtensionRules kind="turningTide" />,
-          },
-          {
-            key: 'salvage',
-            title: 'Salvage',
+            key: 'anchor',
+            title: 'Anchor',
             Icon: Anchor,
-            rules: <NewExtensionRules kind="salvage" />,
+            rules: <NewExtensionRules kind="anchor" />,
+          },
+          {
+            key: 'dawn',
+            title: 'Dawn',
+            Icon: Sunrise,
+            rules: <NewExtensionRules kind="dawn" fastMode={fastMode} />,
           },
         ]
       : id === 'wildgrove'
@@ -318,16 +350,16 @@ export function GameExtensionChoices({
               rules: <NewExtensionRules kind="roamEnabled" />,
             },
             {
-              key: 'migration',
-              title: 'Migration',
-              Icon: MoveRight,
-              rules: <NewExtensionRules kind="migration" />,
-            },
-            {
               key: 'sanctuaryGoalsEnabled',
               title: 'Sanctuary Goals',
               Icon: Award,
               rules: <WildTrailsRules contentSet={options.contentSet} />,
+            },
+            {
+              key: 'census',
+              title: 'Census',
+              Icon: Crown,
+              rules: <NewExtensionRules kind="census" />,
             },
           ]
         : [
@@ -341,7 +373,7 @@ export function GameExtensionChoices({
               key: 'specialtyStalls',
               title: 'Specialty Stalls',
               Icon: Store,
-              rules: <AbilityRules kind="stall" />,
+              rules: <AbilityRules />,
             },
             {
               key: 'marketSeasons',
@@ -351,21 +383,22 @@ export function GameExtensionChoices({
             },
           ];
   return (
-    <SetupRow label="Extensions" Icon={Puzzle} className="setup-extensions">
-      <div className="ext-list">
-        {entries.map((entry) => (
+    <ExtensionRow
+      items={entries.map((entry) => ({
+        key: entry.key,
+        on: !!values[entry.key] && !entry.off,
+        tile: (
           <ExtensionChoice
-            key={entry.key}
             title={entry.title}
             Icon={entry.Icon}
-            enabled={!!values[entry.key]}
-            disabled={disabled}
+            enabled={!!values[entry.key] && !entry.off}
+            disabled={disabled || !!entry.off}
             onChange={() => onChange({ [entry.key]: !values[entry.key] })}
           >
             {entry.rules}
           </ExtensionChoice>
-        ))}
-      </div>
-    </SetupRow>
+        ),
+      }))}
+    />
   );
 }

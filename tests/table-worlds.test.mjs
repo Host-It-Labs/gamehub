@@ -38,10 +38,12 @@ const stageFor = (game, w, h) => {
   return { x: 0, y: top, width: w, height: h - top - hand - 18 - reserve };
 };
 
-for (const game of ['undertow', 'midnight']) {
+// Yata has two places: the night-market counter and, for the Mexican menus, the plaza.
+for (const [game, market, label] of [['undertow', 'counter', 'undertow'], ['midnight', 'counter', 'midnight'], ['midnight', 'plaza', 'midnight plaza']]) {
+  const worldFor = (tall, phone = false) => tableWorldFor(game, tall, undefined, phone, market);
   for (const tall of [false, true]) {
-    const art = tableWorldFor(game, tall);
-    await test(`${game} ${tall ? 'portrait' : 'landscape'}: shipped files match the measured metadata`, async () => {
+    const art = worldFor(tall);
+    await test(`${label} ${tall ? 'portrait' : 'landscape'}: shipped files match the measured metadata`, async () => {
       assert.equal(art.game, game);
       // Source PNGs live in the art archive outside the repo; the shipped plate carries the same size.
       assert.equal(tall, art.height > art.width);
@@ -49,12 +51,12 @@ for (const game of ['undertow', 'midnight']) {
       assert.equal(full.width, art.width); assert.equal(full.height, art.height);
       const mini = await sharp(`public${art.overviewImage}`).metadata();
       assert.equal(mini.width, art.overview.width); assert.equal(mini.height, art.overview.height);
-      for (const v of tableWorldVariants(game, tall)) {
+      for (const v of market === 'plaza' ? [] : tableWorldVariants(game, tall)) {
         const image = await sharp(`public${v.image}`).metadata();
         assert.equal(image.width, art.width); assert.equal(image.height, art.height);
       }
     });
-    await test(`${game} ${tall ? 'portrait' : 'landscape'}: the painted table sits inside the gameplay crop and the play box`, () => {
+    await test(`${label} ${tall ? 'portrait' : 'landscape'}: the painted table sits inside the gameplay crop and the play box`, () => {
       assert.ok(inside(art.table, art.crop), 'table inside crop');
       const play = tableWorldPlayBox(art);
       assert.ok(inside(art.table, play), 'table inside play box');
@@ -74,10 +76,10 @@ for (const game of ['undertow', 'midnight']) {
       for (const g of art.animation.glows) assert.ok(g.x >= 0 && g.y >= 0 && g.x <= art.width && g.y <= art.height && g.radius > 0);
     });
   }
-  await test(`${game}: the play box stays inside the stage on every device while the plate covers wherever it can`, () => {
+  await test(`${label}: the play box stays inside the stage on every device while the plate covers wherever it can`, () => {
     for (const [w, h] of [...devices, [1100, 900], [1040, 800], [1045, 800], [1024, 768]]) {
       const tall = tallFor(game, w, h);
-      const art = tableWorldFor(game, tall);
+      const art = worldFor(tall);
       const stage = stageFor(game, w, h);
       const f = tableWorldFrame(art, { width: w, height: h }, stage), target = tableWorldTarget(art, f);
       close(target.width / art.width, target.height / art.height);
@@ -97,11 +99,11 @@ for (const game of ['undertow', 'midnight']) {
       assert.equal(f.covers, target.x <= 1e-6 && target.y <= 1e-6 && target.x + target.width >= w - 1e-6 && target.y + target.height >= h - 1e-6);
     }
   });
-  await test(`${game}: desktops and landscape tablets are covered edge to edge`, () => {
+  await test(`${label}: desktops and landscape tablets are covered edge to edge`, () => {
     // Yata also covers squarish windows on either side of its 13:10 switch to the tall counter.
     const extra = game === 'midnight' ? [[1920, 1080], [1024, 768], [1045, 800], [1040, 800], [1100, 900], [1000, 800], [834, 1194]] : [];
     for (const [w, h] of [[1440, 900], [1512, 982], [1280, 720], [1194, 834], [1133, 744], ...extra]) {
-      const f = tableWorldFrame(tableWorldFor(game, tallFor(game, w, h)), { width: w, height: h }, stageFor(game, w, h));
+      const f = tableWorldFrame(worldFor(tallFor(game, w, h)), { width: w, height: h }, stageFor(game, w, h));
       assert.ok(f.covers, `${game} ${w}×${h}`);
     }
   });
@@ -126,9 +128,9 @@ await test('accepted Counter B and Floodline B override old candidate selections
     const counter = tableWorldFor('midnight', tall, 'yata-counter-a');
     assert.match(counter.image, /v2-b\.webp$/);
   }
-  // Floodline's accepted boards (overgrown landscape, phone v4-f); candidate ids never override them.
+  // Floodline's accepted boards (overgrown landscape, fresh phone v6-c); candidate ids never override them.
   for (const [tall, id] of [[false, 'floodline-landscape-v2-b'], [true, 'floodline-portrait-v2-a']])
-    assert.match(paperWorldFor(tall, id, 'floodline').image, /(overgrown-floodline-landscape-v3-b|phone-floodline-v4-f-tall)\.webp$/);
+    assert.match(paperWorldFor(tall, id, 'floodline').image, /(overgrown-floodline-landscape-v3-b|phone-floodline-v6-c)\.webp$/);
 });
 
 await test('Yata switches its plate and its layout at the same breakpoint', () => {
@@ -157,6 +159,25 @@ await test('Yata phones take the near-square counter only where it shows bigger,
     const stage = { x: 0, y: 92, width: w, height: height + 12 };
     if (!wants) continue;
     assert.ok(yataPhonePlateFits(surface, stage), `${w}×${h} keeps the phone plate on its own stage`);
+    const f = tableWorldFrame(phone, surface, stage);
+    assert.ok(f.covers, `${w}×${h} covered edge to edge`);
+    assert.ok(f.x >= -1e-6 && f.x + f.width <= w + 1e-6, `${w}×${h} counter fits the width`);
+    assert.ok(f.y >= stage.y - 1e-6 && f.y + f.height <= stage.y + stage.height + 1e-6, `${w}×${h} counter between the badges and the dock`);
+  }
+});
+await test('the plaza phone plate covers the phone and fits between the badges and the dock wherever it is chosen', async () => {
+  const phone = tableWorldFor('midnight', true, undefined, true, 'plaza');
+  assert.notEqual(phone, tableWorldFor('midnight', true, undefined, false, 'plaza'), 'a plate of its own');
+  assert.notEqual(phone.image, tableWorldFor('midnight', true, undefined, true).image, 'not the counter');
+  const full = await sharp(`public${phone.image}`).metadata();
+  assert.equal(full.width, phone.width); assert.equal(full.height, phone.height);
+  const mini = await sharp(`public${phone.overviewImage}`).metadata();
+  assert.equal(mini.width, phone.overview.width); assert.equal(mini.height, phone.overview.height);
+  assert.ok(inside(phone.table, phone.crop), 'table inside crop');
+  for (const [w, h, height] of [[390, 844, 312], [375, 812, 290], [430, 932, 395], [375, 667, 185], [360, 780, 226]]) {
+    const surface = { width: w, height: h };
+    if (!yataPhonePlateFits(surface, { x: 0, y: 104, width: w, height }, 'plaza')) continue;
+    const stage = { x: 0, y: 92, width: w, height: height + 12 };
     const f = tableWorldFrame(phone, surface, stage);
     assert.ok(f.covers, `${w}×${h} covered edge to edge`);
     assert.ok(f.x >= -1e-6 && f.x + f.width <= w + 1e-6, `${w}×${h} counter fits the width`);

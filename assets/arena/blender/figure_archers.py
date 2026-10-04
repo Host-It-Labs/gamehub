@@ -1,40 +1,54 @@
-"""The Cadets (card id `archers`, two per card) as collector's miniatures: a
-grown-up 1960s space-race astronaut cadet, a young test pilot, in
-hand-painted resin.
+"""The Cadets (card id `archers`, two per card) as collector's miniatures:
+eager 1960s space-race rookies in hand-painted resin.
 
-An off-white quilted pressure suit with deep team panels (a chest yoke that
-runs over the shoulders, a stripe down the outside of each arm and leg), a
-gilt neck ring and gilt wrist rings, a rounded white helmet with a padded
-face seal and its gold visor raised over a determined clean-shaven face, a
-small chest control box with two corrugated grey hoses down to gilt hip
-ports, a compact white life-support backpack, silver gauntlet gloves,
-white boots with dark soles, and a chrome 1960s ray gun with finned barrel
-rings and a red glowing emitter in the right fist.
+An off-white quilted pressure suit with team panels (a chest yoke over the
+shoulders, a stripe down the outside of each arm and leg, team boot tops
+and a team life-support pack), a gilt neck ring and wrist rings, a dark
+belt with a big round gilt buckle, a round bubble helmet (drawn a size
+larger than the sculpt, HEAD_S) with a padded face seal, gilt radio pods
+over the ears with team bosses, its gold visor raised on hinges over a
+grinning clean-shaven face and a springy whip antenna with a glowing red
+bead, a small chest control box with two corrugated hoses to gilt hip
+ports, silver gauntlets (a fist on the gun, an open glove on the left),
+chunky white moon boots on dark soles, and a chrome 1960s ray gun with
+finned barrel rings and a red glowing emitter in the right fist.
 
-Parts (the contract of troops.py): the root empty `archers` at the feet,
-facing +y; `archers.legL/R` pivot at the hips; `archers.torso` at the
-waist carries the yoke, the shoulder caps, the neck ring, the chest box
-and hoses and the backpack; `archers.head` (neck) is the face and helmet;
-`archers.armL/R` pivot at the shoulders; `archers.weapon` is the ray gun, a
-child of armR with its pivot in the right fist. No part has a rest
-rotation.
+Parts (the contract of troops.py), none with a rest rotation:
+
+  archers            root at the feet, facing +y
+    legL/R           thighs, pivots on the hips
+      kneeL/R        shins and boot shafts from a bellows knee (split here,
+                     so figures.py's knee split leaves them alone)
+        footL/R      the boots' feet, on the ankles
+    torso            at the waist: yoke, caps, neck ring, belt, chest box,
+                     hoses and pack
+      head           at the neck: face, helmet, pods
+        hat          the visor, on the pods' hinge line (bounces)
+        antenna      the whip antenna, at its gilt foot (springs)
+      armR           upper arm at the shoulder
+        foreR        forearm and fist from the elbow
+          weapon     the ray gun, pivot in the fist
+      armL           upper arm
+        foreL        forearm from the elbow
+          handL      the open glove, on the wrist
 
 The right arm and the gun are modelled in the aim (arm straight out
 forward, gun level) and then swung down by AIM about the shoulder's x axis,
-so at rest the gun hangs muzzle down beside the thigh and the game's
-blaster lift (armR +1.45 to +1.8 rad about x, with the torso turned 0.18
-rad to the left) brings it back level along +y. The rest barrel is aimed
-10 degrees to the right to cancel that torso turn.
+so at rest the gun hangs muzzle down beside the thigh; armR + foreR +
+weapon summing to AIM (with the torso turned TURN to the left) brings it
+back level along +y. The rest barrel is aimed 10 degrees to the right to
+cancel that torso turn. components/game/arena/moves/archers.ts poses it.
 
-ARCHERS_POSE=aim (arms raised and legs apart, the attack check),
-walk (mid stride) or blaster (the exact steady aim, arms only) poses the
-figure before the previews are rendered.
+ARCHERS_POSE=aim, blaster, walk, carry or salute poses the figure before
+the previews are rendered.
 """
 
 import math
 import os
 
 import kit
+import face_rig
+import face_paint
 import figure_archers_kit as ak
 from figure_archers_kit import V, clamp01, gauss, lerp, smooth, spow, table
 from mathutils import Matrix
@@ -52,7 +66,7 @@ GILT = "gilt:" + T("cadet-gilt", "#bb9546")
 CHROME = "gilt:" + T("cadet-chrome", "#b7bdc5")
 DARK = "resin:" + T("cadet-dark", "#29292c")
 HOSE = "resin:" + T("cadet-hose", "#7b8189")
-SKIN = "resin:" + T("cadet-skin", "#c38e70")
+SKIN = "resin:" + T("cadet-skin", "#e3ae8b")
 LIP = "resin:" + T("cadet-lip", "#a46e5b")
 RAY = "glow:" + T("cadet-ray", "#ff3b2b")
 VISOR = GILT
@@ -86,7 +100,7 @@ C_AIM = S_R + B_AIM * 0.45 + V(-0.016, 0, -0.06)  # right fist, in the aim
 M_REST = (Matrix.Translation(S_R) @ Matrix.Rotation(-AIM, 4, "X") @
           Matrix.Translation(-S_R))
 GUN_Z = 0.038                                       # barrel above the fist
-GUN_S = 1.04
+GUN_S = 1.16
 
 # ------------------------------------------------------------- face
 # The face is sculpted in the guard's face space (a proven adult head) and
@@ -191,57 +205,80 @@ def mouth():
                      depth=0.0, eps=0.05, ref=HC)]
 
 
+def paint_patch(label, side, ac, z, width, height, lift, mat, dz=0.0,
+                da=0.0, rings=3, seg=16, slope=0.0):
+    """One layer of painted eye (face_paint.py's look, fewer triangles:
+    two cadets per card): an oval subdivided across the socket so it
+    follows the concave surface."""
+    import bmesh
+    bm = bmesh.new()
+
+    def vertex(radius, t):
+        u = ac + da + math.cos(t) * width * radius
+        v = z + dz + math.sin(t) * height * radius + \
+            math.cos(t) * slope * radius
+        p = face_point(u, v)
+        return bm.verts.new(p + face_normal(u, v) * lift)
+
+    middle = vertex(0, 0)
+    prev = None
+    for ring in range(1, rings + 1):
+        cur = [vertex(ring / rings, i / seg * math.tau) for i in range(seg)]
+        for i in range(seg):
+            j = (i + 1) % seg
+            if prev:
+                bm.faces.new((prev[i], prev[j], cur[j], cur[i]))
+            else:
+                bm.faces.new((middle, cur[i], cur[j]))
+        prev = cur
+    bm.normal_update()
+    for f in bm.faces:
+        if f.normal.dot(f.calc_center_median() - HC) < 0:
+            f.normal_flip()
+    obj = kit._from_bmesh(f"{R}-{label}{side}", bm, mat)
+    kit.shade(obj)
+    return obj
+
+
 def eyes():
-    """Painted eyes in the sockets (an off-white almond, a dark iris under
-    the lid, a lash line) and straight, lowered brows."""
+    """Big painted eyes (ink rim, ivory, iris, pupil, catchlight) under
+    eager raised brows, and the confident grin."""
     out = []
-    fn = face_point
-    for sx in (-1, 1):
-        ac, zc = sx * 25.5, 1.1565
-        lens = []
-        for i in range(12):
-            t = i / 12 * math.tau
-            x = math.cos(t)
-            y = math.sin(t) * (0.82 if math.sin(t) > 0 else 0.8)
-            lens.append((ac + x * 8.4, zc + y * 0.0056 + 0.0006 * x * sx))
-        if sx < 0:
-            lens.reverse()
-        out.append(ak.decal(f"{R}-eye{sx}", fn, lens, 0.0019, EYEW,
-                            depth=0.0014, eps=0.05, ref=HC))
-        iris = [(ac - sx * 0.4 + math.cos(t) * 3.7,
-                 zc + math.sin(t) * 0.0046 + 0.0004)
-                for t in (i / 8 * math.tau for i in range(8))]
-        out.append(ak.decal(f"{R}-iris{sx}", fn, iris, 0.0024, IRIS,
-                            depth=0.0, eps=0.05, ref=HC))
-        lash = []
-        for i in range(7):
-            t = math.pi * i / 6
-            lash.append((ac + math.cos(t) * 9.2, zc + math.sin(t) * 0.0062 +
-                         0.0007 * math.cos(t) * sx))
-        for i in range(6, -1, -1):
-            t = math.pi * i / 6
-            lash.append((ac + math.cos(t) * 8.4, zc + math.sin(t) * 0.0052 +
-                         0.0007 * math.cos(t) * sx))
-        out.append(ak.decal(f"{R}-lash{sx}", fn, lash, 0.0026, IRIS,
-                            depth=0.0, eps=0.05, ref=HC))
-        # Brows: level and low, the inner ends pulled down (determined).
-        pts = []
-        for ad, z in ((9, 1.1698), (16, 1.1735), (24, 1.1755), (32, 1.175),
-                      (40, 1.1728)):
-            pts.append(face_point(sx * ad, z) +
-                       face_normal(sx * ad, z) * 0.002)
-        out.append(ak.tube(f"{R}-brow{sx}", pts,
-                           [(0.0036, 0.0021), (0.0038, 0.0023),
-                            (0.0035, 0.0021), (0.0028, 0.0017),
-                            (0.0019, 0.0012)], BROW, n=4,
-                           caps=("dome", "dome")))
-    return out
+    z = 1.1565
+    iris = "resin:" + T("face-iris", "#725032")
+    for side in (-1, 1):
+        ac = side * 27
+        slope = side * 0.003
+        out.append(paint_patch("eye-outline", side, ac, z, 15.0, 0.0142,
+                               0.003, face_paint.INK, slope=slope))
+        out.append(paint_patch("eye-white", side, ac, z, 13.4, 0.0121,
+                               0.004, face_paint.WHITE, slope=slope))
+        out.append(paint_patch("iris", side, ac, z, 6.6, 0.0102, 0.005,
+                               iris, dz=0.0015, rings=2, seg=12,
+                               slope=slope))
+        out.append(paint_patch("pupil", side, ac, z, 3.8, 0.0083, 0.0058,
+                               face_paint.INK, dz=0.0015, rings=2, seg=10,
+                               slope=slope))
+        out.append(paint_patch("catchlight", side, ac, z, 1.9, 0.0028,
+                               0.0065, face_paint.WHITE, dz=0.005, da=-2.0,
+                               rings=1, seg=8))
+        # Eager brows: both raised a touch, the left one higher.
+        up = 0.004 + (0.003 if side == -1 else 0.0)
+        brow = [(ac - 15, z + 0.020 - slope + up), (ac, z + 0.026 + up),
+                (ac + 15, z + 0.020 + slope + up),
+                (ac + 15, z + 0.025 + slope + up), (ac, z + 0.033 + up),
+                (ac - 15, z + 0.025 - slope + up)]
+        out.append(ak.decal(f"{R}-expression-brow{side}", face_point, brow,
+                            0.0045, face_paint.INK, depth=0.001, eps=0.05,
+                            ref=HC))
+    return out + face_paint.mouth(ak, R, face_point, HC,
+                                  expression="confident")
 
 
 # ------------------------------------------------------------- helmet
 
 HH = V(0, 0.008, 1.12)          # helmet centre
-H_RX, H_RYF, H_RYB, H_RZU, H_RZD = 0.117, 0.127, 0.121, 0.128, 0.142
+H_RX, H_RYF, H_RYB, H_RZU, H_RZD = 0.124, 0.131, 0.127, 0.135, 0.142
 RING_R, RING_Z = 0.09, 0.992    # the helmet's lower edge (head space)
 
 
@@ -268,8 +305,8 @@ def sdir(az, el):
 def opening(s):
     """The face opening, as (face angle, guard-space z), s = 0 at the top."""
     c, sn = math.cos(s), math.sin(s)
-    a = 66 * spow(sn, 0.78)
-    z = 1.13 + (0.078 if c > 0 else 0.086) * spow(c, 0.85)
+    a = 74 * spow(sn, 0.78)
+    z = 1.13 + (0.095 if c > 0 else 0.086) * spow(c, 0.85)
     return a, z
 
 
@@ -309,7 +346,7 @@ def waypoint(s):
 def helmet():
     """The shell: a padded grey face seal on the skin, a thick rolled rim,
     then the round shell down to the lower edge on the neck ring."""
-    n = 28
+    n = 40
     ss = [i / n * math.tau for i in range(n)]
     centre = face_point(0, 1.135)
     lips = []
@@ -327,7 +364,7 @@ def helmet():
     dirs0 = [(p + nn * 0.032 + m * 0.012 - HH).normalized()
              for p, nn, m in lips]
     pts.append([shell_pt(d) for d in dirs0])
-    ts = [0.11, 0.25, 0.4, 0.55, 0.7, 0.84, 1.0]
+    ts = [0.07, 0.16, 0.26, 0.36, 0.46, 0.56, 0.66, 0.75, 0.84, 0.92, 1.0]
     for t in ts:
         row = []
         for i, s in enumerate(ss):
@@ -361,33 +398,78 @@ def helmet():
 
 def visor():
     """The gold visor, raised over the brow and crown, its sides tapering
-    to the hinges."""
+    to the hinges, with a lift tab at its lower edge. Its own joint (`hat`)
+    turns on the hinge pods, so it bounces on every landing."""
     def fn(u, v):
         k = (u / 80) ** 2
-        el = lerp(36 - 20 * k, 76 - 40 * k, v)
+        el = lerp(56 - 16 * k, 90 - 25 * k, v)
         return on_shell(sdir(u, el), 0.0075)
 
-    us = [-80 + i * 16 for i in range(11)]
-    vs = [0.0, 0.35, 0.7, 1.0]
+    us = [-80 + i * 10 for i in range(17)]
+    vs = [0.0, 0.25, 0.5, 0.75, 1.0]
     pieces = [ak.sheet(f"{R}-visor", fn, us, vs, VISOR, rim=0.0065,
                        inside=HH)]
     # A small lift tab at the bottom of the visor.
-    at = on_shell(sdir(0, 34), 0.009)
-    nrm = sdir(0, 34)
+    at = on_shell(sdir(0, 55), 0.0085)
+    nrm = sdir(0, 55)
     m = ak.basis(V(1, 0, 0), nrm.cross(V(1, 0, 0)), nrm, at)
-    tab = [(x, y) for x, y, _ in ak.sup(8, 0.016, 0.007, 3.0)]
+    tab = [(x, y - 0.006) for x, y, _ in ak.sup(10, 0.018, 0.0085, 3.0)]
     pieces.append(ak.slab(f"{R}-visortab", tab, 0.006, VISOR, matrix=m))
-    # Hinge bosses at the temples.
-    for sx in (-1, 1):
-        d = sdir(sx * 88, 22)
-        up = V(0, 0, 1) - d * d.z
-        mh = ak.basis(up.cross(d).normalized(), up.normalized(), d,
-                      on_shell(d, -0.002))
-        pieces.append(ak.lathe(f"{R}-hinge{sx}",
-                               [(0.021, 0.0), (0.022, 0.006),
-                                (0.015, 0.012), (0.0, 0.013)], GILT,
-                               matrix=mh, segments=9, caps=(False, True)))
     return pieces
+
+
+POD_AZ, POD_EL = 90, 16
+
+
+def pod_frame(sx, lift=0.0):
+    d = sdir(sx * POD_AZ, POD_EL)
+    up = V(0, 0, 1) - d * d.z
+    return ak.basis(up.cross(d).normalized(), up.normalized(), d,
+                    on_shell(d, lift)), d
+
+
+def ear_pods():
+    """Round gilt radio pods over the ears (the card's), a team boss in
+    each; the visor hinges on them."""
+    pieces = []
+    for sx in (-1, 1):
+        mh, _ = pod_frame(sx, -0.003)
+        pieces.append(ak.lathe(f"{R}-pod{sx}",
+                               [(0.031, 0.0), (0.033, 0.006),
+                                (0.031, 0.012), (0.024, 0.0135),
+                                (0.019, 0.0125)], GILT,
+                               matrix=mh, segments=14, caps=(False, False)))
+        pieces.append(ak.lathe(f"{R}-boss{sx}",
+                               [(0.0195, 0.0095), (0.017, 0.016),
+                                (0.009, 0.0195), (0.0, 0.0205)], TEAM,
+                               matrix=mh, segments=12, caps=(False, True)))
+    return pieces
+
+
+def hinge_pivot():
+    a = on_shell(sdir(-POD_AZ, POD_EL))
+    b = on_shell(sdir(POD_AZ, POD_EL))
+    return (a + b) / 2
+
+
+def antenna():
+    """A springy whip antenna from the left pod, up and a little back,
+    with a glowing red bead on its tip: its own joint (`antenna`)."""
+    mh, d = pod_frame(-1, 0.0)
+    base = mh.translation + d * 0.014 + V(0, -0.004, 0.022)
+    tip = base + V(-0.01, -0.026, 0.125)
+    mid = base.lerp(tip, 0.5) + V(-0.003, 0.0, 0.0)
+    pieces = [ak.tube(f"{R}-whip", [base, base + V(0, 0, 0.014), mid, tip],
+                      [0.0078, 0.0064, 0.005, 0.0042], CHROME, n=6,
+                      caps=("flat", None))]
+    pieces.append(ak.lathe(f"{R}-antfoot", [(0.0115, -0.006), (0.0115, 0.006),
+                                            (0.0085, 0.012),
+                                            (0.0075, 0.014)], GILT,
+                           matrix=Matrix.Translation(base), segments=10,
+                           caps=(True, False)))
+    pieces.append(ak.ball(f"{R}-bead", 0.0165, tip + V(0, 0, 0.009), RAY,
+                          seg=10, rings=6))
+    return pieces, base
 
 
 def helmet_stripe():
@@ -432,7 +514,7 @@ def body_point(a, z, extra=0.0):
 def suit_body():
     """The quilted body from the crotch to the collar, in vertical
     stitched channels."""
-    n = 20
+    n = 28
     c = ak.Mesh(f"{R}-body", SUIT)
     # Rows above the yoke's lowest edge are hidden under it: skip them.
     zs = [b[0] for b in BODY if not 0.92 < b[0] < 0.96]
@@ -463,14 +545,28 @@ YOKE = [(0, 0.786), (20, 0.806), (45, 0.84), (70, 0.866), (100, 0.874),
 
 
 def belt():
-    """A grey waist seal band with a small gilt buckle plate."""
-    rings = [[body_point(i / 20 * math.tau, z, off) for i in range(20)]
-             for z, off in ((0.636, -0.002), (0.639, 0.0045), (0.655, 0.0045),
-                            (0.658, -0.002))]
-    pieces = [ak.loft(f"{R}-belt", rings, HOSE, start=None, end=None)]
-    fy = body_point(0, 0.647, 0.0045).y
-    pieces.append(ak.rbox(f"{R}-buckle", (0.03, 0.006, 0.022),
-                          V(0, fy + 0.002, 0.647), GILT, levels=0))
+    """A dark utility belt with a big round gilt buckle (the card's) and a
+    gilt stud over each hip."""
+    n = 24
+    rings = [[body_point(i / n * math.tau, z, off) for i in range(n)]
+             for z, off in ((0.632, -0.002), (0.635, 0.006), (0.66, 0.006),
+                            (0.663, -0.002))]
+    pieces = [ak.loft(f"{R}-belt", rings, DARK, start=None, end=None)]
+    for k, ad in enumerate((0, -62, 62)):
+        a = math.radians(ad)
+        p = body_point(a, 0.6475, 0.006)
+        q = body_point(a + 0.02, 0.6475, 0.006)
+        tng = (q - p).normalized()
+        nrm = V(0, 0, 1).cross(tng).normalized()
+        if nrm.dot(V(p.x, p.y, 0)) < 0:
+            nrm = -nrm
+        r = 0.024 if ad == 0 else 0.0125
+        m = ak.basis(tng, V(0, 0, 1), nrm, p - nrm * 0.002)
+        prof = [(r, 0.0), (r, 0.004), (r * 0.86, 0.008), (r * 0.5, 0.0095),
+                (0.0, 0.01)]
+        pieces.append(ak.lathe(f"{R}-stud{k}", prof, GILT, matrix=m,
+                               segments=14 if ad == 0 else 8,
+                               caps=(False, True)))
     return pieces
 
 
@@ -600,17 +696,17 @@ def backpack():
     valve on top."""
     pieces = []
     c = V(0, -0.132, 0.8)
-    pieces.append(ak.rbox(f"{R}-pack", (0.2, 0.066, 0.23), c, SHELL, levels=2,
+    pieces.append(ak.rbox(f"{R}-pack", (0.2, 0.066, 0.23), c, TEAM, levels=2,
                           crease=0.66))
     for k, x in enumerate((-0.049, 0.049)):
         axis = V(x, c.y - 0.052, 0.0)
         pieces.append(ak.tube(f"{R}-bottle{k}",
                               [axis + V(0, 0, 0.705), axis + V(0, 0, 0.9)],
-                              [0.036, 0.036], SHELL, n=10,
+                              [0.036, 0.036], SHELL, n=14,
                               caps=("dome", "dome")))
         pieces.append(ak.tube(f"{R}-band{k}",
                               [axis + V(0, 0, 0.77), axis + V(0, 0, 0.785)],
-                              [0.0385, 0.0385], HOSE, n=10,
+                              [0.0385, 0.0385], HOSE, n=14,
                               caps=(None, None)))
         pieces.append(ak.lathe(f"{R}-valve{k}",
                                [(0.011, 0.918), (0.011, 0.93),
@@ -707,55 +803,93 @@ def fist(name, c, xax, kax, chir, mat=CHROME, size=1.06):
     return pieces
 
 
-def sleeve(name, s, e, w, sx):
-    """The quilted sleeve from the shoulder ball over a bellows elbow to
-    the wrist, a team stripe down its outside, a gilt wrist ring and a
-    silver gauntlet cuff."""
+def upper_sleeve(name, s, e, sx):
+    """The quilted upper sleeve from the shoulder ball to a rounded elbow,
+    a team stripe down its outside."""
     u = (e - s).normalized()
-    f = (w - e).normalized()
-    path = [s - u * 0.012, s + u * 0.03, lerp(s, e, 0.4), e - u * 0.046,
-            e - u * 0.031, e - u * 0.016, e, e + f * 0.016, e + f * 0.031,
-            e + f * 0.046, lerp(e, w, 0.55), w - f * 0.03, w]
-    radii = [0.05, 0.053, 0.05, 0.047, 0.0505, 0.046, 0.0505, 0.046, 0.0495,
-             0.045, 0.044, 0.041, 0.039]
-    pieces = [ak.tube(f"{name}-sleeve", path, radii, SUIT, n=10,
-                      caps=(None, None),
-                      flute=lambda i: 0.04 if i in (1, 2, 10) else 0.0)]
+    path = [s - u * 0.012, s + u * 0.03, lerp(s, e, 0.4), lerp(s, e, 0.7),
+            e - u * 0.03, e - u * 0.012, e]
+    radii = [0.05, 0.053, 0.0505, 0.049, 0.0495, 0.0485, 0.0475]
+    pieces = [ak.tube(f"{name}-upper", path, radii, SUIT, n=12,
+                      caps=(None, "dome"),
+                      flute=lambda i: 0.035 if i in (1, 2, 3) else 0.0)]
     pieces.append(ak.ball(f"{name}-ball", 0.054, s + V(sx * 0.005, 0, 0),
-                          SUIT, seg=9, rings=5))
-    out = V(sx, 0, 0)
-    pieces.append(stripe(f"{name}-stripe", path, radii, out, 0.05, 0.95,
-                         half=0.019))
-    # Gilt wrist ring, then the gauntlet's flared cuff down to the hand.
+                          SUIT, seg=12, rings=6))
+    pieces.append(stripe(f"{name}-stripe", path, radii, V(sx, 0, 0), 0.06,
+                         1.0, half=0.019, nv=8))
+    return pieces
+
+
+def fore_sleeve(name, e, w, sx, up=V(0, 0, 1)):
+    """The forearm from a bellows elbow to the wrist: a team cuff band, a
+    gilt wrist ring and the silver gauntlet's flared cuff."""
+    f = (w - e).normalized()
+    path = [e - f * 0.006, e + f * 0.012, e + f * 0.026, e + f * 0.04,
+            lerp(e, w, 0.55), w - f * 0.03, w]
+    radii = [0.044, 0.0495, 0.0455, 0.0485, 0.0445, 0.0415, 0.0395]
+    pieces = [ak.tube(f"{name}-fore", path, radii, SUIT, n=12,
+                      caps=("dome", None))]
+    pieces.append(stripe(f"{name}-fstripe", path, radii, V(sx, 0, 0), 0.04,
+                         0.8, half=0.019, nv=7))
     ring_c = w - f * 0.036
     pieces.append(ak.tube(f"{name}-wring",
                           [ring_c - f * 0.007, ring_c + f * 0.007],
-                          [0.0445, 0.0445], GILT, n=12,
+                          [0.0455, 0.0455], GILT, n=14,
                           caps=("flat", "flat")))
-    # The gauntlet: a bell cuff with a rolled rim under the ring.
     rings = []
-    k_up = V(0, 0, 1) - f * f.z
-    for d, r in ((0.002, 0.042), (0.008, 0.0495), (0.013, 0.05),
-                 (0.026, 0.043), (0.04, 0.034)):
+    k_up = V(up) - f * f.dot(V(up))
+    for d, r in ((0.002, 0.042), (0.008, 0.0495), (0.013, 0.051),
+                 (0.026, 0.044), (0.04, 0.034)):
         rings.append(ak.rings_along([ring_c + f * d, ring_c + f * (d + 0.001)],
-                                    [r, r], 12, up=k_up)[0])
+                                    [r, r], 14, up=k_up)[0])
     pieces.append(ak.loft(f"{name}-gauntlet", rings, CHROME, start="flat",
                           end=None))
     return pieces
 
 
+def open_hand(name, c, xax, kax, zax):
+    """A relaxed open glove: the palm and the fingers together in one
+    mitten, curling a little toward the palm, and a thumb along the front.
+    Built from the wrist `c` along X (the fingers), the back of the hand
+    toward K, the thumb's side toward Z."""
+    rings = []
+    for x, w, t, curl in ((-0.012, 0.036, 0.022, 0.0),
+                          (0.004, 0.044, 0.025, 0.0),
+                          (0.024, 0.05, 0.026, 0.0),
+                          (0.046, 0.052, 0.023, 0.002),
+                          (0.066, 0.049, 0.019, 0.006),
+                          (0.082, 0.043, 0.016, 0.011),
+                          (0.093, 0.034, 0.013, 0.016)):
+        ring = []
+        for a, b, _ in ak.sup(12, t, w / 2, 2.6):
+            ring.append(V(x, a - curl, b))
+        rings.append(ring)
+    pieces = [ak.loft(f"{name}-palm", rings, CHROME,
+                      start=V(-0.016, 0, 0), end=V(0.1, -0.018, 0))]
+    pieces.append(ak.tube(f"{name}-thumb", [V(0.014, -0.008, 0.02),
+                                            V(0.034, -0.014, 0.031),
+                                            V(0.056, -0.02, 0.031)],
+                          [0.0105, 0.0094, 0.0084], CHROME, n=7))
+    m = ak.basis(V(xax).normalized(), V(kax).normalized(),
+                 V(zax).normalized(), c)
+    ak.transform(pieces, m)
+    return pieces
+
+
 def build_armR():
-    """Modelled in the aim: straight out forward, the fist on the grip."""
+    """Modelled in the aim: straight out forward, the fist on the grip;
+    the upper arm and the forearm (`foreR`, from the elbow) apart."""
     z_f = (G_UP * math.cos(RAKE) + B_AIM * math.sin(RAKE)).normalized()
     k_f = G_RIGHT
     x_f = z_f.cross(k_f)
     w = C_AIM - x_f * WRIST_FIST
     e = ak.ik(S_R, w, UPPER, FORE, S_R + V(0.35, 0.18, -0.28))
-    pieces = sleeve(f"{R}-armR", S_R, e, w, 1)
-    pieces += fist(f"{R}-fistR", C_AIM, x_f, k_f, -1)
-    ak.transform(pieces, M_REST)
+    upper = upper_sleeve(f"{R}-armR", S_R, e, 1)
+    fore = fore_sleeve(f"{R}-armR", e, w, 1)
+    fore += fist(f"{R}-fistR", C_AIM, x_f, k_f, -1)
+    ak.transform(upper + fore, M_REST)
     bend = math.degrees((e - S_R).angle(w - e))
-    return pieces, bend
+    return upper, fore, M_REST @ e, bend
 
 
 def ray_gun():
@@ -848,93 +982,120 @@ def build_weapon():
     return pieces, M_REST @ C_AIM
 
 
+# The left arm hangs relaxed beside the thigh, a little forward, the open
+# hand's palm toward the leg.
+W_L = V(-0.21, 0.034, 0.5)
+
+
 def build_armL():
-    """Hanging relaxed beside the thigh, the fist loosely closed."""
-    w = V(-0.214, 0.028, 0.5)
-    e = ak.ik(S_L, w, UPPER, FORE, S_L + V(-0.3, -0.3, -0.25))
-    fdir = (w - e).normalized()
-    x_f = (fdir + V(0.08, 0.1, 0)).normalized()
-    c = w + x_f * WRIST_FIST
-    pieces = sleeve(f"{R}-armL", S_L, e, w, -1)
-    pieces += fist(f"{R}-fistL", c, x_f, V(-1, 0.1, 0), 1)
-    return pieces
+    """The upper arm, the forearm (`foreL`) and the open hand (`handL`, on
+    the wrist), each its own joint for salutes and waves."""
+    e = ak.ik(S_L, W_L, UPPER, FORE, S_L + V(-0.3, -0.3, -0.25))
+    fdir = (W_L - e).normalized()
+    upper = upper_sleeve(f"{R}-armL", S_L, e, -1)
+    fore = fore_sleeve(f"{R}-armL", e, W_L, -1, up=V(0, 1, 0))
+    x_h = (fdir + V(0.02, 0.06, 0)).normalized()
+    k_h = V(-1, 0, 0) - x_h * x_h.x
+    z_h = k_h.cross(x_h)
+    if z_h.y < 0:
+        z_h = -z_h
+    hand = open_hand(f"{R}-handL", W_L - x_h * 0.006, x_h, k_h, z_h)
+    return upper, fore, e, hand
 
 
 def boot(name, ankle, knee, sx, toe_out):
-    """A white ankle boot on a dark sole with a heel, a grey strap with a
-    gilt buckle and a rolled top."""
-    pieces = []
-    foot = [(-0.068, 0.032, 0.026, 0.072), (-0.06, 0.043, 0.026, 0.098),
-            (-0.034, 0.05, 0.026, 0.112), (0.008, 0.052, 0.026, 0.104),
-            (0.056, 0.052, 0.026, 0.082), (0.096, 0.047, 0.026, 0.066),
-            (0.126, 0.037, 0.028, 0.054), (0.144, 0.023, 0.032, 0.045)]
+    """A chunky white moon boot on a thick dark sole with a heel; its shaft
+    (on the shin) has a grey strap with a gilt buckle and a team top."""
+    foot = []
     rings = []
-    for y, rx_, zb, zt in foot:
+    for y, rx_, zb, zt in ((-0.07, 0.03, 0.026, 0.07),
+                           (-0.064, 0.042, 0.026, 0.096),
+                           (-0.04, 0.051, 0.026, 0.114),
+                           (-0.006, 0.054, 0.026, 0.112),
+                           (0.03, 0.055, 0.026, 0.1),
+                           (0.066, 0.054, 0.026, 0.084),
+                           (0.1, 0.05, 0.026, 0.07),
+                           (0.128, 0.042, 0.028, 0.058),
+                           (0.146, 0.03, 0.032, 0.049),
+                           (0.154, 0.016, 0.035, 0.043)):
         ring = []
-        for x, z, _ in ak.sup(9, rx_, (zt - zb) / 2, 2.6, math.pi / 9):
+        for x, z, _ in ak.sup(12, rx_, (zt - zb) / 2, 2.6, math.pi / 12):
             ring.append(V(x, y, max(zb, (zb + zt) / 2 + z)))
         rings.append(ring)
-    pieces.append(ak.loft(f"{name}-foot", rings, SHELL,
-                          start=V(0, -0.072, 0.05), end=V(0, 0.152, 0.037)))
-    # The sole: a dark slab a little proud of the upper, a heel block.
-    outline = [(x * (1.0 if y < 0.03 else 1.05), y + 0.038)
-               for x, y, _ in ak.sup(14, 0.056, 0.114, 2.4)]
-    pieces.append(ak.slab(f"{name}-sole", outline, 0.028, SOLE))
-    heel = [(x, y - 0.043) for x, y, _ in ak.sup(8, 0.052, 0.034, 3.0)]
-    pieces.append(ak.slab(f"{name}-heel", heel, 0.018, SOLE))
+    foot.append(ak.loft(f"{name}-foot", rings, SHELL,
+                        start=V(0, -0.074, 0.05), end=V(0, 0.158, 0.039)))
+    # The sole: a dark slab a little proud of the upper, a ridged toe cap
+    # line and a heel block.
+    outline = [(x * (1.0 if y < 0.03 else 1.06), y + 0.04)
+               for x, y, _ in ak.sup(18, 0.058, 0.12, 2.4)]
+    foot.append(ak.slab(f"{name}-sole", outline, 0.03, SOLE, bevel=0.004))
+    heel = [(x, y - 0.045) for x, y, _ in ak.sup(10, 0.054, 0.036, 3.0)]
+    foot.append(ak.slab(f"{name}-heel", heel, 0.02, SOLE))
     m = Matrix.Translation(V(ankle.x, ankle.y, 0)) @ \
         Matrix.Rotation(math.radians(-sx * toe_out), 4, "Z")
-    ak.transform(pieces, m)
+    ak.transform(foot, m)
 
     def on_leg(z):
         t = (z - ankle.z) / (knee.z - ankle.z)
         c = lerp(ankle, knee, t)
         return V(c.x, c.y, z)
 
-    # The shaft and its rolled top in one piece.
-    rings = []
-    for z, r in ((0.07, 0.054), (0.13, 0.0565), (0.182, 0.0585),
-                 (0.19, 0.0628), (0.206, 0.0632), (0.215, 0.0585),
-                 (0.215, 0.046)):
-        c = on_leg(z)
-        rings.append([c + V(x, y, 0) for x, y, _ in ak.sup(10, r, r * 1.02)])
-    cuff = ak.loft(f"{name}-cuff", rings, SHELL, start=None, end=None)
-    rings = []
-    for z, r in ((0.112, 0.0572), (0.114, 0.0605), (0.13, 0.0605),
-                 (0.132, 0.0575)):
-        c = on_leg(z)
-        rings.append([c + V(x, y, 0) for x, y, _ in ak.sup(10, r, r * 1.02)])
-    strap = ak.loft(f"{name}-strap", rings, HOSE, start=None, end=None)
-    bc = on_leg(0.122) + V(sx * 0.062, 0.0, 0)
-    buckle = ak.rbox(f"{name}-buckle", (0.006, 0.022, 0.022), bc, GILT,
-                     levels=0)
-    return pieces + [cuff, strap, buckle]
+    def band(label, mat, rows):
+        rings = []
+        for z, r in rows:
+            c = on_leg(z)
+            rings.append([c + V(x, y, 0)
+                          for x, y, _ in ak.sup(12, r, r * 1.03)])
+        return ak.loft(f"{name}-{label}", rings, mat, start=None, end=None)
+
+    shaft = [band("cuff", SHELL, ((0.07, 0.055), (0.13, 0.0575),
+                                  (0.178, 0.0595), (0.184, 0.0565)))]
+    shaft.append(band("top", TEAM, ((0.18, 0.058), (0.186, 0.0645),
+                                    (0.21, 0.065), (0.218, 0.06),
+                                    (0.218, 0.048))))
+    shaft.append(band("strap", HOSE, ((0.11, 0.0582), (0.112, 0.062),
+                                      (0.13, 0.062), (0.132, 0.0585))))
+    bc = on_leg(0.121) + V(sx * 0.063, 0.0, 0)
+    shaft.append(ak.rbox(f"{name}-buckle", (0.007, 0.024, 0.024), bc, GILT,
+                         levels=0))
+    return shaft, foot
 
 
 def leg(sx, knee, ankle, toe_out):
+    """The thigh to a rounded knee, the shin (`knee`) from a bellows below
+    it, and the boot's foot (`foot`, on the ankle)."""
     hip = V(sx * HIP_X, 0, HIP_Z)
     u = (knee - hip).normalized()
     f = (ankle - knee).normalized()
-    path = [hip + V(0, 0, 0.02), lerp(hip, knee, 0.3), lerp(hip, knee, 0.62),
-            knee - u * 0.05, knee - u * 0.033, knee - u * 0.016, knee,
-            knee + f * 0.016, knee + f * 0.033, lerp(knee, ankle, 0.42),
-            lerp(knee, ankle, 0.68), ankle]
-    radii = [0.074, 0.071, 0.065, 0.058, 0.0625, 0.057, 0.0625, 0.057, 0.061,
-             0.056, 0.052, 0.05]
-    pieces = [ak.tube(f"{R}-leg{sx}", path, radii, SUIT, n=10, up=(0, 1, 0),
-                      caps=("dome", None),
-                      flute=lambda i: 0.045 if i in (1, 2, 3) else 0.0)]
-    # The stripe from under the hip to the boot top.
-    length = sum((b - a).length for a, b in zip(path, path[1:]))
-    t0 = 0.075 / length
-    t1 = 1.0 - (0.2 - ankle.z) / length
-    pieces.append(stripe(f"{R}-lstripe{sx}", path, radii, V(sx, 0, 0), t0,
-                         t1, half=0.021, nv=10))
-    pieces += boot(f"{R}-boot{sx}", ankle, knee, sx, toe_out)
-    return pieces, hip
+    tpath = [hip + V(0, 0, 0.02), lerp(hip, knee, 0.3), lerp(hip, knee, 0.62),
+             knee - u * 0.045, knee - u * 0.02, knee]
+    tradii = [0.08, 0.078, 0.072, 0.066, 0.0645, 0.0635]
+    thigh = [ak.tube(f"{R}-thigh{sx}", tpath, tradii, SUIT, n=12,
+                     up=(0, 1, 0), caps=("dome", "dome"),
+                     flute=lambda i: 0.04 if i in (1, 2) else 0.0)]
+    length = sum((b - a).length for a, b in zip(tpath, tpath[1:]))
+    thigh.append(stripe(f"{R}-lstripe{sx}", tpath, tradii, V(sx, 0, 0),
+                        0.075 / length, 1.0, half=0.022, nv=8))
+    spath = [knee - f * 0.008, knee + f * 0.012, knee + f * 0.028,
+             knee + f * 0.044, lerp(knee, ankle, 0.5), lerp(knee, ankle, 0.75),
+             ankle]
+    sradii = [0.058, 0.065, 0.06, 0.063, 0.0585, 0.055, 0.0525]
+    shin = [ak.tube(f"{R}-shin{sx}", spath, sradii, SUIT, n=12,
+                    up=(0, 1, 0), caps=("dome", None))]
+    slen = sum((b - a).length for a, b in zip(spath, spath[1:]))
+    shin.append(stripe(f"{R}-sstripe{sx}", spath, sradii, V(sx, 0, 0),
+                       0.0, 1.0 - (0.19 - ankle.z) / slen, half=0.022,
+                       nv=5))
+    shaft, foot = boot(f"{R}-boot{sx}", ankle, knee, sx, toe_out)
+    return thigh, shin + shaft, foot, hip
 
 
 # ------------------------------------------------------------- build
+
+# The head is drawn a size larger than the guard's sculpt: a chunky,
+# readable bubble from the game's high camera.
+HEAD_S = 1.1
+
 
 def build(root_name="archers"):
     assert root_name == R
@@ -943,22 +1104,36 @@ def build(root_name="archers"):
     for side, sx, knee, ankle, out in (
             ("L", -1, V(-0.092, -0.006, 0.322), V(-0.102, -0.018, 0.078), 12),
             ("R", 1, V(0.09, 0.02, 0.322), V(0.1, 0.022, 0.078), 8)):
-        pieces, hip = leg(sx, knee, ankle, out)
-        ak.part(R, f"leg{side}", pieces, hip, root)
+        thigh, shin, foot, hip = leg(sx, knee, ankle, out)
+        leg_obj = ak.part(R, f"leg{side}", thigh, hip, root)
+        knee_obj = ak.part(R, f"knee{side}", shin, knee, leg_obj)
+        ak.part(R, f"foot{side}", foot, ankle, knee_obj)
 
     torso = [suit_body(), yoke(), shoulder_cap(1), shoulder_cap(-1),
              neck_ring()] + belt() + badge() + chest_box() + backpack()
     torso_obj = ak.part(R, "torso", torso, WAIST, root)
 
+    grow = (Matrix.Translation(NECK) @ Matrix.Scale(HEAD_S, 4) @
+            Matrix.Translation(-NECK))
     shell = helmet()
-    head = [face(), shell, helmet_stripe()] + eyes() + mouth() + visor()
-    ak.part(R, "head", head, NECK, torso_obj, angle=58)
+    head = ([face(), shell, helmet_stripe()] + eyes() + ear_pods())
+    lid = visor()
+    whip, whip_base = antenna()
+    hinge = hinge_pivot()
+    ak.transform(head + lid + whip, grow)
+    head_obj = face_rig.head(ak.part, R, head, NECK, torso_obj, angle=58)
+    ak.part(R, "hat", lid, grow @ hinge, head_obj, angle=58)
+    ak.part(R, "antenna", whip, grow @ whip_base, head_obj, angle=50)
 
-    arm_r, bend = build_armR()
-    arm_r_obj = ak.part(R, "armR", arm_r, S_R, torso_obj)
+    upper_r, fore_r, elbow_r, bend = build_armR()
+    arm_r_obj = ak.part(R, "armR", upper_r, S_R, torso_obj)
+    fore_r_obj = ak.part(R, "foreR", fore_r, elbow_r, arm_r_obj)
     gun, grip = build_weapon()
-    ak.part(R, "weapon", gun, grip, arm_r_obj, angle=40)
-    ak.part(R, "armL", build_armL(), S_L, torso_obj)
+    ak.part(R, "weapon", gun, grip, fore_r_obj, angle=40)
+    upper_l, fore_l, elbow_l, hand_l = build_armL()
+    arm_l_obj = ak.part(R, "armL", upper_l, S_L, torso_obj)
+    fore_l_obj = ak.part(R, "foreL", fore_l, elbow_l, arm_l_obj)
+    ak.part(R, "handL", hand_l, W_L, fore_l_obj, angle=50)
 
     report(root, bend)
     pose(root, os.environ.get("ARCHERS_POSE", ""))
@@ -973,9 +1148,19 @@ POSES = {
     # The steady aim exactly as the game holds it.
     "blaster": {"armR": (AIM, 0, 0), "armL": (0.45, 0, 0),
                 "torso": (0, 0, TURN), "head": (0.06, 0, 0)},
-    "walk": {"legL": (0.62, 0, 0), "legR": (-0.62, 0, 0),
-             "armL": (-0.4, 0, 0), "armR": (0.4, 0, 0),
+    "walk": {"legL": (0.62, 0, 0), "kneeL": (-0.3, 0, 0),
+             "legR": (-0.5, 0, 0), "kneeR": (-0.7, 0, 0),
+             "footR": (0.4, 0, 0),
+             "armL": (-0.4, 0, 0), "foreL": (0.5, 0, 0),
+             "armR": (0.3, 0, 0), "foreR": (1.5, 0, 0),
              "torso": (0, 0, -0.13)},
+    # Carrying the ray gun up at the ready, as the game walks it.
+    "carry": {"armR": (0.62, 0, 0.02), "foreR": (1.75, 0, 0),
+              "weapon": (0.32, 0, 0), "foreL": (0.3, 0, 0),
+              "hat": (-0.1, 0, 0), "antenna": (0.2, 0, 0)},
+    # A salute to the other cadet.
+    "salute": {"armL": (0.5, 0, -1.25), "foreL": (2.1, 0, 0),
+               "handL": (0, 0, 0.3), "head": (0, 0, 0.15)},
 }
 
 

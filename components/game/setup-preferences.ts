@@ -1,10 +1,9 @@
-import type { Difficulty, GameId, GameOptions } from '@/lib/games/trio/engine';
+import { contentSetsFor, type Difficulty, type GameId, type GameOptions } from '../../lib/games/trio/engine.ts';
 
 type SetupPreferences = {
   options: GameOptions;
   players: number;
   difficulty: Difficulty;
-  shields: boolean;
   fastMode: boolean;
   customerOrders: boolean;
   sanctuaryGoalsEnabled: boolean;
@@ -13,7 +12,6 @@ const defaults: SetupPreferences = {
   options: {},
   players: 3,
   difficulty: 'medium',
-  shields: false,
   fastMode: false,
   customerOrders: false,
   sanctuaryGoalsEnabled: false,
@@ -24,15 +22,15 @@ export function readSetup(id: GameId): SetupPreferences {
     const saved = JSON.parse(localStorage.getItem(key(id)) ?? '{}');
     return {
       options: {
-        contentSet:
-          saved.options?.contentSet === 'intermediate'
-            ? 'intermediate'
-            : 'beginner',
+        contentSet: contentSetsFor(id).includes(saved.options?.contentSet)
+          ? saved.options.contentSet
+          : 'beginner',
         roamEnabled:
           (saved.options?.roamEnabled ?? saved.options?.trailcraft) === true,
-        turningTide: saved.options?.turningTide === true,
-        migration: saved.options?.migration === true,
-        salvage: saved.options?.salvage === true,
+        gold: saved.options?.gold === true,
+        census: saved.options?.census === true,
+        anchor: saved.options?.anchor === true,
+        dawn: saved.options?.dawn === true,
         specialtyStalls:
           (saved.options?.specialtyStalls ?? saved.nightMarket) === true,
         marketSeasons: saved.options?.marketSeasons === true,
@@ -46,7 +44,6 @@ export function readSetup(id: GameId): SetupPreferences {
       difficulty: ['easy', 'medium', 'hard'].includes(saved.difficulty)
         ? saved.difficulty
         : defaults.difficulty,
-      shields: (saved.shields ?? saved.starter) === true,
       fastMode: saved.fastMode === true,
       customerOrders: (saved.customerOrders ?? saved.nightMarket) === true,
       sanctuaryGoalsEnabled:

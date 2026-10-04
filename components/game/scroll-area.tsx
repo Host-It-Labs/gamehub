@@ -87,12 +87,12 @@ export function ScrollArea({
           const layout =
             world && isTableWorldGame(world)
               ? tableWorldFrame(
-                  tableWorldFor(world, tall, undefined, phone),
+                  tableWorldFor(world, tall, undefined, phone, board.dataset.market === 'plaza' ? 'plaza' : 'counter'),
                   size,
                   stage,
                 )
               : paperWorldFrame(
-                  paperWorldFor(tall, undefined, (world as PaperWorldId | undefined) ?? 'observatory'),
+                  paperWorldFor(tall, undefined, (world as PaperWorldId | undefined) ?? 'observatory', board.dataset.phoneArt === 'true'),
                   size,
                   stage,
                 );
@@ -178,7 +178,7 @@ export function ScrollArea({
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-paper-world'],
+      attributeFilter: ['data-paper-world', 'data-phone-art'],
     });
     function wheel(e: WheelEvent) {
       if (

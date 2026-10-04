@@ -27,13 +27,13 @@ function voteAll(g, choice) {
   return g;
 }
 
-await test('Sabi opens with a vote between Atlas and Sizes', () => {
-  const g = entry.create(3, 5, 'medium');
+await test('Quiz opens with a pick between its four games', () => {
+  const g = entry.create(3, 5, 'medium', undefined, undefined, undefined, true);
   assert.equal(entry.name, 'Quiz');
   assert.equal(standaloneGames.size.name, 'Quiz');
   assert.equal(g.kind, 'miro');
   assert.equal(g.phase, 'vote');
-  assert.deepEqual(g.vote.options, ['miro', 'size']);
+  assert.deepEqual(g.vote.options, ['miro', 'size', 'year', 'order']);
   assert.ok(g.vote.opening);
   assert.ok(entry.isSavedGame(JSON.parse(JSON.stringify(g))));
   assert.equal(skipOpening(g, 'miro').phase, 'guess');
@@ -48,9 +48,9 @@ await test('Sabi opens with a vote between Atlas and Sizes', () => {
 });
 
 await test('switching carries every player’s points both ways', () => {
-  let g = skipOpening(entry.create(3, 8, 'medium'), 'miro');
+  let g = skipOpening(entry.create(3, 8, 'medium', undefined, undefined, undefined, true), 'miro');
   g = toVote(g);
-  assert.deepEqual(g.vote.options, ['miro', 'size', 'finish']);
+  assert.deepEqual(g.vote.options, ['miro', 'size', 'year', 'order', 'finish']);
   const atlas = seatTotals(g);
   g = voteAll(g, 'size');
   assert.equal(g.kind, 'size');

@@ -1,6 +1,15 @@
 import { useEffect } from 'react';
-import type { GameId as TrioGameId } from '@/lib/games/trio/engine';
-type GameId = TrioGameId | 'orin' | 'miro' | 'dial' | 'size';
+import type { ContentSet, GameId as TrioGameId } from '@/lib/games/trio/engine';
+type GameId =
+  | TrioGameId
+  | 'orin'
+  | 'miro'
+  | 'dial'
+  | 'size'
+  | 'coins'
+  | 'year'
+  | 'order'
+  | 'impostor';
 import { pauseAmbienceWhenHidden, startAmbience, stopAmbience } from '@/lib/games/ambience-player';
 
 export const AMBIENCE_KEY = 'gamehub.ambience.v1';
@@ -22,7 +31,7 @@ export function saveAmbienceLevel(level: number) {
 }
 
 /** Keeps the world's soundscape running while a table is open; silent when either level is zero. */
-export function useAmbience(id: GameId | null | undefined, volume: number, level: number, contentSet?: 'beginner' | 'intermediate') {
+export function useAmbience(id: GameId | null | undefined, volume: number, level: number, contentSet?: ContentSet) {
   const effective = volume * level;
   // Starting an already running world only adjusts its level, so this is safe to re-run.
   useEffect(() => {

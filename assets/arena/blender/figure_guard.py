@@ -27,6 +27,8 @@ import math
 import os
 
 import kit
+import face_rig
+import face_paint
 import figure_guard_kit as gk
 from figure_guard_kit import V, gauss, lerp, smooth, spow, table
 from mathutils import Matrix, Quaternion, Vector
@@ -36,7 +38,7 @@ T = kit.tint
 
 # ------------------------------------------------------------- palette
 
-SKIN = "resin:" + T("guard-skin", "#c08e6e")
+SKIN = "resin:" + T("guard-skin", "#e5aa82")
 LIP = "resin:" + T("guard-lip", "#a8735f")
 BEARD = "resin:" + T("guard-beard", "#4b3627")
 EYEW = "resin:" + T("guard-eyewhite", "#d2c9b8")
@@ -757,38 +759,10 @@ def face():
 
 
 def eyes():
-    """Small painted eyes that follow the sockets: an off-white almond, a
-    dark iris under the lid and a dark lash line."""
-    out = []
-    fn = face_point
-    for sx in (-1, 1):
-        ac, zc = sx * 25.5, 1.1565
-        lens = []
-        for i in range(12):
-            t = i / 12 * math.tau
-            x = math.cos(t)
-            y = math.sin(t) * (1.0 if math.sin(t) > 0 else 0.8)
-            lens.append((ac + x * 7.4, zc + y * 0.0048 + 0.0007 * x * sx))
-        if sx < 0:
-            lens.reverse()
-        out.append(gk.decal(f"{R}-eye{sx}", fn, lens, 0.0007, EYEW,
-                            depth=0.0006, eps=0.05, ref=HC))
-        iris = [(ac + math.cos(t) * 3.2, zc + math.sin(t) * 0.0041 + 0.0008)
-                for t in (i / 8 * math.tau for i in range(8))]
-        out.append(gk.decal(f"{R}-iris{sx}", fn, iris, 0.0011, IRIS,
-                            depth=0.0, eps=0.05, ref=HC))
-        lash = []
-        for i in range(7):
-            t = math.pi * i / 6
-            lash.append((ac + math.cos(t) * 8.1,
-                         zc + math.sin(t) * 0.0055 + 0.0008 * math.cos(t) * sx))
-        for i in range(6, -1, -1):
-            t = math.pi * i / 6
-            lash.append((ac + math.cos(t) * 7.3,
-                         zc + math.sin(t) * 0.0046 + 0.0008 * math.cos(t) * sx))
-        out.append(gk.decal(f"{R}-lash{sx}", fn, lash, 0.0013, IRIS,
-                            depth=0.0, eps=0.05, ref=HC))
-    return out
+    return (face_paint.eyes(gk, R, face_point, HC, z=1.1565,
+                            expression="focused") +
+            face_paint.mouth(gk, R, face_point, HC,
+                             expression="focused"))
 
 
 # The hood: an ellipsoid round the skull, open round the face, closing
@@ -810,8 +784,8 @@ def hood_r(d):
 
 def opening(s):
     c, sn = math.cos(s), math.sin(s)
-    a = 64 * spow(sn, 0.75)
-    z = 1.132 + (0.078 if c > 0 else 0.084) * spow(c, 0.85)
+    a = 73 * spow(sn, 0.75)
+    z = 1.132 + (0.092 if c > 0 else 0.084) * spow(c, 0.85)
     return a, z
 
 
@@ -1152,7 +1126,7 @@ def build(root_name="guard"):
     torso = [gambeson(), cape(hood_obj)] + tabard(1) + tabard(-1) + belt() + \
         pouch() + dagger() + quiver()
     torso_obj = gk.part(R, "torso", torso, WAIST, root)
-    gk.part(R, "head", head, NECK, torso_obj, angle=62)
+    face_rig.head(gk.part, R, head, NECK, torso_obj, angle=62)
 
     arm_l = gk.part(R, "armL", build_armL(), S_L0, torso_obj)
     gk.part(R, "offhand", build_offhand(), W_L0, arm_l)

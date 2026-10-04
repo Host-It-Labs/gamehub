@@ -1,0 +1,319 @@
+{
+  "source": "/art/mora-phone-observatory-v5-c.png",
+  "image": "/art/optimized/mora-phone-observatory-v5-c.webp",
+  "boardImage": "/art/optimized/mora-phone-observatory-v5-c-board.webp",
+  "width": 997,
+  "height": 1578,
+  "crop": {
+    "left": 196,
+    "top": 307,
+    "width": 661,
+    "height": 911
+  },
+  "landmarks": {
+    "roofTop": 187,
+    "protectedBounds": [
+      {
+        "name": "roof garden",
+        "bounds": [
+          198,
+          236,
+          254,
+          343
+        ]
+      },
+      {
+        "name": "observatory",
+        "bounds": [
+          503,
+          187,
+          379,
+          431
+        ]
+      },
+      {
+        "name": "root hollow",
+        "bounds": [
+          176,
+          586,
+          337,
+          310
+        ]
+      },
+      {
+        "name": "watchpost",
+        "bounds": [
+          564,
+          596,
+          307,
+          339
+        ]
+      },
+      {
+        "name": "glasshouse",
+        "bounds": [
+          178,
+          875,
+          304,
+          331
+        ]
+      },
+      {
+        "name": "dry channel",
+        "bounds": [
+          521,
+          970,
+          363,
+          278
+        ]
+      }
+    ]
+  },
+  "habitats": [
+    {
+      "zone": 0,
+      "bounds": [
+        594,
+        433,
+        171,
+        158
+      ],
+      "label": [
+        680,
+        611
+      ],
+      "slots": [
+        [
+          640,
+          485
+        ],
+        [
+          720,
+          485
+        ],
+        [
+          639,
+          549
+        ],
+        [
+          721,
+          549
+        ]
+      ],
+      "tokenWidth": 71,
+      "summary": "*Same* species: 2 · 6 · 11 · 17"
+    },
+    {
+      "zone": 1,
+      "bounds": [
+        235,
+        311,
+        167,
+        156
+      ],
+      "label": [
+        319,
+        496
+      ],
+      "slots": [
+        [
+          281,
+          363
+        ],
+        [
+          358,
+          362
+        ],
+        [
+          280,
+          425
+        ],
+        [
+          358,
+          425
+        ]
+      ],
+      "tokenWidth": 71,
+      "summary": "8 per *pair*"
+    },
+    {
+      "zone": 2,
+      "bounds": [
+        246,
+        752,
+        168,
+        94
+      ],
+      "label": [
+        330,
+        866
+      ],
+      "slots": [
+        [
+          291,
+          804
+        ],
+        [
+          370,
+          804
+        ]
+      ],
+      "tokenWidth": 71,
+      "summary": "*Pair*: 9"
+    },
+    {
+      "zone": 3,
+      "bounds": [
+        215,
+        1021,
+        248,
+        120
+      ],
+      "label": [
+        339,
+        1159
+      ],
+      "slots": [
+        [
+          260,
+          1073
+        ],
+        [
+          338,
+          1091
+        ],
+        [
+          419,
+          1099
+        ]
+      ],
+      "tokenWidth": 71,
+      "summary": "3 each if found *elsewhere*"
+    },
+    {
+      "zone": 4,
+      "bounds": [
+        578,
+        975,
+        258,
+        94
+      ],
+      "label": [
+        707,
+        1118
+      ],
+      "slots": [
+        [
+          623,
+          1026
+        ],
+        [
+          707,
+          1027
+        ],
+        [
+          792,
+          1027
+        ]
+      ],
+      "tokenWidth": 71,
+      "summary": "2 per *creature*"
+    },
+    {
+      "zone": 6,
+      "bounds": [
+        659,
+        691,
+        89,
+        94
+      ],
+      "label": [
+        704,
+        816
+      ],
+      "slots": [
+        [
+          704,
+          743
+        ]
+      ],
+      "tokenWidth": 71,
+      "summary": "2 per *other* area with its species"
+    }
+  ],
+  "release": [
+    505,
+    943
+  ],
+  "animation": {
+    "water": {
+      "polygon": [
+        [
+          228,
+          1274
+        ],
+        [
+          384,
+          1270
+        ],
+        [
+          506,
+          1322
+        ],
+        [
+          502,
+          1405
+        ],
+        [
+          367,
+          1416
+        ],
+        [
+          258,
+          1375
+        ]
+      ]
+    },
+    "foliage": [
+      {
+        "polygon": [
+          [
+            906,
+            1080
+          ],
+          [
+            964,
+            1090
+          ],
+          [
+            994,
+            1160
+          ],
+          [
+            985,
+            1290
+          ],
+          [
+            935,
+            1278
+          ],
+          [
+            908,
+            1190
+          ]
+        ],
+        "pivot": [
+          958,
+          1267
+        ]
+      }
+    ]
+  },
+  "overview": {
+    "left": 166,
+    "top": 177,
+    "width": 728,
+    "height": 1081
+  },
+  "overviewImage": "/art/optimized/mora-phone-observatory-v5-c-overview.webp"
+}

@@ -80,7 +80,9 @@
 }
 .lid-art {
   position: relative;
-  height: clamp(26.67cqw, 30dvh, 33.34cqw);
+  /* On short screens the lid trims to its middle band before any settings
+     row has to wait on a second page (the rest of a setup needs ~490px). */
+  height: clamp(26.67cqw, min(30dvh, 100dvh - 514px), 33.34cqw);
   overflow: hidden;
   display: grid;
   place-items: end center;
@@ -439,6 +441,14 @@
 }
 .set-deck i:nth-child(3) {
   transform: rotate(12deg) translateY(5px);
+}
+/* The fan ends on the deck's top Storm card, split red and black like in play. */
+.set-deck i:nth-child(3) {
+  background: linear-gradient(135deg, #da3431 0 50%, #14181c 50% 100%);
+  box-shadow:
+    inset 0 0 0 2px #f8ecd233,
+    0 4px 8px #0007;
+  color: #f8ecd2;
 }
 .set-check {
   position: absolute;
@@ -1238,4 +1248,261 @@
 :root[data-theme='dark'] .run-delete-actions button:not(.danger) {
   border-color: var(--lib-line);
   background: var(--lib-card);
+}
+
+/* One height for every setup (1 October 2026): the height of a deck or two
+   boards beside three extensions. Longer lists page inside their row, and
+   rows that still do not fit wait on a second page of settings. Nox, the
+   reference, needs about 706px on a desktop and 605px on a phone. */
+.modal.setup-modal {
+  --setup-height: 744px;
+  height: min(var(--setup-height), calc(100dvh - 24px));
+  display: flex !important;
+  flex-direction: column;
+}
+.modal.setup-modal > :not([data-slot='dialog-close']),
+.lobby-shared-setup > .setup-box {
+  flex: none;
+}
+.modal.setup-modal > .setup-box,
+.modal.setup-modal > .lobby-shared-setup,
+.lobby-shared-setup > .setup-box {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.lobby-shared-setup {
+  display: flex;
+  flex-direction: column;
+}
+.setup-box > .lid {
+  flex: none;
+}
+.tray,
+.relic-box-new {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.setup-options {
+  /* The rows' offsets are measured from here. */
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  /* Fewer settings sit in the middle of the room rather than above a gap. */
+  align-content: center;
+  overflow: hidden;
+}
+/* A single row taller than the room scrolls in place instead of clipping. */
+.setup-options.overflowing {
+  overflow-y: auto;
+}
+.setup-options > [data-paged-out] {
+  display: none !important;
+}
+.setup-actions {
+  flex: none;
+  margin-top: auto;
+}
+/* Alto: Players, Bots and Voyage share the first row; Plans beside Extensions. */
+.alto-setup .setup-options {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.alto-setup .setup-options > * {
+  grid-column: span 2;
+}
+.alto-setup .setup-options > :is(.setup-sets, .setup-extensions) {
+  grid-column: span 3;
+}
+/* Alto's light colour is gold, unreadable on its blue: white reads on both. */
+.setup-box.alto-setup {
+  --on-accent: #fffaf0;
+}
+/* Plans: three plan medallions fanned on the morning sky. */
+.alto-set-fan {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 70% 60% at 30% 20%, #fff4dccc, transparent 70%),
+    linear-gradient(180deg, #f6c9a3, #bcd9ea 70%, #9fc8e2);
+}
+.alto-set-medal {
+  display: grid;
+  place-items: center;
+  width: 30cqw;
+  aspect-ratio: 1;
+  margin: 0 -2.5cqw;
+  border: 1.5px solid #c3964b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f4fbff, #c9e2f0 70%);
+  box-shadow: 2px 5px 10px #2e4a7a40;
+  rotate: -9deg;
+  translate: 0 4%;
+}
+.alto-set-medal:nth-child(2) {
+  z-index: 1;
+  rotate: 0deg;
+  translate: 0 -6%;
+  width: 34cqw;
+}
+.alto-set-medal:nth-child(3) {
+  rotate: 9deg;
+}
+.alto-set-medal img {
+  width: 104%;
+  height: 104%;
+  object-fit: contain;
+  filter: drop-shadow(2px 3px 2px #2e4a7a33);
+}
+.alto-set-shuffle {
+  position: absolute;
+  right: 6%;
+  bottom: 8%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid #c3964b;
+  border-radius: 50%;
+  background: #fbf4e6;
+  color: #2c2a3a;
+}
+/* Three controls share that row, so Bots drops its bars and Voyage its turn count. */
+.alto-setup .seg-levels .level-bars,
+.alto-setup .seg-option small {
+  display: none;
+}
+
+/* Pagers: one small capsule holding the arrows and a dot per page. On a row
+   it sits in the label's line, clear of the cards beneath; for whole rows it
+   is centred above the actions. */
+.setup-row {
+  position: relative;
+}
+.setup-row-aside {
+  /* The fieldset's box starts under its label (14px line, 8px margin), so
+     this centres the 22px capsule on the label and keeps 3px above the row. */
+  position: absolute;
+  bottom: calc(100% + 3px);
+  right: 0;
+  z-index: 1;
+}
+.setup-pager {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 1px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+}
+.modal.setup-modal .pager-step {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-2);
+  transition:
+    background 140ms,
+    color 140ms,
+    opacity 140ms;
+}
+/* A finger-sized target around the small arrow, never reaching the row below. */
+.modal.setup-modal .pager-step::before {
+  content: '';
+  position: absolute;
+  inset: -5px -4px -3px;
+}
+.modal.setup-modal .pager-step svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.6;
+}
+/* The way on is the one to notice: More carries the game's colour. */
+.modal.setup-modal .pager-step.next:not(:disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.modal.setup-modal .pager-step:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.modal.setup-modal .pager-step:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.modal.setup-modal .pager-step.next:hover:not(:disabled) {
+  background: var(--accent-2);
+  color: var(--on-accent);
+}
+.modal.setup-modal .pager-dot {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.pager-dot i {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line-2);
+  transition:
+    width 160ms,
+    background 160ms;
+}
+.pager-dot.on i {
+  width: 14px;
+  background: var(--accent);
+}
+/* A page holding a pick or a switched-on extension: a ring when not shown. */
+.pager-dot.marked:not(.on) i {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.modal.setup-modal .pager-dot.on {
+  width: 22px;
+}
+.pager-step:focus-visible,
+.pager-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 99px;
+}
+.setup-rows-pager {
+  flex: none;
+  align-self: center;
+  margin-block: -4px;
+}
+@media (max-width: 600px) {
+  .modal.setup-modal {
+    --setup-height: 620px;
+    height: min(var(--setup-height), calc(100dvh - 12px));
+  }
+  .alto-setup .setup-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .alto-setup .setup-options > * {
+    grid-column: auto;
+  }
+  .alto-setup .setup-options > :is(.setup-sets, .setup-extensions) {
+    grid-column: 1 / -1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pager-dot i,
+  .modal.setup-modal .pager-step {
+    transition: none;
+  }
 }

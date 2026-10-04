@@ -2,22 +2,31 @@
 
 A tall, stern, weathered high-fantasy wizard: a long team robe with gold
 embroidered hems, front band and cuffs, wide bell sleeves lined in the dark
-team tone; a charcoal travelling mantle thrown over the shoulders and hanging
-down the back; a leather belt with two pouches and a small bound book; a
+team tone; a charcoal travelling mantle, a shoulder cape over a long cape
+hanging down the back; a leather belt with two pouches and a small bound book; a
 long flowing grey-white beard in sculpted locks, drooping moustache and
 heavy brows; long grey hair falling from under a tall pointed team hat with
 a gold band and a bent tip. In the right hand a tall gnarled dark-wood staff
 crowned by a glowing amber crystal in silver claws; the left hand raised,
 open, palm up, holding a small ball of fire.
 
-Part contract (figures.py / troops.py): the root empty `mage` at the feet,
-facing +y. `mage.legL/R` pivot at the hips (each a boot peeking out under
-the hem; the robe hides the rest), `mage.torso` at the waist carries the
-robe, mantle and belt, `mage.head` at the neck carries the face, beard,
-hair and hat, `mage.armL/R` at the shoulders carry the sleeves (the right
-one also the fist), `mage.weapon` is the staff (child of armR, pivot in
-the right fist) and `mage.offhand` the open casting hand with its flame
-(child of armL, pivot at the wrist). No part has a rest rotation.
+Part contract (figures.py / troops.py; moves/mage.ts animates them): the
+root empty `mage` at the feet, facing +y. `mage.legL/R` pivot at the hips
+(each a boot peeking out under the hem; the robe hides the rest),
+`mage.torso` at the waist carries the bodice, the capelet with its clasps
+and the belt; under it `mage.extra2` (the skirt, with the pouches and the
+book, pivoting at the belt), `mage.cape` (the long cape, hinged under the
+capelet's hem) and its lower link `mage.cape2`. `mage.head` at the neck
+carries the face, cheek beard, hair, brim and the cone up to the crease;
+under it `mage.hat` (the bent tip above the crease) and `mage.beard` (the
+long beard, its locks and the moustache, hanging from under the nose).
+`mage.armL/R` at the shoulders carry the upper sleeves, `mage.foreL/R` at
+the elbows the forearms (the right one also the fist), `mage.weapon` is
+the staff (child of foreR, pivot in the right fist), `mage.offhand` the
+open casting hand (child of foreL, pivot at the wrist) and `mage.extra`
+its flame (pivot at the flame's heart). No part has a rest rotation. The
+capelet and the cape are `drape` cloth (kit.drape): they ripple in the
+game, the cape more toward its hem.
 
 The crystal and the flame use the `glow` family, which the game draws
 emissive (materials.ts), as the older toy wizard's orb did.
@@ -31,6 +40,8 @@ import math
 import os
 
 import kit
+import face_rig
+import face_paint
 import figure_mage_kit as mk
 from figure_mage_kit import V, gauss, lerp, smooth, spow, table, clamp01
 from mathutils import Matrix, Vector
@@ -47,7 +58,9 @@ TEAM2 = "weave:team2"
 GOLD = "gilt:" + T("wizard-gold", "#c79f4c")
 SILVER = "gilt:" + T("wizard-silver", "#b7bcc4")
 MANTLE = "weave:" + T("wizard-mantle", "#56585e")
-SKIN = "resin:" + T("wizard-skin", "#c8957a")
+# The capelet and the cape ripple (kit.drape); same charcoal.
+CAPE = "drape:" + T("wizard-mantle", "#56585e")
+SKIN = "resin:" + T("wizard-skin", "#e6b18e")
 BEARD = "resin:" + T("wizard-beard", "#d6d2ca")
 LEATHER = "leather:" + T("wizard-leather", "#5d3e29")
 WOOD = "wood:" + T("wizard-wood", "#5e4130")
@@ -169,38 +182,8 @@ def face():
 
 
 def eyes():
-    """Narrow, deep-set eyes under the heavy brow: a grey-white almond, a
-    dark iris pressed up under the lid and a dark lash line."""
-    out = []
-    fn = face_point
-    for sx in (-1, 1):
-        ac, zc = sx * 25.5, 1.1565 + DZ
-        lens = []
-        for i in range(12):
-            t = i / 12 * math.tau
-            x = math.cos(t)
-            y = math.sin(t) * (0.0034 if math.sin(t) > 0 else 0.0028)
-            lens.append((ac + x * 7.0, zc + y + 0.0009 * x * sx))
-        if sx < 0:
-            lens.reverse()
-        out.append(mk.decal(f"{R}-eye{sx}", fn, lens, 0.0007, EYEW,
-                            depth=0.0006, eps=0.05, ref=HC))
-        iris = [(ac + math.cos(t) * 2.9, zc + math.sin(t) * 0.003 + 0.0007)
-                for t in (i / 8 * math.tau for i in range(8))]
-        out.append(mk.decal(f"{R}-iris{sx}", fn, iris, 0.0011, IRIS,
-                            depth=0.0, eps=0.05, ref=HC))
-        lash = []
-        for i in range(7):
-            t = math.pi * i / 6
-            lash.append((ac + math.cos(t) * 7.8,
-                         zc + math.sin(t) * 0.0044 + 0.001 * math.cos(t) * sx))
-        for i in range(6, -1, -1):
-            t = math.pi * i / 6
-            lash.append((ac + math.cos(t) * 7.0,
-                         zc + math.sin(t) * 0.0033 + 0.001 * math.cos(t) * sx))
-        out.append(mk.decal(f"{R}-lash{sx}", fn, lash, 0.0014, IRIS,
-                            depth=0.0, eps=0.05, ref=HC))
-    return out
+    return face_paint.eyes(mk, R, face_point, HC, z=1.1565 + DZ,
+                           expression="curious")
 
 
 def brows():
@@ -428,11 +411,50 @@ def hat_spine(h):
     return p, th
 
 
+# The tip above this height along the spine is its own joint (`mage.hat`),
+# so it flops and bobs: it sits a little inside the cone below, which ends
+# in a slightly flared lip over it (the felt's crease).
+HAT_SPLIT = 0.19
+HAT_LIP = 0.207
+
+
+def hat_prof_at(h):
+    return table(HAT_PROF, h)
+
+
+def hat_matrix():
+    return Matrix.Translation(HAT_BASE) @ Matrix.Rotation(HAT_TILT, 4, "X")
+
+
+def hat_pivot():
+    return hat_matrix() @ hat_spine(HAT_SPLIT)[0]
+
+
 def hat():
-    pieces = []
+    """The cone below the tip and the brim (on the head)."""
+    lower = [(h, rk, 1.0) for h, rk in HAT_PROF if h < HAT_SPLIT]
+    lower += [(HAT_SPLIT, hat_prof_at(HAT_SPLIT), 1.0),
+              (HAT_LIP - 0.004, hat_prof_at(HAT_LIP - 0.004), 1.035),
+              (HAT_LIP, hat_prof_at(HAT_LIP), 1.03),
+              (HAT_LIP + 0.001, hat_prof_at(HAT_LIP), 0.9)]
+    return hat_cone(f"{R}-cone", lower, end="flat") + hat_brim()
+
+
+def hat_tip():
+    """The cone from just under the crease to its bent point."""
+    prof = [(HAT_SPLIT - 0.012, hat_prof_at(HAT_SPLIT - 0.012), 0.9),
+            (HAT_SPLIT - 0.008, hat_prof_at(HAT_SPLIT - 0.008), 0.965),
+            (HAT_LIP, hat_prof_at(HAT_LIP), 0.975)]
+    prof += [(h, rk, 1.0) for h, rk in HAT_PROF if h > HAT_LIP]
+    tip, th = hat_spine(HAT_L)
+    tip = tip + hat_dir(th) * 0.012
+    return hat_cone(f"{R}-tip", prof, start="flat", end=tip, bands=False)
+
+
+def hat_cone(name, prof, start="flat", end=None, bands=True):
     n = 24
     rings = []
-    for k, (h, rk) in enumerate(HAT_PROF):
+    for k, (h, rk, scale) in enumerate(prof):
         c, th = hat_spine(h)
         tang = hat_dir(th)
         side = V(1, 0, 0)
@@ -456,17 +478,22 @@ def hat():
                 pinch = gauss(h, HAT_BEND, 0.022)
                 r *= 1 - 0.26 * pinch * max(0.0, -sa) ** 1.5
                 r *= 1 + 0.1 * pinch * max(0.0, sa) ** 2
+            r *= scale
             ring.append(c + side * ca * HAT_RX * r + up * sa * HAT_RY * r)
         rings.append(ring)
-    tip, th = hat_spine(HAT_L)
-    tip = tip + hat_dir(th) * 0.012
-    cone = mk.loft(f"{R}-cone", rings, TEAM,
-                   bands=lambda i, j: GOLD if isinstance(j, int) and j <= 3
-                   else TEAM, start="flat", end=tip)
-    pieces.append(cone)
+    if bands:
+        def band(i, j):
+            return GOLD if isinstance(j, int) and j <= 3 else TEAM
+    else:
+        band = None
+    cone = mk.loft(name, rings, TEAM, bands=band, start=start, end=end)
+    mk.transform([cone], hat_matrix())
+    return [cone]
 
-    # The brim: soft felt, drooping at the sides and back with a slow wave
-    # round it, its edge rolled.
+
+def hat_brim():
+    """The brim: soft felt, drooping at the sides and back with a slow
+    wave round it, its edge rolled."""
     prof = [(0.0, 0.004), (0.4, -0.001), (0.8, -0.011), (1.0, -0.021),
             (1.03, -0.028), (0.95, -0.032), (0.5, -0.015), (0.0, -0.007)]
     m = 32
@@ -478,26 +505,34 @@ def hat():
             a = i / m * math.tau
             ca, sa = math.cos(a), math.sin(a)
             x = lerp(HAT_RX, 0.19, t) * ca
-            y = lerp(HAT_RY, 0.196, t) * sa
+            y = lerp(HAT_RY, 0.196, t) * sa * (0.6 if sa > 0 else 1.0)
             droop = -0.022 * t ** 1.6 * (1 - 0.65 * max(0.0, sa))
             wave = t ** 2 * (0.009 * math.sin(3 * a + 0.9) +
                              0.004 * math.sin(5 * a + 2.0))
-            row.append(c.v(V(x, y, dz + droop + wave)))
+            row.append(c.v(V(x, y, dz + droop + wave +
+                             0.045 * max(0.0, sa) * t)))
         rows.append(row)
     c.grid(rows, TEAM, closed=True)
     for i in range(m):
         j = (i + 1) % m
         c.face((rows[-1][i], rows[-1][j], rows[0][j], rows[0][i]), TEAM)
-    pieces.append(c.obj(recalc=True))
-    mat = (Matrix.Translation(HAT_BASE) @
-           Matrix.Rotation(HAT_TILT, 4, "X"))
-    mk.transform(pieces, mat)
-    return pieces
+    brim = c.obj(recalc=True)
+    mk.transform([brim], hat_matrix())
+    return [brim]
 
 
 def head_parts():
-    return ([face()] + eyes() + brows() + [beard_shell(), beard_mass()] +
-            beard_locks() + moustache() + [hair()] + hat())
+    return [face()] + eyes() + brows() + [beard_shell(), hair()] + hat()
+
+
+# The long beard, its locks and the moustache hang from under the nose as
+# their own joint (`mage.beard`); the sculpted shell over the cheeks stays
+# on the face and hides where it hangs from.
+BEARD_PIVOT = V(0, 0.058, 0.972)
+
+
+def beard_parts():
+    return [beard_mass()] + beard_locks() + moustache()
 
 
 # ------------------------------------------------------------- robe
@@ -578,17 +613,29 @@ def hem_lift(ad):
     return 0.06 * front ** 3 - 0.007 * fold_wave(a)
 
 
+# The robe is two parts meeting under the belt: the bodice on the torso
+# (down to the belt, tucked in under it) and the skirt (`mage.extra2`,
+# pivoting at the belt), which hangs plumb while the chest leans and sways
+# with the legs. Each tucks a little under the other so the seam never
+# opens.
+SKIRT_PIVOT = V(0, 0, 0.6)
+
+
 def robe():
-    reg = [11 + 9.8 * k for k in range(18)]
-    # Columns: regular angles, and the front's seven (see FRONT), placed
-    # per row.
-    cols = [-a for a in reversed(reg)] + \
-        ["-3", "-2", "-1", "0", "1", "2", "3"] + reg
-    # (z, radial offset, material of the band below, hem weight, pattern)
-    rows = [(0.905, 0.0, TEAM, 0, 0), (0.84, 0.0, TEAM, 0, 0), (0.74, 0.0, TEAM, 0, 0),
-            (0.64, 0.0, TEAM, 0, 0),
-            (0.6, 0.0, TEAM, 0, 0), (0.565, 0.0, TEAM, 0, 0),
-            (0.5, 0.0, TEAM, 0, 0), (0.42, 0.0, TEAM, 0.1, 0),
+    """The bodice: collar to the belt."""
+    return robe_rows(f"{R}-robe", [
+        (0.905, 0.0, TEAM, 0, 0), (0.84, 0.0, TEAM, 0, 0),
+        (0.74, 0.0, TEAM, 0, 0), (0.64, 0.0, TEAM, 0, 0),
+        (0.6, 0.0, TEAM, 0, 0), (0.584, -0.009, TEAM, 0, 0)],
+        top=True, bottom=False)
+
+
+def skirt():
+    """The skirt: from under the belt to the embroidered hem."""
+    return robe_rows(f"{R}-skirt", [
+        (0.618, -0.008, TEAM, 0, 0), (0.6, -0.003, TEAM, 0, 0),
+        (0.565, 0.0, TEAM, 0, 0),
+        (0.5, 0.0, TEAM, 0, 0), (0.42, 0.0, TEAM, 0.1, 0),
             (0.33, 0.0, TEAM, 0.3, 0), (0.24, 0.0, TEAM, 0.55, 0),
             (0.16, 0.0, TEAM, 0.8, 0),
             # The embroidered hem: a fine gold line, then a broad band
@@ -597,8 +644,19 @@ def robe():
             (0.093, 0.0045, TEAM2, 1, 0), (0.089, 0.0, TEAM, 1, 0),
             (0.07, 0.0, GOLD, 1, 0), (0.065, 0.0065, GOLD, 1, 0),
             (0.046, 0.0085, GOLD, 1, 1), (0.028, 0.0065, GOLD, 1, 0),
-            (0.02, 0.0, TEAM2, 1, 0), (0.027, -0.011, TEAM2, 1, 0)]
-    c = mk.Mesh(f"{R}-robe", TEAM)
+            (0.02, 0.0, TEAM2, 1, 0), (0.027, -0.011, TEAM2, 1, 0)],
+        top=False, bottom=True)
+
+
+def robe_rows(name, rows, top, bottom):
+    reg = [11 + 9.8 * k for k in range(18)]
+    # Columns: regular angles, and the front's seven (see FRONT), placed
+    # per row.
+    cols = [-a for a in reversed(reg)] + \
+        ["-3", "-2", "-1", "0", "1", "2", "3"] + reg
+    # rows: (z, radial offset, material of the band below, hem weight,
+    # pattern)
+    c = mk.Mesh(name, TEAM)
     grid = []
     for z, off, _, hw, pat in rows:
         row = []
@@ -628,9 +686,13 @@ def robe():
         return m
 
     c.grid(grid, mat, closed=True)
-    c.fan(grid[0], V(0, 0, 0.912), TEAM, flip=True)
-    c.fan(grid[-1], V(0, 0, 0.03), TEAM2)
-    return c.obj(recalc=True)
+    if top:
+        c.fan(grid[0], V(0, 0, 0.912), TEAM, flip=True)
+    if bottom:
+        c.fan(grid[-1], V(0, 0, 0.03), TEAM2)
+    # With an open end, make sure the whole faces away from its own axis.
+    return c.obj(recalc=True, outward=None if top and bottom
+                 else V(0, 0, (grid[0][0].co.z + grid[-1][0].co.z) / 2))
 
 
 def collar():
@@ -647,10 +709,12 @@ def belt():
     pieces = []
     n = 24
     rings = []
-    for z, off in ((0.582, 0.004), (0.585, 0.012), (0.615, 0.012),
-                   (0.618, 0.004)):
-        rings.append([robe_point(i / n * 360.0, 0.6, off, fold=False)
-                      + V(0, 0, z - 0.6) for i in range(n)])
+    # Each ring on the robe's own section at its height (the robe widens
+    # below the waist), standing proud of the skirt's gathers.
+    for z, off in ((0.58, 0.007), (0.584, 0.014), (0.616, 0.014),
+                   (0.62, 0.006)):
+        rings.append([robe_point(i / n * 360.0, z, off, fold=False)
+                      for i in range(n)])
     pieces.append(mk.loft(f"{R}-belt", rings, LEATHER))
     front = robe_point(0.0, 0.6, 0.012, fold=False).y
     # A silver buckle and the belt's tail hanging down beside it.
@@ -662,11 +726,16 @@ def belt():
     pieces.append(mk.tube(f"{R}-pin", [V(-0.02, front + 0.007, 0.6),
                                        V(0.012, front + 0.008, 0.6)],
                           [0.003, 0.003], SILVER, n=4, caps=("pole", "pole")))
+    return pieces
+
+
+def belt_tail():
+    """The belt's tail hanging down beside the buckle."""
+    front = robe_point(0.0, 0.6, 0.012, fold=False).y
     tail = [V(-0.036, front + 0.006, 0.598), V(-0.042, front + 0.012, 0.56),
             V(-0.046, front + 0.02, 0.5)]
-    pieces.append(mk.tube(f"{R}-tail", tail, [(0.004, 0.012)] * 3, LEATHER,
-                          n=6, up=(0, 1, 0), caps=("flat", "flat")))
-    return pieces
+    return [mk.tube(f"{R}-tail", tail, [(0.004, 0.012)] * 3, LEATHER,
+                    n=6, up=(0, 1, 0), caps=("flat", "flat"))]
 
 
 def pouch(name, ad, z_top, size, flap_mat=LEATHER):
@@ -783,14 +852,39 @@ def mantle_point(u, j):
     return V(x, y, z), a
 
 
-def mantle():
-    """The travelling mantle: a rolled collar, a cape rounding over the
-    shoulders and a long fall down the back in deep folds, open in front
-    so the arms and the robe show."""
+# The mantle is two layers since 3 October 2026: a shoulder cape (the
+# capelet, on the torso, with the clasps) and under it the long cape down
+# the back, its own joint `mage.cape` hinged under the capelet's hem, so it
+# swings and billows while the capelet hides where it hangs from.
+CAPELET_V = 4.7          # the capelet's hem, in mantle rows
+CAPE_TOP_V = 3.3         # the cape's hidden top, under the capelet
+CAPE_EDGE = 121.0        # the cape's side edges, degrees from the front
+CAPE_PIVOT = V(0, -0.128, 0.742)
+# The cape stands a little further off the skirt toward its hem, so it can
+# swing in a touch without brushing it.
+CAPE_BACK = [0, 0, 0, 0, 0.004, 0.01, 0.02, 0.028, 0.034]
+
+
+def mantle_at(ad, j):
+    """A mantle row's point at a given angle (degrees from the front)."""
+    rx, ryf, ryb, zs, zf, zb, a0 = MANTLE_ROWS[j]
+    a = math.radians(ad)
+    s_, c_ = math.sin(a), math.cos(a)
+    e = 2.0 / 2.1
+    x = rx * spow(s_, e)
+    y = (ryf if c_ >= 0 else ryb + CAPE_BACK[j]) * spow(c_, e)
+    z = lerp(zf if c_ >= 0 else zb, zs, s_ * s_)
+    return V(x, y, z)
+
+
+def capelet():
+    """The shoulder cape: a rolled collar rounding over the shoulders to
+    the upper arms and down the upper back, open in front, in soft folds
+    with a scalloped hem."""
     nu = 31
     us = [i / (nu - 1) for i in range(nu)]
     last = len(MANTLE_ROWS) - 1
-    vs = [0, 1, 2, 2.5, 3, 4, 5, 6, 7, 8]
+    vs = [0, 1, 2, 2.5, 3, 3.5, 4, 4.35, CAPELET_V]
 
     def fn(u, v):
         pts = [mantle_point(u, j)[0] for j in range(len(MANTLE_ROWS))]
@@ -798,25 +892,118 @@ def mantle():
         a = math.atan2(p.x, p.y)
         t = v / last
         back = max(0.0, -math.cos(a))
-        # Pipe folds: broad rounded ridges between narrow deep valleys,
-        # six across, each valley on a column so it stays crisp.
         g = abs(math.sin(6 * math.pi * u))
         ridge = 2.0 * g ** 0.85 - 1.1
-        w8 = ridge
+        # Softer folds than the cape below: they must never dip under it.
         fold = smooth(0.12, 0.75, t) * (0.3 + 0.7 * back) * \
-            (0.03 * ridge + 0.004 * math.sin(15 * a + 1.3))
-        # A soft fold where the cape rounds over each shoulder.
+            (0.011 * ridge + 0.003 * math.sin(15 * a + 1.3))
+        # A soft fold where it rounds over each shoulder.
         fold += 0.006 * gauss(t, 0.4, 0.08) * math.sin(4 * a)
+        # The hem flares a little out over the cape.
+        fold += 0.012 * smooth(3.6, CAPELET_V, v)
         out = V(p.x, p.y, 0)
         out = out.normalized() if out.length > 1e-6 else V(0, -1, 0)
         p += out * fold
-        p.z += t * t * (0.02 * w8 + 0.008 * math.sin(3 * a + 2)) * \
-            (0.3 + 0.7 * back)
+        p.z += smooth(3.8, CAPELET_V, v) * 0.012 * ridge * (0.4 + 0.6 * back)
         return p
 
-    return mk.sheet(f"{R}-mantle", fn, us, vs, MANTLE, rim=0.007,
+    return mk.sheet(f"{R}-capelet", fn, us, vs, CAPE, rim=0.008,
                     inside=V(0, 0, 0.75), back=True,
                     rim_edges=("u0", "u1", "v1"))
+
+
+# The cape is two links: the upper hangs from under the capelet
+# (`mage.cape`), the lower (`mage.cape2`) from a hinge across its middle,
+# so it curls as it swings. The lower link's top tucks behind the upper
+# link and the upper's edge curls in under the lower, crossing flush: the
+# seam never opens as it bends back (only a big forward bend could show
+# the upper's edge).
+CAPE2_V = 6.35
+CAPE2_OVER = 0.22        # rows of overlap either side of the hinge
+
+
+def cape_point(u, v):
+    ad = lerp(CAPE_EDGE, 360 - CAPE_EDGE, u)
+    p = crom([mantle_at(ad, j) for j in range(len(MANTLE_ROWS))], v)
+    a = math.radians(ad)
+    t = v / (len(MANTLE_ROWS) - 1)
+    back = max(0.0, -math.cos(a))
+    # Pipe folds: broad rounded ridges between narrow deep valleys,
+    # five across, each valley on a column so it stays crisp.
+    g = abs(math.sin(5 * math.pi * (u - 0.1)))
+    ridge = 2.0 * g ** 0.85 - 1.1
+    fold = smooth(4.3, 6.2, v) * (0.35 + 0.65 * back) * \
+        (0.032 * ridge + 0.004 * math.sin(15 * a + 1.3))
+    # Tucked in under the capelet, out to its own surface below it.
+    fold -= 0.021 * (1 - smooth(CAPELET_V - 0.2, CAPELET_V + 0.7, v))
+    out = V(p.x, p.y, 0)
+    out = out.normalized() if out.length > 1e-6 else V(0, -1, 0)
+    p += out * fold
+    p.z += t * t * (0.02 * ridge + 0.008 * math.sin(3 * a + 2)) * \
+        (0.3 + 0.7 * back)
+    return p, out
+
+
+def cape_upper():
+    """The cape's upper link, from under the capelet to a little past the
+    hinge."""
+    vs = [CAPE_TOP_V, 3.8, 4.3, 4.7, 5.1, 5.5, 5.9, CAPE2_V,
+          CAPE2_V + CAPE2_OVER * 0.5, CAPE2_V + CAPE2_OVER]
+
+    def tuck(v):
+        # Below the hinge its edge curls in under the lower link.
+        return -0.013 * smooth(CAPE2_V, CAPE2_V + CAPE2_OVER, v)
+    return cape_sheet(f"{R}-cape", vs, tuck)
+
+
+def cape_lower():
+    """The lower link: from just above the hinge, tucked behind the upper
+    link, to the hem."""
+    vs = [CAPE2_V - CAPE2_OVER, CAPE2_V, CAPE2_V + CAPE2_OVER * 0.5,
+          6.7, 7.1, 7.45, 7.75, 8.0]
+
+    def tuck(v):
+        # Behind the upper link above the hinge, out over its curled edge
+        # below it: the two cross flush, so at rest there is no step.
+        return -0.014 * (1 - smooth(CAPE2_V - CAPE2_OVER * 0.5,
+                                    CAPE2_V + CAPE2_OVER * 0.8, v))
+    return cape_sheet(f"{R}-cape2", vs, tuck)
+
+
+def cape_sheet(name, vs, tuck):
+    nu = 31
+    us = [i / (nu - 1) for i in range(nu)]
+
+    def fn(u, v):
+        p, out = cape_point(u, v)
+        return p + out * tuck(v)
+
+    return mk.sheet(name, fn, us, vs, CAPE, rim=0.007, inside=V(0, 0, 0.6),
+                    back=True, rim_edges=("u0", "u1", "v0", "v1"))
+
+
+def cape2_pivot():
+    """The hinge: across the cape's middle at the back."""
+    p, _ = cape_point(0.5, CAPE2_V)
+    # Halfway between a fold's ridge and its valley.
+    return V(0, p.y - 0.017, p.z)
+
+
+def cape_free(pivot):
+    """How free a point of the cape is (kit.drape): nothing under the
+    capelet, more and more toward the hem (so it curls back as it
+    billows rather than tilting flat), the same for both links at the
+    hinge. `co` is relative to the link's pivot."""
+    def free(co):
+        z = co.z + pivot.z
+        return clamp01((0.73 - z) / 0.5) ** 1.5
+    return free
+
+
+def capelet_free(co):
+    """The torso's drape faces are the capelet's: only its hem stirs."""
+    z = co.z + WAIST.z
+    return 0.5 * clamp01((0.86 - z) / 0.14)
 
 
 def clasps():
@@ -852,7 +1039,13 @@ def clasps():
 
 
 def torso_parts():
-    return ([robe(), collar(), mantle()] + clasps() + belt() +
+    return [robe(), collar(), capelet()] + clasps() + belt()
+
+
+def skirt_parts():
+    """The skirt and what hangs from the belt over it (they swing with
+    it)."""
+    return ([skirt()] + belt_tail() +
             pouch(f"{R}-pouch1", 52.0, 0.583, (0.03, 0.058, 0.03)) +
             pouch(f"{R}-pouch2", 118.0, 0.583, (0.026, 0.05, 0.026)) +
             book())
@@ -910,16 +1103,19 @@ def sleeve(name, s, e, w, bell=0.078, sag=0.034):
     """A wide robe sleeve from the shoulder to just past the wrist: snug
     over the upper arm, widening into a bell that hangs under the forearm,
     its mouth cut longer underneath, with an embroidered gold cuff and the
-    dark lining inside."""
+    dark lining inside. Two pieces since 3 October 2026, the upper arm's
+    and the forearm's (the elbow joint): the upper sleeve ends in a soft
+    lip a little past the elbow, over the forearm's, which starts a little
+    before it, so the elbow bends without a gap."""
     fore = (w - e).normalized()
+    upper_d = (e - s).normalized()
     path = [s + (s - e).normalized() * 0.015, s, lerp(s, e, 0.5), e,
             lerp(e, w, 0.35), lerp(e, w, 0.7), w + fore * 0.012]
     radii = [0.046, 0.05, 0.049, 0.048, 0.053, 0.064, bell]
     sags = [0.0, 0.0, 0.0, 0.004, 0.012, 0.022, sag]
     n = 16
-    rings = []
-    downs = []
-    for i, p in enumerate(path):
+
+    def ring_at(i, p, r, sg, k):
         a = path[max(0, i - 1)]
         b = path[min(len(path) - 1, i + 1)]
         tang = (b - a).normalized()
@@ -928,9 +1124,6 @@ def sleeve(name, s, e, w, bell=0.078, sag=0.034):
             down = V(0, -1, 0)
         down.normalize()
         side = tang.cross(down).normalized()
-        downs.append((down, side))
-        r = radii[i]
-        k = i / 6
         ring = []
         for q in range(n):
             ang = q / n * math.tau
@@ -939,9 +1132,26 @@ def sleeve(name, s, e, w, bell=0.078, sag=0.034):
             # bell's underside hangs deeper.
             fold = 1 + (0.04 + 0.08 * k) * math.sin(5 * ang + 1.1 * i)
             rd = r * (1.0 + 0.3 * k * k * max(0.0, ca))
-            ring.append(p + down * (ca * rd * fold + sags[i]) +
+            ring.append(p + down * (ca * rd * fold + sg) +
                         side * sa * r * fold)
+        return ring, down, side
+
+    rings = []
+    downs = []
+    for i, p in enumerate(path):
+        ring, down, side = ring_at(i, p, radii[i], sags[i], i / 6)
         rings.append(ring)
+        downs.append((down, side))
+    # The upper sleeve: shoulder to a lip just past the elbow.
+    lip_at = e + fore * 0.014
+    lip, _, _ = ring_at(3, lip_at, radii[3] * 1.07, sags[3], 0.5)
+    lip_in, _, _ = ring_at(3, lip_at + fore * 0.003, radii[3] * 0.93,
+                           sags[3], 0.5)
+    upper = mk.loft(f"{name}-upper", rings[:4] + [lip, lip_in], TEAM,
+                    start="pole", end="flat")
+    # The forearm's sleeve, starting inside the upper one.
+    start_at = e - upper_d * 0.02
+    first, _, _ = ring_at(3, start_at, radii[3] * 0.9, sags[3], 0.5)
     # The mouth: cut on a slant, longer underneath.
     down, side = downs[-1]
     last = rings[-1]
@@ -952,24 +1162,22 @@ def sleeve(name, s, e, w, bell=0.078, sag=0.034):
     cuff_out = [centre + (p - centre) * (1.065 + 0.03 * (q % 2)) + d
                 for q, (p, d) in enumerate(zip(last, reach))]
     cuff_edge = [q + fore * 0.022 for q in cuff_out]
-    lip = [centre + (p - centre) * 0.9 + fore * 0.022 + d
-           for p, d in zip(last, reach)]
+    lip2 = [centre + (p - centre) * 0.9 + fore * 0.022 + d
+            for p, d in zip(last, reach)]
     inner = [centre + (p - centre) * 0.82 - fore * 0.035 for p in last]
-    rings[-1] = mouth
-    k = len(rings)
-    all_rings = rings + [cuff_out, cuff_edge, lip, inner]
+    fore_rings = [first] + rings[3:-1] + [mouth, cuff_out, cuff_edge, lip2,
+                                         inner]
+    k = len(fore_rings) - 4
     bands = {k - 1: GOLD, k: GOLD, k + 1: GOLD, k + 2: TEAM2}
 
     def bm(i, j):
         if isinstance(j, int):
-            if j == k:
-                # The cuff's embroidery: alternate stitches in the dark.
-                return GOLD
             return bands.get(j, TEAM)
         return TEAM2 if j == "end" else TEAM
 
-    return mk.loft(f"{name}-sleeve", all_rings, TEAM, bands=bm,
-                   start="pole", end="flat")
+    lower = mk.loft(f"{name}-fore", fore_rings, TEAM, bands=bm,
+                    start="pole", end="flat")
+    return upper, lower
 
 
 def arm_joints(s, target, pole, fist_len):
@@ -981,19 +1189,19 @@ def arm_joints(s, target, pole, fist_len):
 
 
 def build_armR():
+    """The staff arm: (upper pieces, forearm pieces, elbow, wrist)."""
     e, w = arm_joints(S_R, FIST_R, POLE_R, WRIST_FIST)
     xax = FIST_R - w
     xax = (xax - STAFF_D * xax.dot(STAFF_D)).normalized()
     kax = xax.cross(STAFF_D).normalized()
-    pieces = fist(f"{R}-handR", FIST_R, xax, kax, -1)
-    pieces.append(mk.tube(f"{R}-wristR", [w - (w - e).normalized() * 0.03,
-                                          w + xax * 0.012],
-                          [0.022, 0.024], SKIN, n=8, caps=(None, None)))
-    pieces.append(mk.ball(f"{R}-shoulderR", 0.05, S_R, TEAM, seg=8,
-                          rings=5))
-    pieces.append(mk.ball(f"{R}-elbowR", 0.046, e, TEAM, seg=8, rings=5))
-    pieces.append(sleeve(f"{R}-armR", S_R, e, w, bell=0.074, sag=0.03))
-    return pieces, e, w
+    fore = fist(f"{R}-handR", FIST_R, xax, kax, -1)
+    fore.append(mk.tube(f"{R}-wristR", [w - (w - e).normalized() * 0.03,
+                                       w + xax * 0.012],
+                        [0.022, 0.024], SKIN, n=8, caps=(None, None)))
+    up, lo = sleeve(f"{R}-armR", S_R, e, w, bell=0.074, sag=0.03)
+    upper = [mk.ball(f"{R}-shoulderR", 0.05, S_R, TEAM, seg=10, rings=6),
+             mk.ball(f"{R}-elbowR", 0.05, e, TEAM, seg=10, rings=6), up]
+    return upper, fore + [lo], e, w
 
 
 def hand_frame():
@@ -1008,11 +1216,12 @@ def hand_frame():
 
 
 def build_armL():
+    """The casting arm: (upper pieces, forearm pieces, elbow, wrist)."""
     e, w, f, u, s = hand_frame()
-    pieces = [mk.ball(f"{R}-shoulderL", 0.05, S_L, TEAM, seg=8, rings=5),
-              mk.ball(f"{R}-elbowL", 0.046, e, TEAM, seg=8, rings=5),
-              sleeve(f"{R}-armL", S_L, e, w, bell=0.076, sag=0.036)]
-    return pieces, e, w
+    up, lo = sleeve(f"{R}-armL", S_L, e, w, bell=0.076, sag=0.036)
+    upper = [mk.ball(f"{R}-shoulderL", 0.05, S_L, TEAM, seg=10, rings=6),
+             mk.ball(f"{R}-elbowL", 0.05, e, TEAM, seg=10, rings=6), up]
+    return upper, [lo], e, w
 
 
 def open_hand():
@@ -1036,11 +1245,12 @@ def open_hand():
                           [0.021, 0.024], SKIN, n=8, caps=(None, None)))
     # Fingers, index (thumb side, -s) to little finger: three joints each,
     # curling gently upward.
+    # Chunky cartoon fingers, cupped round the flame.
     for k, (off, length, r, curl, sp) in enumerate((
-            (-0.0185, 0.05, 0.0068, 0.16, -0.16),
-            (-0.0062, 0.055, 0.007, 0.2, -0.05),
-            (0.0062, 0.052, 0.0068, 0.24, 0.05),
-            (0.0185, 0.042, 0.006, 0.3, 0.16))):
+            (-0.0185, 0.048, 0.0086, 0.22, -0.16),
+            (-0.0062, 0.053, 0.0089, 0.26, -0.05),
+            (0.0062, 0.05, 0.0087, 0.3, 0.05),
+            (0.0185, 0.041, 0.0078, 0.36, 0.16))):
         base = p + f * 0.024 + s * off + u * 0.003
         d = (f + s * sp).normalized()
         pts = [base - d * 0.006]
@@ -1051,22 +1261,28 @@ def open_hand():
             dd = (d * math.cos(ang) + u * math.sin(ang)).normalized()
             pts.append(pts[-1] + dd * seg)
         pieces.append(mk.tube(f"{R}-finger{k}", pts,
-                              [r * 1.1, r, r * 0.9, r * 0.75], SKIN, n=6,
+                              [r * 1.1, r, r * 0.92, r * 0.8], SKIN, n=8,
                               up=u, caps=(None, "dome")))
     thumb = [p - s * 0.02 - f * 0.014,
              p - s * 0.036 + f * 0.002 + u * 0.004,
              p - s * 0.046 + f * 0.018 + u * 0.012,
              p - s * 0.05 + f * 0.032 + u * 0.022]
-    pieces.append(mk.tube(f"{R}-thumbL", thumb, [0.0105, 0.0094, 0.0084,
-                                                 0.007], SKIN, n=6,
+    pieces.append(mk.tube(f"{R}-thumbL", thumb, [0.0118, 0.0106, 0.0096,
+                                                 0.0082], SKIN, n=8,
                           caps=("dome", "dome")))
     return pieces, p, u, f, s
 
 
+def flame_centre(p, u, f):
+    return p + u * 0.056 + f * 0.004
+
+
 def flame(p, u, f, s):
     """A small ball of fire hovering over the palm: a round heart with a
-    crown of tongues licking up and curling off it, and a few sparks."""
-    c = p + u * 0.056 + f * 0.004
+    crown of tongues licking up and curling off it, and a few sparks. Its
+    own joint (`mage.extra`, on the hand) so it can bob, spin and be
+    tossed."""
+    c = flame_centre(p, u, f)
     R0 = 0.034
     pieces = [mk.ball(f"{R}-fireball", R0, c, FIRE, seg=10, rings=6)]
     for k in range(7):
@@ -1260,16 +1476,30 @@ def build(root_name="mage"):
         mk.part(R, f"leg{side}", pieces, hip, root)
 
     torso = mk.part(R, "torso", torso_parts(), WAIST, root)
-    mk.part(R, "head", head_parts(), NECK, torso, angle=60)
 
-    arm_r, e_r, w_r = build_armR()
-    arm_r_obj = mk.part(R, "armR", arm_r, S_R, torso, angle=70)
-    mk.part(R, "weapon", staff(), FIST_R, arm_r_obj, angle=40)
+    skirt_obj = mk.part(R, "extra2", skirt_parts(), SKIRT_PIVOT, torso)
+    cape_obj = mk.part(R, "cape", [cape_upper()], CAPE_PIVOT, torso)
+    kit.drape(cape_obj, free=cape_free(CAPE_PIVOT))
+    cape2 = mk.part(R, "cape2", [cape_lower()], cape2_pivot(), cape_obj)
+    kit.drape(cape2, free=cape_free(cape2_pivot()))
+    kit.drape(torso, free=capelet_free)
 
-    arm_l, e_l, w_l = build_armL()
-    arm_l_obj = mk.part(R, "armL", arm_l, S_L, torso, angle=70)
+    head = face_rig.head(mk.part, R, head_parts(), NECK, torso, angle=60)
+    mk.part(R, "hat", hat_tip(), hat_pivot(), head, angle=60)
+    mk.part(R, "beard", beard_parts(), BEARD_PIVOT, head, angle=60)
+
+    up_r, lo_r, e_r, w_r = build_armR()
+    arm_r_obj = mk.part(R, "armR", up_r, S_R, torso, angle=70)
+    fore_r = mk.part(R, "foreR", lo_r, e_r, arm_r_obj, angle=70)
+    mk.part(R, "weapon", staff(), FIST_R, fore_r, angle=40)
+
+    up_l, lo_l, e_l, w_l = build_armL()
+    arm_l_obj = mk.part(R, "armL", up_l, S_L, torso, angle=70)
+    fore_l = mk.part(R, "foreL", lo_l, e_l, arm_l_obj, angle=70)
     hand, p, u, f, s = open_hand()
-    mk.part(R, "offhand", hand + flame(p, u, f, s), w_l, arm_l_obj)
+    hand_obj = mk.part(R, "offhand", hand, w_l, fore_l)
+    mk.part(R, "extra", flame(p, u, f, s), flame_centre(p, u, f),
+            hand_obj, angle=60)
 
     report(root)
     pose = POSES.get(os.environ.get("MAGE_POSE", ""))

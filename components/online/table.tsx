@@ -72,7 +72,7 @@ function menuTheme(gameId: string) {
       ? 'mora'
       : gameId === 'midnight'
         ? 'yata'
-        : gameId === 'orin' || gameId === 'miro'
+        : gameId === 'orin' || gameId === 'miro' || gameId === 'impostor'
           ? 'party'
           : undefined;
 }
@@ -741,7 +741,7 @@ function Handoff({
   onJoin,
 }: {
   url: string;
-  kind: 'folio' | 'relic' | 'arena';
+  kind: 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner';
   onJoin: () => void;
 }) {
   const box = gameByLibraryId(kind);
