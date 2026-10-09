@@ -1,3 +1,5 @@
+import { nativeRatio } from '../render-quality.ts';
+
 /** Quality changes rendering cost, never the scene's art or model set. */
 export type Quality = {
   tier: 'hq' | 'lite';
@@ -6,15 +8,15 @@ export type Quality = {
   props: number;
 };
 
-/** Start at native screen density on every device. The measured frame pacer
- * lowers shadows and render resolution when needed, then recovers quality.
- * Full-resolution surface sources and identical scenery stay loaded. */
+/** The top rung is the screen's native density on every device. The frame
+ * pacer starts a weaker device lower (`startLevel`), lowers shadows and
+ * render resolution when needed, then recovers quality. Full-resolution
+ * surface sources and identical scenery stay loaded. */
 export function pickQuality(): Quality {
-  const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
   return {
     tier: 'hq',
     shadowSize: 4096,
-    pixelRatio: Math.min(dpr, 3),
+    pixelRatio: nativeRatio(),
     props: 1,
   };
 }

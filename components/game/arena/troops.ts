@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import {
   dutyFactor,
   footPitch,
@@ -18,6 +19,10 @@ import { troopCards, troopDeck, type TroopId } from '@/lib/games/arena/cards';
 import {
   DEPLOY_TIME,
   TICK,
+  towerGap,
+  towerNormal,
+  towerFootprint,
+  troopBuildingRadius,
   type Tower,
   type Unit,
 } from '@/lib/games/arena/engine';
@@ -26,7 +31,16 @@ import { teamColours, type Team } from './materials';
 import { find, KING_CANNON, standHeight, type ArenaWorld } from './world';
 import { addDrape } from './wind';
 import { applyFace, facePose, faceRig, type FaceRig } from './faces';
+import { createSurfacePointReader } from './surface-contact';
+export { createSurfacePointReader } from './surface-contact';
 import { moves } from './moves';
+import { plantMageStaff } from './moves/mage';
+import { medicStoneGuard } from './moves/medic';
+import { vikingSolePenetration, vikingStoneGuard } from './moves/viking';
+import {
+  gladiatorSolePenetration,
+  gladiatorStoneGuard,
+} from './moves/gladiator';
 import type {
   Carriage,
   MoveContext,
@@ -46,10 +60,9 @@ import type {
  * Toys walk briskly with a bounce and a sway, drop onto the mat and bounce,
  * and topple over when they fall.
  *
- * Every troop part on the field is drawn through one BatchedMesh per
- * material, so a crowded team battle costs the same few draw calls as an
- * empty field. Each troop poses a shared copy of its model (its "kit"), and
- * the kit's part matrices are copied into the batches.
+ * Rigid troop parts share one BatchedMesh per material/layout. Connected
+ * skins retain a posed copy per unit; their rigid attachments still use the
+ * same batches, with matrices copied from that unit's own joints.
  */
 const PARTS: PartName[] = [
   'legL',
@@ -92,6 +105,9 @@ const PARTS: PartName[] = [
   'handL',
   'handR',
   'extra2',
+  'chest',
+  'clavL',
+  'clavR',
 ];
 type Rig = Partial<
   Record<PartName, { node: THREE.Object3D; rest: THREE.Euler; y: number }>
@@ -128,6 +144,11 @@ export const FLY_HEIGHT = 2.1;
 /** Troops are drawn larger than their footprint so they read on screen; the
  *  view raises this on portrait phones (`troopScale` in layout.ts). */
 export const TROOP_SCALE = 1.75;
+/** Figures drawn a little larger than the rest (9 October 2026: the Dino
+ *  read too small beside the people). Multiplies the troops' scale. */
+const FIGURE_SIZE: Partial<Record<string, number>> = { ogre: 1.12 };
+/** How much larger than the troops' scale a figure is drawn. */
+export const figureSize = (id: string) => FIGURE_SIZE[id] ?? 1;
 const ease = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (t: number) => (t < 0 ? 0 : t > 1 ? 1 : t);
 /** An attack's strike out (seconds), its recovery, and the share of each
@@ -168,10 +189,186 @@ function rig(model: THREE.Object3D, id: string): Rig {
 /** A drawn piece of a kit; `drape` for cloth that ripples (addDrape). */
 type Part = {
   mesh: THREE.Mesh;
+  /** Source traversal position, retained by SkeletonUtils.clone. */
+  nodeIndex: number;
   batch: THREE.BatchedMesh;
   geometry: number;
   drape: boolean;
 };
+/** A rigid part, or only the vertices genuinely weighted to a skin joint. */
+export type FigureSurface = {
+  mesh: THREE.Mesh;
+  indices?: number[];
+};
+const surfacesOf = new WeakMap<THREE.Object3D, Map<string, FigureSurface[]>>();
+const readersOf = new WeakMap<
+  FigureSurface,
+  ReturnType<typeof createSurfacePointReader>
+>();
+function contactSurfaceReader(surface: FigureSurface) {
+  let reader = readersOf.get(surface);
+  if (!reader) {
+    reader = createSurfacePointReader(surface);
+    readersOf.set(surface, reader);
+  }
+  return reader;
+}
+function beneath(node: THREE.Object3D, parent: THREE.Object3D) {
+  for (let at: THREE.Object3D | null = node; at; at = at.parent)
+    if (at === parent) return true;
+  return false;
+}
+
+/** Skin meshes are siblings of their bones, so walking a bone's children
+ *  misses its actual anatomy. Keep its weighted surface, including blended
+ *  seam vertices; the resulting points are evaluated in the current pose. */
+export function figureSurfaces(
+  model: THREE.Object3D,
+  id: string,
+  part: PartName,
+) {
+  let cached = surfacesOf.get(model);
+  if (!cached) surfacesOf.set(model, (cached = new Map()));
+  const key = `${id}:${part}`;
+  const hit = cached.get(key);
+  if (hit) return hit;
+  const surfaces: FigureSurface[] = [];
+  cached.set(key, surfaces);
+  const joint = find(model, `${id}${part}`);
+  if (!joint) return surfaces;
+  // The chest and shoulder girdle are the torso's own upper half here: the
+  // stone checks keep the whole trunk out of a tower.
+  const trunk: PartName[] = ['torso', 'chest', 'clavL', 'clavR'];
+  const others =
+    part === 'torso'
+      ? PARTS.filter((p) => !trunk.includes(p))
+          .map((p) => find(model, `${id}${p}`))
+          .filter((node): node is THREE.Object3D => !!node)
+      : [];
+  let skinned = false;
+  model.traverse((node) => {
+    if ((node as THREE.SkinnedMesh).isSkinnedMesh) skinned = true;
+  });
+  joint.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh || (mesh as THREE.SkinnedMesh).isSkinnedMesh) return;
+    if (part === 'torso') {
+      if (
+        skinned
+          ? others.some((other) => beneath(mesh, other))
+          : mesh.name !== joint.name && !mesh.name.startsWith(`${joint.name}_`)
+      )
+        return;
+    }
+    surfaces.push({ mesh });
+  });
+  model.traverse((node) => {
+    const mesh = node as THREE.SkinnedMesh;
+    if (!mesh.isSkinnedMesh) return;
+    const allowed = mesh.skeleton.bones.map(
+      (bone) =>
+        beneath(bone, joint) && !others.some((other) => beneath(bone, other)),
+    );
+    const weights = mesh.geometry.attributes.skinWeight;
+    const bones = mesh.geometry.attributes.skinIndex;
+    const indices: number[] = [];
+    for (let i = 0; i < weights.count; i++)
+      for (let component = 0; component < 4; component++)
+        if (
+          weights.getComponent(i, component) > 1e-6 &&
+          allowed[bones.getComponent(i, component)]
+        ) {
+          indices.push(i);
+          break;
+        }
+    if (indices.length) surfaces.push({ mesh, indices });
+  });
+  return surfaces;
+}
+
+/** A posed subset's bounds. Mesh.getVertexPosition includes bone and
+ *  morph deformation; static geometry positions do not. */
+export function posedSurfaceBounds(
+  surface: FigureSurface,
+  target: THREE.Box3,
+  matrix = surface.mesh.matrixWorld,
+) {
+  const { mesh, indices } = surface;
+  if (!indices) {
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    return target.copy(mesh.geometry.boundingBox!).applyMatrix4(matrix);
+  }
+  target.makeEmpty();
+  for (const index of indices) {
+    mesh.getVertexPosition(index, surfacePoint).applyMatrix4(matrix);
+    target.expandByPoint(surfacePoint);
+  }
+  return target;
+}
+
+type BoneSurfaceBox = { bone: number; box: THREE.Box3 };
+const influenceBounds = new WeakMap<FigureSurface, BoneSurfaceBox[] | null>();
+const influencePoint = new THREE.Vector3();
+const influenceMatrix = new THREE.Matrix4();
+const influenceBox = new THREE.Box3();
+
+/** A conservative bound of the posed skin subset. A blended vertex is a
+ *  convex combination of its bone-transformed positions, all contained by
+ *  the union of these cached influence boxes. Exact vertices are still
+ *  evaluated whenever this broad bound can contact a building. */
+export function surfaceBroadBounds(
+  surface: FigureSurface,
+  target: THREE.Box3,
+  matrix = surface.mesh.matrixWorld,
+) {
+  const mesh = surface.mesh as THREE.SkinnedMesh;
+  if (!mesh.isSkinnedMesh || !surface.indices)
+    return posedSurfaceBounds(surface, target, matrix);
+  if (mesh.morphTargetInfluences?.some((weight) => weight !== 0))
+    return posedSurfaceBounds(surface, target, matrix);
+  let boxes = influenceBounds.get(surface);
+  if (boxes === undefined) {
+    const geometry = mesh.geometry;
+    const positions = geometry.attributes.position;
+    const weights = geometry.attributes.skinWeight;
+    const indices = geometry.attributes.skinIndex;
+    const matrices = mesh.skeleton.boneInverses.map((inverse) =>
+      inverse.clone().multiply(mesh.bindMatrix),
+    );
+    const made = matrices.map(() => new THREE.Box3());
+    let valid = true;
+    for (const index of surface.indices) {
+      let sum = 0;
+      surfacePoint.fromBufferAttribute(positions, index);
+      for (let component = 0; component < 4; component++) {
+        const weight = weights.getComponent(index, component);
+        sum += weight;
+        if (weight < 0) valid = false;
+        if (weight <= 0) continue;
+        const bone = indices.getComponent(index, component);
+        influencePoint.copy(surfacePoint).applyMatrix4(matrices[bone]);
+        made[bone].expandByPoint(influencePoint);
+      }
+      if (Math.abs(sum - 1) > 1e-6) valid = false;
+    }
+    boxes = valid
+      ? made.flatMap((box, bone) => (box.isEmpty() ? [] : [{ bone, box }]))
+      : null;
+    influenceBounds.set(surface, boxes);
+  }
+  if (!boxes) return posedSurfaceBounds(surface, target, matrix);
+  target.makeEmpty();
+  for (const { bone, box } of boxes) {
+    influenceMatrix
+      .copy(matrix)
+      .multiply(mesh.bindMatrixInverse)
+      .multiply(mesh.skeleton.bones[bone].matrixWorld);
+    influenceBox.copy(box).applyMatrix4(influenceMatrix);
+    target.union(influenceBox);
+  }
+  return target.expandByScalar(1e-5);
+}
+const surfacePoint = new THREE.Vector3();
 /** Named poses a figure carries (the tower guard's draw and loose): each
  *  part's turn from its rest. */
 type Poses = Record<string, Partial<Record<PartName, THREE.Quaternion>>>;
@@ -185,11 +382,64 @@ type Kit = {
   face: FaceRig;
   parts: Part[];
   poses: Poses;
+  /** Bound in the rest pose; each tower's skin copy owns its correction. */
+  towerString?: TowerStringContact;
   /** Whether it has cloth that ripples (Part.drape). */
   drapes: boolean;
   /** Highest point of the rest sculpt at TROOP_SCALE, for status crowns. */
   top: number;
+  /** How much larger than the troops' scale it is drawn (FIGURE_SIZE;
+   *  1 when absent). */
+  size?: number;
+  /** Connected skins keep an independent posed copy for each field unit. */
+  direct?: {
+    meshes: THREE.Mesh[];
+    skeletons: Set<THREE.Skeleton>;
+    materials: THREE.Material[];
+    colours: Map<THREE.Material, THREE.Color>;
+    xray: boolean;
+  };
 };
+
+/** Where a weapon's working end sits in its part's own space: the far end
+ *  of its longest reach from the grip (a wand's tip, a barrel's mouth).
+ *  Measured once per kit model, in the rest pose. */
+/** Figures whose gun is not their `weapon` part (the Gunner's cannon). */
+const TIP_PART: Partial<Record<string, PartName>> = { gunner: 'extra' };
+const weaponTips = new WeakMap<THREE.Object3D, THREE.Vector3 | null>();
+function weaponTip(node: THREE.Object3D) {
+  if (weaponTips.has(node)) return weaponTips.get(node)!;
+  node.updateWorldMatrix(true, true);
+  const inverse = new THREE.Matrix4().copy(node.matrixWorld).invert();
+  const bounds = new THREE.Box3();
+  const part = new THREE.Box3();
+  node.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh || (mesh as THREE.SkinnedMesh).isSkinnedMesh) return;
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    part
+      .copy(mesh.geometry.boundingBox!)
+      .applyMatrix4(tmpM.multiplyMatrices(inverse, mesh.matrixWorld));
+    bounds.union(part);
+  });
+  let tip: THREE.Vector3 | null = null;
+  if (!bounds.isEmpty()) {
+    const centre = bounds.getCenter(new THREE.Vector3());
+    const reach = [0, 1, 2].map((axis) =>
+      Math.max(-bounds.min.getComponent(axis), bounds.max.getComponent(axis)),
+    );
+    const axis = reach.indexOf(Math.max(...reach));
+    tip = centre.clone();
+    tip.setComponent(
+      axis,
+      -bounds.min.getComponent(axis) > bounds.max.getComponent(axis)
+        ? bounds.min.getComponent(axis)
+        : bounds.max.getComponent(axis),
+    );
+  }
+  weaponTips.set(node, tip);
+  return tip;
+}
 
 /** Poses stored on a model's root by Blender (`root["poses"]`, a JSON
  *  object of part → [w, x, y, z] in Blender's axes). glTF turns Blender's
@@ -216,6 +466,9 @@ function posesOf(model: THREE.Object3D): Poses {
 /** The camera layer the x-ray pass draws (view.ts): troop batches and the
  *  placement ghost. */
 export const XRAY_LAYER = 1;
+/** Direct skins carry their team in separate x-ray layers. The ordinary
+ *  batch silhouette reads an instance colour, which a skin does not have. */
+export const SKIN_XRAY_LAYERS = [3, 4] as const;
 const WHITE = new THREE.Color(1, 1, 1);
 /** A slowed troop's icy tint (TroopView.frost). */
 const FROST = new THREE.Color(0.68, 0.88, 1.18);
@@ -309,16 +562,21 @@ function layout(geometry: THREE.BufferGeometry) {
  */
 export class TroopRenderer {
   private kits = new Map<string, Kit>();
+  private directKits = new Set<Kit>();
+  private directIds = new Map<Kit, number[]>();
   private batches = new Map<string, THREE.BatchedMesh>();
   private live = new Map<THREE.BatchedMesh, number>();
   private rings: Record<RingStyle, Pool>;
   private blobs: Pool;
   private disposables: { dispose(): void }[] = [];
+  private disposed = false;
   private m = new THREE.Matrix4();
   private rgba = new THREE.Vector4();
   /** Per batch, each instance's team for the x-ray pass, or -1 (the tower
    *  guards, which never show through). */
   private tags = new Map<THREE.BatchedMesh, Map<number, Team | -1>>();
+  /** Normal colours survive the temporary team silhouette pass. */
+  private batchColours = new Map<THREE.BatchedMesh, Map<number, THREE.Color>>();
   /** How much larger than its footprint a figure is drawn. */
   scale = TROOP_SCALE;
   private motion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -329,14 +587,26 @@ export class TroopRenderer {
   constructor(private world: ArenaWorld) {
     const models = [...new Set(troopDeck.map((id) => this.modelOf(id)))];
     if (this.built('guard')) models.push('guard');
-    const sources: { key: string; model: THREE.Object3D; id: string }[] = [];
+    const sources: {
+      key: string;
+      model: THREE.Object3D;
+      id: string;
+      direct: boolean;
+    }[] = [];
     for (const id of models)
-      for (const team of [0, 1] as Team[])
+      for (const team of [0, 1] as Team[]) {
+        const model = world.instance(this.sourceOf(id), id, team);
+        let direct = false;
+        model.traverse((node) => {
+          if ((node as THREE.SkinnedMesh).isSkinnedMesh) direct = true;
+        });
         sources.push({
           key: `${id}:${team}`,
           id,
-          model: world.instance(this.sourceOf(id), id, team),
+          model,
+          direct,
         });
+      }
     // Size each batch for the unique geometries that will live in it.
     const sizes = new Map<
       string,
@@ -344,10 +614,10 @@ export class TroopRenderer {
     >();
     const keyOf = (mesh: THREE.Mesh) =>
       `${(mesh.material as THREE.Material).uuid}|${layout(mesh.geometry)}`;
-    for (const { model } of sources)
+    for (const { model } of sources) {
       model.traverse((node) => {
         const mesh = node as THREE.Mesh;
-        if (!mesh.isMesh) return;
+        if (!mesh.isMesh || (mesh as THREE.SkinnedMesh).isSkinnedMesh) return;
         const key = keyOf(mesh);
         const entry = sizes.get(key) ?? {
           material: mesh.material as THREE.Material,
@@ -356,7 +626,8 @@ export class TroopRenderer {
         entry.geometries.add(mesh.geometry);
         sizes.set(key, entry);
       });
-    const geometryIds = new Map<THREE.BufferGeometry, number>();
+    }
+    const geometryIds = new Map<string, Map<THREE.BufferGeometry, number>>();
     for (const [key, { material, geometries }] of sizes) {
       let vertices = 0;
       let indices = 0;
@@ -373,7 +644,8 @@ export class TroopRenderer {
       batch.frustumCulled = false;
       batch.perObjectFrustumCulled = false;
       batch.sortObjects = false;
-      batch.castShadow = true;
+      // Glass (the Jetpack's and Cadets' bubbles) casts no solid shadow.
+      batch.castShadow = !material.transparent;
       batch.receiveShadow = true;
       batch.layers.enable(XRAY_LAYER);
       batch.visible = false;
@@ -386,31 +658,51 @@ export class TroopRenderer {
         this.disposables.push(batch.customDepthMaterial);
       }
       this.tags.set(batch, new Map());
-      for (const g of geometries) geometryIds.set(g, batch.addGeometry(g));
+      this.batchColours.set(batch, new Map());
+      const ids = new Map<THREE.BufferGeometry, number>();
+      for (const g of geometries) ids.set(g, batch.addGeometry(g));
+      geometryIds.set(key, ids);
       this.batches.set(key, batch);
       this.live.set(batch, 0);
       world.scene.add(batch);
     }
-    for (const { key, model, id } of sources) {
+    for (const { key, model, id, direct } of sources) {
       const group = new THREE.Group();
       const body = new THREE.Group();
-      model.scale.set(...figureDimensions(TROOP_SCALE));
+      const size = figureSize(id);
+      model.scale.set(...figureDimensions(TROOP_SCALE * size));
       body.add(model);
       group.add(body);
+      group.updateMatrixWorld(true);
       const parts: Part[] = [];
+      const meshes: THREE.Mesh[] = [];
+      const skeletons = new Set<THREE.Skeleton>();
+      let nodeIndex = 0;
       model.traverse((node) => {
+        const index = nodeIndex++;
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh) return;
+        if ((mesh as THREE.SkinnedMesh).isSkinnedMesh) {
+          meshes.push(mesh);
+          skeletons.add((mesh as THREE.SkinnedMesh).skeleton);
+          return;
+        }
+        const key = keyOf(mesh);
         parts.push({
           mesh,
-          batch: this.batches.get(keyOf(mesh))!,
-          geometry: geometryIds.get(mesh.geometry)!,
+          nodeIndex: index,
+          batch: this.batches.get(key)!,
+          geometry: geometryIds.get(key)!.get(mesh.geometry)!,
           drape: (mesh.material as THREE.Material).name.startsWith('drape'),
         });
       });
       this.kits.set(key, {
         team: key.endsWith(':1') ? 1 : 0,
-        drapes: parts.some((p) => p.drape),
+        drapes:
+          parts.some((p) => p.drape) ||
+          meshes.some((mesh) =>
+            (mesh.material as THREE.Material).name.startsWith('drape'),
+          ),
         group,
         body,
         model,
@@ -418,7 +710,18 @@ export class TroopRenderer {
         face: faceRig(model, id),
         parts,
         poses: posesOf(model),
+        towerString: id === 'guard' ? TowerStringContact.bind(model) : undefined,
         top: new THREE.Box3().setFromObject(model).max.y,
+        size,
+        direct: direct
+          ? {
+              meshes,
+              skeletons,
+              materials: [],
+              colours: new Map(),
+              xray: false,
+            }
+          : undefined,
       });
     }
     const ring = new THREE.RingGeometry(0.82, 1, 40).rotateX(-Math.PI / 2);
@@ -465,7 +768,86 @@ export class TroopRenderer {
   }
 
   kit(model: string, team: Team) {
-    return this.kits.get(`${model}:${team}`)!;
+    const source = this.kits.get(`${model}:${team}`)!;
+    if (!source.direct) return source;
+    const copy = cloneSkeleton(source.model);
+    const group = new THREE.Group();
+    const body = new THREE.Group();
+    copy.scale.set(...figureDimensions(this.scale * (source.size ?? 1)));
+    body.add(copy);
+    group.add(body);
+    const meshes: THREE.Mesh[] = [];
+    const parts: Part[] = [];
+    const sourceParts = new Map(source.parts.map((p) => [p.nodeIndex, p]));
+    let nodeIndex = 0;
+    const skeletons = new Set<THREE.Skeleton>();
+    const materials = new Map<THREE.Material, THREE.Material>();
+    const depthMaterials: THREE.Material[] = [];
+    const colours = new Map<THREE.Material, THREE.Color>();
+    const own = (material: THREE.Material) => {
+      const hit = materials.get(material);
+      if (hit) return hit;
+      const made = material.clone();
+      // Material.clone does not carry the library's surface/wind hooks.
+      made.onBeforeCompile = material.onBeforeCompile.bind(material);
+      made.customProgramCacheKey =
+        material.customProgramCacheKey.bind(material);
+      materials.set(material, made);
+      const colour = (made as THREE.MeshStandardMaterial).color;
+      if (colour) colours.set(made, colour.clone());
+      return made;
+    };
+    copy.traverse((node) => {
+      const index = nodeIndex++;
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (!(mesh as THREE.SkinnedMesh).isSkinnedMesh) {
+        parts.push({ ...sourceParts.get(index)!, mesh });
+        // A rigid mesh can carry child joints or skins. Keep traversing its
+        // subtree while excluding only this geometry from every render pass.
+        mesh.layers.disableAll();
+        mesh.castShadow = mesh.receiveShadow = false;
+        return;
+      }
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map(own)
+        : own(mesh.material);
+      if (
+        !Array.isArray(mesh.material) &&
+        mesh.material.name.startsWith('drape')
+      ) {
+        mesh.customDepthMaterial = addDrape(
+          new THREE.MeshDepthMaterial(),
+          this.world.wind,
+        );
+        depthMaterials.push(mesh.customDepthMaterial);
+      }
+      mesh.frustumCulled = false;
+      meshes.push(mesh);
+      if ((mesh as THREE.SkinnedMesh).isSkinnedMesh)
+        skeletons.add((mesh as THREE.SkinnedMesh).skeleton);
+    });
+    return {
+      team,
+      group,
+      body,
+      model: copy,
+      rig: rig(copy, model),
+      face: faceRig(copy, model),
+      parts,
+      poses: source.poses,
+      towerString: model === 'guard' ? TowerStringContact.bind(copy) : undefined,
+      drapes: source.drapes,
+      top: source.top,
+      size: source.size,
+      direct: {
+        meshes,
+        skeletons,
+        materials: [...materials.values(), ...depthMaterials],
+        colours,
+        xray: false,
+      },
+    } satisfies Kit;
   }
 
   /** Draw every figure at a new size (portrait phones draw them larger). */
@@ -473,13 +855,31 @@ export class TroopRenderer {
     if (scale === this.scale) return;
     this.scale = scale;
     for (const kit of this.kits.values())
-      kit.model.scale.set(...figureDimensions(scale));
+      kit.model.scale.set(...figureDimensions(scale * (kit.size ?? 1)));
+    for (const kit of this.directKits)
+      kit.model.scale.set(...figureDimensions(scale * (kit.size ?? 1)));
   }
 
   /** Room in the batches for one more copy of a kit; `xray` false keeps
    *  it from showing through what hides it. */
   add(kit: Kit, xray = true) {
-    return kit.parts.map((p) => {
+    if (kit.direct) {
+      const existing = this.directIds.get(kit);
+      if (existing) return existing;
+      kit.direct.xray = xray;
+      for (const mesh of kit.direct.meshes) {
+        mesh.receiveShadow = true;
+        mesh.castShadow = !(Array.isArray(mesh.material)
+          ? mesh.material.every((m) => m.transparent)
+          : mesh.material.transparent);
+        mesh.layers.disable(XRAY_LAYER);
+        for (const layer of SKIN_XRAY_LAYERS) mesh.layers.disable(layer);
+        if (xray) mesh.layers.enable(SKIN_XRAY_LAYERS[kit.team]);
+      }
+      this.directKits.add(kit);
+      this.world.scene.add(kit.group);
+    }
+    const ids = kit.parts.map((p) => {
       const live = this.live.get(p.batch)!;
       if (live >= p.batch.maxInstanceCount)
         p.batch.setInstanceCount(p.batch.maxInstanceCount * 2);
@@ -489,15 +889,27 @@ export class TroopRenderer {
       // Every instance carries a colour, white for the normal pass, so the
       // batch's shader exists from the first troop on.
       p.batch.setColorAt(id, WHITE);
+      this.batchColours.get(p.batch)!.set(id, WHITE.clone());
       this.tags.get(p.batch)!.set(id, xray ? kit.team : -1);
       return id;
     });
+    if (kit.direct) this.directIds.set(kit, ids);
+    return ids;
   }
 
   remove(kit: Kit, ids: number[]) {
+    if (kit.direct) {
+      if (!this.directKits.delete(kit)) return;
+      ids = this.directIds.get(kit)!;
+      this.directIds.delete(kit);
+      this.world.scene.remove(kit.group);
+      for (const skeleton of kit.direct.skeletons) skeleton.dispose();
+      for (const material of kit.direct.materials) material.dispose();
+    }
     kit.parts.forEach((p, i) => {
       p.batch.deleteInstance(ids[i]);
       this.tags.get(p.batch)!.delete(ids[i]);
+      this.batchColours.get(p.batch)!.delete(ids[i]);
       const live = this.live.get(p.batch)! - 1;
       this.live.set(p.batch, live);
       // An empty batch costs a draw call for nothing.
@@ -515,7 +927,12 @@ export class TroopRenderer {
         else {
           // (The colour only: cloth keeps its flutter in the alpha, so
           // the x-ray pass moves it as the colour pass did.)
-          batch.setColorAt(id, on ? xrayColours[tag as Team] : WHITE);
+          batch.setColorAt(
+            id,
+            on
+              ? xrayColours[tag as Team]
+              : this.batchColours.get(batch)!.get(id)!,
+          );
           shown = true;
         }
       }
@@ -524,23 +941,52 @@ export class TroopRenderer {
     }
   }
 
+  /** Avoid an extra silhouette pass when no direct unit of a team is alive. */
+  hasSkinTeam(team: Team) {
+    for (const kit of this.directKits)
+      if (kit.team === team && kit.direct!.xray && kit.group.visible)
+        return true;
+    return false;
+  }
+
   /** One troop's batch colour (white, or the frost tint). */
   colour(kit: Kit, ids: number[], colour: THREE.Color) {
-    kit.parts.forEach((p, i) => p.batch.setColorAt(ids[i], colour));
+    if (kit.direct) {
+      ids = this.directIds.get(kit) ?? ids;
+      for (const [material, base] of kit.direct.colours)
+        (material as THREE.MeshStandardMaterial).color
+          .copy(base)
+          .multiply(colour);
+    }
+    kit.parts.forEach((p, i) => {
+      this.batchColours.get(p.batch)!.get(ids[i])!.copy(colour);
+      p.batch.setColorAt(ids[i], colour);
+    });
   }
 
   /** How much a troop's cloth ripples (0..1), sent as its batch colour's
    *  alpha above 1 (wind.ts, addDrape), with the troop's colour. */
   flutter(kit: Kit, ids: number[], amount: number, colour: THREE.Color) {
+    if (kit.direct) {
+      ids = this.directIds.get(kit) ?? ids;
+      this.colour(kit, ids, colour);
+    }
     this.rgba.set(colour.r, colour.g, colour.b, 1 + amount);
     kit.parts.forEach((p, i) => {
-      if (p.drape) p.batch.setColorAt(ids[i], this.rgba);
+      if (p.drape) {
+        this.batchColours.get(p.batch)!.get(ids[i])!.copy(colour);
+        p.batch.setColorAt(ids[i], this.rgba);
+      }
     });
   }
 
   /** Copies a posed kit into the batches. */
   write(kit: Kit, ids: number[]) {
     kit.group.updateMatrixWorld(true);
+    if (kit.direct) {
+      ids = this.directIds.get(kit) ?? ids;
+      for (const skeleton of kit.direct.skeletons) skeleton.update();
+    }
     kit.parts.forEach((p, i) =>
       p.batch.setMatrixAt(ids[i], p.mesh.matrixWorld),
     );
@@ -563,10 +1009,17 @@ export class TroopRenderer {
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const kit of this.directKits) this.remove(kit, []);
     for (const batch of this.batches.values()) {
       this.world.scene.remove(batch);
       batch.dispose();
     }
+    this.batches.clear();
+    this.tags.clear();
+    this.batchColours.clear();
+    this.live.clear();
     for (const pool of Object.values(this.rings)) pool.dispose();
     this.blobs.dispose();
     for (const d of this.disposables) d.dispose();
@@ -622,6 +1075,11 @@ const STIFF: Record<PartName, number> = {
   handL: 1.1,
   handR: 1.1,
   extra2: 1,
+  // The spine's upper half follows a beat behind the lower; the shoulder
+  // girdle a touch softer than the arm it carries.
+  chest: 0.7,
+  clavL: 0.85,
+  clavR: 0.85,
 };
 /** Damping below 1 lets strikes overshoot a touch before they settle. */
 const DAMPING = 0.62;
@@ -646,6 +1104,9 @@ type LegGeometry = {
   sole: number;
   heel: number;
   toe: number;
+  /** Conservative foot corners, in the ankle joint's own space. */
+  corners: THREE.Vector3[];
+  surfaces: FigureSurface[];
 };
 type Legs = {
   L: LegGeometry;
@@ -663,6 +1124,323 @@ const tmpE = new THREE.Euler(0, 0, 0, 'YXZ');
 const tmpS = new THREE.Vector3();
 const tmpP = new THREE.Vector3();
 const box = new THREE.Box3();
+const wallPoint = new THREE.Vector3();
+const wallAnkle = new THREE.Vector3();
+const wallStart = new THREE.Vector3();
+const wallTarget = new THREE.Vector3();
+const wallError = new THREE.Vector3();
+const wallProbe = new THREE.Vector3();
+const wallJacobian = [
+  new THREE.Vector3(),
+  new THREE.Vector3(),
+  new THREE.Vector3(),
+];
+const wallMatrix = new THREE.Matrix3();
+const wallFootRotation = new THREE.Quaternion();
+const wallParentRotation = new THREE.Quaternion();
+const wallCorners = new Float64Array(16);
+const WALL_JOINTS = [
+  ['leg', 'x'],
+  ['leg', 'z'],
+  ['knee', 'x'],
+] as const;
+const SUMO_ARM_GUARDS = [
+  { shoulder: -0.35, inward: 0.25, elbow: 0.5, wrist: 0.15 },
+  { shoulder: 0.7, inward: 1.1, elbow: 1.5, wrist: 0.15 },
+  // Forearms folded across the front of the belly (8 October 2026): the
+  // lower, waddling stance rolls the shoulders towards a passing facade.
+  { shoulder: 0.3, inward: 0.75, elbow: 1.25, wrist: 0.1 },
+] as const;
+type SumoArmGuard = (typeof SUMO_ARM_GUARDS)[number];
+function stoneShape(w: number, deck: number, badgeWidth: number) {
+  const profile = [
+    [0, 0.99],
+    [0.06, 1.015],
+    [0.16, 1.02],
+    [0.3, 1.01],
+    [0.48, 0.98],
+    [0.8, 0.95],
+    [1.2, 0.93],
+    [1.6, 0.915],
+    [2, 0.91],
+    [deck - 0.48, 0.92],
+    [deck - 0.32, 0.94],
+    [deck - 0.22, 1.015],
+    [deck - 0.13, 1.04],
+    [deck - 0.04, 1.035],
+    [deck, 1.01],
+  ];
+  const blocks: number[][] = [];
+  const block = (
+    cx: number,
+    cy: number,
+    cz: number,
+    sx: number,
+    sy: number,
+    sz: number,
+    bevel: number,
+  ) => {
+    const b = Math.min(bevel, sx / 2, sy / 2, sz / 2);
+    blocks.push([cx, cy, cz, sx / 2 - b, sy / 2 - b, sz / 2 - b, b]);
+  };
+  block(0, deck - 0.02, 0, w * 0.78, 0.08, w * 0.78, 0.04);
+  const crowns: number[][] = [];
+  for (const side of [-1, 1]) {
+    block(0, deck + 0.09, side * w * 0.45, w * 0.73, 0.3, 0.23, 0.1);
+    block(side * w * 0.45, deck + 0.09, 0, 0.23, 0.3, w * 0.73, 0.1);
+    for (const other of [-1, 1]) {
+      const cx = side * w * 0.405;
+      const cz = other * w * 0.405;
+      block(cx, deck + 0.2, cz, 0.55, 0.55, 0.55, 0.13);
+      crowns.push([cx, cz]);
+    }
+  }
+  const quoins: number[][] = [];
+  let z = 0.12;
+  for (let row = 0; z < deck - 0.62; row++) {
+    const tall = row % 2 === 0 ? 0.3 : 0.24;
+    const long = row % 2 === 0 ? 0.5 : 0.34;
+    const cy = z + tall / 2;
+    let factor = profile[0][1];
+    for (let i = 1; i < profile.length; i++) {
+      const [h, f] = profile[i];
+      const [h0, f0] = profile[i - 1];
+      factor = f0 + (f - f0) * clamp01((cy - h0) / (h - h0));
+      if (cy <= h) break;
+    }
+    const corner = ((w * factor) / 2) * Math.pow(0.5, 0.2) + 0.01;
+    quoins.push([
+      corner,
+      cy,
+      long / 2 - 0.045,
+      (tall - 0.035) / 2 - 0.045,
+      0.13 / 2 - 0.045,
+      0.045,
+    ]);
+    z += tall;
+  }
+  const shieldSlope = 0.8 / badgeWidth;
+  const heraldry = {
+    front: w * 0.465,
+    half: badgeWidth / 2,
+    slope: shieldSlope,
+    normal: Math.hypot(shieldSlope, 1),
+    crestHalf: (badgeWidth * 0.29) / 2 - 0.0325,
+  };
+  return { w, deck, profile, blocks, crowns, quoins, heraldry };
+}
+const STONE_SHAPES = {
+  king: stoneShape(3.55, 3.2, 1.05),
+  princess: stoneShape(2.7, 2.9, 0.86),
+};
+
+/** The shipped cartoon shell, including its tapered body and coping.
+ *  Unlike the ground footprint this has a roof: a bite over it is clear.
+ *  Dimensions match cartoon_towers.py; the king's rear keep is removed. */
+export function towerStoneGap(
+  t: Tower,
+  wx: number,
+  wy: number,
+  wz: number,
+  scale: number,
+) {
+  const x = (wx - (t.x - 9)) / scale;
+  const y = wy / scale;
+  const z = (wz - (16 - t.y)) / scale;
+  const { w, deck, profile, blocks, crowns } = STONE_SHAPES[t.kind];
+  let factor = profile[0][1];
+  for (let i = 1; i < profile.length; i++) {
+    const [h, f] = profile[i];
+    const [h0, f0] = profile[i - 1];
+    factor = f0 + (f - f0) * clamp01((y - h0) / (h - h0));
+    if (y <= h) break;
+  }
+  let gap = Math.max(
+    -y,
+    y - deck,
+    Math.pow(Math.pow(Math.abs(x), 5) + Math.pow(Math.abs(z), 5), 0.2) -
+      (w * factor) / 2,
+  );
+  for (const [cx, cy, cz, hx, hy, hz, b] of blocks) {
+    const qx = Math.abs(x - cx) - hx;
+    const qy = Math.abs(y - cy) - hy;
+    const qz = Math.abs(z - cz) - hz;
+    gap = Math.min(
+      gap,
+      Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) +
+        Math.min(Math.max(qx, qy, qz), 0) -
+        b,
+    );
+  }
+  for (const [cx, cz] of crowns)
+    gap = Math.min(gap, Math.hypot(x - cx, y - deck - 0.54, z - cz) - 0.085);
+  return gap * scale;
+}
+
+/** Palms pass close to the corner stones and raised heraldry which
+ *  stand proud of the shell. Cache their dimensions from cartoon_towers.py;
+ *  testing only the tapered body would miss these low protrusions. */
+export function towerArmGap(
+  t: Tower,
+  wx: number,
+  wy: number,
+  wz: number,
+  scale: number,
+) {
+  let gap = towerStoneGap(t, wx, wy, wz, scale) / scale;
+  const x = (wx - (t.x - 9)) / scale;
+  const y = wy / scale;
+  const z = (wz - (16 - t.y)) / scale;
+  for (const [corner, cy, hx, hy, hz, bevel] of STONE_SHAPES[t.kind].quoins) {
+    const qy = Math.abs(y - cy) - hy;
+    if (qy - bevel >= gap) continue;
+    for (let sx = -1; sx <= 1; sx += 2)
+      for (let sz = -1; sz <= 1; sz += 2) {
+        const dx = x - sx * corner;
+        const dz = z - sz * corner;
+        const qx = Math.abs((sx * dx - sz * dz) * Math.SQRT1_2) - hx;
+        const qz = Math.abs((sx * dx + sz * dz) * Math.SQRT1_2) - hz;
+        gap = Math.min(
+          gap,
+          Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) +
+            Math.min(Math.max(qx, qy, qz), 0) -
+            bevel,
+        );
+      }
+  }
+  const heraldry = STONE_SHAPES[t.kind].heraldry;
+  const front = t.side === 1 ? z : -z;
+  // A shallow five-sided shield. Its un-bevelled outline conservatively
+  // contains the shipped bevel, including the two sloping bottom edges.
+  gap = Math.min(
+    gap,
+    Math.max(
+      Math.abs(x) - heraldry.half,
+      y - 2.08,
+      (heraldry.slope * Math.abs(x) - (y - 1.63) - 0.52) / heraldry.normal,
+      Math.abs(front - heraldry.front - 0.05) - 0.05,
+    ),
+  );
+  // The small raised square crest is turned 45 degrees in its face plane.
+  const qx = Math.abs((x + y - 1.67) * Math.SQRT1_2) - heraldry.crestHalf;
+  const qy = Math.abs((x - y + 1.67) * Math.SQRT1_2) - heraldry.crestHalf;
+  const qz = Math.abs(front - heraldry.front - 0.135);
+  gap = Math.min(
+    gap,
+    Math.hypot(Math.max(qx, 0), Math.max(qy, 0), qz) +
+      Math.min(Math.max(qx, qy, qz), 0) -
+      0.0325,
+  );
+  return gap * scale;
+}
+
+/** Same primitive union as towerArmGap, with an early exit at the
+ * requested clearance. Bounds only skip provably distant primitives. */
+export function towerArmBlocked(
+  t: Tower,
+  wx: number,
+  wy: number,
+  wz: number,
+  scale: number,
+  clearance: number,
+) {
+  const x = (wx - (t.x - 9)) / scale;
+  const y = wy / scale;
+  const z = (wz - (16 - t.y)) / scale;
+  const threshold = clearance / scale;
+  const { w, deck, profile, blocks, crowns, quoins, heraldry } =
+    STONE_SHAPES[t.kind];
+  const cushion = 1e-12;
+  if (Math.max(-y, y - deck) < threshold + cushion) {
+    let factor = profile[0][1];
+    for (let i = 1; i < profile.length; i++) {
+      const [h, f] = profile[i];
+      const [h0, f0] = profile[i - 1];
+      const q = (y - h0) / (h - h0);
+      factor = f0 + (f - f0) * (q < 0 ? 0 : q > 1 ? 1 : q);
+      if (y <= h) break;
+    }
+    const distance = Math.max(
+      -y,
+      y - deck,
+      Math.pow(Math.pow(Math.abs(x), 5) + Math.pow(Math.abs(z), 5), 0.2) -
+        (w * factor) / 2,
+    );
+    // The old arm predicate obtains the base shell in world scale,
+    // divides back to native units, then scales the union once more.
+    // Retain that round trip even at a floating-point threshold.
+    if (((distance * scale) / scale) * scale < clearance) return true;
+  }
+  for (const [cx, cy, cz, hx, hy, hz, bevel] of blocks) {
+    const qx = Math.abs(x - cx) - hx;
+    const qy = Math.abs(y - cy) - hy;
+    const qz = Math.abs(z - cz) - hz;
+    const largest = Math.max(qx, qy, qz);
+    if (largest - bevel > threshold + cushion) continue;
+    const distance =
+      Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) +
+      Math.min(largest, 0) -
+      bevel;
+    if (((distance * scale) / scale) * scale < clearance) return true;
+  }
+  for (const [cx, cz] of crowns) {
+    const dx = x - cx;
+    const dy = y - deck - 0.54;
+    const dz = z - cz;
+    if (
+      Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) - 0.085 >
+      threshold + cushion
+    )
+      continue;
+    const distance = Math.hypot(dx, dy, dz) - 0.085;
+    if (((distance * scale) / scale) * scale < clearance) return true;
+  }
+  for (const [corner, cy, hx, hy, hz, bevel] of quoins) {
+    const qy = Math.abs(y - cy) - hy;
+    if (qy - bevel > threshold + cushion) continue;
+    for (let sx = -1; sx <= 1; sx += 2)
+      for (let sz = -1; sz <= 1; sz += 2) {
+        const dx = x - sx * corner;
+        const dz = z - sz * corner;
+        const qx = Math.abs((sx * dx - sz * dz) * Math.SQRT1_2) - hx;
+        const qz = Math.abs((sx * dx + sz * dz) * Math.SQRT1_2) - hz;
+        const largest = Math.max(qx, qy, qz);
+        if (largest - bevel > threshold + cushion) continue;
+        if (
+          (Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) +
+            Math.min(largest, 0) -
+            bevel) *
+            scale <
+          clearance
+        )
+          return true;
+      }
+  }
+  const front = t.side === 1 ? z : -z;
+  if (
+    Math.max(
+      Math.abs(x) - heraldry.half,
+      y - 2.08,
+      (heraldry.slope * Math.abs(x) - (y - 1.63) - 0.52) / heraldry.normal,
+      Math.abs(front - heraldry.front - 0.05) - 0.05,
+    ) *
+      scale <
+    clearance
+  )
+    return true;
+  const qx = Math.abs((x + y - 1.67) * Math.SQRT1_2) - heraldry.crestHalf;
+  const qy = Math.abs((x - y + 1.67) * Math.SQRT1_2) - heraldry.crestHalf;
+  const qz = Math.abs(front - heraldry.front - 0.135);
+  const largest = Math.max(qx, qy, qz);
+  if (largest - 0.0325 > threshold + cushion) return false;
+  return (
+    (Math.hypot(Math.max(qx, 0), Math.max(qy, 0), qz) +
+      Math.min(largest, 0) -
+      0.0325) *
+      scale <
+    clearance
+  );
+}
 
 /** Measure a kit's legs at rest, once. Figures without a full hip, knee
  *  and ankle on both sides (the Robots, the flyers) get none. */
@@ -692,25 +1470,28 @@ function measureLegs(kit: Kit): Legs | null {
     let low = Infinity;
     let front = Infinity;
     let back = -Infinity;
-    rig[`foot${s}`]!.node.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
-      box.copy(mesh.geometry.boundingBox!);
+    const corners: THREE.Vector3[] = [];
+    const footInv = rig[`foot${s}`]!.node.matrixWorld.clone().invert();
+    const surfaces = figureSurfaces(model, model.name, `foot${s}`);
+    for (const surface of surfaces) {
+      const { mesh } = surface;
       const m = tmpM.copy(inv).multiply(mesh.matrixWorld);
+      const footM = footInv.clone().multiply(mesh.matrixWorld);
+      posedSurfaceBounds(surface, box, m);
+      low = Math.min(low, box.min.y);
+      front = Math.min(front, box.min.z);
+      back = Math.max(back, box.max.z);
+      posedSurfaceBounds(surface, box, footM);
       for (let i = 0; i < 8; i++) {
-        tmpV
-          .set(
+        corners.push(
+          new THREE.Vector3(
             i & 1 ? box.max.x : box.min.x,
             i & 2 ? box.max.y : box.min.y,
             i & 4 ? box.max.z : box.min.z,
-          )
-          .applyMatrix4(m);
-        low = Math.min(low, tmpV.y);
-        front = Math.min(front, tmpV.z);
-        back = Math.max(back, tmpV.z);
+          ),
+        );
       }
-    });
+    }
     if (!Number.isFinite(low)) low = 0;
     return {
       hip,
@@ -722,6 +1503,8 @@ function measureLegs(kit: Kit): Legs | null {
       sole: Math.max(0.01, ankle.y - low),
       heel: Math.max(0.01, Number.isFinite(back) ? back - ankle.z : 0.03),
       toe: Math.max(0.02, Number.isFinite(front) ? ankle.z - front : 0.08),
+      corners,
+      surfaces,
     };
   };
   const L = side('L');
@@ -790,6 +1573,19 @@ export class TroopView {
   private carriage: Carriage;
   readonly flying: boolean;
   private kit: Kit;
+  /** World units per figure unit for this troop: the troops' scale times
+   *  its figure's own size. */
+  private get scale() {
+    return this.troops.scale * (this.kit.size ?? 1);
+  }
+  /** A gun's tip (an empty named `<id>.muzzle` on the weapon bone) on this
+   *  unit's own skin copy, so shots leave the barrel. */
+  private muzzleNode: THREE.Object3D | null;
+  /** The weapon's tip in its part's space (weaponTip), and where it was
+   *  when this unit was last drawn. */
+  private tipLocal: THREE.Vector3 | null;
+  private tipAt = new THREE.Vector3();
+  private tipSeen = false;
   private ids: number[];
   /** Per part: the pose it wants, where its spring is and how fast it moves
    *  (four channels: turns about x, y, z and a lift). */
@@ -836,6 +1632,9 @@ export class TroopView {
   private gait: GaitProfile;
   private clockwork: boolean;
   private legs: Legs | null;
+  private collisionLegs: Legs | null;
+  private buildings: readonly Tower[] = [];
+  private stoneScale = 0.9;
   private feet = { L: newFoot(), R: newFoot() };
   private legFree = { L: 0, R: 0 };
   private footYaw = { L: 0, R: 0 };
@@ -894,6 +1693,38 @@ export class TroopView {
   ) {
     const model = troops.modelOf(card);
     this.kit = troops.kit(model, team);
+    this.muzzleNode = this.kit.direct
+      ? (this.kit.model.getObjectByName(`${card}muzzle`) ??
+        this.kit.model.getObjectByName(`${card}.muzzle`) ??
+        null)
+      : null;
+    const weapon = this.kit.rig[TIP_PART[card] ?? 'weapon']?.node;
+    this.tipLocal = weapon ? weaponTip(weapon) : null;
+    // A card that deploys two people (the Cadets) carries both heads on its
+    // head bone, `<id>.lookA` and `<id>.lookB` (shipped at scale 0). A
+    // card's formation is summoned in one go, so its units have consecutive
+    // ids and parity always gives one of each, the same on every client.
+    const lookA = this.kit.direct && this.kit.model.getObjectByName(`${card}lookA`);
+    const lookB = this.kit.direct && this.kit.model.getObjectByName(`${card}lookB`);
+    if (lookA && lookB) {
+      const second = id % 2 === 1;
+      // Both heads were built in one frame on the same neck point, but the
+      // look shipped at scale 0 also exports its head group collapsed (and
+      // misplaced), so the shown look takes the head transform of the other.
+      const show = (look: THREE.Object3D, other: THREE.Object3D, on: boolean) => {
+        look.scale.setScalar(on ? 1 : 0);
+        if (!on) return;
+        look.children.forEach((head, i) => {
+          const ref = other.children[i];
+          if (head.scale.x !== 0 || !ref) return;
+          head.position.copy(ref.position);
+          head.quaternion.copy(ref.quaternion);
+          head.scale.copy(ref.scale);
+        });
+      };
+      show(lookA, lookB, !second);
+      show(lookB, lookA, second);
+    }
     this.ids = troops.add(this.kit);
     this.style = styles[card];
     this.carriage = moves[card]?.carriage ?? CARRIAGE;
@@ -905,19 +1736,32 @@ export class TroopView {
     this.flying = troopCards[card].unit.flying;
     this.gait = gaitOf(this.style.gait, this.style.heavy ? 'heavy' : 'brisk');
     this.clockwork = this.style.gait === 'clockwork';
-    this.legs = this.flying || this.clockwork ? null : measureLegs(this.kit);
+    this.collisionLegs = this.flying ? null : measureLegs(this.kit);
+    this.legs = this.clockwork ? null : this.collisionLegs;
   }
 
   /** Where projectiles leave and land: chest height in world space. */
   chest(target = new THREE.Vector3()) {
-    const h =
-      (this.flying ? FLY_HEIGHT : troopCards[this.card].unit.radius * 1.4) *
-      (this.troops.scale / 1.3);
+    const h = this.kit.top * (this.troops.scale / TROOP_SCALE) * 0.58;
     return target.set(
       this.position.x,
-      this.position.y + this.bodyY + h * 0.6,
+      this.position.y + this.bodyY + h,
       this.position.z,
     );
+  }
+
+  /** Where a gun's shot leaves: its muzzle in world space, or null for a
+   *  troop without one (shots then leave the chest). */
+  muzzle(target = new THREE.Vector3()) {
+    if (!this.muzzleNode) return null;
+    this.muzzleNode.updateWorldMatrix(true, false);
+    return target.setFromMatrixPosition(this.muzzleNode.matrixWorld);
+  }
+
+  /** Its weapon's tip (a wand, a barrel) where the unit was last drawn,
+   *  or null for a troop without a weapon part. */
+  tip(target = new THREE.Vector3()) {
+    return this.tipSeen ? target.copy(this.tipAt) : null;
   }
 
   /** It was hit: flinch. */
@@ -953,7 +1797,16 @@ export class TroopView {
     this.troops.colour(this.kit, this.ids, on ? FROST : WHITE);
   }
 
-  update(u: Unit, alpha: number, dt: number, time: number) {
+  update(
+    u: Unit,
+    alpha: number,
+    dt: number,
+    time: number,
+    buildings: readonly Tower[] = [],
+    stoneScale = 0.9,
+  ) {
+    this.buildings = buildings;
+    this.stoneScale = stoneScale;
     this.faceTime = time;
     const pushed = this.pushLeft > 0;
     const x = pushed ? u.x : u.px + (u.x - u.px) * alpha;
@@ -1016,7 +1869,7 @@ export class TroopView {
       }
     }
     // A figure drawn larger takes longer strides.
-    const size = this.troops.scale / TROOP_SCALE;
+    const size = this.scale / TROOP_SCALE;
     this.travel += moved;
     // The clockwork walk's cycle; the others advance theirs in `advance`.
     if (u.state === 'walking' && !this.legs)
@@ -1037,7 +1890,36 @@ export class TroopView {
     this.turnRate +=
       (step / Math.max(dt, 1e-3) - this.turnRate) * Math.min(1, dt * 8);
     this.flinch = Math.max(0, this.flinch - dt * 4.5);
+    if (this.card === 'viking')
+      this.memo.vikingStoneGuard = vikingStoneGuard(
+        this.buildings.reduce(
+          (gap, tower) =>
+            tower.destroyed ? gap : Math.min(gap, towerGap(tower, x, y)),
+          Infinity,
+        ),
+        this.scale / TROOP_SCALE,
+      );
+    if (this.card === 'gladiator')
+      this.memo.gladiatorStoneGuard = gladiatorStoneGuard(
+        this.buildings.reduce(
+          (gap, tower) =>
+            tower.destroyed ? gap : Math.min(gap, towerGap(tower, x, y)),
+          Infinity,
+        ),
+        this.scale / TROOP_SCALE,
+      );
+    if (this.card === 'medic')
+      this.memo.medicStoneGuard = medicStoneGuard(
+        this.buildings.reduce(
+          (gap, tower) =>
+            tower.destroyed ? gap : Math.min(gap, towerGap(tower, x, y)),
+          Infinity,
+        ),
+        this.scale / TROOP_SCALE,
+      );
     this.animate(u, alpha, dt, time, moved);
+    this.anticipateArmContact(u);
+    this.clearBodyOffset();
     // The body's rise and fall, for the parts that lag it.
     if (dt > 0) {
       const vy = (this.bodyY - this.lastBodyY) / dt;
@@ -1049,16 +1931,25 @@ export class TroopView {
     this.settle(dt);
     this.begin();
     this.apply();
+    this.clearFeet(u.state === 'deploying');
+    if (this.card === 'viking') this.clearVikingBoots();
+    if (this.card === 'gladiator' || this.card === 'medic')
+      this.clearWeightedSoles();
     this.draw();
-    this.statusAnchor.set(
-      wx,
+    let top =
       ground +
-        this.bodyY +
-        (this.kit.top ?? TROOP_SCALE * 1.4) *
-          (this.troops.scale / TROOP_SCALE) *
-          this.squash,
-      wz,
-    );
+      this.bodyY +
+      (this.kit.top ?? TROOP_SCALE * 1.4) *
+        (this.troops.scale / TROOP_SCALE) *
+        this.squash;
+    // A guarded bite can raise the Dino's snout above its neutral height.
+    // Both HP tracks and status badges follow that actually posed head.
+    if (this.card === 'ogre' || this.card === 'viking' || this.kit.direct)
+      for (const surface of this.headSurfaces()) {
+        surfaceBroadBounds(surface, box);
+        top = Math.max(top, box.max.y);
+      }
+    this.statusAnchor.set(wx, top, wz);
     if (this.kit.drapes)
       this.troops.flutter(
         this.kit,
@@ -1086,8 +1977,7 @@ export class TroopView {
   }
 
   /** Put this troop's sprung pose on the shared kit. */
-  private apply() {
-    const p = this.pose;
+  private apply(p = this.pose) {
     PARTS.forEach((part, i) => {
       const r = this.kit.rig[part];
       if (!r) return;
@@ -1117,6 +2007,25 @@ export class TroopView {
         stunned: this.stunned,
       }),
     );
+    this.placeBody();
+    if (this.card === 'mage' && this.dying < 0)
+      plantMageStaff(
+        this.kit.model,
+        this.memo,
+        standHeight,
+        this.kit.rig.weapon?.y ?? 0,
+      );
+    this.troops.write(this.kit, this.ids);
+    // The kit is shared by every unit of a rigid figure: keep this unit's
+    // own weapon tip while its matrices are fresh.
+    const weapon = this.kit.rig[TIP_PART[this.card] ?? 'weapon']?.node;
+    if (weapon && this.tipLocal) {
+      this.tipAt.copy(this.tipLocal).applyMatrix4(weapon.matrixWorld);
+      this.tipSeen = true;
+    }
+  }
+
+  private placeBody() {
     const { group, body } = this.kit;
     const facing = this.facing ?? 0;
     // Forward is the model's -z; a lunge throws the whole toy that way.
@@ -1134,10 +2043,40 @@ export class TroopView {
     const s = this.shrink;
     const wide = 1 + (1 - this.squash) * 0.6;
     body.scale.set(wide * s, this.squash * s, wide * s);
-    this.troops.write(this.kit, this.ids);
   }
 
   /** Ask a joint for a pose this frame. */
+  /** Shoulder blades follow the arms (scapulohumeral rhythm): beyond about
+   *  thirty degrees a raised arm takes a third of further lift in a shrug,
+   *  a forward reach brings the shoulder forward and a pull draws it back.
+   *  The arm gives back what the clavicle took, so the hand ends where the
+   *  pose asked, but the shoulder line moves like a body's, not a socket on
+   *  a post. Arms the pose drives with `want` are read back from their
+   *  goals, so custom attacks get the same shoulders. */
+  private shoulderGirdle(mine: (part: PartName) => boolean) {
+    for (const [side, sign] of [
+      ['L', -1],
+      ['R', 1],
+    ] as const) {
+      const clav = `clav${side}` as const;
+      if (!this.kit.rig[clav] || mine(clav)) continue;
+      const arm = PART_INDEX[`arm${side}`] * CHANNELS;
+      const forward = this.goal[arm];
+      const out = this.goal[arm + 2] * sign;
+      const lift = Math.max(forward, out);
+      const shrug = Math.min(0.32, Math.max(0, lift - 0.5) * 0.33);
+      const reach =
+        forward > 0
+          ? Math.min(0.22, Math.max(0, forward - 0.25) * 0.2)
+          : Math.max(-0.12, forward * 0.18);
+      this.want(clav, 0, sign * reach, sign * shrug);
+      // The arm keeps its total: the shrug is part of its sideways or
+      // forward lift, whichever is larger.
+      if (out >= forward) this.goal[arm + 2] -= sign * shrug;
+      else this.goal[arm] -= shrug;
+    }
+  }
+
   private want(part: PartName, rx = 0, ry = 0, rz = 0, dy = 0) {
     const at = PART_INDEX[part] * CHANNELS;
     this.goal[at] = rx;
@@ -1351,7 +2290,7 @@ export class TroopView {
     // so each arm swings with the opposite leg, a moment behind; the head
     // is held steady; the body leans into its speed. The Robots keep their
     // clockwork walk (`walkingLeg` in gait.ts).
-    const size = this.troops.scale / TROOP_SCALE;
+    const size = this.scale / TROOP_SCALE;
     // Nothing to carry without legs (the Biplane, the Balloon).
     const c = this.flying || !this.legs ? STILL : this.carriage;
     const TAU = Math.PI * 2;
@@ -1399,7 +2338,7 @@ export class TroopView {
     let swingR = 0;
     if (planted) {
       const legs = this.legs!;
-      const L = legs.length * this.troops.scale;
+      const L = legs.length * this.scale;
       const ws = weightSide(cycle, dutyFactor(g));
       // Steps cut short of the full stride to keep the cadence (see
       // stepLength) swing the hips, shoulders and arms less, so the quicker
@@ -1409,11 +2348,11 @@ export class TroopView {
       const w = (cycle * 2) % 1;
       hop = (g.bounce * pelvis(w, g) * amp - g.crouch * (0.5 + 0.5 * walk)) * L;
       headDy =
-        (-g.bounce * pelvis(w - 0.04, g) * amp * L * 0.35) / this.troops.scale;
+        (-g.bounce * pelvis(w - 0.04, g) * amp * L * 0.35) / this.scale;
       // Over the planted foot, the other hip dropping; the chest stays
       // nearly level and the head level.
       this.sideGoal =
-        -g.sway * legs.width * this.troops.scale * 1.12 * ws * ampS;
+        -g.sway * legs.width * this.scale * 1.12 * ws * ampS;
       roll += -g.roll * ws * ampS;
       torsoZ += g.roll * ws * ampS * 1.4;
       hipTurn = -step * g.twist * ampS;
@@ -1631,6 +2570,12 @@ export class TroopView {
         reduced: this.troops.reducedMotion,
         memo: this.memo,
         deploy: deployed,
+        rest: (part: PartName) => {
+          const joint = this.kit.rig[part];
+          if (!joint) return null;
+          const { x, z } = joint.node.position;
+          return [x, joint.y, z] as const;
+        },
         want: (part: PartName, rx = 0, ry = 0, rz = 0, dy = 0) => {
           claimed.add(part);
           this.want(part, rx, ry, rz, dy);
@@ -1706,8 +2651,26 @@ export class TroopView {
     // Joints turn about x with the model facing +y (Blender): positive tips
     // a torso or head back and raises an arm or leg forward; here torsoX
     // and headX count forward bends and nods, hence the minus.
+    // With an upper spine the bend and twist are shared: the lower back
+    // takes a little under half and the chest the rest, so the trunk curves
+    // instead of hinging at the waist. The chest is the torso's child, so
+    // the head and arms end where they would have.
+    const spine = this.kit.rig.chest && !mine('chest') ? 0.45 : 1;
     if (!mine('torso'))
-      this.want('torso', -torsoX, torsoY, torsoZ, breathe * 0.4);
+      this.want(
+        'torso',
+        -torsoX * spine,
+        torsoY * spine,
+        torsoZ * spine,
+        breathe * 0.4,
+      );
+    if (spine < 1 && !mine('torso'))
+      this.want(
+        'chest',
+        -torsoX * (1 - spine) - breathe * 0.6,
+        torsoY * (1 - spine),
+        torsoZ * (1 - spine),
+      );
     // The head stays level as the body rolls.
     if (!mine('head'))
       this.want(
@@ -1744,6 +2707,7 @@ export class TroopView {
       this.want('cape', torsoX * 0.5 - (0.1 + (1 - pass) * 0.05) * walk);
     if (!mine('armL')) this.want('armL', armL, 0, armLz);
     if (!mine('armR')) this.want('armR', armR, 0, armRz);
+    this.shoulderGirdle(mine);
     if (!mine('weapon')) this.want('weapon', weapon);
     if (!mine('offhand')) this.want('offhand', offhand);
     if (!mine('tail')) this.want('tail', 0, tailY, 0);
@@ -1798,8 +2762,19 @@ export class TroopView {
       this.pivotFeet(wrapAngle(kick - this.kick));
     this.kick = kick;
     this.side += (this.sideGoal - this.side) * Math.min(1, dt * 10);
+    this.clearBodyOffset();
+    // A pose that lowers the body (`lift` below 0) crouches on planted
+    // feet: only rising off the field takes the legs off the ground.
     if (planted)
-      this.plantFeet(dt, drop + flyY + lift, claimed, amp, walk, moving, cycle);
+      this.plantFeet(
+        dt,
+        drop + flyY + Math.max(0, lift),
+        claimed,
+        amp,
+        walk,
+        moving,
+        cycle,
+      );
   }
 
   /** Advance the walk cycle (two steps): by the distance covered, and by
@@ -1807,7 +2782,7 @@ export class TroopView {
    *  finishes its step. */
   private advance(moved: number, dt: number, own: number) {
     const g = this.gait;
-    const L = this.legs!.length * this.troops.scale;
+    const L = this.legs!.length * this.scale;
     const step = stepLength(
       g,
       L,
@@ -1879,6 +2854,695 @@ export class TroopView {
     return tmpM;
   }
 
+  /** A strike or a weight shift can use the space left by the engine's
+   *  body clearance, but cannot throw the body into the stone. */
+  private clearBodyOffset() {
+    if (this.flying || !this.buildings.length) return;
+    const facing = this.facing ?? 0;
+    const dx = -Math.sin(facing) * this.lunge + Math.cos(facing) * this.side;
+    const dz = -Math.cos(facing) * this.lunge - Math.sin(facing) * this.side;
+    if (Math.abs(dx) + Math.abs(dz) < 1e-6) return;
+    const x = this.position.x + 9;
+    const y = 16 - this.position.z;
+    const radius = troopBuildingRadius(this.card);
+    const clear = (fraction: number) =>
+      this.buildings.every(
+        (t) =>
+          t.destroyed ||
+          towerGap(t, x + dx * fraction, y - dz * fraction) >=
+            Math.min(radius, towerGap(t, x, y)) - 1e-6,
+      );
+    if (clear(1)) return;
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 10; i++) {
+      const mid = (lo + hi) / 2;
+      if (clear(mid)) lo = mid;
+      else hi = mid;
+    }
+    this.lunge *= lo;
+    this.side *= lo;
+  }
+
+  /** Finish the ground IK against the actual foot geometry. A hasted
+   *  swing, a turn or a claimed attack pose can extend beyond the body's
+   *  gameplay radius; only the contacting leg shortens its step. The
+   *  ankle keeps its pitch and heading and the body stays on its path. */
+  private clearFeet(deploying = false) {
+    const legs = this.collisionLegs;
+    if (!legs || !this.buildings.length || this.shrink < 0.5) return;
+    const x = this.position.x + 9;
+    const y = 16 - this.position.z;
+    // Most troops have no nearby stone. Bounds and IK are paid only at
+    // contact, not for every walking figure on every frame.
+    if (!this.buildings.some((t) => !t.destroyed && towerGap(t, x, y) < 3.5))
+      return;
+    this.placeBody();
+    this.kit.group.updateMatrixWorld(true);
+    this.clearTorso();
+    if (this.card === 'ogre') {
+      this.clearHead();
+      this.clearTorso();
+    }
+    this.clearArms(deploying);
+    for (const side of ['L', 'R'] as const) {
+      const surfaces = legs[side].surfaces;
+      const nearby = surfaces.some((surface) => {
+        surfaceBroadBounds(surface, box);
+        return this.buildings.some((t) => {
+          if (t.destroyed) return false;
+          const half = towerFootprint[t.kind].half + 0.008;
+          return !(
+            box.min.x + 9 > t.x + half ||
+            box.max.x + 9 < t.x - half ||
+            16 - box.max.z > t.y + half ||
+            16 - box.min.z < t.y - half
+          );
+        });
+      });
+      if (!nearby) continue;
+      const foot = this.kit.rig[`foot${side}`]!.node;
+      wallStart.setFromMatrixPosition(foot.matrixWorld);
+      foot.getWorldQuaternion(wallFootRotation);
+      let corrected = false;
+      for (let pass = 0; pass < 8; pass++) {
+        // A blended ankle deforms as its knee and foot turn. Rebuild only
+        // the skinned subset's foot-local box in the current connected pose.
+        tmpInv.copy(foot.matrixWorld).invert();
+        for (let i = 0; i < surfaces.length; i++) {
+          const surface = surfaces[i];
+          if (!surface.indices) continue;
+          tmpM.copy(tmpInv).multiply(surface.mesh.matrixWorld);
+          posedSurfaceBounds(surface, box, tmpM);
+          for (let j = 0; j < 8; j++)
+            legs[side].corners[i * 8 + j].set(
+              j & 1 ? box.max.x : box.min.x,
+              j & 2 ? box.max.y : box.min.y,
+              j & 4 ? box.max.z : box.min.z,
+            );
+        }
+        let contact: Tower | undefined;
+        let gap = 0.008;
+        let cx = 0;
+        let cy = 0;
+        const check = (t: Tower, fx: number, fy: number) => {
+          const d = towerGap(t, fx, fy);
+          if (d >= gap) return;
+          gap = d;
+          contact = t;
+          cx = fx;
+          cy = fy;
+        };
+        const corners = legs[side].corners;
+        for (let boxAt = 0; boxAt < corners.length; boxAt += 8) {
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+          for (let j = 0; j < 8; j++) {
+            wallPoint.copy(corners[boxAt + j]).applyMatrix4(foot.matrixWorld);
+            const fx = wallPoint.x + 9;
+            const fy = 16 - wallPoint.z;
+            wallCorners[j * 2] = fx;
+            wallCorners[j * 2 + 1] = fy;
+            minX = Math.min(minX, fx);
+            minY = Math.min(minY, fy);
+            maxX = Math.max(maxX, fx);
+            maxY = Math.max(maxY, fy);
+          }
+          for (const t of this.buildings) {
+            if (t.destroyed) continue;
+            const { half, corner } = towerFootprint[t.kind];
+            if (
+              minX > t.x + half + 0.008 ||
+              maxX < t.x - half - 0.008 ||
+              minY > t.y + half + 0.008 ||
+              maxY < t.y - half - 0.008
+            )
+              continue;
+            for (let j = 0; j < 8; j++)
+              check(t, wallCorners[j * 2], wallCorners[j * 2 + 1]);
+            // A curved wall can enter a foot between two clear corners.
+            // Check the closest point on each projected box edge to the
+            // tower's four corner centres as well as its eight vertices.
+            const core = half - corner;
+            for (let j = 0; j < 8; j++)
+              for (const bit of [1, 2, 4]) {
+                if (j & bit) continue;
+                const ax = wallCorners[j * 2];
+                const ay = wallCorners[j * 2 + 1];
+                const bx = wallCorners[(j | bit) * 2];
+                const by = wallCorners[(j | bit) * 2 + 1];
+                const ex = bx - ax;
+                const ey = by - ay;
+                const length2 = ex * ex + ey * ey;
+                if (length2 < 1e-12) continue;
+                for (const sx of [-1, 1])
+                  for (const sy of [-1, 1]) {
+                    const u = clamp01(
+                      ((t.x + sx * core - ax) * ex +
+                        (t.y + sy * core - ay) * ey) /
+                        length2,
+                    );
+                    check(t, ax + ex * u, ay + ey * u);
+                  }
+              }
+          }
+        }
+        if (!contact) break;
+        const [nx, ny] = towerNormal(contact, cx, cy);
+        wallAnkle.setFromMatrixPosition(foot.matrixWorld);
+        wallTarget.copy(wallAnkle);
+        wallTarget.x += nx * (0.008 - gap);
+        wallTarget.z -= ny * (0.008 - gap);
+        this.solveFootContact(side);
+        corrected = true;
+      }
+      if (!corrected) continue;
+      // Keep a planted foot where the contact solver put it, rather than
+      // asking the next frame to push the same long step into the wall.
+      wallAnkle.setFromMatrixPosition(foot.matrixWorld);
+      const f = this.feet[side];
+      if (f.planted && !f.air) {
+        f.x += wallAnkle.x - wallStart.x;
+        f.z += wallAnkle.z - wallStart.z;
+      }
+      for (const part of [
+        `leg${side}`,
+        `knee${side}`,
+        `foot${side}`,
+      ] as const) {
+        const rig = this.kit.rig[part]!;
+        const at = PART_INDEX[part] * CHANNELS;
+        for (const [i, axis] of ['x', 'y', 'z'].entries()) {
+          const a =
+            rig.node.rotation[axis as 'x' | 'y' | 'z'] -
+            rig.rest[axis as 'x' | 'y' | 'z'];
+          this.pose[at + i] = this.goal[at + i] = a;
+          this.vel[at + i] = 0;
+        }
+      }
+    }
+  }
+
+  /** Keep the chest and coat out of stone too: upper-body lean can cross
+   *  the footprint even when the hips and feet are clear. At contact the
+   *  toy straightens or leans a few degrees away, with no path offset. */
+  private clearTorso() {
+    const surfaces = figureSurfaces(
+      this.kit.model,
+      this.kit.model.name,
+      'torso',
+    );
+    for (let pass = 0; pass < 5; pass++) {
+      let contact: Tower | undefined;
+      let gap = 0.008;
+      let cx = 0;
+      let cy = 0;
+      let height = 1;
+      for (const surface of surfaces) {
+        const { mesh, indices } = surface;
+        surfaceBroadBounds(surface, box);
+        for (const t of this.buildings) {
+          if (t.destroyed) continue;
+          const half = towerFootprint[t.kind].half;
+          if (
+            box.min.x + 9 > t.x + half + gap ||
+            box.max.x + 9 < t.x - half - gap ||
+            16 - box.max.z > t.y + half + gap ||
+            16 - box.min.z < t.y - half - gap
+          )
+            continue;
+          const vertices = mesh.geometry.attributes.position;
+          for (let i = 0; i < (indices?.length ?? vertices.count); i++) {
+            mesh
+              .getVertexPosition(indices?.[i] ?? i, wallPoint)
+              .applyMatrix4(mesh.matrixWorld);
+            const fx = wallPoint.x + 9;
+            const fy = 16 - wallPoint.z;
+            const d = towerGap(t, fx, fy);
+            if (d >= gap) continue;
+            gap = d;
+            contact = t;
+            cx = fx;
+            cy = fy;
+            height = Math.max(0.4, wallPoint.y - this.position.y - this.bodyY);
+          }
+        }
+      }
+      if (!contact) break;
+      const [nx, ny] = towerNormal(contact, cx, cy);
+      const yaw = (this.facing ?? 0) + this.yawKick;
+      const lean = Math.min(0.06, (0.009 - gap) / height);
+      this.pitch -= (nx * Math.sin(yaw) - ny * Math.cos(yaw)) * lean;
+      this.roll -= (nx * Math.cos(yaw) + ny * Math.sin(yaw)) * lean;
+      this.placeBody();
+      this.kit.group.updateMatrixWorld(true);
+    }
+  }
+
+  private headSurfaces() {
+    return figureSurfaces(this.kit.model, this.kit.model.name, 'head');
+  }
+
+  /** Retain the two planted soles through the Viking's full body turn.
+   *  Only the contacting leg's IK changes; the sculpt and path stay fixed. */
+  private clearVikingBoots() {
+    if (!this.collisionLegs || this.shrink < 0.5) return;
+    this.placeBody();
+    this.kit.group.updateMatrixWorld(true);
+    const modelInverse = this.kit.model.matrixWorld.clone().invert();
+    const localFootMatrix = new THREE.Matrix4();
+    for (const side of ['L', 'R'] as const) {
+      const foot = this.kit.rig[`foot${side}`]!.node;
+      const soleRotation = new THREE.Quaternion();
+      localFootMatrix
+        .copy(modelInverse)
+        .multiply(foot.matrixWorld)
+        .decompose(tmpP, soleRotation, tmpS);
+      let corrected = false;
+      for (let pass = 0; pass < 5; pass++) {
+        const lift = vikingSolePenetration(foot, standHeight);
+        if (lift < 1e-6) break;
+        foot.getWorldQuaternion(wallFootRotation);
+        wallTarget.setFromMatrixPosition(foot.matrixWorld);
+        wallTarget.y += lift + 0.002;
+        this.solveFootContact(side);
+        // Preserve sole orientation before the portrait's anisotropic
+        // figure scale. A world-quaternion decomposition under that scale
+        // can shear the rolled sole as its knee bends.
+        localFootMatrix
+          .copy(modelInverse)
+          .multiply(foot.parent!.matrixWorld)
+          .decompose(tmpP, wallParentRotation, tmpS);
+        foot.quaternion
+          .copy(wallParentRotation.invert())
+          .multiply(soleRotation);
+        foot.updateWorldMatrix(false, true);
+        corrected = true;
+      }
+      if (!corrected) continue;
+      for (const part of [
+        `leg${side}`,
+        `knee${side}`,
+        `foot${side}`,
+      ] as const) {
+        const rig = this.kit.rig[part]!;
+        const at = PART_INDEX[part] * CHANNELS;
+        for (const [i, axis] of ['x', 'y', 'z'].entries()) {
+          const angle =
+            rig.node.rotation[axis as 'x' | 'y' | 'z'] -
+            rig.rest[axis as 'x' | 'y' | 'z'];
+          this.pose[at + i] = this.goal[at + i] = angle;
+          this.vel[at + i] = 0;
+        }
+      }
+    }
+  }
+
+  /** Keep sandals, boots and their blended toes above ground during turns.
+   *  Correct only the contacting leg, retaining the authored sole heading. */
+  private clearWeightedSoles() {
+    const legs = this.collisionLegs;
+    if (!legs || this.shrink < 0.5) return;
+    this.placeBody();
+    this.kit.group.updateMatrixWorld(true);
+    const modelInverse = this.kit.model.matrixWorld.clone().invert();
+    const localFootMatrix = new THREE.Matrix4();
+    for (const side of ['L', 'R'] as const) {
+      const foot = this.kit.rig[`foot${side}`]!.node;
+      const soleRotation = new THREE.Quaternion();
+      localFootMatrix
+        .copy(modelInverse)
+        .multiply(foot.matrixWorld)
+        .decompose(tmpP, soleRotation, tmpS);
+      let corrected = false;
+      for (let pass = 0; pass < 5; pass++) {
+        const lift = gladiatorSolePenetration(legs[side].surfaces, standHeight);
+        if (lift < 1e-6) break;
+        foot.getWorldQuaternion(wallFootRotation);
+        wallTarget.setFromMatrixPosition(foot.matrixWorld);
+        wallTarget.y += lift + 0.002;
+        this.solveFootContact(side);
+        localFootMatrix
+          .copy(modelInverse)
+          .multiply(foot.parent!.matrixWorld)
+          .decompose(tmpP, wallParentRotation, tmpS);
+        foot.quaternion
+          .copy(wallParentRotation.invert())
+          .multiply(soleRotation);
+        foot.updateWorldMatrix(false, true);
+        corrected = true;
+      }
+      if (!corrected) continue;
+      for (const part of [
+        `leg${side}`,
+        `knee${side}`,
+        `foot${side}`,
+      ] as const) {
+        const rig = this.kit.rig[part]!;
+        const at = PART_INDEX[part] * CHANNELS;
+        for (const [i, axis] of ['x', 'y', 'z'].entries()) {
+          const angle =
+            rig.node.rotation[axis as 'x' | 'y' | 'z'] -
+            rig.rest[axis as 'x' | 'y' | 'z'];
+          this.pose[at + i] = this.goal[at + i] = angle;
+          this.vel[at + i] = 0;
+        }
+      }
+    }
+  }
+
+  /** Project the next arm target before the springs carry it into stone.
+   *  Current poses still receive the final contact check below. */
+  private anticipateArmContact(u: Unit) {
+    if (this.card !== 'sumo') return;
+    const x = this.position.x + 9;
+    const y = 16 - this.position.z;
+    if (!this.buildings.some((t) => !t.destroyed && towerGap(t, x, y) < 3.5))
+      return;
+    this.begin();
+    this.apply(this.goal);
+    this.placeBody();
+    this.kit.group.updateMatrixWorld(true);
+    const dx = u.x - u.px;
+    const dy = u.y - u.py;
+    // Engine yaw eases towards the walking direction. Prepare the arms
+    // for that direction while the body is still turning beside stone.
+    const pending =
+      u.state === 'walking' && Math.hypot(dx, dy) > 1e-5
+        ? -Math.atan2(dx, dy)
+        : -u.facing;
+    this.clearArms(u.state === 'deploying', true, pending);
+  }
+
+  /** Beside stone the wrestler folds only the contacting arm into a
+   *  forward palm guard. Shoulder, elbow and wrist keep their anatomical
+   *  attachments. A rear shoulder coil keeps a positive elbow flex when
+   *  stone is ahead; the forward palm guard fits beside or behind stone.
+   *  The closest clear target preserves the authored strike and springs. */
+  private clearArms(
+    deploying: boolean,
+    predictive = false,
+    pendingFacing = this.facing ?? 0,
+  ) {
+    if (this.card !== 'sumo') return;
+    let turn = pendingFacing - (this.facing ?? 0);
+    while (turn > Math.PI) turn -= Math.PI * 2;
+    while (turn < -Math.PI) turn += Math.PI * 2;
+    // A friendly facade can move from ahead to beside the palm during a
+    // turn. Pick a guard for that sweep before the springs enter stone.
+    const turns =
+      predictive && Math.abs(turn) > 0.03 ? [turn, turn / 2, 0] : [0];
+    for (const side of ['L', 'R'] as const) {
+      let clearance = predictive ? 0.18 : 0.04;
+      const arm = this.kit.rig[`arm${side}`];
+      const fore = this.kit.rig[`fore${side}`];
+      const hand = this.kit.rig[`hand${side}`];
+      if (!arm || !fore || !hand) continue;
+      const surfaces = figureSurfaces(
+        this.kit.model,
+        this.kit.model.name,
+        `arm${side}`,
+      );
+      const relevant = surfaces.filter((surface) => {
+        if (turns.length > 1) return true;
+        surfaceBroadBounds(surface, box);
+        return this.buildings.some((t) => {
+          if (t.destroyed) return false;
+          const half = towerFootprint[t.kind].half + clearance;
+          return !(
+            box.min.x + 9 > t.x + half ||
+            box.max.x + 9 < t.x - half ||
+            16 - box.max.z > t.y + half ||
+            16 - box.min.z < t.y - half
+          );
+        });
+      });
+      if (!relevant.length) continue;
+      const clearPose = () => {
+        for (const surface of surfaces) {
+          const reader = contactSurfaceReader(surface);
+          reader.refresh();
+          for (let i = 0; i < reader.count; i++) {
+            reader.read(i, wallPoint);
+            // Guard the landing pose throughout the entrance drop. An
+            // elevated palm in ordinary play may pass above the coping.
+            const height =
+              wallPoint.y - (deploying ? Math.max(0, this.bodyY) : 0);
+            for (const t of this.buildings) {
+              if (t.destroyed) continue;
+              const above =
+                height - (t.kind === 'king' ? 3.825 : 3.525) * this.stoneScale;
+              const beside = towerGap(t, wallPoint.x + 9, 16 - wallPoint.z);
+              // The footprint prism is a cheap conservative first pass.
+              // Its constant width can reject a clear bent palm beside
+              // the tapered facade, leaving no usable guard at a corner.
+              if (
+                Math.max(beside, above) < clearance &&
+                towerArmBlocked(
+                  t,
+                  wallPoint.x,
+                  height,
+                  wallPoint.z,
+                  this.stoneScale,
+                  clearance,
+                )
+              )
+                return false;
+            }
+          }
+        }
+        return true;
+      };
+      const clear = () => {
+        if (turns.length === 1) return clearPose();
+        const body = this.kit.body;
+        const yaw = body.rotation.y;
+        let safe = true;
+        for (const offset of turns) {
+          body.rotation.y = yaw + offset;
+          // Attached skins refresh bindMatrixInverse in this traversal;
+          // updateWorldMatrix would sample the new yaw with the old inverse.
+          body.updateMatrixWorld(true);
+          if (!clearPose()) {
+            safe = false;
+            break;
+          }
+        }
+        body.rotation.y = yaw;
+        body.updateMatrixWorld(true);
+        return safe;
+      };
+      if (clear()) continue;
+      const armBefore = arm.node.rotation.clone();
+      const foreBefore = fore.node.rotation.clone();
+      const handBefore = hand.node.rotation.clone();
+      const sign = side === 'L' ? 1 : -1;
+      const blend = (fraction: number, target: SumoArmGuard) => {
+        arm.node.rotation.set(
+          armBefore.x + (arm.rest.x + target.shoulder - armBefore.x) * fraction,
+          armBefore.y + (arm.rest.y - armBefore.y) * fraction,
+          armBefore.z +
+            (arm.rest.z + sign * target.inward - armBefore.z) * fraction,
+        );
+        // The forearm's and wrist's roll (a pose turning the palm, see
+        // moves/reach.ts) stays: it barely moves the arm, and undoing it
+        // in one frame would flip the hand.
+        fore.node.rotation.set(
+          foreBefore.x + (fore.rest.x + target.elbow - foreBefore.x) * fraction,
+          foreBefore.y,
+          foreBefore.z + (fore.rest.z - foreBefore.z) * fraction,
+        );
+        hand.node.rotation.set(
+          handBefore.x + (hand.rest.x + target.wrist - handBefore.x) * fraction,
+          handBefore.y,
+          handBefore.z + (hand.rest.z - handBefore.z) * fraction,
+        );
+        arm.node.updateWorldMatrix(true, true);
+      };
+      const at = PART_INDEX[`arm${side}`] * CHANNELS;
+      const elbowAt = PART_INDEX[`fore${side}`] * CHANNELS;
+      const cost = (target: SumoArmGuard) =>
+        Math.pow(this.pose[at] - target.shoulder, 2) +
+        Math.pow(this.pose[at + 2] - sign * target.inward, 2) +
+        Math.pow(this.pose[elbowAt] - target.elbow, 2);
+      let chosen: SumoArmGuard | undefined;
+      let best = Infinity;
+      const choose = () => {
+        for (const target of SUMO_ARM_GUARDS) {
+          const distance = cost(target);
+          if (distance >= best) continue;
+          blend(1, target);
+          if (!clear()) continue;
+          chosen = target;
+          best = distance;
+        }
+      };
+      choose();
+      if (!chosen && predictive) {
+        // Look-ahead padding must not discard a reviewed guard which
+        // already clears the whole turn by the actual contact margin.
+        clearance = 0.04;
+        choose();
+      }
+      if (!chosen) {
+        arm.node.rotation.copy(armBefore);
+        fore.node.rotation.copy(foreBefore);
+        hand.node.rotation.copy(handBefore);
+        arm.node.updateWorldMatrix(true, true);
+        continue;
+      }
+      let lo = 0;
+      let hi = 1;
+      for (let i = 0; i < 8; i++) {
+        const mid = (lo + hi) / 2;
+        blend(mid, chosen);
+        if (clear()) hi = mid;
+        else lo = mid;
+      }
+      blend(hi, chosen);
+      for (const part of [
+        `arm${side}`,
+        `fore${side}`,
+        `hand${side}`,
+      ] as const) {
+        const joint = this.kit.rig[part]!;
+        const at = PART_INDEX[part] * CHANNELS;
+        for (const [i, axis] of ['x', 'y', 'z'].entries()) {
+          const angle =
+            joint.node.rotation[axis as 'x' | 'y' | 'z'] -
+            joint.rest[axis as 'x' | 'y' | 'z'];
+          this.goal[at + i] = angle;
+          if (!predictive) {
+            this.pose[at + i] = angle;
+            this.vel[at + i] = 0;
+          }
+        }
+      }
+    }
+  }
+
+  /** The Dino's deep bite bends chest and neck down together. Beside
+   *  stone it rears just enough to keep the chin over the coping while
+   *  its jaw still opens and snaps. Free bites keep their full gesture. */
+  private clearHead() {
+    if (this.card !== 'ogre') return;
+    const surfaces = this.headSurfaces();
+    const clear = () => {
+      for (const surface of surfaces) {
+        const { mesh, indices } = surface;
+        surfaceBroadBounds(surface, box);
+        for (const t of this.buildings) {
+          if (t.destroyed) continue;
+          const half = towerFootprint[t.kind].half;
+          if (
+            box.min.y >
+              (t.kind === 'king' ? 3.825 : 3.525) * this.stoneScale + 0.008 ||
+            box.min.x + 9 > t.x + half ||
+            box.max.x + 9 < t.x - half ||
+            16 - box.max.z > t.y + half ||
+            16 - box.min.z < t.y - half
+          )
+            continue;
+          const vertices = mesh.geometry.attributes.position;
+          for (let i = 0; i < (indices?.length ?? vertices.count); i++) {
+            mesh
+              .getVertexPosition(indices?.[i] ?? i, wallPoint)
+              .applyMatrix4(mesh.matrixWorld);
+            if (
+              towerStoneGap(
+                t,
+                wallPoint.x,
+                wallPoint.y,
+                wallPoint.z,
+                this.stoneScale,
+              ) < 0.008
+            )
+              return false;
+          }
+        }
+      }
+      return true;
+    };
+    if (clear()) return;
+    const head = this.kit.rig.head!;
+    const torso = this.kit.rig.torso!;
+    const hx = head.node.rotation.x;
+    const tx = torso.node.rotation.x;
+    const blend = (fraction: number) => {
+      head.node.rotation.x =
+        head.rest.x + 0.45 * (1 - fraction) + (hx - head.rest.x) * fraction;
+      torso.node.rotation.x = torso.rest.x + (tx - torso.rest.x) * fraction;
+      torso.node.updateWorldMatrix(true, true);
+    };
+    blend(0);
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 8; i++) {
+      const mid = (lo + hi) / 2;
+      blend(mid);
+      if (clear()) lo = mid;
+      else hi = mid;
+    }
+    blend(lo);
+    for (const part of ['head', 'torso'] as const) {
+      const rig = this.kit.rig[part]!;
+      const at = PART_INDEX[part] * CHANNELS;
+      this.pose[at] = this.goal[at] = rig.node.rotation.x - rig.rest.x;
+      this.vel[at] = 0;
+    }
+  }
+
+  /** A small damped IK correction on the already posed hip/knee. Using
+   *  the real transforms also handles the non-uniform portrait scale and
+   *  attacks which own a leg. No joint or whole figure is translated. */
+  private solveFootContact(side: 'L' | 'R') {
+    const foot = this.kit.rig[`foot${side}`]!.node;
+    const epsilon = 0.001;
+    for (let step = 0; step < 5; step++) {
+      foot.updateWorldMatrix(true, false);
+      wallAnkle.setFromMatrixPosition(foot.matrixWorld);
+      wallError.copy(wallTarget).sub(wallAnkle);
+      if (wallError.lengthSq() < 1e-8) break;
+      for (let j = 0; j < WALL_JOINTS.length; j++) {
+        const [part, axis] = WALL_JOINTS[j];
+        const joint = this.kit.rig[`${part}${side}`]!.node;
+        joint.rotation[axis] += epsilon;
+        foot.updateWorldMatrix(true, false);
+        wallProbe.setFromMatrixPosition(foot.matrixWorld);
+        wallJacobian[j]
+          .copy(wallProbe)
+          .sub(wallAnkle)
+          .multiplyScalar(1 / epsilon);
+        joint.rotation[axis] -= epsilon;
+      }
+      const [a, b, c] = wallJacobian;
+      const damping = 0.002;
+      const xx = a.x * a.x + b.x * b.x + c.x * c.x + damping;
+      const xy = a.x * a.y + b.x * b.y + c.x * c.y;
+      const xz = a.x * a.z + b.x * b.z + c.x * c.z;
+      const yy = a.y * a.y + b.y * b.y + c.y * c.y + damping;
+      const yz = a.y * a.z + b.y * b.z + c.y * c.z;
+      const zz = a.z * a.z + b.z * b.z + c.z * c.z + damping;
+      wallMatrix.set(xx, xy, xz, xy, yy, yz, xz, yz, zz).invert();
+      wallError.applyMatrix3(wallMatrix);
+      for (let j = 0; j < WALL_JOINTS.length; j++) {
+        const [part, axis] = WALL_JOINTS[j];
+        const joint = this.kit.rig[`${part}${side}`]!.node;
+        const delta = wallJacobian[j].dot(wallError);
+        joint.rotation[axis] += Math.max(-0.25, Math.min(0.25, delta));
+      }
+    }
+    // The thigh and knee changed; counter their turn at the ankle so a
+    // planted sole remains flat and a swinging toe keeps its toe roll.
+    foot.parent!.getWorldQuaternion(wallParentRotation);
+    foot.quaternion
+      .copy(wallParentRotation.invert())
+      .multiply(wallFootRotation);
+    foot.updateWorldMatrix(true, true);
+  }
+
   /**
    * Feet on the ground. Each foot is planted where it landed and the leg
    * solved onto it (hip, knee, ankle, and a little splay to keep the sole
@@ -1901,7 +3565,7 @@ export class TroopView {
   ) {
     const legs = this.legs!;
     const g = this.gait;
-    const sc = this.troops.scale;
+    const sc = this.scale;
     const L = legs.length * sc;
     const duty = dutyFactor(g);
     const facing = this.facing ?? 0;
@@ -2188,6 +3852,74 @@ function middleOf(node: THREE.Object3D) {
     : box.getCenter(new THREE.Vector3());
 }
 
+/** Keep the weighted string centre on the brace or moving arrow nock.
+ *  Translation belongs to the controller's parent frame, including the
+ *  tower's turn and the figure's nonuniform screen scale. */
+class TowerStringContact {
+  private readonly rest: THREE.Vector3;
+  private readonly current = new THREE.Vector3();
+  private readonly brace = new THREE.Vector3();
+  private readonly nock = new THREE.Vector3();
+  private readonly target = new THREE.Vector3();
+  private readonly offset = new THREE.Vector3();
+
+  static bind(model: THREE.Object3D) {
+    const raw = model.userData.bowStringMarkers;
+    if (!raw) return undefined; // The legacy guard has no string controls.
+    const markers = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Record<
+      'controller' | 'centre' | 'brace' | 'nock',
+      string
+    >;
+    const node = (name: string) => {
+      const full = name.startsWith(model.name) ? name : `${model.name}.${name}`;
+      const found =
+        find(model, full) ??
+        find(model, THREE.PropertyBinding.sanitizeNodeName(full));
+      if (!found) throw new Error(`Missing tower string node ${full}`);
+      return found;
+    };
+    return new TowerStringContact(
+      node(markers.controller),
+      node(markers.centre),
+      node(markers.brace),
+      node(markers.nock),
+    );
+  }
+
+  constructor(
+    private readonly controller: THREE.Object3D,
+    private readonly centreNode: THREE.Object3D,
+    private readonly braceNode: THREE.Object3D,
+    private readonly nockNode: THREE.Object3D,
+  ) {
+    if (!controller.parent) throw new Error('String controller has no parent');
+    this.rest = controller.position.clone();
+  }
+
+  reset() {
+    this.controller.position.copy(this.rest);
+  }
+
+  follow(raise: number, kick: number) {
+    // Acquire late in the raise. Stay at the nock while the arrow is
+    // visible, then return to the brace as the release hides it.
+    const amount =
+      ease(clamp01((raise - 0.7) / 0.25)) *
+      (1 - ease(clamp01((kick - 0.25) / 0.75)));
+    const parent = this.controller.parent!;
+    parent.updateWorldMatrix(true, true);
+    this.centreNode.getWorldPosition(this.current);
+    this.braceNode.getWorldPosition(this.brace);
+    this.nockNode.getWorldPosition(this.nock);
+    this.target.lerpVectors(this.brace, this.nock, amount);
+    this.offset.copy(this.target);
+    parent.worldToLocal(this.offset);
+    parent.worldToLocal(this.current);
+    this.controller.position.add(this.offset.sub(this.current));
+    this.controller.updateWorldMatrix(false, true);
+  }
+}
+
 /** The Cadet on top of a small tower and the king's cannon. */
 export class TowerCrew {
   private guard?: { kit: Kit; ids: number[]; spot: THREE.Object3D };
@@ -2201,6 +3933,7 @@ export class TowerCrew {
   /** The nocked arrow's middle (world), while the archer holds one, and
    *  where that is on the arrow (its own units). */
   private nock = new THREE.Vector3();
+  private muzzle = new THREE.Vector3();
   private nocked = false;
   private arrowMid?: THREE.Vector3;
   private m = new THREE.Matrix4();
@@ -2212,7 +3945,7 @@ export class TowerCrew {
   constructor(
     private world: ArenaWorld,
     private troops: TroopRenderer,
-    tower: Tower,
+    private tower: Tower,
     team: Team,
   ) {
     const view = world.towers.get(tower.id);
@@ -2231,7 +3964,12 @@ export class TowerCrew {
   /** Where the archer's arrow leaves from: the one on the bow just before
    *  it is loosed. */
   bow() {
-    return this.nocked ? this.nock : null;
+    if (this.nocked) return this.nock;
+    const barrel = this.world.towers.get(this.tower.id)?.barrel;
+    // The barrel points down local -z; its bore ends 0.633 from its pivot.
+    return barrel
+      ? this.muzzle.set(0, 0, -0.633).applyMatrix4(barrel.matrixWorld)
+      : null;
   }
 
   update(t: Tower, target: THREE.Vector3 | null, dt: number, time: number) {
@@ -2254,6 +3992,7 @@ export class TowerCrew {
     this.raise += ((target ? 1 : 0) - this.raise) * Math.min(1, dt * 9);
     if (this.guard) {
       const { kit, ids, spot } = this.guard;
+      kit.towerString?.reset();
       for (const p of PARTS) {
         const r = kit.rig[p];
         if (!r) continue;
@@ -2337,9 +4076,16 @@ export class TowerCrew {
       kit.body.scale.set(1, 1, 1);
       kit.group.matrixAutoUpdate = false;
       kit.group.matrix.copy(this.m);
+      if (kit.towerString) {
+        kit.group.updateMatrixWorld(true);
+        kit.towerString.follow(this.raise, kick);
+      }
       this.troops.write(kit, ids);
-      kit.group.matrixAutoUpdate = true;
-      // Both towers of a side share the kit: note this one's arrow now.
+      // A skin remains in the scene at this tower's matrix. A shared
+      // rigid kit can resume automatic transforms after its batch write.
+      kit.group.matrixAutoUpdate = !kit.direct;
+      // Both towers share a source kit, with their own posed skin copies.
+      // Cache this one's arrow origin after its matrices are written.
       const arrow = draw ? g.arrow?.node : undefined;
       if (arrow && kick <= 0.25) {
         this.arrowMid ??= middleOf(arrow);

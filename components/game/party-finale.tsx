@@ -7,7 +7,7 @@ import { WinnerCelebration } from './results-feedback';
 import { viewerWon } from '@/lib/games/results-feedback';
 import './party-finale.css';
 
-const STEP = 260;
+const STEP = 200;
 
 /** The match results as a countdown: standings land from last place up,
  * each score counts up as its row arrives, and the winner lands last with a
@@ -16,18 +16,22 @@ const STEP = 260;
 export function PartyFinale({
   result,
   viewerSeat,
+  renderScore,
   children,
 }: {
   result: Outcome;
   viewerSeat?: number | null;
+  /** Games with several score resources can keep their result graphical. */
+  renderScore?: (seat: number, delay: number) => ReactNode;
   /** The next-game vote, or Play again and Library. */
   children: ReactNode;
 }) {
   const rows = result.rows ?? [];
   const winners = new Set(result.winners);
+  const step = Math.min(STEP, 1200 / Math.max(1, rows.length));
   // Rows arrive bottom first, so the last row starts at zero delay.
-  const delay = (i: number) => (rows.length - 1 - i) * STEP;
-  const crowned = rows.length * STEP;
+  const delay = (i: number) => (rows.length - 1 - i) * step;
+  const crowned = rows.length * step;
   return (
     <section className="party-finale is-animated results-surface">
       <WinnerCelebration won={viewerWon(viewerSeat, result.winners)} />
@@ -63,7 +67,11 @@ export function PartyFinale({
                 </i>
               )}
               <b>{row.name}</b>
-              {row.points !== undefined ? (
+              {renderScore && row.seat !== undefined ? (
+                <strong className="finale-custom-score">
+                  {renderScore(row.seat, delay(i))}
+                </strong>
+              ) : row.points !== undefined ? (
                 <strong>
                   <CountUp
                     value={row.points}

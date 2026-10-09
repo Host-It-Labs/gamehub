@@ -1,358 +1,191 @@
-import type { MoveContext, Moves, Pose } from './types';
+import { Euler, Quaternion, Vector3 } from 'three';
+import { blend, reach, type ArmGoal, type HandRest } from './reach.ts';
+import type { MoveContext, Moves } from './types';
 
-const TAU = Math.PI * 2;
-const clamp = (v: number, lo: number, hi: number) =>
-  v < lo ? lo : v > hi ? hi : v;
-const clamp01 = (t: number) => clamp(t, 0, 1);
-const ease = (t: number) => t * t * (3 - 2 * t);
-const out3 = (t: number) => 1 - (1 - t) * (1 - t) * (1 - t);
-/** 0..1..0 over a span: in over `a` seconds, out over `b`. */
-const envelope = (t: number, span: number, a = 0.22, b = 0.3) =>
-  t < 0 || t > span ? 0 : ease(clamp01(t / a)) * ease(clamp01((span - t) / b));
-/** A bump 0..1..0 between two moments. */
-const bump = (t: number, from: number, to: number) =>
-  t <= from || t >= to ? 0 : Math.sin(((t - from) / (to - from)) * Math.PI);
+/** Cadets: padded pressure suits, a raked ray-gun grip and a cupped
+ * support glove. Wrist targets drive both arms through the shared solver.
+ * The right glove carries the gun; its weapon joint stays at rest. */
+type V3 = readonly [number, number, number];
+const add = (a: V3, b: V3, k = 1): V3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+const sub = (a: V3, b: V3): V3 => add(a, b, -1);
+const mul = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k];
+const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = (a: V3): V3 => mul(a, 1 / Math.max(1e-9, Math.hypot(...a)));
+const mix = (a: V3, b: V3, t: number): V3 => add(a, sub(b, a), t);
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const clamp = (v: number, k: number) => Math.max(-k, Math.min(k, v));
+const ease = (v: number) => { const t = clamp01(v); return t * t * (3 - 2 * t); };
+const pulse = (t: number, a: number, b: number, end: number) => ease((t - a) / (b - a)) * (1 - ease((t - b) / (end - b)));
 
-/** The arm's lift that holds the ray gun level, and the chest's turn that
- *  goes with it (figure_archers.py models the gun for these). */
-const AIM = 1.47;
-const TURN = 0.18;
+// Exact authored glove frames from figure_archers_body.hand_frame: the
+// two gloves have different radial deviation (6° free / 14° gun hand).
+// reach() mirrors its HandRest for R, so REST_R is expressed as a left hand.
+const REST_L: HandRest = {
+  palm: [0.999090909, -0.041837216, -0.008185542],
+  fingers: [-0.042396922, -0.955058517, -0.293369613],
+};
+const REST_R: HandRest = {
+  palm: [0.999090909, -0.041837216, -0.008185542],
+  fingers: [-0.041364149, -0.904923613, -0.423559041],
+};
+const RAKE = 16 * Math.PI / 180;
+const GRIP_E1 = 0.047;
+const GRIP_E3 = 0.021;
+const CUP_E1 = 0.058;
+const CUP_E3 = 0.012;
 
-/** The ray gun carried up at the ready: the upper arm a little forward and
- *  out, the forearm raised, the muzzle tipped up past level. */
-const CARRY = { arm: 0.62, out: 0.02, fore: 1.75, gun: 0.32 };
+type Gun = { g: V3; f: V3; up: V3 };
+const gun = (g: V3, forward: V3, hint: V3 = [0, 1, 0]): Gun => {
+  const f = norm(forward);
+  return { g, f, up: norm(sub(hint, mul(f, dot(f, hint)))) };
+};
+const mixGun = (a: Gun, b: Gun, t: number) => gun(mix(a.g, b.g, t), mix(a.f, b.f, t), mix(a.up, b.up, t));
+// Standing: authored gun-down pose beside the thigh, free arm hanging.
+const REST = gun([0.210963206, -0.343409991, -0.040079171],
+  [0.036919058, -0.753132521, -0.656832086], [-0.021315228, 0.656537169, -0.753992445]);
+const CARRY = gun([0.095, -0.135, -0.17], [-0.12, -0.45, -1]);
+const AIM = gun([0.0, 0.012, -0.315], [-0.025, 0.015, -1]);
+const LOAD = gun([0.005, 0.005, -0.295], [-0.025, -0.02, -1]);
+const FIRE = gun([-0.002, 0.014, -0.345], [-0.025, 0.015, -1]);
+const RECOIL = gun([0.010, 0.030, -0.292], [-0.015, 0.20, -1]);
 
-/** Idle fidgets, chosen at random per cadet. */
-const TWIRL = 0;
-const SALUTE = 1;
-const CHECK = 2;
-const WAVE = 3;
-const FIDGETS = 4;
-const SPAN = [1.0, 1.5, 1.7, 1.7];
-
-/** A cadet's own numbers, made the first time it is posed (Moves objects
- *  are shared by every cadet; each keeps its state in `c.memo`). */
-function self(c: MoveContext) {
-  const m = c.memo;
-  if (m.seed === undefined) {
-    m.seed = Math.random();
-    // Left-handed helpers steady the gun with the free hand; the others
-    // hold it out for balance.
-    m.steady = Math.random() < 0.5 ? 1 : 0;
-    m.side = Math.random() < 0.5 ? -1 : 1;
-    m.fid = -1;
-    m.next = 0.6 + Math.random() * 1.6;
-    m.last = -1;
-    m.spins = 0;
-    m.lookAt = 0;
-    m.lookY = 0;
-    m.lookX = 0;
-    m.was = 0;
-    m.pitch = 0;
-    m.rollW = 0;
-    m.dPitch = 0;
-    m.dRoll = 0;
-    m.hitSide = 1;
-    m.flinch = 0;
+const q = new Quaternion();
+const e = new Euler();
+const v = new Vector3();
+function inverseTurn(a: V3, rotation: V3): V3 {
+  q.setFromEuler(e.set(...rotation, 'XYZ')).invert();
+  v.set(...a).applyQuaternion(q);
+  return [v.x, v.y, v.z];
+}
+function armGoal(c: MoveContext, side: 'L' | 'R', wrist: V3, palm: V3, fingers: V3, pole: V3, clav: V3): ArmGoal | null {
+  const cr = c.rest(`clav${side}`), ar = c.rest(`arm${side}`);
+  if (!cr || !ar) return null;
+  const m = side === 'L' ? 1 : -1;
+  const mirror = (p: V3): V3 => [p[0] * m, p[1], p[2]];
+  return {
+    hand: mirror(sub(inverseTurn(sub(wrist, cr), clav), ar)),
+    palm: mirror(inverseTurn(palm, clav)),
+    fingers: mirror(inverseTurn(fingers, clav)),
+    pole: mirror(inverseTurn(pole, clav)),
+  };
+}
+function cycle(c: MoveContext) {
+  // Extension finishes at the engine's hit; recoil and recovery follow.
+  // No clocks, ability state, first-hit delay or hit interval are changed.
+  if (c.since < 0.085) {
+    const t = ease(c.since / 0.085);
+    return { gun: mixGun(FIRE, RECOIL, t), load: 0, fire: 1 - t, recoil: t };
   }
-  return m;
+  if (c.since < 0.34) {
+    const t = ease((c.since - 0.085) / 0.255);
+    return { gun: mixGun(RECOIL, AIM, t), load: 0, fire: 0, recoil: 1 - t };
+  }
+  if (c.toHit < 0.045) {
+    const t = ease(1 - c.toHit / 0.045);
+    return { gun: mixGun(LOAD, FIRE, t), load: 1 - t, fire: t, recoil: 0 };
+  }
+  if (c.toHit < 0.22) {
+    const t = ease((0.22 - c.toHit) / (0.22 - 0.045));
+    return { gun: mixGun(AIM, LOAD, t), load: t, fire: 0, recoil: 0 };
+  }
+  return { gun: AIM, load: 0, fire: 0, recoil: 0 };
 }
 
-/** The idle fidget under way (kind and seconds into it), choosing the next
- *  one now and then; anything but standing about cancels it. */
-function fidget(c: MoveContext, m: Record<string, number>) {
-  if (c.idleFor <= 0) {
-    if (m.fid === TWIRL && m.was - m.start > SPAN[TWIRL] * 0.45) m.spins += 1;
-    m.fid = -1;
-    m.next = 0.5 + Math.random() * 1.5;
-    m.was = 0;
-    return { kind: -1, at: 0 };
-  }
-  m.was = c.idleFor;
-  if (m.fid < 0 && c.idleFor >= m.next) {
-    let kind = Math.floor(Math.random() * FIDGETS);
-    if (kind === m.last) kind = (kind + 1 + Math.floor(m.seed * 3)) % FIDGETS;
-    m.fid = kind;
-    m.last = kind;
-    m.start = c.idleFor;
-    m.side = Math.random() < 0.5 ? -1 : 1;
-  }
-  if (m.fid >= 0) {
-    const at = c.idleFor - m.start;
-    if (at > SPAN[m.fid]) {
-      if (m.fid === TWIRL) m.spins += 1;
-      m.fid = -1;
-      m.next = c.idleFor + 1.4 + Math.random() * 2.6;
-      return { kind: -1, at: 0 };
-    }
-    return { kind: m.fid, at };
-  }
-  return { kind: -1, at: 0 };
-}
-
-/** Where the cadet looks while standing about: a new glance every second
- *  or two, held, then another. */
-function glance(c: MoveContext, m: Record<string, number>) {
-  if (c.time >= m.lookAt) {
-    m.lookAt = c.time + 0.8 + Math.random() * 1.8;
-    m.lookY = (Math.random() - 0.5) * 1.1;
-    m.lookX = (Math.random() - 0.4) * 0.16;
-  }
-}
-
-/** The Cadets: alert rookies in pressure suits. A grounded, brisk walk
- *  with the ray gun carried at the ready, a stance that kicks with every
- *  shot, a firm landing and a jolt when hit; standing about they look
- *  round, check their ray guns, salute and wave. The antenna and visor
- *  bounces on everything they do. */
 export const archers: Moves = {
   style: {
-    gait: {
-      like: 'light',
-      cadence: 2.2,
-      stride: 0.66,
-      bounce: 0.022,
-      crouch: 0.022,
-      lift: 0.09,
-      arms: 0.4,
-      elbow: 0.3,
-      lean: 0,
-      sway: 0.34,
-      roll: 0.03,
-      twist: 0.08,
-      heel: 0.2,
-      toe: 0.4,
-      nod: 0.016,
-    },
-    lean: 0,
-    attack: 'custom',
-    windup: 0.22,
-    lunge: 0,
-    snap: 30,
+    gait: { like: 'march', stride: 0.53, cadence: 2.15, bounce: 0.018,
+      lift: 0.085, crouch: 0.025, arms: 0.05, elbow: 0.10,
+      lean: 0.055, sway: 0.4, roll: 0.045, twist: 0.065, width: 1.0, nod: 0.015 },
+    armSwing: 0.05, lean: 0.055, attack: 'custom', windup: 0.22,
+    lunge: 0.035, snap: 30, twoHanded: true,
   },
-  stiff: { antenna: 0.42, hat: 0.9, handL: 0.8, foreL: 0.85, weapon: 1.1 },
-  damping: { antenna: 0.24, hat: 0.4, handL: 0.45, foreL: 0.5, weapon: 0.55 },
-  pose(c, p) {
-    const m = self(c);
-    const { walk, aim, idle, wind, strike, size } = c;
-    const free = 1 - aim;
-    const cyc = c.cycle * TAU;
-
-    // ---- Walking: the knees absorb each footfall; a small shoulder
-    // response keeps the head and pressure suit steady.
-    const late = Math.cos(cyc * 2 - 1.1);
-    p.squash *= 1 + walk * 0.008 * (c.pass - 0.55);
-    p.headX += walk * late * 0.012;
-    p.headY += walk * Math.sin(cyc) * 0.06;
-    p.torsoZ += walk * Math.sin(cyc) * 0.03;
-    // Chest up: a light rookie walks tall, the spine near vertical (the
-    // shared walk's lean and surge are taken back too).
-    p.torsoX = Math.min(p.torsoX, 0.02 + aim) - walk * 0.08;
-    p.lean = Math.min(p.lean, 0.01 + aim);
-
-    // ---- The ray gun at the ready: carried up, the forearm raised and
-    // the muzzle tipped to the sky, bobbing after each step. The gun arm
-    // keeps a little of the shared swing.
-    const step = -Math.cos(cyc * 2 - 0.9);
-    p.armR -= c.swingR * 0.75;
-    p.armR += free * (CARRY.arm + walk * step * 0.04);
-    p.armRz += free * CARRY.out;
-    let foreR = free * (CARRY.fore + walk * step * 0.12);
-    let gun = free * (CARRY.gun - walk * step * 0.1);
-    gun += Math.sin(c.t * 1.9) * 0.04 * idle;
-
-    // The free arm swings loose: the elbow bends on the forward swing, the
-    // hand flops a beat behind it.
-    const elbowLate = -Math.cos(cyc - 0.9);
-    // The shared swing leans forward; even it out so the arm hangs and
-    // swings as far back as forward, the elbow only trailing a little.
-    p.armL -= walk * 0.05;
-    let foreL = 0.12 + walk * (0.05 + 0.18 * Math.max(0, elbowLate));
-    let foreLz = 0;
-    let handLx = walk * Math.sin(cyc - 0.4) * 0.16 - 0.06;
-    let handLz = 0;
-
-    // ---- Attacking: a low ready stance between shots, the chest turned
-    // to bring the gun to the eye, the gun held level; each shot kicks the
-    // muzzle up, the shoulder back and the antenna with it.
-    const kick = strike;
-    const sway = Math.sin(c.t * 2.6) * 0.02;
-    p.armR += aim * (AIM + sway - wind * 0.05 + kick * 0.18);
-    foreR += aim * (kick * 0.42 - wind * 0.04);
-    gun += aim * (kick * 0.3);
-    p.torsoY += aim * (TURN - kick * 0.1);
-    p.torsoX += aim * (0.12 + wind * 0.04) - kick * 0.1;
-    p.headX += aim * 0.02 - kick * 0.12;
-    // Eyes stay on the target as the chest turns.
-    p.headY -= aim * TURN * 0.6;
-    p.lean += -kick * 0.12 + wind * 0.02;
-    p.lunge -= kick * 0.07;
-    // (Kept within the ground solver's reach, so the knees take it.)
-    p.lift -= aim * (0.03 + Math.sin(c.t * 3.1) * 0.004 - kick * 0.012) * size;
-    p.squash *= 1 - kick * 0.03;
-    if (m.steady) {
-      // The free hand steadies the gun hand from below.
-      p.armL += aim * (1.05 - kick * 0.12);
-      p.armLz += aim * 0.42;
-      foreL += aim * (0.55 + kick * 0.1);
-      handLx += aim * 0.25;
-    } else {
-      // The free arm out behind for balance, swung back by each shot.
-      p.armL += aim * (-0.35 - kick * 0.25);
-      p.armLz -= aim * 0.32;
-      foreL += aim * 0.5;
-      handLx -= aim * 0.15;
-    }
-
-    // ---- Standing about: breathing, glancing round and shifting weight.
-    glance(c, m);
-    p.squash *= 1 + Math.sin(c.t * 1.8 + m.seed * 6) * 0.003 * idle;
-    p.headY += idle * m.lookY;
-    p.headX += idle * m.lookX;
-    p.roll += idle * Math.sin(c.t * 0.8 + m.seed * 4) * 0.025;
-    p.torsoY += idle * m.lookY * 0.25;
-
-    // ---- Fidgets.
-    const { kind, at } = fidget(c, m);
-    const span = kind >= 0 ? SPAN[kind] : 1;
-    const e = kind >= 0 ? envelope(at, span) * idle : 0;
-    let twirl = m.spins * TAU;
-    if (kind === TWIRL) {
-      // Up, a spin of the gun round the trigger finger, caught.
-      const s = ease(clamp01((at - 0.2) / 0.55));
-      twirl += s * TAU;
-      p.armR += e * 0.12;
-      foreR -= e * 0.35;
-      p.headY -= e * 0.25 + idle * m.lookY * e;
-      p.headX += e * 0.12;
-    } else if (kind === SALUTE) {
-      // Heels together, chin up, the flat hand snapped to the visor.
-      const snap = out3(clamp01(at / 0.2)) * ease(clamp01((span - at) / 0.3));
-      const sal = snap * idle;
-      p.armL += sal * 0.85;
-      p.armLz -= sal * 1.3;
-      foreL += sal * 2.05;
-      foreLz -= sal * 0.3;
-      handLz += sal * 0.45;
-      handLx -= sal * 0.25;
-      p.headX -= sal * 0.1;
-      p.headY -= idle * m.lookY * sal;
-      p.torsoX -= sal * 0.05;
-    } else if (kind === CHECK) {
-      // The gun brought up before the visor, turned to look it over,
-      // a nod.
-      p.armR += e * 0.35;
-      p.armRz -= e * 0.38;
-      foreR += e * 0.45;
-      gun -= e * (0.9 + Math.sin(at * 5) * 0.25);
-      p.headY -= e * 0.32 + idle * m.lookY * e;
-      p.headX += e * (0.18 + bump(at, 1.15, 1.45) * 0.15);
-      p.torsoY -= e * 0.1;
-    } else if (kind === WAVE) {
-      // A big wave to the other cadet: the hand up beside the helmet,
-      // swept from side to side, flapping at the wrist.
-      const w = Math.sin(at * 13);
-      p.armL += e * 0.55;
-      p.armLz -= e * 1.45;
-      foreL += e * 1.95;
-      foreLz -= e * w * 0.4;
-      handLz += e * w * 0.35;
-      p.headY += -idle * m.lookY * e + e * 0.35;
-      p.roll += e * 0.04;
-    }
-    gun += twirl;
-
-    // ---- Arriving: one landing, knees absorbing it, then the gun ready.
-    if (c.deploy < 1) {
-      const d = c.deploy;
-      const fall = d < 0.26 ? 1 - d / 0.26 : 0;
-      const tuck = fall > 0 ? 0.65 * fall : 0;
-      // The legs are the cadet's only while tucked: the ground solver
-      // plants them again where they land.
-      if (tuck > 0.01) {
-        c.want('legL', 0.7 * tuck);
-        c.want('kneeL', -1.15 * tuck);
-        c.want('footL', 0.35 * tuck);
-        c.want('legR', 0.25 * tuck);
-        c.want('kneeR', -0.9 * tuck);
-        c.want('footR', 0.3 * tuck);
-      }
-      p.armLz -= tuck * 1.3;
-      p.armRz += tuck * 0.5;
-      p.armR += tuck * 0.8;
-      // The landing: a crouch, then up with the gun to the sky.
-      const ready = bump(d, 0.3, 1);
-      p.armR += ready * 0.6;
-      foreR += ready * 0.4;
-      p.headX -= ready * 0.12;
-    }
-
-    // ---- Hit: a jolt back, arms flung out, a stagger to one side.
-    if (c.flinch > m.flinch + 0.5) m.hitSide = -m.hitSide;
-    m.flinch = c.flinch;
-    const f = c.flinch * c.flinch;
-    p.armLz -= f * 0.7;
-    p.armL += f * 0.3;
-    p.armRz += f * 0.3;
-    foreR -= f * 0.35;
-    foreL += f * 0.5;
-    p.headX -= f * 0.12;
-    p.torsoZ += f * 0.14 * m.hitSide;
-    p.roll += f * 0.05 * m.hitSide;
-    p.headY += f * 0.2 * m.hitSide;
-
-    c.want('foreR', foreR);
-    c.want('weapon', gun);
-    c.want('foreL', foreL, 0, foreLz);
-    c.want('handL', handLx, 0, handLz);
-
-    soft(c, p, m);
-  },
+  carriage: { twist: 0.065, hips: 0.055, chestRoll: 0.12, nod: 0.015,
+    armOut: 0, bounce: 0, weaponArm: 0 },
+  stiff: { clavL: 1.2, clavR: 1.2, armL: 1.6, armR: 1.6,
+    foreL: 1.6, foreR: 1.6, handL: 1.6, handR: 1.6, antenna: 0.35 },
+  damping: { armL: 0.76, armR: 0.76, foreL: 0.76, foreR: 0.76,
+    handL: 0.76, handR: 0.76, antenna: 0.38 },
   arrive(d) {
-    // One firm contact at d 0.26, with no second hop or twirl.
-    const fall = clamp01(d / 0.26);
-    const drop = (1 - fall * fall) * 2.8;
-    const land = bump(d, 0.26, 0.42);
-    const settle = bump(d, 0.42, 0.52);
-    return {
-      drop,
-      squash: d < 0.26 ? 1.02 : 1 - land * 0.1 + settle * 0.012,
-      twirl: 0,
-    };
+    const t = ease(d / 0.32), contact = pulse(d, 0.32, 0.39, 0.72);
+    return { drop: (1 - t) * 2.1, squash: 1 - contact * 0.025, twirl: 0 };
+  },
+  pose(c, p) {
+    const cosmetic = c.reduced ? 0 : 1;
+    const hold = ease(c.aim), support = ease(Math.max(c.walk, c.aim));
+    const shot = cycle(c);
+    const load = shot.load * hold, fire = shot.fire * hold, recoil = shot.recoil * hold;
+    const breath = Math.sin(c.t * 1.35 + c.unit.id * 0.23) * c.idle * cosmetic;
+    const lap = c.idleFor > 1.3 ? (c.idleFor + c.unit.id * 0.67) % 10.5 : -1;
+    const awake = ease(c.idleFor - 1.3) * c.idle * cosmetic;
+    // A brief check of the chest gauge and a look towards the companion.
+    const check = pulse(lap, 2.0, 2.5, 3.8) * awake;
+    const glance = pulse(lap, 6.5, 7.1, 8.7) * awake;
+    const side = c.unit.id % 2 ? -1 : 1;
+    p.torsoX += (0.035 + 0.035 * load - 0.11 * recoil - 0.025 * fire) * hold + breath * 0.009;
+    p.torsoY += (-0.17 + 0.08 * load - 0.03 * recoil) * hold;
+    p.lunge += 0.025 * fire - 0.042 * recoil;
+    // The planted-foot solver absorbs this crouch; do not pose walking legs.
+    p.lift -= c.size * (0.026 * hold + 0.012 * load);
+    p.headX += (-0.025 + 0.05 * recoil) * hold + 0.22 * check;
+    p.headY += (0.08 * hold + side * 0.28 * glance);
+    const hurt = c.flinch * c.flinch;
+    p.torsoX -= hurt * 0.14;
+    p.torsoZ += side * hurt * 0.05;
+    p.headX -= hurt * 0.09;
+    p.headY += side * hurt * 0.12;
+    p.lunge -= hurt * 0.04;
+
+    const low = mixGun(REST, CARRY, c.walk);
+    const held = mixGun(low, shot.gun, hold);
+    // The carried gun bobs with each step and sways a little with the
+    // stride, so the arms carry it rather than locking it in place.
+    held.g = add(held.g, [
+      c.walk * Math.sin(c.cycle * Math.PI * 2) * 0.006 * (1 - hold),
+      breath * 0.002 + c.walk * Math.cos(c.cycle * Math.PI * 4) * 0.011,
+      c.walk * Math.sin(c.cycle * Math.PI * 2) * 0.012 * (1 - hold),
+    ]);
+    const body: V3 = [-(p.torsoX + p.lean) * hold * 0.94,
+      p.torsoY * hold * 0.94, (p.torsoZ + p.roll) * hold * 0.94];
+    const g = inverseTurn(held.g, body), f = inverseTurn(held.f, body), up = inverseTurn(held.up, body);
+    const palmR = norm(cross(up, f));
+    const fingersR = norm(sub(mul(f, Math.cos(RAKE)), mul(up, Math.sin(RAKE))));
+    const wristR = sub(sub(g, mul(fingersR, GRIP_E1)), mul(palmR, GRIP_E3));
+    // Cupped left glove nests below the chrome body, behind its fin rings.
+    const cup = add(add(g, f, 0.052), up, 0.029);
+    const wristL = sub(sub(cup, mul(f, CUP_E1)), mul(up, CUP_E3));
+    const clavR: V3 = [0, (0.055 - 0.04 * recoil) * hold, 0.025 * hold];
+    const clavL: V3 = [0, -0.10 * hold, -0.025 * hold];
+    c.want('clavR', ...clavR);
+    c.want('clavL', ...clavL);
+    c.want('weapon', 0, 0, 0);
+    // Reach forward from tucked elbows so the padded cuffs follow the gun.
+    const poleR = mix(c.rest('foreR') ?? [0.75, -0.85, 0.25], [0.75, -0.85, 0.25], support);
+    const right = armGoal(c, 'R', wristR, palmR, fingersR, poleR, clavR);
+    let left = armGoal(c, 'L', wristL, up, f, [-0.55, -0.85, 0.1], clavL);
+    const elbow = c.rest('foreL'), wrist = c.rest('handL');
+    if (left && elbow && wrist) {
+      left = blend({ hand: add(elbow, wrist), pole: elbow,
+        palm: REST_L.palm, fingers: REST_L.fingers }, left, support);
+      if (check > 0.001) {
+        const gauge = armGoal(c, 'L', [-0.04, -0.04, -0.155], [0, 0, -1], [0.3, 0.8, -0.2],
+          [-0.8, -0.8, 0.15], clavL);
+        if (gauge) left = blend(left, gauge, ease(check));
+      }
+    }
+    if (right) reach(c, 'R', right, REST_R);
+    if (left) reach(c, 'L', left, REST_L);
+
+    // Pack antenna lags acceleration, steps and recoil, within a short arc.
+    const soft = c.reduced ? 0 : 1;
+    c.want('antenna', clamp((-c.accel * 0.015 - c.vertical * 0.008 + recoil * 0.13
+      + Math.sin(c.t * 2.7) * 0.03 * c.idle + Math.cos(c.cycle * Math.PI * 4) * 0.05 * c.walk) * soft, 0.22),
+      clamp(-c.turn * 0.04 * soft, 0.12), clamp((-c.lateral * 0.015 + c.turn * 0.035) * soft, 0.18));
+    if (c.deploy < 1) {
+      const land = pulse(c.deploy, 0.32, 0.39, 0.72);
+      p.lift -= c.size * 0.075 * land;
+      p.torsoX += 0.12 * land;
+      p.headX -= 0.06 * land;
+    }
   },
 };
-
-/** The antenna and the visor, from how the body moves: the antenna's tip
- *  lags every push, landing, turn, nod and shot and whips past, the visor
- *  bounces on its hinges. */
-function soft(c: MoveContext, p: Pose, m: Record<string, number>) {
-  const dt = Math.max(1e-3, c.dt);
-  const pitch = p.torsoX + p.headX + p.lean - p.lunge * 0.8;
-  const roll = p.roll + p.torsoZ;
-  const k = Math.min(1, dt * 20);
-  m.dPitch += ((pitch - m.pitch) / dt - m.dPitch) * k;
-  m.dRoll += ((roll - m.rollW) / dt - m.dRoll) * k;
-  m.pitch = pitch;
-  m.rollW = roll;
-  const vertical = clamp(c.vertical, -30, 30);
-  const ax =
-    0.03 * clamp(c.accel, -10, 10) -
-    0.009 * vertical +
-    0.05 * clamp(m.dPitch, -6, 6) +
-    0.12 * c.flinch;
-  const az =
-    0.022 * clamp(c.lateral, -10, 10) -
-    0.07 * clamp(c.turn, -6, 6) -
-    0.06 * clamp(m.dRoll, -6, 6) +
-    Math.sin(c.t * 1.3) * 0.03 * c.idle;
-  c.want('antenna', clamp(ax, -0.6, 0.6), 0, clamp(az, -0.6, 0.6));
-  // The visor rides up a touch on the move and drops a little for the
-  // shot (game face), bouncing on each landing.
-  const lid =
-    -0.004 * vertical -
-    0.25 * c.aim +
-    0.06 * c.walk -
-    0.1 * c.flinch +
-    0.02 * clamp(m.dPitch, -6, 6);
-  c.want('hat', clamp(lid, -0.32, 0.25));
-}

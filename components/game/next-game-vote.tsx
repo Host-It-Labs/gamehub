@@ -17,6 +17,7 @@ export function NextGameVote({
   seats,
   disabled,
   hostName,
+  showHostWait = true,
   onVote,
 }: {
   vote: NextVoteState;
@@ -24,6 +25,7 @@ export function NextGameVote({
   seats: number;
   disabled: boolean;
   hostName?: string;
+  showHostWait?: boolean;
   onVote: (id: StandaloneId) => void;
 }) {
   const mine = vote.ballots[viewerId],
@@ -82,7 +84,7 @@ export function NextGameVote({
             );
           })}
       </div>
-      {vote.host && disabled && (
+      {showHostWait && vote.host && disabled && (
         <p className="party-host-wait">{hostName ?? 'The host'} picks</p>
       )}
     </section>

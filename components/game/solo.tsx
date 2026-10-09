@@ -2,6 +2,7 @@
 import { GameProgress } from './game-progress';
 import { useGameMotion } from './game-motion';
 import { useGameSound } from './use-game-sound';
+import { defaultAudioLevel, readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { useResultsFeedback, WinnerCelebration } from './results-feedback';
 import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
 import { CountUp, stagger } from './reveal-motion';
@@ -137,8 +138,8 @@ export default function SoloGame() {
     [fastMode, setFastMode] = useState(false),
     [difficulty, setDifficulty] = useState<Difficulty>('medium'),
     [players, setPlayers] = useState(3),
-    [volume, setVolume] = useState(0.5),
-    [ambience, setAmbience] = useState(0.6),
+    [volume, setVolume] = useState(defaultAudioLevel(0.5)),
+    [ambience, setAmbience] = useState(defaultAudioLevel(0.6)),
     [panelOpen, setPanelOpen] = useState(false),
     [panel, rememberPanel] = useState<
       'rules' | 'reference' | 'log' | 'sound' | null
@@ -158,6 +159,7 @@ export default function SoloGame() {
     [openOwn, setOpenOwn] = useState<StandaloneId | null>(null),
     [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
     [ownSeats, setOwnSeats] = useState(3),
+    [triviaMode, setTriviaMode] = useState<'quick' | 'tower' | 'expedition'>('quick'),
     [arena, setArena] = useState<
       (import('./arena/arena-entry').ArenaChoice & { key: number }) | null
     >(null),
@@ -224,8 +226,7 @@ export default function SoloGame() {
       localStorage.setItem(OWN_SAVE, JSON.stringify(ownRestored));
       ownRef.current = ownRestored;
       setOwn(ownRestored);
-      const v = Number(localStorage.getItem('gamehub.volume.v3') ?? '.5');
-      setVolume(Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5);
+      setVolume(readAudioLevel());
       setAmbience(readAmbienceLevel());
       if (catalog.some((game) => raw[game.id] && !restored[game.id]))
         setNotice(
@@ -280,11 +281,12 @@ export default function SoloGame() {
         : entry.defaultSeats,
     );
     if (saved) setDifficulty(saved.difficulty);
+    setTriviaMode(saved?.tribu?.trivia?.mode ?? 'quick');
     setOwnSetup(id);
   }
   function startOwn(id: StandaloneId, learning=false) {
     if (requiresHumanPlayers(id)) return;
-    storeOwn(learning?practice(id,ownSeats,difficulty,0):standaloneGames[id].create(ownSeats, seed(), difficulty));
+    storeOwn(learning?practice(id,ownSeats,difficulty,0):standaloneGames[id].create(ownSeats, seed(), difficulty, undefined, undefined, undefined, false, id === 'miro' ? triviaMode : undefined));
     setOwnSetup(null);
     setOpenOwn(id);
     cue('shuffle', volume, 0, id);
@@ -461,9 +463,9 @@ export default function SoloGame() {
     if (!game || game.tutorial || game.phase === 'over') home();
     else leaving.ask(home);
   }
-  useBoardLeave(!!(g || openOwn || arena || diner), () => {
+  useBoardLeave(!!(g || openOwn || arena || diner), (allow) => {
     if (diner) {
-      if (window.confirm('Leave the diner? This shift ends when you leave.')) setDiner(null);
+      window.dispatchEvent(new CustomEvent('diner-request-leave', { detail: { allow } }));
     } else if (arena) {
       if (window.confirm('Leave the battle? It ends when you leave.')) setArena(null);
     } else if (openOwn) leaveOwn(); else exitTable();
@@ -621,11 +623,7 @@ export default function SoloGame() {
   }
   function volumeChange(value: number) {
     setVolume(value);
-    try {
-      localStorage.setItem('gamehub.volume.v3', String(value));
-    } catch {
-      /* Preference is optional. */
-    }
+    saveAudioLevel(value);
   }
   const soundSettings = (
     <SoundSettings
@@ -982,6 +980,8 @@ export default function SoloGame() {
               seats={ownSeats}
               difficulty={difficulty}
               onSeats={setOwnSeats}
+              triviaMode={triviaMode}
+              onTriviaMode={setTriviaMode}
               onDifficulty={setDifficulty}
               onPlay={() => startOwn(ownSetup)}
               onLearn={() => startOwn(ownSetup,true)}

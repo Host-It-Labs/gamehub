@@ -1,0 +1,22 @@
+{
+  "vehicles": {
+    "originalMedianMs": 52.08262500000001,
+    "meshoptMedianMs": 56.353582999999844,
+    "samples": 8
+  },
+  "nature": {
+    "originalMedianMs": 12.73866699999985,
+    "meshoptMedianMs": 16.70575000000008,
+    "samples": 8
+  },
+  "town": {
+    "originalMedianMs": 13.796708000000308,
+    "meshoptMedianMs": 11.195749999999862,
+    "samples": 8
+  },
+  "works": {
+    "originalMedianMs": 18.58337500000016,
+    "meshoptMedianMs": 16.63375000000042,
+    "samples": 8
+  }
+}

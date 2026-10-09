@@ -3,6 +3,9 @@ import type { MapDef } from '@/lib/games/rota/maps';
 import { toon } from './materials';
 import { surfaceGLSL } from './surfaces';
 import { CUTTING_HALF } from '@/lib/games/rota/scale';
+export { LANE_HALF, RING } from '@/lib/games/rota/neighbourhood';
+import { LANE_HALF, RING } from '@/lib/games/rota/neighbourhood';
+import { lateDusk } from '@/lib/games/rota/daylight';
 
 const CUT = CUTTING_HALF - 0.004;
 
@@ -31,8 +34,6 @@ const FAR = 26;
 const TOWN = 8;
 /** The old town's back lanes: half their width, and the ring lane round the
  *  site this far out, with terraces between it and the board. */
-export const LANE_HALF = 0.095;
-export const RING = 1.5;
 
 export type Polyline = { x: number; z: number }[];
 
@@ -119,6 +120,8 @@ export class Ground {
     uN: { value: number };
     uCells: { value: THREE.DataTexture };
     uCuts: { value: THREE.DataTexture };
+    uDusk: { value: number };
+    uLateDusk: { value: number };
   };
   private readonly cutData: Uint8Array;
   private readonly cuts: THREE.DataTexture;
@@ -126,6 +129,8 @@ export class Ground {
   private readonly zs: number[];
   private riverKey = '';
   private readonly waterNormal: THREE.Texture;
+  private waterDay = new THREE.Color('#3f7f86');
+  private waterEvening = new THREE.Color('#456b85');
 
   constructor(
     private map: MapDef,
@@ -174,6 +179,8 @@ export class Ground {
       uN: { value: n },
       uCells: { value: this.cells },
       uCuts: { value: this.cuts },
+      uDusk: { value: 0 },
+      uLateDusk: { value: 0 },
     };
 
     // Full-resolution procedural materials over the town's three light tones.
@@ -207,6 +214,7 @@ export class Ground {
           `varying vec3 vRota;
 uniform float uTime;
 uniform float uN;
+uniform float uDusk, uLateDusk;
 uniform sampler2D uCells;
 uniform sampler2D uCuts;
 uniform vec3 uMoor, uHeather, uYard, uYardLight, uCinder, uGrass, uLine, uFlags, uSand, uBed, uFoam, uSetts;
@@ -294,6 +302,9 @@ void main() {
     float fill = smoothstep(0.04, 0.12, edge);
     vec3 warm = vec3(1.0, 0.86, 0.36);
     totalEmissiveRadiance += warm * cell.r * inside * (rim * 1.1 * pulse + fill * 0.16);
+    // Cool twilight fill has a small colour-preserving floor on the site.
+    // No dark grade over streets, survey lines or the target overlay.
+    totalEmissiveRadiance += col * (inside * uDusk * 0.09 + uLateDusk * 0.10);
     // The square the dragged piece would land on, and the one to turn.
     totalEmissiveRadiance += vec3(1.0, 0.95, 0.8) * cell.a * inside * fill * 0.26;
     // Rockfall's mark: a red ring in the middle of the square.
@@ -304,7 +315,7 @@ void main() {
   }`,
         );
     };
-    material.customProgramCacheKey = () => 'rota-ground-surfaces-v2';
+    material.customProgramCacheKey = () => 'rota-ground-surfaces-v3';
     this.mesh = new THREE.Mesh(g, material);
     this.mesh.receiveShadow = true;
     this.mesh.position.set(-n / 2, 0, -n / 2);
@@ -482,6 +493,14 @@ void main() {
   tick(time: number) {
     this.uniforms.uTime.value = time;
     this.waterNormal.offset.set(time * 0.013, time * 0.008);
+  }
+
+  setDusk(dusk: number) {
+    this.uniforms.uDusk.value = dusk;
+    this.uniforms.uLateDusk.value = lateDusk(dusk);
+    (this.water.material as THREE.MeshStandardMaterial).color
+      .copy(this.waterDay)
+      .lerp(this.waterEvening, dusk);
   }
 
   dispose() {

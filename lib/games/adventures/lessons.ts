@@ -96,7 +96,7 @@ export const adventureLessons: Record<
       title: 'Closer scores more',
       text: `The places are revealed one by one, and the host presses Next to move on. Every pin scores up to ${maxPinPoints} by how far it landed: within ${pinCurve[0][0]} km scores ${maxPinPoints}, ${pinCurve[3][0]} km off scores ${pinCurve[3][1]}, and ${pinCurve[pinCurve.length - 1][0].toLocaleString('en')} km or more scores nothing.`,
     },
-    { title: 'What next?', text: `After the final, ${next('Atlas', 'Quiz')}` },
+    { title: 'What next?', text: `After the final, ${next('Atlas', 'Trivia')}` },
   ],
   size: [
     {
@@ -113,7 +113,7 @@ export const adventureLessons: Record<
     },
     {
       title: 'What next?',
-      text: `After the third reveal, ${next('Sizes', 'Quiz')}`,
+      text: `After the third reveal, ${next('Sizes', 'Trivia')}`,
     },
   ],
   year: [
@@ -131,7 +131,7 @@ export const adventureLessons: Record<
     },
     {
       title: 'What next?',
-      text: `After the third reveal, ${next('Years', 'Quiz')}`,
+      text: `After the third reveal, ${next('Years', 'Trivia')}`,
     },
   ],
   order: [
@@ -149,7 +149,7 @@ export const adventureLessons: Record<
     },
     {
       title: 'What next?',
-      text: `After the third reveal, ${next('Order', 'Quiz')}`,
+      text: `After the third reveal, ${next('Order', 'Trivia')}`,
     },
   ],
   impostor: [

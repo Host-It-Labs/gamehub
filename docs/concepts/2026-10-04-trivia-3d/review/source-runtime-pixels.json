@@ -1,0 +1,26 @@
+[
+  {
+    "source": "tower-max-source.jpg",
+    "runtime": "tower-max-runtime.jpg",
+    "meanAbsoluteChannelDifference": 0.002101236979166667,
+    "maxChannelDifference": 11,
+    "changedChannels": 1890,
+    "totalChannels": 1843200
+  },
+  {
+    "source": "expedition-bridge-source.jpg",
+    "runtime": "expedition-bridge-runtime.jpg",
+    "meanAbsoluteChannelDifference": 0.0005501302083333334,
+    "maxChannelDifference": 6,
+    "changedChannels": 657,
+    "totalChannels": 1843200
+  },
+  {
+    "source": "expedition-final-source.jpg",
+    "runtime": "expedition-final-runtime.jpg",
+    "meanAbsoluteChannelDifference": 0.0010042317708333333,
+    "maxChannelDifference": 12,
+    "changedChannels": 984,
+    "totalChannels": 1843200
+  }
+]

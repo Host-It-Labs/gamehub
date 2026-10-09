@@ -23,6 +23,7 @@ import math
 import os
 import sys
 
+import bmesh
 import bpy
 from mathutils import Vector
 
@@ -84,6 +85,11 @@ T("road", "#5a5c60")
 T("sleeper", "#6b5440")
 T("water", "#2f7f86")
 T("floor", "#9aa38a")
+T("void", "#050505")
+T("alu", "#c6cbd0")
+T("frost", "#dfe2dc")
+T("engine", "#3b3e43")
+T("doorin", "#8c7a62")
 
 TEAM = "paint:team"
 TEAM2 = "paint:team2"
@@ -114,6 +120,11 @@ LOGEND = "wood:logend"
 CARGO = "paint:cargo"
 SEAT = "plastic:seat"
 ROPE = "plastic:rope"
+VOID = "plain:void"
+ALU = "paint:alu"
+FROST = "paint:frost"
+ENGINE = "metal:engine"
+DOORIN = "paint:doorin"
 
 BUDGET = 6000
 
@@ -304,6 +315,88 @@ def greenhouse(name, y_rb, y_rt, y_ft, y_fb, z0, zb, zt, hw, tumble=0.006,
 
 # ---------------------------------------------------------------- cars
 
+def _split(obj, pred):
+    """Move the faces of obj for which pred(centre, normal) holds into a
+    new object (returned); the rest stay in obj."""
+    leaf = obj.copy()
+    leaf.data = obj.data.copy()
+    bpy.context.scene.collection.objects.link(leaf)
+    for o, keep in ((obj, False), (leaf, True)):
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        gone = [f for f in bm.faces
+                if pred(f.calc_center_median(), f.normal) != keep]
+        bmesh.ops.delete(bm, geom=gone, context="FACES")
+        bm.to_mesh(o.data)
+        bm.free()
+    return leaf
+
+
+def kerb_doors(body, cab, doors, cavity, seats, handles_x, z_sill,
+               trim="plastic:seat"):
+    """Cut a car's kerb-side (+X) doors out of its lofted body and cab as
+    separate leaves: each is the very panel it was cut from (paint, seams,
+    side window and frame), a millimetre thick, its inside a dark trim,
+    the object origin on its hinge line along the door's front (+Y) edge,
+    so a positive rotation about its local Z (Blender; local +Y in the
+    glTF) swings it open. Behind the doors a dark cabin (a box seen from
+    inside) holds a hint of the seats.
+
+    doors: [(name, y0, y1, w0, w1)], each door's span on the body and its
+    window's span on the cab. cavity: [(x0, x1, y0, y1, z0, z1)] boxes of
+    the dark cabin. seats: [(y, w)], a bench seat at y across w. handles_x:
+    the +X door handle objects, carried by the door they sit on. Returns
+    the leaves and the interior parts."""
+    kit.apply(body)
+    kit.apply(cab)
+    leaves = []
+    for name, y0, y1, w0, w1 in doors:
+        def on_body(c, n, y0=y0, y1=y1):
+            return n.x > 0.25 and c.x > 0.004 and y0 + 1e-4 < c.y < \
+                y1 - 1e-4 and c.z > z_sill
+
+        def on_cab(c, n, w0=w0, w1=w1):
+            return n.x > 0.45 and c.x > 0.004 and w0 + 1e-4 < c.y < w1 - 1e-4
+        parts = [_split(body, on_body), _split(cab, on_cab)]
+        for h in list(handles_x):
+            if y0 < h.location.y < y1:
+                parts.append(h)
+                handles_x.remove(h)
+        leaf = kit.join(parts, name)
+        mod = leaf.modifiers.new("solid", "SOLIDIFY")
+        mod.thickness = 0.001
+        mod.offset = -1
+        kit.apply(leaf)
+        leaf.data.materials.append(kit.material(trim))
+        k = len(leaf.data.materials) - 1
+        for p in leaf.data.polygons:
+            if p.normal.x < -0.4:
+                p.material_index = k
+        kit.shade(leaf, 38)
+        xs = [v.co for v in leaf.data.vertices if v.co.y > y1 - 0.0025]
+        xh = max(v.x for v in xs)
+        zh = sum(v.z for v in xs) / len(xs)
+        kit.set_pivot(leaf, (xh, y1, zh))
+        leaves.append(leaf)
+    inside = []
+    for x0, x1, y0, y1, z0, z1 in cavity:
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1)
+        bmesh.ops.scale(bm, vec=Vector((x1 - x0, y1 - y0, z1 - z0)),
+                        verts=bm.verts)
+        bmesh.ops.translate(bm, vec=Vector(((x0 + x1) / 2, (y0 + y1) / 2,
+                                            (z0 + z1) / 2)), verts=bm.verts)
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+        inside.append(vk.mesh("cabin", bm, [VOID]))
+    for y, w in seats:
+        inside.append(vk.blk("seat", (w, 0.012, 0.006), (0.0, y, 0.021),
+                             SEAT, bevel=0.001, edge=1))
+        inside.append(vk.blk("seat-back", (w, 0.004, 0.016),
+                             (0.0, y - 0.007, 0.031), SEAT, bevel=0.001,
+                             edge=1))
+    return leaves, inside
+
+
 def car_keys(hw, rear, mid, front, rb=0.006, rt=0.008, tumble=0.003,
              crown=0.002, z0=0.009, half=0.075, mid_y=0.0):
     return [
@@ -372,7 +465,19 @@ def car_sedan():
                      rt=0.0065, z_rear=0.044, z_front=0.0395,
                      pillars=[(-0.0105, -0.0062)], frame=CHROME,
                      rear_side=True)
-    parts = [body, cab]
+    hs = handles([0.012, -0.026], 0.0377, 0.039)
+    hl = [h for h in hs if h.location.x < 0]
+    # Kerb-side doors (cars drive on the right): front and rear leaves.
+    doors, inside = kerb_doors(
+        body, cab,
+        [("door_rf", -0.0078, 0.0295, -0.0062, 0.006),
+         ("door_rr", -0.0448, -0.0085, -0.034, -0.0105)],
+        cavity=[(-0.02, 0.032, -0.033, 0.029, 0.0135, 0.0335),
+                (-0.02, 0.028, -0.0445, -0.033, 0.034, 0.041),
+                (-0.02, 0.025, -0.034, 0.0055, 0.0335, 0.058)],
+        seats=[(0.004, 0.05), (-0.029, 0.05)],
+        handles_x=[h for h in hs if h.location.x > 0], z_sill=0.0178)
+    parts = [body, cab] + hl + inside
     for s in (1, -1):
         parts.append(vk.blk("hl", (0.011, 0.003, 0.0055),
                             (s * 0.025, 0.0838, 0.029), CHROME, bevel=0.001))
@@ -385,7 +490,6 @@ def car_sedan():
     parts += plate(-0.0848, 0.031, front=False)
     parts += taillights(-0.0842, 0.0262, 0.0355, w=0.012, h=0.0048)
     parts += mirrors(0.01, 0.0325, 0.0452)
-    parts += handles([0.012, -0.026], 0.0377, 0.039)
     parts += [vk.blk("sill", (0.002, 0.07, 0.0016), (s * 0.0372, 0.0, 0.0168),
                      CHROME, edge=0.04) for s in (1, -1)]
     parts += [vk.blk("aerial", (0.0008, 0.0008, 0.014), (0.022, -0.06, 0.049),
@@ -393,7 +497,7 @@ def car_sedan():
     parts += [vk.cyl("exhaust", 0.0018, 0.008, (0.022, -0.084, 0.0095), "Y",
                      CHROME, verts=10)]
     wheels = wheels4(axles, hw - w / 2 + 0.0006, r, w)
-    return vk.finish(root, parts, wheels)
+    return vk.finish(root, parts, wheels, doors)
 
 
 def car_retro():
@@ -423,7 +527,16 @@ def car_retro():
             fenders.append(f)
     for o in [body] + fenders:
         arches(o, axles, hw + 0.002, r + 0.0022, depth=0.02)
-    parts = [body, cab] + fenders
+    hs = handles([-0.017], 0.0342, 0.0392)
+    hl = [h for h in hs if h.location.x < 0]
+    # A two-door saloon: one kerb-side (+X) door leaf.
+    doors, inside = kerb_doors(
+        body, cab, [("door_rf", -0.0208, 0.017, -0.0135, 0.0)],
+        cavity=[(-0.02, 0.029, -0.02, 0.0165, 0.016, 0.033),
+                (-0.02, 0.022, -0.0135, -0.0005, 0.033, 0.06)],
+        seats=[(0.001, 0.046)],
+        handles_x=[h for h in hs if h.location.x > 0], z_sill=0.0165)
+    parts = [body, cab] + fenders + inside + hl
     for s in (1, -1):
         parts.append(vk.cyl("hl-rim", 0.0056, 0.004, (s * 0.0262, 0.0705,
                                                       0.0285), "Y", CHROME,
@@ -453,9 +566,8 @@ def car_retro():
                                 (s * 0.012, y, 0.017), CHROME, bevel=0.001))
     parts += plate(-0.0748, 0.0262, front=False, w=0.014, h=0.0045)
     parts += mirrors(0.004, 0.0292, 0.0458, mat=CHROME)
-    parts += handles([-0.017], 0.0342, 0.0392)
     wheels = wheels4(axles, hw - w / 2 + 0.0012, r, w, whitewall=True)
-    return vk.finish(root, parts, wheels)
+    return vk.finish(root, parts, wheels, doors)
 
 
 def van():
@@ -1067,6 +1179,383 @@ def coach():
         parts += p
         wheels += w
     return vk.finish(root, parts, wheels)
+
+
+# ---------------------------------------------------------------- DMU
+
+DMU_L = 0.34            # over the cab-end buffers and the inner-end buffers
+DMU_HW = 0.0715         # body half-width, as the coach
+DMU_Z0 = 0.058          # bottom of the body shell (the solebar line)
+DMU_FLOOR = 0.066       # door sill and vestibule floor above the root
+DMU_DOOR_Y = (0.10, -0.10)      # door 0 (cab side), door 1 (inner side)
+DMU_DOOR_W = 0.022
+DMU_DOOR_TOP = 0.142
+DMU_BUFFER_Z = 0.0635
+# Livery bands and the window band on the body sides and door leaves.
+DMU_WAIST = (0.0975, 0.101)
+DMU_WIN = (0.1025, 0.1325)
+DMU_CANT = (0.1385, 0.141)      # up to the roof corner (z1 - rt)
+
+
+def dmu_leaf(name, s, j, yc):
+    """One slam-door leaf of the DMU: a panel in the livery with the cream
+    lining, a framed droplight and a handle at its free edge. s = +1 for
+    the +X side (door_r*), -1 for -X (door_l*); j = 0 hinges on its +Y
+    edge, j = 1 on its -Y edge. The object origin sits on the hinge line
+    (outer body face, nearer car end) at floor level."""
+    w, t = DMU_DOOR_W, 0.0016
+    z0, z1 = DMU_FLOOR, DMU_DOOR_TOP
+    hw = DMU_HW
+    dirn = 1 if j == 0 else -1
+    yh = yc + dirn * w / 2
+    gap = 0.00025
+    ya, yb = sorted((yh - dirn * gap, yh - dirn * (w - gap)))
+    ym = (ya + yb) / 2
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1)
+    bmesh.ops.scale(bm, vec=Vector((t, yb - ya, z1 - z0)), verts=bm.verts)
+    bmesh.ops.translate(bm, vec=Vector((s * (hw - t / 2), ym,
+                                        (z0 + z1) / 2)), verts=bm.verts)
+    dl = (ym - 0.0068, ym + 0.0068)
+    dz = (DMU_WIN[0] + 0.0015, DMU_WIN[1] - 0.001)
+
+    def faces(both):
+        fs = [f for f in bm.faces
+              if (abs(f.normal.x) if both else f.normal.x * s) > 0.9]
+        es = {e for f in fs for e in f.edges}
+        vs = {v for f in fs for v in f.verts}
+        return list(vs) + list(es) + fs
+
+    # Cut the outer face into the lining bands, both faces round the
+    # droplight (its glass shows inside when the door is open).
+    for z in DMU_WAIST + DMU_CANT:
+        bmesh.ops.bisect_plane(bm, geom=faces(False), plane_co=(0, 0, z),
+                               plane_no=(0, 0, 1))
+    for z in dz:
+        bmesh.ops.bisect_plane(bm, geom=faces(True), plane_co=(0, 0, z),
+                               plane_no=(0, 0, 1))
+    for y in dl:
+        bmesh.ops.bisect_plane(bm, geom=faces(True), plane_co=(0, y, 0),
+                               plane_no=(0, 1, 0))
+    for f in bm.faces:
+        c, n = f.calc_center_median(), f.normal
+        m = 0
+        if n.x * s > 0.9:
+            if DMU_WAIST[0] < c.z < DMU_WAIST[1] or \
+                    DMU_CANT[0] < c.z < DMU_CANT[1]:
+                m = 1
+            elif dz[0] < c.z < dz[1] and dl[0] < c.y < dl[1]:
+                m = 2
+        elif n.x * s < -0.9:
+            m = 4
+            if dz[0] < c.z < dz[1] and dl[0] < c.y < dl[1]:
+                m = 5
+        f.material_index = m
+    leaf = vk.mesh(name + "-leaf", bm, [TEAM, CREAM, GLASS, ALU, DOORIN,
+                                        GLASS])
+    vk.inset(leaf, 2, 3, thick=0.0009, depth=0.0006)
+    yf = yh - dirn * (w - 0.0032)
+    handle = vk.blk(name + "-handle", (0.0009, 0.0044, 0.0011),
+                    (s * (hw + 0.00045), yf, 0.0945), CHROME, edge=1)
+    out = kit.join([leaf, handle], name)
+    kit.shade(out, 38)
+    kit.set_pivot(out, (s * hw, yh, z0))
+    return out
+
+
+def dmu_car():
+    """One driving car of a 1950s first-generation diesel multiple unit
+    (after the Metro-Cammell and Derby lightweight sets): a full cab at
+    +Y, a gangwayed inner end at -Y. The game couples two back to back.
+
+    Cab: a three-pane windscreen with wrap-round corner windows under a
+    domed roof end, a route indicator and marker lamps, a headlamp on a
+    small yellow warning panel, the cream waist lining carried round the
+    front as whiskers, twin horns on the dome. Body: livery (paint:team)
+    with cream waist and cantrail lining, aluminium-framed windows, a grey
+    roof with rain strips, torpedo vents and exhaust stacks up the inner
+    end; black underframe with two engines, gearboxes, radiators, a fuel
+    tank and battery box between two bogies.
+
+    Passenger doors (slam doors, both sides) are separate leaves named
+    door_l0, door_l1 (-X side) and door_r0, door_r1 (+X side): 0 is the
+    door centred at y = +0.10 (cab half), 1 the door at y = -0.10. Each
+    is 0.022 wide, from the floor (z = 0.066) to z = 0.142, its origin on
+    the hinge line at the outer body face (x = +-0.0715), floor level:
+    door_*0 hinges on its +Y edge (y = +0.111), door_*1 on its -Y edge
+    (y = -0.111). Rotating about the leaf's local Z (Blender; local +Y in
+    the glTF / three.js, where models face -Z) opens it outwards with:
+      door_r0 positive, door_r1 negative,
+      door_l0 negative, door_l1 positive.
+    Behind each leaf is a dark vestibule (plain:void) 0.013 deep with its
+    floor at z = 0.066, and a black footstep under it.
+    """
+    root = kit.empty("dmu_car")
+    yb = DMU_L / 2 - BUF          # buffer beam faces
+    end = yb - 0.002              # body ends
+    HW, Z0, Z1 = DMU_HW, DMU_Z0, 0.150
+    RB, RT, CROWN = 0.005, 0.009, 0.016
+    side = DMU_WAIST + DMU_WIN + DMU_CANT[:1]
+    RP = 0.014                    # plan radius of the cab corners
+    RD = 0.035                    # length of the roof dome over the cab
+    RR = 0.004                    # rounding of the inner end
+    yr = end - RP
+    yd = end - RD
+    xr = HW - RT
+
+    def roof_z(x, crown=CROWN):
+        return Z1 + crown * (1 - min(1.0, (x / xr) ** 2))
+
+    def dome(y):
+        s_ = min(1.0, max(0.0, (y - yd) / RD))
+        return CROWN - (CROWN - 0.003) * (1 - math.sqrt(max(0.0,
+                                                             1 - s_ * s_)))
+
+    def prof(y):
+        hw, z0, z1 = HW, Z0, Z1
+        if y > yr:
+            sa = min(1.0, (y - yr) / RP)
+            hw -= RP * (1 - math.sqrt(max(0.0, 1 - sa * sa)))
+        if y < -end + RR:
+            ca = 1 - (y + end) / RR
+            d = RR * (1 - math.sqrt(max(0.0, 1 - ca * ca)))
+            hw -= d
+            z1 -= d
+            z0 += d * 0.4
+        return vk.ring(hw, z0, z1, rb=RB, rt=RT, crown=dome(y), side=side,
+                       nb=1, nc=2, nr=3)
+
+    seams = [(0.1205, 0.1213), (0.1397, 0.1405)]      # the cab door
+    cabwin = (0.1238, 0.1372)
+    wins = [(-0.0815, -0.0445), (-0.0395, -0.0025), (0.0025, 0.0395),
+            (0.0445, 0.0815)]
+    frost = (-0.1395, -0.1185)
+    corner = yr + RP * math.sin(math.pi / 8)
+    ys = {end, -end}
+    for k in range(5):
+        ys.add(yr + RP * math.sin(math.pi / 2 * k / 4))
+    for f in (0.0, 0.35, 0.6, 0.8):
+        ys.add(yd + RD * f)
+    ys |= {-end + RR * (1 - math.cos(math.pi / 4)), -end + RR}
+    for a, b in [cabwin, frost] + wins:
+        ys |= {a, b}
+    for yc in DMU_DOOR_Y:
+        ys |= {yc - DMU_DOOR_W / 2, yc + DMU_DOOR_W / 2}
+    ys = sorted(round(y, 6) for y in ys)
+    secs = [(y, prof(y)) for y in ys]
+    I_TEAM, I_TEAM2, I_GLASS, I_ALU, I_ROOF, I_CH, I_CREAM, I_FROST = \
+        range(8)
+
+    def inside(y, spans):
+        return any(a - 1e-5 <= y <= b + 1e-5 for a, b in spans)
+
+    def cls(i, lab, c, n):
+        y = c.y
+        if lab == "cap":
+            return I_TEAM
+        if lab in ("b", "bc"):
+            return I_CH
+        if lab == "s1":
+            return I_CREAM
+        if lab == "s5":
+            return I_CREAM if y < yr + 0.001 else I_TEAM
+        if lab == "s3":
+            if inside(y, wins) or inside(y, [cabwin]):
+                return I_GLASS
+            if inside(y, [frost]):
+                return I_FROST
+            if y > corner:
+                return I_GLASS
+            return I_TEAM
+        if lab.startswith("tc") or lab == "r":
+            return I_ROOF
+        return I_TEAM
+
+    vents_ = []
+    body = vk.loft("dmu-body", secs, [TEAM, TEAM2, GLASS, ALU, ROOF,
+                                      CHASSIS, CREAM, FROST], cls)
+    vk.inset(body, I_GLASS, I_ALU, thick=0.0011, depth=0.0012)
+    vk.inset(body, I_FROST, I_ALU, thick=0.0011, depth=0.0008)
+    # The windscreen: two big panes and a narrow centre one.
+    zc = (DMU_WIN[0] + DMU_WIN[1]) / 2
+    wh = DMU_WIN[1] - DMU_WIN[0]
+    for x, w in ((-0.0302, 0.041), (0.0, 0.0135), (0.0302, 0.041)):
+        vk.window(body, (x, end, zc), (w, wh), "y", depth=0.0014,
+                  round_=0.0022, frame=ALU, glass=GLASS)
+    # Sliding ventilators along the top of the saloon windows.
+    for s in (1, -1):
+        for a, b in wins:
+            parts_v = vk.blk("ventilator", (0.0008, b - a - 0.002, 0.0012),
+                             (s * (HW - 0.0008), (a + b) / 2,
+                              DMU_WIN[1] - 0.0072), ALU, edge=1)
+            vents_.append(parts_v)
+    # Vestibules behind the four passenger doors.
+    for s in (1, -1):
+        for yc in DMU_DOOR_Y:
+            c = vk.blk("vestibule", (0.026, DMU_DOOR_W,
+                                     DMU_DOOR_TOP - DMU_FLOOR),
+                       (s * HW, yc, (DMU_FLOOR + DMU_DOOR_TOP) / 2), VOID,
+                       edge=1)
+            vk.cut(body, c, VOID)
+    parts = [body] + vents_
+
+    # Cab front: warning panel, whiskers, lamps, route indicator, wipers.
+    fy = end
+    parts.append(vk.blk("warning", (0.064, 0.0008, 0.0215),
+                        (0, fy + 0.0004, 0.0838), YELLOW, edge=1))
+    parts.append(vk.blk("whiskers", (2 * (HW - RP) - 0.0004, 0.0008,
+                                     DMU_WAIST[1] - DMU_WAIST[0]),
+                        (0, fy + 0.0004, sum(DMU_WAIST) / 2), CREAM,
+                        edge=1))
+    parts.append(vk.cyl("hl-rim", 0.0042, 0.002, (0, fy + 0.001, 0.0838),
+                        "Y", CHROME, verts=12))
+    parts.append(vk.cyl("hl-lens", 0.0032, 0.0012, (0, fy + 0.0022,
+                                                     0.0838), "Y", LAMP,
+                        verts=12))
+    for x, z in ((-0.046, 0.0838), (0.046, 0.0838), (-0.034, 0.1405),
+                 (0.034, 0.1405)):
+        parts.append(vk.cyl("marker-rim", 0.0033, 0.002, (x, fy + 0.001, z),
+                            "Y", SEAL, verts=8))
+        parts.append(vk.cyl("marker-lens", 0.0024, 0.0012,
+                            (x, fy + 0.0022, z), "Y", LAMP, verts=8))
+    parts.append(vk.blk("route", (0.024, 0.002, 0.0088),
+                        (0, fy + 0.001, 0.1405), SEAL, bevel=0.0005))
+    parts.append(vk.blk("route-blind", (0.0196, 0.0006, 0.0054),
+                        (0, fy + 0.0021, 0.1405), PLATE, edge=1))
+    for x in (-0.0045, 0.0045):
+        parts.append(vk.blk("route-digit", (0.0028, 0.0004, 0.0036),
+                            (x, fy + 0.0025, 0.1405), SEAL, edge=1))
+    for x in (-0.0302, 0.0302):
+        parts.append(vk.rod("wiper", (x - 0.0125, fy + 0.0012,
+                                      DMU_WIN[0] + 0.0015),
+                            (x + 0.003, fy + 0.0012, DMU_WIN[1] - 0.0045),
+                            0.0005, SEAL, seg=4))
+    for x in (-0.011, 0.011):
+        y = 0.1455
+        z = roof_z(abs(x), dome(y)) + 0.0028
+        parts.append(vk.cyl("horn", 0.0009, 0.008, (x, y, z - 0.0006), "Y",
+                            SEAL, verts=8, r2=0.0021))
+        parts.append(vk.blk("horn-foot", (0.0026, 0.004, 0.0024),
+                            (x, y - 0.002, z - 0.0022), SEAL, edge=1))
+    # Cab doors: handles, grab rails and a stirrup step on both sides.
+    for s in (1, -1):
+        parts.append(vk.blk("cab-handle", (0.0009, 0.0042, 0.0011),
+                            (s * (HW + 0.00045), 0.1235, 0.0945), CHROME,
+                            edge=1))
+        parts.append(vk.blk("grab", (0.0012, 0.0012, 0.04),
+                            (s * (HW + 0.0006), 0.1428, 0.098), CHROME,
+                            edge=1))
+        parts.append(vk.blk("cab-step", (0.008, 0.012, 0.0016),
+                            (s * (HW - 0.004), 0.1305, 0.0515), CHASSIS,
+                            edge=1))
+        for a, b in seams:
+            parts.append(vk.blk("seam", (0.0004, b - a, DMU_CANT[1] - 0.064),
+                                (s * (HW + 0.0001), (a + b) / 2,
+                                 (DMU_CANT[1] + 0.064) / 2), TEAM2, edge=1))
+    # Passenger doors: a footstep under each and a grab rail beside it.
+    doors = []
+    for s, sl in ((-1, "l"), (1, "r")):
+        for j, yc in enumerate(DMU_DOOR_Y):
+            dirn = 1 if j == 0 else -1
+            doors.append(dmu_leaf("door_%s%d" % (sl, j), s, j, yc))
+            parts.append(vk.blk("footstep", (0.0105, DMU_DOOR_W + 0.002,
+                                             0.0018),
+                                (s * (HW + 0.0012 - 0.00525), yc, 0.0574),
+                                CHASSIS, edge=1))
+            parts.append(vk.blk("grab", (0.0012, 0.0012, 0.032),
+                                (s * (HW + 0.0006),
+                                 yc - dirn * (DMU_DOOR_W / 2 + 0.0035),
+                                 0.1), CHROME, edge=1))
+
+    # Roof: rain strips, torpedo vents.
+    for s in (1, -1):
+        x = 0.058
+        parts.append(vk.blk("rain-strip", (0.0014, end + yr - 0.03, 0.0012),
+                            (s * x, (-end + yr - 0.03) / 2 + 0.0,
+                             roof_z(x) + 0.0004), SEAL, edge=0.1))
+    for y in (-0.118, -0.073, -0.028, 0.017, 0.062, 0.105):
+        parts.append(vk.spin("vent", [(0.0, -0.005, 0), (0.0032, -0.0042, 0),
+                                      (0.0038, 0.0, 0), (0.0032, 0.0042, 0),
+                                      (0.0, 0.005, 0)], [ROOF],
+                             (0, y, roof_z(0) + 0.0008), segments=6,
+                             axis="Y"))
+    # Inner end: gangway with bellows, exhaust stacks up the corners.
+    gy = -(end + 0.00475)
+    parts.append(vk.blk("gangway", (0.044, 0.0095, 0.072), (0, gy, 0.104),
+                        SEAL, bevel=0.0015, seg=1, edge=0.1))
+    for k in range(4):
+        parts.append(vk.blk("bellows", (0.048, 0.0098, 0.0014),
+                            (0, gy, 0.08 + k * 0.016), CHASSIS, edge=1))
+    for s in (1, -1):
+        x = s * 0.047
+        ytop = -end - 0.0028
+        parts.append(vk.cyl("exhaust", 0.003, 0.094, (x, ytop - 0.0006,
+                                                       0.121),
+                            "Z", CHASSIS, verts=8, cap=False))
+        parts.append(vk.cyl("exhaust-cowl", 0.0034, 0.006,
+                            (x, ytop - 0.0006, 0.1705), "Z", CHASSIS,
+                            verts=8, r2=0.0042))
+    # Buffer beams, couplings and brake hoses at both ends.
+    for s in (1, -1):
+        bp = buffers(s * yb, s, z=DMU_BUFFER_Z, beam=CHASSIS)
+        for o in [o for o in bp if o.name.startswith(("link", "buf-head"))]:
+            if o.name.startswith("buf-head"):
+                bp.append(vk.cyl("buf-head", 0.0072, 0.0022,
+                                 o.location.copy(), "Y", CHROME, verts=10))
+            bp.remove(o)
+            bpy.data.objects.remove(o, do_unlink=True)
+        bp.append(vk.rod("link", (0, s * (yb + 0.0066), DMU_BUFFER_Z - 0.002),
+                         (0, s * (yb + 0.0078), DMU_BUFFER_Z - 0.0075),
+                         0.001, CHASSIS, seg=6))
+        parts += bp
+        for x in (-0.024, 0.024):
+            parts.append(vk.rod("hose", (x, s * (yb - 0.001),
+                                         DMU_BUFFER_Z - 0.004),
+                                (x * 1.15, s * (yb + 0.004),
+                                 DMU_BUFFER_Z - 0.0145), 0.0011, CHASSIS,
+                                seg=4))
+    # Underframe: an engine and gearbox under each half, radiators, the
+    # fuel tank and the battery box between them, exhaust silencers.
+    for k in (1, -1):
+        ex = -0.018 * k
+        ey = 0.037 * k
+        parts.append(vk.blk("engine", (0.05, 0.034, 0.012),
+                            (ex, ey, 0.0505), ENGINE, edge=1))
+        parts.append(vk.blk("head", (0.044, 0.022, 0.004),
+                            (ex, ey, 0.0575), ENGINE, edge=1))
+        parts.append(vk.blk("injectors", (0.0012, 0.03, 0.0016),
+                            (ex - 0.0252 * k, ey, 0.0545), STEEL, edge=1))
+        parts.append(vk.blk("gearbox", (0.022, 0.014, 0.011),
+                            (-ex * 0.4, ey + 0.023 * k, 0.051), CHASSIS,
+                            edge=1))
+        rx = 0.054 * k
+        parts.append(vk.blk("radiator", (0.012, 0.03, 0.013),
+                            (rx, -ey, 0.0505), SEAL, edge=1))
+        for r_ in range(2):
+            parts.append(vk.blk("louvre", (0.0008, 0.027, 0.0016),
+                                (rx + k * 0.0062, -ey,
+                                 0.0478 + r_ * 0.0042), STEEL, edge=1))
+        parts.append(vk.cyl("silencer", 0.0042, 0.03,
+                            (-0.052 * k, ey, 0.0485), "Y", CHASSIS,
+                            verts=8))
+    parts.append(vk.blk("fuel-tank", (0.038, 0.026, 0.0125),
+                        (0.036, 0.0, 0.0505), CHASSIS, bevel=0.003, seg=1))
+    parts.append(vk.blk("battery", (0.03, 0.022, 0.011), (-0.042, 0.0,
+                                                           0.0515),
+                        CHASSIS, edge=1))
+    parts.append(vk.blk("battery-lid", (0.031, 0.0006, 0.0115),
+                        (-0.042, 0.0, 0.0515), STEEL, edge=1))
+    wheels = []
+    for tag, y in (("f", 0.098), ("r", -0.098)):
+        p, w = bogie(tag, y, segments=10)
+        for o in [o for o in p if o.name.startswith("spring")]:
+            p.remove(o)
+            p.append(vk.blk("spring", (0.0048, 0.0048, 0.007),
+                            o.location.copy(), STEEL, edge=1))
+            bpy.data.objects.remove(o, do_unlink=True)
+        parts += p
+        wheels += w
+    return vk.finish(root, parts, wheels, doors)
 
 
 def loco_diesel():
@@ -2069,6 +2558,7 @@ BUILDERS = [
     ("loco_steam", loco_steam, "train"),
     ("loco_diesel", loco_diesel, "train"),
     ("coach", coach, "train"),
+    ("dmu_car", dmu_car, "train"),
     ("wagon_box", wagon_box, "train"),
     ("wagon_tank", wagon_tank, "train"),
     ("wagon_logs", wagon_logs, "train"),
@@ -2152,13 +2642,15 @@ def main():
 
 
 def shot(path, roots, size=1400, elevation=55, azimuth=0, margin=1.05,
-         samples=64, floor=0.0, lens=70):
+         samples=64, floor=0.0, lens=70, centre=None, radius=None,
+         width=None):
     """A studio render framed on `roots` (kit.preview with the floor at a
-    given height and a warm late-afternoon sun)."""
+    given height and a warm late-afternoon sun), or on an explicit
+    `centre` and `radius`; `width` makes it wider than tall."""
     scene = bpy.context.scene
     kit.gpu()
     scene.cycles.samples = samples
-    scene.render.resolution_x = size
+    scene.render.resolution_x = width or size
     scene.render.resolution_y = size
     world = scene.world or bpy.data.worlds.new("World")
     scene.world = world
@@ -2173,14 +2665,16 @@ def shot(path, roots, size=1400, elevation=55, azimuth=0, margin=1.05,
                 pts += [o.matrix_world @ Vector(c) for c in o.bound_box]
     lo = Vector([min(p[i] for p in pts) for i in range(3)])
     hi = Vector([max(p[i] for p in pts) for i in range(3)])
-    centre = (lo + hi) / 2
-    radius = (hi - lo).length / 2 * margin
+    centre = Vector(centre) if centre is not None else (lo + hi) / 2
+    radius = (radius or (hi - lo).length / 2) * margin
     cam_data = bpy.data.cameras.new("shot")
     cam_data.lens = lens
+    cam_data.sensor_fit = "VERTICAL"
+    cam_data.sensor_height = cam_data.sensor_width
     cam = bpy.data.objects.new("shot-cam", cam_data)
     scene.collection.objects.link(cam)
     el, az = math.radians(elevation), math.radians(azimuth)
-    dist = radius / math.tan(cam_data.angle / 2)
+    dist = radius / math.tan(cam_data.angle_y / 2)
     cam.location = centre + Vector((math.sin(az) * math.cos(el) * -dist,
                                     -math.cos(az) * math.cos(el) * dist,
                                     math.sin(el) * dist))
@@ -2299,6 +2793,68 @@ def previews(path, roots, kinds, views):
                     bpy.data.objects.remove(d, do_unlink=True)
             for r in placed:
                 r.location = (0, 0, 0)
+    # Studio studies (views=study or study-<name>): front and rear three
+    # quarters, the side, the game's angle, a close-up of each end and, for
+    # a vehicle with door leaves, the doors swung open by the signs its
+    # docstring gives.
+    for r in roots:
+        v = "study-" + r.name
+        if not (views and (v in views or "study" in views)):
+            continue
+        show([r.name])
+        refs = []
+        if kinds[r.name] == "train":
+            refs.append(track_strip("ref-track", 0.7))
+        elif kinds[r.name] == "road":
+            r.location = (0.075, 0, 0.012)
+            refs.append(road_strip("ref-road", 0.6))
+        kit.refresh()
+        lo, hi = vk.bounds(r)
+        lo += r.location
+        hi += r.location
+        c = (lo + hi) / 2
+        rad = (hi - lo).length / 2
+        ln = hi.y - lo.y
+        views_ = [("front", 18, 148, c, rad * 0.78, 1500, 1000),
+                  ("side", 5, 90, c, rad * 0.5, 1800, 800),
+                  ("rear", 18, -32, c, rad * 0.78, 1500, 1000),
+                  ("game", 52, 30, c, rad * 0.75, 1200, 1000),
+                  ("front-close", 10, 162,
+                   Vector((c.x, hi.y - ln * 0.16, lo.z + (hi.z - lo.z) * 0.6)),
+                   ln * 0.22, 1200, 1000),
+                  ("rear-close", 10, -18,
+                   Vector((c.x, lo.y + ln * 0.16, lo.z + (hi.z - lo.z) * 0.6)),
+                   ln * 0.22, 1200, 1000)]
+        for label, el, az, cc, rr, wd, ht in views_:
+            shot(f"{base}-{r.name}-{label}.png", [r], size=ht, width=wd,
+                 elevation=el, azimuth=az, margin=1.0, centre=cc, radius=rr,
+                 samples=64, lens=60)
+        doors = {o.name.split(".")[0]: o for o in kit.descendants(r)
+                 if o.name.startswith("door_")}
+        sign = {"door_r0": 1, "door_r1": -1, "door_l0": -1, "door_l1": 1,
+                "door_rf": 1, "door_rr": 1}
+        if doors:
+            for n_, o in doors.items():
+                o.rotation_euler.z = sign.get(n_, 1) * math.radians(80)
+            kit.refresh()
+            for label, el, az in (("doors-l", 16, 62), ("doors-r", 16, -62)):
+                shot(f"{base}-{r.name}-{label}.png", [r], size=1000,
+                     width=1500, elevation=el, azimuth=az, margin=1.0,
+                     centre=c, radius=rad * 0.6, samples=64, lens=60)
+            o = doors.get("door_l0") or next(iter(doors.values()))
+            p = o.matrix_world.translation
+            shot(f"{base}-{r.name}-door-close.png", [r], size=1000,
+                 width=1200, elevation=14, azimuth=58, margin=1.0,
+                 centre=Vector((p.x, p.y - 0.012, p.z + 0.035)),
+                 radius=0.045, samples=64, lens=60)
+            for o in doors.values():
+                o.rotation_euler.z = 0.0
+            kit.refresh()
+        for o in refs:
+            for d in kit.descendants(o):
+                bpy.data.objects.remove(d, do_unlink=True)
+        r.location = (0, 0, 0)
+
     # Single close-ups of each vehicle from the game's angle.
     for r in roots:
         v = "one-" + r.name

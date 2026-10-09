@@ -32,9 +32,9 @@ try {
     assert.match(page.headers.get('content-type'), /html/);
     assert.match(await page.text(), /Gamehub/);
   }
-  for (const suffix of ['', '-320', '-640', '-960', '-spine']) {
+  for (const suffix of ['', '-320', '-640', '-spine']) {
     const asset = await fetch(
-      `${base}/art/optimized/box-folio-blind-v2${suffix}.webp`,
+      `${base}/art/optimized/box-puzzles-blind-v1${suffix}.webp`,
     );
     assert.equal(asset.status, 200);
     assert.match(asset.headers.get('content-type'), /webp/);

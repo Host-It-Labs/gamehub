@@ -5,14 +5,24 @@ const coverSlugs: Record<string, string> = {
   wildgrove: 'mora',
   midnight: 'yata',
   orin: 'know-me',
-  miro: 'quiz',
+  miro: 'trivia',
   relic: 'lucky',
-  folio: 'folio',
+  // Folio's public name is Puzzles since 9 October 2026; the ID stays.
+  folio: 'puzzles',
   arena: 'arena',
   rota: 'rota',
   alto: 'alto',
   impostor: 'impostor',
   diner: 'diner',
+};
+
+/** Cover versions other than 1, shared by the square and the wide cover. */
+const coverVersions: Record<string, number> = {
+  undertow: 2,
+  arena: 2,
+  alto: 2,
+  rota: 2,
+  diner: 3,
 };
 
 export function boxCover(id: string) {
@@ -26,11 +36,9 @@ export function boxCover(id: string) {
   // Nox moved to its flat treasure-map poster cover on 26 September 2026;
   // Arena to cartoon covers matching its loading screen on 1 October 2026;
   // Alto to its space covers on 2 October 2026.
-  const version =
-    id === 'folio' || id === 'undertow' || id === 'arena' || id === 'alto'
-      ? 2
-      : 1;
-  return slug ? `/art/optimized/box-${slug}-blind-v${version}.webp` : undefined;
+  // Puzzles, Rota (its mill town) and Diner (the diner car and its server)
+  // got fresh covers on 9 October 2026.
+  return slug ? `/art/optimized/box-${slug}-blind-v${coverVersions[id] ?? 1}.webp` : undefined;
 }
 
 /** Dedicated 3:1 covers for the setup lid, titles generated into the art.
@@ -39,7 +47,7 @@ const wideCovers = new Set(Object.keys(coverSlugs));
 export function wideCover(id: string) {
   if (id === 'wildgrove') return '/art/optimized/box-mora-game-wide-v2.webp';
   return wideCovers.has(id)
-    ? `/art/optimized/box-${coverSlugs[id]}-wide-v${id === 'undertow' || id === 'arena' || id === 'alto' ? 2 : 1}.webp`
+    ? `/art/optimized/box-${coverSlugs[id]}-wide-v${coverVersions[id] ?? 1}.webp`
     : undefined;
 }
 

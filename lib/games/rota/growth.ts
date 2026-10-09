@@ -1,6 +1,6 @@
 import type { MapDef } from './maps.ts';
 import { networks, sheet, type Placed } from './board.ts';
-import { RAIL, RIVER, ROAD, pieces, type Route } from './pieces.ts';
+import { DX, DY, RAIL, RIVER, ROAD, pieces, type Route } from './pieces.ts';
 import {
   cellCentre,
   pieceSegments,
@@ -11,6 +11,7 @@ import {
 } from './routes.ts';
 import {
   HIDE_PER_HEIGHT,
+  PLATFORM_OUT,
   STREET_HALF,
   STREET_SETBACK,
   TRACK_CLEAR,
@@ -290,10 +291,28 @@ export function growTown(input: GrowthInput): Lot[] {
         },
       );
     }
-    if (sq.shed)
+    if (sq.shed) {
       stamp(x - sq.shed, z - sq.shed, x + sq.shed, z + sq.shed, (px, pz) => {
         route[Math.floor(pz * RES) * N + Math.floor(px * RES)] = 1;
       });
+      // The side platforms along each of its tracks.
+      for (const seg of sq.segs) {
+        if (seg.kind !== RAIL || seg.shape.type !== 'stub') continue;
+        const d = seg.shape.a;
+        const ax = DX[d],
+          az = DY[d];
+        const near = sq.shed,
+          far = 0.5;
+        const x0 =
+            x + Math.min(ax * near, ax * far) - Math.abs(az) * PLATFORM_OUT,
+          x1 = x + Math.max(ax * near, ax * far) + Math.abs(az) * PLATFORM_OUT,
+          z0 = z + Math.min(az * near, az * far) - Math.abs(ax) * PLATFORM_OUT,
+          z1 = z + Math.max(az * near, az * far) + Math.abs(ax) * PLATFORM_OUT;
+        stamp(x0, z0, x1, z1, (px, pz) => {
+          route[Math.floor(pz * RES) * N + Math.floor(px * RES)] = 1;
+        });
+      }
+    }
   }
   const at = (x: number, z: number) =>
     Math.min(N - 1, Math.max(0, Math.floor(z * RES))) * N +

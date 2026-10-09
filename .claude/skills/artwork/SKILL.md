@@ -5,6 +5,8 @@ description: Generate Gamehub artwork and UI concept mockups directly with OpenA
 
 # Gamehub artwork: generate, verify, compare
 
+**Rule 1, above everything else: generate from a text prompt only, never from a base or reference image.** Never attach an image to the Codex call (no `-i`), never restyle, edit or "re-paint" an existing picture, even one the user likes, and never pass one as a style or identity reference. Each pass through a base image drifts the colours yellow and the picture gets worse (William, 9 October 2026, after the Arena v11 portraits were restyled from their v7 cards). Carry style and identity in words; reuse an accepted image's written prompt as text.
+
 This skill does the whole loop itself: write the prompts, generate the images, verify them, regenerate what fails, then show the survivors in the running game. Nothing is handed off to another harness and nothing is pasted by the user.
 
 ## How images are generated

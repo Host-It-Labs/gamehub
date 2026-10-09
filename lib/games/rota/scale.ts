@@ -44,9 +44,29 @@ export const CUTTING_DEPTH = 0.12;
 export const CUTTING_HALF = 0.125;
 /** The fraction of the square the ramps take at each end. */
 export const RAMP = 0.37;
-/** Half a goods shed's footprint; station stubs stop at its walls. */
+/** Half a station's footprint (its platform-level bank); rail stubs stop
+ *  at the bank, street stubs at the foot of its steps. */
 export const GOODS_HALF = 0.2;
 export const GRAND_HALF = 0.25;
+
+// ---------------------------------------------------------------- stations
+// A town station (8 October 2026): passengers step off the trains onto
+// side platforms at bank level, and from the cars onto the pavement and
+// up the station steps.
+
+/** Platform and bank top: a short step down from a carriage floor. */
+export const STATION_LEVEL = 0.056;
+/** A railcar's floor, at its doors. */
+export const CARRIAGE_FLOOR = 0.066;
+/** The flight of steps between a street and the bank, along the street. */
+export const STATION_STEPS = 0.06;
+/** Side platforms run from this far beside the track ... */
+export const PLATFORM_EDGE = 0.082;
+/** ... out to this far. */
+export const PLATFORM_OUT = 0.19;
+/** The booking hall's walls (doors in the middle of each), small and grand. */
+export const HALL_HALF = 0.14;
+export const GRAND_HALL_HALF = 0.18;
 
 // ---------------------------------------------------------------- buildings
 

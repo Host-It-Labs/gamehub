@@ -2,47 +2,63 @@ import type { CounterId } from './content.ts';
 
 /**
  * The diner's floor plan, shared by the rules, the bots and the 3D view.
- * Units are metres-ish: x runs left to right (0..W), z from the back wall
- * (0) to the front edge (D), where the camera stands. The back counter holds
- * every station; the door is in the left wall near the front, the line of
- * waiting guests runs up the left wall, booths fill the middle.
+ * Units are metres-ish: x runs left to right (0..W), z from the kitchen
+ * trailer's open side (the back, 0) to the front rail (D), where the camera
+ * stands. Since 9 October 2026 the floor is wide and shallow, so a landscape
+ * screen fills with play: the trailer's open hatch along the back holds every
+ * station, guests come in by a gate at the back left and wait in rows down
+ * the left side, and six booth spots fill the middle in two rows of three.
+ * Both front corners hold only planters: touch controls sit over them.
  */
-export const W = 11;
-export const D = 11;
-/** Front edge of the back counter; nobody walks behind it. */
-export const COUNTER_Z = 1.4;
+export const W = 15;
+export const D = 9.8;
+/** The trailer's counter edge; nobody walks behind it. */
+export const COUNTER_Z = 1.5;
 /** The low front rail; nobody walks past it. */
-export const FRONT_Z = 10.75;
+export const FRONT_Z = 9.5;
 export const PLAYER_R = 0.3;
 export const GUEST_R = 0.24;
 
-/** Where guests come in and leave: just outside the door, and just inside. */
-export const DOOR_OUT = { x: -0.8, z: 9.9 };
-export const DOOR_IN = { x: 0.45, z: 9.9 };
-/** The door's gap in the left wall. */
-export const DOOR_GAP: [number, number] = [9.2, 10.6];
+/** Where guests come in and leave: just outside the gate, and just inside. */
+export const DOOR_OUT = { x: -0.8, z: 2.55 };
+export const DOOR_IN = { x: 0.45, z: 2.55 };
+/** The gate's gap in the left rail. */
+export const DOOR_GAP: [number, number] = [1.85, 3.25];
 
-/** Counter spots along the back, left to right. */
+/**
+ * Counter spots along the trailer's hatch, left to right. The coffee urn and
+ * the heat-lamp pass only stand there once a level or the Workshop has them.
+ */
 export const COUNTER_X: Record<CounterId, number> = {
-  grill: 1.3,
-  fryer: 2.8,
-  shake: 4.3,
-  pie: 5.8,
-  sink: 8.5,
-  bin: 9.9,
+  coffee: 1.05,
+  grill: 2.8,
+  fryer: 4.55,
+  shake: 6.3,
+  pie: 8.05,
+  pass: 9.8,
+  sink: 11.75,
+  bin: 13.45,
 };
 /** Half the width of a counter spot you can reach. */
 export const SPOT_HALF = 0.55;
 
 export type TableSlot = { x: number; z: number; seats: 2 | 4 };
-/** Booth slots: a chrome table between two mint benches. */
+/** Booth slots: a chrome table between two benches, in two rows of three. */
 export const TABLES: TableSlot[] = [
-  { x: 3.4, z: 4.5, seats: 2 },
-  { x: 6.3, z: 4.5, seats: 4 },
-  { x: 9.2, z: 4.5, seats: 4 },
-  { x: 4.9, z: 7.9, seats: 2 },
-  { x: 7.8, z: 7.9, seats: 4 },
+  { x: 5.2, z: 3.85, seats: 2 },
+  { x: 8.4, z: 3.85, seats: 4 },
+  { x: 11.6, z: 3.85, seats: 4 },
+  { x: 5.2, z: 7.05, seats: 4 },
+  { x: 8.4, z: 7.05, seats: 2 },
+  { x: 11.6, z: 7.05, seats: 4 },
 ];
+/** The order booths open in as a shift gets bigger: two, three … six. */
+export const TABLE_ORDER = [0, 1, 4, 3, 2, 5];
+/** The first `count` booths to open, in slot order. */
+export const openTables = (count: number) =>
+  TABLE_ORDER.slice(0, Math.max(1, Math.min(TABLES.length, count))).sort(
+    (a, b) => a - b,
+  );
 /** Half extents of a whole booth (benches included). */
 export const BOOTH_HX = 0.86;
 export const boothHz = (seats: 2 | 4) => (seats === 2 ? 0.45 : 0.78);
@@ -53,11 +69,11 @@ export function seatOffset(seats: 2 | 4, i: number): [number, number] {
   return [side * 0.62, i < 2 ? -0.36 : 0.36];
 }
 
-/** Queue spots for waiting parties, nearest the door first. */
+/** Queue spots for waiting parties, nearest the gate first. */
 export const QUEUE = [
-  { x: 1.15, z: 9.15 },
-  { x: 1.15, z: 7.55 },
-  { x: 1.15, z: 5.95 },
+  { x: 1.2, z: 4.0 },
+  { x: 1.2, z: 5.6 },
+  { x: 1.2, z: 7.2 },
 ];
 /**
  * Where member `i` of a waiting party of `size` stands: side by side in one
@@ -72,12 +88,12 @@ export function queueSpot(
   return [q.x + (i - (size - 1) / 2) * 0.5, q.z];
 }
 
-export const JUKEBOX = { x: 10.3, z: 10.15, r: 0.46 };
+export const JUKEBOX = { x: 14.2, z: 5.45, r: 0.46 };
 export const SPAWNS: [number, number][] = [
-  [5.0, 2.4],
-  [6.2, 2.4],
-  [3.8, 2.4],
-  [7.4, 2.4],
+  [7.4, 2.45],
+  [8.9, 2.45],
+  [5.9, 2.45],
+  [10.4, 2.45],
 ];
 
 export type Rect = { x0: number; z0: number; x1: number; z1: number };

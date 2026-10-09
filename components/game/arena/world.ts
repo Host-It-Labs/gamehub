@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type { Match, Tower } from '@/lib/games/arena/engine';
 import { toWorld } from '@/lib/games/arena/layout';
@@ -81,7 +82,7 @@ const LIVE_TOWER_PARTS = new Set(['king-cannon', 'princess-guard']);
 /** Towers are drawn at this size until the view picks one for its screen
  *  (`towerScale` in layout.ts; 0.7 until 2 October 2026, 0.8 until
  *  3 October). */
-export const TOWER_SCALE = 1.05;
+export const TOWER_SCALE = 0.85;
 /** The king's rear keep and its roof, chimney and pennant, dropped on
  *  2 October 2026: its deck is clear for the cannon. */
 const KING_KEEP_PARTS = new Set([
@@ -158,6 +159,7 @@ export class ArenaWorld {
   /** The size towers are drawn at for this screen (view.ts sets it from
    *  `towerScale` in layout.ts and places the towers again). */
   towerScale = TOWER_SCALE;
+  guardScale = Math.sqrt(1.05 / 0.8);
   readonly water: THREE.Mesh;
   readonly noise: THREE.DataTexture;
   /** The valley's wind (wind.ts), shared by grass, trees, flags and water. */
@@ -345,7 +347,13 @@ export class ArenaWorld {
   instance(gltf: GLTF, name: string, team: Team) {
     const source = find(gltf.scene, name);
     if (!source) throw new Error(`Missing model ${name}`);
-    const copy = source.clone(true);
+    // A figure's skin and all its bones travel together. Object3D.clone
+    // leaves SkinnedMesh skeletons pointing at the original GLB's bones.
+    let skinned = false;
+    source.traverse((node) => {
+      if ((node as THREE.SkinnedMesh).isSkinnedMesh) skinned = true;
+    });
+    const copy = skinned ? cloneSkeleton(source) : source.clone(true);
     copy.position.set(0, 0, 0);
     copy.rotation.set(0, 0, 0);
     this.materials.dress(copy, team);
@@ -495,11 +503,8 @@ export class ArenaWorld {
         : 0;
       root.scale.multiplyScalar(TOWER_SCALE);
       rubble.scale.multiplyScalar(TOWER_SCALE);
-      // Lower the archer with its platform, and let it grow only a little
-      // with towers drawn larger than they were measured at (0.8).
-      guardSpot?.scale.multiplyScalar(
-        Math.sqrt(Math.max(1, TOWER_SCALE / 0.8)) / TOWER_SCALE,
-      );
+      // Follow the lower platform while preserving the guard's own size.
+      guardSpot?.scale.multiplyScalar(this.guardScale / TOWER_SCALE);
       root.position.set(x, 0, z);
       rubble.position.set(x, 0, z);
       // Your towers face up the field; the bot's are turned round.
@@ -529,7 +534,9 @@ export class ArenaWorld {
         guardDrop,
         top: new THREE.Vector3(
           x,
-          t.kind === 'king' ? 6.1 * TOWER_SCALE : 5.2 - guardDrop,
+          t.kind === 'king'
+            ? 6.1 * TOWER_SCALE
+            : 3.3 * TOWER_SCALE + 1.9 * this.guardScale,
           z,
         ),
         destroyed: t.destroyed,

@@ -1,0 +1,51 @@
+{
+  "cards": {
+    "ogre": {
+      "source": "assets/arena/cards/card-ogre-v8-a.png",
+      "sourceSha256": "4cd32ee46a4f88b245371d6691208aadb0fa27fffe2cf0af5d221a2f03b8ae1e",
+      "production": {
+        "path": "/3d/arena/cards/ogre-27dd7a3d.webp",
+        "bytes": 57380
+      },
+      "productionSha256": "27dd7a3d31e1cc87aa84348c193355b7e8896c5fcdd4e1f4f979a664320cc8c5",
+      "opaque": true
+    },
+    "sumo": {
+      "source": "assets/arena/cards/card-sumo-v8-a.png",
+      "sourceSha256": "fb65d3b18b35a460a3881742c27eea9da8fc6ea5ec0108a3f207c57dace7f74f",
+      "production": {
+        "path": "/3d/arena/cards/sumo-893d6426.webp",
+        "bytes": 39654
+      },
+      "productionSha256": "893d642657c3ee5b59b3b7dc2cb9d23a86a5c6a0b26c1459ed2c9d407fc5885b",
+      "opaque": true
+    }
+  },
+  "preservedCardEntries": [
+    "archers",
+    "imps",
+    "duelist",
+    "ranger",
+    "drake",
+    "mage",
+    "meteor",
+    "pirate",
+    "viking",
+    "gladiator",
+    "medic",
+    "miner",
+    "balloon",
+    "inventor",
+    "gunner",
+    "diver",
+    "linebacker",
+    "beekeeper",
+    "drummer",
+    "firefighter",
+    "jetpack",
+    "explorer"
+  ],
+  "generator": "Built-in image_gen; fresh written prompts, no image references",
+  "sourceSize": "1024x1024 opaque PNG; untouched native1254 source retained under work",
+  "compression": "480x480 Lanczos3 WebP, quality86 effort6"
+}

@@ -1,0 +1,98 @@
+[
+  {
+    "place": "truckstop",
+    "quality": "high",
+    "calls": 33,
+    "tris": 150806,
+    "withShadowCalls": 42,
+    "withShadowTris": 251838
+  },
+  {
+    "place": "truckstop",
+    "quality": "low",
+    "calls": 33,
+    "tris": 83178,
+    "withShadowCalls": 42,
+    "withShadowTris": 133898
+  },
+  {
+    "place": "drivein",
+    "quality": "high",
+    "calls": 31,
+    "tris": 209638,
+    "withShadowCalls": 40,
+    "withShadowTris": 321966
+  },
+  {
+    "place": "drivein",
+    "quality": "low",
+    "calls": 31,
+    "tris": 115154,
+    "withShadowCalls": 40,
+    "withShadowTris": 172402
+  },
+  {
+    "place": "fairground",
+    "quality": "high",
+    "calls": 42,
+    "tris": 178712,
+    "withShadowCalls": 60,
+    "withShadowTris": 298724
+  },
+  {
+    "place": "fairground",
+    "quality": "low",
+    "calls": 42,
+    "tris": 97548,
+    "withShadowCalls": 60,
+    "withShadowTris": 156232
+  },
+  {
+    "place": "harbour",
+    "quality": "high",
+    "calls": 48,
+    "tris": 177970,
+    "withShadowCalls": 66,
+    "withShadowTris": 284022
+  },
+  {
+    "place": "harbour",
+    "quality": "low",
+    "calls": 48,
+    "tris": 99030,
+    "withShadowCalls": 66,
+    "withShadowTris": 154914
+  },
+  {
+    "place": "oldtown",
+    "quality": "high",
+    "calls": 30,
+    "tris": 165728,
+    "withShadowCalls": 40,
+    "withShadowTris": 270108
+  },
+  {
+    "place": "oldtown",
+    "quality": "low",
+    "calls": 30,
+    "tris": 86428,
+    "withShadowCalls": 40,
+    "withShadowTris": 138624
+  },
+  {
+    "place": "moonmile",
+    "quality": "high",
+    "calls": 40,
+    "tris": 154136,
+    "withShadowCalls": 53,
+    "withShadowTris": 252946
+  },
+  {
+    "place": "moonmile",
+    "quality": "low",
+    "calls": 40,
+    "tris": 84564,
+    "withShadowCalls": 53,
+    "withShadowTris": 134826
+  }
+]

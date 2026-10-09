@@ -6,6 +6,7 @@ import { seatColours } from '@/lib/games/alto/art';
 import { buildPlanet, spaceLights, type Planet } from './alto-3d';
 import { buildBase, type Base } from './alto-base';
 import { baseFrame, shipPreviewFrame } from './alto-framing';
+import { startRatio } from '../render-quality';
 import { planById } from '@/lib/games/alto/content';
 import {
   buildShip,
@@ -35,7 +36,7 @@ const reducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function makeRenderer(canvas: HTMLCanvasElement, maxRatio: number) {
+function makeRenderer(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     alpha: true,
@@ -43,7 +44,7 @@ function makeRenderer(canvas: HTMLCanvasElement, maxRatio: number) {
     powerPreference: 'high-performance',
     preserveDrawingBuffer: false,
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxRatio));
+  renderer.setPixelRatio(startRatio(window.innerWidth, window.innerHeight));
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -156,7 +157,7 @@ export function AltoSpace({
     if (!el || !world) return;
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = makeRenderer(el, 2);
+      renderer = makeRenderer(el);
     } catch {
       live.current.onReady?.(false);
       return;
@@ -198,6 +199,8 @@ export function AltoSpace({
         return;
       width = r.width;
       height = r.height;
+      // Native density on powerful devices, the power's budget elsewhere.
+      renderer.setPixelRatio(startRatio(width, height));
       renderer.setSize(width, height, false);
       camera.aspect = width / Math.max(1, height);
       // World units are screen pixels on the z = 0 plane.

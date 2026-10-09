@@ -14,7 +14,50 @@ export const familyNames: Record<Family, [string, string]> = {
 };
 const lower = (k: number) => goods[k].toLowerCase();
 
-export function effectShort(e: Effect): string {
+type ScoringEffect = Extract<
+  Effect,
+  { type: 'points' | 'race' | 'per' | 'perHold' | 'sets' | 'thrift' }
+>;
+
+/** Every score uses one star; the words say when or what it counts. */
+export const scoresPoints = (e: Effect): e is ScoringEffect =>
+  e.type === 'points' ||
+  e.type === 'race' ||
+  e.type === 'per' ||
+  e.type === 'perHold' ||
+  e.type === 'sets' ||
+  e.type === 'thrift';
+
+export function scoreBadge(e: ScoringEffect, next?: number, earned?: number) {
+  switch (e.type) {
+    case 'points':
+      return { points: e.points, target: 'now' };
+    case 'race':
+      return earned !== undefined
+        ? { points: earned, target: 'earned' }
+        : {
+            points: next ?? e.ladder[0],
+            target: next === undefined ? 'first in race' : 'next in race',
+          };
+    case 'per':
+      return {
+        points: e.points,
+        target: `per ${e.family ? familyNames[e.family][0] : 'upgrade'}`,
+      };
+    case 'perHold':
+      return { points: e.points, target: 'per cargo slot' };
+    case 'thrift':
+      return { points: 1, target: `per ${e.per} cargo left` };
+    case 'sets':
+      return { points: e.points, target: 'per cargo set' };
+  }
+}
+
+export function effectShort(e: Effect, next?: number): string {
+  if (scoresPoints(e)) {
+    const score = scoreBadge(e, next);
+    return `${score.points} ${score.points === 1 ? 'point' : 'points'} ${score.target}`;
+  }
   switch (e.type) {
     case 'hold':
       return `Hold +${e.amount}`;
@@ -26,60 +69,95 @@ export function effectShort(e: Effect): string {
       return `Shared +${e.amount}`;
     case 'discount':
       return `${e.family === 'base' ? 'Base modules' : e.family === 'ship' ? 'Ship parts' : 'Upgrades'} −${e.amount}`;
-    case 'points':
-      return `${e.points}`;
-    case 'race':
-      return `${e.ladder[0]}`;
-    case 'per':
-      return e.family
-        ? `${e.points} per ${familyNames[e.family][0]}`
-        : `${e.points} per upgrade`;
-    case 'perHold':
-      return `${e.points} per hold`;
-    case 'thrift':
-      return `1 per ${e.per} left`;
-    case 'sets':
-      return `${e.points} per set`;
   }
 }
 
-export function effectRule(e: Effect): string {
+type RulePart = string | { bold: string };
+
+/** One wording for accessible labels, lists and the shared rule inspection. */
+export function effectRuleParts(e: Effect): RulePart[] {
   switch (e.type) {
     case 'hold':
-      return `Your ship carries ${e.amount} more home from every flight.`;
+      return [
+        'Your ship carries ',
+        { bold: `${e.amount} more cargo` },
+        ' home from every flight.',
+      ];
     case 'yield':
-      return `Every flight to a ${lower(e.good)} planet loads ${e.amount} more ${lower(e.good)}, even past your hold.`;
+      return [
+        `Every flight to ${e.good === 2 ? 'an' : 'a'} ${lower(e.good)} planet loads `,
+        { bold: `${e.amount} more ${lower(e.good)}` },
+        ', even past your hold.',
+      ];
     case 'alone':
-      return `Alone on a planet, you take ${e.amount} more.`;
+      return [
+        'Alone on a planet, load ',
+        { bold: `${e.amount} extra cargo` },
+        ', even past your hold.',
+      ];
     case 'share':
-      return `Sharing a planet, you take ${e.amount} more.`;
+      return [
+        'Sharing a planet, load ',
+        { bold: `${e.amount} extra cargo` },
+        ', even past your hold.',
+      ];
     case 'discount':
-      return `Every later ${e.family ? familyNames[e.family][0] : 'upgrade'} costs ${e.amount} cargo less.`;
+      return [
+        'Every later ',
+        { bold: e.family ? familyNames[e.family][0] : 'upgrade' },
+        ' costs ',
+        { bold: `${e.amount} less cargo` },
+        ' of any kind.',
+      ];
     case 'points':
-      return `Scores ${e.points}.`;
+      return ['Score ', { bold: `${e.points} points` }, ' when you build it.'];
     case 'race':
-      return `Scores ${e.ladder[0]} for the first to build it, then ${e.ladder.slice(1).join(', ')}.`;
+      return [
+        'The ',
+        { bold: 'first builder' },
+        ' scores ',
+        { bold: `${e.ladder[0]} points` },
+        `; later builders score ${e.ladder.slice(1).join(', ')} points, in order.`,
+      ];
     case 'per':
-      return e.family
-        ? `At the end, scores ${e.points} for every ${familyNames[e.family][0]} you own.`
-        : `At the end, scores ${e.points} for every upgrade you own, itself included.`;
+      return [
+        'At the end, score ',
+        { bold: `${e.points} ${e.points === 1 ? 'point' : 'points'}` },
+        ' for every ',
+        { bold: e.family ? familyNames[e.family][0] : 'upgrade' },
+        ` you own${e.family === 'ship' ? '' : ', including this one'}.`,
+      ];
     case 'perHold':
-      return `At the end, scores ${e.points} for every cargo your ship holds.`;
+      return [
+        'At the end, score ',
+        { bold: `${e.points} points` },
+        ' for every ',
+        { bold: 'cargo slot in your hold' },
+        ', even when empty.',
+      ];
     case 'thrift':
-      return `At the end, every ${e.per} cargo left score 1 instead of every ${leftoverPer}.`;
+      return [
+        'At the end, every ',
+        { bold: `${e.per} cargo left` },
+        ' score ',
+        { bold: '1 point' },
+        ` instead of every ${leftoverPer}.`,
+      ];
     case 'sets':
-      return `At the end, every set of all four kinds of cargo left scores ${e.points}.`;
+      return [
+        'At the end, each set of ',
+        { bold: '1 food, 1 metal, 1 ice and 1 crystal' },
+        ' left in your cargo scores ',
+        { bold: `${e.points} points` },
+        ', on top of the usual leftover points.',
+      ];
   }
 }
 
-/** Whether the shop's figure is points (a star) rather than an ability. */
-export const scoresPoints = (e: Effect) =>
-  e.type === 'points' ||
-  e.type === 'race' ||
-  e.type === 'per' ||
-  e.type === 'perHold' ||
-  e.type === 'sets' ||
-  e.type === 'thrift';
+export const effectRule = (e: Effect) =>
+  effectRuleParts(e)
+    .map((part) => (typeof part === 'string' ? part : part.bold))
+    .join('');
 
 export const familyLabel = (family: Family) =>
   familyNames[family][0][0].toUpperCase() + familyNames[family][0].slice(1);

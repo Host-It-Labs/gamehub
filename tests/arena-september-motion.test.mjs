@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Euler, Quaternion, Vector3 } from 'three';
 import { pirate } from '../components/game/arena/moves/pirate.ts';
 import { viking } from '../components/game/arena/moves/viking.ts';
 import { gladiator } from '../components/game/arena/moves/gladiator.ts';
@@ -10,6 +11,22 @@ import { miner } from '../components/game/arena/moves/miner.ts';
 import { balloon } from '../components/game/arena/moves/balloon.ts';
 import { inventor } from '../components/game/arena/moves/inventor.ts';
 import { gunner } from '../components/game/arena/moves/gunner.ts';
+
+const shippedManifest = JSON.parse(
+  readFileSync(new URL('../lib/games/arena/assets.json', import.meta.url)),
+);
+const shippedBytes = readFileSync(
+  new URL(`../public${shippedManifest.models.figures.path}`, import.meta.url),
+);
+const shipped = (
+  await new GLTFLoader().parseAsync(
+    shippedBytes.buffer.slice(
+      shippedBytes.byteOffset,
+      shippedBytes.byteOffset + shippedBytes.length,
+    ),
+    '',
+  )
+).scene;
 
 const moves = {
   pirate,
@@ -25,10 +42,13 @@ const parts = {
   pirate: { hat: 'head', tail: 'head', tail2: 'tail', tail3: 'tail2' },
   viking: { beard: 'head' },
   gladiator: { hair: 'head' },
-  medic: { hat: 'head', hair: 'head', foreL: 'armL', weapon: 'foreR' },
-  miner: { hat: 'head', foreL: 'armL', weapon: 'foreR' },
-  balloon: { hair: 'head', cape: 'basket', foreL: 'armL', foreR: 'armR' },
-  inventor: { hat: 'head', hair: 'head', foreL: 'armL', weapon: 'foreR' },
+  // The 4 October rebuild carries the flask in the hand.
+  medic: { hat: 'head', hair: 'head', foreL: 'armL', weapon: 'handR' },
+  // The 9 October rebuild carries the pick in the hand.
+  miner: { hat: 'head', foreL: 'armL', weapon: 'handR' },
+  // Since 9 October the cape joint is the balloonist's scarf, at her neck.
+  balloon: { hair: 'head', cape: 'neck', foreL: 'armL', foreR: 'armR' },
+  inventor: { hat: 'head', hair: 'head', foreL: 'armL', weapon: 'handR' },
   gunner: { hat: 'head', foreL: 'armL', foreR: 'armR' },
 };
 
@@ -101,6 +121,11 @@ function pose(card, extra = {}, memo = {}) {
     reduced: false,
     deploy: 1,
     memo,
+    // The runtime's rest offsets, read from the shipped figure.
+    rest(part) {
+      const node = shipped.getObjectByName(card)?.getObjectByName(card + part);
+      return node ? [node.position.x, node.position.y, node.position.z] : null;
+    },
     want(part, x = 0, y = 0, z = 0, lift = 0) {
       requested.set(part, [x, y, z, lift]);
     },
@@ -177,16 +202,36 @@ await test('an attack passes continuously from anticipation into its matching st
     'inventor',
     'balloon',
   ]) {
-    const before = pose(card, { aim: 1, idle: 0, wind: 1, hits: 0 });
-    const after = pose(card, { aim: 1, idle: 0, since: 0, wind: 0, hits: 1 });
+    // The instants either side of the hit (moves timed by `toHit` and
+    // `since`, like the 9 October Pirate, and moves timed by `wind` and
+    // `strike` agree here), sharing one memo as frames do.
+    const memo = {};
+    const before = pose(
+      card,
+      { aim: 1, idle: 0, wind: 1, hits: 0, toHit: 0.001 },
+      memo,
+    );
+    const after = pose(
+      card,
+      { aim: 1, idle: 0, since: 0.001, wind: 0, hits: 1, toHit: 1 },
+      memo,
+    );
     assert.ok(
       distance(Object.values(before.p), Object.values(after.p)) < 0.12,
       `${card} does not reset to guard on the hit`,
     );
+    // A fast cut (the Pirate's lands about a radian in its last 10 ms) is
+    // allowed to move between these instants; snapping back to the guard
+    // is not: each joint stays nearer its pre-hit goal than the guard's.
+    const guard = pose(card, { aim: 1, idle: 0, toHit: 1 }, {});
     for (const [part, turns] of before.requested) {
       if (!after.requested.has(part)) continue;
+      const moved = distance(turns, after.requested.get(part));
+      const toGuard = guard.requested.has(part)
+        ? distance(after.requested.get(part), guard.requested.get(part))
+        : Infinity;
       assert.ok(
-        distance(turns, after.requested.get(part)) < 0.12,
+        moved < 0.12 || moved < toGuard,
         `${card} ${part} keeps the wound pose as the strike begins`,
       );
     }
@@ -222,22 +267,44 @@ await test('ground troops have visible idle gestures without idle hops', () => {
 });
 
 await test('the Medic keeps her flask upright through steps, preparation, healing and recovery', () => {
-  for (const since of [0, 0.08, 0.2, 0.4, 0.65, 99]) {
-    const c = pose('medic', {
-      walk: 1,
-      idle: 0,
-      since,
-      swingR: 0.18,
-      accel: 4,
-      turn: 1,
-      flinch: 0.3,
-    });
-    const fore = c.requested.get('foreR')[0];
-    const tilt = c.p.armR + fore + c.p.weapon - c.p.torsoX - c.p.lean;
-    assert.ok(
-      Math.abs(tilt) < 1e-10,
-      `the flask is level ${since}s after a pulse`,
-    );
+  const rotation = (x, y = 0, z = 0, order = 'XYZ') =>
+    new Quaternion().setFromEuler(new Euler(x, y, z, order));
+  for (const stone of [0, 0.5, 1]) {
+    for (const preparing of [false, true]) {
+      for (const since of [0, 0.08, 0.2, 0.4, 0.65, 99]) {
+        const c = pose(
+          'medic',
+          {
+            walk: 1,
+            idle: 0,
+            since,
+            swingR: 0.18,
+            accel: 4,
+            turn: 1,
+            flinch: 0.3,
+            unit: { id: 7, cooldown: preparing ? 0.1 : 1 },
+          },
+          { medicStoneGuard: stone },
+        );
+        const fore = c.requested.get('foreR')[0];
+        const wrist = c.requested.get('handR');
+        assert.ok(wrist, 'the complete tonic is carried by the wrist');
+        // Follow the renderer's actual ordered joint chain. Pitch sums
+        // miss the tilt introduced by the inward shoulder roll at stone.
+        const p = c.p;
+        const frame = rotation(-p.lean, 0, p.roll, 'YXZ')
+          .multiply(rotation(-p.torsoX, p.torsoY, p.torsoZ))
+          .multiply(rotation(p.armR, 0, p.armRz))
+          .multiply(rotation(fore))
+          .multiply(rotation(...wrist.slice(0, 3)))
+          .multiply(rotation(p.weapon));
+        const up = new Vector3(0, 1, 0).applyQuaternion(frame);
+        assert.ok(
+          up.distanceTo(new Vector3(0, 1, 0)) < 1e-10,
+          `the complete grip is upright ${since}s after a pulse at guard ${stone}`,
+        );
+      }
+    }
   }
 });
 
@@ -265,6 +332,9 @@ await test('secondary motion responds to actual starts, turns and hits while lea
       ) > 0.02,
       `${card} ${joint} responds to the body`,
     );
+    // The balloonist sits in the basket: a flying unit has no walk solver,
+    // and her moves hold the seated legs still themselves.
+    if (card === 'balloon') continue;
     for (const b of impulses)
       for (const part of ['legL', 'legR', 'kneeL', 'kneeR', 'footL', 'footR'])
         assert.ok(
@@ -318,44 +388,10 @@ await test('the Pirate releases both legs after her leap so the shared walk can 
   assert.ok(!landed.requested.has('legL') && !landed.requested.has('legR'));
 });
 
-await test('the Gunner arm goals keep both fists on the cannon bar through bracing and recoil', () => {
-  // Independent forward kinematics of the sculpt, in Blender's forward/up
-  // coordinates. These values come from the builder's actual shoulder,
-  // elbow and grip, including the wrist rather than only the forearm.
-  const shoulder = [0.05819674358984617, 0.9793962909515376];
-  const upper = [0.08680141806954098, -0.2199351928550488];
-  const lower = [0.20500183834061284, -0.11946109809648875];
-  const rotate = ([y, z], a) => [
-    y * Math.cos(a) - z * Math.sin(a),
-    y * Math.sin(a) + z * Math.cos(a),
-  ];
-  for (let i = 0; i <= 210; i++) {
-    const since = i / 60;
-    const c = pose('gunner', {
-      aim: 1,
-      idle: 0,
-      since,
-      wind: since > 2.9 ? (since - 2.9) / 0.6 : 0,
-    });
-    const bar = rotate([-0.25, 0.47], c.p.offhand);
-    const expected = [bar[0] + 0.6, bar[1] + 0.17];
-    for (const side of ['L', 'R']) {
-      const arm = c.requested.get(`arm${side}`)[0];
-      const fore = c.requested.get(`fore${side}`)[0];
-      const u = rotate(upper, arm);
-      const f = rotate(lower, arm + fore);
-      const hand = rotate(
-        [shoulder[0] + u[0] + f[0], shoulder[1] + u[1] + f[1] - 0.68],
-        -c.p.torsoX,
-      );
-      hand[1] += 0.68;
-      assert.ok(
-        Math.hypot(hand[0] - expected[0], hand[1] - expected[1]) < 1e-7,
-        `${side} fist stays on the bar at ${since}s`,
-      );
-    }
-  }
-});
+// The Gunner's two-fists-on-the-bar kinematics test was retired on
+// 9 October: the rebuilt Gunner (reach.ts) keeps one hand on the trail and
+// signals the shot with the other, and its wrist contact is checked by the
+// roster's motion audit (work/arena/2026-10-08-roster/gunner).
 
 await test('September shipped sculpts contain the nested soft parts, real elbows and animated facial features', async () => {
   const manifest = JSON.parse(
@@ -376,18 +412,20 @@ await test('September shipped sculpts contain the nested soft parts, real elbows
     for (const [joint, parent] of Object.entries(expected)) {
       const node = root.getObjectByName(card + joint);
       assert.ok(node, `${card} ${joint} exists in the delivered model`);
-      assert.equal(
-        node.parent,
-        root.getObjectByName(card + parent),
-        `${card} ${joint} parent`,
-      );
+      // Compare names: a failing equality on scene nodes makes the test
+      // runner diff two whole three.js graphs (tens of gigabytes).
+      assert.equal(node.parent?.name, card + parent, `${card} ${joint} parent`);
     }
     for (const side of ['L', 'R']) {
       const eye = root.getObjectByName(card + 'eye' + side);
       const pupil = root.getObjectByName(card + 'pupil' + side);
       const brow = root.getObjectByName(card + 'brow' + side);
       assert.ok(eye && pupil && brow, `${card} ${side} face`);
-      assert.equal(pupil.parent, eye, `${card} iris follows the blink`);
+      assert.equal(
+        pupil.parent?.name,
+        eye.name,
+        `${card} iris follows the blink`,
+      );
     }
   }
 });

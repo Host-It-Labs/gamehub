@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { makeServer } from '../server/index.ts';
 import { cards } from '../lib/games/arena/cards.ts';
+import { nearestLegal } from '../lib/games/arena/engine.ts';
 import { checksum, replay } from '../lib/games/arena/net.ts';
 
 const origin = 'http://localhost:3017';
@@ -508,22 +509,53 @@ await test('commands are checked against the battle: phase, round, spot and elix
     assert.equal((await host.request(`${room}/again`, {})).status, 409);
     // The dearest card leaves too little elixir for the dearest one after it.
     const first = dearest(mine.match, 0);
-    const played = await play(host, { slot: first, x: 3.5, y: 10 });
+    // The drawn card may be a long Dino, whose full body needs more clearance.
+    const firstAt = nearestLegal(
+      mine.match,
+      0,
+      mine.match.players[0].hand.cards[first],
+      3.5,
+      10,
+    );
+    assert.ok(firstAt, 'the first card has a legal deployment');
+    const played = await play(host, {
+      slot: first,
+      x: firstAt[0],
+      y: firstAt[1],
+    });
     assert.deepEqual(played.data, { ok: true });
     await until(() => mine.seen.some((p) => p[1] === 0), 'the card to land');
-    assert.deepEqual(mine.seen[0].slice(1), [0, first, 3.5, 10]);
+    assert.deepEqual(mine.seen[0].slice(1), [0, first, ...firstAt]);
+    const second = dearest(mine.match, 0);
+    const secondAt = nearestLegal(
+      mine.match,
+      0,
+      mine.match.players[0].hand.cards[second],
+      14.5,
+      10,
+    );
+    assert.ok(secondAt, 'the elixir check uses a legal deployment');
     refused = await play(host, {
-      slot: dearest(mine.match, 0),
-      x: 14.5,
-      y: 10,
+      slot: second,
+      x: secondAt[0],
+      y: secondAt[1],
     });
     assert.equal(refused.status, 409);
     assert.equal(refused.data.reason, 'elixir');
     assert.equal(typeof refused.data.error, 'string');
     // The guest plays from the top half.
-    assert.deepEqual((await play(guest, { x: 14.5, y: 22 })).data, {
-      ok: true,
-    });
+    const guestAt = nearestLegal(
+      theirs.match,
+      1,
+      theirs.match.players[1].hand.cards[0],
+      14.5,
+      22,
+    );
+    assert.ok(guestAt, 'the guest card has a legal deployment');
+    assert.deepEqual(
+      (await play(guest, { x: guestAt[0], y: guestAt[1] })).data,
+      { ok: true },
+    );
     await until(() => theirs.seen.some((p) => p[1] === 1), 'the guest card');
     await until(
       () => mine.verified.length >= 2 && theirs.verified.length >= 2,
@@ -625,18 +657,23 @@ await test('two devices replaying the stream reach the server checksum with huma
     for (const [who, f, player, x] of [
       [host, mine, 0, 3.5],
       [guest, theirs, 2, 14.5],
-    ])
+    ]) {
+      const slot = dearest(f.match, player);
+      const seat = f.match.players[player];
+      const at = nearestLegal(f.match, seat.side, seat.hand.cards[slot], x, 11);
+      assert.ok(at, 'the selected card has a legal deployment');
       assert.deepEqual(
         (
           await who.request(`${room}/commands`, {
             round: 1,
-            slot: dearest(f.match, player),
-            x,
-            y: 11,
+            slot,
+            x: at[0],
+            y: at[1],
           })
         ).data,
         { ok: true },
       );
+    }
     const people = (p) => p[1] === 0 || p[1] === 2;
     await until(() => {
       const last = Math.max(
@@ -926,7 +963,9 @@ await test('each player brings a Versus deck; a waiting battle deals it at once'
     );
     const next = (await guest.request(room)).data;
     assert.deepEqual(
-      [...next.match.players[next.room.you].deck].sort((a, b) => a.localeCompare(b)),
+      [...next.match.players[next.room.you].deck].sort((a, b) =>
+        a.localeCompare(b),
+      ),
       [...theirs].sort((a, b) => a.localeCompare(b)),
     );
     assert.equal(

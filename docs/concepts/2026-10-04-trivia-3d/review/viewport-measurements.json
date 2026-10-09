@@ -1,0 +1,635 @@
+[
+  {
+    "label": "expedition-phone-six",
+    "alerts": [],
+    "canvas": {
+      "calls": "120",
+      "elapsed": "0.42",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 470,
+        "width": 370,
+        "x": 10,
+        "y": 104
+      },
+      "settled": "true",
+      "triangles": "305488",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Leave Trivia and go back",
+        "w": 44,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Game menu",
+        "w": 44,
+        "x": 336,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "Trail: one guaranteed step",
+        "w": 92,
+        "x": 10,
+        "y": 659
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "River: 150 points for 2 steps; below, 1 step",
+        "w": 92,
+        "x": 108,
+        "y": 659
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "Summit: 240 points for 3 steps; below, 0 steps",
+        "w": 92,
+        "x": 206,
+        "y": 659
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Lock",
+        "w": 76,
+        "x": 304,
+        "y": 726
+      },
+      {
+        "disabled": true,
+        "h": 59.1607666015625,
+        "name": "Order",
+        "w": 370.7178955078125,
+        "x": 9.641054153442385,
+        "y": 779.4196166992188
+      }
+    ],
+    "height": 844,
+    "scrollHeight": 844,
+    "scrollWidth": 390,
+    "width": 390
+  },
+  {
+    "label": "expedition-short-phone",
+    "alerts": [],
+    "canvas": {
+      "calls": "120",
+      "elapsed": "0.47",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 290,
+        "width": 370,
+        "x": 10,
+        "y": 104
+      },
+      "settled": "true",
+      "triangles": "305488",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Leave Trivia and go back",
+        "w": 44,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Game menu",
+        "w": 44,
+        "x": 336,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "Trail: one guaranteed step",
+        "w": 92,
+        "x": 10,
+        "y": 479
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "River: 150 points for 2 steps; below, 1 step",
+        "w": 92,
+        "x": 108,
+        "y": 479
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "Summit: 240 points for 3 steps; below, 0 steps",
+        "w": 92,
+        "x": 206,
+        "y": 479
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Lock",
+        "w": 76,
+        "x": 304,
+        "y": 546
+      },
+      {
+        "disabled": true,
+        "h": 59.1607666015625,
+        "name": "Order",
+        "w": 370.7178955078125,
+        "x": 9.641054153442385,
+        "y": 599.4196166992188
+      }
+    ],
+    "height": 664,
+    "scrollHeight": 664,
+    "scrollWidth": 390,
+    "width": 390
+  },
+  {
+    "label": "expedition-small-phone-start",
+    "alerts": [],
+    "canvas": {
+      "calls": "120",
+      "elapsed": "0.44",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 134,
+        "width": 300,
+        "x": 10,
+        "y": 104
+      },
+      "settled": "true",
+      "triangles": "305488",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Leave Trivia and go back",
+        "w": 44,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Game menu",
+        "w": 44,
+        "x": 266,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "Trail: one guaranteed step",
+        "w": 68.6640625,
+        "x": 10,
+        "y": 323
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "River: 150 points for 2 steps; below, 1 step",
+        "w": 68.6640625,
+        "x": 84.6640625,
+        "y": 323
+      },
+      {
+        "disabled": false,
+        "h": 111,
+        "name": "Summit: 240 points for 3 steps; below, 0 steps",
+        "w": 68.6640625,
+        "x": 159.328125,
+        "y": 323
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Lock",
+        "w": 76,
+        "x": 234,
+        "y": 390
+      },
+      {
+        "disabled": true,
+        "h": 56.04718017578125,
+        "name": "Atlas",
+        "w": 147.7396240234375,
+        "x": 9.630186080932615,
+        "y": 444.9764099121094
+      },
+      {
+        "disabled": true,
+        "h": 56.30230712890625,
+        "name": "Sizes",
+        "w": 147.83006286621094,
+        "x": 162.58497619628906,
+        "y": 444.8488464355469
+      },
+      {
+        "disabled": true,
+        "h": 56.047149658203125,
+        "name": "Years",
+        "w": 147.7396240234375,
+        "x": 9.630186080932615,
+        "y": 504.9764099121094
+      },
+      {
+        "disabled": true,
+        "h": 56.302276611328125,
+        "name": "Order",
+        "w": 147.83006286621094,
+        "x": 162.58497619628906,
+        "y": 504.8488464355469
+      }
+    ],
+    "height": 568,
+    "scrollHeight": 568,
+    "scrollWidth": 320,
+    "width": 320
+  },
+  {
+    "label": "tower-small-phone-start",
+    "alerts": [],
+    "canvas": {
+      "calls": "50",
+      "elapsed": "0.33",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 257,
+        "width": 300,
+        "x": 10,
+        "y": 104
+      },
+      "settled": "true",
+      "triangles": "141138",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Leave Trivia and go back",
+        "w": 44,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Game menu",
+        "w": 44,
+        "x": 266,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 56.04718017578125,
+        "name": "Atlas",
+        "w": 147.7396240234375,
+        "x": 9.630186080932615,
+        "y": 444.9764099121094
+      },
+      {
+        "disabled": false,
+        "h": 56.30230712890625,
+        "name": "Sizes",
+        "w": 147.83006286621094,
+        "x": 162.58497619628906,
+        "y": 444.8488464355469
+      },
+      {
+        "disabled": false,
+        "h": 56.047149658203125,
+        "name": "Years",
+        "w": 147.7396240234375,
+        "x": 9.630186080932615,
+        "y": 504.9764099121094
+      },
+      {
+        "disabled": false,
+        "h": 56.302276611328125,
+        "name": "Order",
+        "w": 147.83006286621094,
+        "x": 162.58497619628906,
+        "y": 504.8488464355469
+      }
+    ],
+    "height": 568,
+    "scrollHeight": 568,
+    "scrollWidth": 320,
+    "width": 320
+  },
+  {
+    "label": "expedition-tablet",
+    "alerts": [],
+    "canvas": {
+      "calls": "120",
+      "elapsed": "0.44",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 608.203125,
+        "width": 736,
+        "x": 16,
+        "y": 88
+      },
+      "settled": "true",
+      "triangles": "305488",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 40,
+        "name": "Leave Trivia and go back",
+        "w": 83.2109375,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 46,
+        "name": "Game menu",
+        "w": 102.5390625,
+        "x": 655.4609375,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 126,
+        "name": "Trail: one guaranteed step",
+        "w": 203.328125,
+        "x": 16,
+        "y": 775.203125
+      },
+      {
+        "disabled": false,
+        "h": 126,
+        "name": "River: 150 points for 2 steps; below, 1 step",
+        "w": 203.3359375,
+        "x": 225.328125,
+        "y": 775.203125
+      },
+      {
+        "disabled": false,
+        "h": 126,
+        "name": "Summit: 240 points for 3 steps; below, 0 steps",
+        "w": 203.328125,
+        "x": 434.6640625,
+        "y": 775.203125
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Lock",
+        "w": 104,
+        "x": 648,
+        "y": 857.203125
+      },
+      {
+        "disabled": true,
+        "h": 111.063232421875,
+        "name": "Order",
+        "w": 737.3355712890625,
+        "x": 15.332199096679688,
+        "y": 908.0699462890624
+      }
+    ],
+    "height": 1024,
+    "scrollHeight": 1024,
+    "scrollWidth": 768,
+    "width": 768
+  },
+  {
+    "label": "tower-short-desktop",
+    "alerts": [],
+    "canvas": {
+      "calls": "66",
+      "elapsed": "0.37",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 373,
+        "width": 536.8046875,
+        "x": 12,
+        "y": 88
+      },
+      "settled": "true",
+      "triangles": "942162",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 40,
+        "name": "Leave Trivia and go back",
+        "w": 83.2109375,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 46,
+        "name": "Game menu",
+        "w": 102.5390625,
+        "x": 847.4609375,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 88.59933471679688,
+        "name": "Order",
+        "w": 331.140625,
+        "x": 567.4296875,
+        "y": 264.7003479003906
+      }
+    ],
+    "height": 540,
+    "scrollHeight": 540,
+    "scrollWidth": 960,
+    "width": 960
+  },
+  {
+    "label": "tower-fractional-viewport",
+    "alerts": [],
+    "canvas": {
+      "calls": "66",
+      "elapsed": "0.40",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 543.203125,
+        "width": 594,
+        "x": 10,
+        "y": 88
+      },
+      "settled": "true",
+      "triangles": "942162",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 40,
+        "name": "Leave Trivia and go back",
+        "w": 83.2109375,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 46,
+        "name": "Game menu",
+        "w": 102.5390625,
+        "x": 501.4609375,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 109.08056640625,
+        "name": "Order",
+        "w": 595.3494873046875,
+        "x": 9.325278282165527,
+        "y": 706.061279296875
+      }
+    ],
+    "height": 819,
+    "scrollHeight": 819,
+    "scrollWidth": 614,
+    "width": 614
+  },
+  {
+    "label": "expedition-small-phone-final",
+    "alerts": [],
+    "canvas": {
+      "calls": "120",
+      "elapsed": "0.37",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 102.21875,
+        "width": 300,
+        "x": 10,
+        "y": 104
+      },
+      "settled": "true",
+      "triangles": "305488",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Leave Trivia and go back",
+        "w": 44,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Game menu",
+        "w": 44,
+        "x": 266,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Play again",
+        "w": 136,
+        "x": 20,
+        "y": 506
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Back to library",
+        "w": 136,
+        "x": 164,
+        "y": 506
+      }
+    ],
+    "height": 568,
+    "scrollHeight": 568,
+    "scrollWidth": 320,
+    "width": 320
+  },
+  {
+    "label": "tower-phone-final",
+    "alerts": [],
+    "canvas": {
+      "calls": "72",
+      "elapsed": "0.33",
+      "engine": "three.js r186",
+      "motion": "still",
+      "rect": {
+        "height": 198.21875,
+        "width": 370,
+        "x": 10,
+        "y": 104
+      },
+      "settled": "true",
+      "triangles": "1542930",
+      "version": "runtime"
+    },
+    "controls": [
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Leave Trivia and go back",
+        "w": 44,
+        "x": 10,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Game menu",
+        "w": 44,
+        "x": 336,
+        "y": 8
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Play again",
+        "w": 171,
+        "x": 20,
+        "y": 602
+      },
+      {
+        "disabled": false,
+        "h": 44,
+        "name": "Back to library",
+        "w": 171,
+        "x": 199,
+        "y": 602
+      }
+    ],
+    "height": 664,
+    "scrollHeight": 664,
+    "scrollWidth": 390,
+    "width": 390
+  }
+]

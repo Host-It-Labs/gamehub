@@ -119,7 +119,9 @@ export function validVote(v: unknown, seats: number): v is RoundVote {
     (r.endsAt === null || Number.isFinite(r.endsAt)) &&
     (r.options === undefined ||
       (Array.isArray(r.options) &&
-        r.options.length >= 2 &&
+        (r.options.length >= 2 ||
+          (r.options.length === 1 && r.host === true)) &&
+        new Set(r.options).size === r.options.length &&
         r.options.every((o) => allChoices.includes(o)))) &&
     (r.opening === undefined || r.opening === true) &&
     (r.host === undefined || (r.host === true && r.endsAt === null)) &&

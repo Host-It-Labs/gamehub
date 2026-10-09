@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
+import { dinerIconUrl, type DinerIconArt } from '@/lib/games/diner/art';
 import type { DishId } from '@/lib/games/diner/content';
 
 /**
- * Diner's pictures: chunky enamel-sign drawings with a dark ink outline,
- * crisp at any size. Dishes for the order bubbles, and one picture for each
- * thing Use can do.
+ * Diner's pictures: illustrated stickers for most (see `ART`), and chunky
+ * enamel-sign drawings with a dark ink outline for the rest.
  */
 const INK = '#2a1620';
 export type IconName =
@@ -24,9 +24,41 @@ export type IconName =
   | 'follow'
   | 'back'
   | 'eat'
-  | 'dots';
+  | 'repair'
+  | 'dots'
+  | 'coffee'
+  | 'music'
+  | 'skate'
+  | 'token'
+  | 'heart'
+  | 'fuel'
+  | 'bolt'
+  | 'tray'
+  | 'tire'
+  | 'dice'
+  | 'map'
+  | 'neon'
+  | 'crate'
+  | 'bed'
+  | 'pin'
+  | 'clock';
 
 const paths: Record<IconName, ReactNode> = {
+  clock: (
+    <>
+      <circle cx="24" cy="25" r="16" fill="#fff4de" />
+      <path d="M24 15v10l7 5" fill="none" />
+    </>
+  ),
+  repair: (
+    <>
+      <path
+        d="M35 7a11 11 0 0 0-14 13L7 34a5 5 0 0 0 7 7l14-14A11 11 0 0 0 41 13l-8 8-6-6z"
+        fill="#dfe6ea"
+      />
+      <circle cx="11" cy="37" r="1.7" fill="#89959f" stroke="none" />
+    </>
+  ),
   burger: (
     <>
       <path d="M8 22c0-8 7-13 16-13s16 5 16 13z" fill="#f0a64a" />
@@ -219,6 +251,120 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M33 42V6c-5 2-7 8-7 14 0 4 3 6 7 6" fill="#dfe6ea" />
     </>
   ),
+  coffee: (
+    <>
+      <path d="M12 16h20v16c0 6-4 10-10 10s-10-4-10-10z" fill="#fff8ee" />
+      <path d="M32 20h3a5 5 0 010 10h-3" fill="none" />
+      <path d="M12 16h20v6H12z" fill="#7a3f22" />
+      <path
+        d="M18 4c-2 3 2 5 0 8M25 4c-2 3 2 5 0 8"
+        fill="none"
+        stroke="#c9b7a8"
+      />
+    </>
+  ),
+  music: (
+    <>
+      <path d="M18 34V10l20-4v24" fill="none" strokeWidth="3" />
+      <ellipse cx="13" cy="35" rx="6" ry="5" fill="#ff4fa3" />
+      <ellipse cx="33" cy="31" rx="6" ry="5" fill="#ff4fa3" />
+    </>
+  ),
+  skate: (
+    <>
+      <path d="M12 8h12v18h12c3 0 5 2 5 5v3H9V12c0-2 1-4 3-4z" fill="#ff6b8a" />
+      <circle cx="15" cy="39" r="4" fill="#f4c542" />
+      <circle cx="33" cy="39" r="4" fill="#f4c542" />
+      <path d="M14 15h8M14 20h8" stroke="#fff" strokeWidth="2" />
+    </>
+  ),
+  token: (
+    <>
+      <circle cx="24" cy="24" r="18" fill="#9fe3d2" />
+      <circle cx="24" cy="24" r="12" fill="#e8fbf5" />
+      <path
+        d="M24 15l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6-4.5-4 6-1z"
+        fill="#2f8f7d"
+      />
+    </>
+  ),
+  heart: (
+    <path
+      d="M24 41s-15-9-15-20a8 8 0 0115-4 8 8 0 0115 4c0 11-15 20-15 20z"
+      fill="#ff4f6d"
+    />
+  ),
+  fuel: (
+    <>
+      <rect x="10" y="10" width="20" height="30" rx="3" fill="#d81f37" />
+      <rect x="14" y="14" width="12" height="8" rx="1" fill="#fff8ee" />
+      <path d="M30 18h4l4 4v14a3 3 0 01-6 0v-8h-2" fill="none" />
+    </>
+  ),
+  bolt: <path d="M27 4L11 27h11l-3 17 18-24H26z" fill="#ffd23f" />,
+  tray: (
+    <>
+      <ellipse cx="24" cy="30" rx="20" ry="7" fill="#dfe6ea" />
+      <ellipse cx="24" cy="28" rx="16" ry="5" fill="#f4f7f8" />
+      <path d="M14 26c0-6 4-9 10-9s10 3 10 9z" fill="#f0a64a" />
+    </>
+  ),
+  tire: (
+    <>
+      <circle cx="24" cy="24" r="18" fill="#2b2b33" />
+      <circle cx="24" cy="24" r="10" fill="#fff8ee" />
+      <circle cx="24" cy="24" r="5" fill="#dfe6ea" />
+    </>
+  ),
+  dice: (
+    <>
+      <rect x="8" y="8" width="32" height="32" rx="7" fill="#fff8ee" />
+      <circle cx="17" cy="17" r="3" fill="#d81f37" stroke="none" />
+      <circle cx="24" cy="24" r="3" fill="#d81f37" stroke="none" />
+      <circle cx="31" cy="31" r="3" fill="#d81f37" stroke="none" />
+    </>
+  ),
+  map: (
+    <>
+      <path d="M6 12l12-4 12 4 12-4v28l-12 4-12-4-12 4z" fill="#fff8ee" />
+      <path d="M18 8v28M30 12v28" />
+      <path d="M10 28c6-2 8-10 14-8s8 6 14 2" stroke="#d81f37" fill="none" />
+    </>
+  ),
+  neon: (
+    <>
+      <rect x="6" y="12" width="36" height="22" rx="5" fill="#2a1620" />
+      <path
+        d="M12 28V18l6 10V18M23 18v10M28 18h6M28 23h5M28 28h6"
+        stroke="#ff4fa3"
+        strokeWidth="2.6"
+        fill="none"
+      />
+    </>
+  ),
+  bed: (
+    <>
+      <rect x="6" y="22" width="36" height="12" rx="3" fill="#fff8ee" />
+      <rect x="9" y="17" width="11" height="7" rx="3" fill="#7fd6c2" />
+      <path d="M6 34v6M42 34v6" />
+    </>
+  ),
+  pin: (
+    <>
+      <path
+        d="M24 44S10 28 10 19a14 14 0 0128 0c0 9-14 25-14 25z"
+        fill="#d81f37"
+      />
+      <circle cx="24" cy="19" r="5" fill="#fff8ee" />
+    </>
+  ),
+  crate: (
+    <>
+      <path d="M8 16l16-8 16 8v18l-16 8-16-8z" fill="#e0a65a" />
+      <path d="M8 16l16 8 16-8M24 24v18" fill="none" />
+      <path d="M16 12l16 8" stroke="#a8742e" strokeWidth="3" />
+    </>
+  ),
   dots: (
     <>
       <circle cx="13" cy="24" r="4" fill="#fff8ee" />
@@ -228,6 +374,50 @@ const paths: Record<IconName, ReactNode> = {
   ),
 };
 
+/**
+ * The illustrated sticker pictures (8 October 2026), cut from generated
+ * sheets (docs/concepts/2026-10-08-diner-car/art). Pictures without a
+ * sticker keep their drawing above.
+ */
+const ART: Partial<Record<IconName, DinerIconArt>> = {
+  burger: 'burger',
+  shake: 'shake',
+  fries: 'fries',
+  pie: 'pie',
+  burnt: 'burnt',
+  dirty: 'dirty',
+  coffee: 'coffee',
+  bell: 'bell',
+  order: 'menu',
+  dots: 'menu',
+  eat: 'eat',
+  coin: 'coin',
+  heart: 'heart',
+  token: 'token',
+  fuel: 'fuel',
+  repair: 'repair',
+  mop: 'mop',
+  wash: 'wash',
+  bin: 'bin',
+  music: 'music',
+  skate: 'skate',
+  tray: 'tray',
+  tire: 'tire',
+  dice: 'dice',
+  map: 'map',
+  neon: 'neon',
+  crate: 'crate',
+  bolt: 'bolt',
+  out: 'eye',
+  star: 'star',
+  hand: 'hand',
+  clock: 'clock',
+};
+export const dinerArt = (name: IconName) => {
+  const art = ART[name];
+  return art ? dinerIconUrl(art) : null;
+};
+
 export function DinerIcon({
   name,
   className,
@@ -235,6 +425,23 @@ export function DinerIcon({
   name: IconName;
   className?: string;
 }) {
+  const art = dinerArt(name);
+  if (art)
+    return (
+      <svg
+        className={`diner-icon ${className ?? ''}`}
+        viewBox="0 0 48 48"
+        aria-hidden="true"
+        data-art={name}
+      >
+        <image
+          href={art}
+          width="48"
+          height="48"
+          preserveAspectRatio="xMidYMid meet"
+        />
+      </svg>
+    );
   return (
     <svg
       className={`diner-icon ${className ?? ''}`}

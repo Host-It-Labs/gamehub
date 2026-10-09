@@ -24,33 +24,40 @@ const MODELS = ['towers', 'troops', 'props', 'figures', 'cartoon_towers'];
  *  caught in action (attacking, charging, casting, firing, bracing), as many
  *  troops as the card deploys, in front of its era (1 October 2026, v7; see
  *  docs/concepts/2026-10-01-arena-draft/portraits.md). The v1–v6 sets are
- *  kept beside them in assets/arena/cards. */
+ *  kept beside them in assets/arena/cards. Dino and Sumo use fresh v9 portraits
+ *  matching their quality-first rebuild (concepts/2026-10-04-arena-quality-rebuild).
+ *  Cowboy, Samurai and Wizard use fresh portraits matching the three-character
+ *  rebuild (concepts/2026-10-04-arena-three-characters). Viking, Gladiator and
+ *  Medic use fresh v8 portraits (concepts/2026-10-04-arena-viking-gladiator-medic).
+ *  Every card but the Samurai and Cowboy now uses its v13 portrait (9 October
+ *  2026): the same painted semi-realistic look, generated from text alone
+ *  (concepts/2026-10-09-arena-portraits/v13). */
 const CARD_ART = {
-  archers: 'v7-b',
-  ogre: 'v7-b',
-  imps: 'v7-a',
-  duelist: 'v7-a',
-  ranger: 'v7-b',
-  drake: 'v7-a',
-  mage: 'v7-a',
-  meteor: 'v7-b',
-  pirate: 'v7-b',
-  viking: 'v7-a',
-  gladiator: 'v7-b',
-  medic: 'v7-b',
-  miner: 'v7-b',
-  balloon: 'v7-b',
-  inventor: 'v7-b',
-  gunner: 'v7-a',
+  archers: 'v13-a',
+  ogre: 'v13-a',
+  imps: 'v13-a',
+  duelist: 'v10-a',
+  ranger: 'v10-b',
+  drake: 'v13-b',
+  mage: 'v13-b',
+  meteor: 'v13-a',
+  pirate: 'v13-b',
+  viking: 'v13-a',
+  gladiator: 'v13-a',
+  medic: 'v13-b',
+  miner: 'v13-a',
+  balloon: 'v13-b',
+  inventor: 'v13-a',
+  gunner: 'v13-a',
   // The eight troops of 1 October 2026 (docs/concepts/2026-10-01-arena-draft).
-  diver: 'v7-b',
-  sumo: 'v7-b',
-  linebacker: 'v7-b',
-  beekeeper: 'v7-a',
-  drummer: 'v7-b',
-  firefighter: 'v7-b',
-  jetpack: 'v7-a',
-  explorer: 'v7-a',
+  diver: 'v13-a',
+  sumo: 'v13-a',
+  linebacker: 'v13-b',
+  beekeeper: 'v13-a',
+  drummer: 'v13-a',
+  firefighter: 'v13-b',
+  jetpack: 'v13-a',
+  explorer: 'v13-a',
 };
 const CARDS = Object.keys(CARD_ART);
 const MANIFEST = 'lib/games/arena/assets.json';

@@ -35,6 +35,7 @@ import {
   Sparkles,
   Tent,
   TrainFront,
+  Trophy,
   Flag,
   Trash2,
   Users,
@@ -66,6 +67,9 @@ import {
 import { playerRange, type LibraryGame } from '@/lib/games/library-fixtures';
 import { standaloneGames, type AnyGame } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
+import { TriviaModeChoices } from './trivia-modes';
+import type { TriviaMode } from '@/lib/games/party/trivia';
+import { triviaSetupLink } from '@/lib/online/trivia-setup';
 import './setup-box.css';
 
 const motifs: Record<string, LucideIcon> = {
@@ -636,6 +640,8 @@ export function StandaloneSetupBox({
   onHost,
   votes = false,
   onVotes,
+  triviaMode = 'quick',
+  onTriviaMode,
   onDifficulty,
   onPlay,
   onLearn,
@@ -656,6 +662,8 @@ export function StandaloneSetupBox({
   /** Party sets: whether the table votes between rounds or the host picks. */
   votes?: boolean;
   onVotes?: (on: boolean) => void;
+  triviaMode?: TriviaMode;
+  onTriviaMode?: (mode: TriviaMode) => void;
   onDifficulty: (d: Difficulty) => void;
   onPlay: () => void;
   onLearn: () => void;
@@ -670,6 +678,15 @@ export function StandaloneSetupBox({
     <SetupShell game={game}>
       <SetupIntro game={game} />
       <SetupOptions>
+        {game.standaloneId === 'miro' && (
+          <SetupRow label="Mode" Icon={Trophy} className="trivia-mode-row">
+            <TriviaModeChoices
+              value={triviaMode}
+              onChange={onTriviaMode}
+              disabled={disabled}
+            />
+          </SetupRow>
+        )}
         <SetupRow label="Players" Icon={Users}>
           <SeatCount
             seats={seats}
@@ -696,7 +713,7 @@ export function StandaloneSetupBox({
             disabled={disabled}
           />
         )}
-        {onVotes && (
+        {onVotes && (game.standaloneId !== 'miro' || triviaMode === 'quick') && (
           <SetupRow label="Next round" Icon={Vote}>
             <Segmented
               label="Who picks the next round"
@@ -716,7 +733,7 @@ export function StandaloneSetupBox({
           <a
             className="play-plate"
             data-starts-game
-            href="/tables"
+            href={game.standaloneId === 'miro' ? triviaSetupLink('/tables', triviaMode) : '/tables'}
             aria-label="Play with friends at an online table"
           >
             <Play aria-hidden="true" />

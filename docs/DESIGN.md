@@ -1,5 +1,403 @@
 # Gamehub design direction
 
+## Library: covers on the left, the footage is Play; Folio becomes Puzzles (9 October 2026)
+
+William's review of the library (supersedes the parts of the 8 October
+section it names):
+
+- **Covers left, footage right** on wide screens, as on phones. The cover
+  grid still fills the footage and caption's height exactly.
+- **The footage is the Play button.** The Play button under it is gone; a
+  Play plate sits in the middle of the footage (glass at rest, brass and a
+  little larger on hover or focus; **Play with friends** with a people icon
+  on a With friends game), and the whole screen opens the game. Under it sit
+  only the name, time and kind, on one row on wide screens.
+- **Kinds may be two words** when one word says too little: Trick taking,
+  Card drafting, Set collecting, Mind reading, Best guess, Draw & bluff,
+  Brain teasers, Scratch cards, Tower battle, Roll & draw, Engine builder,
+  Serving rush. At most two words and 14 characters; on a phone tile the
+  kind stacks under the time so it is never cut.
+- **Order**: Arena, Rota, Mora, Diner, Alto, Yata, then Nox, Puzzles and
+  Lucky; the With friends games close it, Trivia, Impostor, then Know Me.
+  The shelves follow the same order.
+- **Drag to scroll.** A mouse can hold a shelf and drag it sideways, like a
+  finger; letting go after a drag never opens a card (`useDragScroll`,
+  `components/game/use-drag-scroll.ts`).
+- **Folio is called Puzzles** in public (title, box and wide covers, menus
+  and messages); its id, route and saves stay `folio`. Its covers, Rota's
+  (now its model-railway mill town) and Diner's (a slim, softly effeminate
+  young man as its cook) were regenerated the same day.
+- **Footage is filmed at 1080p** (1920×1080 wide, 1080×1920 tall) so it
+  stays sharp on large screens.
+
+## Arena: one painted card set, a bigger Dino, shots you can see (9 October 2026)
+
+William's review: the card portraits were two sets, the semi-realistic painted
+look of the Samurai and Cowboy beside flatter cartoon v7 art. He prefers the
+painted one, so every card except those two is regenerated in it (v13). **Card
+art is generated from text only, never from a base or reference image**: a
+first pass that restyled the v7 cards from the images themselves (v11, v12)
+came out yellower and worse and was rejected. v13 uses one shared style
+paragraph written from the Samurai and Cowboy prompts, with an explicit
+neutral colour balance, and each card's written subject (prompts in
+[concepts/2026-10-09-arena-portraits/v13](concepts/2026-10-09-arena-portraits/v13/README.md)).
+
+- **Dino** is drawn 12% larger than the other figures (`FIGURE_SIZE` in
+  `components/game/arena/troops.ts`; drawing only, its footprint and reach
+  in the engine are unchanged).
+- **The Inventor's lightning** leaps from her wand's tip to the target as she
+  thrusts it: a jagged, forked ribbon (a blue glow round a white core) that
+  re-forks every few frames and fades in about a fifth of a second, with a
+  flash at the wand. Chain jumps draw the same bolt. The shot itself was a
+  dot crossing the field in one frame, so nothing showed before.
+- **Guns flash.** Every troop shot now goes off with a flash and sparks
+  where it leaves (smoke for the rifle, the cannon and the frost gun), and
+  ray guns, the rifle and the frost gun fire from the barrel's end (the
+  weapon part's far tip, measured once per figure) instead of the chest.
+
+## Lucky: level IV, upgrade tiles, a guide beside the ticket (9 October 2026, evening)
+
+William asked for a more premium name than Boss, upgrades that pop instead of looking faded, the ticket guide beside the ticket on desktop, tickets that can simply lose, and a few factory editor touches. This supersedes the Boss, upgrade-colour and guide notes of the section below.
+
+- **IV.** The fourth difficulty is simply **IV**, the same numeral style as I–III, but it reads as more: a dark sapphire chip across beneath I II III, a sapphire gradient when chosen, on the ticket's badge and in the toast that opens it. Until it opens it shows only a lock, so what it is stays a surprise. (Briefly named Diamond the same evening; internal IDs stay `INFINITY_AT`, feed kind `infinity`, CSS `is-four`.)
+- **Upgrade tiles, not medallions.** The six paths stay side by side on one page on desktop, but each is a column of tiles in tree order (Books twice as wide: each book's prize beside its helper, one book per row), all on the same eight-row grid so tiles line up across paths. A tile is a rounded enamel square in its path's deep colour (`RICH` in `relic-scratch-upgrades.tsx`; book tickets sit inside it, never spilling out), the name, what it gives now in the path's colour (×2.2, 30%, every 7th; bare numbers keep their label), a bar of ranks and the price (a lock when it is not open yet, a check when maxed). Affordable tiles have a cream edge and a small arrow; the selected one wears its path's colour. Each path's header carries a thin progress bar. The lines of the old tree are gone; the bar below still says what an upgrade needs first. Phones and short screens show one path at a time, tiles flowing into as many columns as fit.
+- **The guide stands beside the ticket** on wide screens, at the top of the rail above the hearts or payout and Buy, so the ticket is bare. Phones and portrait tablets keep it on the ticket's heading. Both slips share one hidden-per-book setting.
+- **Tickets can lose.** Insurance is gone: a ticket that pays less than it cost is a loss, shown as such. Its Shop slot is now the **Loyalty card** (every 10th, 7th, then 5th ticket bought is free, any book). Saved Insurance ranks were refunded. When the purse cannot pay for any ticket, Buy turns green and becomes **Free · Lucky Seven I** (the house ticket), and the Lucky Seven book wears a green rim.
+- **Factory tools: select, erase, pan.** Pan sits in the tool rail beside select and erase, only one of the three is on, and **Space** (or P) toggles it; its key hint is a drawn space-bar mark. Undo and redo show ⌘Z / ⇧⌘Z (Ctrl Z / Ctrl Y elsewhere) only while ⌘ (Ctrl) is held. A selection box is a brighter fill with a solid cream-gold edge drawn over the machines, and the machines it would pick are marked while you drag.
+
+## Lucky: calm colour, a Boss level, a guide on every ticket (9 October 2026, later)
+
+William found the ∞ treatment boxy and too vibrant, the factory clashing with the chill green interface (too bright, oversaturated, flying coins), the upgrade tree too golden, the charm's spin jumpy and the lamp meaningless. He then asked for the fourth difficulty to read as the hardest level rather than ∞, for the XP a ticket earns to be shown, and for a hideable how-to on every ticket. This supersedes the ∞ and colour notes of the section below.
+
+- **Flat, full colour, no bling.** The interface is solid enamel colour: no gold halos, rainbow foil or glowing text. Buy and the payout are flat cream; a selected book keeps only its gold rim. In the upgrade tree every disc is a solid fill; an upgrade you can pay for wears a **cream ring** and a cream price, the selected one a ring in its path's colour, and a maxed one is flat gold.
+- **The Boss.** The fourth difficulty is the book's **Boss**: a skull and the word Boss, in the stamper's muted brick red, on the book (across beneath I II III), as the ticket's badge and in the toast that opens it. No halo; a Boss ticket looks like any other. Internal IDs stay (`INFINITY_AT`, feed kind `infinity`).
+- **XP on the payout.** Under the coins, a green strip counts up the XP the ticket earned and shows the book's level bar it fed.
+- **A guide on the ticket.** Every ticket carries a cream slip of two short rule lines (shared `RuleList`) laid over its painted heading, above the panel or beside it on Sea Chart, never on the cells, so play goes on with it open. It shows on the blank ticket too, so you read it before buying. The × hides it for that book (remembered in the browser); a book button brings it back. Facts you cannot work out stay in view either way: Ladder's cards (1–N), Gold Mine's dynamite count and Sea Chart's fleet. On phones, Sea Chart's slip sits just above the ticket.
+- **A factory in the desk's greens.** The floor is pale sage stone, the frame bottle-green enamel with a satin brass cap (no chasing bulbs), the machines the same hues muted, satin rather than lacquered, lit a little lower. Booster squares are faint. A sale shows only its total popping over the cashier: no coins fly, no gold burst.
+- **Turbo, not a lamp.** The lamp machine (ID `lamp`) is now a **Turbo**: a squat violet engine drum whose three-bladed cream rotor turns slowly at rest and spins up while it speeds its neighbours, a speed dial whose needle swings into the red, and eight arrows round its foot pointing at the cells it reaches. Boosters ease their energy and accumulate their spin, so neither the Turbo nor the charm's clover ever jumps when a neighbour starts or stops.
+
+## Lucky: one desk, the factory full size (9 October 2026)
+
+William found the factory too small and the interface around it disconnected from it, and asked for the whole Lucky interface to be rethought, keeping only the tickets as they are shown (large). He also asked for a fourth, endless difficulty and for book levels earned by how well you play (see the rules section of [relic.md](relic.md)).
+
+- **One desk.** Every view sits on the same painted green desk under one warm lamp. The factory is a toy model standing on that desk, its soft shadow drawn under the frame, not a box floating in a dark void. Every control is a plate from the factory's own set: bottle-green enamel, a brass rim and cream lettering; the selected tab and tool are cream enamel like the floor tiles.
+- **The factory fills the screen.** The 3D floor is full bleed and the camera fits it in the space the floating controls leave (`setInsets` on the world, measured from the top bar, the dock and the tab bar), so it is about a quarter wider on desktops and much taller on phones. The machines sit in a brass tray along the bottom (tools, then the ten machines in palette order); the bar naming what is held or selected appears just above the tray, beside the view controls, and is empty when nothing is held. On phones only Fit stays (pinch zooms). The factory stays built while another tab covers it and stops drawing, so switching back is instant.
+- **Tickets: pick, then Buy.** Tapping a book on the shelf picks it (and shows its blank ticket); its difficulties sit on the book, I II III in a row and **∞** across beneath them, a dark foil strip with a rainbow edge. One button beside the ticket buys the picked book (**Again** when it is the same as the last), so it never moves; Enter does the same. The ticket keeps its size; its hearts or payout and Buy sit right beside it on wide screens and in one row under it on phones and portrait tablets, where the shelf becomes a strip on top. An ∞ ticket is held in a slow rainbow halo.
+- **∞ and skill levels.** Every book gains a fourth, harder difficulty, ∞, which opens once the book's level 3 is complete. Book levels now come from XP earned by how well each ticket is played against its average (none for a poor one), weighted I 0.1, II 0.25, III 0.5, ∞ 1, so easier tickets still level a book, only slowly. The payout shows the XP earned, and opening ∞ is announced like a level. Numbers in [relic.md](relic.md).
+- **Where hands are.** Desktops keep the three tabs at the top centre beside the purse. Phones and touch tablets move them to a tab bar at the bottom, under the thumbs, with the purse in the middle of the top bar; Buy, the machine tray and the upgrade Buy all sit just above it.
+
+## Lucky: a factory you can tell apart and edit like a drawing (8 October 2026)
+
+William found every factory machine too alike to tell apart, and moving, placing, removing, editing and turning them unintuitive. He asked for a free rework (machines included), kept in 3D, with existing factories migrated, multi-select and copying, and as easy to work with as possible. The brief and the before/after review are in `docs/concepts/2026-10-08-lucky-factory-rework.md`; details in [relic.md](relic.md).
+
+- **Every machine owns a colour and a silhouette**: cobalt printer with its paper roll, orange scratch robot, emerald cashier under a gold coin sign, charcoal belts and splitter with yellow chevrons, violet lamp, red stamper press, gold gilder drum, lilac charm with a clover, kraft-and-magenta bundler. The shared gold plinth is gone; each machine stands on a pad tinted with its colour, on a warm, lighter workshop floor. Intakes are dark mouths at the back, outlets orange-lipped chutes at the front, always visible.
+- **Fewer, clearer machines**: ten (the ink well is gone). Boosters reach the eight cells around them and light that square: the lamp speeds printers and bots, the charm adds star tickets. The stamper (×1.3) and gilder (×1.6) work on any ticket, once each. Old factories migrate: ink wells become lamps where they stood.
+- **Editing works like a drawing app**: one finger or the left button acts, two fingers or the right button move the view. Tap selects, drag moves (the whole selection with it), dragging empty floor box-selects, a selected machine's orange handle pulls a belt out of it. Held machines face the flow by themselves; belts are drawn along a drag and re-route belts they cross. Groups rotate as a whole. Copy, paste, duplicate and cut carry directions and books; undo and redo cover every change and cost nothing, because removing refunds exactly what building charged.
+- **The bar under the floor** names what is held or selected, its state in one word and its labelled actions (Rotate, Copy, Delete with its refund, Place on touch); with a mouse it names the machine under the pointer. Ghosts show in the machine's own colours, red where they cannot go; boosters show their reach while held or selected.
+
+## Library: gameplay footage and three shelves (8 October 2026)
+
+William found the box shelf obscure: a cover does not say what playing is
+like, or whether you can start alone. A first round tried live code-built 3D
+dioramas; he dropped them the same day for **real footage of each game**
+(the diorama code is in the art archive, `retired-dioramas-2026-10-08`).
+
+- **Footage.** Every game has a short silent clip of itself playing, with its
+  interface hidden (no top bar, badges, round pill, menus, docks of buttons or
+  notices; the board, pieces and the hand stay). Each game is filmed twice:
+  **wide** on a 1280×720 desktop screen and **tall** on a 390×693 phone
+  (encoded at 1920×1080 and 1080×1920 since 9 October 2026), so
+  each device sees the game as it would play it there. Clips live in
+  `public/reels/<id>-wide|tall.mp4` with a first-frame `.jpg` still, listed in
+  `lib/games/library-reels.ts`. `scripts/reels/record.mjs <id>` re-films a
+  game against the dev server (one driver per game in `scripts/reels/games/`:
+  the CSS it hides, how it gets into a match, and how it keeps playing, using
+  the game's own bots for your seat where possible). Re-film a game when its
+  look changes. Clips stay under 8 MB (most 10 s clips are 1–6 MB at crf
+  23; a driver may set its own `crf`). On a loaded machine a driver's `slow`
+  runs the page's clock slower so 3D games still film smoothly, and `minFps`
+  re-takes a scene that captured too few frames. A game
+  that holds several games or boards films them as `scenes` joined by short
+  crossfades (9 October 2026): Know Me shows Top Five, Dial and Ten Coins,
+  Quiz all four of its games, Folio four puzzle kinds and Mora each board,
+  each scene a choice made with real input and then its scoring. Rota films
+  the default map without water; Yata shows its real cards with extensions
+  on.
+- **Showcase** (`components/game/library-showcase.tsx`): the current game's
+  footage on a big screen (the tall clip on a portrait phone), every game's
+  cover beside it to pick from, and the name, time, kind and one **Play**
+  button beneath the
+  footage, never over it, since hands of cards sit at the foot of most games.
+  Each clip plays once and the next game follows; hovering or focusing the
+  showcase keeps the current game looping. A bar on the active cover fills as
+  the clip plays. Games without footage show their cover for seven seconds.
+  Reduced motion shows the still and never advances. **Play with friends**
+  (people icon) on a With friends game. Games you can play alone come first
+  in the covers, the With friends ones last with a people badge. On wide
+  screens the cover grid never scrolls: the showcase solves its width and
+  column count (`--rail-w`, `--rail-cols`) so the covers fill the footage and
+  caption's height exactly, however many games there are, and a wheel over it
+  moves the page. On phones the covers are a column left of the footage that
+  scrolls, with a button beneath it for the next page (back to the top at the
+  end), and **Play** keeps the name's row so it never moves (9 October 2026).
+- **Cards** (`GameCard`, `components/game/game-card.tsx`) are the square
+  covers, which carry the game's title, so no name is printed under them;
+  only the time and kind chips. On a desktop, hovering a card lifts it and
+  plays the wide footage inside the square (cropped from the middle); the
+  clip loads the first time it is wanted. Touch screens, data saver and
+  reduced motion keep the cover.
+- **Three shelves.** **Quick games** (Arena, Nox, Mora, Yata, Rota, Alto: one
+  match), **Stay a while** (Arena's Quest, Lucky, Folio, Diner: runs, shifts
+  and a factory you come back to) and **With friends** (Impostor, Know Me,
+  Quiz: the human-only games, from `isHumanOnlyGame` in
+  `lib/games/player-policy.ts`, so the shelves look the same in development).
+  A game with a second, longer way to play (`longMode`, Arena's Quest) sits on
+  both of the first two shelves; its chip shows only the match time (the
+  Quest time is not shown). A table lobby shows the same games as two
+  shelves, Party first, then Games.
+- **Stats.** The library shows only time and **kind**, never the player count.
+  Kind (9 October 2026, replacing the Easy/Medium/Deep depth layers, which
+  were hard to make honest) is one badge with a word or two for what the game
+  is played as, not its theme or its crowd: never "Party" on a With friends
+  game, never "Space" on Alto (`kind` in `lib/games/library-fixtures.ts`,
+  `Kind` in `components/game/library-stats.tsx`). The chip row never wraps;
+  keep kinds short enough to fit a phone shelf tile. The setup lid keeps
+  players and mode beside them.
+
+The small table spots (a table's handoff, the friends list, the waiting view)
+keep the box for now. This supersedes the shelf rows and sealed boxes in the
+Night library section below.
+
+## Arena: solid buildings, shields and fresh figures (4 October 2026)
+
+Tower shells are smaller on every screen: 0.85 of native size on landscape
+and 0.9 on portrait. Their archers keep their readable size independently.
+Standing bases are solid rounded squares. Ground troops route round them,
+pushes stop at their faces, and low shots cannot cross them. Elevated arrows
+and lobbed bombs retain their flight paths. Ground foot placement and attack
+lunge respect the stone while keeping the body's walking path intact.
+
+Shields are a reusable second health pool. Hits drain their actual remaining
+capacity, with excess reaching health. Four seconds without damage starts a
+five-second refill from empty. Gladiator stays at three elixir, with 850 health,
+650 shield, and 125 damage every 1.1 seconds. His cyan shield track sits above
+the separate health track and carries a shield icon; it remains visible empty
+or full. Status effects use a calm row of small enamel medallions above them.
+
+Dino has a near-horizontal trunk, a deep skull, bent weight-bearing legs and
+a long rear tail, with matte forest hide, ochre undersides and amber eyes.
+Sumo has connected anatomical shoulders and arms, separate fingers, an adult
+face, a weighted abdomen and close woven blue mawashi. Both use deforming skin
+and fresh matching painted card portraits. Detailed editable masters are
+reviewed before separate runtime copies are optimized, following the mandatory
+high-fidelity-3d skill. Other figures and portraits retain their approved
+sources. The [written briefs and visual reviews](concepts/2026-10-04-arena-quality-rebuild/brief.md)
+record the rebuilt sources and the rejection of the earlier v8 models.
+
+Cowboy, Samurai and Wizard follow the same source-first rebuild. Authored adult
+faces, separate fingers and connected deforming garments replace the earlier
+rounded faces and detached sleeve joints. Cowboy keeps his two-handed rifle,
+Samurai his lacquer armour, pleated hakama and katana, and Wizard his ordered
+silver beard, woven robes and bent felt hat. Fresh painted portraits match
+each figure. Independently reviewed game copies keep their native scale at
+17,184, 19,079 and 18,431 triangles, within their original geometry costs.
+Wizard plants the actual staff shoe after final body placement, checking the
+whole shoe against the bridge while keeping the overhead cast free and its
+gripping wrist attached. Detailed masters, original sources and rejected
+reductions remain preserved. Rigid surfaces stay batched, with only weighted
+cloth and anatomy drawn as independent skins. Wizard's first idle draw also
+initializes its fidget state after a slow frame; see the
+[three-character brief and reviews](concepts/2026-10-04-arena-three-characters/brief.md).
+
+Selecting and dragging a card share one stats preview. Narrow screens use a
+compact panel above the hand; wide screens use the existing inspection band.
+It never changes the field camera or intercepts the placement gesture.
+See [arena.md](arena.md) for the rules and runtime contracts.
+
+## Diner: levels, a road you drive, and the kitchen in the truck (9 October 2026)
+
+William played the 8 October diner car and found it still poor: free play
+was three nights with nothing to work toward; Play silently resumed an old
+run; the route map was convoluted, too far away, with roads that made no
+sense and odd shading; the shift's deck was small on a desktop, surrounded by
+noise; everything was too bright and oversaturated; and a trailer standing
+behind a separate counter made no sense. He asked for many hard levels that
+hand out the campaign's upgrades and say so, a prompt before a new run, a
+simple cartoony 3D world to drive a truck around choosing between two places
+(Mario or Overcooked style), a deck that fills the screen, sideways phones
+with a stick on the left and buttons on the right, calmer light, and a
+trailer that is the kitchen. All of it was done without Codex, at his
+request. Details in [diner.md](diner.md).
+
+- **Levels.** Forty short shifts in eight chapters, one place each, a boss
+  closing every chapter. A medal with a life left opens the next level. Each
+  level adds a dish, a trouble, a booth or a piece of the Workshop's kit
+  (Chrome tray, Roller skates, Coffee urn, Heat-lamp pass, Twin grill,
+  Jukebox), and the opening card lists what is new, what is on again, and
+  the kit you carry. Medal targets come from the bot (`levels-balance.mjs`).
+  Online tables play a level the host has opened.
+- **A road you drive.** Every fork is two stops. The map is a small toy world
+  (desert at dusk, coast at twilight, the Moon Mile at night) you drive the
+  chunky rig around with the stick or WASD, close behind the truck; a sign
+  over each lot shows place, busy flames, gas and reward, and rolling into a
+  lot offers Stop here. Landmarks are cartoony and chunky; roads are clean
+  ribbons with cream lines, no odd shading.
+- **Play asks.** With a run under way, Play asks New run or Continue.
+- **The deck fills the screen.** The floor is wide and shallow (15 m, six
+  booth spots, the line down the left from a gate at the back, both front
+  corners clear for touch controls), framed rail to rail at 44°. The HUD is a
+  slim top bar and, on keyboards, a strip of key hints.
+- **Sideways phones.** Diner is the one landscape game: a rotate screen on
+  upright phones, a floating stick over the left planter corner, round Use,
+  Out! and Dash buttons over the right one.
+- **The trailer is the kitchen.** The cab-over truck tows a cream trailer
+  whose patio side opens as one wide hatch: machines on its steel worktop, a
+  tiled wall behind, a striped valance above, a cherry counter front below.
+  The same rig, short, is the truck on the map.
+- **Calmer.** One soft warm flood with readable shadows, a cool rim, warm
+  light in the hatch, low exposure and bloom only on neon; a wooden deck
+  with the checker as a runner; enamel colours instead of neon ones; a few
+  quiet things per place at the edges.
+
+This supersedes the route map, the diner car and the places of the 8 October
+section below, and its free-play nights.
+
+## Diner: the diner car, a real roguelite and Use that does the obvious thing (8 October 2026)
+
+William's verdict on the 4 October campaign: not a roguelite, choices not
+substantial, a route map of six diners "placed next to each other", a dead
+world, controls that surprise (pressing Space after taking a shake started
+another shake), ugly icons, low-quality graphics. He approved one idea: **the
+diner is a chrome diner car towed down a highway at night**. This section
+supersedes the 4 October campaign and route map; the brief is
+[concepts/2026-10-08-diner-car/brief.md](concepts/2026-10-08-diner-car/brief.md).
+
+- **The run is a roguelite.** One night: three legs of forks, a boss each.
+  Lives last the whole run; coins pay for gas between stops and for the
+  Garage; tokens buy Workshop upgrades to the car itself (more lives, a
+  third hand, Dash, a coffee urn, a jukebox, a heat-lamp pass…). It gets hard
+  quickly: a careful newcomer falls around the first boss.
+- **Every fork is a door with a reward.** Place (its crowd and trouble),
+  busy flames, gas and the reward are all on the card, painted postcards of
+  each place. Equipment changes how a shift plays; no bare few percent.
+- **Use does the obvious thing.** Two hands. At whatever you face, Use gives
+  what is wanted, then takes what is ready, then starts what is needed. A
+  machine never starts a dish nobody needs (one ahead when nothing is
+  ordered). Leading a party needs no hands. New verbs arrive as Workshop
+  upgrades (pass, coffee, jukebox, Dash), never as clutter on the first run.
+- **One car, many places.** Every shift is played on the car's unfolded
+  patio; the place around it (truck stop, drive-in, fairground, harbour, Old
+  Town, Moon Mile) is the scenery and decides the crowd. The route map is one
+  continuous night landscape with the car driving the forks.
+- **Night light.** The patio is the warm bright centre; the place falls into
+  moonlit haze with neon and bulbs blooming. Gameplay reads first.
+- **Pictures, not glyphs.** Bubbles, buttons and cards use illustrated
+  stickers; patience is a draining bar or ring; machine bubbles sit above
+  the machines and carry no words.
+- **Split work.** Codex built the places (car, truck, stage, places, route
+  map); Claude built what you touch (machines, dishes, people, effects,
+  lighting, camera, interface).
+
+## Diner: the night route and a tactile kitchen (4 October 2026)
+
+The solo game now offers a roguelite campaign beside the three free-play
+nights. Its 18 shifts cross six districts, with two seeded routes per shift
+and a boss every third shift. Bosses test service, repairs, demanding guests,
+careful cooking through brownouts, mimic spotting, then all those skills
+together. Each win offers three equipment choices; 30 pieces of equipment
+and three repeatable supplies change real simulation rules. Banked earnings
+buy 13 permanent workshop upgrades with 28 ranks. A cleared campaign can
+continue into harder, repeatable overtime circuits. Online co-op keeps free
+play. See [diner.md](diner.md) and the
+[campaign evidence](concepts/2026-10-04-diner-overhaul/campaign-validation.md).
+
+- **A full viewport.** The 3D canvas covers the screen. The stick and action
+  buttons float over the lower corners, labeled coins and lives sit under the phone
+  top bar, and the complete kitchen, booths, queue and doorway fit between
+  them. Broad screens lower the camera to show faces; portrait retains its
+  overview. Warm wall and quieter floor continue beyond the room.
+- **Materials and people.** Enamel, vinyl, brushed chrome, tile grout,
+  painted wood, cloth and skin have their own textures and roughness.
+  Sculpted profiles, separate hair, ears, hands and articulated limbs give
+  guests friendly expressions and readable outfits. Eating, impatience and
+  carrying animate their own joints. Outfit clues keep their original rule.
+- **Readable machines.** Dish markers identify every station while idle.
+  The grill, mixer and fryer each have two independent cooking lanes from
+  the first shift. One tray still carries one item. Cooker needles, heating,
+  two turning spindles, fryer lifts, a pie lid and running
+  wash water show activity. Jammed machines show a wrench and amber lamps;
+  brownouts slow cooking and dim the kitchen. Normal walking remains
+  4.2 units per second; Space/Use stays the same.
+- **A run you can leave.** Atomic local checkpoints retain the full shift,
+  wallet and equipment. Boss results settle once; stale checkpoints cannot
+  undo earnings. The shared Leave dialog confirms the saved run. Blocked
+  browser storage is reported instead of claiming a save.
+- **Art and planning.** Fresh square and wide covers use a painted
+  mid-century diner illustration with the title integrated into the art.
+  The campaign follows a live 3D night landscape through Roadside, Midtown,
+  Fairground, Docks, Old Town and Moon Mile, with floating shift and equipment
+  choices and a workshop overlay. Exact prompts and native sources are preserved in the
+  [artwork record](concepts/2026-10-04-diner-overhaul/artwork/README.md).
+
+## Trivia: three ways to play the mini-games (4 October 2026)
+
+William renamed Quiz to **Trivia** and asked for three match formats: a simple
+one, one where points and victories build something, and a longer journey with
+more choices. He selected **Expedition with routes and trophies** for the last.
+The library, setup lid and public copy now say Trivia. The internal `miro` ID,
+mini-game IDs and compatible saved matches stay stable.
+
+- **Quick Play** keeps the flexible match: Atlas, Sizes, Years and Order share
+  cumulative points. After every round the host picks another mini-game or
+  End, up to twelve rounds. Its optional ten-second table vote is unchanged.
+- **Tower** lasts four complete rounds: Atlas, Sizes, Years and Order once
+  each, with three prompts in every round. The host picks their order from the
+  games still to play. Each hundred points builds one floor; each round winner
+  earns two extra floors, including tied winners. The tallest tower wins, then
+  total points. The host ends the match after the fourth round.
+- **Expedition** plays the same four complete mini-games once each. Before
+  each round, choose just one private route and lock. Trail always moves one
+  step. River moves two with 150 points, otherwise one. Summit moves three with
+  240 points, otherwise none. Every three steps earns a checkpoint trophy
+  automatically. There are no coins, supplies or purchases in new matches.
+  Furthest distance wins, then points; an exact tie is shared. After round four
+  the host ends directly, without another lock from every player.
+- **Shared play.** Each prompt still scores up to one hundred points. These
+  games remain human-only in production and everyone plays for themselves.
+  Route choices stay private even from the host until the next round begins;
+  readiness is public. You can unlock before everyone locks. The host moves
+  reveals and picks the remaining games, regardless of a previous Quick Play
+  voting preference. Quick Play has no round pill; fixed modes use the shared
+  four-round pill. Setup keeps the three graphical mode pieces and shared
+  Rules, long-press and keyboard inspection.
+- **3D presentation.** The warm measuring desk frames complete miniature
+  worlds. Tower builds sandstone arcade floors with lacquer bases, recessed
+  enamel windows, brass trim, ribbed copper/teal roofs and cloth pennants. The
+  roof lifts before new tiers land and settles afterwards. Expedition follows
+  an actual sculpted path through a pine grove, river bridge, sewn camp and
+  mountain trophy, with detailed seat-coloured traveller tokens, moving water
+  and quiet cloth motion. The accessible score ledger remains available when
+  WebGL is unavailable. Landscape and portrait cameras fit the complete forms
+  to the measured canvas. Motion stops when hidden or reduced motion is set;
+  closing the board disposes its renderer and resources. Results retain the
+  3D world and shared reveal/count-up pieces. Editable sources, briefs and
+  visual evidence live in [the 3D record](concepts/2026-10-04-trivia-3d/verification.md).
+- **Existing matches.** New states carry `trivia.rules: 2`. Marker-absent
+  five-round Tower and eight-round Expedition saves finish under their original
+  scoring and shop rules; their help and round pill match those rules. Older
+  Quick Play saves remain compatible.
+- **Development testing.** Tower and Expedition have a Debug entry in the
+  local development menu. Live tables open an independent review tab; the
+  review bench opens its debug controls in place. Switch modes, set two to six
+  seats, pick mixed/perfect/missed scores and an Expedition route, simulate a
+  complete round, jump to results, restart or replay the last 3D animation.
+  Simulations use legal answers, locks, reveals and host picks. Completed
+  progress and fully locked decisions are retained. Debug data stays in the
+  review tab and never writes to a live table. Production has no Debug entry.
+- **Artwork.** Fresh square and wide sources, exact prompts and crop reviews
+  are preserved in [the cover record](concepts/2026-10-04-trivia-covers/README.md).
+  Both covers have the title integrated into the art, with no visible DOM title.
+
 ## Diner: a night diner, co-op, with mimics (3 October 2026)
 
 William asked for a solo and co-op game in the spirit of the impostor party
@@ -701,6 +1099,103 @@ other players' boards were hard to read at an angle.
 - **Bigger specials**: 60 px on wide screens, 44 px on phones.
 - **Others shows plans.** Each other sheet is pictured straight down
   through a long lens, cropped to the board, larger.
+
+### Rota: a living town, dusk and a loading screen (8 October 2026)
+
+William is demoing Rota in his CV portfolio, ending on the finished board,
+and asked for it to load quickly, make sense in motion and look as alive as
+possible: a loading screen instead of a blank board, trains that never seem
+to reverse, traffic only where it can come from, many more cars, people
+walking the housing, crossings with lights, and lived-in houses.
+
+- **Loading screen** (`rota-loading.tsx`). A goods train with an engine
+  at each end crosses a brick viaduct into the mill town at golden hour.
+  It never jumps: the town's layers, arches, rails and wheels slide at
+  steady speeds as compositor animations, so they stay smooth while the
+  board is being built (William found a train tied to the download share
+  "jagged"). A light along the parapet fills, with a long ease, as the
+  models arrive. The moment the board is drawn the train pulls away out of
+  the picture as the screen fades into it (the station arrival it once
+  waited for was dropped the same night, below). It never shows when the
+  models are cached. The setup box starts the download while it is open.
+- **Fast models.** The four GLBs are quantized and meshopt-compressed by
+  `scripts/rota-assets.mjs` (15.7 MB to 5.2 MB, same geometry, under a
+  millimetre of error at real scale), decoded with three's meshopt decoder,
+  and served with immutable caching like Arena's.
+- **Top and tail.** Every train has an engine at each end facing out, so
+  whichever way it runs an engine leads.
+- **Only live networks carry traffic.** A network carries vehicles when it
+  runs off the board, or when it links two goods stations at least one of
+  which a live network of the other kind serves. A siding or street that
+  leads nowhere stays empty.
+- **Busy streets.** Each street network that runs off the board carries
+  about one vehicle per 0.7 squares of street, up to 22. Dead ends and
+  junction corridors admit only what can turn or leave, so the streets
+  never lock. The first network's traffic is fast-forwarded half a minute
+  before anyone sees it, new vehicles start just out of the picture, and a
+  vehicle leaving is gone once the picture has lost it.
+- **Dusk.** The afternoon wears on with the match: golden in round one,
+  blue hour when the match is over (`BoardView.dusk`, 0 to 0.8 over the
+  rounds, 1 at the end). Windows light one by one, gas lamps throw pools on
+  the setts, vehicles show head and tail lamps; routes and marks stay as
+  readable as by day.
+- **Town life.** Residents walk the back lanes and the old town's streets
+  outside the hoarding (never the board or the exit roads) and call at real
+  doors; zebra crossings with Belisha beacons where they cross a road exit,
+  gated level crossings with red signals on the rail exits, closing for
+  real trains; washing lines, birds and household smoke. Implementation
+  notes: [concepts/2026-10-08-rota-town-life/verification.md](concepts/2026-10-08-rota-town-life/verification.md).
+
+### Rota: traffic that flows, and passengers at the stations (8 October 2026, night)
+
+William found the loading screen dragging on after the board was ready (it
+waited for the train to run into a station and brake) with a glitch as the
+train sped up; cars piling up, each waiting for the one ahead to finish a
+whole square "though there's no light"; and asked for cars and trains to
+set people down at the stations, realistically, with good pavements.
+
+- **Loading ends when loading ends.** When the board is drawn the train
+  pulls away out of the right edge (an accelerating compositor transition)
+  while the screen fades (opacity only); about 0.7 s, nothing waits. The
+  glitch was the old arrival: a frame loop changing every animation's
+  playback rate while the main thread was busy drawing the board.
+- **Junction boxes, not held squares** (`traffic-sim.ts`). Each way through
+  a junction holds only its box: the stretch where its lane crosses or
+  merges with another's. Cars drive up to the box's mouth inside the
+  square, share the junction with anyone whose lane never meets theirs
+  (opposite straights, two right turns), follow the car ahead straight
+  through, give way first come first served, and only go in with room for
+  their whole body beyond. Bends and bridges are never held. Drivers follow
+  with the intelligent driver model: gentle starts after a short reaction,
+  easing for bends (tighter turning right, on the inside), and a car ahead
+  that is driving on counts as clearing the way. Measured over twelve bot
+  boards: cars stood 63% of the time before, about 12% after; the median
+  stop fell from 10 s to under 2 s (`work/` stats harness, not shipped).
+- **Stations are ranks and termini.** Cars queue nose to tail on a
+  station's street like a taxi rank, as many as fit, each pulling up short
+  of the station steps, setting down, and turning round in turn. Trains run
+  in to the platform and stand with their tail on the track behind (before,
+  a train that did not fit the short station track never called at all).
+- **Passengers** (`lib/games/rota/passengers.ts`, drawn by
+  `three/passengers.ts` with the residents' figures at true size). A car's
+  passengers duck out of the kerb-side doors, step up onto the pavement,
+  walk to and climb the station steps and go in at the booking-hall door;
+  a railcar's step down from its doors onto the platforms and walk in.
+  People come out to wait on the platforms (facing the track) and at the
+  kerb, and get in when their train or car comes; the vehicle stands as long
+  as they need and its doors open and shut around them. Nobody waits where
+  no passenger train or car runs, and anyone left waiting goes back in.
+- **Stations rebuilt for people.** Passenger stations replace the goods
+  sheds: a booking hall with a door in every wall on a platform-level bank,
+  side platforms along each track with lamps, benches and a nameboard, and
+  a flight of steps down to each street. Passenger trains are two-car
+  diesel railcars (cab at each end); goods trains still run top and tail.
+- **Pavements.** Every street and junction now has a granite kerb line and
+  a darker gutter between the flags and the setts.
+- **Mill sites** (the Mills extension) show their footings only while the
+  site is empty; once a piece is laid there the town grows over it.
+  Models brief and review:
+  [concepts/2026-10-08-rota-passengers/models.md](concepts/2026-10-08-rota-passengers/models.md).
 
 ## Know Me and Quiz: everyone guesses everyone, four games each, the host picks (29 September 2026)
 
@@ -1963,7 +2458,8 @@ Phones are portrait only. A tap while a game is open asks for fullscreen and a
 portrait lock where the browser allows it (Android Chrome); leaving fullscreen
 from the menu is respected. Where the lock is unavailable (iOS Safari), a
 landscape phone shows a rotate screen. Short landscape phone layouts are no
-longer an acceptance target.
+longer an acceptance target. The one exception is Diner, which plays sideways
+(see the Diner section of 9 October 2026).
 
 On phones the Nox and Yata docks are a grid: the stage takes the free height,
 one control row (die or menus, the confirm plate, Undo in its own right-hand

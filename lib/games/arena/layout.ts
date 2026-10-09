@@ -140,13 +140,14 @@ export const acrossPoints: Vec3[] = [
   [1.8, 5.6, 14.8],
 ];
 
-/** The size towers are drawn at (their model's; the rules' footprint
- *  either way). Since 3 October 2026 they stand taller than the troops:
- *  1.05 looking across (0.8 before), 1.35 looking steeply down on portrait
- *  screens, where the troops grow too and the towers take more of the
- *  field. */
+/** Keep the towers inside their native solid footprint on every screen.
+ *  Portrait retains a little more presence without crowding the lanes. */
 export function towerScale(lens?: Lens) {
-  return 1.05 + (1 - (lens?.wide ?? 1)) * 0.3;
+  return 0.85 + (1 - (lens?.wide ?? 1)) * 0.05;
+}
+/** The approved archers keep their size as the stone shells get smaller. */
+export function towerGuardScale(lens?: Lens) {
+  return Math.sqrt((1.05 + (1 - (lens?.wide ?? 1)) * 0.3) / 0.8);
 }
 /** The tower tops in the key points were measured at 0.8. */
 const MEASURED_TOWERS = 0.8;

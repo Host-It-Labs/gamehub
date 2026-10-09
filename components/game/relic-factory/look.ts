@@ -12,19 +12,20 @@ export function makeMaterials(): Record<MatKey, THREE.Material> {
       roughness: 0.74,
       metalness: 0,
     }),
+    // Satin, not lacquer: a soft sheen that keeps colours flat and calm.
     gloss: new THREE.MeshPhysicalMaterial({
       vertexColors: true,
-      roughness: 0.34,
-      metalness: 0.04,
-      clearcoat: 0.7,
-      clearcoatRoughness: 0.18,
-      envMapIntensity: 0.9,
+      roughness: 0.5,
+      metalness: 0,
+      clearcoat: 0.22,
+      clearcoatRoughness: 0.4,
+      envMapIntensity: 0.6,
     }),
     metal: new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.26,
-      metalness: 0.88,
-      envMapIntensity: 1.15,
+      roughness: 0.42,
+      metalness: 0.82,
+      envMapIntensity: 0.8,
     }),
     dark: new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -66,61 +67,86 @@ function canvas(
 /** Rubber with chevrons pointing the way the belt runs (+u). */
 export function chevronTexture() {
   const t = canvas(256, 256, (c) => {
-    c.fillStyle = '#292f2d';
+    c.fillStyle = '#2b2f36';
     c.fillRect(0, 0, 256, 256);
     // Fine ribs catch the light without becoming visual noise at overview.
     for (let x = 0; x < 256; x += 16) {
-      c.fillStyle = '#202725';
+      c.fillStyle = '#20242b';
       c.fillRect(x, 0, 2, 256);
-      c.fillStyle = '#343b37';
+      c.fillStyle = '#363b43';
       c.fillRect(x + 2, 0, 1, 256);
     }
-    c.strokeStyle = '#53645a';
-    c.lineWidth = 25;
+    c.strokeStyle = '#d6b665';
+    c.lineWidth = 36;
     c.lineCap = 'round';
     c.beginPath();
     c.moveTo(64, 42);
     c.lineTo(165, 128);
     c.lineTo(64, 214);
     c.stroke();
-    c.fillStyle = '#1b201e';
+    c.fillStyle = '#191c23';
     c.fillRect(0, 0, 256, 9);
     c.fillRect(0, 247, 256, 9);
   });
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(3, 1);
+  t.repeat.set(2, 1);
   t.anisotropy = 16;
   return t;
 }
 
-/** Linear height data matching the eight tiles across floor.webp. The
- * original painted colour stays; grout and a rolled tile edge catch light
- * independently, so the floor has relief when viewed close to the models. */
-export function floorBumpTexture() {
-  const t = canvas(1024, 1024, (c) => {
-    c.fillStyle = '#505050';
-    c.fillRect(0, 0, 1024, 1024);
-    for (let y = 0; y < 1024; y += 128)
-      for (let x = 0; x < 1024; x += 128) {
-        c.fillStyle = '#8c8c8c';
-        c.fillRect(x + 2, y + 2, 124, 124);
-        c.fillStyle = '#b6b6b6';
-        c.fillRect(x + 3, y + 3, 122, 122);
-        c.fillStyle = '#c8c8c8';
-        c.fillRect(x + 5, y + 5, 118, 118);
+export const FLOOR_TILES_PER_REPEAT = 2;
+export const REACH_STYLE = {
+  lamp: { colour: '#f1e2b4', idle: 0.24, boost: 0.42 },
+  charm: { colour: '#b7e3bf', idle: 0.18, boost: 0.32 },
+} as const;
+
+/** Pale sage stone, four subtly different tiles. The 2x2 repeat keeps each
+ * tile aligned with one factory cell; all grain is deterministic. */
+export function floorTexture() {
+  const t = canvas(256, 256, (c) => {
+    c.fillStyle = '#8e9f8b';
+    c.fillRect(0, 0, 256, 256);
+    const tones = ['#b5c0a9', '#afbba3', '#b9c3ad', '#b2bea6'];
+    for (let row = 0; row < FLOOR_TILES_PER_REPEAT; row++)
+      for (let col = 0; col < FLOOR_TILES_PER_REPEAT; col++) {
+        const x = col * 128,
+          y = row * 128;
+        c.fillStyle = tones[row * 2 + col];
+        c.fillRect(x + 1, y + 1, 126, 126);
+        c.fillStyle = 'rgba(244,248,232,0.14)';
+        c.fillRect(x + 2, y + 2, 124, 1);
+        c.fillRect(x + 2, y + 2, 1, 124);
+        c.fillStyle = 'rgba(52,74,60,0.14)';
+        c.fillRect(x + 126, y + 2, 1, 125);
+        c.fillRect(x + 2, y + 126, 125, 1);
       }
-    // Deterministic, very shallow enamel texture; no generated raster source.
     let seed = 7349;
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < 1800; i++) {
       seed = Math.imul(seed ^ (seed >>> 13), 1597334677) >>> 0;
-      const x = seed % 1024;
+      const x = 3 + (seed % 250);
       seed = Math.imul(seed ^ (seed >>> 15), 1597334677) >>> 0;
-      const y = seed % 1024;
-      if (x % 128 < 6 || y % 128 < 6 || x % 128 > 122 || y % 128 > 122)
-        continue;
-      c.fillStyle = i % 2 ? '#c6c6c6' : '#cacaca';
+      const y = 3 + (seed % 250);
+      c.fillStyle = i % 2 ? 'rgba(52,74,60,0.04)' : 'rgba(244,248,232,0.04)';
       c.fillRect(x, y, 1, 1);
     }
+  });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 16;
+  return t;
+}
+
+/** Shallow stone relief matching the procedural colour tile. */
+export function floorBumpTexture() {
+  const t = canvas(256, 256, (c) => {
+    c.fillStyle = '#909090';
+    c.fillRect(0, 0, 256, 256);
+    for (let row = 0; row < FLOOR_TILES_PER_REPEAT; row++)
+      for (let col = 0; col < FLOOR_TILES_PER_REPEAT; col++) {
+        c.fillStyle = '#b8b8b8';
+        c.fillRect(col * 128 + 1, row * 128 + 1, 126, 126);
+        c.fillStyle = '#bebebe';
+        c.fillRect(col * 128 + 2, row * 128 + 2, 124, 124);
+      }
   });
   t.colorSpace = THREE.NoColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -128,12 +154,48 @@ export function floorBumpTexture() {
   return t;
 }
 
+/** A feathered square, not a radius: diagonal neighbours get the same
+ * reach as cardinal neighbours. No per-booster lights or texture loads. */
+export function reachTexture(sparkles = false) {
+  return canvas(256, 256, (c) => {
+    const pixels = c.createImageData(256, 256);
+    for (let y = 0; y < 256; y++)
+      for (let x = 0; x < 256; x++) {
+        const d = Math.max(Math.abs(x - 127.5), Math.abs(y - 127.5)) / 128;
+        const edge = Math.max(0, Math.min(1, (1 - d) / 0.14));
+        const a = edge * edge * (3 - 2 * edge) * (0.7 + (1 - d) * 0.18);
+        const i = (y * 256 + x) * 4;
+        pixels.data.set([255, 255, 255, Math.round(a * 255)], i);
+      }
+    c.putImageData(pixels, 0, 0);
+    if (sparkles) {
+      c.fillStyle = 'rgba(255,255,255,0.86)';
+      for (let row = 0; row < 3; row++)
+        for (let col = 0; col < 3; col++) {
+          const x = 30 + col * 84 + (row % 2) * 8,
+            y = 38 + row * 82;
+          c.beginPath();
+          c.moveTo(x, y - 4);
+          c.lineTo(x + 1.4, y - 1.4);
+          c.lineTo(x + 4, y);
+          c.lineTo(x + 1.4, y + 1.4);
+          c.lineTo(x, y + 4);
+          c.lineTo(x - 1.4, y + 1.4);
+          c.lineTo(x - 4, y);
+          c.lineTo(x - 1.4, y - 1.4);
+          c.closePath();
+          c.fill();
+        }
+    }
+  });
+}
+
 /** Faint cell lines to place machines by (one cell per repeat). */
 export function gridTexture() {
   const t = canvas(64, 64, (c) => {
     c.clearRect(0, 0, 64, 64);
-    c.strokeStyle = 'rgba(255, 240, 205, 0.9)';
-    c.lineWidth = 2;
+    c.strokeStyle = 'rgba(46, 72, 58, 0.5)';
+    c.lineWidth = 1.4;
     c.strokeRect(1, 1, 62, 62);
   });
   t.wrapS = t.wrapT = THREE.RepeatWrapping;

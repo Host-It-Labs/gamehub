@@ -1,11 +1,21 @@
-/* Relic's paper workshop: cream stock, copper tools and a deep teal desk. */
+/* Lucky's workshop: one green desk under a warm lamp. Every control is a
+ * plate from the factory's own set: bottle-green enamel, a brass rim and
+ * cream lettering, so the toy factory and the tickets share one table. */
 .relic-scratch-room {
   --cream: #f5e7c7;
   --gold: #e7bd6f;
-  --panel: #10332ce6;
-  --panel-line: #b3b89833;
+  --brass: #c9a45a;
+  --ink: #173a33;
+  --panel: #10302af0;
+  --panel-line: #c9a45a52;
   --muted: #b9c2a8;
-  --stage-top: 100px;
+  --plate: linear-gradient(#1b463ce8, #0e2c26f0);
+  --plate-shadow:
+    inset 0 1px 0 #fff3e01c, inset 0 -2px 0 #0003, 0 10px 24px #02110e66;
+  --top-bar: 66px;
+  --tab-bar: 0px;
+  --stage-top: calc(max(10px, env(safe-area-inset-top)) + var(--top-bar));
+  --stage-bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--tab-bar));
   position: relative;
   isolation: isolate;
   width: 100%;
@@ -47,71 +57,89 @@
   height: 100%;
   object-fit: cover;
 }
+/* The lamp: a warm pool in the middle of the desk, the edges falling off. */
 .relic-scratch-room::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: -1;
-  background: linear-gradient(#06221dc0, #06221d70 30%, #06221d80);
+  background:
+    radial-gradient(ellipse 62% 58% at 50% 52%, #f6d99a1f, transparent 72%),
+    radial-gradient(ellipse 90% 85% at 50% 50%, #06221d70, #04140fd8);
 }
-.relic-scratch-room:not([data-tab='tickets'])::after {
-  background: #061f1ae0;
+.relic-scratch-room[data-tab='upgrades']::after {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, #f6d99a14, transparent 70%),
+    #061f1ad8;
 }
 .relic-scratch-room .game-navigation button {
   display: flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid #b3b89840;
+  border: 1px solid var(--panel-line);
   border-radius: 12px;
-  background: #173a33e8;
+  background: var(--plate);
   color: var(--cream);
-  box-shadow: 0 3px 10px #071e2340;
+  box-shadow: var(--plate-shadow);
 }
 .relic-scratch-room .game-progress {
   color: var(--muted);
 }
 
-/* Top: tabs and the shared purse. */
+/* Top centre: the three rooms and the shared purse. */
 .rs-top {
   position: absolute;
   top: max(10px, env(safe-area-inset-top));
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   z-index: 9;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  pointer-events: none;
+}
+.rs-top > * {
+  pointer-events: auto;
 }
 .rs-tabs {
   display: flex;
   gap: 3px;
   padding: 4px;
-  border-radius: 14px;
-  background: var(--panel);
+  border-radius: 15px;
+  background: var(--plate);
   border: 1px solid var(--panel-line);
+  box-shadow: var(--plate-shadow);
 }
 .rs-tabs button {
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
-  min-height: 38px;
+  min-height: 40px;
   padding: 0 16px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 11px;
   background: none;
   font-size: 13px;
   font-weight: 650;
   color: var(--muted);
 }
+.rs-tabs button:not([aria-selected='true']):hover {
+  color: var(--cream);
+  background: #ffffff0d;
+}
 .rs-tabs button[aria-selected='true'] {
-  background: var(--cream);
-  color: #173a33;
+  background: linear-gradient(#fbf0d6, #ead7ac);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 2px 0 #a8834a,
+    0 4px 10px #02110e50;
 }
 /* Where the other players are: their colour dots on the tab's corner. */
-.rs-tabs button {
-  position: relative;
-}
 .rs-tab-here {
   position: absolute;
   top: -6px;
@@ -138,30 +166,31 @@
 .rs-tab-here i:first-child {
   margin-left: 0;
 }
-/* The purse keeps one size whatever it holds; notifications hang below it. */
+/* The purse: a brass coin counter that keeps one size whatever it holds;
+ * notifications hang below it. */
 .rs-purse {
   position: relative;
 }
 .rs-wallet {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 64px;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: 7px;
+  gap: 8px;
   box-sizing: border-box;
-  width: 214px;
-  padding: 8px 12px;
-  border-radius: 14px;
-  background: var(--panel);
-  border: 1px solid var(--panel-line);
+  width: 236px;
+  min-height: 50px;
+  padding: 8px 14px;
+  border-radius: 15px;
+  background:
+    radial-gradient(ellipse 80% 120% at 20% 0%, #f6d99a26, transparent 60%),
+    var(--plate);
+  border: 1px solid #c9a45a8c;
+  box-shadow:
+    var(--plate-shadow),
+    inset 0 0 0 3px #0e2c26,
+    inset 0 0 0 4px #c9a45a33;
   color: var(--gold);
   white-space: nowrap;
-}
-.rs-wallet strong {
-  overflow: hidden;
-}
-.rs-wallet small {
-  overflow: hidden;
-  text-align: right;
 }
 .rs-toasts {
   position: absolute;
@@ -457,23 +486,36 @@
   align-self: center;
 }
 .rs-wallet strong {
+  overflow: hidden;
   font:
-    700 22px/1 Georgia,
+    700 23px/1 Georgia,
     serif;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 #0006;
 }
 .rs-wallet small {
   font-size: 11px;
   color: #b7d99c;
   font-variant-numeric: tabular-nums;
 }
+/* Every view sits between the top bar and the bottom edge (or the tab bar). */
 .rs-stage {
   position: absolute;
   top: var(--stage-top);
   right: max(14px, env(safe-area-inset-right));
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: var(--stage-bottom);
   left: max(14px, env(safe-area-inset-left));
   min-height: 0;
+}
+/* The factory fills the whole room; controls float over it. Kept built and
+ * sized while another tab covers it. */
+.rs-stage.is-factory {
+  inset: 0;
+}
+.rs-stage.is-factory[hidden] {
+  display: block;
+  visibility: hidden;
+  pointer-events: none;
 }
 .rs-primary {
   display: inline-flex;
@@ -484,32 +526,33 @@
   padding: 0 22px;
   border: 0;
   border-radius: 14px;
-  background: linear-gradient(#f0c77c, #d49c52);
+  background: #e4c88f;
   color: #3b2512 !important;
   font-weight: 750 !important;
   font-size: 14px !important;
   box-shadow:
-    0 3px 0 #8c5b28,
-    0 8px 18px #04181460;
+    0 3px 0 #8c6a3a,
+    0 8px 18px #04181450;
   white-space: nowrap;
 }
 .rs-primary:not(:disabled):hover {
   transform: translateY(-1px);
+  filter: brightness(1.04);
 }
 .rs-primary:not(:disabled):active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #8c5b28;
+  box-shadow: 0 1px 0 #8c6a3a;
 }
 .rs-spin {
   animation: scratch-spin 1s linear infinite;
 }
 
-/* Tickets: the shelf, the table and one ticket held up big. */
+/* Tickets: the shelf of books, and the ticket held up big with its rail. */
 .rs-desk {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: 272px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
-  gap: 18px;
+  gap: 20px;
   height: 100%;
 }
 .rs-shelf {
@@ -521,47 +564,66 @@
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  padding: 2px;
+  scrollbar-width: none;
+  padding: 3px;
 }
 .rs-book {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
-  flex: 0 0 auto;
-  min-height: 58px;
-  padding: 5px 6px 5px 5px;
+  flex: 1 0 auto;
+  max-height: 96px;
+  padding: 6px;
   border: 1px solid var(--panel-line);
-  border-radius: 14px;
+  border-radius: 15px;
   background:
     linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--book, #365a50) 26%, transparent),
-      transparent 70%
+      100deg,
+      color-mix(in srgb, var(--book, #365a50) 30%, transparent),
+      transparent 62%
     ),
-    var(--panel);
+    var(--plate);
+  box-shadow: var(--plate-shadow);
   text-align: left;
 }
+.rs-book.is-selected {
+  border-color: var(--gold);
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--book, #365a50) 55%, transparent),
+      transparent 70%
+    ),
+    var(--plate);
+  box-shadow:
+    0 0 0 1px var(--gold),
+    var(--plate-shadow);
+}
 .rs-book-take {
-  display: flex;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
   align-items: center;
-  gap: 9px;
+  column-gap: 10px;
+  row-gap: 5px;
   flex: 1 1 auto;
   min-width: 0;
-  padding: 0 4px 0 0;
+  padding: 0 2px 0 0;
   border: 0;
   border-radius: 10px;
   background: none;
   text-align: left;
 }
-.rs-book-take:not(:disabled):hover .rs-book-cover {
+.rs-book-take:hover .rs-book-cover {
   transform: translateY(-2px) rotate(-3deg);
 }
-.rs-book-plus {
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: var(--gold);
+.rs-book.is-for-sale,
+.rs-book.is-hidden {
+  align-items: center;
+  gap: 10px;
+  flex-grow: 0;
+  min-height: 56px;
 }
 .rs-book.is-for-sale {
   border-style: dashed;
@@ -569,7 +631,7 @@
 }
 .rs-book.is-for-sale:not(:disabled) {
   border-color: var(--gold);
-  box-shadow: 0 0 18px #e7bd6f33;
+  box-shadow: var(--plate-shadow);
 }
 .rs-book.is-hidden {
   opacity: 0.42;
@@ -578,21 +640,27 @@
   position: relative;
   display: grid;
   place-items: center;
+  grid-row: 1 / 3;
   flex: 0 0 auto;
-  width: 44px;
-  height: 48px;
+  width: 46px;
+  height: 100%;
+  min-height: 44px;
   color: #fff4dc;
   transition: transform 0.15s;
 }
 .rs-book.is-hidden .rs-book-cover {
+  width: 40px;
+  height: 44px;
   border-radius: 8px;
   background: #365a50;
+}
+.is-for-sale .rs-book-cover {
+  width: 40px;
+  height: 44px;
 }
 .rs-book-cover img {
   position: absolute;
   inset: 0;
-  min-height: 0;
-  max-height: 100%;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -608,69 +676,38 @@
   display: grid;
   gap: 2px;
   min-width: 0;
+  align-self: end;
 }
 .rs-book-text b {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .rs-book-text small {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.25;
-  text-wrap: balance;
 }
 .rs-price {
   color: var(--gold) !important;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.rs-levels {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 0 0 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
+.rs-price.is-free {
+  color: #b7d99c !important;
 }
-.rs-levels button {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 15px;
-  padding: 0;
-  border: 1px solid #b3b89840;
-  border-radius: 5px;
-  background: #0b2621;
-  color: var(--muted);
-  font:
-    700 9px/1 Georgia,
-    serif;
-}
-.rs-levels button[aria-pressed='true'] {
-  border-color: var(--gold);
-  background: var(--gold);
-  color: #3b2512;
-}
-.rs-levels button:disabled {
-  opacity: 0.55;
-}
-
-/* Book level and exact progress stay distinct from the I/II/III controls. */
-.rs-book:has(.rs-book-xp) {
-  padding-bottom: 23px;
-}
+/* Book level and its progress, under the name. */
 .rs-book-xp {
-  position: absolute;
-  left: 9px;
-  right: 9px;
-  bottom: 6px;
   display: flex;
   align-items: center;
   gap: 6px;
+  align-self: start;
+  min-width: 0;
   color: var(--gold);
   font: 700 10px/1.1 var(--font-sans, sans-serif);
   font-variant-numeric: tabular-nums;
@@ -708,50 +745,84 @@
     transition: none;
   }
 }
-.rs-book.is-held {
-  border-color: color-mix(in srgb, var(--book) 60%, var(--gold));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--book) 60%, var(--gold));
+/* Difficulties: I, II and III side by side, IV across beneath them.
+ * Flat enamel chips; the chosen one turns cream like the chosen tab. */
+.rs-levels {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  grid-auto-rows: 20px;
+  align-content: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
-.rs-price.is-free {
-  color: #b7d99c !important;
+.rs-levels button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0;
+  border: 1px solid #c9a45a40;
+  border-radius: 6px;
+  background: #0b2621;
+  color: var(--muted);
+  font:
+    700 10px/1 Georgia,
+    serif;
+}
+.rs-levels button:not(:disabled):not([aria-pressed='true']):hover {
+  border-color: #c9a45a99;
+  color: var(--cream);
+}
+.rs-levels button[aria-pressed='true'] {
+  border-color: #efe2c2;
+  background: #efe2c2;
+  color: var(--ink);
+}
+.rs-levels button:disabled {
+  opacity: 0.5;
+}
+/* IV: the book's hardest ticket, in cut-glass sapphire, so it reads as more. */
+.rs-levels .is-four {
+  grid-column: 1 / -1;
+  border-color: #8fc0ec66;
+  background: linear-gradient(135deg, #16324a, #0f2638);
+  color: #b9dcfb;
+  font:
+    700 11px/1 Georgia,
+    serif;
+  letter-spacing: 0.08em;
+}
+.rs-levels .is-four[aria-pressed='true'] {
+  border-color: #b9dcfb;
+  background: linear-gradient(135deg, #3f7fc0, #2a5c95 55%, #3b78b6);
+  color: #f3f9ff;
 }
 
-/* The ticket in your hand: always open, on a spotlit felt stage. */
+/* The ticket in your hand, held up under the lamp, its rail beside it. */
 .rs-hand {
+  container-type: size;
   position: relative;
   grid-column: 2;
   grid-row: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px;
-  gap: 16px;
+  display: flex;
+  justify-content: center;
   align-items: center;
+  gap: 22px;
   min-width: 0;
   min-height: 0;
-  padding: 12px 16px;
-  border-radius: 28px;
-  background:
-    radial-gradient(ellipse 55% 60% at 42% 48%, #2f6a55a8, transparent 70%),
-    radial-gradient(ellipse at 45% 50%, #0f3a31, #061a16);
-  box-shadow:
-    inset 0 0 0 1px #b3b89826,
-    inset 0 30px 80px #0a2a2350,
-    0 18px 40px #02110e60;
-}
-.rs-hand::before {
-  /* A soft pool of lamp light on the felt. */
-  content: '';
-  position: absolute;
-  inset: 8% 30% 12% 8%;
-  border-radius: 50%;
-  background: radial-gradient(#f6d99a26, transparent 70%);
-  pointer-events: none;
+  --rail: 200px;
 }
 .rs-hand-ticket {
   container-type: size;
   position: relative;
   display: grid;
   place-items: center;
-  width: 100%;
+  flex: 0 0 auto;
+  width: min(100cqh * var(--aspect), 100cqw - var(--rail) - 22px);
   height: 100%;
   min-height: 0;
 }
@@ -765,9 +836,9 @@
 .rs-big.is-star {
   filter: drop-shadow(0 0 22px #f1c25f90) drop-shadow(0 24px 30px #02110e90);
 }
-.rs-big.is-blank {
+.rs-big.is-blank .rs-big-art {
   opacity: 0.55;
-  filter: grayscale(0.35) drop-shadow(0 24px 30px #02110e90);
+  filter: grayscale(0.35);
 }
 .rs-big-art {
   position: absolute;
@@ -860,7 +931,17 @@
   align-items: stretch;
   justify-content: center;
   gap: 14px;
+  flex: 0 0 var(--rail);
   min-width: 0;
+}
+.rs-rail-status:empty {
+  display: none;
+}
+.rs-rail-status {
+  display: grid;
+}
+.rs-rail-buy {
+  display: grid;
 }
 .rs-lives {
   display: flex;
@@ -868,9 +949,10 @@
   justify-content: center;
   gap: 5px;
   padding: 12px 10px;
-  border-radius: 18px;
-  background: #0b2621c0;
-  box-shadow: inset 0 0 0 1px #b3b89826;
+  border-radius: 16px;
+  background: var(--plate);
+  border: 1px solid var(--panel-line);
+  box-shadow: var(--plate-shadow);
   color: #6b8d82;
 }
 .rs-lives .is-left {
@@ -884,11 +966,11 @@
   gap: 6px;
   padding: 16px 10px 12px;
   border-radius: 18px;
-  background: linear-gradient(#fff5dc, #f0d9a4);
-  color: #6a4417;
+  background: #f4e6c4;
+  color: #5e4019;
   box-shadow:
-    0 3px 0 #b88a45,
-    0 14px 30px #02110e80;
+    0 3px 0 #b89a62,
+    0 14px 30px #02110e70;
   animation: rs-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
 .rs-payout strong {
@@ -921,6 +1003,291 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+/* Book XP: what this ticket earned, filling the book's level bar. */
+.rs-payout-xp {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 12px;
+  background: #173a33;
+  color: #f3e3bb;
+}
+.rs-payout-xp > b {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rs-payout-xp-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.rs-payout .rs-payout-xp-bar small {
+  white-space: nowrap;
+  padding: 0;
+  background: none;
+  color: var(--muted);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.rs-payout-xp-bar progress {
+  width: 56px;
+  height: 7px;
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  background: #0b2621;
+  overflow: hidden;
+}
+.rs-payout-xp-bar progress::-webkit-progress-bar {
+  background: #0b2621;
+}
+.rs-payout-xp-bar progress::-webkit-progress-value {
+  background: #c9a45a;
+}
+.rs-payout-xp-bar progress::-moz-progress-bar {
+  background: #c9a45a;
+}
+
+/* The how-to slip on a ticket: a cream card over the painted heading,
+ * above the scratch panel (or beside it on Sea Chart), never on it. */
+.rs-guide {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  --ink: #23362f;
+}
+.rs-guide.is-top {
+  left: 7%;
+  right: 7%;
+  top: 10%;
+  height: calc(var(--panel-y) * 100% - 12%);
+}
+.rs-guide.is-left {
+  left: 4%;
+  top: 14%;
+  bottom: 10%;
+  width: calc(var(--panel-x) * 100% - 7%);
+}
+.rs-guide.is-shut {
+  justify-content: flex-end;
+}
+.rs-guide > * {
+  pointer-events: auto;
+}
+.rs-guide-card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  flex: 0 1 auto;
+  max-height: 100%;
+  padding: clamp(7px, 1.4cqh, 12px) clamp(9px, 1.8cqh, 16px);
+  padding-right: 30px;
+  border: 1px solid #c9a45a;
+  border-radius: 12px;
+  background: #f4ead3;
+  color: var(--ink);
+  box-shadow:
+    0 2px 0 #b89a62,
+    0 10px 22px #02110e59;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  animation: rs-guide-in 0.25s ease-out;
+}
+.rs-guide-rules {
+  --rules-heading: #23362f;
+  --rules-muted: #4f5f57;
+  margin: 0;
+}
+.rs-guide .rule-list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(4px, 0.9cqh, 9px);
+  margin: 0;
+}
+.rs-guide .rule-list li {
+  column-gap: 8px;
+}
+.rs-guide .rule-list b {
+  font-size: clamp(11px, 1.7cqh, 15px);
+  line-height: 1.2;
+}
+.rs-guide .rule-list small {
+  font-size: clamp(10px, 1.45cqh, 13.5px);
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+.rs-guide .rule-list small svg {
+  display: inline;
+  vertical-align: -1px;
+  color: #b65a47;
+}
+.rs-guide-mark {
+  display: grid;
+  place-items: center;
+  width: clamp(22px, 3.4cqh, 32px);
+  height: clamp(22px, 3.4cqh, 32px);
+  border-radius: 50%;
+  background: #23493f;
+  color: #f4ead3;
+  font:
+    700 clamp(11px, 1.7cqh, 15px) / 1 Georgia,
+    serif;
+  white-space: nowrap;
+}
+.rs-guide-mark svg {
+  color: #f0a796;
+}
+.rs-guide-facts {
+  flex: none;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #23493f;
+  color: #f4ead3;
+  font-size: clamp(10px, 1.45cqh, 13px);
+  font-weight: 650;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px #02110e40;
+}
+.rs-guide-facts b {
+  font-weight: 800;
+}
+.rs-guide-ship {
+  display: block;
+  width: calc(var(--n) * 6px);
+  height: 6px;
+  border-radius: 3px;
+  background: #c9d6cf;
+}
+.rs-guide-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+}
+.rs-guide-row .rs-guide-facts {
+  margin-right: auto;
+}
+.rs-guide-toggle {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #23493f1a;
+  color: var(--ink);
+}
+.rs-guide-toggle:hover {
+  background: #23493f33;
+}
+.rs-guide.is-shut .rs-guide-toggle {
+  position: static;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #c9a45a99;
+  background: #173a33e6;
+  color: #f4ead3;
+  box-shadow: 0 3px 8px #02110e66;
+}
+/* A wide ticket on a narrow screen has no room beside its panel, but room
+ * above it: the slip sits just over the ticket instead. */
+@container (max-width: 600px) {
+  /* Narrow screens: the slip hugs the top of the panel and may grow up past
+   * the ticket's edge into the room a width-bound ticket leaves above it. */
+  .rs-guide.is-top {
+    z-index: 6;
+    top: auto;
+    bottom: calc((1 - var(--panel-y)) * 100% + 1.5%);
+    height: auto;
+    max-height: calc(
+      var(--panel-y) * 100% - 3% +
+        max(0px, (100cqh - 100cqw / var(--aspect)) / 2 - 10px)
+    );
+    justify-content: flex-end;
+  }
+  .rs-guide.is-left {
+    top: auto;
+    bottom: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    width: auto;
+    /* Half the height the width-bound ticket leaves free (aspect 1.639). */
+    max-height: calc((100cqh - 100cqw / 1.639) / 2 - 14px);
+    justify-content: flex-end;
+  }
+}
+/* Wide screens: the slip stands beside the ticket, at the top of its rail,
+ * and leaves the ticket bare. Narrow ones keep it on the ticket. */
+.rs-guide.is-on-rail {
+  display: none;
+}
+@media (min-width: 761px) and (orientation: landscape), (min-width: 1101px) {
+  .rs-guide.is-on-ticket {
+    display: none;
+  }
+  .rs-guide.is-on-rail {
+    position: static;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+  }
+  .rs-guide.is-on-rail .rs-guide-card {
+    padding: 12px 30px 12px 12px;
+  }
+  .rs-guide.is-on-rail .rule-list b {
+    font-size: 14px;
+  }
+  .rs-guide.is-on-rail .rule-list small {
+    font-size: 12.5px;
+  }
+  .rs-guide.is-on-rail .rs-guide-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  .rs-guide.is-on-rail .rs-guide-facts {
+    font-size: 12px;
+  }
+}
+@keyframes rs-guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-guide-card {
+    animation: none;
+  }
+}
+.rs-toast.is-four .rs-toast-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(135deg, #3f7fc0, #2a5c95 55%, #3b78b6);
+  color: #f3f9ff;
+}
 .rs-net {
   font:
     700 14px/1 Georgia,
@@ -929,7 +1296,7 @@
   font-variant-numeric: tabular-nums;
 }
 .rs-payout.is-loss {
-  background: linear-gradient(#f6e6dc, #e6c2ae);
+  background: #f0dccf;
   color: #6b3325;
   box-shadow:
     0 3px 0 #a0634f,
@@ -939,11 +1306,10 @@
   color: #b23a2a;
 }
 .rs-payout.is-perfect {
-  background: linear-gradient(#ffe9a8, #f2b640);
+  background: #ecd08e;
   box-shadow:
-    0 3px 0 #9a6516,
-    0 0 40px #f6c55a90,
-    0 14px 30px #02110e80;
+    0 3px 0 #a07a3c,
+    0 14px 30px #02110e70;
 }
 .rs-payout.is-waiting {
   min-height: 72px;
@@ -953,19 +1319,67 @@
   box-shadow: none;
 }
 .rs-again {
-  flex-wrap: wrap;
-  min-height: 56px;
-  font-size: 16px !important;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  min-height: 64px;
+  padding: 8px 16px;
+  font-size: 17px !important;
+}
+/* Out of coins: Buy turns into the house's free Lucky Seven I, in green. */
+.rs-again.is-house {
+  background: #b7d99c;
+  box-shadow:
+    0 3px 0 #5f8a4a,
+    0 8px 18px #04181450;
+  animation: rs-house 1.6s ease-in-out infinite;
+}
+.rs-again.is-house:not(:disabled):active {
+  box-shadow: 0 1px 0 #5f8a4a;
+}
+@keyframes rs-house {
+  50% {
+    translate: 0 -2px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-again.is-house {
+    animation: none;
+  }
+}
+.rs-book.is-house {
+  border-color: #b7d99c;
+  box-shadow:
+    0 0 0 1px #b7d99c,
+    var(--plate-shadow);
+}
+.rs-again-book {
+  width: 26px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px #3b251255);
 }
 .rs-again-price {
+  grid-column: 1 / -1;
+  justify-self: center;
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 10px;
   background: #3b25121c;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+}
+/* A IV ticket wears a sapphire badge; nothing else changes. */
+.rs-level-badge.is-four {
+  border-color: #b9dcfb99;
+  background: linear-gradient(135deg, #3f7fc0, #2a5c95 55%, #3b78b6);
+  color: #f3f9ff;
+  letter-spacing: 0.06em;
 }
 @keyframes rs-lift {
   from {
@@ -1308,133 +1722,26 @@
     serif;
   color: var(--cream);
 }
-.rs-factory {
-  display: grid;
-  grid-template-columns: 214px minmax(0, 1fr);
-  gap: 16px;
-}
-.rs-palette {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
-}
-.rs-palette-tools {
-  display: flex;
-  gap: 5px;
-}
-.rs-palette-tools button,
-.rs-icon-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  flex: 1;
-  min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--panel-line);
-  border-radius: 11px;
-  background: var(--panel);
-  font-size: 12px;
-}
-.rs-palette-tools button[aria-pressed='true'] {
-  background: var(--cream);
-  color: #173a33;
-}
-.rs-rotate i {
-  font-style: normal;
-  font-weight: 800;
-  display: inline-block;
-  transition: rotate 0.15s;
-}
-.rs-palette-list {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-content: start;
-  gap: 6px;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  padding: 2px;
-}
-.rs-part {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  padding: 6px 4px 7px;
-  border: 1px solid var(--panel-line);
-  border-radius: 14px;
-  background:
-    radial-gradient(ellipse at 50% 30%, #2f6a5580, transparent 70%),
-    var(--panel);
-  text-align: center;
-}
-.rs-part:not(:disabled):hover .rs-part-art img {
-  transform: translateY(-2px) scale(1.05);
-}
-.rs-part[aria-pressed='true'] {
-  border-color: var(--gold);
-  background:
-    radial-gradient(ellipse at 50% 30%, #e7bd6f40, transparent 70%), #1c4a3ff0;
-  box-shadow: 0 0 16px #e7bd6f30;
-}
-.rs-part.is-locked {
-  border-style: dashed;
-}
-.rs-part-art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  flex: 0 0 auto;
-}
-.rs-part-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 4px #02110e80);
-  transition: transform 0.15s;
-}
-.rs-part-art.kind-belt img {
-  transform: scale(1.1);
-}
-.rs-part.is-locked .rs-part-art img {
-  filter: grayscale(0.85) brightness(0.55);
-}
-.rs-part-lock {
+
+/* The factory: the model stands on the desk, full bleed. Its soft shadow is
+ * drawn on the desk under its frame; tools float in a dock at the bottom. */
+.rs-factory.rf-factory {
   position: absolute;
-  color: var(--cream);
+  inset: 0;
 }
-.rs-part b {
-  font-size: 11px;
-  line-height: 1.1;
+.rf-ground {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  filter: blur(18px);
 }
-.rs-part small,
-.rs-inspector-price {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  color: var(--gold);
-  font-variant-numeric: tabular-nums;
-}
-.rs-part small.is-short,
-.rs-inspector-price.is-short {
-  color: #d99a88;
-}
-.rs-floor-area {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-  min-height: 0;
+.rf-ground-shadow {
+  position: absolute;
+  inset: 0;
+  background: #000a07e0;
 }
 .rs-camera-tools {
   display: flex;
-  align-self: flex-end;
   flex: none;
   min-width: 0;
   margin: 0;
@@ -1442,16 +1749,14 @@
   padding: 3px;
   border: 1px solid var(--panel-line);
   border-radius: 14px;
-  background: var(--panel);
-  box-shadow:
-    0 3px 10px #0003,
-    inset 0 1px 0 #fff1;
+  background: var(--plate);
+  box-shadow: var(--plate-shadow);
 }
 .rs-camera-tools button {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border: 0;
   border-radius: 10px;
   color: var(--cream);
@@ -1475,11 +1780,10 @@
   opacity: 0.35;
   cursor: default;
 }
-/* The 3D floor: a canvas filling the area, effects drawn above it. */
+/* The 3D floor: a canvas filling the room, effects drawn above it. */
 .rs-floor3d {
-  position: relative;
-  flex: 1;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
@@ -1522,29 +1826,15 @@
   color: var(--muted);
 }
 /* A sale: a coin arcs to the purse and the amount rises over the till. */
-.rs-fly-coin {
-  position: absolute;
-  left: -11px;
-  top: -11px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff6c4, #f6c64f 45%, #b9801f);
-  box-shadow:
-    inset 0 0 0 2px #e0a93f,
-    0 0 12px #ffd76a90,
-    0 3px 6px #02110e80;
-  will-change: transform, opacity;
-}
 .rs-sale-label {
   position: absolute;
   left: 0;
   top: 0;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #102b25d9;
-  border: 1px solid #f6c64f80;
-  color: #ffe08a;
+  background: #10302ae6;
+  border: 1px solid #c9a45a66;
+  color: #f3e3bb;
   font-size: 13px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -1596,70 +1886,6 @@
   height: 100%;
 }
 
-.rs-inspector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 58px;
-  padding: 6px 12px 6px 8px;
-  border-radius: 14px;
-  background: var(--panel);
-  border: 1px solid var(--panel-line);
-}
-.rs-inspector > .rs-part-art {
-  width: 46px;
-  height: 46px;
-}
-.rs-inspector-text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.rs-inspector-text b {
-  font-size: 14px;
-}
-.rs-inspector-text small {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.3;
-}
-.rs-inspector-price {
-  font-size: 14px;
-  white-space: nowrap;
-}
-.rs-icon-button {
-  flex: 0 0 auto;
-}
-.rs-icon-button.is-danger {
-  color: #f0b7a8;
-}
-.rs-inspector-books {
-  display: flex;
-  gap: 4px;
-}
-.rs-inspector-books button {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 38px;
-  padding: 2px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: none;
-}
-.rs-inspector-books img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.rs-inspector-books button[aria-pressed='true'] {
-  border-color: var(--gold);
-  background: #e7bd6f22;
-}
-.rs-inspector-books button {
-  position: relative;
-}
 /* The shared book level, separate from the printer's puzzle difficulty. */
 .rs-book-level {
   position: absolute;
@@ -1680,70 +1906,6 @@
   background: linear-gradient(#f6d99a, #c98f3a);
   border-color: #fff1c8;
   color: #3b2512;
-}
-/* Keyboard hints, only with a mouse and keyboard. */
-.rs-palette-tools button,
-.rs-part {
-  position: relative;
-}
-.rs-palette-tools kbd,
-.rs-part kbd {
-  position: absolute;
-  top: 3px;
-  right: 4px;
-  min-width: 13px;
-  padding: 0 3px;
-  border-radius: 4px;
-  background: #ffffff14;
-  color: var(--muted);
-  font:
-    700 9px/13px var(--font-sans),
-    sans-serif;
-  text-align: center;
-  pointer-events: none;
-}
-.rs-palette-tools button[aria-pressed='true'] kbd {
-  background: #173a3322;
-  color: #173a33;
-}
-.rs-part.is-previewed {
-  border-style: solid;
-  border-color: #e7bd6f99;
-  background:
-    radial-gradient(ellipse at 50% 30%, #e7bd6f30, transparent 70%), #1c4a3ff0;
-}
-.rs-inspector.is-locked .rs-part-art img {
-  filter: grayscale(0.4) brightness(0.8);
-}
-.rs-inspector .rs-unlock {
-  flex: 0 0 auto;
-  min-height: 42px;
-  margin-left: auto;
-}
-.rs-inspector-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 4px;
-  color: var(--gold);
-  font:
-    700 20px/1 Georgia,
-    serif;
-}
-.rs-inspector-kinds {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-}
-.rs-inspector-kinds img {
-  width: 34px;
-  height: 34px;
-  margin-right: -8px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 3px #02110e90);
-}
-.rs-inspector > .rs-icon-button:first-of-type {
-  margin-left: auto;
 }
 
 /* Upgrades: six branches of medallions; the chosen one is bought below. */
@@ -1778,251 +1940,250 @@
   background: var(--path);
   color: #10251f;
 }
+/* Six paths side by side, each a column of upgrade tiles; Books is twice
+ * as wide, a book's prize beside its helper. */
 .rs-tree {
   display: grid;
-  grid-template-columns: 2fr 2fr 2fr 2fr 4fr 2fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 2fr 1fr;
   gap: 10px;
   min-height: 0;
 }
 .rs-branch {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 6px;
+  gap: 10px;
   min-width: 0;
   min-height: 0;
-  padding: 10px 6px 8px;
-  border-radius: 20px;
+  padding: 10px 8px 8px;
+  border-radius: 18px;
   background:
-    radial-gradient(
-      ellipse at 50% 0%,
-      color-mix(in srgb, var(--path) 22%, transparent),
-      transparent 70%
+    linear-gradient(
+      color-mix(in srgb, var(--rich) 18%, transparent),
+      transparent 55%
     ),
-    #0b2621c8;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--path) 28%, transparent);
+    #0b2621e6;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rich) 40%, transparent);
 }
 .rs-branch-name {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   margin: 0;
+  padding-bottom: 8px;
   color: var(--path);
   font:
     700 14px/1.1 Georgia,
     serif;
   white-space: nowrap;
 }
+/* The path's progress, a thin bar under its name. */
+.rs-branch-name::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--path) calc(var(--done) * 100%),
+    #ffffff14 0
+  );
+}
 .rs-branch-name small {
   font: 600 11px var(--font-sans);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.rs-branch-grid {
-  position: relative;
+.rs-branch-list {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  /* Every path shares Books' eight rows, so tiles line up across paths. */
+  grid-template-rows: repeat(8, minmax(0, 76px));
+  align-content: start;
+  gap: 7px;
   min-height: 0;
 }
-.rs-branch-links {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.rs-branch-links line {
-  stroke: #b3b89830;
-  stroke-width: 3px;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-}
-.rs-branch-links line.is-lit {
-  stroke: var(--path);
-}
-.rs-node-slot {
-  position: absolute;
+.rs-tile {
+  --fill: color-mix(in srgb, var(--rich) 68%, #0b2621);
+  position: relative;
   display: grid;
-  place-items: start center;
-  padding-top: 2px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 0;
+  padding: 5px 9px 5px 5px;
+  border: 1px solid color-mix(in srgb, var(--rich) 40%, transparent);
+  border-radius: 13px;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--rich) 26%, #0e2a24),
+    #0c241f 80%
+  );
+  color: var(--cream);
+  text-align: left;
+  transition:
+    transform 0.12s,
+    background-color 0.12s;
 }
-.rs-node {
-  --disc: clamp(40px, min(5.2vw, 8.5vh), 62px);
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  max-width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: center;
+.rs-tile:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--rich) 36%, #0e2a24),
+    #0e2a24 80%
+  );
 }
-.rs-node-disc {
+.rs-tile.is-owned {
+  --fill: var(--rich);
+}
+/* The selected tile wears its path's colour; one the purse can pay for, a
+ * cream edge. */
+.rs-tile.is-affordable {
+  border-color: #efe2c2b3;
+}
+.rs-tile[aria-pressed='true'] {
+  border-color: var(--path);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--rich) 48%, #0e2a24),
+    color-mix(in srgb, var(--rich) 14%, #0e2a24) 85%
+  );
+  box-shadow: 0 0 0 1px var(--path);
+}
+.rs-tile-icon {
   position: relative;
   display: grid;
   place-items: center;
-  width: var(--disc);
-  height: var(--disc);
-  border-radius: 50%;
-  color: var(--cream);
+  height: 100%;
+  max-height: 50px;
+  aspect-ratio: 1;
+  border-radius: 12px;
   background:
-    radial-gradient(circle at 35% 30%, #2f5d52, #102c26 70%) padding-box,
-    conic-gradient(var(--path) calc(var(--rank) * 360deg), #ffffff1c 0)
-      border-box;
-  border: 3px solid transparent;
+    radial-gradient(circle at 50% 18%, #ffffff40, #ffffff00 60%),
+    linear-gradient(var(--fill), color-mix(in srgb, var(--fill) 68%, #04140f));
   box-shadow:
-    0 6px 14px #02110e80,
-    inset 0 2px 0 #ffffff1a;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
+    inset 0 -2px 0 #00000038,
+    0 2px 0 #02110e80;
+  color: #fff6e3;
 }
-.rs-node-disc img {
-  width: 70%;
-  height: 70%;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 2px #0008);
+.rs-tile-icon > svg {
+  filter: drop-shadow(0 1px 0 #0005);
 }
-.rs-node:hover .rs-node-disc {
-  transform: translateY(-2px);
-}
-.rs-node[aria-pressed='true'] .rs-node-disc {
-  box-shadow:
-    0 0 0 3px #f5e7c7,
-    0 0 22px color-mix(in srgb, var(--path) 70%, transparent),
-    0 6px 14px #02110e80;
-}
-.rs-node.is-owned .rs-node-disc {
-  background:
-    radial-gradient(
-        circle at 35% 30%,
-        color-mix(in srgb, var(--path) 60%, #fff4dc),
-        color-mix(in srgb, var(--path) 40%, #10251f) 70%
-      )
-      padding-box,
-    conic-gradient(var(--path) calc(var(--rank) * 360deg), #ffffff1c 0)
-      border-box;
-  color: #10251f;
-}
-/* An upgrade the purse can pay for glows: a gold ring, a warm halo, a lit
-   icon, name and price. Steady, no pulsing. Other prices go quiet, so gold
-   reads as "you can buy this". */
-.rs-node.is-affordable .rs-node-disc {
-  box-shadow:
-    0 0 0 3px var(--gold),
-    0 0 18px 3px color-mix(in srgb, var(--gold) 60%, transparent),
-    0 0 40px 8px color-mix(in srgb, var(--gold) 24%, transparent),
-    0 6px 14px #02110e80,
-    inset 0 0 16px color-mix(in srgb, var(--gold) 40%, transparent);
-}
-.rs-node.is-affordable[aria-pressed='true'] .rs-node-disc {
-  box-shadow:
-    0 0 0 3px #f5e7c7,
-    0 0 0 6px var(--gold),
-    0 0 24px 6px color-mix(in srgb, var(--gold) 55%, transparent),
-    0 6px 14px #02110e80,
-    inset 0 0 16px color-mix(in srgb, var(--gold) 40%, transparent);
-}
-.rs-node.is-affordable:not(.is-owned) .rs-node-disc > svg {
-  color: #ffe9a8;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 80%, transparent));
-}
-.rs-node.is-affordable .rs-node-name {
-  color: #fff3cc;
-  text-shadow: 0 0 8px color-mix(in srgb, var(--gold) 55%, transparent);
-}
-.rs-node.is-affordable .rs-node-price {
-  color: #ffd76a;
-  font-weight: 800;
-}
-.rs-node:not(.is-affordable) .rs-node-price {
-  color: var(--muted);
-}
-.rs-node-ready {
+/* A book's ticket stays inside its square, however tall its art. */
+.rs-tile-icon img {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  display: grid;
-  place-items: center;
-  width: 19px;
-  height: 19px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff5c8, #e7b04a 60%, #a8741f);
-  border: 1.5px solid #10251f;
-  color: #3b2512;
-  box-shadow: 0 2px 4px #02110e90;
+  inset: 12%;
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px #0007);
 }
-.rs-node.is-max .rs-node-disc {
-  background:
-    radial-gradient(circle at 35% 30%, #fff1b8, #d49c52 70%) padding-box,
-    linear-gradient(#f6d99a, #b98032) border-box;
-  color: #3b2512;
-}
-.rs-node.is-locked .rs-node-disc {
-  opacity: 0.55;
-  filter: grayscale(0.6);
-}
-.rs-node.is-hidden .rs-node-disc {
-  opacity: 0.35;
-  background:
-    #0b2621 padding-box,
-    #ffffff14 border-box;
-  border-style: dashed;
-}
-.rs-node-mystery {
+.rs-tile-icon > b {
   font:
-    700 calc(var(--disc) * 0.45) / 1 Georgia,
+    700 18px/1 Georgia,
     serif;
   color: var(--muted);
 }
-.rs-node-lock,
-.rs-node-check {
+.rs-tile-ready {
   position: absolute;
-  right: -3px;
-  bottom: -3px;
-  padding: 2px;
-  box-sizing: content-box;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #10251f;
-  color: var(--cream);
+  background: #efe2c2;
+  border: 1.5px solid #10251f;
+  color: #3b2512;
 }
-.rs-node-check {
-  background: #3b2512;
-  color: #ffe3a0;
+.rs-tile-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
-.rs-node-pips {
-  display: flex;
-  gap: 2px;
-  margin-top: 2px;
-}
-.rs-node-pips i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #ffffff26;
-}
-.rs-node-pips i.is-on {
-  background: var(--path);
-  box-shadow: 0 0 4px var(--path);
-}
-.rs-node-name {
-  max-width: 100%;
+/* What it gives now (×2.2, 30%, every 7th); the bar below says what of. */
+.rs-tile-value {
   overflow: hidden;
-  font-size: 11px;
-  font-weight: 650;
+  font:
+    700 13px/1.1 Georgia,
+    serif;
+  color: var(--path);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.rs-tile-value small {
+  font: 600 11px var(--font-sans);
+  color: var(--muted);
+}
+.rs-tile-name {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 700;
   line-height: 1.15;
-  color: var(--cream);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.rs-node-price {
+.rs-tile-meta {
   display: flex;
   align-items: center;
-  gap: 2px;
-  font-size: 10px;
-  color: var(--gold);
-  font-variant-numeric: tabular-nums;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
 }
-.rs-node.is-locked .rs-node-price {
+.rs-tile-ranks {
+  display: flex;
+  gap: 2px;
+  flex: 0 1 64px;
+  min-width: 18px;
+}
+.rs-tile-ranks i {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #ffffff1f;
+}
+.rs-tile-ranks i.is-on {
+  background: var(--path);
+}
+.rs-tile-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10.5px;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rs-tile.is-affordable .rs-tile-price {
+  color: #f6ecd2;
+  font-weight: 800;
+}
+.rs-tile-check {
+  color: var(--path);
+}
+.rs-tile.is-locked {
+  opacity: 0.6;
+}
+.rs-tile.is-locked .rs-tile-icon {
+  --fill: color-mix(in srgb, var(--rich) 30%, #173a33);
+  filter: grayscale(0.4);
+}
+.rs-tile.is-hidden {
+  opacity: 0.4;
+  border-style: dashed;
+  border-color: #ffffff2e;
+  background: none;
+}
+.rs-tile.is-hidden .rs-tile-icon {
+  background: #ffffff10;
+  box-shadow: none;
 }
 .rs-card-icon {
   display: grid;
@@ -2031,8 +2192,11 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--path) 30%, #10251f);
-  color: var(--path);
+  background:
+    radial-gradient(circle at 50% 22%, #ffffff3d, #ffffff00 58%),
+    linear-gradient(var(--rich), color-mix(in srgb, var(--rich) 70%, #04140f));
+  color: #fff6e3;
+  box-shadow: inset 0 -3px 0 #00000030;
   font:
     700 20px Georgia,
     serif;
@@ -2229,26 +2393,14 @@
 }
 
 /* Mid widths: tabs move beside the progress line. */
-@media (max-width: 1040px) {
-  .relic-scratch-room {
-    --stage-top: 104px;
-  }
-  .rs-top {
-    top: calc(max(8px, env(safe-area-inset-top)) + 48px);
-    left: calc(max(10px, env(safe-area-inset-left)) + 162px);
-    right: max(12px, env(safe-area-inset-right));
-    transform: none;
-    justify-content: space-between;
-  }
+@media (max-width: 1100px) {
   .rs-desk {
-    grid-template-columns: 214px minmax(0, 1fr);
+    grid-template-columns: 236px minmax(0, 1fr);
     gap: 14px;
   }
   .rs-hand {
-    grid-template-columns: minmax(0, 1fr) 160px;
-  }
-  .rs-factory {
-    grid-template-columns: 180px minmax(0, 1fr);
+    --rail: 170px;
+    gap: 16px;
   }
   .rs-buy-stat {
     display: none;
@@ -2275,27 +2427,180 @@
   .rs-branch-name {
     display: none;
   }
-  .rs-node {
-    --disc: clamp(46px, min(15vw, 11vh), 72px);
+  /* One path fills the room: tiles flow into as many columns as fit,
+   * Books keeps a book's two upgrades side by side. */
+  .rs-branch-list {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: 52px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
   }
-  .rs-node-name {
-    font-size: 12px;
+  .rs-branch.is-books .rs-branch-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-/* Phones: icon tabs; the shelf and palette become strips. */
-@media (max-width: 600px) {
+/* Touch screens and phones: the three rooms become a tab bar under the
+ * thumbs; the purse takes the middle of the top bar. */
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1180px) {
   .relic-scratch-room {
-    --stage-top: 116px;
+    --tab-bar: 66px;
   }
   .rs-top {
-    top: calc(max(8px, env(safe-area-inset-top)) + 58px);
-    left: calc(max(10px, env(safe-area-inset-left)) + 116px);
-    gap: 6px;
+    display: contents;
+  }
+  .rs-purse {
+    position: absolute;
+    top: max(10px, env(safe-area-inset-top));
+    left: 50%;
+    z-index: 9;
+    translate: -50% 0;
+  }
+  .rs-tabs {
+    position: absolute;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 9;
+    max-width: 560px;
+    margin: 0 auto;
   }
   .rs-tabs button {
-    padding: 0 11px;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 50px;
+    padding: 0 6px;
+    font-size: 11px;
   }
-  .rs-tabs button span,
+  .rs-tabs button svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+/* Phones: a smaller purse in the top bar. */
+@media (max-width: 760px) {
+  .relic-scratch-room {
+    --top-bar: 60px;
+  }
+  .rs-wallet {
+    grid-template-columns: 16px minmax(0, 1fr);
+    width: min(150px, 100vw - 236px);
+    min-height: 44px;
+    padding: 6px 10px;
+  }
+  .rs-wallet strong {
+    font-size: 18px;
+  }
+  .rs-wallet small {
+    display: none;
+  }
+  .rs-stage:not(.is-factory) {
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+  }
+}
+/* Phones and portrait tablets: the shelf is a strip on top, the ticket
+ * fills the rest, and its rail (hearts or payout, and Buy) is one row
+ * under it. */
+@media (max-width: 760px), (orientation: portrait) and (max-width: 1100px) {
+  .rs-desk {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+  }
+  .rs-shelf {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 3px 3px 5px;
+  }
+  .rs-book {
+    flex: 0 0 auto;
+    max-height: none;
+    min-height: 58px;
+    padding: 5px;
+  }
+  .rs-book-take {
+    grid-template-columns: 32px minmax(0, auto);
+    column-gap: 8px;
+    row-gap: 3px;
+  }
+  .rs-book-cover {
+    width: 32px;
+    min-height: 40px;
+  }
+  .rs-book-text b {
+    font-size: 13px;
+  }
+  .rs-book-xp {
+    min-width: 72px;
+  }
+  .rs-levels {
+    grid-template-columns: repeat(3, 21px);
+    grid-auto-rows: 17px;
+  }
+  .rs-levels .is-four {
+    font-size: 9px;
+  }
+  .rs-hand {
+    grid-column: 1;
+    grid-row: 2;
+    flex-direction: column;
+    gap: 10px;
+    --rail: 0px;
+  }
+  .rs-hand-ticket {
+    width: min((100cqh - 74px) * var(--aspect), 100cqw);
+    height: calc(100cqh - 74px);
+  }
+  .rs-hand-rail {
+    flex: 0 0 64px;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    max-width: 620px;
+  }
+  .rs-hand-rail > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .rs-lives {
+    align-items: center;
+    padding: 8px 14px;
+  }
+  .rs-payout {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 10px;
+    padding: 6px 10px;
+  }
+  .rs-payout strong {
+    font-size: 22px;
+  }
+  .rs-payout-chips small:not(.rs-xp-chip) {
+    display: none;
+  }
+  .rs-again {
+    grid-template-columns: auto auto auto;
+    min-height: 0;
+    height: 100%;
+    padding: 0 12px;
+  }
+  .rs-again-price {
+    grid-column: auto;
+  }
+  .rs-buy-bar {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+  .rs-buy-bar .rs-primary {
+    flex: 1 0 100%;
+    min-height: 42px;
+  }
   .rs-path-tabs button span {
     position: absolute;
     width: 1px;
@@ -2306,229 +2611,17 @@
   .rs-path-tabs button {
     padding: 0 8px;
   }
-  .rs-wallet {
-    grid-template-columns: 16px minmax(0, 1fr);
-    width: 104px;
-    padding: 8px 10px;
-  }
-  .rs-wallet strong {
-    font-size: 17px;
-  }
-  .rs-wallet small {
-    display: none;
-  }
-  .rs-stage {
-    left: max(10px, env(safe-area-inset-left));
-    right: max(10px, env(safe-area-inset-right));
-  }
 }
-@media (max-width: 760px) and (orientation: portrait) {
-  /* The shelf is a strip on top; the ticket fills the stage, its rail below. */
-  .rs-desk {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 10px;
-  }
-  .rs-shelf {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 4px;
-  }
+/* Short desktop windows: slimmer book rows. */
+@media (min-width: 761px) and (max-height: 700px) {
   .rs-book {
-    min-height: 50px;
+    padding: 4px 6px;
   }
   .rs-book-cover {
-    width: 34px;
-    height: 40px;
-  }
-  .rs-book-text b {
-    white-space: nowrap;
-  }
-  .rs-hand {
-    grid-column: 1;
-    grid-row: 2;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 10px;
-    padding: 12px 8px 10px;
-  }
-  .rs-hand-rail {
-    flex-direction: row;
-    justify-content: center;
-    align-items: stretch;
-    min-height: 58px;
-  }
-  .rs-hand-rail > * {
-    flex: 1 1 0;
-  }
-  .rs-hand-rail .rs-payout {
-    padding: 8px 12px;
-    gap: 3px;
-  }
-  .rs-hand-rail .rs-payout strong {
-    font-size: 22px;
-  }
-  .rs-lives {
-    align-items: center;
-    flex: 0 1 auto;
-    padding: 8px 14px;
-  }
-  .rs-factory {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 10px;
-  }
-  .rs-palette {
-    order: 2;
-    flex-direction: row;
-  }
-  .rs-palette-tools {
-    flex-direction: column;
-  }
-  .rs-palette-tools button {
-    flex: 0 0 auto;
-    width: 42px;
-    min-height: 0;
-    flex-grow: 1;
-  }
-  .rs-palette-list {
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex: 1;
-  }
-  .rs-part {
-    flex: 0 0 auto;
-    min-width: 66px;
-    padding: 4px;
-  }
-  .rs-part b {
-    display: none;
-  }
-  .rs-part-art {
-    width: 42px;
-    height: 42px;
-  }
-  .rs-inspector {
-    min-height: 52px;
-    gap: 8px;
-  }
-  .rs-inspector-text small {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    font-size: 11px;
-  }
-  .rs-buy-bar {
-    flex-wrap: wrap;
-    gap: 8px 12px;
-  }
-  .rs-buy-bar .rs-primary {
-    flex: 1 0 100%;
-    min-height: 42px;
-  }
-}
-/* Short windows: everything shrinks to one screen. */
-@media (max-height: 500px) and (orientation: landscape) {
-  .relic-scratch-room {
-    --stage-top: 60px;
-  }
-  .rs-top {
-    top: max(8px, env(safe-area-inset-top));
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    gap: 6px;
-  }
-  .rs-tabs button {
     min-height: 34px;
-    padding: 0 10px;
-    font-size: 12px;
   }
-  .rs-wallet {
-    width: 188px;
-    padding: 6px 10px;
-  }
-  .rs-wallet strong {
-    font-size: 16px;
-  }
-  .rs-stage {
-    top: 56px;
-    bottom: max(8px, env(safe-area-inset-bottom));
-  }
-  .rs-desk {
-    grid-template-columns: 190px minmax(0, 1fr);
-    gap: 10px;
-    padding-top: 22px;
-  }
-  .rs-shelf {
-    gap: 3px;
-  }
-  .rs-book {
-    min-height: 32px;
-    padding: 2px 8px 2px 2px;
-    gap: 7px;
-  }
-  .rs-book-cover {
-    width: 38px;
-    height: 26px;
-  }
-  .rs-book-text b {
-    font-size: 11px;
-  }
-  .rs-hand {
-    grid-template-columns: minmax(0, 1fr) 150px;
-    padding: 6px 8px;
-  }
-  .rs-levels button {
-    width: 22px;
-    height: 13px;
-  }
-  .rs-primary {
-    min-height: 38px;
-  }
-  .rs-factory {
-    grid-template-columns: 150px minmax(0, 1fr);
-    gap: 10px;
-    padding-top: 22px;
-  }
-  .rs-part-art {
-    width: 34px;
-    height: 34px;
-  }
-  .rs-part b {
-    display: none;
-  }
-  .rs-inspector {
-    min-height: 44px;
-    padding: 5px 10px;
-  }
-  .rs-inspector-text small {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .rs-upgrades {
-    gap: 6px;
-    padding-top: 22px;
-  }
-  .rs-path-tabs button {
-    min-height: 32px;
-  }
-  .rs-buy-bar {
-    min-height: 50px;
-    padding: 5px 8px 5px 10px;
-  }
-  .rs-buy-text b {
-    font-size: 15px;
-  }
-  .rs-buy-text > small {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .rs-levels {
+    grid-auto-rows: 17px;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -2538,8 +2631,8 @@
       .rs-path-tabs button,
       .rs-levels button,
       .rs-book,
-      .rs-part,
-      .rs-inspector-books button
+      .rf-part,
+      .rf-books button
     ) {
     transition:
       background-color 180ms ease,

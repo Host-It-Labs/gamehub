@@ -1468,7 +1468,7 @@ POSES = {
 }
 
 
-def build(root_name="mage"):
+def build_legacy(root_name="mage"):
     assert root_name == R
     root = kit.empty(R)
     for side, sx in (("L", -1), ("R", 1)):
@@ -1520,3 +1520,33 @@ def report(root):
             print(f"  {o.name:14s} pivot ({loc.x:.4f}, {loc.y:.4f}, "
                   f"{loc.z:.4f}) tris {mk.tris(o)} mats "
                   f"{[m.name for m in o.data.materials]}")
+
+
+def build(root_name="mage"):
+    """Reviewed independent runtime by default; explicit detailed source."""
+    assert root_name == R
+    if (os.environ.get('ARENA_SOURCE_MASTER') == '1' or
+            os.environ.get('MAGE_MASTER') == '1'):
+        from figure_mage_sculpt import build_master
+        root = build_master()
+    else:
+        from figure_mage_runtime import build_runtime
+        root = build_runtime()
+    pose = POSES.get(os.environ.get('MAGE_POSE', ''))
+    if pose:
+        skeleton = next(o for o in kit.descendants(root) if o.type == 'ARMATURE')
+        for key, angle in pose.items():
+            bone = skeleton.pose.bones.get('mage'+key)
+            if bone:
+                bone.rotation_mode = 'XYZ'
+                bone.rotation_euler = (angle, 0, 0)
+        if 'weapon' in pose:
+            skeleton.pose.bones['magehandR'].rotation_euler = (pose['weapon'], 0, 0)
+        kit.refresh()
+    return root
+
+
+def finish_ao(root):
+    """Combine an explicitly requested shared bake with the authored pigment."""
+    from figure_mage_sculpt import finish_ao as combine
+    combine(root)

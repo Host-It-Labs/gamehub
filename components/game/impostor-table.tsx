@@ -28,6 +28,7 @@ import {
 import { voteTally, type RoundChoice } from '@/lib/games/party/vote';
 import { useSecondsLeft } from './table-vote';
 import { stagger } from './reveal-motion';
+import { stillRatio } from './render-quality';
 import './impostor.css';
 
 type Props = {
@@ -185,9 +186,8 @@ function DrawDesk({ g, viewer, disabled, commit }: Props) {
     const c = canvas.current;
     if (!c) return;
     const fit = () => {
-      const px = Math.round(
-        c.getBoundingClientRect().width * Math.min(2.5, devicePixelRatio || 1),
-      );
+      const side = c.getBoundingClientRect().width;
+      const px = Math.round(side * stillRatio(side, side));
       if (px && px !== size.current) {
         size.current = px;
         c.width = px;

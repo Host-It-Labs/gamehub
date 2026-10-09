@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { LoaderCircle, Check, RotateCcw } from 'lucide-react';
+import { LoaderCircle, Check, RotateCcw, Map, Blocks, Bug } from 'lucide-react';
 import {
   standaloneGames,
   botMove,
@@ -28,6 +28,18 @@ import { GameIntro, useGameIntro } from './game-intro';
 import { QuizPick } from './quiz-pick';
 import { QuizIntro } from './quiz-intro';
 import { seatTotals } from '@/lib/games/party/tribu';
+import {
+  campReady,
+  triviaModeOf,
+  triviaGameRoundLimit,
+  triviaOf,
+} from '@/lib/games/party/trivia';
+import {
+  TriviaBoard,
+  TriviaCamp,
+  TriviaScore,
+  TriviaFinalScore,
+} from './trivia-modes';
 import { setOf, type SetGame } from '@/lib/games/party/vote';
 import './tribu.css';
 import './sabi.css';
@@ -56,6 +68,10 @@ type Props = {
   onChange?: (g: AnyGame) => void;
   onHome: () => void;
   onNew?: () => void;
+  /** Development review bench; never sends debug actions to a live table. */
+  onDebug?: () => void;
+  /** The development bench can animate its completed 3D worlds. */
+  animateTriviaResults?: boolean;
   /** Sound switches, shown inline in the menu. */
   sound?: ReactNode;
   volume: number;
@@ -84,6 +100,17 @@ const seed = () => crypto.getRandomValues(new Uint32Array(1))[0];
  * the host's pick of what comes next. */
 function awaitingAction(g: AnyGame, seat: number, hostSeat: number | null) {
   if (g.over) return false;
+  const trivia = triviaOf(g);
+  if (
+    trivia?.stage === 'camp' &&
+    trivia.mode === 'expedition' &&
+    !(
+      trivia.rules === 2 &&
+      campReady(g) &&
+      trivia.completed === triviaGameRoundLimit(g)
+    )
+  )
+    return !trivia.ready[seat] || (campReady(g) && seat === hostSeat);
   if (g.phase === 'reveal') return false;
   if (g.phase === 'vote')
     return g.vote?.host ? seat === hostSeat : !g.vote?.choices[seat];
@@ -121,6 +148,8 @@ function awaitingAction(g: AnyGame, seat: number, hostSeat: number | null) {
 /** Only observed choices can trigger feedback: hidden opponents' answers never
  * enter this signature, and unchanged polling snapshots stay silent. */
 function choiceKey(g: AnyGame, seat: number) {
+  if (triviaOf(g)?.stage === 'camp')
+    return JSON.stringify(triviaOf(g)?.plans[seat]);
   if (g.phase === 'vote') return JSON.stringify(g.vote?.choices);
   if (g.kind === 'orin')
     return JSON.stringify([g.ballots[seat]?.topic, g.offers[seat]]);
@@ -164,6 +193,8 @@ export function StandaloneTable({
   onChange,
   onHome,
   onNew,
+  onDebug,
+  animateTriviaResults,
   sound,
   volume,
   viewerSeat: providedViewerSeat = 0,
@@ -185,11 +216,14 @@ export function StandaloneTable({
   const viewerSeat = providedViewerSeat ?? 0;
   // Locally, whoever holds the device hosts.
   const hostSeat = online ? providedHostSeat : viewerSeat;
-  const [panel, setPanel] = useState<'rules' | null>(null);
+  const [panel, setPanel] = useState<'rules' | 'progress' | null>(null);
   const badges = useRef<HTMLElement>(null);
   useBadgeFit(badges);
   const entry = standaloneGames[g.kind],
     view = online ? g : observe(g, viewerSeat);
+  const trivia = triviaOf(view);
+  const mode = triviaModeOf(view);
+  const modeRounds = mode === 'quick' ? null : triviaGameRoundLimit(view);
   const root = useRef<HTMLDivElement>(null);
   const phase = `${g.kind}:${g.round}:${g.phase}:${g.over}:${stepKey(g)}`;
   useGameMotion(root, phase);
@@ -209,14 +243,20 @@ export function StandaloneTable({
     if (actionable && (!previous.actionable || previous.phase !== phase))
       gameSound(g.kind, 'turn', volume);
     else if (previous.phase !== phase)
-      gameSound(
-        g.kind,
-        g.phase === 'reveal' ? 'reveal' : 'move',
-        volume,
-      );
+      gameSound(g.kind, g.phase === 'reveal' ? 'reveal' : 'move', volume);
     else if (previous.choice !== choice) gameSound(g.kind, 'select', volume);
     else if (previous.move !== move) gameSound(g.kind, 'move', volume);
-  }, [choice, move, phase, actionable, providedViewerSeat, g.kind, g.phase, g.over, volume]);
+  }, [
+    choice,
+    move,
+    phase,
+    actionable,
+    providedViewerSeat,
+    g.kind,
+    g.phase,
+    g.over,
+    volume,
+  ]);
   function commit(m: AnyMove) {
     if (disabled) return;
     if (online) onMove?.(m);
@@ -269,6 +309,8 @@ export function StandaloneTable({
           g.tribu ? g.tribu.mode : g.mode,
           undefined,
           g.tribu ? g.tribu.teams : g.teams,
+          g.tribu?.votes ?? false,
+          mode,
         ),
       );
   }
@@ -279,17 +321,52 @@ export function StandaloneTable({
   return (
     <div
       ref={root}
-      className={`party-table party-${g.kind} mode-${g.mode} ${g.kind === 'impostor' ? 'is-impostor' : setOf(g.kind) === 'orin' ? 'is-tribu' : 'is-sabi'} ${g.tutorial ? 'is-practice' : ''} ${view.kind === 'dial' || (view.kind === 'orin' && (view.phase !== 'rank' || view.ballots[viewerSeat])) ? 'has-list' : ''}`}
+      className={`party-table party-${g.kind} mode-${g.mode} ${g.kind === 'impostor' ? 'is-impostor' : setOf(g.kind) === 'orin' ? 'is-tribu' : 'is-sabi'} ${trivia && mode !== 'quick' ? 'is-trivia-fixed' : ''} ${g.tutorial ? 'is-practice' : ''} ${view.kind === 'dial' || (view.kind === 'orin' && (view.phase !== 'rank' || view.ballots[viewerSeat])) ? 'has-list' : ''}`}
     >
       <GameNavigation
         name={entry.name}
+        round={
+          modeRounds && !g.tutorial
+            ? `${Math.min(g.round, modeRounds)} / ${modeRounds}`
+            : undefined
+        }
         onBack={onHome}
         menu={{
           theme: 'party',
           onRules: () => setPanel('rules'),
-          items: onNew
-            ? [{ label: 'New game', icon: RotateCcw, onSelect: onNew }]
-            : [],
+          items: [
+            ...(trivia && mode !== 'quick'
+              ? [
+                  {
+                    label: mode === 'tower' ? 'Tower' : 'Expedition',
+                    icon: mode === 'tower' ? Blocks : Map,
+                    onSelect: () => setPanel('progress'),
+                  },
+                ]
+              : []),
+            ...(onNew
+              ? [{ label: 'New game', icon: RotateCcw, onSelect: onNew }]
+              : []),
+            ...(process.env.NODE_ENV === 'development' &&
+            trivia &&
+            mode !== 'quick'
+              ? [
+                  {
+                    label: 'Debug',
+                    icon: Bug,
+                    onSelect:
+                      onDebug ??
+                      (() => {
+                        window.open(
+                          `/trivia/lab?mode=${mode}&players=${g.seats.length}&completed=0&debug`,
+                          '_blank',
+                          'noopener',
+                        );
+                      }),
+                  },
+                ]
+              : []),
+          ],
           sound,
           onLeave: onHome,
         }}
@@ -320,14 +397,23 @@ export function StandaloneTable({
                 data-game-motion="change"
                 data-game-motion-key={tribu ? tribu[s] : g.scores[g.teams[s]]}
               >
-                {tribu
-                  ? `${(g.kind === 'orin' || g.kind === 'miro') && g.mode === 'teams' ? `${groupName(g, g.teams[s])} · ` : ''}${Number(tribu[s].toFixed(2))} pts`
-                  : g.kind === 'impostor'
-                    ? <>
-                        {g.scores[s]}
-                        <span className="party-pts"> pts</span>
-                      </>
-                    : `${groupName(g, g.teams[s])} · ${Number(g.scores[g.teams[s]].toFixed(2))} pts`}
+                {trivia && mode !== 'quick' ? (
+                  <TriviaScore g={view} seat={s} />
+                ) : tribu && quiz && g.mode !== 'teams' ? (
+                  <>
+                    {Number(tribu[s].toFixed(2))}
+                    <span className="party-pts"> pts</span>
+                  </>
+                ) : tribu ? (
+                  `${(g.kind === 'orin' || g.kind === 'miro') && g.mode === 'teams' ? `${groupName(g, g.teams[s])} · ` : ''}${Number(tribu[s].toFixed(2))} pts`
+                ) : g.kind === 'impostor' ? (
+                  <>
+                    {g.scores[s]}
+                    <span className="party-pts"> pts</span>
+                  </>
+                ) : (
+                  `${groupName(g, g.teams[s])} · ${Number(g.scores[g.teams[s]].toFixed(2))} pts`
+                )}
               </small>
             </span>
             <output
@@ -336,7 +422,9 @@ export function StandaloneTable({
               data-game-motion-key={
                 awaitingAction(view, s, hostSeat) ? 'choosing' : 'ready'
               }
-              aria-label={awaitingAction(view, s, hostSeat) ? 'Choosing' : 'Ready'}
+              aria-label={
+                awaitingAction(view, s, hostSeat) ? 'Choosing' : 'Ready'
+              }
             >
               {awaitingAction(view, s, hostSeat) ? (
                 <LoaderCircle className="party-action-spinner" size={16} />
@@ -349,30 +437,72 @@ export function StandaloneTable({
       </header>
       <main className="party-main" data-game-motion="stage">
         {result ? (
-          <PartyFinale result={result} viewerSeat={providedViewerSeat}>
-            {nextVote && viewerId && onNextGame ? (
-              <>
-                <NextGameVote
-                  vote={nextVote}
-                  viewerId={viewerId}
-                  seats={g.seats.length}
-                  disabled={disabled || (!!nextVote.host && !canPickNext)}
-                  hostName={hostName}
-                  onVote={onNextGame}
-                />
-                {nextVote.host && (
-                  <button onClick={onHome}>Back to library</button>
-                )}
-              </>
-            ) : (
-              <>
-                <button className="party-primary" onClick={onNew ?? onHome}>
-                  Play again
-                </button>
-                <button onClick={onHome}>Back to library</button>
-              </>
+          <div
+            className={
+              trivia && mode !== 'quick' ? 'trivia-finish' : 'party-finale-wrap'
+            }
+          >
+            {trivia && mode !== 'quick' && (
+              <TriviaBoard
+                g={view}
+                ledger={false}
+                animate={
+                  process.env.NODE_ENV === 'development' && animateTriviaResults
+                    ? true
+                    : undefined
+                }
+              />
             )}
-          </PartyFinale>
+            <PartyFinale
+              result={
+                trivia && result.winners.length > 1
+                  ? { ...result, title: 'Shared victory' }
+                  : result
+              }
+              viewerSeat={providedViewerSeat}
+              renderScore={
+                trivia && mode !== 'quick'
+                  ? (seat, delay) => (
+                      <TriviaFinalScore g={view} seat={seat} delay={delay} />
+                    )
+                  : undefined
+              }
+            >
+              {nextVote && viewerId && onNextGame ? (
+                <>
+                  <NextGameVote
+                    vote={nextVote}
+                    viewerId={viewerId}
+                    seats={g.seats.length}
+                    disabled={disabled || (!!nextVote.host && !canPickNext)}
+                    hostName={hostName}
+                    showHostWait={!trivia || mode === 'quick'}
+                    onVote={onNextGame}
+                  />
+                  {nextVote.host && (
+                    <button onClick={onHome}>Back to library</button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button className="party-primary" onClick={onNew ?? onHome}>
+                    Play again
+                  </button>
+                  <button onClick={onHome}>Back to library</button>
+                </>
+              )}
+            </PartyFinale>
+          </div>
+        ) : trivia && view.phase === 'vote' && mode !== 'quick' ? (
+          <TriviaCamp
+            key={`${g.round}:${trivia.completed}:${mode}`}
+            g={view}
+            viewer={providedViewerSeat}
+            disabled={disabled || providedViewerSeat === null}
+            canAdvance={canAdvance}
+            hostName={hostName}
+            commit={commit}
+          />
         ) : view.kind === 'impostor' ? (
           // Impostor keeps its reveal up while the host picks what next.
           <ImpostorTable
@@ -442,10 +572,29 @@ export function StandaloneTable({
         open={panel !== null}
         onOpenChange={(open) => !open && setPanel(null)}
       >
-        <DialogContent className="party-dialog">
-          <DialogTitle>How to play</DialogTitle>
+        <DialogContent
+          className={`party-dialog${panel === 'progress' ? ' trivia-progress-dialog' : ''}`}
+        >
+          <DialogTitle>
+            {panel === 'progress'
+              ? mode === 'tower'
+                ? 'Tower'
+                : 'Expedition'
+              : 'How to play'}
+          </DialogTitle>
           <DialogDescription>{entry.name}</DialogDescription>
-          {panel === 'rules' && <PartyRules kind={g.kind} />}
+          {panel === 'rules' && (
+            <PartyRules
+              kind={g.kind}
+              triviaMode={mode}
+              legacyTrivia={trivia?.rules !== 2}
+            />
+          )}
+          {panel === 'progress' && (
+            <div className="trivia-board-dialog">
+              <TriviaBoard g={view} />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

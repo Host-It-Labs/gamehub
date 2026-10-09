@@ -7,7 +7,7 @@ import {
   type Match,
   type Player,
 } from '@/lib/games/diner/engine';
-import type { NightId } from '@/lib/games/diner/content';
+import { levelConfig } from '@/lib/games/diner/levels';
 import {
   encodeFrame,
   unpackMatch,
@@ -55,15 +55,18 @@ export class OnlineSession implements Session {
   private lastSend = 0;
   private inflight = 0;
   private render: Match;
+  /** The round of the match being shown; it changes only with a new match in hand. */
+  private shown: number;
 
   constructor(
     readonly token: string,
     join: DinerJoin,
   ) {
     this.room = join.room;
-    const m = unpackMatch(join.snap.m);
+    const m = unpackMatch(join.snap.m, levelConfig(join.room.level));
     this.base = m;
     this.render = m;
+    this.shown = join.snap.round;
     this.adopt(join.snap);
     this.connect();
   }
@@ -81,13 +84,10 @@ export class OnlineSession implements Session {
     return this.room.host;
   }
   get round() {
-    return this.room.round;
+    return this.shown;
   }
-  get night(): NightId {
-    return this.room.night;
-  }
-  set night(_n: NightId) {
-    // The room decides the night.
+  get level() {
+    return this.room.level;
   }
 
   private path(suffix = '') {
@@ -155,7 +155,15 @@ export class OnlineSession implements Session {
       this.room = { ...this.room, round: s.round };
       this.reset();
     }
-    const m = unpackMatch(s.m);
+    const m = unpackMatch(s.m, levelConfig(this.room.level));
+    // A new shift is shown only once its own match is here, so the room is
+    // never rebuilt from the previous night's booths and machines.
+    const fresh = s.round !== this.shown;
+    if (fresh) {
+      this.shown = s.round;
+      this.render = m;
+      queueMicrotask(() => this.emit());
+    }
     if (s.e.length) this.events.push(...s.e);
     this.snaps.push({ n: s.n, m });
     if (this.snaps.length > 12) this.snaps.shift();
@@ -169,6 +177,9 @@ export class OnlineSession implements Session {
     const server = m.players[you];
     if (!server) return;
     const ack = s.a[you] ?? 0;
+    // After a refresh the server already holds this round's earlier steps:
+    // carry on numbering above them, or new steps would be ignored.
+    if (ack > this.seq) this.seq = ack;
     this.history = this.history.filter((h) => h.seq > ack);
     const before = this.pred
       ? [this.pred.x + this.offset[0], this.pred.z + this.offset[1]]
@@ -195,9 +206,10 @@ export class OnlineSession implements Session {
     while (this.acc >= TICK) {
       this.acc -= TICK;
       const [mx, mz] = quantize(c.mx, c.mz);
-      const input: Input = { mx, mz, use: c.use, out: c.out };
+      const input: Input = { mx, mz, use: c.use, out: c.out, dash: !!c.dash };
       c.use = false;
       c.out = false;
+      c.dash = false;
       this.seq++;
       this.history.push({ seq: this.seq, input });
       if (this.history.length > 120) this.history.shift();
@@ -274,7 +286,8 @@ export class OnlineSession implements Session {
       mine.fz = this.pred.fz;
       mine.moving = this.pred.moving;
       if (latest) {
-        mine.carry = latest.carry;
+        mine.hands = latest.hands;
+        mine.lead = latest.lead;
         mine.mop = latest.mop;
         mine.mopping = latest.mopping;
       }
@@ -289,9 +302,9 @@ export class OnlineSession implements Session {
   start() {
     // The room opens the doors once everyone is here.
   }
-  again(night?: NightId) {
+  again(level?: number) {
     if (!this.room.host) return;
-    void api(this.path('/again'), night ? { night } : {}).catch(() => {});
+    void api(this.path('/again'), level ? { level } : {}).catch(() => {});
   }
   subscribe(listener: () => void) {
     this.listeners.add(listener);

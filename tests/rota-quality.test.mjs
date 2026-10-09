@@ -281,3 +281,46 @@ await test('repeated GPU pressure clears previous recovery evidence', () => {
   assert.equal(quality.tier, 'low');
   assert.deepEqual(run(quality, 16, 2), ['balanced']);
 });
+
+await test('powerful devices start at native density, a step above high', () => {
+  const quality = new AdaptiveQuality('high');
+  assert.equal(quality.tier, 'high');
+  assert.equal(quality.native, true);
+  // A 5K screen at 2× and a 3.5× phone draw every pixel.
+  assert.equal(renderDensity('high', 2, 2560, 1440, true), 2);
+  assert.equal(renderDensity('high', 3.5, 390, 844, true), 3.5);
+  // Beyond a 6K screen the buffer is capped, never under one pixel per CSS px.
+  assert.ok(renderDensity('high', 2, 3840, 2160, true) < 2);
+  assert.equal(renderDensity('high', 2, 7680, 4320, true), 1);
+  // Native only lifts the high tier.
+  assert.equal(
+    renderDensity('balanced', 3, 390, 844, true),
+    renderDensity('balanced', 3, 390, 844),
+  );
+});
+
+await test('native is the first thing a slow powerful device gives up, and it comes back', () => {
+  const quality = new AdaptiveQuality('high');
+  reach(quality, 'high', 40);
+  assert.equal(quality.native, false);
+  assert.equal(quality.tier, 'high');
+  reach(quality, 'balanced', 40);
+  reach(quality, 'high', 16);
+  assert.equal(quality.native, false);
+  reach(quality, 'high', 16);
+  assert.equal(quality.native, true);
+  // Never above native.
+  assert.deepEqual(run(quality, 16, 30), []);
+  quality.pressure();
+  assert.equal(quality.native, false);
+  assert.equal(quality.tier, 'low');
+});
+
+await test('weak devices start at balanced; mid devices keep the old start', () => {
+  assert.equal(new AdaptiveQuality('low').tier, 'balanced');
+  assert.equal(new AdaptiveQuality('low').native, false);
+  const mid = new AdaptiveQuality('mid');
+  assert.equal(mid.tier, 'high');
+  assert.equal(mid.native, false);
+  assert.deepEqual(run(mid, 16, 30), []);
+});

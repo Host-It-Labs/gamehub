@@ -1,0 +1,20 @@
+{
+  "calls": 503,
+  "dpr": 1,
+  "geometries": 278,
+  "mode": "idle",
+  "pixelRatio": 1,
+  "textures": 262,
+  "tier": {
+    "pixelRatio": 1,
+    "props": 1,
+    "shadowSize": 4096,
+    "tier": "hq"
+  },
+  "triangles": 3729506,
+  "units": 6,
+  "viewport": [
+    1280,
+    720
+  ]
+}

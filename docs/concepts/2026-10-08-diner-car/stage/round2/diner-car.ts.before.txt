@@ -1,0 +1,905 @@
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { Kit, meshes, type Mat, type Materials } from './kit';
+import type { CarUpgrades, StageCues, StageQuality } from './stage-contract';
+
+export type ModelDetail = 'stage' | 'map';
+export type ModelOptions = {
+  detail: ModelDetail;
+  upgrades?: CarUpgrades;
+  quality?: StageQuality;
+};
+export type DinerModel = {
+  group: THREE.Group;
+  landmarks: readonly THREE.Vector3[];
+  /** Axle pivots; the route owns rolling them while the rig travels. */
+  wheels: readonly THREE.Group[];
+  hitch: THREE.Vector3;
+  update(cues: StageCues): void;
+  dispose(): void;
+};
+
+/** Metres, centred x, nose/tow end toward -x, open long side toward +z.
+ * Stage car has its serving opening at z=0; map car is centred on z=0.
+ * Both have y=0 as their base. Neither builder changes caller materials.
+ */
+export const CAR_DIMENSIONS = Object.freeze({
+  length: 12.4,
+  depth: 2.8,
+  roof: 2.82,
+});
+export const CAR_COLOURS = Object.freeze({
+  cherry: '#a92d43',
+  cream: '#f4e4bf',
+  mint: '#80bfaa',
+  mintDark: '#438777',
+  chrome: '#d5e2e5',
+  black: '#27313b',
+});
+
+/** Shared modeling vocabulary. The source keeps curved panels; low only resamples. */
+export class StageKit extends Kit {
+  readonly quality: StageQuality;
+  constructor(quality: StageQuality = 'high') {
+    super();
+    this.quality = quality;
+  }
+  override rbox(...args: Parameters<Kit['rbox']>) {
+    const [mat, colour, size, r, at, options] = args;
+    const radius = Math.max(
+      0.001,
+      Math.min(r, ...size.map((s) => s / 2 - 0.001)),
+    );
+    return this.add(
+      mat,
+      colour,
+      new RoundedBoxGeometry(...size, this.quality === 'high' ? 2 : 1, radius),
+      at,
+      options,
+    );
+  }
+  override tube(
+    mat: Mat,
+    colour: string,
+    points: [number, number, number][],
+    r: number,
+    closed = false,
+  ) {
+    const curve = new THREE.CatmullRomCurve3(
+      points.map((p) => new THREE.Vector3(...p)),
+      closed,
+      'centripetal',
+    );
+    return this.add(
+      mat,
+      colour,
+      new THREE.TubeGeometry(
+        curve,
+        Math.max(12, points.length * (this.quality === 'high' ? 4 : 2)),
+        r,
+        this.quality === 'high' ? 8 : 5,
+        closed,
+      ),
+      [0, 0, 0],
+    );
+  }
+}
+
+/** A panel with face-plane rounded corners, unlike a thin bevelled box. */
+export function panel(
+  width: number,
+  height: number,
+  radius: number,
+  depth: number,
+  quality: StageQuality = 'high',
+) {
+  const x = width / 2,
+    y = height / 2,
+    r = Math.min(radius, x, y);
+  const s = new THREE.Shape();
+  s.moveTo(-x + r, -y);
+  s.lineTo(x - r, -y);
+  s.quadraticCurveTo(x, -y, x, -y + r);
+  s.lineTo(x, y - r);
+  s.quadraticCurveTo(x, y, x - r, y);
+  s.lineTo(-x + r, y);
+  s.quadraticCurveTo(-x, y, -x, y - r);
+  s.lineTo(-x, -y + r);
+  s.quadraticCurveTo(-x, -y, -x + r, -y);
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth,
+    bevelEnabled: false,
+    curveSegments: quality === 'high' ? 10 : 5,
+  });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+
+function windowFrame(quality: StageQuality) {
+  const outline = (path: THREE.Path, w: number, h: number, r: number) => {
+    const x = w / 2,
+      y = h / 2;
+    path.moveTo(-x + r, -y);
+    path.lineTo(x - r, -y);
+    path.quadraticCurveTo(x, -y, x, -y + r);
+    path.lineTo(x, y - r);
+    path.quadraticCurveTo(x, y, x - r, y);
+    path.lineTo(-x + r, y);
+    path.quadraticCurveTo(-x, y, -x, y - r);
+    path.lineTo(-x, -y + r);
+    path.quadraticCurveTo(-x, -y, -x + r, -y);
+  };
+  const shape = new THREE.Shape();
+  outline(shape, 1.44, 1.2, 0.17);
+  const hole = new THREE.Path();
+  outline(hole, 1.29, 1.05, 0.13);
+  shape.holes.push(hole);
+  const g = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.09,
+    bevelEnabled: false,
+    curveSegments: quality === 'high' ? 10 : 5,
+  });
+  g.translate(0, 0, -0.045);
+  return g;
+}
+
+/** Geometric neon, no canvas/font download. All words used by the environment. */
+const LETTERS: Record<string, number[][][]> = {
+  D: [
+    [
+      [0, 0],
+      [0, 1],
+      [0.48, 1],
+      [0.72, 0.8],
+      [0.72, 0.2],
+      [0.48, 0],
+      [0, 0],
+    ],
+  ],
+  I: [
+    [
+      [0.1, 1],
+      [0.62, 1],
+    ],
+    [
+      [0.36, 1],
+      [0.36, 0],
+    ],
+    [
+      [0.1, 0],
+      [0.62, 0],
+    ],
+  ],
+  N: [
+    [
+      [0, 0],
+      [0, 1],
+      [0.72, 0],
+      [0.72, 1],
+    ],
+  ],
+  E: [
+    [
+      [0.72, 1],
+      [0, 1],
+      [0, 0],
+      [0.72, 0],
+    ],
+    [
+      [0, 0.5],
+      [0.58, 0.5],
+    ],
+  ],
+  R: [
+    [
+      [0, 0],
+      [0, 1],
+      [0.52, 1],
+      [0.72, 0.84],
+      [0.72, 0.63],
+      [0.52, 0.5],
+      [0, 0.5],
+    ],
+    [
+      [0.36, 0.5],
+      [0.74, 0],
+    ],
+  ],
+  M: [
+    [
+      [0, 0],
+      [0, 1],
+      [0.36, 0.55],
+      [0.72, 1],
+      [0.72, 0],
+    ],
+  ],
+  O: [
+    [
+      [0.15, 0],
+      [0, 0.2],
+      [0, 0.8],
+      [0.15, 1],
+      [0.57, 1],
+      [0.72, 0.8],
+      [0.72, 0.2],
+      [0.57, 0],
+      [0.15, 0],
+    ],
+  ],
+  T: [
+    [
+      [0, 1],
+      [0.72, 1],
+    ],
+    [
+      [0.36, 1],
+      [0.36, 0],
+    ],
+  ],
+  L: [
+    [
+      [0, 1],
+      [0, 0],
+      [0.72, 0],
+    ],
+  ],
+  G: [
+    [
+      [0.72, 0.82],
+      [0.57, 1],
+      [0.15, 1],
+      [0, 0.8],
+      [0, 0.2],
+      [0.15, 0],
+      [0.72, 0],
+      [0.72, 0.45],
+      [0.4, 0.45],
+    ],
+  ],
+  A: [
+    [
+      [0, 0],
+      [0.28, 1],
+      [0.44, 1],
+      [0.72, 0],
+    ],
+    [
+      [0.14, 0.4],
+      [0.58, 0.4],
+    ],
+  ],
+  S: [
+    [
+      [0.7, 0.9],
+      [0.52, 1],
+      [0.15, 1],
+      [0, 0.8],
+      [0.08, 0.6],
+      [0.63, 0.4],
+      [0.72, 0.2],
+      [0.57, 0],
+      [0.15, 0],
+      [0, 0.1],
+    ],
+  ],
+  F: [
+    [
+      [0, 0],
+      [0, 1],
+      [0.72, 1],
+    ],
+    [
+      [0, 0.5],
+      [0.58, 0.5],
+    ],
+  ],
+  U: [
+    [
+      [0, 1],
+      [0, 0.2],
+      [0.15, 0],
+      [0.57, 0],
+      [0.72, 0.2],
+      [0.72, 1],
+    ],
+  ],
+  C: [
+    [
+      [0.72, 0.85],
+      [0.57, 1],
+      [0.15, 1],
+      [0, 0.8],
+      [0, 0.2],
+      [0.15, 0],
+      [0.57, 0],
+      [0.72, 0.15],
+    ],
+  ],
+};
+export function neon(
+  k: Kit,
+  word: string,
+  height: number,
+  at: [number, number, number],
+  colour: string,
+  mat: Mat = 'glow',
+) {
+  const width = (word.length * 0.95 - 0.23) * height;
+  for (let i = 0; i < word.length; i++)
+    for (const line of LETTERS[word[i]] ?? []) {
+      const pts = line.map(
+        ([x, y]) =>
+          new THREE.Vector3(
+            at[0] - width / 2 + (i * 0.95 + x) * height,
+            at[1] + y * height,
+            at[2],
+          ),
+      );
+      // Straight runs with rounded elbows, never a spline that warps letter strokes.
+      for (let j = 1; j < pts.length; j++) {
+        const a = pts[j - 1],
+          b = pts[j],
+          d = b.clone().sub(a);
+        const g = new THREE.CylinderGeometry(
+          height * 0.028,
+          height * 0.028,
+          d.length(),
+          8,
+        );
+        g.applyQuaternion(
+          new THREE.Quaternion().setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            d.normalize(),
+          ),
+        );
+        k.add(
+          mat,
+          colour,
+          g,
+          a.clone().add(b).multiplyScalar(0.5).toArray() as [
+            number,
+            number,
+            number,
+          ],
+        );
+      }
+      for (const p of pts)
+        k.sphere(
+          mat,
+          colour,
+          height * 0.028,
+          p.toArray() as [number, number, number],
+          { seg: 6 },
+        );
+    }
+}
+
+export function joinKit(
+  group: THREE.Group,
+  k: Kit,
+  materials: Materials,
+  name: string,
+) {
+  const g = meshes(k.build(), materials);
+  g.name = name;
+  group.add(g);
+  return g;
+}
+
+/** Only geometry in this model and explicitly owned materials/textures are freed. */
+export function modelDisposer(
+  group: THREE.Group,
+  owned: readonly { dispose(): void }[] = [],
+) {
+  let disposed = false;
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    const geometries = new Set<THREE.BufferGeometry>();
+    group.traverse((o) => {
+      if (o instanceof THREE.Mesh) geometries.add(o.geometry);
+      if (o instanceof THREE.InstancedMesh) o.dispose();
+    });
+    for (const g of geometries) g.dispose();
+    for (const o of owned) o.dispose();
+    group.clear();
+  };
+}
+
+/** A separate glow clone lets brownouts dim this car without dimming the map. */
+export function glowMaterials(materials: Materials) {
+  const glow = materials.glow.clone() as THREE.MeshBasicMaterial;
+  return { materials: { ...materials, glow }, glow };
+}
+export function lightLevel(cues: StageCues, offset = 0) {
+  const t = cues.reduced ? 0 : cues.time;
+  return cues.power
+    ? 1 + (cues.rush && !cues.reduced ? Math.sin(t * 5 + offset) * 0.12 : 0)
+    : 0.055 +
+        (!cues.reduced
+          ? Math.max(0, Math.sin(t * 17 + offset)) ** 16 * 0.08
+          : 0);
+}
+
+function wheel(
+  k: Kit,
+  x: number,
+  y: number,
+  z: number,
+  r: number,
+  quality: StageQuality,
+  outward = 1,
+) {
+  const c = CAR_COLOURS;
+  k.cyl('paint', '#1c2430', r, r, 0.23, [x, y, z], {
+    axis: 'z',
+    seg: quality === 'high' ? 32 : 16,
+  });
+  k.cyl('ceramic', '#ece4d2', r * 0.78, r * 0.78, 0.238, [x, y, z], {
+    axis: 'z',
+    seg: 24,
+  });
+  k.cyl('chrome', c.chrome, r * 0.55, r * 0.55, 0.25, [x, y, z], {
+    axis: 'z',
+    seg: 24,
+  });
+  k.sphere('chrome', c.chrome, r * 0.45, [x, y, z + outward * 0.13], {
+    scale: [1, 1, 0.28],
+    seg: 16,
+  });
+}
+
+export function buildDinerCar(
+  materials: Materials,
+  options: ModelOptions,
+): DinerModel {
+  const {
+    detail,
+    upgrades = {},
+    quality = detail === 'map' ? 'low' : 'high',
+  } = options;
+  const group = new THREE.Group();
+  group.name = `diner-car-${detail}`;
+  const c = CAR_COLOURS,
+    k = new StageKit(quality);
+  const own = glowMaterials(materials),
+    mats = own.materials;
+  const zc = detail === 'stage' ? -1.4 : 0;
+  const side = zc + 1.4,
+    back = detail === 'stage' ? -0.22 : zc - 1.4;
+  // Rounded plan and roof are formed solids, with full continuous end caps.
+  k.add(
+    'chrome',
+    c.chrome,
+    panel(12.4, 2.8, 1.02, 0.68, quality),
+    [0, 0.34, zc],
+    { rot: [Math.PI / 2, 0, 0] },
+  );
+  k.add(
+    'gloss',
+    c.cherry,
+    panel(12.42, 2.82, 1.04, 0.27, quality),
+    [0, 0.755, zc],
+    { rot: [Math.PI / 2, 0, 0] },
+  );
+  k.add(
+    'chrome',
+    c.chrome,
+    panel(12.44, 2.84, 1.04, 0.055, quality),
+    [0, 0.9, zc],
+    { rot: [Math.PI / 2, 0, 0] },
+  );
+  k.rbox(
+    'gloss',
+    c.cream,
+    [11.0, 0.3, detail === 'stage' ? 1.92 : 2.62],
+    0.15,
+    [0, 2.65, zc],
+  );
+  for (const end of [-1, 1]) {
+    k.add(
+      'chrome',
+      c.chrome,
+      panel(2.68, 1.66, 0.52, 0.8, quality),
+      [end * 5.72, 1.7, zc],
+      { rot: [0, Math.PI / 2, 0] },
+    );
+    k.sphere('gloss', c.cream, 1, [end * 5.25, 2.55, zc], {
+      scale: [0.98, 0.27, 1.3],
+      seg: quality === 'high' ? 32 : 16,
+    });
+    k.rbox('chrome', c.chrome, [0.06, 0.09, 2.05], 0.025, [
+      end * 6.16,
+      0.63,
+      zc,
+    ]);
+    // An inset service door, oval light and vent make both carriage ends finished.
+    const endX = end * 6.14,
+      endRot: [number, number, number] = [0, (end * Math.PI) / 2, 0];
+    k.add(
+      'chrome',
+      '#8faab2',
+      panel(0.91, 1.4, 0.17, 0.025, quality),
+      [endX, 1.65, zc],
+      { rot: endRot },
+    );
+    k.add(
+      'gloss',
+      c.cream,
+      panel(0.82, 1.31, 0.15, 0.015, quality),
+      [endX + end * 0.018, 1.65, zc],
+      { rot: endRot },
+    );
+    k.cyl(
+      'chrome',
+      c.chrome,
+      0.225,
+      0.225,
+      0.035,
+      [endX + end * 0.035, 1.94, zc],
+      { axis: 'x', seg: 24 },
+    );
+    k.cyl(
+      'glow',
+      '#d7b98b',
+      0.185,
+      0.185,
+      0.039,
+      [endX + end * 0.04, 1.94, zc],
+      { axis: 'x', seg: 24 },
+    );
+    k.box(
+      'chrome',
+      '#7c9ba6',
+      [0.06, 0.04, 0.18],
+      [endX + end * 0.07, 1.38, zc - 0.29],
+    );
+    for (let n = 0; n < 4; n++)
+      k.box(
+        'paint',
+        '#6d8792',
+        [0.018, 0.016, 0.46],
+        [endX + end * 0.034, 1.06 + n * 0.06, zc],
+      );
+  }
+  // Rear window wall; the open version has true openings and transparent glazing.
+  for (const face of detail === 'map' ? [back, side] : [back]) {
+    const s = detail === 'stage' || face > zc ? 1 : -1;
+    k.box('gloss', c.cream, [10.6, 0.12, 0.075], [0, 1.03, face]);
+    k.box('chrome', c.chrome, [10.6, 0.14, 0.085], [0, 2.39, face]);
+    for (let i = 0; i < 7; i++) {
+      const x = -4.65 + i * 1.55;
+      k.add('chrome', c.chrome, windowFrame(quality), [x, 1.72, face]);
+      k.add(
+        detail === 'map' ? 'glow' : 'glass',
+        detail === 'map' ? '#eac18b' : '#b7d6d7',
+        panel(1.29, 1.05, 0.13, 0.025, quality),
+        [x, 1.72, face + s * 0.057],
+      );
+      k.box(
+        'chrome',
+        '#839fa7',
+        [0.025, 1.06, 0.038],
+        [x, 1.72, face + s * 0.078],
+      );
+      k.box('gloss', c.cream, [0.1, 1.2, 0.08], [x + 0.76, 1.72, face]);
+      if (detail === 'stage')
+        k.box('glow', '#d7b98b', [1.28, 0.02, 0.024], [x, 1.18, face + 0.085]);
+    }
+  }
+  // Stainless fluting, carriage seams, lamps and restrained rivets.
+  for (const face of [back, side]) {
+    for (const y of [0.14, 0.26, 0.38, 0.5])
+      k.box(
+        'chrome',
+        y === 0.38 ? '#91a9b2' : '#c8d9dd',
+        [10.8, 0.025, 0.027],
+        [0, y, face + (face > zc ? 0.025 : -0.025)],
+      );
+    if (quality === 'high')
+      for (let i = 0; i < 28; i++)
+        k.sphere('chrome', '#a5bcc5', 0.013, [-5.15 + i * 0.38, 0.57, face], {
+          seg: 6,
+        });
+  }
+  for (const x of [-4.3, -3.35, 3.35, 4.3])
+    for (const s of [-1, 1]) {
+      const pivot = new THREE.Group();
+      pivot.name = 'axle';
+      pivot.position.set(x, detail === 'stage' ? 0.09 : -0.08, zc + s * 1.1);
+      const wk = new StageKit(quality);
+      wheel(wk, 0, 0, 0, 0.33, quality, s);
+      joinKit(pivot, wk, mats, 'whitewall');
+      group.add(pivot);
+    }
+  for (const x of [-5.25, 5.25]) {
+    k.rbox('gloss', c.cherry, [0.19, 0.12, 0.09], 0.04, [x, 0.77, side + 0.06]);
+    k.box('glow', '#ff9c61', [0.11, 0.045, 0.025], [x, 0.79, side + 0.11]);
+  }
+  k.box('chrome', '#637786', [1.0, 0.08, 0.3], [0, 2.84, zc - 0.2]);
+  for (let i = 0; i < 6; i++)
+    k.box(
+      'paint',
+      '#425365',
+      [0.025, 0.045, 0.24],
+      [-0.4 + i * 0.16, 2.89, zc - 0.2],
+    );
+  // Hinged panel: raised, short and upswept so machines remain in view from above.
+  const awningDepth = detail === 'stage' ? 0.64 : 0.12;
+  k.rbox(
+    'gloss',
+    c.cherry,
+    [10.92, 0.09, awningDepth],
+    0.035,
+    [0, detail === 'stage' ? 2.76 : 2.42, side + awningDepth / 2],
+    { rot: [-0.4, 0, 0] },
+  );
+  k.box('chrome', c.chrome, [10.95, 0.052, 0.045], [0, 2.64, side]);
+  for (let i = 0; i < 23; i++)
+    k.box(
+      'gloss',
+      c.cream,
+      [0.2, 0.016, awningDepth - 0.04],
+      [
+        -5.15 + i * 0.47,
+        detail === 'stage' ? 2.812 : 2.471,
+        side + awningDepth / 2,
+      ],
+      { rot: [-0.4, 0, 0] },
+    );
+  if (detail === 'stage')
+    for (const x of [-5.05, 5.05])
+      k.tube(
+        'chrome',
+        c.chrome,
+        [
+          [x, 2.47, -0.04],
+          [x, 2.72, 0.58],
+        ],
+        0.023,
+      );
+  // Marquee has a scalloped automotive shield and actual bent neon tubes.
+  const signH = upgrades.neonSign ? 0.83 : 0.7;
+  const signW = upgrades.neonSign ? 5.0 : 4.3;
+  k.add(
+    'chrome',
+    c.chrome,
+    panel(signW + 0.2, signH + 0.33, 0.25, 0.13, quality),
+    [0, 3.4, zc],
+  );
+  k.add('gloss', c.cherry, panel(signW, signH + 0.19, 0.2, 0.045, quality), [
+    0,
+    3.4,
+    zc + 0.085,
+  ]);
+  for (const x of [-1.5, 1.5])
+    k.box('chrome', '#708791', [0.08, 0.46, 0.09], [x, 2.97, zc]);
+  neon(k, 'DINER', signH, [0, 3.4 - signH / 2, zc + 0.13], '#ffb08b');
+  k.rbox('glow', '#88d7c6', [signW - 0.24, 0.022, 0.025], 0.008, [
+    0,
+    3.4 - signH / 2 - 0.065,
+    zc + 0.13,
+  ]);
+  k.tube(
+    'chrome',
+    c.chrome,
+    [
+      [-6.1, 0.12, zc],
+      [-6.7, 0.08, zc - 0.42],
+      [-6.7, 0.08, zc + 0.42],
+      [-6.1, 0.12, zc],
+    ],
+    0.055,
+  );
+  if (detail === 'map') {
+    for (let i = 0; i < 2; i++)
+      k.rbox('chrome', c.chrome, [0.95, 0.09, 0.34], 0.035, [
+        -5.15,
+        0.02 + i * 0.18,
+        side + 0.23 - i * 0.09,
+      ]);
+    if (upgrades.biggerPatio)
+      k.rbox('gloss', c.mint, [8.2, 0.12, 0.25], 0.04, [0, 0.15, side + 0.17]);
+    if (upgrades.jukebox) {
+      k.add('chrome', c.chrome, panel(0.5, 0.74, 0.22, 0.12, quality), [
+        4.65,
+        1.5,
+        side + 0.13,
+      ]);
+      k.add('glow', '#87d3c2', panel(0.35, 0.59, 0.17, 0.025, quality), [
+        4.65,
+        1.5,
+        side + 0.21,
+      ]);
+    }
+  }
+  if (upgrades.gasCan)
+    k.rbox('gloss', c.cherry, [0.4, 0.51, 0.28], 0.06, [5.85, 0.18, zc]);
+  if (upgrades.roadAtlas)
+    k.box('gloss', '#85c0bb', [0.38, 0.22, 0.04], [-4.6, 1.15, back - 0.07]);
+  if (upgrades.luckyDice)
+    for (const x of [-0.08, 0.08])
+      k.rbox('ceramic', c.cream, [0.1, 0.1, 0.1], 0.015, [
+        x,
+        2.16,
+        back + 0.13,
+      ]);
+  joinKit(group, k, mats, 'car-body');
+  const wheels = group.children.filter(
+    (o): o is THREE.Group => o instanceof THREE.Group && o.name === 'axle',
+  );
+  return {
+    group,
+    wheels,
+    hitch: new THREE.Vector3(-6.7, 0.08, zc),
+    landmarks: [
+      new THREE.Vector3(-6.25, 2.85, side),
+      new THREE.Vector3(6.25, 2.85, side),
+      new THREE.Vector3(-signW / 2 - 0.1, 3.4 + (signH + 0.33) / 2, zc),
+      new THREE.Vector3(signW / 2 + 0.1, 3.4 + (signH + 0.33) / 2, zc),
+    ],
+    update(cues) {
+      own.glow.color.setScalar(lightLevel(cues));
+    },
+    dispose: modelDisposer(group, [own.glow]),
+  };
+}
+
+export function buildTruck(
+  materials: Materials,
+  options: ModelOptions,
+): DinerModel {
+  const {
+    detail,
+    upgrades = {},
+    quality = detail === 'map' ? 'low' : 'high',
+  } = options;
+  const group = new THREE.Group();
+  group.name = `cab-over-${detail}`;
+  const c = CAR_COLOURS,
+    k = new StageKit(quality),
+    own = glowMaterials(materials),
+    mats = own.materials;
+  // Sculpted rounded face; nose at -x, a recessed flat chassis behind it.
+  k.rbox('paint', '#303b49', [3.2, 0.17, 1.25], 0.06, [0, 0.38, 0]);
+  k.rbox('gloss', c.mint, [1.77, 1.13, 1.75], 0.26, [-0.73, 0.91, 0]);
+  k.rbox('gloss', c.cream, [1.73, 0.78, 1.73], 0.26, [-0.76, 1.62, 0]);
+  k.rbox('gloss', c.cream, [1.57, 0.13, 1.6], 0.065, [-0.76, 2.03, 0]);
+  for (const z of [-0.43, 0.43]) {
+    k.add(
+      'chrome',
+      c.chrome,
+      panel(0.7, 0.52, 0.105, 0.08, quality),
+      [-1.603, 1.68, z],
+      { rot: [0, Math.PI / 2, 0] },
+    );
+    k.add(
+      'gloss',
+      '#3b5969',
+      panel(0.6, 0.42, 0.085, 0.035, quality),
+      [-1.652, 1.68, z],
+      { rot: [0, Math.PI / 2, 0] },
+    );
+    k.box('paint', '#263b46', [0.012, 0.15, 0.022], [-1.681, 1.51, z + 0.1], {
+      rot: [0.22, 0, 0],
+    });
+    k.cyl('chrome', c.chrome, 0.18, 0.18, 0.08, [-1.62, 0.9, z * 1.46], {
+      axis: 'x',
+    });
+    k.cyl('glow', '#ffdda1', 0.135, 0.135, 0.024, [-1.673, 0.9, z * 1.46], {
+      axis: 'x',
+    });
+  }
+  k.add(
+    'chrome',
+    c.chrome,
+    panel(0.92, 0.38, 0.09, 0.06, quality),
+    [-1.65, 0.8, 0],
+    { rot: [0, Math.PI / 2, 0] },
+  );
+  for (let i = 0; i < 5; i++)
+    k.box(
+      'paint',
+      '#233c47',
+      [0.025, 0.025, 0.78],
+      [-1.69, 0.66 + i * 0.066, 0],
+    );
+  k.rbox('chrome', c.chrome, [0.15, 0.13, 1.83], 0.055, [-1.7, 0.48, 0]);
+  const wheels: THREE.Group[] = [];
+  for (const x of [-1.08, 1.1])
+    for (const side of [-1, 1]) {
+      const axle = new THREE.Group();
+      axle.name = 'truck-axle';
+      axle.position.set(x, 0.34, side * 0.77);
+      const wk = new StageKit(quality);
+      wheel(wk, 0, 0, 0, 0.36, quality, side);
+      joinKit(axle, wk, mats, 'whitewall');
+      group.add(axle);
+      wheels.push(axle);
+      k.rbox('gloss', x < 0 ? c.mint : c.cream, [0.95, 0.1, 0.3], 0.048, [
+        x,
+        0.71,
+        side * 0.73,
+      ]);
+      k.box(
+        'paint',
+        '#253440',
+        [0.16, 0.27, 0.31],
+        [x + 0.43, 0.26, side * 0.77],
+      );
+    }
+  for (const side of [-1, 1]) {
+    k.add('chrome', c.chrome, panel(0.56, 0.48, 0.09, 0.04, quality), [
+      -0.67,
+      1.66,
+      side * 0.877,
+    ]);
+    k.add('gloss', '#426372', panel(0.48, 0.39, 0.06, 0.02, quality), [
+      -0.67,
+      1.66,
+      side * 0.906,
+    ]);
+    k.rbox('chrome', c.chrome, [0.24, 0.032, 0.025], 0.012, [
+      -0.32,
+      1.25,
+      side * 0.884,
+    ]);
+    k.tube(
+      'chrome',
+      c.chrome,
+      [
+        [-1.38, 1.5, side * 0.82],
+        [-1.42, 1.5, side * 1.1],
+        [-1.42, 1.71, side * 1.1],
+      ],
+      0.018,
+    );
+    k.rbox('chrome', c.chrome, [0.09, 0.23, 0.16], 0.035, [
+      -1.42,
+      1.79,
+      side * 1.1,
+    ]);
+    k.rbox('chrome', c.chrome, [0.64, 0.055, 0.3], 0.02, [
+      -0.56,
+      0.47,
+      side * 0.91,
+    ]);
+  }
+  k.rbox('gloss', c.mint, [1.55, 0.2, 1.26], 0.08, [0.98, 0.53, 0]);
+  k.tube(
+    'chrome',
+    '#94a9b4',
+    [
+      [1.05, 0.54, -0.43],
+      [1.95, 0.14, 0],
+      [1.05, 0.54, 0.43],
+    ],
+    0.047,
+  );
+  k.sphere('chrome', c.chrome, 0.09, [1.95, 0.14, 0], { seg: 12 });
+  for (let i = 0; i < Math.min(2, upgrades.spareTires ?? 0); i++) {
+    k.cyl('paint', '#202f3d', 0.34, 0.34, 0.2, [0.76, 0.75 + i * 0.2, 0], {
+      seg: 24,
+    });
+    k.cyl('chrome', c.chrome, 0.16, 0.16, 0.21, [0.76, 0.75 + i * 0.2, 0], {
+      seg: 20,
+    });
+  }
+  for (const z of [-0.5, 0, 0.5])
+    k.rbox('glow', '#ffae66', [0.1, 0.055, 0.09], 0.025, [-1.15, 2.1, z]);
+  joinKit(group, k, mats, 'pressed-panels');
+  return {
+    group,
+    wheels,
+    hitch: new THREE.Vector3(1.95, 0.14, 0),
+    landmarks: [
+      new THREE.Vector3(-1.7, 2.14, -0.9),
+      new THREE.Vector3(1.98, 0.0, 0.9),
+    ],
+    update(cues) {
+      own.glow.color.setScalar(lightLevel(cues));
+    },
+    dispose: modelDisposer(group, [own.glow]),
+  };
+}

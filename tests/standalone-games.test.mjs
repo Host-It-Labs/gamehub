@@ -13,7 +13,9 @@ import {
   playableGame,
   standaloneLibraryGames,
   tableSections,
+  showcaseGames,
 } from '../lib/games/library-fixtures.ts';
+import { isHumanOnlyGame } from '../lib/games/player-policy.ts';
 
 const source = (path) =>
   readFile(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -30,16 +32,20 @@ const finish = (entry, g) => {
     }
     // Unless the table votes, the host (seat 0) picks what comes next.
     if (g.phase === 'vote' && g.vote?.host) {
-      g = entry.play(g, {
-        type: 'vote',
-        choice: g.vote.opening
-          ? g.vote.options[g.seats.length % g.vote.options.length]
-          : g.round >= 2
-            ? 'finish'
-            : (g.vote.options ?? []).includes(g.kind)
-              ? g.kind
-              : 'more',
-      }, 0);
+      g = entry.play(
+        g,
+        {
+          type: 'vote',
+          choice: g.vote.opening
+            ? g.vote.options[g.seats.length % g.vote.options.length]
+            : g.round >= 2
+              ? 'finish'
+              : (g.vote.options ?? []).includes(g.kind)
+                ? g.kind
+                : 'more',
+        },
+        0,
+      );
       continue;
     }
     const waiting = entry.actingSeats(g);
@@ -153,17 +159,20 @@ await test('the library shelves them as playable games, not as placeholders', ()
   );
 });
 
-await test('the library shows only games that play, each in exactly one section', () => {
+await test('the library shows only games that play, each on one shelf unless it has a long mode', () => {
   for (const game of libraryGames)
     assert.ok(playableGame(game.id), `${game.id} opens and plays`);
   const listed = librarySections.flatMap((s) => s.games);
   for (const id of listed)
     assert.ok(gameByLibraryId(id), `a section lists a game that exists: ${id}`);
-  assert.equal(
-    new Set(listed).size,
-    listed.length,
-    'no game is in two sections',
-  );
+  for (const id of new Set(listed)) {
+    const shelves = listed.filter((other) => other === id).length;
+    assert.equal(
+      shelves,
+      gameByLibraryId(id).longMode ? 2 : 1,
+      `${id} is on ${shelves} shelves`,
+    );
+  }
   for (const game of libraryGames)
     assert.ok(
       listed.includes(game.id),
@@ -173,20 +182,62 @@ await test('the library shows only games that play, each in exactly one section'
     assert.ok(listed.includes(id), `${id} is on the library page`);
 });
 
-await test('strategy then solo lead the landing page, party games lead a table', () => {
+await test('quick games lead the landing page; party games lead a table', () => {
   assert.deepEqual(
     librarySections.map((s) => s.id),
-    ['strategy', 'solo', 'party'],
+    ['quick', 'long', 'friends'],
   );
   assert.deepEqual(
     tableSections.map((s) => s.id),
-    ['party', 'strategy', 'solo'],
+    ['party', 'games'],
+  );
+  const table = tableSections.flatMap((s) => s.games);
+  assert.equal(
+    new Set(table).size,
+    table.length,
+    'a table lists each game once',
   );
   assert.deepEqual(
-    tableSections.map((s) => s.id).sort(),
-    librarySections.map((s) => s.id).sort(),
-    'a table shows the same sections as the landing page',
+    [...table].sort(),
+    [...new Set(librarySections.flatMap((s) => s.games))].sort(),
+    'a table offers the same games as the landing page',
   );
+  const shelf = (id) => librarySections.find((s) => s.id === id).games;
+  for (const id of shelf('friends'))
+    assert.ok(
+      isHumanOnlyGame(id),
+      `${id} needs people, so it waits for friends`,
+    );
+  for (const id of [...shelf('quick'), ...shelf('long')])
+    assert.ok(!isHumanOnlyGame(id), `${id} starts on your own`);
+  assert.ok(
+    shelf('quick').includes('arena') && shelf('long').includes('arena'),
+    'Arena is quick to play and has its Quest',
+  );
+  for (const id of ['relic', 'folio'])
+    assert.ok(shelf('long').includes(id), `${id} is one to settle into`);
+});
+
+await test('the showcase can turn through every game', () => {
+  assert.deepEqual(
+    [...showcaseGames].sort(),
+    libraryGames.map((g) => g.id).sort(),
+  );
+});
+
+await test('every game shows one short kind, never its crowd or theme', () => {
+  for (const game of libraryGames) {
+    assert.equal(typeof game.kind, 'string', `${game.id} has a kind`);
+    // One badge of a word or two that fits a phone shelf tile beside the
+    // time.
+    assert.ok(
+      game.kind.length > 0 &&
+        game.kind.length <= 14 &&
+        game.kind.split(' ').filter((w) => w !== '&').length <= 2,
+      `${game.id}'s kind "${game.kind}" is short`,
+    );
+    assert.ok(!/party|space/i.test(game.kind), `${game.id}'s kind is the play`);
+  }
 });
 
 await test('every box shows its match length on the time badge', () => {

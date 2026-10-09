@@ -488,7 +488,9 @@ await test('a drafted room: offers from the room, live picks, the clock and bots
   const { client, close } = await fixture({
     tickMs: 5,
     startDelayMs: 10,
-    draftTimes: { pick: 400, reveal: 30, final: 30 },
+    // Let the live API assertions finish while other files run geometry
+    // probes; the shortened clock still picks for the silent guest.
+    draftTimes: { pick: 1500, reveal: 30, final: 30 },
   });
   try {
     const { host, path, guests } = await table(client, ['Guest']);

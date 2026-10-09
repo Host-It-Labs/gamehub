@@ -1,0 +1,11 @@
+Use case: stylized-concept
+Asset type: Arena game action-card portrait, full-bleed opaque square illustration.
+Primary request: Paint an original dignified weathered adult fantasy wizard mid-cast, matching a grown-up hand-painted collector miniature's readable sculpted shapes.
+Subject: Lean older human wizard with a proportionate adult skull, calm intent blue-grey eyes under strong white brows, long angular hooked nose and cheek/jaw planes. Separated flowing silver hair and layered silver beard locks. Bent pointed cobalt felt hat with modest dull gold band. Heavy tailored cobalt robe, charcoal travelling mantle, fine sparse muted-gold embroidered edges, brown leather belt. Right hand firmly wraps four separated fingers and thumb around a naturally knotted dark wooden staff with one modest amber crystal held in aged silver claws. Left hand cups a small restrained amber flame. Clear hand anatomy.
+Composition/framing: Square close action portrait, head and shoulders large, full bent hat silhouette protected within frame, face and both expressive hands visible, staff near right side angled into composition. Three-quarter frontal view, mature wizard leaning forward slightly in a measured casting gesture. Silhouette and face remain crisp when shrunk to 90 pixels.
+Scene/backdrop: Quiet blurred tower library in deep ink blue with a faint warm amber shaft of light, no busy shelves competing with the figure.
+Style/medium: Premium painted fantasy game illustration, large confident brush planes, restrained texture, gently sculpted depth, crisp editorial silhouette. Same intentional painted character-card family as a forest-green tyrannosaur and adult sumo wrestler. Rich illustrated art, never photorealistic, never a plastic toy or screenshot.
+Lighting/mood: Soft cool fill and restrained warm staff/flame light on cheek, controlled highlights, dignified rather than comical.
+Color palette: Cobalt, charcoal, silver hair, warm weathered skin, muted gold, small amber accents.
+Text: None.
+Constraints: Fresh independent source using only this written brief. Opaque edge-to-edge square background. One character only. No border, no card UI, no numbers, no title, no watermark, no base. Preserve natural adult proportions. Avoid smooth inflatable sleeves, sausage hands, random noise, enormous fireball, neon glow or cartoon baby head.

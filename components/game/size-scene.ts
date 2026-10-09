@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { startRatio } from './render-quality';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import outlines from '@/lib/games/party/size-outlines.json';
 import silhouettes from '@/lib/games/party/size-silhouettes.json';
@@ -349,7 +350,7 @@ export class SizeScene {
     this.padRight = opts.padRight ?? 0;
     this.reduced = opts.reduced;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(startRatio(window.innerWidth, window.innerHeight));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -513,6 +514,7 @@ export class SizeScene {
       h = Math.max(1, this.host.clientHeight);
     this.width = w;
     this.height = h;
+    this.renderer.setPixelRatio(startRatio(w, h));
     this.renderer.setSize(w, h, false);
     this.canvas.style.width = `${w}px`;
     this.canvas.style.height = `${h}px`;

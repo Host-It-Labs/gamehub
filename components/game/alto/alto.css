@@ -222,8 +222,8 @@
   display: flex;
   justify-content: safe center;
   flex-wrap: nowrap;
-  gap: 6px;
-  padding: 2px;
+  gap: 8px;
+  padding: 4px;
   overflow-x: auto;
   scrollbar-width: none;
   pointer-events: none;
@@ -272,15 +272,22 @@
   font-weight: 650;
   white-space: nowrap;
 }
+.alto-player-copy {
+  line-height: 1;
+}
 .alto-player small {
-  min-width: 18px;
+  flex: none;
+  min-width: 2ch;
   color: var(--alto-ink);
   font-family: var(--alto-display);
   font-size: 15px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
 }
 .alto-status {
+  flex: none;
   display: inline-grid;
   place-items: center;
   width: 18px;
@@ -304,7 +311,41 @@
   opacity: 0.6;
 }
 .alto-players[data-fit='compact'] .alto-player {
-  padding-right: 4px;
+  display: grid;
+  grid-template-columns: 20px 10px;
+  grid-template-rows: 20px 13px;
+  min-width: 0;
+  min-height: 45px;
+  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  column-gap: 4px;
+  row-gap: 3px;
+  padding: 3px;
+  border-radius: 13px;
+}
+.alto-players[data-fit='compact'] .alto-avatar {
+  grid-column: 1;
+  grid-row: 1;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+}
+.alto-players[data-fit='compact'] .alto-player small {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  min-width: 0;
+  font-size: 13px;
+}
+.alto-players[data-fit='compact'] .alto-status {
+  grid-column: 2;
+  grid-row: 1;
+  width: 10px;
+  height: 10px;
+}
+.alto-players[data-fit='compact'] .alto-status svg {
+  width: 9px;
+  height: 9px;
 }
 @keyframes alto-spin {
   to {
@@ -519,21 +560,25 @@
   box-shadow: 0 0 30px color-mix(in srgb, var(--p1) 45%, transparent);
 }
 .alto-planet[data-good='0'] {
+  --cargo: #c1e595;
   --p1: #b9e88f;
   --p2: #5aa548;
   --p3: #2d5a2e;
 }
 .alto-planet[data-good='1'] {
+  --cargo: #f3c187;
   --p1: #f6b37a;
   --p2: #c4572e;
   --p3: #5a2414;
 }
 .alto-planet[data-good='2'] {
+  --cargo: #b6e5ff;
   --p1: #ffffff;
   --p2: #bcd8f0;
   --p3: #5e86b5;
 }
 .alto-planet[data-good='3'] {
+  --cargo: #ddbbff;
   --p1: #efe2ff;
   --p2: #9a7ae0;
   --p3: #3b2a74;
@@ -544,7 +589,7 @@
 .alto-world[data-locked] .alto-planet:not(.is-mine) .alto-pile {
   opacity: 0.82;
 }
-/* The pile: big cargo icon and count, tucked under the planet's body
+/* A cargo marker in dark glass, tucked under the planet's body
    (--body is its radius over the slot's size, set by the 3D layer). */
 .alto-pile {
   position: absolute;
@@ -554,30 +599,41 @@
   translate: -50% -55%;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 12px 3px 5px;
-  border-radius: 999px;
-  background: var(--alto-cream);
-  color: var(--alto-ink);
-  box-shadow: var(--alto-shadow);
+  gap: 6px;
+  min-width: 58px;
+  padding: 3px 9px 3px 4px;
+  border: 1px solid color-mix(in srgb, var(--cargo) 52%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(160deg, #273358ed, #0d142de8);
+  color: #fff9eb;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--cargo) 22%, transparent),
+    0 3px 10px #04061a77;
   pointer-events: none;
   transition:
     scale 0.2s ease,
     box-shadow 0.2s ease;
 }
+.alto-pile .alto-good {
+  filter: drop-shadow(
+    0 0 5px color-mix(in srgb, var(--cargo) 45%, transparent)
+  );
+}
 .alto-pile b {
   font-family: var(--alto-display);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-/* A full planet stops filling: its count turns gold. */
+/* A full planet stops filling: its glass edge lights up in the cargo colour. */
 .alto-planet[data-full] .alto-pile {
-  background: linear-gradient(135deg, #fff3cf, #ffd98a);
+  border-color: var(--cargo);
+  color: var(--cargo);
   box-shadow:
-    0 0 0 2px #f0a040,
-    var(--alto-shadow);
+    inset 0 1px 0 #ffffff33,
+    0 0 12px color-mix(in srgb, var(--cargo) 35%, transparent),
+    0 3px 10px #04061a77;
 }
 .alto-planet.is-mine .alto-pile {
   box-shadow:
@@ -1128,25 +1184,28 @@
 }
 .alto-item-body {
   display: grid;
+  width: 100%;
   justify-items: center;
   gap: 3px;
   min-width: 0;
 }
 .alto-item-name {
   max-width: 100%;
-  overflow: hidden;
   font-family: var(--alto-display);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  text-wrap: balance;
+  hyphens: auto;
+  overflow-wrap: anywhere;
 }
 .alto-effects {
   display: inline-flex;
   gap: 4px;
   flex-wrap: wrap;
   justify-content: center;
+  max-width: 100%;
 }
 .alto-effect {
   display: inline-flex;
@@ -1171,9 +1230,24 @@
 .alto-effect.is-points {
   background: linear-gradient(135deg, #ffe08a, #f0a040);
   color: #3a2006;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 0;
 }
-.alto-effect.is-points > svg:first-child {
+.alto-effect-point-star {
   fill: currentColor;
+}
+.alto-effect-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.alto-effect-target {
+  font-weight: 650;
+  white-space: normal;
+  text-wrap: balance;
+  text-align: center;
 }
 .alto-effect.is-ability {
   background: #7cc0ff2e;
@@ -2007,6 +2081,157 @@
   .alto-shelf {
     padding-inline: 4px;
   }
+  /* One grid of six; the shelves dissolve and each item keeps its colour. */
+  .alto-shop {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .alto-shelf {
+    display: contents;
+  }
+  .alto-shelf-label {
+    display: none;
+  }
+  /* A shop item: the object at the left, its name and effect beside it, the
+     cost across the bottom. Owned or picked shows as a corner badge. */
+  .alto-item {
+    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'art name'
+      'art effect'
+      'cost cost';
+    align-items: center;
+    justify-items: start;
+    column-gap: 4px;
+    row-gap: 1px;
+    padding: 4px 4px 4px 3px;
+    border-radius: 14px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tint) 16%, transparent),
+      color-mix(in srgb, var(--tint) 5%, transparent)
+    );
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 30%, transparent);
+    text-align: left;
+  }
+  .alto-item-seal,
+  .alto-item-choice {
+    top: -5px;
+    right: -3px;
+    padding: 1px 5px;
+    font-size: 9px;
+  }
+  .alto-item-seal > span {
+    display: none;
+  }
+  .alto-item-seal {
+    padding: 2px;
+  }
+  .alto-shelf .alto-family {
+    display: grid;
+  }
+  .alto-family {
+    top: 2px;
+    left: 2px;
+    width: 15px;
+    height: 15px;
+  }
+  .alto-family svg {
+    width: 9px;
+    height: 9px;
+  }
+  .alto-item-art {
+    grid-area: art;
+    width: 36px;
+    aspect-ratio: 1;
+  }
+  .alto-item-art::after {
+    left: 4%;
+    right: 4%;
+  }
+  .alto-item-body {
+    display: contents;
+  }
+  .alto-item:has(.alto-effect.is-points) {
+    grid-template-areas:
+      'art name'
+      'effect effect'
+      'cost cost';
+  }
+  .alto-item-name {
+    grid-area: name;
+    font-size: 12.5px;
+  }
+  .alto-effects {
+    grid-area: effect;
+    justify-content: start;
+    flex-wrap: wrap;
+    max-width: 100%;
+    gap: 2px;
+  }
+  .alto-effect {
+    gap: 1px;
+    padding: 0 4px;
+    font-size: 10.5px;
+  }
+  .alto-effect .alto-good,
+  .alto-effect > svg {
+    width: 13px;
+    height: 13px;
+  }
+  .alto-effect.is-points {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 4px;
+    row-gap: 0;
+    padding: 1px 5px;
+  }
+  .alto-item:has(.alto-effect.is-points) .alto-effects {
+    justify-self: center;
+    max-width: 100%;
+  }
+  .alto-effect-target {
+    white-space: normal;
+    text-wrap: balance;
+    text-align: center;
+  }
+  /* Two effects share the line beside the object. */
+  .alto-effects:has(> :nth-child(2)) .alto-effect {
+    padding: 0 3px;
+    font-size: 10px;
+  }
+  .alto-effects:has(> :nth-child(2)) :is(.alto-good, svg) {
+    width: 12px;
+    height: 12px;
+  }
+  .alto-item-cost {
+    --unit: clamp(
+      9px,
+      calc((100cqi - 18px) / (var(--units, 6) * 0.7 + 1.2)),
+      21px
+    );
+    grid-area: cost;
+    justify-self: stretch;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 3px;
+    padding: 2px;
+  }
+  .alto-cost-space {
+    height: 18px;
+    visibility: hidden;
+  }
+  .alto-item-cost .alto-cost-unit + .alto-cost-unit {
+    margin-left: calc(var(--unit) * -0.3);
+  }
+  .alto-cost-unit[data-unit='missing'] {
+    box-shadow:
+      0 0 0 1.5px #ff6b5a,
+      0 0 6px #ff5a4a88;
+  }
 }
 
 .alto-cost-space {
@@ -2034,8 +2259,8 @@
     top: calc(max(8px, env(safe-area-inset-top)) + 48px);
     left: max(6px, env(safe-area-inset-left));
     right: max(6px, env(safe-area-inset-right));
-    gap: 5px;
-    padding: 3px;
+    gap: 6px;
+    padding: 4px;
   }
   .alto-player {
     min-height: 34px;
@@ -2051,33 +2276,7 @@
   .alto-players[data-fit='compact'] {
     display: grid;
     grid-template-columns: repeat(var(--seats), minmax(0, 1fr));
-    gap: 4px;
-  }
-  .alto-players[data-fit='compact'] .alto-player {
-    position: relative;
-    min-width: 0;
-    justify-content: center;
-    gap: 3px;
-    padding-inline: 2px;
-  }
-  .alto-players[data-fit='compact'] .alto-avatar {
-    width: 22px;
-    height: 22px;
-    font-size: 11px;
-  }
-  .alto-players[data-fit='compact'] .alto-player small {
-    font-size: 13px;
-  }
-  .alto-players[data-fit='compact'] .alto-status {
-    position: absolute;
-    left: 17px;
-    bottom: 1px;
-    width: 12px;
-    height: 12px;
-  }
-  .alto-players[data-fit='compact'] .alto-status svg {
-    width: 9px;
-    height: 9px;
+    gap: 5px;
   }
   .alto-stage {
     left: 6px;
@@ -2085,7 +2284,10 @@
     bottom: calc(var(--dock-h) + max(6px, env(safe-area-inset-bottom)) + 22px);
   }
   .alto-pile {
-    padding: 2px 9px 2px 3px;
+    min-width: 49px;
+    gap: 4px;
+    padding: 2px 7px 2px 3px;
+    border-radius: 10px;
   }
   .alto-pile .alto-good {
     width: 24px;
@@ -2148,6 +2350,22 @@
   }
   .alto-preview-hold svg {
     width: 10px;
+  }
+  /* Named score targets need the card's full width on a phone. */
+  .alto-item:has(.alto-effect.is-points) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas: 'art' 'name' 'effect' 'cost';
+    justify-items: center;
+    text-align: center;
+  }
+  .alto-item:has(.alto-effect.is-points) .alto-item-art {
+    width: 28px;
+    justify-self: center;
+  }
+  .alto-item:has(.alto-effect.is-points) .alto-item-name {
+    justify-self: stretch;
+    font-size: 12px;
   }
   .alto-dock-row {
     display: grid;
@@ -2239,130 +2457,6 @@
   .alto-sheet-family {
     font-size: 10px;
   }
-  /* One grid of six; the shelves dissolve and each item keeps its colour. */
-  .alto-shop {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-  }
-  .alto-shelf {
-    display: contents;
-  }
-  .alto-shelf-label {
-    display: none;
-  }
-  /* A shop item: the object at the left, its name and effect beside it, the
-     cost across the bottom. Owned or picked shows as a corner badge. */
-  .alto-item {
-    grid-template-columns: 36px minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-    grid-template-areas:
-      'art name'
-      'art effect'
-      'cost cost';
-    align-items: center;
-    justify-items: start;
-    column-gap: 4px;
-    row-gap: 1px;
-    padding: 4px 4px 4px 3px;
-    border-radius: 14px;
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--tint) 16%, transparent),
-      color-mix(in srgb, var(--tint) 5%, transparent)
-    );
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 30%, transparent);
-    text-align: left;
-  }
-  .alto-item-seal,
-  .alto-item-choice {
-    top: -5px;
-    right: -3px;
-    padding: 1px 5px;
-    font-size: 9px;
-  }
-  .alto-item-seal > span {
-    display: none;
-  }
-  .alto-item-seal {
-    padding: 2px;
-  }
-  .alto-shelf .alto-family {
-    display: grid;
-  }
-  .alto-family {
-    top: 2px;
-    left: 2px;
-    width: 15px;
-    height: 15px;
-  }
-  .alto-family svg {
-    width: 9px;
-    height: 9px;
-  }
-  .alto-item-art {
-    grid-area: art;
-    width: 36px;
-    aspect-ratio: 1;
-  }
-  .alto-item-art::after {
-    left: 4%;
-    right: 4%;
-  }
-  .alto-item-body {
-    display: contents;
-  }
-  .alto-item-name {
-    grid-area: name;
-    font-size: 12.5px;
-  }
-  .alto-effects {
-    grid-area: effect;
-    justify-content: start;
-    flex-wrap: nowrap;
-  }
-  .alto-effects {
-    gap: 2px;
-  }
-  .alto-effect {
-    gap: 1px;
-    padding: 0 4px;
-    font-size: 10.5px;
-  }
-  .alto-effect .alto-good,
-  .alto-effect > svg {
-    width: 13px;
-    height: 13px;
-  }
-  /* Two effects share the line beside the object. */
-  .alto-effects:has(> :nth-child(2)) .alto-effect {
-    padding: 0 3px;
-    font-size: 10px;
-  }
-  .alto-effects:has(> :nth-child(2)) :is(.alto-good, svg) {
-    width: 12px;
-    height: 12px;
-  }
-  .alto-item-cost {
-    grid-area: cost;
-    justify-self: stretch;
-    justify-content: center;
-    flex-wrap: nowrap;
-    gap: 3px;
-    padding: 2px;
-  }
-  .alto-cost-space {
-    height: 18px;
-    visibility: hidden;
-  }
-  .alto-item-cost .alto-cost-unit + .alto-cost-unit {
-    margin-left: calc(var(--unit) * -0.3);
-  }
-  .alto-cost-unit[data-unit='missing'] {
-    box-shadow:
-      0 0 0 1.5px #ff6b5a,
-      0 0 6px #ff5a4a88;
-  }
   .alto-comet {
     top: 2%;
     right: 2%;
@@ -2370,6 +2464,26 @@
   .alto-inspect-plan,
   .alto-inspect-island {
     flex-direction: column;
+  }
+}
+
+/* Narrow cargo cells keep their token above the count instead of touching
+   the next kind of cargo. Their row keeps the same height. */
+@media (max-width: 380px) {
+  .alto-stock .alto-goods-chip {
+    display: grid;
+    grid-template-rows: 16px 12px;
+    justify-items: center;
+    gap: 0;
+    padding: 1px;
+  }
+  .alto-stock .alto-good {
+    width: 16px;
+    height: 16px;
+  }
+  .alto-stock .alto-goods-chip b {
+    font-size: 12px;
+    line-height: 1;
   }
 }
 

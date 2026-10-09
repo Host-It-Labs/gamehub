@@ -1,6 +1,6 @@
 'use client';
 import type { CSSProperties } from 'react';
-import { Orbit, Package, Rocket, Star, Trophy } from 'lucide-react';
+import { Orbit, Package, Rocket, Star } from 'lucide-react';
 import {
   goods,
   planById,
@@ -12,7 +12,12 @@ import {
 } from '@/lib/games/alto/content';
 import { goodArt, planArt, seatColours } from '@/lib/games/alto/art';
 import { discounted, payment } from '@/lib/games/alto/engine';
-import { effectRule, familyLabel } from '@/lib/games/alto/text';
+import {
+  effectRule,
+  familyLabel,
+  scoreBadge,
+  scoresPoints,
+} from '@/lib/games/alto/text';
 
 /** One kind of cargo's token, painted; its name is read out. */
 export function GoodIcon({
@@ -166,109 +171,70 @@ export function FamilyMark({ family }: { family: Family }) {
 
 /** One effect as a small picture: what it loads, what it scores. Its full
  *  sentence is the label. */
-function EffectBadge({ e, next }: { e: Effect; next?: number }) {
-  const points =
-    e.type === 'points' ||
-    e.type === 'race' ||
-    e.type === 'per' ||
-    e.type === 'perHold' ||
-    e.type === 'sets' ||
-    e.type === 'thrift';
+function EffectBadge({
+  e,
+  next,
+  earned,
+}: {
+  e: Effect;
+  next?: number;
+  earned?: number;
+}) {
+  const points = scoresPoints(e);
   let body: React.ReactNode;
-  switch (e.type) {
-    case 'hold':
-      body = (
-        <>
-          <Package aria-hidden="true" />+{e.amount}
-        </>
-      );
-      break;
-    case 'yield':
-      body = (
-        <>
-          <GoodIcon good={e.good} size={16} />+{e.amount}
-        </>
-      );
-      break;
-    case 'alone':
-      body = <>Alone +{e.amount}</>;
-      break;
-    case 'share':
-      body = <>Shared +{e.amount}</>;
-      break;
-    case 'discount':
-      body = e.family ? (
-        <>
-          <FamilyIcon family={e.family} size={12} />−{e.amount}
-        </>
-      ) : (
-        <>All −{e.amount}</>
-      );
-      break;
-    case 'points':
-      body = (
-        <>
-          <Star aria-hidden="true" />
-          {e.points}
-        </>
-      );
-      break;
-    case 'race':
-      body = (
-        <>
-          <Trophy aria-hidden="true" />
-          {next ?? e.ladder[0]}
-        </>
-      );
-      break;
-    case 'per':
-      body = (
-        <>
-          <Star aria-hidden="true" />
-          {e.points}
-          <i>/</i>
-          {e.family ? <FamilyIcon family={e.family} size={12} /> : 'each'}
-        </>
-      );
-      break;
-    case 'perHold':
-      body = (
-        <>
-          <Star aria-hidden="true" />
-          {e.points}
-          <i>/</i>
-          <Package aria-hidden="true" />
-        </>
-      );
-      break;
-    case 'thrift':
-      body = (
-        <>
-          <Star aria-hidden="true" />1<i>/</i>
-          {e.per} left
-        </>
-      );
-      break;
-    case 'sets':
-      body = (
-        <>
-          <Star aria-hidden="true" />
-          {e.points}
-          <i>/</i>
-          <span className="alto-effect-set">
-            {([0, 1, 2, 3] as Good[]).map((k) => (
-              <GoodIcon key={k} good={k} size={11} />
-            ))}
-          </span>
-        </>
-      );
-      break;
+  if (points) {
+    const score = scoreBadge(e, next, earned);
+    body = (
+      <>
+        <span className="alto-effect-value">
+          <Star className="alto-effect-point-star" aria-hidden="true" />
+          {score.points}
+        </span>
+        <span className="alto-effect-target">{score.target}</span>
+      </>
+    );
+  } else {
+    switch (e.type) {
+      case 'hold':
+        body = (
+          <>
+            <Package aria-hidden="true" />+{e.amount}
+          </>
+        );
+        break;
+      case 'yield':
+        body = (
+          <>
+            <GoodIcon good={e.good} size={16} />+{e.amount}
+          </>
+        );
+        break;
+      case 'alone':
+        body = <>Alone +{e.amount}</>;
+        break;
+      case 'share':
+        body = <>Shared +{e.amount}</>;
+        break;
+      case 'discount':
+        body = e.family ? (
+          <>
+            <FamilyIcon family={e.family} size={12} />−{e.amount}
+          </>
+        ) : (
+          <>All −{e.amount}</>
+        );
+        break;
+    }
   }
   return (
     <span
       className={`alto-effect ${points ? 'is-points' : 'is-ability'}`}
       data-effect={e.type}
-      title={effectRule(e)}
+      title={
+        e.type === 'race' && earned !== undefined
+          ? `Scored ${earned} points when built. ${effectRule(e)}`
+          : effectRule(e)
+      }
     >
       {body}
     </span>
@@ -276,11 +242,20 @@ function EffectBadge({ e, next }: { e: Effect; next?: number }) {
 }
 
 /** An upgrade's effects as small pictures: points gold, abilities blue. */
-export function EffectLine({ plan, next }: { plan: Plan; next?: number }) {
+export function EffectLine({
+  plan,
+  next,
+  earned,
+}: {
+  plan: Plan;
+  next?: number;
+  /** An owned race module keeps its builder's actual prize. */
+  earned?: number;
+}) {
   return (
     <span className="alto-effects">
       {plan.effects.map((e, i) => (
-        <EffectBadge key={i} e={e} next={next} />
+        <EffectBadge key={i} e={e} next={next} earned={earned} />
       ))}
     </span>
   );
@@ -305,6 +280,7 @@ export function PlanMark({ id, size = 48 }: { id: string; size?: number }) {
 export function PlanFace({
   id,
   next,
+  earned,
   compact = false,
   stock,
   off = 0,
@@ -312,6 +288,7 @@ export function PlanFace({
 }: {
   id: string;
   next?: number;
+  earned?: number;
   compact?: boolean;
   /** The viewer's hold, to measure the cost against. */
   stock?: Goods;
@@ -327,7 +304,7 @@ export function PlanFace({
       <FamilyMark family={plan.family} />
       <span className="alto-item-body">
         {!compact && <b className="alto-item-name">{plan.name}</b>}
-        <EffectLine plan={plan} next={next} />
+        <EffectLine plan={plan} next={next} earned={earned} />
         {hideCost ? (
           <span className="alto-item-cost alto-cost-space" aria-hidden="true" />
         ) : stock ? (

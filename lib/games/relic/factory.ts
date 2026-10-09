@@ -26,31 +26,52 @@ export const DIRS = [
   [0, -1],
 ] as const;
 export type MachineKind =
-  | 'belt'
   | 'printer'
+  | 'belt'
   | 'bot'
   | 'cashier'
   | 'splitter'
   | 'lamp'
-  | 'ink'
   | 'stamper'
   | 'gilder'
   | 'charm'
   | 'bundler';
+export const ORDER: MachineKind[] = [
+  'printer',
+  'belt',
+  'bot',
+  'cashier',
+  'splitter',
+  'lamp',
+  'stamper',
+  'gilder',
+  'charm',
+  'bundler',
+];
+export type MachineFamily = 'make' | 'move' | 'work' | 'sell' | 'boost';
 export const MACHINES: Record<
   MachineKind,
-  { name: string; does: string; base: number; growth: number; turns: boolean }
+  {
+    name: string;
+    does: string;
+    family: MachineFamily;
+    base: number;
+    growth: number;
+    turns: boolean;
+  }
 > = {
   belt: {
     name: 'Belt',
-    does: 'Moves tickets. Drag to draw a line.',
+    does: 'Carries tickets the way it points. Drag to draw.',
+    family: 'move',
     base: 5,
     growth: 1.03,
     turns: true,
   },
   printer: {
     name: 'Printer',
-    does: 'Prints blank tickets fast enough for three bots.',
+    does: 'Prints blank tickets of its book.',
+    family: 'make',
     base: 300,
     growth: 2.3,
     turns: true,
@@ -58,62 +79,63 @@ export const MACHINES: Record<
   bot: {
     name: 'Scratch bot',
     does: 'Scratches one blank ticket at a time.',
+    family: 'work',
     base: 1_200,
     growth: 2.3,
     turns: true,
   },
   cashier: {
     name: 'Cashier',
-    does: 'Sells scratched tickets, two per second.',
+    does: 'Sells scratched tickets from any side.',
+    family: 'sell',
     base: 200,
     growth: 2.1,
     turns: false,
   },
   splitter: {
     name: 'Splitter',
-    does: 'Shares tickets between its front and sides.',
+    does: 'Deals tickets to its front, left and right in turn.',
+    family: 'move',
     base: 300,
     growth: 1.6,
     turns: true,
   },
   lamp: {
-    name: 'Lamp',
-    does: 'Touching bots scratch 40% faster.',
+    name: 'Turbo',
+    does: 'Printers and bots beside it work 40% faster.',
+    family: 'boost',
     base: 5_000,
-    growth: 2.4,
-    turns: false,
-  },
-  ink: {
-    name: 'Ink well',
-    does: 'Touching printers print 40% faster.',
-    base: 12_000,
     growth: 2.4,
     turns: false,
   },
   stamper: {
     name: 'Stamper',
-    does: 'Blank tickets passing through pay ×1.3.',
+    does: 'Stamps each ticket once: it sells for ×1.3.',
+    family: 'work',
     base: 40_000,
     growth: 2.3,
     turns: true,
   },
   gilder: {
     name: 'Gilder',
-    does: 'Scratched tickets passing through pay ×1.25.',
+    does: 'Gilds each ticket once: it sells for ×1.6.',
+    family: 'work',
     base: 600_000_000,
     growth: 2.3,
     turns: true,
   },
   charm: {
     name: 'Charm',
-    does: 'Touching printers print +5% star tickets (×5).',
+    does: 'Printers in its glow print 5% more star tickets.',
+    family: 'boost',
     base: 200_000_000_000,
     growth: 2.5,
     turns: false,
   },
   bundler: {
     name: 'Bundler',
-    does: 'Packs 3 scratched tickets into one worth ×1.5.',
+    does: 'Ties 3 scratched tickets into one worth ×1.5.',
+    family: 'work',
     base: 200_000_000_000_000,
     growth: 2.5,
     turns: true,
@@ -124,11 +146,10 @@ export const BLUEPRINTS: { id: string; price: number; kinds: MachineKind[] }[] =
     {
       id: 'starter',
       price: 1_000,
-      kinds: ['belt', 'printer', 'bot', 'cashier'],
+      kinds: ['printer', 'belt', 'bot', 'cashier'],
     },
     { id: 'splitter', price: 1_500, kinds: ['splitter'] },
     { id: 'lamp', price: 8_000, kinds: ['lamp'] },
-    { id: 'ink', price: 20_000, kinds: ['ink'] },
     { id: 'stamper', price: 60_000, kinds: ['stamper'] },
     // The later blueprints arrive with the later books (Ladder, Gold Mine,
     // Sun & Moon), so the factory keeps growing through the whole game.
@@ -164,6 +185,7 @@ export type Machine = {
   printed?: number;
 };
 export type FactoryState = {
+  version: 2;
   blueprints: string[];
   machines: Machine[];
   nextItem: number;
@@ -173,27 +195,25 @@ export type FactoryState = {
   /** Smoothed coins per second from cashiers. */
   rate: number;
 };
+export type FactoryCell = { x: number; y: number };
+export type FactoryEdit = {
+  remove?: FactoryCell[];
+  arrange?: { x: number; y: number; to: FactoryCell; dir: Dir }[];
+  build?: {
+    kind: MachineKind;
+    x: number;
+    y: number;
+    dir: Dir;
+    book?: PackId;
+  }[];
+};
 export type FactoryAction =
   | { type: 'factory-blueprint'; id: string }
-  | {
-      type: 'factory-build';
-      pieces: { kind: MachineKind; x: number; y: number; dir: Dir }[];
-    }
-  | { type: 'factory-remove'; cells: { x: number; y: number }[] }
-  /** Turns one machine a quarter clockwise, or every one of `cells`. */
-  | { type: 'factory-rotate'; x: number; y: number; cells?: { x: number; y: number }[] }
-  /** Drags a machine, with whatever it holds, to an empty cell. */
-  | { type: 'factory-move'; x: number; y: number; to: { x: number; y: number } }
-  /** Drags several machines together by the same offset. */
-  | {
-      type: 'factory-shift';
-      cells: { x: number; y: number }[];
-      dx: number;
-      dy: number;
-    }
-  | { type: 'factory-book'; x: number; y: number; book: PackId };
+  | ({ type: 'factory-edit' } & FactoryEdit)
+  | { type: 'factory-book'; cells: FactoryCell[]; book: PackId };
 export function createFactory(): FactoryState {
   return {
+    version: 2,
     blueprints: [],
     machines: [],
     nextItem: 1,
@@ -202,6 +222,27 @@ export function createFactory(): FactoryState {
     sold: 0,
     rate: 0,
   };
+}
+/** Upgrades a saved factory once; the caller credits the duplicate blueprint. */
+export function migrateFactory(f: FactoryState): number {
+  if (f.version === 2) return 0;
+  f.machines = f.machines.filter((m) => {
+    if ((m.kind as string) === 'ink') {
+      m.kind = 'lamp';
+      m.dir = 0;
+      return true;
+    }
+    return ORDER.includes(m.kind);
+  });
+  let refund = 0;
+  if (f.blueprints.includes('ink')) {
+    if (f.blueprints.includes('lamp')) refund = 20_000;
+    f.blueprints = [
+      ...new Set(f.blueprints.map((id) => (id === 'ink' ? 'lamp' : id))),
+    ];
+  }
+  f.version = 2;
+  return refund;
 }
 export function floorSize(s: ScratchState) {
   const [width, height] = FLOOR_SIZES[level(s, 'floor')] ?? FLOOR_SIZES[0];
@@ -254,12 +295,34 @@ const key = (x: number, y: number) => y * 64 + x;
 export function machineAt(f: FactoryState, x: number, y: number) {
   return f.machines.find((m) => m.x === x && m.y === y);
 }
-function neighbours(at: Map<number, Machine>, m: Machine) {
-  return DIRS.map(([dx, dy]) => at.get(key(m.x + dx, m.y + dy))).filter(
-    (n): n is Machine => !!n,
+/** The eight cells around a booster, including diagonals. */
+export function reach(x: number, y: number): FactoryCell[] {
+  const cells: FactoryCell[] = [];
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++)
+      if (dx || dy) cells.push({ x: x + dx, y: y + dy });
+  return cells;
+}
+/** Machines currently helped by this booster. */
+export function boosted(f: FactoryState, booster: Machine): Machine[] {
+  if (booster.kind !== 'lamp' && booster.kind !== 'charm') return [];
+  return f.machines.filter(
+    (m) =>
+      (m.kind === 'printer' || (booster.kind === 'lamp' && m.kind === 'bot')) &&
+      Math.abs(m.x - booster.x) <= 1 &&
+      Math.abs(m.y - booster.y) <= 1 &&
+      (m.x !== booster.x || m.y !== booster.y),
   );
 }
-export function boost(f: FactoryState, m: Machine) {
+function neighbours(at: Map<number, Machine>, m: Machine) {
+  return reach(m.x, m.y)
+    .map(({ x, y }) => at.get(key(x, y)))
+    .filter((n): n is Machine => !!n);
+}
+export function boost(
+  f: FactoryState,
+  m: Machine,
+): { speed: number; stars: number } {
   const at = new Map(f.machines.map((n) => [key(n.x, n.y), n]));
   return boostWith(at, m);
 }
@@ -269,34 +332,43 @@ function boostWith(at: Map<number, Machine>, m: Machine) {
     near.filter((n) => n.kind === kind).length;
   return {
     speed:
-      m.kind === 'bot'
-        ? 1 + count('lamp') * 0.4
-        : m.kind === 'printer'
-          ? 1 + count('ink') * 0.4
-          : 1,
+      m.kind === 'bot' || m.kind === 'printer' ? 1 + count('lamp') * 0.4 : 1,
     stars: m.kind === 'printer' ? count('charm') * 0.05 : 0,
   };
 }
 export function itemValue(s: ScratchState, item: Item) {
   return (
-    item.value ??
-    botReward(s, item.book) * item.mult * (item.star ? starPays(s) : 1)
+    (item.value ?? botReward(s, item.book) * (item.star ? starPays(s) : 1)) *
+    item.mult
   );
 }
 function random(g: ScratchHost) {
   g.seed = (Math.imul(g.seed, 1664525) + 1013904223) >>> 0;
   return g.seed / 4294967296;
 }
+/** Intake directions point from the machine toward the source cell. */
+export function intakes(kind: MachineKind, dir: Dir): Dir[] {
+  if (kind === 'printer' || kind === 'lamp' || kind === 'charm') return [];
+  if (kind === 'cashier') return [0, 1, 2, 3];
+  return [
+    ((dir + 2) % 4) as Dir,
+    ((dir + 3) % 4) as Dir,
+    ((dir + 1) % 4) as Dir,
+  ];
+}
+/** Outlet directions point from the machine toward the destination cell. */
+export function outlets(kind: MachineKind, dir: Dir): Dir[] {
+  if (kind === 'cashier' || kind === 'lamp' || kind === 'charm') return [];
+  if (kind === 'splitter')
+    return [dir, ((dir + 3) % 4) as Dir, ((dir + 1) % 4) as Dir];
+  return [dir];
+}
 /** Where a machine may send the ticket it holds, in order of preference. */
 function exits(m: Machine): Dir[] {
-  if (m.kind !== 'splitter') return [m.dir];
-  const all = [m.dir, ((m.dir + 3) % 4) as Dir, ((m.dir + 1) % 4) as Dir];
+  const all = outlets(m.kind, m.dir);
+  if (m.kind !== 'splitter') return all;
   const start = (m.turn ?? 0) % 3;
   return [...all.slice(start), ...all.slice(0, start)];
-}
-function facing(m: Machine, other: Machine) {
-  const [dx, dy] = DIRS[m.dir];
-  return m.x + dx === other.x && m.y + dy === other.y;
 }
 function step(g: ScratchHost, s: ScratchState, f: FactoryState) {
   const at = new Map(f.machines.map((m) => [key(m.x, m.y), m]));
@@ -330,12 +402,12 @@ function step(g: ScratchHost, s: ScratchState, f: FactoryState) {
     } else if ((m.kind === 'stamper' || m.kind === 'gilder') && m.item) {
       if (!m.output && ++m.t >= 2) {
         const item = m.item;
-        if (m.kind === 'stamper' && !item.done && !item.stamped) {
+        if (m.kind === 'stamper' && !item.stamped) {
           item.mult *= 1.3;
           item.stamped = true;
         }
-        if (m.kind === 'gilder' && item.done && !item.gilded && !item.value) {
-          item.mult *= 1.25;
+        if (m.kind === 'gilder' && !item.gilded) {
+          item.mult *= 1.6;
           item.gilded = true;
         }
         m.output = item;
@@ -368,25 +440,21 @@ function step(g: ScratchHost, s: ScratchState, f: FactoryState) {
     tried = new Set<Machine>(),
     sold = new Map<Machine, number>();
   let income = 0;
-  function accept(target: Machine, item: Item, from: Machine) {
+  function accept(target: Machine, item: Item, from: Dir) {
+    if (!intakes(target.kind, target.dir).includes(from)) return false;
     switch (target.kind) {
       case 'belt':
       case 'splitter':
-        return !target.item && !facing(target, from);
+        return !target.item;
       case 'bot':
-        return !target.item && !item.done && !facing(target, from);
+        return !target.item && !item.done;
       case 'stamper':
       case 'gilder':
-        return !target.item && !facing(target, from);
+        return !target.item;
       case 'cashier':
         return item.done && (sold.get(target) ?? 0) < 1;
       case 'bundler':
-        return (
-          item.done &&
-          !item.value &&
-          (target.hold?.length ?? 0) < 3 &&
-          !facing(target, from)
-        );
+        return item.done && !item.value && (target.hold?.length ?? 0) < 3;
       default:
         return false;
     }
@@ -412,7 +480,7 @@ function step(g: ScratchHost, s: ScratchState, f: FactoryState) {
       for (const dir of exits(m)) {
         const [dx, dy] = DIRS[dir],
           target = at.get(key(m.x + dx, m.y + dy));
-        if (!target || !accept(target, item, m)) continue;
+        if (!target || !accept(target, item, ((dir + 2) % 4) as Dir)) continue;
         m[slot] = null;
         moved.add(item.id);
         changed = true;
@@ -454,10 +522,122 @@ export function advanceFactory(g: ScratchHost, ms: number) {
 function cell(v: unknown, max: number) {
   return Number.isInteger(v) && (v as number) >= 0 && (v as number) < max;
 }
-export function actFactory(g: ScratchHost, action: FactoryAction) {
+function editList<T>(list: T[] | undefined, message: string): T[] {
+  if (list === undefined) return [];
+  if (!Array.isArray(list) || list.length > 144) throw new Error(message);
+  return list;
+}
+/** Builds a detached plan: validation and prices never change live machines. */
+function planEdit(f: FactoryState, s: ScratchState, edit: FactoryEdit) {
+  if (!edit || typeof edit !== 'object')
+    throw new Error('Choose what to edit.');
+  const remove = editList(edit.remove, 'Choose what to remove.'),
+    arrange = editList(edit.arrange, 'Choose what to move.'),
+    build = editList(edit.build, 'Choose where to build.');
+  if (!remove.length && !arrange.length && !build.length)
+    throw new Error('Choose what to edit.');
+  const { width, height } = floorSize(s),
+    remaining = [...f.machines],
+    pricing = { ...f, machines: remaining },
+    removed = new Set<number>();
+  // Exact integer totals keep small purchases visible beside huge refunds.
+  let refund = BigInt(0),
+    cost = BigInt(0);
+  for (const c of remove) {
+    if (!c || !cell(c.x, width) || !cell(c.y, height))
+      throw new Error('Remove it inside the factory floor.');
+    const k = key(c.x, c.y);
+    if (removed.has(k)) throw new Error('Choose each machine once.');
+    removed.add(k);
+    const m = machineAt(pricing, c.x, c.y);
+    if (!m) throw new Error('There is no machine there.');
+    refund += BigInt(machineRefund(pricing, m.kind, s));
+    remaining.splice(remaining.indexOf(m), 1);
+  }
+  const group = new Set<Machine>(),
+    moves: { machine: Machine; to: FactoryCell; dir: Dir }[] = [];
+  for (const c of arrange) {
+    if (
+      !c ||
+      !cell(c.x, width) ||
+      !cell(c.y, height) ||
+      !c.to ||
+      !cell(c.to.x, width) ||
+      !cell(c.to.y, height)
+    )
+      throw new Error('Move it inside the factory floor.');
+    const m = machineAt(pricing, c.x, c.y);
+    if (!m) throw new Error('There is no machine there.');
+    if (group.has(m)) throw new Error('Choose each machine once.');
+    if (MACHINES[m.kind].turns && !cell(c.dir, 4))
+      throw new Error('Choose a direction.');
+    group.add(m);
+    moves.push({
+      machine: m,
+      to: c.to,
+      dir: MACHINES[m.kind].turns ? c.dir : 0,
+    });
+  }
+  const taken = new Set(
+    remaining.filter((m) => !group.has(m)).map((m) => key(m.x, m.y)),
+  );
+  for (const { to } of moves) {
+    const k = key(to.x, to.y);
+    if (taken.has(k)) throw new Error('That space is taken.');
+    taken.add(k);
+  }
+  for (const p of build) {
+    if (!p || !Object.hasOwn(MACHINES, p.kind) || !kindOpen(f, p.kind))
+      throw new Error('Buy that machine first.');
+    if (!cell(p.x, width) || !cell(p.y, height))
+      throw new Error('Build inside the factory floor.');
+    if (MACHINES[p.kind].turns && !cell(p.dir, 4))
+      throw new Error('Choose a direction.');
+    const k = key(p.x, p.y);
+    if (taken.has(k)) throw new Error('That space is taken.');
+    taken.add(k);
+    cost += BigInt(machinePrice(pricing, p.kind, 0, s));
+    remaining.push({
+      kind: p.kind,
+      x: p.x,
+      y: p.y,
+      dir: MACHINES[p.kind].turns ? p.dir : 0,
+      t: 0,
+      item: null,
+      output: null,
+      ...(p.kind === 'printer'
+        ? {
+            book:
+              p.book &&
+              PACKS.some((b) => b.id === p.book) &&
+              packOpen(s, p.book)
+                ? p.book
+                : bestBook(s),
+          }
+        : {}),
+    });
+  }
+  return {
+    cost: Number(cost),
+    refund: Number(refund),
+    net: Number(cost - refund),
+    machines: remaining,
+    moves,
+  };
+}
+/** Validates an edit without changing the factory. `net` is the coin charge
+ * (negative for a refund), kept precise even when the gross totals are huge. */
+export function editCost(
+  f: FactoryState,
+  s: ScratchState,
+  edit: FactoryEdit,
+): { cost: number; refund: number; net: number } {
+  const { cost, refund, net } = planEdit(f, s, edit);
+  return { cost, refund, net };
+}
+export function actFactory(g: ScratchHost, action: FactoryAction): void {
   const s = scratchFor(g),
-    f = s.factory,
-    { width, height } = floorSize(s);
+    f = s.factory;
   if (action.type === 'factory-blueprint') {
     const b = BLUEPRINTS.find((b) => b.id === action.id);
     if (!b || f.blueprints.includes(b.id))
@@ -469,132 +649,40 @@ export function actFactory(g: ScratchHost, action: FactoryAction) {
     f.blueprints.push(b.id);
     return;
   }
-  if (action.type === 'factory-build') {
-    if (
-      !Array.isArray(action.pieces) ||
-      !action.pieces.length ||
-      action.pieces.length > 64
-    )
-      throw new Error('Choose where to build.');
-    const taken = new Set(f.machines.map((m) => key(m.x, m.y))),
-      added: Record<string, number> = {};
-    let cost = 0;
-    for (const p of action.pieces) {
-      if (!p || !(p.kind in MACHINES) || !kindOpen(f, p.kind))
-        throw new Error('Buy that machine first.');
-      if (!cell(p.x, width) || !cell(p.y, height))
-        throw new Error('Build inside the factory floor.');
-      if (!cell(p.dir, 4)) throw new Error('Choose a direction.');
-      if (taken.has(key(p.x, p.y))) throw new Error('That space is taken.');
-      taken.add(key(p.x, p.y));
-      cost += machinePrice(f, p.kind, added[p.kind] ?? 0, s);
-      added[p.kind] = (added[p.kind] ?? 0) + 1;
-    }
-    if (g.coins < cost) throw new Error('You need more coins for that.');
-    g.coins -= cost;
-    for (const p of action.pieces)
-      f.machines.push({
-        kind: p.kind,
-        x: p.x,
-        y: p.y,
-        dir: p.dir,
-        t: 0,
-        item: null,
-        output: null,
-        ...(p.kind === 'printer' ? { book: bestBook(s) } : {}),
-      });
-    f.machines.sort((a, b) => a.y - b.y || a.x - b.x);
-    return;
-  }
-  if (action.type === 'factory-remove') {
-    if (
-      !Array.isArray(action.cells) ||
-      !action.cells.length ||
-      action.cells.length > 64
-    )
-      throw new Error('Choose what to remove.');
-    for (const c of action.cells) {
-      const m = c && machineAt(f, c.x, c.y);
-      if (!m) continue;
-      const refund = machineRefund(f, m.kind, s);
-      f.machines.splice(f.machines.indexOf(m), 1);
-      g.coins = Math.min(1e18, g.coins + refund);
-    }
-    return;
-  }
-  if (action.type === 'factory-shift') {
-    const cells = action.cells;
-    if (
-      !Array.isArray(cells) ||
-      !cells.length ||
-      cells.length > width * height ||
-      !Number.isInteger(action.dx) ||
-      !Number.isInteger(action.dy) ||
-      (!action.dx && !action.dy)
-    )
-      throw new Error('Choose what to move.');
-    const group = new Set<Machine>();
-    for (const c of cells) {
-      const m = c && machineAt(f, c.x, c.y);
-      if (!m) throw new Error('There is no machine there.');
-      group.add(m);
-    }
-    for (const m of group) {
-      const x = m.x + action.dx,
-        y = m.y + action.dy,
-        other = machineAt(f, x, y);
-      if (!cell(x, width) || !cell(y, height))
-        throw new Error('Move it inside the factory floor.');
-      if (other && !group.has(other)) throw new Error('That space is taken.');
-    }
-    for (const m of group) {
-      m.x += action.dx;
-      m.y += action.dy;
+  if (action.type === 'factory-edit') {
+    const plan = planEdit(f, s, action);
+    if (g.coins < plan.net) throw new Error('You need more coins for that.');
+    // Settle the complete edit before clamping, so refunds can fund its builds.
+    g.coins = Math.min(1e18, g.coins - plan.net);
+    for (const { machine: m, to, dir } of plan.moves) {
+      if (m.dir !== dir) m.turn = 0;
+      m.x = to.x;
+      m.y = to.y;
+      m.dir = dir;
       m.stuck = 0;
     }
-    f.machines.sort((a, b) => a.y - b.y || a.x - b.x);
-    return;
-  }
-  if (action.type === 'factory-rotate' && action.cells !== undefined) {
-    if (
-      !Array.isArray(action.cells) ||
-      !action.cells.length ||
-      action.cells.length > width * height
-    )
-      throw new Error('Choose what to turn.');
-    const turned = new Set<Machine>();
-    for (const c of action.cells) {
-      const m = c && machineAt(f, c.x, c.y);
-      if (!m || turned.has(m) || !MACHINES[m.kind].turns) continue;
-      turned.add(m);
-      m.dir = ((m.dir + 1) % 4) as Dir;
-      m.turn = 0;
-    }
-    return;
-  }
-  const m = machineAt(f, action.x, action.y);
-  if (!m) throw new Error('There is no machine there.');
-  if (action.type === 'factory-move') {
-    const to = action.to;
-    if (!to || !cell(to.x, width) || !cell(to.y, height))
-      throw new Error('Move it inside the factory floor.');
-    if (machineAt(f, to.x, to.y)) throw new Error('That space is taken.');
-    m.x = to.x;
-    m.y = to.y;
-    m.stuck = 0;
-    f.machines.sort((a, b) => a.y - b.y || a.x - b.x);
-    return;
-  }
-  if (action.type === 'factory-rotate') {
-    m.dir = ((m.dir + 1) % 4) as Dir;
-    m.turn = 0;
+    f.machines = plan.machines.sort((a, b) => a.y - b.y || a.x - b.x);
     return;
   }
   if (action.type === 'factory-book') {
-    if (m.kind !== 'printer') throw new Error('Only printers print tickets.');
     if (!PACKS.some((p) => p.id === action.book) || !packOpen(s, action.book))
       throw new Error('Unlock that ticket book first.');
-    m.book = action.book;
+    if (
+      !Array.isArray(action.cells) ||
+      !action.cells.length ||
+      action.cells.length > 144
+    )
+      throw new Error('Choose your printers.');
+    const { width, height } = floorSize(s),
+      printers = new Set<Machine>();
+    for (const c of action.cells) {
+      if (!c || !cell(c.x, width) || !cell(c.y, height))
+        throw new Error('Choose inside the factory floor.');
+      const m = machineAt(f, c.x, c.y);
+      if (m?.kind === 'printer') printers.add(m);
+    }
+    if (!printers.size) throw new Error('Only printers print tickets.');
+    for (const m of printers) m.book = action.book;
     return;
   }
   throw new Error('Unknown factory action.');

@@ -16,11 +16,14 @@ const sources = {
   // docs/concepts/2026-09-27-mora-phone-boards; its source is box-mora-game-wide-v2-d.png.
   midnight: 'box-yata-wide-v1-a.png',
   orin: 'box-know-me-wide-v1-a.png',
-  miro: 'box-quiz-wide-v1-b.png',
-  folio: 'box-folio-wide-v1-b.png',
+  // Fresh Trivia lid; docs/concepts/2026-10-04-trivia-covers.
+  miro: 'box-trivia-wide-v3.png',
+  // Puzzles (folio) and Diner, 9 October 2026:
+  // docs/concepts/2026-10-09-puzzles-rota-diner-covers
+  folio: 'puzzles-wide-a.png',
   // docs/concepts/2026-10-03-impostor-diner-covers
   impostor: 'box-impostor-wide-v1-b.png',
-  diner: 'box-diner-wide-v2-a.png',
+  diner: 'diner-wide-a2.png',
   // Lucky (relic) cuts its own lid in scripts/optimize-lucky-art.mjs.
 };
 const manifestPath = 'lib/artwork-previews.json';
@@ -30,7 +33,13 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 const only = process.argv.slice(2);
 for (const [id, file] of Object.entries(sources)) {
   if (only.length && !only.includes(id)) continue;
-  const source = `${archive}/${file}`;
+  const sourceRoot =
+    id === 'miro'
+      ? 'assets/art/trivia/2026-10-04/sources'
+      : id === 'folio' || id === 'diner'
+        ? 'docs/concepts/2026-10-09-puzzles-rota-diner-covers/sources'
+        : archive;
+  const source = `${sourceRoot}/${file}`;
   // Without the archive the committed delivery files stay as they are.
   if (!existsSync(source)) continue;
   const cover = wideCover(id);

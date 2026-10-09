@@ -184,6 +184,31 @@ export class Kit {
       start.add(end).multiplyScalar(0.5).toArray() as V3,
     );
   }
+  /** A raised directional chevron, pointing +x and lying on the floor.
+   * Authored as one closed profile so the broad arrow survives small renders. */
+  chevron(
+    mat: MatKey,
+    colour: string,
+    length: number,
+    width: number,
+    depth: number,
+    at: V3,
+    o?: Opts,
+  ) {
+    const shape = new THREE.Shape();
+    shape.moveTo(-length / 2, -width / 2);
+    shape.lineTo(length / 2, 0);
+    shape.lineTo(-length / 2, width / 2);
+    shape.lineTo(-length * 0.05, 0);
+    shape.closePath();
+    const g = new THREE.ExtrudeGeometry(shape, {
+      depth,
+      bevelEnabled: false,
+      steps: 1,
+    });
+    g.rotateX(-Math.PI / 2);
+    return this.add(mat, colour, g, at, o);
+  }
   /** One merged geometry per material. */
   merged() {
     const out: Partial<Record<MatKey, THREE.BufferGeometry>> = {};

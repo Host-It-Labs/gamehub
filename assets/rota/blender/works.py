@@ -1,12 +1,15 @@
 """Rota's works: the mills, warehouses, sheds and yard things of a 1950s
-northern mill town, plus the goods stations and the maps' fixed pieces
+northern mill town, plus the passenger stations and the maps' fixed pieces
 (tunnel, gritstone outcrops, subsidence, cranes, the hoarding and a
-cleared mill site). See docs/concepts/2026-10-03-rota-mill-town/brief.md.
+cleared mill site). See docs/concepts/2026-10-03-rota-mill-town/brief.md
+and, for the stations, docs/concepts/2026-10-08-rota-passengers/models.md.
 
 One grid square is 25 m = 1 m here, the ground is z = 0, fronts face -Y
 (towards the track). Every asset is a root empty at its footprint centre
 (tunnel_rail's root sits on its portal face, y = 0) with one joined mesh
-under it.
+under it. The stations' per-side props (station_platforms*, station_steps*)
+have their root at the station square's centre and are built on its -Y
+side, between y = -0.5 and the bank face at y = -half.
 
   Blender -b --factory-startup --python assets/rota/blender/works.py -- \\
       assets/rota/build/works.glb \\
@@ -74,6 +77,12 @@ TINTS = {
     "gritstone-dark": "#645b50", "weed": "#6f7d45", "hawthorn": "#4f6136", "ironwork": "#4a514c",
     # glass, glow, void
     "dark": "#2a3442", "hose": "#2b2724", "lamp": "#fff1c4", "void": "#050505",
+    # passenger stations
+    "station": "#a0553d", "canopy": "#776b5d", "valance": "#ebe2ca",
+    "station-iron": "#5c2629", "edge-white": "#f2efe6", "step": "#cfc5ae",
+    "clockface": "#f2ecdc", "lamp-green": "#2f4a3d", "buffer-red": "#b23a2d",
+    "stop": "#ff4a2e", "shed": "#9fb5bd", "lead": "#6d7477",
+    "gilt": "#c4a052", "pot": "#a85b3d", "steel": "#c9ced6",
 }
 for _n, _h in TINTS.items():
     kit.tint(_n, _h)
@@ -127,7 +136,9 @@ SACK = "plaster:sack"
 ASSETS = {}
 # Assets whose root is not the bounding box's centre (jibs reach out,
 # the tunnel's root sits on its portal face).
-OFF_CENTRE = {"yard_crane", "wharf_crane", "tunnel_rail"}
+OFF_CENTRE = {"yard_crane", "wharf_crane", "tunnel_rail", "station_platforms",
+              "station_platforms_grand", "station_steps",
+              "station_steps_grand"}
 
 
 def asset(fn):
@@ -921,20 +932,199 @@ def yard_crane(name):
     return r
 
 
-def _platform(B, half, top=0.044):
-    """A goods shed's raised loading bank: blue brick, flagged, a
-    sandstone edge."""
+# ---------------------------------------------------------------- stations
+# Passenger stations (8 October 2026). A station square holds a booking
+# hall on a square platform-level bank (top z = 0.056) over the whole
+# footprint (half = 0.20 or 0.25), with an open doorway on every face for
+# passengers to walk into, and a canopy all round. Each side the square is
+# served from takes a per-side prop, built on the -Y side of the square's
+# centre between y = -0.5 and y = -half (the game turns it to face the
+# side): two side platforms and a buffer stop for a rail, a flight of
+# steps up from the street for a road.
+
+BANK_TOP = 0.056
+DOOR_W, DOOR_H = 0.044, 0.086
+FACES = ("front", "right", "back", "left")
+SBRICK = "brick:station"
+CANOPY = "wood:canopy"
+VALANCE = "paint:valance"
+MAROON_IRON = "paint:station-iron"
+EDGE = "paint:edge-white"
+STEP = "stone:step"
+CLOCK = "paint:clockface"
+LAMP_POST = "paint:lamp-green"
+BUFRED = "paint:buffer-red"
+STOP = "glow:stop"
+CANOPY_GLASS = "glass:shed"
+LEAD = "metal:lead"
+GILT = "paint:gilt"
+STEEL = "metal:steel"
+
+
+def _ring(B, wall, u, w, h, arch, t, mat, proud=0.003, n=8, z0=0.0):
+    """A dressed stone ring round an opening, lean: its face, its outer
+    edge and its inner reveal edge (the back stays buried in the wall)."""
+    inner = [(x + u, z0 + z) for x, z in outline(w, h, arch, n)]
+    outer = [(x + u, z0 + z) for x, z in K.offset_outline(w, h, arch, t, n)]
+    m = len(inner)
+    y0, y1 = -proud, 0.002
+    verts = [(x, y0, z) for x, z in inner] + [(x, y0, z) for x, z in outer] + \
+        [(x, y1, z) for x, z in inner] + [(x, y1, z) for x, z in outer]
+    faces = []
+    for i in range(m - 1):
+        a, b = i, i + 1
+        faces.append([a, b, m + b, m + a])                  # face
+        faces.append([2 * m + b, 2 * m + a, a, b])          # inner reveal
+        faces.append([m + a, m + b, 3 * m + b, 3 * m + a])  # outer edge
+    for a in (0, m - 1):
+        faces.append([a, m + a, 3 * m + a, 2 * m + a])      # feet
+    o = mesh("ring", verts, faces, mat)
+    B.add(wall.put(o))
+
+
+def _bank(B, half, top=BANK_TOP):
+    """The square platform-level bank: blue-brick faces, a pale stone
+    coping flush with the footprint carrying a white-painted edge line,
+    and a flagged top."""
+    cw, ch = 0.014, 0.006
     s = 2 * half
-    B.add(gbox("bank", (s - 0.008, s - 0.008, top - 0.006),
-               (0, 0, (top - 0.006) / 2 - 0.003), BLUE, edge=0.25))
-    B.add(box("edge", (s - 0.002, s - 0.002, 0.007), (0, 0, top - 0.0045),
-              GRIT, bevel=0.0008))
-    B.add(box("flags", (s - 0.03, s - 0.03, 0.002), (0, 0, top - 0.0003),
-              FLAGS))
+    B.add(gbox("bank", (s - 0.006, s - 0.006, top - ch + 0.003),
+               (0, 0, (top - ch - 0.003) / 2), BLUE, edge=0.1))
+    z = top - ch / 2
+    for k in (-1, 1):
+        B.add(gbox("cope", (s, cw, ch), (0, k * (half - cw / 2), z), PALE,
+                   edge=0.1))
+        B.add(gbox("cope", (cw, s - 2 * cw, ch), (k * (half - cw / 2), 0, z),
+                   PALE, edge=0.1))
+        B.add(box("edge", (s, 0.003, 0.0005), (0, k * (half - 0.002),
+                                              top + 0.00025), EDGE))
+        B.add(box("edge", (0.003, s - 0.008, 0.0005),
+                  (k * (half - 0.002), 0, top + 0.00025), EDGE))
+    B.add(gbox("flags", (s - 2 * cw, s - 2 * cw, ch - 0.0003),
+               (0, 0, top - (ch + 0.0003) / 2), FLAGS, edge=0.1))
+
+
+def _doorway(B, wall, z0=BANK_TOP, w=DOOR_W, h=DOOR_H, depth=0.018,
+             dress=STONE, n=8, ring=0.0075):
+    """An open round-headed doorway: carved `depth` into the wall with its
+    reveals, soffit and floor dark (the hall inside, where passengers
+    vanish), a stone architrave with a keystone, a threshold stone."""
+    pts = [(x, z0 + z) for x, z in outline(w, h, "round", n)]
+    B.cut(wall.put(prism_xz("cut", pts, -0.02, depth, VOID)))
+    _ring(B, wall, 0.0, w, h, "round", ring, dress, proud=0.003, n=n, z0=z0)
+    B.add(wall.put(box("key", (0.009, 0.006, 0.013),
+                       (0, -0.0033, z0 + h + 0.0045), dress)))
+    B.add(wall.put(box("threshold", (w + 0.012, 0.012, 0.0008),
+                       (0, -0.002, z0 + 0.0003), dress)))
+
+
+def _quoins(B, c, z0, z1, mat, course=0.016, long=0.03, short=0.017,
+            proud=0.0018):
+    """Dressed quoins up the four corners of a square block (half c):
+    long and short stones alternating face to face."""
+    n = max(1, round((z1 - z0) / course))
+    hq = (z1 - z0) / n
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for k in range(n):
+                lx, ly = (long, short) if (k + (sx * sy > 0)) % 2 else \
+                    (short, long)
+                B.add(box("quoin", (lx, ly, hq - 0.0018),
+                          (sx * (c + proud - lx / 2), sy * (c + proud - ly / 2),
+                           z0 + hq * (k + 0.5)), mat))
+
+
+def _arched(B, wall, u, z0, w, h, dress=STONE, ring=0.0055, glass=GLASS):
+    """A tall round-headed sash window: carved reveal, glass, glazing
+    bars, a stone sill, a dressed stone arch ring and keystone."""
+    win(B, wall, u, z0, w, h, arch="round", bars="grid", n=6, glass=glass)
+    _ring(B, wall, u, w, h, "round", ring, dress, proud=0.0025, n=6, z0=z0)
+    B.add(wall.put(box("key", (0.0065, 0.0045, 0.009),
+                       (u, -0.0026, z0 + h + 0.003), dress)))
+    B.add(wall.put(box("sill", (w + 0.012, 0.008, 0.004),
+                       (u, -0.003, z0 - 0.002), dress)))
+
+
+def _lantern(B, x, y, z, s=0.008, glow=LAMP, frame=MAROON_IRON):
+    """A square gas lantern, its glass glowing (z is its base)."""
+    g = cyl("lglass", s * 0.42, s * 0.62, s * 1.1, (x, y, z), 4, glow)
+    tf(g, T(x, y) @ rot("Z", 45) @ T(-x, -y))
+    B.add(g)
+    cap = cyl("lcap", s * 0.78, 0.0006, s * 0.55, (x, y, z + s * 1.1), 4,
+              frame)
+    tf(cap, T(x, y) @ rot("Z", 45) @ T(-x, -y))
+    B.add(cap)
+    B.add(box("lbot", (s * 0.6, s * 0.6, s * 0.16), (x, y, z - s * 0.06),
+              frame))
+
+
+def _lamp_standard(B, x, y, z0, h=0.11, s=0.009, mat=LAMP_POST):
+    """A cast-iron gas lamp standard: base, fluted column, ladder bar and
+    a glowing lantern."""
+    B.add(lathe("lbase", [(0.0045, z0 - 0.002), (0.0045, z0 + 0.005),
+                          (0.0032, z0 + 0.01), (0.0022, z0 + 0.013),
+                          (0.0, z0 + 0.013)], (x, y, 0), 6, mat))
+    B.add(cyl("lcol", 0.0019, 0.0014, h - 0.01, (x, y, z0 + 0.01), 6, mat))
+    B.add(box("lbar", (0.009, 0.0013, 0.0013), (x, y, z0 + h - 0.008), mat))
+    _lantern(B, x, y, z0 + h, s, frame=mat)
+
+
+def _hanging_lamp(B, x, y, z_top, drop=0.016, s=0.0085):
+    B.add(cyl("lrod", 0.0006, 0.0006, drop, (x, y, z_top - drop), 4,
+              MAROON_IRON))
+    _lantern(B, x, y, z_top - drop - s * 1.6, s)
+
+
+def _canopy(B, c, out, z_wall, z_edge, us, thick=0.003, bar=0.034):
+    """A glazed canopy all round a square block: a hipped ring of glass
+    from the wall (z_wall) down to its edge (z_edge) at `out`, iron
+    glazing and hip bars, a maroon fascia over a cream saw-tooth valance,
+    iron bearers and struts at `us` along each face and a gas lantern
+    under the edge before each doorway."""
+    _skirt(B, c - 0.002, out, z_wall, z_edge, CANOPY_GLASS, thick=thick)
+    tw, te = z_wall + thick + 0.0005, z_edge + thick + 0.0005
+    nb = max(2, round(2 * c / bar))
+    for i in range(4):
+        a = math.pi / 2 * i
+        ca, sa = math.cos(a), math.sin(a)
+
+        def P(u, v, z):
+            return (ca * u - sa * v, sa * u + ca * v, z)
+
+        for k in range(nb + 1):
+            u = -c + 2 * c * k / nb
+            q = [P(u - 0.0007, -c, tw), P(u - 0.0007, -out, te),
+                 P(u + 0.0007, -out, te), P(u + 0.0007, -c, tw)]
+            o = mesh("gbar", q, [[0, 1, 2, 3]], MAROON_IRON, fix=False)
+            if o.data.polygons[0].normal.z < 0:
+                o.data.polygons[0].flip()
+            B.add(o)
+        B.add(beam("hipbar", P(c, -c, tw), P(out, -out, te),
+                   (0.0018, 0.0014), MAROON_IRON))
+        B.add(beam("fascia", P(-out - 0.001, -out - 0.0008, z_edge + 0.0005),
+                   P(out + 0.001, -out - 0.0008, z_edge + 0.0005),
+                   (0.0016, thick + 0.004), MAROON_IRON,
+                   up=Vector((0, 0, 1))))
+        valance(B, P(-out - 0.001, -out - 0.0012, z_edge - 0.0012),
+                P(out + 0.001, -out - 0.0012, z_edge - 0.0012), 0.011,
+                VALANCE, teeth=max(6, round(2 * out / 0.03)))
+        for u in us:
+            B.add(beam("bearer", P(u, -c, z_wall - 0.0035),
+                       P(u, -out + 0.006, z_edge - 0.0025), (0.0022, 0.0035),
+                       MAROON_IRON))
+            f = 0.62
+            B.add(beam("strut", P(u, -c, z_wall - 0.036),
+                       P(u, -c - (out - c) * f,
+                         z_wall - 0.005 - (z_wall - z_edge) * f),
+                       (0.0022, 0.0022), MAROON_IRON))
+        v = -out + 0.02
+        zt = z_edge + (z_wall - z_edge) * (out + v) / (out - c) - 0.001
+        _hanging_lamp(B, *P(0.0, v, 0.0)[:2], zt, drop=0.002)
 
 
 def _skirt(B, inner, outer, z_in, z_out, mat, thick=0.004):
-    """A canopy running round a square shed (hipped at the corners)."""
+    """A canopy roof running round a square block (hipped at the
+    corners), `thick` thick, solidified upwards."""
     v = []
     for h, z in ((inner, z_in), (outer, z_out)):
         v += [(-h, -h, z), (h, -h, z), (h, h, z), (-h, h, z)]
@@ -949,120 +1139,592 @@ def _skirt(B, inner, outer, z_in, z_out, mat, thick=0.004):
     B.add(o)
 
 
-def _goods(B, half, core, hw, rise, door_w, door_h, top, canopy_z,
-           lantern=0.03, storeys=1):
-    """The shared goods shed: a brick core on a loading bank, a big
-    boarded door and a timber canopy on every side, a hipped roof with a
-    louvred lantern."""
-    _platform(B, half, top)
-    c = core
-    B.body(K.body("core", 2 * c, 2 * c, hw, mat=BRICK, edge=0.2))
-    Wm = walls(0, 0, 2 * c, 2 * c)
-    for i, side in enumerate(("front", "right", "back", "left")):
-        wl = Wm[side]
-        leaf = (MAROON, GREEN, MAROON, GREEN)[i]
-        plank_door(B, wl, 0.0, door_w, door_h, leaf, z0=top, arch="segment")
-        arch_ring(B, wl, 0.0, door_w, door_h, "segment", 0.008, STONE,
-                  z0=top)
-        for u in (-c * 0.62, c * 0.62):
-            win(B, wl, u, top + 0.05, 0.028, 0.05, arch="segment",
-                bars="cross")
-            if storeys > 1:
-                win(B, wl, u, hw - 0.075, 0.028, 0.05, arch="segment",
-                    bars="cross")
-        if storeys > 1:
-            plank_door(B, wl, 0.0, 0.04, 0.06, leaf, z0=hw - 0.085)
-        # Sacks and crates by the door.
-        cr = wl.at(c * 0.55, -(half - c) * 0.55, top)
-        crate(B, cr.x, cr.y, 0.016, top, mat=CRATE, ang=7 * (i + 1))
-        sk = wl.at(-c * 0.5, -(half - c) * 0.5, top)
-        sacks(B, sk.x, sk.y, 2, z0=top, seed=i + 3)
-    cornice(B, 0, 0, 2 * c, 2 * c, hw - 0.003, 0.007, STONE, out=0.003)
-    W.hip(B, 0, 0, 2 * c, 2 * c, hw, rise, SLATE, over=0.008,
-          ridge_mat=SLATE_DK)
-    # Lantern.
-    lz = hw + rise - 0.012
-    B.add(box("lantern", (0.05, 0.05, lantern), (0, 0, lz + lantern / 2),
-              WEATHER))
-    for k in range(3):
-        B.add(box("louvre", (0.054, 0.054, 0.0025),
-                  (0, 0, lz + 0.006 + k * (lantern - 0.008) / 2), TIMBER))
-    lid = Build("tmp")
-    W.hip(lid, 0, 0, 0.064, 0.064, 0.0, 0.016, SLATE, over=0.004,
-          thick=0.004)
-    for o, uv in lid.parts:
-        tf(o, T(0, 0, lz + lantern))
-        B.add(o, uv)
-    # The canopy all round, on brackets, with a valance.
-    out = half - 0.004
-    _skirt(B, c, out, canopy_z, canopy_z - 0.012, WEATHER)
-    zo = canopy_z - 0.012
+def _gutters(B, c, z, over, r=0.0028):
+    L = 2 * (c + over) + 2 * r
+    for k in (-1, 1):
+        B.add(box("gutter", (L, 2 * r, 1.6 * r), (0, k * (c + over), z), ZINC))
+        B.add(box("gutter", (2 * r, L - 4 * r, 1.6 * r), (k * (c + over), 0, z),
+                  ZINC))
+
+
+def _name_band(B, wall, z, w, n, mat=MAROON_IRON, u=0.0):
+    """A painted name board on a wall (cream letters on the railway's
+    colour) in a stone surround."""
+    flat_box(B, wall, u, z, w + 0.008, 0.02, STONE, proud=0.002)
+    flat_box(B, wall, u, z, w, 0.014, mat, proud=0.003)
+    letters(B, wall, u, z, n, w - 0.012, 0.0075, mat=LETTER, gap=0.35)
+
+
+def _stack(B, x, y, z0, z1, w=0.026, d=0.044, pots=2, mat=SBRICK):
+    """A lean chimney stack: brick shaft, a two-step stone cap, pots."""
+    B.add(box("stack", (w, d, z1 - z0), (x, y, (z0 + z1) / 2), mat))
+    B.add(box("scap", (w + 0.005, d + 0.005, 0.004), (x, y, z1 - 0.004),
+              STONE))
+    B.add(box("scap2", (w + 0.002, d + 0.002, 0.003), (x, y, z1 - 0.0005),
+              STONE))
+    for i in range(pots):
+        py = y + (i - (pots - 1) / 2) * (d / max(1, pots))
+        B.add(cyl("pot", 0.0034, 0.0027, 0.011, (x, py, z1 + 0.001), 6,
+                  "paint:pot", cap=False, rings=1))
+
+
+def _clock(B, wall, u, z, r, rim=STONE, depth=0.004, seg=12):
+    """A lean station clock: a stone rim, a white face, two hands and
+    four hour marks."""
+    B.add(wall.put(cyl("crim", r + 0.003, r + 0.003, depth,
+                       (u, -depth / 2, z), seg, rim, axis="y", rings=1)))
+    pts = [(u + math.cos(math.tau * i / seg) * r,
+            z + math.sin(math.tau * i / seg) * r) for i in range(seg)]
+    B.add(wall.put(pane("cface", pts, -depth - 0.0003, CLOCK)))
+    y = -depth - 0.0007
+
+    def hand(a, ln, w_):
+        ca, sa = math.cos(a), math.sin(a)
+        nx, nz = -sa * w_, ca * w_
+        q = [(u + nx, z + nz), (u - nx, z - nz),
+             (u - nx + ca * ln, z - nz + sa * ln),
+             (u + nx + ca * ln, z + nz + sa * ln)]
+        B.add(wall.put(pane("hand", q, y, SIGN)))
+    hand(math.radians(80), r * 0.82, 0.0007)
+    hand(math.radians(-25), r * 0.58, 0.0009)
     for i in range(4):
         a = math.pi / 2 * i
-        ca, sa = math.cos(a), math.sin(a)
+        cx_, cz_ = u + math.cos(a) * r * 0.84, z + math.sin(a) * r * 0.84
+        q = [(cx_ + 0.0009, cz_ - 0.0009), (cx_ + 0.0009, cz_ + 0.0009),
+             (cx_ - 0.0009, cz_ + 0.0009), (cx_ - 0.0009, cz_ - 0.0009)]
+        B.add(wall.put(pane("tick", q, y, SIGN)))
 
-        def P(u, v, z):
-            return (ca * u - sa * v, sa * u + ca * v, z)
-        valance(B, P(-out, -out - 0.0005, zo), P(out, -out - 0.0005, zo),
-                0.01, FRAME, teeth=int(out * 2 / 0.042))
-        for u in (-c * 0.7, c * 0.7):
-            B.add(beam("bracket", P(u, -c - 0.001, canopy_z - 0.05),
-                       P(u, -out + 0.012, zo - 0.002), (0.0025, 0.0025),
-                       IRON))
+
+def _coped_gable(B, wall, gw, hw, rise, dress=STONE, t=0.006):
+    """Stone copings up both rakes of a gable on `wall` (gw wide at the
+    eaves hw, rising `rise`), with kneelers at their feet."""
+    a = math.atan2(rise, gw / 2)
+    for k in (-1, 1):
+        pa = (k * (gw / 2 + 0.006), -0.0028, hw - 0.006 * math.tan(a) + 0.003)
+        pb = (0.0, -0.0028, hw + rise + 0.0042)
+        B.add(wall.put(beam("gcope", pa, pb, (0.012, t), dress,
+                            up=Vector((0, 0, 1)))))
+        B.add(wall.put(box("kneeler", (0.014, 0.012, 0.011),
+                           (k * (gw / 2 - 0.001), 0.002, hw + 0.002), dress)))
 
 
 @asset
-def goods_shed(name):
-    """A goods shed served from all four sides: a brick shed on a raised
-    loading bank, a big boarded door and a timber canopy on every face,
-    crates and sacks, a hipped slate roof with a louvred lantern."""
+def station_hall(name):
+    """A small town station's booking hall: one tall storey of red brick
+    with sandstone quoins and dressings on a square blue-brick platform
+    bank, under a cross-gabled slate roof with stone-coped gables on all
+    four faces and two tall stacks. Every face has a round-headed open
+    doorway between two arched sash windows, a glazed canopy all round on
+    maroon iron brackets with a cream valance, and above the canopy a row
+    of arched clerestory windows and a name board; the -Y gable carries
+    the station clock, the others a round window."""
     r = root(name)
     B = Build(name)
-    _goods(B, 0.2, 0.146, 0.212, 0.052, 0.07, 0.096, 0.044, 0.162,
-           lantern=0.026)
+    half, c = 0.20, 0.136
+    hw, rise = 0.228, 0.062
+    zw, ze = 0.161, 0.153
+    _bank(B, half)
+    B.body(K.body("hall", 2 * c, 2 * c, hw, rise, ridge="x", mat=SBRICK,
+                  bevel=0.0, edge=0.1, z0=BANK_TOP - 0.006))
+    B.add(prism_xz("gables", [(c, hw - 0.006), (0.0, hw + rise - 0.002),
+                              (-c, hw - 0.006)], -c, c, SBRICK))
+    B.add(box("plinth", (2 * c + 0.006, 2 * c + 0.006, 0.013),
+              (0, 0, BANK_TOP + 0.0055), STONE))
+    Wm = walls(0, 0, 2 * c, 2 * c)
+    for side in FACES:
+        wl = Wm[side]
+        _doorway(B, wl)
+        for u in (-0.076, 0.076):
+            # Under the canopy: glazed flush, framed by a stone surround.
+            win(B, wl, u, BANK_TOP + 0.018, 0.03, 0.07, arch="round",
+                bars="grid", n=6, flush=True)
+            B.add(wl.put(box("key", (0.0065, 0.004, 0.008),
+                             (u, -0.002, BANK_TOP + 0.018 + 0.073), STONE)))
+            B.add(wl.put(box("sill", (0.04, 0.008, 0.004),
+                             (u, -0.003, BANK_TOP + 0.016), STONE)))
+            _arched(B, wl, u, 0.176, 0.026, 0.036)
+        _name_band(B, wl, 0.195, 0.078, 7)
+        _coped_gable(B, wl, 2 * c, hw, rise)
+        if side == "front":
+            _clock(B, wl, 0.0, hw + 0.0215, 0.0175, seg=16)
+        else:
+            B.add(wl.put(cyl("oculus", 0.011, 0.011, 0.004,
+                             (0.0, -0.001, hw + 0.02), 10, STONE, axis="y",
+                             rings=1)))
+            B.add(wl.put(pane("oculus-glass", [
+                (math.cos(math.tau * i / 10) * 0.0075,
+                 hw + 0.02 + math.sin(math.tau * i / 10) * 0.0075)
+                for i in range(10)], -0.0032, GLASS)))
+    B.add(box("course", (2 * c + 0.006, 2 * c + 0.006, 0.005),
+              (0, 0, 0.1685), STONE))
+    cornice(B, 0, 0, 2 * c, 2 * c, hw - 0.004, 0.008, STONE, out=0.004)
+    _quoins(B, c, BANK_TOP + 0.012, 0.166, STONE, course=0.02)
+    _quoins(B, c, 0.171, hw - 0.008, STONE, course=0.024)
+    for ridge in ("x", "y"):
+        W.roof(B, 0, 0, 2 * c, 2 * c, hw, rise, SLATE, ridge=ridge,
+               over=0.007, over_gable=0.004, thick=0.005,
+               ridge_mat=SLATE_DK)
+    for x, y in ((-0.088, 0.088), (0.088, -0.088)):
+        _stack(B, x, y, hw - 0.004, 0.287, w=0.03, d=0.03)
+    _canopy(B, c, half - 0.004, zw, ze, (-0.112, 0.112))
+    for (x, y, ang) in ((-0.076, c + 0.011, 180), (c + 0.011, 0.076, 90)):
+        K.bench(B, x, y, ang, wood=PLANK, iron=MAROON_IRON, L=0.04,
+                z0=BANK_TOP)
+    W.carve(B)
+    B.finish(r)
+    return r
+
+
+def _railing(B, a, b, z, h, n, mat=IRON):
+    """Iron railings from a to b (x, y) standing on z: n bars and a top
+    and a middle rail."""
+    a, b = Vector((a[0], a[1], z)), Vector((b[0], b[1], z))
+    verts, faces = [], []
+    q = 0.0006
+    for i in range(n):
+        p = a + (b - a) * (i / (n - 1))
+        k = len(verts)
+        for zz in (z - 0.001, z + h):
+            verts += [(p.x - q, p.y - q, zz), (p.x + q, p.y - q, zz),
+                      (p.x + q, p.y + q, zz), (p.x - q, p.y + q, zz)]
+        faces += [[k + j, k + (j + 1) % 4, k + 4 + (j + 1) % 4, k + 4 + j]
+                  for j in range(4)]
+    B.add(mesh("rbars", verts, faces, mat))
+    B.add(beam("rtop", a + Vector((0, 0, h)), b + Vector((0, 0, h)),
+               (0.0018, 0.0016), mat))
+    B.add(beam("rmid", a + Vector((0, 0, h * 0.3)), b + Vector((0, 0, h * 0.3)),
+               (0.0012, 0.0012), mat))
+
+
+def _slab_x(name, top, x0, x1, thick, mat, nx=1):
+    """A slab of `thick` under a top line [(y, z), ...] (y increasing),
+    extruded along x from x0 to x1."""
+    prof = [(y, z) for y, z in top] + [(y, z - thick)
+                                        for y, z in reversed(top)]
+    return K.extrude_x(name, prof, x0, x1, nx, mat)
+
+
+def _platforms(name, half):
+    """Two side platforms flanking the track into a station square, a
+    buffer stop on the bank face and the platform furniture."""
+    r = root(name)
+    B = Build(name)
+    top = BANK_TOP
+    y0, y1 = -0.5, -half
+    ramp = 0.046
+    zr = 0.021                     # the ramp's foot at the square edge
+    ys = [y0, y0 + ramp]
+    while ys[-1] + 0.05 < y1:
+        ys.append(ys[-1] + 0.05)
+    ys.append(y1)
+
+    def z_at(y):
+        if y >= y0 + ramp:
+            return top
+        return zr + (top - zr) * (y - y0) / ramp
+
+    line = [(y, z_at(y)) for y in ys]
+    for s in (-1, 1):
+        xi, xc, xo = 0.082, 0.094, 0.19
+        # Blue brick wall and fill under the coping and flags.
+        body = [(y, z - 0.006) for y, z in line]
+        prof = [(y0, -0.003)] + body + [(y1, -0.003)]
+        prof = [(y, z) for y, z in prof]
+        x0, x1 = sorted((s * xi, s * xo))
+        B.add(K.extrude_x("pwall", prof, x0, x1, 3, BLUE))
+        # Coping overhanging the track a little, its white edge, flags.
+        a, b = sorted((s * 0.0802, s * xc))
+        B.add(_slab_x("pcope", line, a, b, 0.0062, PALE))
+        a, b = sorted((s * xc, s * xo))
+        B.add(_slab_x("pflags", [(y, z - 0.0002) for y, z in line], a, b,
+                      0.006, FLAGS, nx=3))
+        a, b = sorted((s * 0.0806, s * 0.0838))
+        B.add(_slab_x("pedge", [(y, z + 0.0005) for y, z in line], a, b,
+                      0.0006, EDGE))
+        # Railings along the back edge, a lamp, a bench by the building.
+        _railing(B, (s * 0.186, y0 + ramp + 0.006), (s * 0.186, y1 - 0.006),
+                 top, 0.03, max(6, round((y1 - y0 - ramp) / 0.016)))
+        _lamp_standard(B, s * 0.168, y1 - 0.15, top, h=0.112)
+        K.bench(B, s * 0.17, y1 - 0.034, -90 * s, wood=PLANK,
+                iron=MAROON_IRON, L=0.04, z0=top)
+    # Station nameboard on two posts on the +X platform, facing the track.
+    ny = y1 - (0.21 if half < 0.22 else 0.19)
+    bx = 0.176
+    for dy in (-0.036, 0.036):
+        B.add(box("npost", (0.003, 0.003, 0.05), (bx + 0.002, ny + dy,
+                                                   top + 0.025), MAROON_IRON))
+    B.add(box("nboard", (0.003, 0.088, 0.019), (bx, ny, top + 0.04),
+              MAROON_IRON))
+    B.add(box("nrim", (0.0035, 0.092, 0.0025), (bx, ny, top + 0.0507),
+              VALANCE))
+    face = K.Wall((bx - 0.0015, ny, 0), (-1, 0, 0))
+    letters(B, face, 0.0, top + 0.04, 8, 0.074, 0.009, mat=LETTER, gap=0.35)
+    # Milk churns near the ramp of the -X platform; a parcels barrow.
+    for i, (dx, dy) in enumerate(((0.0, 0.0), (0.009, 0.004), (0.002, 0.011),
+                                  (0.011, -0.006))):
+        K.churn(B, -0.16 + dx, y0 + ramp + 0.03 + dy, z0=top, mat=ZINC)
+    bxx, byy = 0.15, y1 - 0.09
+    B.add(box("barrow", (0.022, 0.04, 0.002), (bxx, byy, top + 0.009),
+              PLANK))
+    for k in (-1, 1):
+        B.add(box("brail", (0.002, 0.042, 0.004), (bxx + k * 0.0105, byy,
+                                                   top + 0.0115), TIMBER))
+        B.add(cyl("bwheel", 0.0055, 0.0055, 0.0025, (bxx + k * 0.0125, byy,
+                                                     top + 0.0055), 8, IRON,
+                  axis="x"))
+        B.add(beam("bhandle", (bxx + k * 0.009, byy + 0.02, top + 0.011),
+                   (bxx + k * 0.008, byy + 0.034, top + 0.02),
+                   (0.0016, 0.0016), TIMBER))
+    for k in range(2):
+        crate(B, bxx + (k - 0.5) * 0.009, byy - 0.008, 0.0085,
+              z0=top + 0.010, mat=CRATE, ang=8 * k)
+    sacks(B, bxx, byy + 0.01, 2, z0=top + 0.0102, seed=5)
+    # The buffer stop on the bank face, on the track's centre line: a
+    # timber beam on iron brackets bolted to the face, two buffers, a red
+    # stop lamp. It reaches no more than 0.012 out from the face.
+    yb = y1
+    zb = 0.0635
+    B.add(box("bstop", (0.104, 0.0055, 0.017), (0, yb - 0.003, zb), BUFRED,
+              bevel=0.0008))
+    B.add(box("bstop-band", (0.105, 0.0057, 0.0035), (0, yb - 0.003,
+                                                       zb + 0.0045), VALANCE))
+    for x in (-0.05, 0.05):
+        B.add(cyl("bshank", 0.0032, 0.0032, 0.0045, (x, yb - 0.0075, zb), 8,
+                  IRON, axis="y"))
+        B.add(cyl("bhead", 0.0068, 0.0068, 0.0022, (x, yb - 0.0109, zb), 10,
+                  STEEL, axis="y"))
+    for x in (-0.034, 0.034):
+        B.add(beam("bbracket", (x, yb - 0.0025, 0.03), (x, yb - 0.004,
+                                                         zb - 0.007),
+                   (0.004, 0.003), IRON))
+        B.add(box("bplate", (0.008, 0.001, 0.012), (x, yb - 0.0005, 0.034),
+                  IRON))
+    B.add(box("stoplamp", (0.007, 0.0045, 0.007), (0, yb - 0.003,
+                                                    zb + 0.0125), IRON))
+    B.add(box("stoplens", (0.0045, 0.0008, 0.0045), (0, yb - 0.0058,
+                                                      zb + 0.0125), STOP))
     W.carve(B)
     B.finish(r)
     return r
 
 
 @asset
-def goods_grand(name):
-    """The big goods station: a two-storey brick goods warehouse on a
-    loading bank, doors, canopies and hoist doors on all four sides, and
-    an iron travelling crane on trestle legs over the front."""
+def station_platforms(name):
+    """Two side platforms on the -Y side of a small station square: blue
+    brick faces, a stone coping with a white edge, flags, a ramp at the
+    outer end, railings, lamps, benches, a nameboard, milk churns, a
+    parcels barrow, and a buffer stop on the bank face."""
+    return _platforms(name, 0.20)
+
+
+@asset
+def station_platforms_grand(name):
+    """The platforms for the grand station (bank half 0.25)."""
+    return _platforms(name, 0.25)
+
+
+def _steps(name, half):
+    """A broad flight of seven stone steps from the street (z = 0.012) at
+    y = -(half + 0.06) up to the bank top at y = -half, across the street
+    and both pavements, with low stone cheek walls carrying a lamp each
+    and two iron handrails over the kerb lines."""
     r = root(name)
     B = Build(name)
-    half = 0.25
-    _goods(B, half, 0.18, 0.29, 0.078, 0.08, 0.12, 0.044, 0.196,
-           lantern=0.034, storeys=2)
-    # Travelling crane over the front bank.
-    yc = -0.222
-    gz = 0.33
-    for x in (-0.236, 0.236):
+    y0, y1 = -(half + 0.06), -half
+    n = 7
+    z0 = 0.012
+    rise = (BANK_TOP - z0) / n
+    tread = (y1 - y0) / n
+    prof = [(y0, z0 - 0.004)]
+    for i in range(n):
+        ya = y0 + i * tread
+        zt = z0 + (i + 1) * rise
+        prof += [(ya, zt), (ya + tread, zt)]
+    prof += [(y1, z0 - 0.004)]
+    st = K.extrude_x("steps", prof, -0.188, 0.188, 12, STEP)
+    # Darker risers under pale treads, so the flight reads from above.
+    st.data.materials.append(kit.material(GRIT))
+    for p in st.data.polygons:
+        if p.normal.y < -0.9:
+            p.material_index = 1
+    B.add(st)
+    # Nosings: a pale line along each step's edge.
+    for i in range(n):
+        ya = y0 + i * tread
+        zt = z0 + (i + 1) * rise
+        B.add(box("nosing", (0.376, 0.0018, 0.0012), (0, ya + 0.0009,
+                                                       zt + 0.0003), PALE))
+    # Cheek walls with copings, piers and lamps.
+    for s in (-1, 1):
+        a, b = sorted((s * 0.188, s * 0.2))
+        wt = [(y0 + 0.016, z0 + 0.03), (y1, BANK_TOP + 0.018)]
+        prof = [(y0 + 0.016, z0 - 0.004)] + wt + [(y1, z0 - 0.004)]
+        B.add(K.extrude_x("cheek", prof, a, b, 1, GRIT))
+        B.add(beam("ccope", (s * 0.1935, y0 + 0.016, z0 + 0.0325),
+                   (s * 0.1935, y1 - 0.003, BANK_TOP + 0.0185),
+                   (0.0125, 0.005), PALE, up=Vector((0, 0, 1))))
+        px = s * 0.1915
+        py = y0 + 0.0085
+        B.add(box("pier", (0.015, 0.015, 0.044), (px, py, z0 + 0.018),
+                  GRIT))
+        B.add(box("piercap", (0.017, 0.017, 0.005), (px, py, z0 + 0.0425),
+                  PALE))
+        _lamp_standard(B, px, py, z0 + 0.045, h=0.085)
+        # A handrail over the kerb line: three posts and a sloping rail.
+        hx = s * 0.15
+        rz = 0.032
+        posts = [y0 + tread * 0.5, (y0 + y1) / 2, y1 - tread * 0.5]
+        for py_ in posts:
+            k = min(n - 1, int((py_ - y0) / tread))
+            zt = z0 + (k + 1) * rise
+            B.add(cyl("hpost", 0.0011, 0.0011, rz, (hx, py_, zt), 6,
+                      MAROON_IRON))
+        za = z0 + rise + rz
+        zb = BANK_TOP + rz
+        B.add(beam("hrail", (hx, posts[0] - 0.002, za - 0.002),
+                   (hx, y1 - 0.0025, zb + 0.0015), (0.0022, 0.0022),
+                   MAROON_IRON))
+    W.carve(B)
+    B.finish(r)
+    return r
+
+
+@asset
+def station_steps(name):
+    """Steps up to a small station's bank from the street on its -Y side."""
+    return _steps(name, 0.20)
+
+
+@asset
+def station_steps_grand(name):
+    """Steps up to the grand station's bank (half 0.25)."""
+    return _steps(name, 0.25)
+
+
+def _ridge_furrow(B, c, out, z_w, z_e, bays, rr=0.012, hv=0.009):
+    """A glazed ridge-and-furrow canopy all round a square block: on each
+    face `bays` glass ridges running out from the wall (z_w at the wall,
+    z_e at the edge) with iron ridge bars, a cream valance board under
+    each gable end, a maroon edge girder and wall plate, and a glass
+    pyramid over each corner."""
+    bw = 2 * c / bays
+    for i in range(4):
+        a = math.pi / 2 * i
+        ca, sa = math.cos(a), math.sin(a)
+        turn = rot("Z", math.degrees(a))
+
+        def P(u, v, z):
+            return Vector((ca * u - sa * v, sa * u + ca * v, z))
+
+        def board(pts):
+            o = prism_xz("rfval", pts, -0.0008, 0.0008, VALANCE)
+            tf(o, turn @ T(0, -out - 0.0014, 0))
+            B.add(o)
+
+        for j in range(bays):
+            ua, ub = -c + j * bw, -c + (j + 1) * bw
+            um = (ua + ub) / 2
+            for u0, u1 in ((ua, um), (um, ub)):
+                h0 = rr if u0 == um else 0.0
+                h1 = rr if u1 == um else 0.0
+                q = [P(u0, -c, z_w + h0), P(u0, -out, z_e + h0),
+                     P(u1, -out, z_e + h1), P(u1, -c, z_w + h1)]
+                o = mesh("rfglass", q, [[0, 1, 2, 3]], CANOPY_GLASS,
+                         fix=False)
+                if o.data.polygons[0].normal.z < 0:
+                    o.data.polygons[0].flip()
+                B.add(o)
+            B.add(beam("rfridge", P(um, -c, z_w + rr + 0.0009),
+                       P(um, -out - 0.0015, z_e + rr + 0.0009),
+                       (0.0022, 0.0018), MAROON_IRON))
+            # The gable-end valance board with a pointed foot.
+            board([(ub, z_e + 0.0005), (um, z_e + rr + 0.0005),
+                   (ua, z_e + 0.0005), (ua, z_e - hv), (um, z_e - hv * 1.6),
+                   (ub, z_e - hv)])
+        # Edge girder and wall plate.
+        B.add(beam("rfedge", P(-out, -out + 0.002, z_e - 0.002),
+                   P(out, -out + 0.002, z_e - 0.002), (0.004, 0.005),
+                   MAROON_IRON))
+        B.add(beam("rfplate", P(-c, -c - 0.002, z_w - 0.003),
+                   P(c, -c - 0.002, z_w - 0.003), (0.004, 0.006),
+                   MAROON_IRON))
+        # The corner pyramid over (c..out) at this face's right end.
+        k0, k1 = P(c, -c, z_w), P(out, -c, z_e)
+        k2, k3 = P(out, -out, z_e), P(c, -out, z_e)
+        ap = (k0 + k1 + k2 + k3) / 4
+        ap.z = z_e + rr
+        o = mesh("rfcorner", [k0, k1, k2, k3, ap],
+                 [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], CANOPY_GLASS,
+                 fix=False)
+        for p in o.data.polygons:
+            if p.normal.z < 0:
+                p.flip()
+        B.add(o)
+        B.add(beam("rfhip", k2 + Vector((0, 0, 0.0009)),
+                   ap + Vector((0, 0, 0.0009)), (0.0018, 0.0016),
+                   MAROON_IRON))
+        for flip in (False, True):
+            pts = [(out, z_e + 0.0005), (c, z_e + 0.0005), (c, z_e - hv),
+                   ((c + out) / 2, z_e - hv * 1.6), (out, z_e - hv)]
+            o = prism_xz("rfval", pts, -0.0008, 0.0008, VALANCE)
+            if flip:
+                tf(o, rot("Z", math.degrees(a) + 90) @
+                   T(0, -out - 0.0014, 0) @ T(-(c + out), 0, 0))
+            else:
+                tf(o, turn @ T(0, -out - 0.0014, 0))
+            B.add(o)
+
+
+def _columns(B, pts, z0, z1, r=0.0028, mat=MAROON_IRON):
+    """Cast-iron canopy columns with a base and a capital."""
+    for x, y in pts:
+        B.add(cyl("col", r, r * 0.85, z1 - z0 - 0.01, (x, y, z0 + 0.005), 6,
+                  mat, cap=False, rings=1))
+        B.add(box("cbase", (0.0072, 0.0072, 0.006), (x, y, z0 + 0.003), mat))
+        B.add(box("ccap", (0.0085, 0.0085, 0.005), (x, y, z1 - 0.0025), mat))
+
+
+def _gable_roof_face(B, i, w, y0, y1, hw, rise, mat=SLATE):
+    """A small gable roof over a pavilion on face i (0 front, 1 right,
+    2 back, 3 left), its ridge running in from the face: built on the
+    front between y0 (outer) and y1 and turned to its face."""
+    tmp = Build("tmp")
+    W.roof(tmp, 0, (y0 + y1) / 2, w, y1 - y0, hw, rise, mat, ridge="y",
+           over=0.005, over_gable=0.0, thick=0.005)
+    m = rot("Z", 90 * i)
+    for o, uv in tmp.parts:
+        tf(o, m)
+        B.add(o, uv)
+
+
+@asset
+def station_grand(name):
+    """A grand town station: a two-storey Italianate booking hall of red
+    brick with pale stone pilasters, string courses and a bold cornice on
+    a square blue-brick platform bank. Each face has a central pavilion
+    under a stone pediment with an oculus, its round-headed open doorway
+    in a dressed surround and a tall arched window above; a glazed
+    ridge-and-furrow canopy on cast-iron columns runs all round. A slate
+    pyramid roof with four stacks carries a central clock turret under a
+    lead cupola."""
+    r = root(name)
+    B = Build(name)
+    half, c = 0.25, 0.18
+    g1, hw, rise = 0.19, 0.30, 0.034
+    zw, zev = 0.178, 0.172
+    pw, pp = 0.104, 0.011
+    _bank(B, half)
+    B.body(K.body("hall", 2 * c, 2 * c, hw, mat=SBRICK, bevel=0.0,
+                  edge=0.1, z0=BANK_TOP - 0.006))
+    B.add(box("plinth", (2 * c + 0.008, 2 * c + 0.008, 0.014),
+              (0, 0, BANK_TOP + 0.006), PALE))
+    for z, h, o in ((g1, 0.008, 0.0045), (0.2075, 0.0035, 0.003),
+                    (hw - 0.012, 0.005, 0.004)):
+        B.add(box("course", (2 * c + 2 * o, 2 * c + 2 * o, h), (0, 0, z),
+                  PALE))
+    cornice(B, 0, 0, 2 * c, 2 * c, hw - 0.004, 0.011, PALE, out=0.009)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            B.add(box("pilaster", (0.024, 0.024, hw - 0.014 - 0.069),
+                      (sx * (c - 0.0095), sy * (c - 0.0095),
+                       (hw - 0.014 + 0.069) / 2), PALE))
+    Wm = walls(0, 0, 2 * c, 2 * c)
+    for i, side in enumerate(FACES):
+        wl = Wm[side]
+        # The central pavilion, its pilasters and pediment.
+        B.body(wl.put(gbox("pavilion", (pw, pp + 0.004, hw - 0.004 - 0.05),
+                           (0, -pp / 2 + 0.002, (hw - 0.004 + 0.05) / 2),
+                           SBRICK, edge=0.1)))
+        pv = K.Wall(wl.at(0, -pp, 0), wl.n)
+        for u in (-1, 1):
+            B.add(pv.put(box("ppil", (0.012, 0.004, hw - 0.012 - 0.069),
+                             (u * (pw / 2 - 0.006), -0.0015,
+                              (hw - 0.012 + 0.069) / 2), PALE)))
+        B.add(pv.put(prism_xz("pediment", [(pw / 2 + 0.006, hw),
+                                           (0.0, hw + 0.04),
+                                           (-pw / 2 - 0.006, hw)],
+                              -0.002, 0.04, PALE)))
+        ap = math.atan2(0.04, pw / 2 + 0.006)
         for k in (-1, 1):
-            B.add(beam("leg", (x, yc + k * 0.022, 0.044), (x, yc, gz - 0.01),
-                       (0.007, 0.007), OXIDE))
-        B.add(box("foot", (0.014, 0.05, 0.006), (x, yc, 0.047), IRON))
-        B.add(box("legtie", (0.004, 0.032, 0.004), (x, yc, 0.15), OXIDE))
-    for k in (-1, 1):
-        B.add(gbox("girder", (0.49, 0.006, 0.02), (0, yc + k * 0.011, gz),
-                   OXIDE, edge=0.0))
-    for i in range(7):
-        x = -0.21 + i * 0.07
-        B.add(box("web", (0.003, 0.022, 0.003), (x, yc, gz - 0.008), OXIDE))
-    # The crab, its chain and a crate on the hook.
-    cxr = 0.07
-    B.add(box("crab", (0.034, 0.03, 0.016), (cxr, yc, gz + 0.016), IRON,
-              bevel=0.001))
-    B.add(cyl("cdrum", 0.006, 0.006, 0.028, (cxr, yc, gz + 0.016), 8, IRON,
-              axis="y"))
-    B.add(cyl("cchain", 0.0009, 0.0009, 0.13, (cxr, yc, gz - 0.13), 4, IRON))
-    B.add(box("chook", (0.006, 0.004, 0.008), (cxr, yc, gz - 0.132), IRON))
-    for k in (-1, 1):
-        B.add(beam("sling", (cxr, yc, gz - 0.134),
-                   (cxr + k * 0.01, yc, gz - 0.152), (0.001, 0.001), IRON))
-    B.add(box("load", (0.024, 0.02, 0.018), (cxr, yc, gz - 0.161), CRATE,
-              bevel=0.0008))
+            B.add(pv.put(beam("rake", (k * (pw / 2 + 0.011),
+                                       -0.0045, hw - 0.002),
+                              (0.0, -0.0045, hw + 0.0455),
+                              (0.008, 0.006), PALE, up=Vector((0, 0, 1)))))
+        B.add(pv.put(cyl("oculus", 0.0085, 0.0085, 0.003,
+                         (0.0, -0.0035, hw + 0.0145), 8, PALE, axis="y",
+                         rings=1)))
+        B.add(pv.put(pane("oculus-glass", [
+            (math.cos(math.tau * k / 10) * 0.0058,
+             hw + 0.0145 + math.sin(math.tau * k / 10) * 0.0058)
+            for k in range(10)], -0.0052, GLASS)))
+        _gable_roof_face(B, i, pw + 0.012, -c - pp - 0.004, -c + 0.05, hw,
+                         0.04)
+        _doorway(B, pv, ring=0.009, dress=PALE)
+        B.add(pv.put(box("hood", (DOOR_W + 0.032, 0.012, 0.006),
+                         (0, -0.005, BANK_TOP + DOOR_H + 0.016), PALE)))
+        _arched(B, pv, 0.0, g1 + 0.024, 0.032, 0.068, dress=PALE,
+                ring=0.006)
+        # Side bays: a window each side on both floors.
+        for u in (-0.112, 0.112):
+            win(B, wl, u, BANK_TOP + 0.018, 0.03, 0.086, arch="round",
+                bars="grid", n=6, flush=True)
+            B.add(wl.put(box("key", (0.0065, 0.004, 0.008),
+                             (u, -0.002, BANK_TOP + 0.018 + 0.089), PALE)))
+            B.add(wl.put(box("sill", (0.04, 0.008, 0.004),
+                             (u, -0.003, BANK_TOP + 0.016), PALE)))
+        for u in (-0.128, -0.08, 0.08, 0.128):
+            win(B, wl, u, 0.212, 0.026, 0.058, arch="segment", bars="cross",
+                n=6)
+            B.add(wl.put(box("hoodm", (0.034, 0.005, 0.005),
+                             (u, -0.0025, 0.212 + 0.058 + 0.004), PALE)))
+            B.add(wl.put(box("key", (0.006, 0.006, 0.009),
+                             (u, -0.003, 0.212 + 0.058 + 0.002), PALE)))
+    # Pyramid roof with gutters, four stacks, the clock turret.
+    ze = W.hip(B, 0, 0, 2 * c, 2 * c, hw, rise, SLATE, over=0.014,
+               thick=0.006)
+    _gutters(B, c, ze - 0.002, 0.016)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            _stack(B, sx * 0.118, sy * 0.118, hw - 0.01, 0.37, w=0.03,
+                   d=0.03, pots=2)
+    ts, tz0, tz1 = 0.078, hw - 0.01, 0.372
+    B.add(gbox("turret", (ts, ts, tz1 - tz0), (0, 0, (tz0 + tz1) / 2),
+               SBRICK, edge=0.1))
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            B.add(box("tpil", (0.012, 0.012, tz1 - 0.326),
+                      (sx * (ts / 2 - 0.004), sy * (ts / 2 - 0.004),
+                       (tz1 + 0.326) / 2), PALE))
+    tw = walls(0, 0, ts, ts)
+    for side in FACES:
+        _clock(B, tw[side], 0.0, 0.3505, 0.0155, rim=PALE)
+    B.add(box("tcorn", (ts + 0.012, ts + 0.012, 0.007), (0, 0, tz1), PALE))
+    B.add(lathe("cupola", [(0.034, tz1 + 0.0035), (0.033, tz1 + 0.009),
+                           (0.028, tz1 + 0.018), (0.018, tz1 + 0.026),
+                           (0.007, tz1 + 0.031), (0.0, tz1 + 0.032)],
+                (0, 0, 0), 12, LEAD))
+    B.add(lathe("tfinial", [(0.0035, tz1 + 0.031), (0.0042, tz1 + 0.034),
+                            (0.0012, tz1 + 0.037), (0.0007, 0.418),
+                            (0.0, 0.418)], (0, 0, 0), 6, GILT))
+    # The ridge-and-furrow canopy on its columns.
+    out = half - 0.004
+    _ridge_furrow(B, c, out, zw, zev, 4)
+    cols = []
+    for i in range(4):
+        a = math.pi / 2 * i
+        ca, sa = math.cos(a), math.sin(a)
+        for u in (-0.09, 0.09, out - 0.005):
+            v = -out + 0.005
+            cols.append((ca * u - sa * v, sa * u + ca * v))
+    _columns(B, cols, BANK_TOP, zev - 0.004)
+    for i in range(4):
+        a = math.pi / 2 * i
+        ca, sa = math.cos(a), math.sin(a)
+        v = -out + 0.022
+        _hanging_lamp(B, -sa * v, ca * v, zev - 0.003, drop=0.006)
+    for (x, y, ang) in ((-0.112, c + 0.011, 180), (c + 0.011, -0.112, 90)):
+        K.bench(B, x, y, ang, wood=PLANK, iron=MAROON_IRON, L=0.042,
+                z0=BANK_TOP)
     W.carve(B)
     B.finish(r)
     return r

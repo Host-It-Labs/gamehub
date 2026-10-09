@@ -44,8 +44,11 @@ export type Level = {
   /** Sea Chart fleets. */
   ships?: number[];
 };
-export const LEVEL_MULT = [1, 2, 4] as const;
-/** Tickets finished in a book before its next level opens. */
+/** Prize multiplier per difficulty: I, II, III and ∞ (the endless one). */
+export const LEVEL_MULT = [1, 2, 4, 5] as const;
+/** Difficulties II and III open at book levels 2 and 3, after about this
+ * many careful tickets' worth of book XP (`bookXpAt` in scratch.ts); ∞ opens
+ * at book level `INFINITY_AT`. */
 export const LEVEL_AT = [0, 8, 25] as const;
 /** Book values step up about ×4–6 from one book to the next at every level
  * (ticket prices follow), and book prices keep the pacing test's milestones. */
@@ -62,6 +65,7 @@ export const BOOKS = [
       { cols: 4, rows: 4, lives: 4, count: 1 },
       { cols: 5, rows: 5, lives: 5, count: 2 },
       { cols: 6, rows: 5, lives: 5, count: 3 },
+      { cols: 7, rows: 6, lives: 6, count: 4 },
     ],
   },
   {
@@ -76,6 +80,7 @@ export const BOOKS = [
       { cols: 6, rows: 4, lives: 2, count: 3 },
       { cols: 6, rows: 4, lives: 2, count: 2 },
       { cols: 6, rows: 4, lives: 1, count: 2 },
+      { cols: 6, rows: 5, lives: 1, count: 2 },
     ],
   },
   {
@@ -90,6 +95,7 @@ export const BOOKS = [
       { cols: 4, rows: 4, lives: 2, count: 4, extra: 2 },
       { cols: 5, rows: 5, lives: 2, count: 5, extra: 4 },
       { cols: 6, rows: 6, lives: 1, count: 6, extra: 6 },
+      { cols: 7, rows: 6, lives: 1, count: 6, extra: 8 },
     ],
   },
   {
@@ -104,6 +110,7 @@ export const BOOKS = [
       { cols: 3, rows: 6, lives: 3, count: 9 },
       { cols: 3, rows: 8, lives: 3, count: 12 },
       { cols: 3, rows: 10, lives: 2, count: 15 },
+      { cols: 3, rows: 11, lives: 2, count: 18 },
     ],
   },
   {
@@ -118,6 +125,7 @@ export const BOOKS = [
       { cols: 5, rows: 5, lives: 1, count: 4 },
       { cols: 6, rows: 6, lives: 1, count: 7 },
       { cols: 7, rows: 7, lives: 1, count: 11 },
+      { cols: 8, rows: 7, lives: 1, count: 14 },
     ],
   },
   {
@@ -132,6 +140,7 @@ export const BOOKS = [
       { cols: 6, rows: 6, lives: 3, count: 4 },
       { cols: 6, rows: 6, lives: 2, count: 1, extra: 3 },
       { cols: 6, rows: 6, lives: 2, count: 0, extra: 8 },
+      { cols: 8, rows: 8, lives: 2, count: 0, extra: 10 },
     ],
   },
   {
@@ -146,6 +155,7 @@ export const BOOKS = [
       { cols: 6, rows: 6, lives: 4, count: 0, ships: [3, 2, 2, 1] },
       { cols: 6, rows: 6, lives: 4, count: 0, ships: [4, 3, 2, 2, 1] },
       { cols: 7, rows: 7, lives: 4, count: 0, ships: [4, 3, 3, 2, 2, 1, 1] },
+      { cols: 8, rows: 8, lives: 4, count: 0, ships: [5, 4, 3, 3, 2, 2, 1, 1] },
     ],
   },
   {
@@ -160,6 +170,7 @@ export const BOOKS = [
       { cols: 6, rows: 6, lives: 3, count: 0 },
       { cols: 7, rows: 7, lives: 2, count: 0 },
       { cols: 8, rows: 8, lives: 2, count: 0 },
+      { cols: 8, rows: 8, lives: 1, count: 0 },
     ],
   },
 ] as const satisfies readonly {
@@ -240,9 +251,10 @@ export type ScratchTicket = {
   cost?: number;
   /** When it was bought, for the quick-hands bonus. */
   bornAt?: number;
+  /** Book XP earned when the ticket settles. */
+  xp?: number;
   /** The payout's extras, shown when it pays. */
   quick?: boolean;
-  refund?: number;
   lastAt: number;
 };
 export const MASK_SIDE = 8;

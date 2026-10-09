@@ -16,6 +16,7 @@ import { sealLocked, type Face } from '@/lib/games/relic/books';
 import { formatNumber } from '@/lib/games/relic/engine';
 import type { ScratchAudio } from './relic-scratch-audio';
 import { SYMBOL_SHEET } from './relic-scratch-art';
+import { stillRatio } from './render-quality';
 
 /** Where each prize symbol sits on the 4×4 sheet. */
 const SPRITES: Partial<Record<Face, number>> = {
@@ -382,7 +383,7 @@ export function ScratchSurface({
       c = element?.getContext('2d');
     if (!element || !c) return;
     const rect = element.getBoundingClientRect(),
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = stillRatio(rect.width, rect.height);
     const w = Math.round(rect.width * dpr),
       h = Math.round(rect.height * dpr);
     if (!w || !h) return;

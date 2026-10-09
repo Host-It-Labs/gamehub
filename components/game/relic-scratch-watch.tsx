@@ -21,7 +21,12 @@ import type { ScratchAudio } from './relic-scratch-audio';
 import { ScratchDesk } from './relic-scratch-desk';
 import { ScratchFactory, type FactoryView } from './relic-scratch-factory';
 import { ScratchUpgrades } from './relic-scratch-upgrades';
-import { pointFor, type Cursor, type DeskTab, type Presence } from './relic-presence';
+import {
+  pointFor,
+  type Cursor,
+  type DeskTab,
+  type Presence,
+} from './relic-presence';
 
 export const DESK_TABS: { id: DeskTab; name: string; icon: typeof Ticket }[] = [
   { id: 'tickets', name: 'Tickets', icon: Ticket },
@@ -81,7 +86,11 @@ function Frame({
       doc.body.style.overflow = 'hidden';
       copy(doc);
       observer = new MutationObserver(() => copy(doc));
-      observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+      observer.observe(document.head, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
       setBody(doc.body);
     };
     frame.addEventListener('load', setup);
@@ -112,7 +121,13 @@ function Frame({
   );
 }
 /** The other player's pointer inside their mirrored screen. */
-function MirrorCursor({ cursor, colour }: { cursor: Cursor | null; colour: string }) {
+function MirrorCursor({
+  cursor,
+  colour,
+}: {
+  cursor: Cursor | null;
+  colour: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -167,20 +182,27 @@ function MirrorRoom({
         <img src="/art/relic/scratch-desk-landscape-v1.webp" alt="" />
       </picture>
       <header className="rs-top">
-        <div className="rs-tabs" role="tablist">
+        <div className="rs-tabs" role="tablist" data-rs-cover="">
           {DESK_TABS.map(({ id, name, icon: Icon }) => (
-            <button key={id} role="tab" tabIndex={-1} aria-selected={tab === id}>
+            <button
+              key={id}
+              role="tab"
+              tabIndex={-1}
+              aria-selected={tab === id}
+            >
               <Icon size={16} />
               <span>{name}</span>
             </button>
           ))}
         </div>
-        <output className="rs-wallet">
-          <Coins size={18} />
-          <strong>{formatNumber(coins)}</strong>
-        </output>
+        <div className="rs-purse" data-rs-cover="">
+          <output className="rs-wallet">
+            <Coins size={18} />
+            <strong>{formatNumber(coins)}</strong>
+          </output>
+        </div>
       </header>
-      <div className="rs-stage" data-rs-area="stage">
+      <div className={`rs-stage is-${tab}`} data-rs-area="stage">
         {tab === 'tickets' ? (
           <ScratchDesk
             readOnly
@@ -190,6 +212,7 @@ function MirrorRoom({
             busy={false}
             audio={SILENT}
             levels={view.levels as Partial<Record<PackId, number>> | undefined}
+            book={view.book as PackId | undefined}
             onBuy={noop}
             onBuyBook={noop}
             onStroke={noop}
@@ -254,14 +277,20 @@ export function WatchTv({
 }) {
   const [big, setBig] = useState(false),
     [corner, setCorner] = useState<Corner>(rememberedCorner),
-    [drag, setDrag] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null),
+    [drag, setDrag] = useState<{
+      x: number;
+      y: number;
+      dx: number;
+      dy: number;
+    } | null>(null),
     [viewport, setViewport] = useState(() => ({
       w: typeof window === 'undefined' ? 1280 : window.innerWidth,
       h: typeof window === 'undefined' ? 800 : window.innerHeight,
     }));
   const tv = useRef<HTMLElement>(null);
   useEffect(() => {
-    const resize = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    const resize = () =>
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
   }, []);
@@ -288,7 +317,9 @@ export function WatchTv({
       style={
         {
           '--player': colour,
-          ...(drag ? { transform: `translate(${drag.dx}px, ${drag.dy}px)` } : {}),
+          ...(drag
+            ? { transform: `translate(${drag.dx}px, ${drag.dy}px)` }
+            : {}),
         } as React.CSSProperties
       }
     >
@@ -301,7 +332,11 @@ export function WatchTv({
         }}
         onPointerMove={(event) => {
           if (drag)
-            setDrag({ ...drag, dx: event.clientX - drag.x, dy: event.clientY - drag.y });
+            setDrag({
+              ...drag,
+              dx: event.clientX - drag.x,
+              dy: event.clientY - drag.y,
+            });
         }}
         onPointerUp={() => {
           if (!drag) return;
@@ -310,7 +345,9 @@ export function WatchTv({
           if (!r || Math.hypot(drag.dx, drag.dy) < 12) return;
           const cx = r.left + r.width / 2,
             cy = r.top + r.height / 2;
-          place(`${cy < viewport.h / 2 ? 't' : 'b'}${cx < viewport.w / 2 ? 'l' : 'r'}` as Corner);
+          place(
+            `${cy < viewport.h / 2 ? 't' : 'b'}${cx < viewport.w / 2 ? 'l' : 'r'}` as Corner,
+          );
         }}
         onPointerCancel={() => setDrag(null)}
       >
@@ -340,7 +377,10 @@ export function WatchTv({
           <X size={15} />
         </button>
       </div>
-      <div className={`rs-tv-screen ${presence ? '' : 'is-static'}`} style={{ width, height }}>
+      <div
+        className={`rs-tv-screen ${presence ? '' : 'is-static'}`}
+        style={{ width, height }}
+      >
         <Frame width={screen.w} height={screen.h} scale={scale}>
           <MirrorRoom
             presence={presence}

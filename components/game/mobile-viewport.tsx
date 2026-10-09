@@ -15,20 +15,27 @@ export const optOutOfFullscreen = () => {
   optedOut = true;
 };
 
-/** Portrait lock only works in fullscreen on the browsers that support it. */
-export async function lockPortrait() {
+/** Orientation lock only works in fullscreen on the browsers that support it. */
+export async function lockPortrait(
+  mode: 'portrait' | 'landscape' = 'portrait',
+) {
   const orientation = screen.orientation as ScreenOrientation & {
     lock?: (mode: string) => Promise<void>;
   };
   try {
-    await orientation?.lock?.('portrait');
+    await orientation?.lock?.(mode);
   } catch {
-    // Unsupported (iOS Safari, desktop): the rotate screen covers landscape.
+    // Unsupported (iOS Safari, desktop): the rotate screen covers the other way.
   }
 }
+/** Diner plays sideways: its screens and its Play buttons ask for landscape. */
+const wantsLandscape = (target: Element | null) =>
+  !!document.querySelector('[data-orientation="landscape"]') ||
+  !!target?.closest?.('[data-landscape]');
 
 /**
- * Phones play full screen and upright (24 September 2026). Browsers only allow
+ * Phones play full screen and upright (24 September 2026), except Diner,
+ * which plays sideways (9 October 2026). Browsers only allow
  * fullscreen from a tap, so any tap while a game is open asks for it (and the
  * portrait lock) until the player leaves fullscreen from the menu. Where the
  * browser cannot lock, a landscape phone sees a rotate screen instead.
@@ -52,7 +59,9 @@ export function MobileViewport() {
       if (!root.requestFullscreen) return;
       root
         .requestFullscreen({ navigationUI: 'hide' })
-        .then(lockPortrait)
+        .then(() =>
+          lockPortrait(wantsLandscape(target) ? 'landscape' : 'portrait'),
+        )
         .catch(() => {});
     };
     document.addEventListener('click', onTap, true);

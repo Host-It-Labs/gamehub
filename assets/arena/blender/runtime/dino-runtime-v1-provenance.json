@@ -1,0 +1,13 @@
+{
+  "runtimeCache": "/Users/williamguinaudie/Documents/code/gamehub/assets/arena/blender/runtime/dino-runtime-v1.blend",
+  "reviewedNeutralCandidate": "/Users/williamguinaudie/Documents/code/gamehub/work/arena/2026-10-04-rebuild/dino/runtime-r2.blend",
+  "bytes": 1530351,
+  "sha256": "5343892f716f2f365076e1bba92d1bb3146eb5b1de9115fc6509f834d992f9c4",
+  "objects": 18,
+  "meshes": 15,
+  "innerArtScale": 0.48,
+  "collectorWrapper": "not stored; figures.py adds .78 once",
+  "externalLibraries": false,
+  "imageTextures": false,
+  "addons": false
+}

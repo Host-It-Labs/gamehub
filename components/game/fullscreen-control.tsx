@@ -35,7 +35,12 @@ export function useFullscreen() {
       } else {
         await document.documentElement.requestFullscreen();
         // Phones play upright; see mobile-viewport.tsx.
-        if (isPhone()) await lockPortrait();
+        if (isPhone())
+          await lockPortrait(
+            document.querySelector('[data-orientation="landscape"]')
+              ? 'landscape'
+              : 'portrait',
+          );
       }
     } catch {
       setMessage('Fullscreen is unavailable. You can continue playing here.');

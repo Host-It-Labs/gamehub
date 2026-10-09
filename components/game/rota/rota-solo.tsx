@@ -13,6 +13,7 @@ import { LeaveDialog, useLeaveDialog } from '../leave-dialog';
 import { useBoardLeave } from '../use-board-leave';
 import { recordCompletedGame } from '../play-experience';
 import { RotaTable } from './rota-table';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 
 const VOLUME = 'gamehub.rota.volume';
 
@@ -46,14 +47,7 @@ export default function RotaSolo({
   onExit: () => void;
 }) {
   const [g, setG] = useState<RotaGame>(() => (choice.resume && readRotaSave()) || fresh(choice));
-  const [volume, setVolume] = useState(() => {
-    try {
-      const v = Number(localStorage.getItem(VOLUME) ?? 0.5);
-      return Number.isFinite(v) ? v : 0.5;
-    } catch {
-      return 0.5;
-    }
-  });
+  const [volume, setVolume] = useState(() => readAudioLevel(VOLUME));
   const [lesson, setLesson] = useState(choice.learn ? 0 : -1);
   const practice = lesson >= 0 || (choice.learn ?? false);
   const leaving = useLeaveDialog();
@@ -162,9 +156,7 @@ export default function RotaSolo({
         volume={volume}
         onVolume={(v) => {
           setVolume(v);
-          try {
-            localStorage.setItem(VOLUME, String(v));
-          } catch {}
+          saveAudioLevel(v, VOLUME);
         }}
         tableSlot={coach}
       />

@@ -1,0 +1,10 @@
+{
+  "/art/optimized/box-diner-blind-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRjQBAABXRUJQVlA4ICgBAACwBgCdASoYABgAPwFysFIrJqSiqAqpYCAJbACdMoR3EGAK7UDA4m6+kRO3GCC/QAjhYUXLofy+QaUXRfLcAAD8sJUVombqPGzw6pZp6bWWBHUEXgotmLwX4MztqneVC1SM52Lb+1gkuhnqp9CSeAmcO/Ge2UON4vTIPW5Rd8IygaetzQ7mXMpNrfRtijprQIo0g5aQJrYG2ZG88Lzvdt/62LehE3lIxwQ29iulYnoOhvdtGjw3BHpKTt4YqhD4U6vJ3ThDHnbGLMFHW1vncdULe0TbmZQgzlCelUe3KqWzui7kTfdnmhHMVS+VcAxtoMagNUX/p4mj/ZT11pmSi4F3JgS53OZblfcQ6f7dlLgmsVOYKbMghqNtGGvrSmX8FcRdLUcXWr6gAA==",
+    "srcSet": "/art/optimized/box-diner-blind-v2-320.webp 320w, /art/optimized/box-diner-blind-v2-640.webp 640w, /art/optimized/box-diner-blind-v2.webp 1024w"
+  },
+  "/art/optimized/box-diner-wide-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRsoAAABXRUJQVlA4IL4AAAAQBQCdASokAAwAPu1kqE6ppaQiNUgBMB2JbACdMt7Cv3+rk92AOjRTf83w+WlWD7kAAP7cmgE6jfIh05lr2+rA209P0jh+DEKKMs07RqB1zP0OLJZJlJ1rpkKbYqrrxewJa5EIloFXcsX+0VbXY2Q+8Q5nvHeYVVQ+ZSLRZ2i2QrWKpS7OWG+4NJbdtLmDwOgnUdoK/OPDyqATQjSJT/mnbPFON32Kobl4G/uHe1XTiRZBJT0S7G9H4uo4bAAA",
+    "srcSet": "/art/optimized/box-diner-wide-v2-768.webp 768w, /art/optimized/box-diner-wide-v2.webp 1536w"
+  }
+}

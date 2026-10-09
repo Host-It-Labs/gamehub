@@ -1,0 +1,17 @@
+{
+  "sourceVersion": "v9-b",
+  "cards": {
+    "ogre": {
+      "source": "assets/arena/cards/card-ogre-v9-b.png",
+      "sha256": "d8e58a635aa5a0c350fc91e4e5be1906993b8a9aa55a0a7d2ce6fe1824a7c30a",
+      "path": "/3d/arena/cards/ogre-d8e58a63.webp",
+      "bytes": 57478
+    },
+    "sumo": {
+      "source": "assets/arena/cards/card-sumo-v9-b.png",
+      "sha256": "7843d27db1da632093cb139856641ba182910d52ba217cf634f092a3e68510b4",
+      "path": "/3d/arena/cards/sumo-7843d27d.webp",
+      "bytes": 43748
+    }
+  }
+}

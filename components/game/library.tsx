@@ -9,20 +9,19 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Handshake,
   Menu,
   Search,
-  Swords,
   Users,
   Volume2,
   VolumeX,
-  type LucideIcon,
 } from 'lucide-react';
-import { GameBox, SealedBox } from './game-box';
+import { GameCard } from './game-card';
+import { Showcase } from './library-showcase';
+import { StatStrip } from './library-stats';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { SoundSettings } from './sound-settings';
 import { ThemeButton, ThemeSwitch } from './theme-control';
+import { useDragScroll } from './use-drag-scroll';
 import type { GameId } from '@/lib/games/trio/engine';
 import type { StandaloneId } from '@/lib/games/standalone/types';
 import {
@@ -31,8 +30,7 @@ import {
   initials,
   librarySections,
   libraryGames,
-  playerRange,
-  playersSpoken,
+  showcaseGames,
   type Friend,
   type LibraryGame,
 } from '@/lib/games/library-fixtures';
@@ -86,70 +84,16 @@ export function AvatarStack({
   );
 }
 
-export function Stat({
-  icon: Icon,
-  children,
-  label,
-}: {
-  icon: LucideIcon;
-  children: ReactNode;
-  label: string;
-}) {
-  return (
-    <span className="stat" aria-label={label}>
-      <Icon aria-hidden="true" />
-      <span>{children}</span>
-    </span>
-  );
-}
-export function Weight({ value }: { value: number }) {
-  return (
-    <span className="stat" aria-label={`Weight ${value} of 4`}>
-      <span className="weight" aria-hidden="true">
-        {[1, 2, 3, 4].map((step) => (
-          <i key={step} className={step <= value ? 'on' : ''} />
-        ))}
-      </span>
-      <span>{['Light', 'Light', 'Medium', 'Heavy'][value - 1]}</span>
-    </span>
-  );
-}
-export function StatStrip({
-  game,
-  full = false,
-}: {
-  game: LibraryGame;
-  full?: boolean;
-}) {
-  return (
-    <span className={`stat-strip ${full ? 'full' : ''}`}>
-      <Stat icon={Clock} label={game.durationSpoken}>
-        {game.duration}
-      </Stat>
-      <Stat icon={Users} label={playersSpoken(game.players)}>
-        {playerRange(game.players)}
-      </Stat>
-      {full && (
-        <>
-          <Stat
-            icon={game.mode === 'Co-op' ? Handshake : Swords}
-            label={`Mode: ${game.mode}`}
-          >
-            {game.mode}
-          </Stat>
-          <Weight value={game.weight} />
-        </>
-      )}
-    </span>
-  );
-}
+export { Kind, Stat, StatStrip } from './library-stats';
 
 /** The search field earns its place once the catalog outgrows a glance. */
 const SEARCH_FROM = 13;
 
 /**
- * One box on a shelf and its time and player badges. The cover carries the
- * name. The landing library and the table lobby both show games with this tile.
+ * One game on a shelf: its cover (which carries the game's title), then its
+ * time and depth. Hovering it on a desktop plays the game's footage in the
+ * cover's square. The landing library and the table lobby both show games
+ * with this tile.
  */
 export function ShelfTile({
   game,
@@ -169,20 +113,30 @@ export function ShelfTile({
   onOpen: (game: LibraryGame) => void;
   children?: ReactNode;
 }) {
+  const [previewing, setPreviewing] = useState(false);
   return (
     <li className={`lib-tile ${className}`}>
       <button
         type="button"
-        className="gbox-button lib-tile-button"
+        className="lib-tile-button"
         disabled={disabled}
         aria-pressed={pressed}
         onClick={() => onOpen(game)}
-        aria-label={`${game.name}. ${game.durationSpoken}, ${playersSpoken(game.players)}. ${label}`}
+        onPointerEnter={(event) => {
+          if (event.pointerType === 'mouse') setPreviewing(true);
+        }}
+        onPointerLeave={() => setPreviewing(false)}
+        onFocus={(event) => {
+          if (event.currentTarget.matches(':focus-visible'))
+            setPreviewing(true);
+        }}
+        onBlur={() => setPreviewing(false)}
+        aria-label={`${game.name}. ${game.durationSpoken}. ${game.kind}. ${label}`}
       >
-        <GameBox
+        <GameCard
           game={game}
-          width={150}
-          sizes="(max-width: 600px) 45vw, (max-width: 700px) 34vw, 400px"
+          previewing={previewing && !disabled}
+          sizes="(max-width: 600px) 45vw, (max-width: 700px) 34vw, 240px"
         />
         <StatStrip game={game} />
         {children}
@@ -191,31 +145,22 @@ export function ShelfTile({
   );
 }
 
-/** Every shelf row is at least this many boxes long; sealed boxes fill the
- *  rest, so each kind of game reads as a shelf with room for more. */
-const ROW_LENGTH = 8;
-const MIN_SEALED = 3;
-
 /**
- * One kind of game as a horizontal shelf: the title, arrows on the right that
- * page through it, then the boxes followed by sealed boxes for games to come.
- * The landing library and the table lobby share it.
+ * One shelf: the title, arrows on the right that page through it, then the
+ * cards, which a mouse can also hold and drag. The landing library and the
+ * table lobby share it.
  */
 export function ShelfRow({
   id,
   title,
-  count,
-  sealed = true,
   children,
 }: {
   id: string;
   title: string;
-  /** How many real boxes the row holds, to size the sealed run after them. */
-  count: number;
-  sealed?: boolean;
   children: ReactNode;
 }) {
   const track = useRef<HTMLUListElement>(null);
+  useDragScroll(track);
   const [ends, setEnds] = useState({ start: true, end: true });
   const measure = useCallback(() => {
     const el = track.current;
@@ -241,7 +186,6 @@ export function ShelfRow({
       behavior: still ? 'auto' : 'smooth',
     });
   }
-  const filler = sealed ? Math.max(MIN_SEALED, ROW_LENGTH - count) : 0;
   const scrolls = !(ends.start && ends.end);
   return (
     <section className="lib-section" aria-labelledby={id}>
@@ -279,21 +223,6 @@ export function ShelfRow({
         onScroll={measure}
       >
         {children}
-        {Array.from({ length: filler }, (_, i) => (
-          <li
-            key={`sealed-${i}`}
-            className="lib-tile is-sealed"
-            aria-hidden="true"
-          >
-            <span className="gbox-button lib-tile-button">
-              <SealedBox width={150} />
-              <span className="stat-strip">
-                <span className="stat" />
-                <span className="stat" />
-              </span>
-            </span>
-          </li>
-        ))}
       </ul>
     </section>
   );
@@ -341,6 +270,9 @@ export function Library({
         .filter((g): g is LibraryGame => !!g && matches(g)),
     }))
     .filter((section) => section.entries.length);
+  const featured = showcaseGames
+    .map((id) => gameByLibraryId(id))
+    .filter((g): g is LibraryGame => !!g);
 
   return (
     <div className="night-library">
@@ -377,7 +309,11 @@ export function Library({
               <VolumeX aria-hidden="true" />
             )}
           </button>
-          <a className="lib-friends" href="/tables" aria-label="Play with friends">
+          <a
+            className="lib-friends"
+            href="/tables"
+            aria-label="Play with friends"
+          >
             <Users aria-hidden="true" />
             <span>Play with friends</span>
           </a>
@@ -404,6 +340,9 @@ export function Library({
         <h1 id="lib-title" className="sr-only">
           Games
         </h1>
+        {!needle && featured.length > 0 && (
+          <Showcase games={featured} onOpen={open} />
+        )}
         {sections.length ? (
           <div className="lib-sections">
             {sections.map((section) => (
@@ -411,8 +350,6 @@ export function Library({
                 key={section.id}
                 id={`lib-${section.id}`}
                 title={section.title}
-                count={section.entries.length}
-                sealed={!needle}
               >
                 {section.entries.map((game) => (
                   <ShelfTile

@@ -19,10 +19,12 @@ Parts (troops.ts has the contract), none with a rest rotation:
                    so the strips trail the legs instead of swinging rigidly
       head         pivot at the neck: face, beard, helmet and crest
       armL, armR   pivots on the shoulders (one line along x)
-        foreL      the left elbow: forearm and fist on the shield's grip
-          shield   the scutum, pivot in the left fist
-        foreR      the right elbow: forearm and fist
-          weapon   the gladius, pivot in the right fist
+        foreL      the left elbow: continuously weighted forearm
+          handL    the anatomical wrist, including the closed fist
+            shield the scutum, pivot in the left fist
+        foreR      the right elbow: continuously weighted forearm
+          handR    the anatomical wrist, including the closed fist
+            weapon the gladius, pivot in the right fist
 
 GLADIATOR_POSE=<name> turns the parts as the game would (three.js Euler
 terms, see figure_gladiator_kit.runtime_quat) before the previews, with the
@@ -46,9 +48,9 @@ T = kit.tint
 
 # ------------------------------------------------------------- paints
 
-SKIN = "resin:" + T("gladiator-skin", "#b3784a")
-HAIR = "resin:" + T("gladiator-hair", "#35271e")
-BRONZE = "gilt:" + T("gladiator-bronze", "#c98f3f")
+SKIN = "skin:" + T("gladiator-skin", "#b97d54")
+HAIR = "hair:" + T("gladiator-hair", "#35271e")
+BRONZE = "gilt:" + T("gladiator-bronze", "#b98d48")
 LEATHER = "hide:" + T("gladiator-leather", "#6c3d22")
 PAINTED = "lacquer:team2"
 DARK = "hide:" + T("gladiator-strap", "#3e2517")
@@ -232,7 +234,7 @@ def leg(sx, knee, ankle, toe_out):
                                                          0.076)]
 
     def greave(u, v):
-        z, rx_, ry_ = prof[int(round(v))]
+        z, rx_, ry_ = table([(i, *p) for i, p in enumerate(prof)], v)
         a = math.radians(u)
         c = on_leg(z)
         # Wraps the front and sides; open at the back of the calf.
@@ -300,8 +302,16 @@ def belt():
     pieces = []
     n = 32
     zs = [(0.594, -0.004), (0.6, 0.004), (0.678, 0.004), (0.686, -0.004)]
-    rings = [[ring_point(BODY, BODY_P, i / n * math.tau, z, 0.008 + off)
-              for i in range(n)] for z, off in zs]
+    def fitted(a,z,off):
+        p=ring_point(BODY,BODY_P,a,z,.008+off)
+        # The anatomical upper thighs blend into a broader pelvis than
+        # the legacy bare torso. Fit only the belt's lower side over that
+        # hip; the upper waist and front plate positions remain authored.
+        u=max(0,min(1,(.67-z)/.07))
+        pad=.026*u*u*(3-2*u)*abs(math.sin(a))**.85
+        p.x+=math.copysign(pad,p.x)
+        return p
+    rings = [[fitted(i/n*math.tau,z,off) for i in range(n)] for z,off in zs]
     pieces.append(gk.loft(f"{R}-belt", rings, LEATHER))
     for k in range(-3, 4):
         a = math.radians(k * 22.0)
@@ -429,16 +439,27 @@ FACE_Z = [1.012, 1.025, 1.038, 1.05, 1.062, 1.072, 1.081, 1.088, 1.094, 1.1,
 
 
 def skull():
-    cols = sorted(set([-a for a in FACE_A] + FACE_A + [180]))
-    cols = [a for a in cols if a > -180]
-    return HEAD.skull(f"{R}-face", cols, FACE_Z, lambda a, z: SKIN,
+    cols = [i / 128 * 360 - 180 for i in range(128)]
+    zs = [FACE_Z[0] + (FACE_Z[-1] - FACE_Z[0]) * i / 100 for i in range(101)]
+    return HEAD.skull(f"{R}-face", cols, zs, lambda a, z: SKIN,
                       V(0, CY - 0.005, 1.268))
 
 
 def face():
     out = face_paint.eyes(gk, R, HEAD.point, HC, z=1.1565,
                           expression="focused")
-    out += face_paint.mouth(gk, R, HEAD.point, HC, expression="focused")
+    # Narrow almond openings and a closed mouth give the adult fighter a
+    # focused expression. The old tooth plane made a broad permanent grin.
+    for o in out:
+        if "brow" in o.name:
+            continue
+        for v in o.data.vertices:
+            v.co.z=1.1565+(v.co.z-1.1565)*.66
+    mouth=[(-20,1.0978),(-10,1.0968),(0,1.0960),(10,1.0968),
+           (20,1.0978),(13,1.0957),(0,1.0948),(-13,1.0957)]
+    out.append(gk.decal(f"{R}-mouth",HEAD.point,mouth,.003,
+                        "resin:"+T("gladiator-mouth-shadow","#583d2d"),
+                        depth=.0006,eps=.05,ref=HC))
     return out
 
 
@@ -588,19 +609,20 @@ def upper_arm(side, s, e, sx):
     mat = LEATHER if guard else SKIN
     path = [s + up * 0.045, lerp(s, e, 0.32), lerp(s, e, 0.7), e]
     radii = [0.055, 0.057, 0.05, 0.043] if not guard else \
-        [0.057, 0.059, 0.054, 0.047]
+        [0.072, 0.071, 0.063, 0.045]
     pieces.append(gk.tube(f"{R}-upper{side}", path, radii, mat, n=12,
-                          caps=(None, None), flute=0.06 if guard else 0.0))
+                          caps=(None, None), flute=0.025 if guard else 0.0))
     pieces.append(gk.ball(f"{R}-deltoid{side}", 1.0,
                           s + V(sx * 0.008, 0, -0.012), mat,
-                          scale=(0.062, 0.064, 0.056), seg=12, rings=8))
-    pieces.append(gk.ball(f"{R}-elbow{side}", 0.041 if guard else 0.037, e,
+                          scale=(0.071, 0.073, 0.062) if guard else
+                          (0.062, 0.064, 0.056), seg=12, rings=8))
+    pieces.append(gk.ball(f"{R}-elbow{side}", 0.046 if guard else 0.037, e,
                           mat, seg=10, rings=6))
     if guard:
         # Quilted bands, and the bronze shoulder plate over the deltoid.
         for k, t in enumerate((0.35, 0.6, 0.85)):
             c = lerp(s, e, t)
-            r = lerp(0.058, 0.047, t) + 0.004
+            r = table([(0,.072),(.32,.071),(.70,.063),(1,.045)],t)+.005
             pieces.append(gk.tube(f"{R}-band{side}{k}", [c - up * 0.007,
                                                         c + up * 0.007],
                                   [r, r], DARK, n=12, caps=(None, None)))
@@ -621,7 +643,7 @@ def upper_arm(side, s, e, sx):
         c = lerp(s, e, 0.42)
         pieces.append(gk.tube(f"{R}-armband{side}", [c - up * 0.01,
                                                     c + up * 0.01],
-                              [0.059, 0.06], BRONZE, n=12, caps=(None, None)))
+                              [0.068, 0.069], BRONZE, n=12, caps=(None, None)))
     return pieces
 
 
@@ -631,9 +653,9 @@ def forearm(side, e, w, c, xax, rod, right):
     mat = LEATHER if guard else SKIN
     pieces = [gk.tube(f"{R}-forearm{side}",
                       [e - fo * 0.02, lerp(e, w, 0.35), w + fo * 0.004],
-                      [0.043, 0.042, 0.033] if guard else
+                      [0.048, 0.048, 0.034] if guard else
                       [0.04, 0.04, 0.03], mat, n=10, caps=(None, None),
-                      flute=0.06 if guard else 0.0)]
+                      flute=0.025 if guard else 0.0)]
     # A leather wrap at the wrist (a thick cuff on the sword arm).
     pieces.append(gk.tube(f"{R}-wrist{side}", [w - fo * 0.045, w - fo * 0.002],
                           [0.038, 0.036] if guard else [0.034, 0.033], DARK,
@@ -641,7 +663,7 @@ def forearm(side, e, w, c, xax, rod, right):
     if guard:
         for k, t in enumerate((0.3, 0.6)):
             p = lerp(e, w, t)
-            r = lerp(0.043, 0.035, t) + 0.004
+            r = table([(0,.048),(.35,.048),(1,.034)],t)+.004
             pieces.append(gk.tube(f"{R}-fband{k}", [p - fo * 0.006,
                                                    p + fo * 0.006],
                                   [r, r], DARK, n=10, caps=(None, None)))
@@ -668,16 +690,19 @@ def gladius():
     tip = (0.0, L1)
     outline = half + [tip] + [(-x, y) for x, y in reversed(half)]
     # A lens section: the flat's middle proud of the edges.
-    th = 0.0095
-    P.append(gk.slab(f"{R}-blade", outline, th, STEEL,
-                     matrix=Matrix.Translation(V(0, 0, -th / 2)),
-                     bevel=0.0026))
-    ridge = [V(0, lerp(L0 + 0.01, L1 - 0.03, t), 0) for t in (0, 0.5, 1.0)]
-    for zz in (1, -1):
-        P.append(gk.tube(f"{R}-midrib{zz}", [p + V(0, 0, zz * th / 2)
-                                             for p in ridge],
-                         [(0.004, 0.0012)] * 3, STEEL, n=4, up=(0, 0, 1),
-                         caps=("dome", "dome")))
+    # A true lenticular blade: the broad flat meets the honed bevels,
+    # the central spine thins to a solid point. No glued-on round ridge.
+    blade=[]
+    for i in range(49):
+        t=i/48
+        y=lerp(L0,L1-.003,t)
+        taper=1-smooth(.76,1,t)
+        w=(.029-.004*smooth(0,.65,t))*max(.015,taper)
+        h=.0048*(1-.7*smooth(.76,1,t))
+        blade.append([V(-w,y,0),V(-w*.69,y,h*.58),V(0,y,h),
+                      V(w*.69,y,h*.58),V(w,y,0),V(w*.69,y,-h*.58),
+                      V(0,y,-h),V(-w*.69,y,-h*.58)])
+    P.append(gk.loft(f"{R}-blade",blade,STEEL,start="flat",end=V(0,L1,0)))
     guard = []
     for dy, s in ((0.036, 0.85), (0.042, 1.0), (0.05, 0.95)):
         guard.append([V(x * s, dy, z * s) for x, z, _ in
@@ -725,7 +750,7 @@ def shield_outline(k, n):
 
 def scutum():
     pieces = []
-    n = 28
+    n = 64
 
     def face_fn(u, v):
         # A square grid pulled out to the rounded rim.
@@ -789,6 +814,24 @@ def scutum():
                                          back + V(0.05, -0.011, 0),
                                          back + V(0.05, 0, 0)],
                           [0.0085] * 6, WOOD, n=6, caps=(None, None)))
+    # Laminated construction and usable leather forearm/hand straps on
+    # the concave rear. These stay behind the shield surface and clear
+    # the fist's horizontal grip, with raised bronze securing rivets.
+    for k,u in enumerate((-.72,-.36,.36,.72)):
+        seam=[shield_point(u,v,-.020)+V(0,-.002,0)
+              for v in (-.90,-.5,0,.5,.90)]
+        pieces.append(gk.tube(f"{R}-laminate-seam{k}",seam,[.0014]*5,DARK,n=8,
+                              caps=("dome","dome")))
+    for k,(v,uu) in enumerate(((.47,.42),(-.40,.40))):
+        pa=shield_point(-uu,v,-.023)
+        pb=shield_point(uu,v,-.023)
+        centre=(pa+pb)*.5+V(0,-.018,0)
+        path=[pa,lerp(pa,centre,.5),centre,lerp(centre,pb,.5),pb]
+        pieces.append(gk.tube(f"{R}-shield-strap{k}",path,[(.0045,.014)]*5,DARK,
+                              n=8,up=(0,0,1),caps=("flat","flat")))
+        for j,p in enumerate((pa,pb)):
+            pieces.append(gk.ball(f"{R}-shield-strap-rivet{k}{j}",.0052,
+                                  p+V(0,-.004,0),BRONZE,seg=18,rings=12))
     return pieces
 
 
@@ -807,7 +850,7 @@ def part(name, pieces, pivot, par, angle=48):
     return gk.part(R, name, pieces, pivot, par, angle=angle)
 
 
-def build(root_name="gladiator"):
+def build_legacy(root_name="gladiator"):
     assert root_name == R
     root = kit.empty(R)
 
@@ -883,6 +926,17 @@ POSES = {
              "shield": (0.3, 0, 0)},
 }
 
+# The grip and its fist turn together about the real wrist. Keeping the
+# old compensation on the weapon alone would pitch the hilt through the
+# closed fingers; the child equipment joint remains at its authored angle.
+for _pose in POSES.values():
+    if "weapon" in _pose:
+        _pose["handR"] = _pose.pop("weapon")
+        _pose["weapon"] = (0, 0, 0)
+    if "shield" in _pose:
+        _pose["handL"] = _pose.pop("shield")
+        _pose["shield"] = (0, 0, 0)
+
 
 def report(root):
     print("GLADIATOR joints:")
@@ -894,3 +948,18 @@ def report(root):
     mats = sorted({m.name for o in kit.descendants(root) if o.type == "MESH"
                    for m in o.data.materials})
     print("GLADIATOR materials", len(mats), mats)
+
+
+def build(root_name="gladiator"):
+    """Build the detailed editable source; reduction is a separate copy."""
+    if root_name != R:
+        raise ValueError("The Gladiator has an authored named skeleton")
+    import sys
+    from figure_gladiator_sculpt import build_master
+    return build_master(sys.modules[__name__])
+
+
+def build_runtime():
+    """Recreate a separate reduced copy from the reviewed detailed source."""
+    from figure_gladiator_runtime import build_runtime as runtime
+    return runtime()

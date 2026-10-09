@@ -1,0 +1,69 @@
+{
+  "measurements": [
+    {
+      "label": "original",
+      "path": "work/arena/2026-10-04-three-characters/baseline/figures.glb",
+      "bytes": 21744972,
+      "sha256": "ac58b11091c81fded569fd5868e21a9bdaca4ccf95a8a6f06f4ac020cb81284c",
+      "characters": [
+        {
+          "id": "ranger",
+          "triangles": 17200,
+          "expandedMeshes": 61,
+          "weightedMeshes": 0,
+          "materialCount": 13,
+          "uniqueAttributeAndIndexBytes": 995648
+        },
+        {
+          "id": "duelist",
+          "triangles": 19140,
+          "expandedMeshes": 90,
+          "weightedMeshes": 0,
+          "materialCount": 16,
+          "uniqueAttributeAndIndexBytes": 1076960
+        },
+        {
+          "id": "mage",
+          "triangles": 18548,
+          "expandedMeshes": 54,
+          "weightedMeshes": 0,
+          "materialCount": 13,
+          "uniqueAttributeAndIndexBytes": 1144152
+        }
+      ]
+    },
+    {
+      "label": "integrated",
+      "path": "public/3d/arena/models/figures-b97920cb.glb",
+      "bytes": 21440888,
+      "sha256": "b97920cba57788fc9af805ca966e42e8851bfec6b7daba6627c6c14859781cf4",
+      "characters": [
+        {
+          "id": "ranger",
+          "triangles": 17184,
+          "expandedMeshes": 63,
+          "weightedMeshes": 4,
+          "materialCount": 16,
+          "uniqueAttributeAndIndexBytes": 974268
+        },
+        {
+          "id": "duelist",
+          "triangles": 19079,
+          "expandedMeshes": 83,
+          "weightedMeshes": 3,
+          "materialCount": 20,
+          "uniqueAttributeAndIndexBytes": 1010106
+        },
+        {
+          "id": "mage",
+          "triangles": 18431,
+          "expandedMeshes": 54,
+          "weightedMeshes": 11,
+          "materialCount": 15,
+          "uniqueAttributeAndIndexBytes": 884914
+        }
+      ]
+    }
+  ],
+  "note": "CPU-visible BufferAttribute/index arrays, de-duplicated by typed-array identity; excludes renderer copies, bone textures and scene textures. Expanded meshes are authored material primitives, not the post-batching draw-call count."
+}

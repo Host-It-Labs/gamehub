@@ -104,6 +104,31 @@ await test('traffic runs every sheet without overlaps or vanishing in view', () 
     for (let f = 0; f < 30 * 150; f++) {
       sim.tick(dt);
       const live = sim.movers.filter((m) => m.dying === undefined);
+      const poses = new Map(sim.movers.map((m) => [m.id, sim.poses(m)]));
+      const footprints = live.map((m) => sim.footprint(m));
+      const bounds = footprints.map((cars) => {
+        let minX = Infinity,
+          minZ = Infinity,
+          maxX = -Infinity,
+          maxZ = -Infinity;
+        for (const { a, b, r } of cars) {
+          minX = Math.min(minX, a.x - r, b.x - r);
+          minZ = Math.min(minZ, a.z - r, b.z - r);
+          maxX = Math.max(maxX, a.x + r, b.x + r);
+          maxZ = Math.max(maxZ, a.z + r, b.z + r);
+        }
+        return {
+          minX,
+          minZ,
+          maxX,
+          maxZ,
+          finite:
+            Number.isFinite(minX) &&
+            Number.isFinite(minZ) &&
+            Number.isFinite(maxX) &&
+            Number.isFinite(maxZ),
+        };
+      });
       for (const m of live) {
         for (let i = 1; i < m.steps.length; i++) {
           const a = m.steps[i - 1],
@@ -117,7 +142,7 @@ await test('traffic runs every sheet without overlaps or vanishing in view', () 
         }
         const last = known.get(m.id);
         if (last && m.kind === RAIL)
-          sim.poses(m).forEach((p, i) => {
+          poses.get(m.id).forEach((p, i) => {
             const j = last.cars.indexOf(m.cars[i]);
             if (j < 0) return;
             for (const axle of ['front', 'back'])
@@ -136,20 +161,33 @@ await test('traffic runs every sheet without overlaps or vanishing in view', () 
           const a = live[i],
             b = live[j];
           if (a.kind !== b.kind) continue;
-          for (const ca of sim.footprint(a))
-            for (const cb of sim.footprint(b)) {
+          const ba = bounds[i],
+            bb = bounds[j];
+          // Disjoint capsule bounds prove clearance. Invalid bounds keep
+          // the exact checks, so a NaN cannot escape through broadphase.
+          if (
+            ba.finite &&
+            bb.finite &&
+            (ba.maxX < bb.minX ||
+              bb.maxX < ba.minX ||
+              ba.maxZ < bb.minZ ||
+              bb.maxZ < ba.minZ)
+          )
+            continue;
+          for (const ca of footprints[i])
+            for (const cb of footprints[j]) {
               const d = capsuleDist(ca, cb);
-              assert.ok(
-                d > ca.r + cb.r - 0.012,
-                `${name} t=${(f * dt).toFixed(1)} ${a.kind === RAIL ? 'trains' : 'cars'} ${a.id} and ${b.id} overlap by ${(ca.r + cb.r - d).toFixed(3)}`,
-              );
+              if (!(d > ca.r + cb.r - 0.012))
+                assert.fail(
+                  `${name} t=${(f * dt).toFixed(1)} ${a.kind === RAIL ? 'trains' : 'cars'} ${a.id} and ${b.id} overlap by ${(ca.r + cb.r - d).toFixed(3)}`,
+                );
             }
         }
       // Vehicles only appear and leave out of sight.
       const now = new Map(live.map((m) => [m.id, m]));
       for (const m of live)
         if (!known.has(m.id) && !m.resident)
-          for (const p of sim.poses(m))
+          for (const p of poses.get(m.id))
             assert.ok(
               !seen(map, m.kind, p.front),
               `${name} ${m.id} appeared in view`,
@@ -165,7 +203,7 @@ await test('traffic runs every sheet without overlaps or vanishing in view', () 
       for (const m of sim.movers)
         known.set(m.id, {
           kind: m.kind,
-          poses: sim.poses(m),
+          poses: poses.get(m.id),
           cars: [...m.cars],
           dying: m.dying !== undefined,
           wasDying: m.dying !== undefined,
@@ -178,43 +216,47 @@ await test('traffic runs every sheet without overlaps or vanishing in view', () 
 
 await test('nobody stays stuck for long', () => {
   for (const { map, cells, name } of sheets()) {
-    const sim = new TrafficSim({
-      offscreen: (x, z) => !seen(map, ROAD, { x, z }),
-      make: (kind, r) => specs[kind][Math.floor(r() * specs[kind].length)],
-      rand: rng(5),
-    });
-    sim.setNetwork(network(map, cells), (cell) => stationHalf(cells[cell].p));
-    const still = new Map();
-    const last = new Map();
-    for (let f = 0; f < 30 * 120; f++) {
-      sim.tick(1 / 30);
-      const progressed = new Set();
-      for (const m of sim.movers) {
-        const poses = sim.poses(m);
-        const p = poses[0].front;
-        const prev = last.get(m.id);
-        const moving = !prev || Math.hypot(p.x - prev.x, p.z - prev.z) > 0.0001;
-        last.set(m.id, p);
-        if (moving) progressed.add(m.id);
-      }
-      for (const m of sim.movers) {
-        // A queue is making progress while its front car or the owner of
-        // its next crossing moves. Waiting behind that traffic is natural;
-        // a stopped queue, or endless turn retries, must still be detected.
-        let ahead = m;
-        const visited = new Set();
-        while (ahead.waitingFor && !visited.has(ahead.id)) {
-          visited.add(ahead.id);
-          ahead = sim.movers.find((o) => o.id === ahead.waitingFor);
-          if (!ahead || progressed.has(ahead.id)) break;
+    const net = network(map, cells);
+    for (const seed of [5, 6, 7]) {
+      const sim = new TrafficSim({
+        offscreen: (x, z) => !seen(map, ROAD, { x, z }),
+        make: (kind, r) => specs[kind][Math.floor(r() * specs[kind].length)],
+        rand: rng(seed),
+      });
+      sim.setNetwork(net, (cell) => stationHalf(cells[cell].p));
+      const still = new Map();
+      const last = new Map();
+      for (let f = 0; f < 30 * 150; f++) {
+        sim.tick(1 / 30);
+        const progressed = new Set();
+        const byId = new Map(sim.movers.map((m) => [m.id, m]));
+        for (const m of sim.movers) {
+          const p = sim.poses(m)[0].front;
+          const prev = last.get(m.id);
+          const moving =
+            !prev || Math.hypot(p.x - prev.x, p.z - prev.z) > 0.0001;
+          last.set(m.id, p);
+          if (moving) progressed.add(m.id);
         }
-        const moving =
-          progressed.has(m.id) || (ahead && progressed.has(ahead.id));
-        still.set(m.id, moving ? 0 : (still.get(m.id) ?? 0) + 1 / 30);
-        assert.ok(
-          still.get(m.id) < 25,
-          `${name}: ${m.kind === RAIL ? 'train' : 'car'} ${m.id} stuck`,
-        );
+        for (const m of sim.movers) {
+          // A queue is making progress while its front car or the owner of
+          // its next crossing moves. Waiting behind that traffic is natural;
+          // a stopped queue, or endless turn retries, must still be detected.
+          let ahead = m;
+          const visited = new Set();
+          while (ahead.waitingFor && !visited.has(ahead.id)) {
+            visited.add(ahead.id);
+            ahead = byId.get(ahead.waitingFor);
+            if (!ahead || progressed.has(ahead.id)) break;
+          }
+          const moving =
+            progressed.has(m.id) || (ahead && progressed.has(ahead.id));
+          still.set(m.id, moving ? 0 : (still.get(m.id) ?? 0) + 1 / 30);
+          if (!(still.get(m.id) < 25))
+            assert.fail(
+              `${name} seed=${seed} t=${(f / 30).toFixed(1)}: ${m.kind === RAIL ? 'train' : 'car'} ${m.id} stuck`,
+            );
+        }
       }
     }
   }
@@ -253,8 +295,8 @@ await test('a station is a destination, never a way through', () => {
   assert.ok(served > 0, 'no van called at the station');
 });
 
-function fixture(entries, make = () => null, rand = rng(7)) {
-  const map = { ...maps.meadow, exits: [] };
+function fixture(entries, make = () => null, rand = rng(7), exits = []) {
+  const map = { ...maps.meadow, exits };
   const cells = Array(map.size ** 2).fill(null);
   for (const [cell, p, o = 0] of entries) cells[cell] = { p, o, r: 1 };
   const sim = new TrafficSim({ offscreen: () => true, make, rand });
@@ -262,6 +304,106 @@ function fixture(entries, make = () => null, rand = rng(7)) {
   sim.setNetwork(net, (cell) => stationHalf(cells[cell].p));
   return { sim, net, map, cells };
 }
+
+/** Two goods stations joined by rail; a gated street feeds the first. */
+function stationLine(make, rand = rng(7), fed = true) {
+  return fixture(
+    [
+      [3, 'road-straight'],
+      [10, 'station-straight'],
+      [17, 'rail-straight'],
+      [24, 'station-straight', 2],
+    ],
+    make,
+    rand,
+    fed ? [{ cell: 3, dir: 0, route: ROAD }] : [],
+  );
+}
+
+await test('isolated streets and sidings stay empty until goods stations make them live', () => {
+  const factory = (kind) => specs[kind][0];
+  for (const entries of [
+    [[17, 'road-straight']],
+    [[17, 'rail-straight']],
+    [
+      [10, 'station-straight'],
+      [3, 'road-straight'],
+      [17, 'rail-straight'],
+    ],
+  ]) {
+    const { sim } = fixture(entries, factory);
+    for (let f = 0; f < 30 * 10; f++) sim.tick(1 / 30);
+    assert.equal(
+      sim.movers.length,
+      0,
+      'an isolated network with fewer than two stations received traffic',
+    );
+  }
+  const unfed = stationLine(factory, rng(7), false).sim;
+  for (let f = 0; f < 30 * 10; f++) unfed.tick(1 / 30);
+  assert.equal(
+    unfed.movers.length,
+    0,
+    'two stations without any delivery network received traffic',
+  );
+  const { sim } = stationLine(factory);
+  for (let f = 0; f < 30 * 5; f++) sim.tick(1 / 30);
+  assert.ok(
+    sim.movers.some((m) => m.kind === RAIL && m.resident),
+    'a railway joining stations fed by a gated street received no train',
+  );
+  assert.ok(
+    sim.movers.some((m) => m.kind === ROAD && !m.resident),
+    'the delivery street received no traffic',
+  );
+});
+
+await test('an unavailable train does not starve a live street of traffic', () => {
+  const attempts = { [ROAD]: 0, [RAIL]: 0 };
+  const { sim } = stationLine((kind) => {
+    attempts[kind]++;
+    return kind === ROAD ? specs[ROAD][0] : null;
+  }, rng(5));
+  for (let f = 0; f < 30 * 10; f++) sim.tick(1 / 30);
+  assert.ok(attempts[RAIL] > 0, 'the live railway never requested a train');
+  assert.ok(
+    attempts[ROAD] > 0,
+    'unavailable trains prevented street spawn attempts',
+  );
+  assert.ok(
+    sim.movers.filter((m) => m.kind === ROAD).length > 1,
+    'the live street stayed empty while trains could not spawn',
+  );
+});
+
+await test('a live street between stations keeps one resident and a gated street carries more', () => {
+  const factory = (kind) => specs[kind][0];
+  const closed = fixture(
+    [
+      [3, 'rail-straight'],
+      [10, 'station-straight', 2],
+      [17, 'road-straight'],
+      [24, 'station-straight'],
+    ],
+    factory,
+    rng(7),
+    [{ cell: 3, dir: 0, route: RAIL }],
+  ).sim;
+  const gated = stationLine(factory).sim;
+  for (let f = 0; f < 30 * 20; f++) {
+    closed.tick(1 / 30);
+    gated.tick(1 / 30);
+    assert.ok(
+      closed.movers.filter((m) => m.kind === ROAD).length <= 1,
+      'a closed street received a second resident with no safe departure',
+    );
+  }
+  assert.equal(closed.movers.filter((m) => m.kind === ROAD).length, 1);
+  assert.ok(
+    gated.movers.filter((m) => m.kind === ROAD).length > 1,
+    'a gated street was limited to a single resident',
+  );
+});
 
 function assertPoseClose(a, b, message) {
   for (const axle of ['front', 'back'])
@@ -345,118 +487,215 @@ await test('a short cut fork branch is avoided while the through route still run
   }
 });
 
-await test('a queued car leaves the next junction for the car in front', () => {
-  const { sim, net } = fixture([
-    [17, 'road-straight'],
-    [24, 'road-tee'],
-    [31, 'road-straight'],
-  ]);
+/** A street through square 24 (a tee, its stem to the east) between the
+ *  board's north edge and an exit off its south edge. */
+function teeStreet(extra = []) {
+  return fixture(
+    [
+      [17, 'road-straight'],
+      [24, 'road-tee'],
+      [31, 'road-straight'],
+      [38, 'road-straight'],
+      [45, 'road-straight'],
+      ...extra,
+    ],
+    () => null,
+    rng(7),
+    [{ cell: 45, dir: 2, route: ROAD }],
+  );
+}
+
+await test('a queued car never takes the junction from the car in front, then follows it through', () => {
+  const { sim, net } = teeStreet();
   const entry = net.edges.find((e) => e.id.startsWith('17:'));
   const behind = sim.mover(
     ROAD,
     [...specs[ROAD][0]],
     [{ edge: entry, dir: 1 }],
-    0.6,
+    0.55,
   );
   const ahead = sim.mover(
     ROAD,
     [...specs[ROAD][0]],
     [{ edge: entry, dir: 1 }],
-    0.9,
+    0.85,
   );
   behind.resident = ahead.resident = true;
   behind.speed = ahead.speed = 0;
   // Deliberately advance the following car first.
   sim.movers.push(behind, ahead);
-  sim.tick(1 / 30);
-  assert.equal(
-    behind.steps.length,
-    1,
-    'the following car reserved the next junction',
-  );
+  let leader = false,
+    follower = false,
+    together = false;
+  for (let f = 0; f < 30 * 8 && !follower; f++) {
+    sim.tick(1 / 30);
+    leader ||= !!ahead.boxes?.some((b) => b.claimed);
+    if (behind.boxes?.some((b) => b.claimed)) {
+      follower = true;
+      assert.ok(
+        leader,
+        'the following car took the junction from the car in front',
+      );
+      together = !!sim.inJunction.get(24)?.has(ahead.id);
+    }
+  }
+  assert.ok(leader && follower, 'the cars never got through the junction');
   assert.ok(
-    ahead.blocks.has('1:24'),
-    'the leading car could not reserve the junction',
+    together,
+    'the follower waited for the leader to clear the whole junction',
   );
 });
 
-await test('a car reserves a way out of touching junctions before entering them', () => {
-  const { sim, net } = fixture([
-    [17, 'road-straight'],
-    [24, 'road-tee'],
-    [31, 'road-tee'],
-    [38, 'road-straight'],
-  ]);
-  const entry = net.edges.find((e) => e.id.startsWith('17:'));
-  const second = net.edges.find(
-    (e) => e.id.startsWith('31:') && e.seg.shape.type === 'straight',
+await test('cars share a crossroads when their lanes never meet, and give way when they do', () => {
+  const { sim, net } = fixture([[24, 'road-cross']]);
+  const straights = net.edges.filter((e) => e.seg.shape.type === 'straight');
+  const ns = straights.find((e) => e.seg.shape.a % 2 === 0);
+  const ew = straights.find((e) => e.seg.shape.a % 2 === 1);
+  const a = sim.mover(ROAD, [...specs[ROAD][0]], [{ edge: ns, dir: 1 }], 0.1);
+  const b = sim.mover(ROAD, [...specs[ROAD][0]], [{ edge: ns, dir: -1 }], 0.1);
+  const c = sim.mover(ROAD, [...specs[ROAD][0]], [{ edge: ew, dir: 1 }], 0.1);
+  for (const m of [a, b, c]) {
+    const move = sim.moves.get(`${m.steps[0].edge.id}/${m.steps[0].dir}`);
+    // Turning traffic merges at the far edge; nothing crosses near the mouth.
+    assert.ok(move.inAt > 0.05, 'a box reaches back to the mouth');
+    m.boxes = [
+      {
+        key: move.key,
+        cell: 24,
+        sIn: move.inAt,
+        sOut: move.outAt,
+        claimed: false,
+      },
+    ];
+  }
+  assert.equal(sim.giveWay(a, a.boxes), undefined);
+  sim.claimBox(a, a.boxes[0]);
+  assert.equal(
+    sim.giveWay(b, b.boxes),
+    undefined,
+    'opposite straights did not share the crossroads',
   );
+  sim.claimBox(b, b.boxes[0]);
+  assert.equal(
+    sim.giveWay(c, c.boxes)?.id,
+    a.id,
+    'a crossing straight went through a held box',
+  );
+});
+
+await test('a junction box is let go as soon as the tail is out of it', () => {
+  const { sim, net } = teeStreet();
+  const entry = net.edges.find((e) => e.id.startsWith('17:'));
   const m = sim.mover(
     ROAD,
     [...specs[ROAD][0]],
     [{ edge: entry, dir: 1 }],
-    0.8,
+    0.7,
   );
-  const blocked = sim.mover(
-    ROAD,
-    [...specs[ROAD][0]],
-    [{ edge: second, dir: 1 }],
-    0.5,
+  sim.movers.push(m);
+  let box;
+  for (let f = 0; f < 30 * 6; f++) {
+    sim.tick(1 / 30);
+    box ??= m.boxes?.find((b) => b.claimed);
+    if (box && m.head - m.cars[0].length > box.sOut + 0.02) break;
+  }
+  assert.ok(box, 'the car never got into the junction');
+  assert.ok(
+    m.steps.some((s) => s.edge.id.startsWith('24:')),
+    'the car had already left the junction square',
   );
-  sim.claim(blocked, second);
-  sim.advance(m, 1 / 30);
-  assert.equal(
-    m.steps.length,
-    1,
-    'a car entered a crossing whose way out was held',
+  assert.ok(
+    !sim.inJunction.get(24)?.has(m.id),
+    'a car kept its box after leaving it',
   );
-  assert.equal(
-    m.blocks.size,
-    0,
-    'waiting for the second junction blocked the first',
-  );
-  sim.release(blocked);
-  sim.advance(m, 1 / 30);
-  assert.ok(m.blocks.has('1:24') && m.blocks.has('1:31'));
 });
 
-await test('a curved connector between two junctions stays clear until its way out is reserved', () => {
-  const { sim, net } = fixture([
-    [17, 'road-straight'],
-    [24, 'road-tee'],
-    [31, 'road-curve'],
-    [32, 'road-cross'],
-    [33, 'road-straight', 1],
-  ]);
+await test('a car waits short of a junction while a standing queue fills the way beyond', () => {
+  const { sim, net } = teeStreet();
   const entry = net.edges.find((e) => e.id.startsWith('17:'));
-  const far = net.edges.find((e) => e.id.startsWith('32:'));
-  const m = sim.mover(
+  const outlet = net.edges.find((e) => e.id.startsWith('31:'));
+  const arriving = sim.mover(
     ROAD,
     [...specs[ROAD][1]],
     [{ edge: entry, dir: 1 }],
-    0.8,
+    0.9,
   );
   const blocker = sim.mover(
     ROAD,
     [...specs[ROAD][0]],
-    [{ edge: far, dir: 1 }],
-    0.5,
+    [{ edge: outlet, dir: 1 }],
+    0.2,
   );
-  sim.claim(blocker, far);
-  sim.advance(m, 1 / 30);
-  assert.equal(
-    m.steps.length,
-    1,
-    'a car entered a curved corridor without a way out',
+  blocker.speed = 0;
+  sim.movers.push(arriving, blocker);
+  const step = () => {
+    for (const m of [arriving, blocker]) sim.bodies.set(m.id, sim.footprint(m));
+    sim.advance(arriving, 1 / 30);
+  };
+  for (let f = 0; f < 30 * 6; f++) step();
+  const box = arriving.boxes?.[0];
+  assert.ok(box, 'the car never came to the junction');
+  assert.ok(
+    !box.claimed,
+    'a car entered a junction with a standing queue just beyond it',
   );
-  assert.equal(m.blocks.size, 0);
-  sim.release(blocker);
-  sim.advance(m, 1 / 30);
-  for (const cell of [24, 31, 32])
-    assert.ok(
-      m.blocks.has(`1:${cell}`),
-      `the corridor did not reserve cell ${cell}`,
+  assert.ok(arriving.head < box.sIn, 'the car stood in the junction box');
+  assert.equal(arriving.waitingFor, blocker.id);
+  // The same queue driving off leaves room: the car goes as it moves.
+  blocker.speed = 0.25;
+  step();
+  assert.ok(box.claimed, 'a moving car ahead kept the junction shut');
+});
+
+await test('a station street queues like a rank, each car calling and turning in turn', () => {
+  const { sim, net } = fixture(
+    [
+      [3, 'road-straight'],
+      [10, 'road-straight'],
+      [17, 'station-straight'],
+      [24, 'rail-straight'],
+      [31, 'station-straight', 2],
+      [38, 'road-straight'],
+    ],
+    (kind) => specs[kind][0],
+    rng(11),
+    [
+      { cell: 3, dir: 0, route: ROAD },
+      { cell: 38, dir: 2, route: ROAD },
+    ],
+  );
+  const stem = new Set(
+    net.edges
+      .filter((e) => /^(3|10|17):/.test(e.id) && e.seg.kind === ROAD)
+      .map((e) => e.id),
+  );
+  let most = 0;
+  const called = new Set();
+  for (let f = 0; f < 30 * 90; f++) {
+    sim.tick(1 / 30);
+    const inbound = sim.movers.filter(
+      (m) =>
+        m.kind === ROAD &&
+        !m.served &&
+        m.steps.some((s) => stem.has(s.edge.id)) &&
+        !m.steps[0].edge.exit,
     );
+    most = Math.max(most, inbound.length);
+    for (const m of sim.movers) if (m.call?.station) called.add(m.id);
+    const live = sim.movers.filter((m) => m.dying === undefined);
+    for (let i = 0; i < live.length; i++)
+      for (let j = i + 1; j < live.length; j++) {
+        if (live[i].kind !== live[j].kind) continue;
+        for (const p of sim.footprint(live[i]))
+          for (const q of sim.footprint(live[j]))
+            assert.ok(
+              capsuleDist(p, q) >= p.r + q.r - 1e-6,
+              `cars ${live[i].id} and ${live[j].id} overlap in the rank`,
+            );
+      }
+  }
+  assert.ok(most >= 2, 'the station street held only one car at a time');
+  assert.ok(called.size >= 4, `only ${called.size} cars called at the station`);
 });
 
 await test('short wharves are not mistaken for hidden road or railway exits', () => {
@@ -596,30 +835,72 @@ await test('a train keeps every physical axle and heading in place when the trai
 
 await test('a short resident railway receives only a consist whose axles fit real track', () => {
   const made = specs[RAIL][1];
-  const sim = new TrafficSim({
-    offscreen: () => true,
-    make: () => made,
-    rand: () => 0,
-  });
-  const net = lineNet(RAIL, [0.8, 0.8]);
-  sim.setNetwork(net, () => 0);
+  const { sim } = stationLine(
+    (kind) => (kind === RAIL ? made : null),
+    () => 0,
+  );
   sim.spawn();
   assert.equal(sim.movers.length, 1);
-  assert.equal(
-    sim.movers[0].cars.length,
-    1,
+  assert.ok(
+    sim.movers[0].cars.length < made.length,
     'a long train was squeezed onto a short siding',
   );
   assert.equal(made.length, 4, 'the shared factory spec lost wagons');
   for (let f = 0; f < 30 * 90; f++) {
     sim.tick(1 / 30);
     for (const m of sim.movers)
-      for (const p of sim.poses(m))
+      for (const [i, p] of sim.poses(m).entries())
         assert.ok(
-          Math.hypot(p.front.x - p.back.x, p.front.z - p.back.z) > 0.179,
+          Math.hypot(p.front.x - p.back.x, p.front.z - p.back.z) >
+            m.cars[i].length * 0.6 - 0.001,
           'two axles were clamped onto the same end of track',
         );
   }
+});
+
+await test('shortening a resident top-and-tail train keeps both engines', () => {
+  const made = [
+    { model: 'loco', length: 0.3, width: 0.15 },
+    { model: 'wagon', length: 0.25, width: 0.148 },
+    { model: 'wagon', length: 0.25, width: 0.148 },
+    { model: 'loco', flip: true, length: 0.3, width: 0.15 },
+  ];
+  const { sim } = stationLine(
+    (kind) => (kind === RAIL ? made : null),
+    () => 0,
+  );
+  sim.spawn();
+  assert.equal(sim.movers.length, 1);
+  const train = sim.movers[0];
+  assert.ok(
+    train.cars.length < made.length,
+    'the siding did not shorten the train',
+  );
+  assert.equal(train.cars[0], made[0], 'the leading engine was removed');
+  assert.equal(train.cars.at(-1), made.at(-1), 'the tail engine was removed');
+  assert.equal(train.cars.at(-1).flip, true);
+  assert.equal(made.length, 4, 'shortening changed the shared factory consist');
+  for (let f = 0; f < 30 * 90; f++) {
+    sim.tick(1 / 30);
+    assert.equal(train.cars.filter((c) => c.model === 'loco').length, 2);
+    assert.ok(
+      train.cars.includes(made.at(-1)),
+      'a reversal lost the tail engine',
+    );
+  }
+  const oversized = made.map((c) =>
+    c.model === 'loco' ? { ...c, length: 0.5 } : c,
+  );
+  const short = stationLine(
+    (kind) => (kind === RAIL ? oversized : null),
+    () => 0,
+  ).sim;
+  short.spawn();
+  assert.equal(
+    short.movers.length,
+    0,
+    'a siding too short for both engines spawned a train by removing its tail engine',
+  );
 });
 
 await test('reduced motion parks routes and manoeuvres in place', () => {

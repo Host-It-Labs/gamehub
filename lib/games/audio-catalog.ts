@@ -31,8 +31,8 @@ export const soundGames: { id: SoundGame; name: string; material: string }[] = [
   { id: 'wildgrove', name: 'Mora', material: 'Paper, wood & woodland' },
   { id: 'midnight', name: 'Yata', material: 'Ceramic, bamboo & cooking' },
   { id: 'orin', name: 'Know Me', material: 'Warm studio buttons & cards' },
-  { id: 'miro', name: 'Quiz', material: 'Measuring tools & enamel' },
-  { id: 'folio', name: 'Folio', material: 'Pages, pencils & stamps' },
+  { id: 'miro', name: 'Trivia', material: 'Measuring tools & enamel' },
+  { id: 'folio', name: 'Puzzles', material: 'Pages, pencils & stamps' },
   { id: 'relic', name: 'Lucky', material: 'Foil, tickets & coins' },
 ];
 export function soundGame(id: string): SoundGame | undefined {

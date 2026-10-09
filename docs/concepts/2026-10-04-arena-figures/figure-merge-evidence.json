@@ -1,0 +1,32 @@
+{
+  "originalBytes": 22262132,
+  "mergedBytes": 21744972,
+  "sha256": "ac58b11091c81fded569fd5868e21a9bdaca4ccf95a8a6f06f4ac020cb81284c",
+  "replaced": ["ogre", "sumo"],
+  "unchanged": [
+    "archers",
+    "balloon",
+    "bee",
+    "beekeeper",
+    "diver",
+    "drake",
+    "drummer",
+    "duelist",
+    "explorer",
+    "firefighter",
+    "gladiator",
+    "guard",
+    "gunner",
+    "imps",
+    "inventor",
+    "jetpack",
+    "linebacker",
+    "mage",
+    "medic",
+    "miner",
+    "pirate",
+    "ranger",
+    "viking"
+  ],
+  "validation": "All unchanged root transforms, materials, accessor contracts and raw geometry/index/AO buffers are byte-identical."
+}

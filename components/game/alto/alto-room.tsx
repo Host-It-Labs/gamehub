@@ -14,6 +14,7 @@ import { LeaveDialog, useLeaveDialog } from '../leave-dialog';
 import { useBoardLeave } from '../use-board-leave';
 import { recordCompletedGame } from '../play-experience';
 import { SoundToggle } from '../sound-settings';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { AltoTable } from './alto-table';
 
 const VOLUME = 'gamehub.alto.volume';
@@ -49,13 +50,7 @@ export default function AltoRoom({ token }: { token: string }) {
   const [view, setView] = useState<AltoView | null>(null);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
-  const [volume, setVolume] = useState(() => {
-    try {
-      return localStorage.getItem(VOLUME) === '0' ? 0 : 0.5;
-    } catch {
-      return 0.5;
-    }
-  });
+  const [volume, setVolume] = useState(() => readAudioLevel(VOLUME));
   const inFlight = useRef(false);
   const recorded = useRef(false);
   const leaving = useLeaveDialog(
@@ -185,9 +180,7 @@ export default function AltoRoom({ token }: { token: string }) {
             onChange={(on) => {
               const next = on ? 0.5 : 0;
               setVolume(next);
-              try {
-                localStorage.setItem(VOLUME, String(next));
-              } catch {}
+              saveAudioLevel(next, VOLUME);
             }}
           />
         }

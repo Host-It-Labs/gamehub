@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const manifest = JSON.parse(
@@ -18,6 +19,18 @@ const data = readFileSync(
 const figures = (
   await new GLTFLoader().parseAsync(
     data.buffer.slice(data.byteOffset, data.byteOffset + data.length),
+    '',
+  )
+).scene;
+const towerData = readFileSync(
+  resolve(root, `public${manifest.models.cartoon_towers.path}`),
+);
+const towerModels = (
+  await new GLTFLoader().parseAsync(
+    towerData.buffer.slice(
+      towerData.byteOffset,
+      towerData.byteOffset + towerData.length,
+    ),
     '',
   )
 ).scene;
@@ -56,6 +69,7 @@ function runtime(random = 0.5) {
       Math: math,
       require(id) {
         if (id === 'three') return THREE;
+        if (id === 'three/addons/utils/SkeletonUtils.js') return SkeletonUtils;
         const base = id.startsWith('@/')
           ? resolve(root, id.slice(2))
           : resolve(dirname(file), id);
@@ -81,12 +95,13 @@ function runtime(random = 0.5) {
 function fixture(card, r = runtime(), dt = DT) {
   const source = figures.getObjectByName(card);
   assert.ok(source, `${card} has a collector model`);
-  const model = source.clone(true);
+  const model = SkeletonUtils.clone(source);
   const group = new THREE.Group();
   const body = new THREE.Group();
   model.scale.set(...r.figureDimensions(r.TROOP_SCALE));
   body.add(model);
   group.add(body);
+  group.updateMatrixWorld(true);
   const rig = {};
   model.traverse((node) => {
     const part = node.name.startsWith(card) ? node.name.slice(card.length) : '';
@@ -111,6 +126,16 @@ function fixture(card, r = runtime(), dt = DT) {
     drapes: false,
     top: new THREE.Box3().setFromObject(model).max.y,
   };
+  model.traverse((node) => {
+    if (node.isSkinnedMesh)
+      kit.direct = {
+        meshes: [],
+        skeletons: new Set(),
+        materials: [],
+        colours: new Map(),
+        xray: true,
+      };
+  });
   // The renderer consumes poses; it does not create or change them.
   const renderer = {
     scale: r.TROOP_SCALE,
@@ -164,15 +189,21 @@ function fixture(card, r = runtime(), dt = DT) {
   function frame({
     state = unit.state,
     speed = 0,
+    speedX = 0,
     deployLeft,
     alpha = 1,
     sinceHit,
+    buildings = [],
+    stoneScale = 0.9,
   } = {}) {
     unit.state = state;
     if (deployLeft !== undefined) unit.deployLeft = deployLeft;
     unit.px = unit.x;
     unit.py = unit.y;
-    if (unit.stun <= 0) unit.y += speed * dt;
+    if (unit.stun <= 0) {
+      unit.y += speed * dt;
+      unit.x += speedX * dt;
+    }
     unit.sinceHit += dt;
     if (state === 'attacking' && unit.stun <= 0) {
       unit.attackTimer -= dt;
@@ -183,7 +214,7 @@ function fixture(card, r = runtime(), dt = DT) {
     }
     if (sinceHit !== undefined) unit.sinceHit = sinceHit;
     time += dt;
-    view.update(unit, alpha, dt, time);
+    view.update(unit, alpha, dt, time, buildings, stoneScale);
     return {
       angles: Object.fromEntries(
         Object.entries(rig).map(([part, { node, rest }]) => [
@@ -220,7 +251,9 @@ function fixture(card, r = runtime(), dt = DT) {
     return ['L', 'R'].map((side) => {
       const foot = rig[`foot${side}`]?.node;
       assert.ok(foot, `${card} has a ${side} foot`);
-      const bounds = new THREE.Box3().setFromObject(foot);
+      const bounds = new THREE.Box3();
+      for (const surface of r.figureSurfaces(model, card, `foot${side}`))
+        bounds.union(r.posedSurfaceBounds(surface, new THREE.Box3()));
       return bounds.min.y;
     });
   }
@@ -239,7 +272,19 @@ function fixture(card, r = runtime(), dt = DT) {
       };
     });
   }
-  return { view, unit, rig, frame, run, push, soles, legReach, stats };
+  return {
+    view,
+    unit,
+    rig,
+    kit,
+    renderer,
+    frame,
+    run,
+    push,
+    soles,
+    legReach,
+    stats,
+  };
 }
 
 function range(frames, part, axis = 0) {
@@ -293,6 +338,582 @@ function grounded(f, name) {
       `${name} keeps a formed leg (${reach} of ${length})`,
     );
 }
+
+function portraitFigure(f, r) {
+  f.renderer.scale = r.troopScale(
+    r.lensFor({ width: 390, height: 844, top: 60, bottom: 170 }),
+    true,
+  );
+  f.kit.model.scale.set(...r.figureDimensions(f.renderer.scale));
+}
+
+function footClearance(f, r, building) {
+  const point = new THREE.Vector3();
+  let gap = Infinity;
+  for (const side of ['L', 'R'])
+    for (const { mesh, indices } of r.figureSurfaces(
+      f.kit.model,
+      f.unit.card,
+      `foot${side}`,
+    )) {
+      const count = indices?.length ?? mesh.geometry.attributes.position.count;
+      for (let i = 0; i < count; i++) {
+        mesh
+          .getVertexPosition(indices?.[i] ?? i, point)
+          .applyMatrix4(mesh.matrixWorld);
+        gap = Math.min(gap, r.towerGap(building, point.x + 9, 16 - point.z));
+      }
+    }
+  return gap;
+}
+
+function torsoClearance(f, r, building) {
+  const point = new THREE.Vector3();
+  let gap = Infinity;
+  for (const { mesh, indices } of r.figureSurfaces(
+    f.kit.model,
+    f.unit.card,
+    'torso',
+  )) {
+    const count = indices?.length ?? mesh.geometry.attributes.position.count;
+    for (let i = 0; i < count; i++) {
+      mesh
+        .getVertexPosition(indices?.[i] ?? i, point)
+        .applyMatrix4(mesh.matrixWorld);
+      gap = Math.min(gap, r.towerGap(building, point.x + 9, 16 - point.z));
+    }
+  }
+  return gap;
+}
+
+function towerSolids(kind, scale, side = 1, x = 9, y = 16) {
+  const tower = towerModels.getObjectByName(kind).clone(true);
+  const dropped = new Set([
+    'rear-keep',
+    'hipped-roof',
+    'roof-ridge',
+    'roof-finial',
+    'chimney',
+    'chimney-cap',
+    'chimney-smoke',
+    'keep-window',
+    'keep-sill',
+    'pennant-pole',
+    'roof-pennant',
+  ]);
+  const removals = [];
+  tower.traverse((node) => {
+    if (dropped.has(node.name.replace(/\.\d+$/, ''))) removals.push(node);
+  });
+  for (const node of removals) node.removeFromParent();
+  tower.scale.setScalar(scale);
+  tower.rotation.y = side === 1 ? Math.PI : 0;
+  tower.position.set(x - 9, 0, 16 - y);
+  tower.updateMatrixWorld(true);
+  const solids = [];
+  tower.traverse((mesh) => {
+    if (!mesh.isMesh || /banner|flag|pennant/.test(mesh.name)) return;
+    const materials = Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material];
+    if (materials.some((material) => /flag/.test(material.name))) return;
+    const copies = materials.map((material) => {
+      const copy = material.clone();
+      copy.side = THREE.DoubleSide;
+      return copy;
+    });
+    mesh.material = Array.isArray(mesh.material) ? copies : copies[0];
+    solids.push({ mesh, bounds: new THREE.Box3().setFromObject(mesh) });
+  });
+  return solids;
+}
+
+function insideStone(point, solids, ray, direction) {
+  for (const { mesh, bounds } of solids) {
+    if (!bounds.containsPoint(point)) continue;
+    ray.set(point, direction);
+    // Each tower part is a closed primitive. Ignore shared triangle-edge
+    // hits, so an odd number of crossings means actual solid stone.
+    let crossings = 0;
+    let last = -Infinity;
+    for (const hit of ray.intersectObject(mesh, false)) {
+      if (hit.distance <= 1e-7 || hit.distance - last < 1e-5) continue;
+      crossings++;
+      last = hit.distance;
+    }
+    if (crossings % 2) return mesh.name;
+  }
+  return null;
+}
+
+await test('Sumo palms clear the actual friendly corner stones during a hasted diagonal passing turn', () => {
+  const r = runtime();
+  const match = r.createMatch(73);
+  match.phase = 'battle';
+  match.time = 0;
+  for (const tower of match.towers)
+    Object.assign(tower, { active: false, damage: 0, hp: 1e9, maxHp: 1e9 });
+  const building = match.towers.find(
+    (tower) =>
+      tower.side === 0 && tower.kind === 'princess' && tower.lane === 0,
+  );
+  const start = r.projectTroopBuildings(
+    match.towers,
+    'sumo',
+    building.x,
+    building.y -
+      r.towerFootprint.princess.half -
+      r.troopBuildingRadius('sumo') -
+      0.1,
+    [0, 1],
+    0.002,
+  );
+  const unit = r.summon(match, 0, 'sumo', ...start);
+  Object.assign(unit, { state: 'walking', deployLeft: 0, pace: 1.35 });
+  const constrained = fixture('sumo', r);
+  const free = fixture('sumo', r);
+  for (const f of [constrained, free]) portraitFigure(f, r);
+  const attachments = ['armR', 'foreR', 'handR'].map((part) => [
+    part,
+    constrained.rig[part].node.position.clone(),
+  ]);
+  const solids = towerSolids('princess', 0.9, 0, building.x, building.y);
+  const point = new THREE.Vector3();
+  const ray = new THREE.Raycaster();
+  const direction = new THREE.Vector3(0.817, 0.331, 0.473).normalize();
+  const arms = (f) =>
+    ['L', 'R'].flatMap((side) =>
+      r.figureSurfaces(f.kit.model, 'sumo', `arm${side}`),
+    );
+  const constrainedArms = arms(constrained);
+  const freeArms = arms(free);
+  let freeInside = 0;
+  let maximumArmStep = 0;
+  let previousArmPose;
+  for (let i = 0; i < 48; i++) {
+    if (i % 2 === 0) r.step(match);
+    const alpha = (i % 2) / 2;
+    const time = (i + 1) * DT;
+    constrained.view.update(unit, alpha, DT, time, match.towers, 0.9);
+    free.view.update(unit, alpha, DT, time, [], 0.9);
+    const armPose = ['armR', 'foreR', 'handR'].flatMap((part) => {
+      const joint = constrained.rig[part];
+      return ['x', 'y', 'z'].map((axis) => joint.node.rotation[axis]);
+    });
+    if (previousArmPose)
+      maximumArmStep = Math.max(
+        maximumArmStep,
+        ...armPose.map((angle, axis) =>
+          Math.abs(angle - previousArmPose[axis]),
+        ),
+      );
+    previousArmPose = armPose;
+    assert.ok(r.towerGap(building, unit.x, unit.y) >= 1.3 - 1e-6);
+    for (const [part, rest] of attachments)
+      assert.ok(constrained.rig[part].node.position.distanceTo(rest) < 1e-8);
+    for (const [surfaces, guard] of [
+      [constrainedArms, true],
+      [freeArms, false],
+    ])
+      for (const { mesh, indices } of surfaces) {
+        const count =
+          indices?.length ?? mesh.geometry.attributes.position.count;
+        for (let vertex = 0; vertex < count; vertex++) {
+          mesh
+            .getVertexPosition(indices?.[vertex] ?? vertex, point)
+            .applyMatrix4(mesh.matrixWorld);
+          const inside = insideStone(point, solids, ray, direction);
+          if (guard)
+            assert.equal(
+              inside,
+              null,
+              `${mesh.name} enters ${inside} at frame ${i}`,
+            );
+          else if (inside) freeInside++;
+        }
+      }
+  }
+  assert.ok(
+    freeInside > 0,
+    'the authored free palms demonstrate the real corner contact',
+  );
+  assert.ok(
+    maximumArmStep < 0.2,
+    `the prepared guard stays continuous through the turn (${maximumArmStep})`,
+  );
+});
+
+await test('Dino bites clear the shipped tapered stone and coping with a connected neck, moving jaw and bars above the head', () => {
+  const r = runtime();
+  const point = new THREE.Vector3();
+  const ray = new THREE.Raycaster();
+  const direction = new THREE.Vector3(0.97, 0.216, 0.124).normalize();
+  for (const stoneScale of [0.9, 0.85])
+    for (const kind of ['princess', 'king']) {
+      const solids = towerSolids(kind, stoneScale);
+      for (const stop of [0.002, 0.27])
+        for (const angle of [0, Math.PI / 4]) {
+          const f = fixture('ogre', r);
+          portraitFigure(f, r);
+          const building = { kind, side: 1, x: 9, y: 16, destroyed: false };
+          const { half, corner } = r.towerFootprint[kind];
+          const nx = Math.cos(angle),
+            ny = Math.sin(angle);
+          const diagonal = angle !== 0;
+          const radius =
+            r.troopBuildingRadius('ogre') + stop + (diagonal ? corner : 0);
+          f.unit.x =
+            building.x + (diagonal ? half - corner : half) + nx * radius;
+          f.unit.y = building.y + (diagonal ? half - corner : 0) + ny * radius;
+          f.unit.facing = Math.atan2(-nx, -ny);
+          f.unit.bodyDirection = [-nx, -ny];
+          [f.unit.x, f.unit.y] = r.projectTroopBuildings(
+            [building],
+            'ogre',
+            f.unit.x,
+            f.unit.y,
+            [-nx, -ny],
+            stop,
+          );
+          assert.ok(
+            r.troopTowerGap(building, 'ogre', f.unit.x, f.unit.y, [-nx, -ny]) >=
+              stop - 1e-6,
+            'the attack starts outside the oriented head and tail hull',
+          );
+          const headParent = f.rig.head.node.parent;
+          const torsoParent = f.rig.torso.node.parent;
+          const frames = [];
+          for (let frame = 0; frame < 210; frame++) {
+            frames.push(
+              f.frame({
+                state: frame < 20 ? 'walking' : 'attacking',
+                buildings: [building],
+                stoneScale,
+              }),
+            );
+            if (frame % 10 !== 0 && frame !== 209) continue;
+            assert.equal(f.rig.head.node.parent?.name, headParent?.name);
+            assert.equal(f.rig.torso.node.parent?.name, torsoParent?.name);
+            assert.ok(footClearance(f, r, building) >= -0.001);
+            assert.ok(torsoClearance(f, r, building) >= -0.001);
+            for (const { mesh, indices } of r.figureSurfaces(
+              f.kit.model,
+              'ogre',
+              'head',
+            )) {
+              const count =
+                indices?.length ?? mesh.geometry.attributes.position.count;
+              for (let i = 0; i < count; i++) {
+                mesh
+                  .getVertexPosition(indices?.[i] ?? i, point)
+                  .applyMatrix4(mesh.matrixWorld);
+                assert.ok(
+                  r.towerStoneGap(
+                    building,
+                    point.x,
+                    point.y,
+                    point.z,
+                    stoneScale,
+                  ) >= 0.007,
+                  `${kind} scale ${stoneScale}, stop ${stop}, angle ${angle}, frame ${frame}: ${mesh.name} stays clear`,
+                );
+                const inside = insideStone(point, solids, ray, direction);
+                assert.equal(
+                  inside,
+                  null,
+                  `${mesh.name} enters ${inside} at frame ${frame}`,
+                );
+                assert.ok(
+                  f.view.statusAnchor.y >= point.y - 1e-6,
+                  'HP and status anchor stays above the raised head',
+                );
+              }
+            }
+          }
+          animated(frames, 'jaw', 0.2);
+          finite(frames, `Dino by ${kind}`);
+        }
+    }
+});
+
+await test('Dino contact keeps the full jaw snap and preserves free bites beside distant towers or rubble', () => {
+  const r = runtime();
+  const constrained = fixture('ogre', r);
+  const free = fixture('ogre', r);
+  const rubble = fixture('ogre', r);
+  const distant = fixture('ogre', r);
+  const building = { kind: 'king', side: 1, x: 9, y: 16, destroyed: false };
+  const solids = towerSolids('king', 0.9);
+  const ray = new THREE.Raycaster();
+  const direction = new THREE.Vector3(0.97, 0.216, 0.124).normalize();
+  const point = new THREE.Vector3();
+  let freeInside = 0;
+  for (const f of [constrained, free, rubble, distant]) {
+    portraitFigure(f, r);
+    f.unit.x =
+      building.x +
+      r.towerFootprint.king.half +
+      r.troopBuildingRadius('ogre') +
+      0.27;
+    f.unit.y = building.y;
+    f.unit.facing = -Math.PI / 2;
+  }
+  for (let i = 0; i < 210; i++) {
+    const a = constrained.frame({ state: 'attacking', buildings: [building] });
+    const b = free.frame({ state: 'attacking' });
+    const c = rubble.frame({
+      state: 'attacking',
+      buildings: [{ ...building, destroyed: true }],
+    });
+    const d = distant.frame({
+      state: 'attacking',
+      buildings: [{ ...building, x: 1 }],
+    });
+    assert.deepEqual(
+      a.angles.jaw,
+      b.angles.jaw,
+      'the contact blend preserves opening and snap',
+    );
+    assert.deepEqual(c.angles, b.angles, 'rubble preserves the free bite');
+    assert.deepEqual(
+      d.angles,
+      b.angles,
+      'distant stone preserves the free bite',
+    );
+    assert.deepEqual(c.bodyTilt, b.bodyTilt);
+    assert.deepEqual(d.bodyTilt, b.bodyTilt);
+    if (i % 15 !== 0) continue;
+    for (const { mesh, indices } of r.figureSurfaces(
+      free.kit.model,
+      'ogre',
+      'head',
+    )) {
+      const count = indices?.length ?? mesh.geometry.attributes.position.count;
+      for (let j = 0; j < count; j++) {
+        mesh
+          .getVertexPosition(indices?.[j] ?? j, point)
+          .applyMatrix4(mesh.matrixWorld);
+        if (insideStone(point, solids, ray, direction)) freeInside++;
+      }
+    }
+  }
+  assert.ok(
+    freeInside > 100,
+    `the original bite intersects real stone (${freeInside} vertices)`,
+  );
+  assert.ok(
+    r.towerStoneGap(building, 0, 3.6, 0, 0.9) > 0.6,
+    'space over the actual deck is clear',
+  );
+});
+
+await test('portrait feet shorten a step at tower faces and corners at normal, haste and Quest speeds', () => {
+  const r = runtime();
+  const cards = r.troopDeck.filter((card) => !r.troopCards[card].unit.flying);
+  for (const card of cards)
+    for (const speedUp of [1, 1.35, 1.62])
+      for (const angle of [0, Math.PI / 4, Math.PI / 2, (5 * Math.PI) / 4]) {
+        const f = fixture(card, r);
+        portraitFigure(f, r);
+        f.unit.beat = speedUp > 1 ? 1.35 : 1;
+        f.unit.pace = speedUp === 1.62 ? 1.2 : 1;
+        const building = {
+          kind: 'princess',
+          side: 1,
+          x: 9,
+          y: 16,
+          destroyed: false,
+        };
+        const { half, corner } = r.towerFootprint[building.kind];
+        const nx = Math.cos(angle);
+        const ny = Math.sin(angle);
+        const diagonal = Math.abs(nx) > 0.1 && Math.abs(ny) > 0.1;
+        const coreX = diagonal ? Math.sign(nx) * (half - corner) : nx * half;
+        const coreY = diagonal ? Math.sign(ny) * (half - corner) : ny * half;
+        const radius = r.troopBuildingRadius(card) + (diagonal ? corner : 0);
+        f.unit.facing = Math.atan2(-nx, -ny);
+        const speed = f.stats.speed * speedUp;
+        for (let i = 0; i < 150; i++) {
+          const left = Math.max(0, 0.75 - speed * i * DT);
+          f.unit.x = building.x + coreX + nx * (radius + left + 0.002);
+          f.unit.y = building.y + coreY + ny * (radius + left + 0.002);
+          const state = i < 110 ? 'walking' : 'attacking';
+          const frame = f.frame({ state, buildings: [building] });
+          finite([frame], `${card} at ${speedUp} speed`);
+          assert.ok(Math.abs(frame.position[0] - (f.unit.x - 9)) < 1e-6);
+          assert.ok(Math.abs(frame.position[2] - (16 - f.unit.y)) < 1e-6);
+          if (i % 10 === 0 || i === 149) {
+            const gap = footClearance(f, r, building);
+            assert.ok(
+              gap >= -0.001,
+              `${card} speed ${speedUp}, angle ${angle}, frame ${i}: foot gap ${gap}`,
+            );
+            const torsoGap = torsoClearance(f, r, building);
+            assert.ok(
+              torsoGap >= -0.001,
+              `${card} speed ${speedUp}, angle ${angle}, frame ${i}: torso gap ${torsoGap}`,
+            );
+            for (const { reach, length } of f.legReach())
+              assert.ok(
+                reach <= length * 1.001,
+                `${card} contact keeps the leg joined`,
+              );
+          }
+        }
+      }
+});
+
+await test('fast feet stay outside a rounded tower corner while travelling along it', () => {
+  const r = runtime();
+  for (const card of r.troopDeck.filter(
+    (card) => !r.troopCards[card].unit.flying,
+  )) {
+    const f = fixture(card, r);
+    portraitFigure(f, r);
+    f.unit.beat = 1.35;
+    f.unit.pace = 1.2;
+    const building = { kind: 'king', side: 1, x: 9, y: 16, destroyed: false };
+    const { half, corner } = r.towerFootprint[building.kind];
+    const radius = r.troopBuildingRadius(card) + corner + 0.002;
+    for (let i = 0; i < 180; i++) {
+      // Follow the actual expanded quarter-circle at combined boost speed.
+      const along = (f.stats.speed * 1.62 * i * DT) / radius;
+      const angle = Math.PI / 4 + 0.7 * Math.sin(along / 0.7);
+      f.unit.x = building.x + half - corner + Math.cos(angle) * radius;
+      f.unit.y = building.y + half - corner + Math.sin(angle) * radius;
+      f.unit.facing = Math.atan2(building.x - f.unit.x, building.y - f.unit.y);
+      const frame = f.frame({ buildings: [building] });
+      finite([frame], `${card} moving along a corner`);
+      const gap = footClearance(f, r, building);
+      assert.ok(
+        gap >= -0.001,
+        `${card}, curved contact frame ${i}: foot gap ${gap}`,
+      );
+    }
+  }
+});
+
+await test('contact regressions catch free strides entering stone and preserve Dino and Sumo walks beside distant or broken towers', () => {
+  const r = runtime();
+  for (const card of ['drummer', 'ogre', 'sumo']) {
+    const constrained = fixture(card, r);
+    const free = fixture(card, r);
+    const broken = fixture(card, r);
+    const distant = fixture(card, r);
+    for (const f of [constrained, free, broken, distant]) portraitFigure(f, r);
+    const building = { kind: 'king', side: 1, x: 9, y: 16, destroyed: false };
+    const { half, corner } = r.towerFootprint.king;
+    const radius = r.troopBuildingRadius(card) + corner + 0.002;
+    let freeGap = Infinity;
+    for (let i = 0; i < 160; i++) {
+      const along = (constrained.stats.speed * 1.62 * i * DT) / radius;
+      const angle = Math.PI / 4 + 0.7 * Math.sin(along / 0.7);
+      const x = building.x + half - corner + Math.cos(angle) * radius;
+      const y = building.y + half - corner + Math.sin(angle) * radius;
+      const frames = [];
+      for (const [f, buildings] of [
+        [constrained, [building]],
+        [free, []],
+        [broken, [{ ...building, destroyed: true }]],
+        [distant, [{ ...building, x: 1 }]],
+      ]) {
+        f.unit.x = x;
+        f.unit.y = y;
+        f.unit.facing = Math.atan2(building.x - x, building.y - y);
+        frames.push(f.frame({ buildings }));
+      }
+      freeGap = Math.min(freeGap, footClearance(free, r, building));
+      assert.ok(footClearance(constrained, r, building) >= -0.001);
+      assert.deepEqual(
+        frames[2].angles,
+        frames[1].angles,
+        `${card} ignores rubble`,
+      );
+      assert.deepEqual(
+        frames[3].angles,
+        frames[1].angles,
+        `${card} preserves the walk away from stone`,
+      );
+      assert.deepEqual(frames[2].bodyTilt, frames[1].bodyTilt);
+      assert.deepEqual(frames[3].bodyTilt, frames[1].bodyTilt);
+    }
+    // The 1 October Drummer's free stride entered the stone here (a
+    // negative control). The 9 October rebuild clears it unaided, so the
+    // control no longer applies; the constrained checks above still do.
+  }
+});
+
+await test('a contacting chest or coat straightens while faces, corners and reverse-facing attack poses keep feet and torso clear', () => {
+  const r = runtime();
+  const freeGaps = { ogre: Infinity, duelist: Infinity };
+  for (const card of [
+    'ogre',
+    'sumo',
+    'mage',
+    'duelist',
+    'gladiator',
+    'archers',
+  ])
+    for (const angle of [0, Math.PI / 4, Math.PI / 2, (5 * Math.PI) / 4])
+      for (const turn of [0, Math.PI]) {
+        const f = fixture(card, r);
+        const free = card in freeGaps ? fixture(card, r) : null;
+        portraitFigure(f, r);
+        if (free) portraitFigure(free, r);
+        const building = {
+          kind: 'princess',
+          side: 1,
+          x: 9,
+          y: 16,
+          destroyed: false,
+        };
+        const { half, corner } = r.towerFootprint.princess;
+        const nx = Math.cos(angle);
+        const ny = Math.sin(angle);
+        const diagonal = Math.abs(nx) > 0.1 && Math.abs(ny) > 0.1;
+        const coreX = diagonal ? Math.sign(nx) * (half - corner) : nx * half;
+        const coreY = diagonal ? Math.sign(ny) * (half - corner) : ny * half;
+        const radius = r.troopBuildingRadius(card) + (diagonal ? corner : 0);
+        // Radial positions and reversed poses deliberately stress the
+        // renderer; legal oriented Dino routes are checked separately.
+        // Include the first full strike and recovery after the walk.
+        for (let i = 0; i < 180; i++) {
+          const tangent = Math.sin(i * DT * f.stats.speed * 1.62) * 0.45;
+          const left = Math.max(0, 0.3 - f.stats.speed * 1.62 * i * DT);
+          for (const view of [f, free].filter(Boolean)) {
+            view.unit.x =
+              building.x + coreX + nx * (radius + left + 0.002) - ny * tangent;
+            view.unit.y =
+              building.y + coreY + ny * (radius + left + 0.002) + nx * tangent;
+            view.unit.facing = Math.atan2(-nx, -ny) + turn;
+            view.frame({
+              state: i < 90 ? 'walking' : 'attacking',
+              buildings: view === f ? [building] : [],
+            });
+          }
+          if (i % 5 !== 0) continue;
+          const gap = torsoClearance(f, r, building);
+          assert.ok(
+            gap >= -0.001,
+            `${card}, angle ${angle}, turn ${turn}, frame ${i}: torso gap ${gap}`,
+          );
+          assert.ok(footClearance(f, r, building) >= -0.001);
+          if (free)
+            freeGaps[card] = Math.min(
+              freeGaps[card],
+              torsoClearance(free, r, building),
+            );
+        }
+      }
+  assert.ok(
+    freeGaps.ogre < -0.1,
+    'the free Dino chest demonstrates the lean penetration',
+  );
+  assert.ok(
+    freeGaps.duelist < -0.05,
+    'the free Samurai coat demonstrates the reverse-facing penetration',
+  );
+});
 
 await test('Cowboy and Samurai walk with both thighs, knees and ankles while their soft parts move', () => {
   for (const { card, accessories } of [
@@ -533,7 +1154,8 @@ await test('Cadets land once without a second hop or spin, then walk with a movi
       Math.abs(frame.bodyYaw) < 1e-6,
       'arrival keeps the cadet facing forward',
     );
-    if (d >= 0.26)
+    // The rebuilt Cadets (9 October) touch down at 32% of the drop.
+    if (d >= 0.33)
       assert.ok(
         frame.bodyY < 0.03,
         `no airborne rebound after contact at ${d}`,
@@ -542,11 +1164,12 @@ await test('Cadets land once without a second hop or spin, then walk with a movi
   f.run(1, { state: 'walking', speed: f.stats.speed });
   const frames = f.run(3, { speed: f.stats.speed });
   walkingLegs(frames, 'Cadet');
-  animated(frames, 'handL', 0.08);
+  // Both gloves stay on the ray gun (9 October); the arms carry it.
+  animated(frames, 'armL', 0.04);
   animated(frames, 'antenna');
 });
 
-await test('every Cadet idle fidget stays grounded while the hands and head keep moving', () => {
+await test('every Cadet idle fidget stays grounded while the head and antenna keep moving', () => {
   // Fixed random choices cover the four fidgets and the former hopping
   // choice near the top of the random range, without nondeterministic QA.
   for (const random of [0.02, 0.26, 0.51, 0.98]) {
@@ -557,7 +1180,9 @@ await test('every Cadet idle fidget stays grounded while the hands and head keep
       `idle choice ${random} never lifts the body into a hop`,
     );
     animated(frames, 'head', 0.1);
-    animated(frames, 'weapon', 0.1);
+    // The rebuilt Cadets hold the ray gun steady and fidget with a gauge
+    // check, a look at the companion and the antenna.
+    animated(frames, 'antenna', 0.02);
   }
 });
 

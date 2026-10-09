@@ -27,10 +27,10 @@ function voteAll(g, choice) {
   return g;
 }
 
-await test('Quiz opens with a pick between its four games', () => {
+await test('Trivia opens with a pick between its four games', () => {
   const g = entry.create(3, 5, 'medium', undefined, undefined, undefined, true);
-  assert.equal(entry.name, 'Quiz');
-  assert.equal(standaloneGames.size.name, 'Quiz');
+  assert.equal(entry.name, 'Trivia');
+  assert.equal(standaloneGames.size.name, 'Trivia');
   assert.equal(g.kind, 'miro');
   assert.equal(g.phase, 'vote');
   assert.deepEqual(g.vote.options, ['miro', 'size', 'year', 'order']);
@@ -48,7 +48,10 @@ await test('Quiz opens with a pick between its four games', () => {
 });
 
 await test('switching carries every player’s points both ways', () => {
-  let g = skipOpening(entry.create(3, 8, 'medium', undefined, undefined, undefined, true), 'miro');
+  let g = skipOpening(
+    entry.create(3, 8, 'medium', undefined, undefined, undefined, true),
+    'miro',
+  );
   g = toVote(g);
   assert.deepEqual(g.vote.options, ['miro', 'size', 'year', 'order', 'finish']);
   const atlas = seatTotals(g);
@@ -77,4 +80,3 @@ await test('Atlas holds enough places for a whole match', () => {
   const g = skipOpening(entry.create(2, 13, 'medium'), 'miro');
   assert.ok(geo.maxRounds(g) >= 12);
 });
-

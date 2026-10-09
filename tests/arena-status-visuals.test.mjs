@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { troopCards } from '../lib/games/arena/cards.ts';
 import { plainUnit } from '../lib/games/arena/engine.ts';
 import { activeStatuses } from '../components/game/arena/status-state.ts';
+import { fitCamera, lensFor, troopScale } from '../lib/games/arena/layout.ts';
 
 const exports = {};
 vm.runInNewContext(
@@ -121,18 +122,18 @@ await test('a broken shield and a healed Viking lose their indicators immediatel
   );
 });
 
-await test('stun stars persist above a moving flyer and disappear on expiration or removal', () => {
+await test('a stun badge follows a moving flyer and disappears on expiration or removal', () => {
   const f = fixture();
   const u = unit({ card: 'jetpack', stun: 0.5 });
   for (let i = 0; i < 15; i++) {
     f.draw([u], { head: new THREE.Vector3(i, 6, 2) });
     const stars = f.glyph('stun');
-    assert.equal(stars.count, 3);
-    for (let j = 0; j < 3; j++) {
+    assert.equal(stars.count, 1);
+    for (let j = 0; j < stars.count; j++) {
       const m = new THREE.Matrix4();
       stars.getMatrixAt(j, m);
       const p = new THREE.Vector3().setFromMatrixPosition(m);
-      assert.ok(Math.abs(p.x - i) < 1 && p.y > 6 && p.z === 2);
+      assert.ok(Math.abs(p.x - i) < 1 && p.y > 6);
     }
   }
   f.draw([{ ...u, stun: 0 }]);
@@ -160,9 +161,10 @@ await test('simultaneous statuses have separate silhouettes, and healing marks o
   const b = unit({ id: 2, card: 'gladiator', shield: 750 });
   f.fx.heal([2]);
   f.draw([a, b]);
-  for (const name of ['slow', 'taunt', 'haste', 'rage', 'shield', 'heal'])
+  for (const name of ['slow', 'taunt', 'haste', 'rage', 'heal'])
     assert.equal(f.glyph(name).count, 1, name);
-  assert.equal(f.glyph('stun').count, 3);
+  assert.equal(f.glyph('shield'), undefined, 'shield has its own health track');
+  assert.equal(f.glyph('stun').count, 1);
   f.draw([a, b], { dt: 0.8 });
   assert.equal(f.glyph('heal').count, 0);
   f.fx.heal([2]);
@@ -198,12 +200,12 @@ await test('dense swarms retain every status without per-troop meshes or stale i
     unit({ id, card: 'bee', stun: 0.5, slow: 1, slowFactor: 0.6 }),
   );
   f.draw(units);
-  assert.equal(f.glyph('stun').count, 420);
+  assert.equal(f.glyph('stun').count, 140);
   assert.equal(f.glyph('slow').count, 140);
   assert.equal(
     f.scene.children.length,
-    14,
-    'seven shared symbol and outline pairs',
+    12,
+    'six shared symbol and enamel plate pairs',
   );
   for (const mesh of f.scene.children) {
     assert.ok(mesh.count <= mesh.instanceMatrix.count);
@@ -211,7 +213,97 @@ await test('dense swarms retain every status without per-troop meshes or stale i
       assert.ok(Number.isFinite(n));
   }
   f.draw([units[0]]);
-  assert.equal(f.glyph('stun').count, 3);
+  assert.equal(f.glyph('stun').count, 1);
   assert.equal(f.glyph('slow').count, 1);
   f.fx.dispose();
+});
+
+await test('simultaneous badges form one spaced camera-facing row above the recipient', () => {
+  const f = fixture();
+  const u = unit({
+    card: 'viking',
+    hp: 600,
+    maxHp: 1400,
+    stun: 1,
+    slow: 1,
+    slowFactor: 0.6,
+    beat: 1.3,
+    taunt: 1,
+    tauntId: 9,
+  });
+  f.draw([u], { reduced: true });
+  const inverse = f.camera.quaternion.clone().invert();
+  const positions = ['stun', 'slow', 'taunt', 'haste', 'rage'].map((kind) => {
+    const mesh = f.glyph(kind);
+    const matrix = new THREE.Matrix4();
+    mesh.getMatrixAt(0, matrix);
+    const p = new THREE.Vector3().setFromMatrixPosition(matrix);
+    const plate = f.scene.getObjectByName(`status-${kind}-plate`);
+    plate.getMatrixAt(0, matrix);
+    const radius = new THREE.Vector3().setFromMatrixScale(matrix).x;
+    return {
+      p: p.sub(new THREE.Vector3(0, 3, 0)).applyQuaternion(inverse),
+      radius,
+    };
+  });
+  for (let i = 0; i < positions.length; i++) {
+    assert.ok(positions[i].p.y > positions[i].radius);
+    if (!i) continue;
+    assert.ok(Math.abs(positions[i].p.y - positions[i - 1].p.y) < 1e-5);
+    assert.ok(
+      positions[i].p.x - positions[i - 1].p.x > positions[i].radius * 2,
+    );
+  }
+  f.fx.dispose();
+});
+
+await test('status badges clear both shield tracks and the shield icon across camera breakpoints', () => {
+  for (const [width, height] of [
+    [390, 844],
+    [600, 700],
+    [1024, 600],
+    [768.5, 1024.25],
+    [1280, 720],
+  ]) {
+    const f = fixture();
+    const frame = { width, height, top: 60, bottom: 150 };
+    const lens = lensFor(frame);
+    const camera = fitCamera(frame, lens);
+    f.camera.position.set(...camera.position);
+    f.camera.lookAt(...camera.target);
+    f.camera.aspect = width / height;
+    f.camera.fov = camera.fov;
+    f.camera.updateProjectionMatrix();
+    f.camera.updateMatrixWorld(true);
+    f.fx.size = troopScale(lens, width <= 600);
+    const track = ((width <= 600 ? 4 : 5) * f.fx.size) / 1.75;
+    f.fx.hud(height, track);
+    for (const z of [-9.5, 0, 9.5]) {
+      const head = new THREE.Vector3(-5.5, 3, z);
+      f.draw([unit({ card: 'gladiator', shield: 100, stun: 1 })], {
+        head,
+        reduced: true,
+      });
+      const plate = f.scene.getObjectByName('status-stun-plate');
+      const matrix = new THREE.Matrix4();
+      plate.getMatrixAt(0, matrix);
+      const bottom = new THREE.Vector3().setFromMatrixPosition(matrix);
+      const radius = new THREE.Vector3().setFromMatrixScale(matrix).x;
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(
+        f.camera.quaternion,
+      );
+      bottom.addScaledVector(up, -radius);
+      const bottomPx = ((1 - bottom.project(f.camera).y) * height) / 2;
+      const anchor = head.clone();
+      anchor.y += f.fx.size * 0.13;
+      const tracksTop =
+        ((1 - anchor.project(f.camera).y) * height) / 2 - (track * 2 + 5);
+      const iconTop = tracksTop - Math.max(0, 7 - (track + 2) / 2);
+      assert.ok(
+        iconTop - bottomPx >= 4.8,
+        `${width}x${height}, z${z}: gap ${iconTop - bottomPx}`,
+      );
+    }
+    f.fx.dispose();
+  }
 });

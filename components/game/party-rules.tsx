@@ -19,6 +19,8 @@ import {
   foundPoints,
 } from '@/lib/games/party/impostor';
 import { RuleList, RuleSection, Rules } from './rules';
+import type { TriviaMode } from '@/lib/games/party/trivia';
+import { TriviaGoal, TriviaRoundRules } from './trivia-rules';
 
 const percent = (e: number) => `${Math.round(e * 100)}%`;
 /** Sizes' curve at a glance: full marks, a step down, and nothing. */
@@ -38,7 +40,7 @@ function RoundVote({
 }: {
   when: string;
   again: string;
-  set: 'Know Me' | 'Quiz';
+  set: 'Know Me' | 'Trivia';
 }) {
   return (
     <RuleSection
@@ -149,9 +151,16 @@ function DialRules() {
   );
 }
 
-function AtlasRules() {
+function AtlasRules({
+  mode,
+  legacy = false,
+}: {
+  mode: TriviaMode;
+  legacy?: boolean;
+}) {
   return (
     <Rules>
+      <TriviaGoal mode={mode} legacy={legacy} />
       <RuleSection title="Two places and a final">
         <p>
           Each round has <b>3 places</b>: a named town or city, a harder one,
@@ -189,14 +198,21 @@ function AtlasRules() {
           }))}
         />
       </RuleSection>
-      <RoundVote when="After the final" again="Atlas" set="Quiz" />
+      <TriviaRoundRules mode={mode} legacy={legacy} />
     </Rules>
   );
 }
 
-function SizesRules() {
+function SizesRules({
+  mode,
+  legacy = false,
+}: {
+  mode: TriviaMode;
+  legacy?: boolean;
+}) {
   return (
     <Rules>
+      <TriviaGoal mode={mode} legacy={legacy} />
       <RuleSection title="Size it up">
         <p>
           The cream piece stands at its <b>true size</b>. Make the{' '}
@@ -236,7 +252,7 @@ function SizesRules() {
           }))}
         />
       </RuleSection>
-      <RoundVote when="After the third reveal" again="Sizes" set="Quiz" />
+      <TriviaRoundRules mode={mode} legacy={legacy} />
     </Rules>
   );
 }
@@ -285,10 +301,17 @@ function CoinsRules() {
   );
 }
 
-function YearsRules() {
+function YearsRules({
+  mode,
+  legacy = false,
+}: {
+  mode: TriviaMode;
+  legacy?: boolean;
+}) {
   const last = yearCurve[yearCurve.length - 1][0];
   return (
     <Rules>
+      <TriviaGoal mode={mode} legacy={legacy} />
       <RuleSection title="Three events">
         <p>
           Each round has <b>3 events</b>: one from before 1800, one from 1800 to
@@ -326,14 +349,21 @@ function YearsRules() {
           }))}
         />
       </RuleSection>
-      <RoundVote when="After the third reveal" again="Years" set="Quiz" />
+      <TriviaRoundRules mode={mode} legacy={legacy} />
     </Rules>
   );
 }
 
-function OrderRules() {
+function OrderRules({
+  mode,
+  legacy = false,
+}: {
+  mode: TriviaMode;
+  legacy?: boolean;
+}) {
   return (
     <Rules>
+      <TriviaGoal mode={mode} legacy={legacy} />
       <RuleSection title="Put them in order">
         <p>
           Each round has <b>3 sets</b> of five things, such as buildings to put{' '}
@@ -357,7 +387,7 @@ function OrderRules() {
           nothing.
         </p>
       </RuleSection>
-      <RoundVote when="After the third reveal" again="Order" set="Quiz" />
+      <TriviaRoundRules mode={mode} legacy={legacy} />
     </Rules>
   );
 }
@@ -380,9 +410,8 @@ function ImpostorRules() {
         note="Pick an ink and a pen size beside the card; undo takes back your last line."
       >
         <p>
-          Everyone draws their word at once, in{' '}
-          <b>{drawMs / 1000} seconds</b>, without letters. Tap{' '}
-          <b>Done</b> to finish early.
+          Everyone draws their word at once, in <b>{drawMs / 1000} seconds</b>,
+          without letters. Tap <b>Done</b> to finish early.
         </p>
       </RuleSection>
       <RuleSection
@@ -416,23 +445,31 @@ function ImpostorRules() {
   );
 }
 
-/** How to play for the party games (Know Me: Top Five, Dial and Ten Coins; Quiz: Atlas, Sizes, Years and Order). The practice coach has
+/** How to play for the party games (Know Me: Top Five, Dial and Ten Coins; Trivia: Atlas, Sizes, Years and Order). The practice coach has
  * its own four short steps in `lib/games/adventures/lessons.ts`; both take
  * their numbers from the engines. */
-export function PartyRules({ kind }: { kind: StandaloneId }) {
+export function PartyRules({
+  kind,
+  triviaMode = 'quick',
+  legacyTrivia = false,
+}: {
+  kind: StandaloneId;
+  triviaMode?: TriviaMode;
+  legacyTrivia?: boolean;
+}) {
   switch (kind) {
     case 'dial':
       return <DialRules />;
     case 'coins':
       return <CoinsRules />;
     case 'miro':
-      return <AtlasRules />;
+      return <AtlasRules mode={triviaMode} legacy={legacyTrivia} />;
     case 'size':
-      return <SizesRules />;
+      return <SizesRules mode={triviaMode} legacy={legacyTrivia} />;
     case 'year':
-      return <YearsRules />;
+      return <YearsRules mode={triviaMode} legacy={legacyTrivia} />;
     case 'order':
-      return <OrderRules />;
+      return <OrderRules mode={triviaMode} legacy={legacyTrivia} />;
     case 'impostor':
       return <ImpostorRules />;
     default:

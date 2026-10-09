@@ -1,4 +1,5 @@
 import type { MoveContext, Moves } from './types';
+import type { Matrix4, Mesh, Object3D, Vector3 } from 'three';
 
 const clamp = (x: number, lo: number, hi: number) =>
   x < lo ? lo : x > hi ? hi : x;
@@ -32,6 +33,145 @@ const STAFF_ANGLE = angle(FOOT[0] - FIST[0], FOOT[1] - FIST[1]);
 /** Model metres per world unit along the ground, at size 1 (TROOP_SCALE
  *  1.75 times the figure's 1.12 widening). */
 const GROUND = 1.75 * 1.12;
+
+type StaffPlant = {
+  weapon: Object3D;
+  hand: Object3D;
+  fore: Object3D;
+  contacts: Vector3[];
+  inverse: Matrix4;
+  point: Vector3;
+  target: Vector3;
+  lowest: Vector3;
+};
+const staffPlants = new WeakMap<Object3D, StaffPlant>();
+const nearAngle = (angle: number, around: number) =>
+  around + Math.atan2(Math.sin(angle - around), Math.cos(angle - around));
+
+/** The ground solver changes pelvis height after the authored move runs.
+ *  Plant the actual silver shoe from the final body/torso/forearm matrices,
+ *  retaining deliberate taps and overhead sweeps and moving its closed hand
+ *  by exactly the same wrist correction. Scratch geometry is cached once. */
+export function plantMageStaff(
+  model: Object3D,
+  memo: Record<string, number>,
+  groundAt: (x: number, z: number) => number,
+  wristRestY: number,
+) {
+  memo.staffCanPlant = 0;
+  if ((memo.staffDeploy ?? 1) < 0.9) return;
+  let plant = staffPlants.get(model);
+  if (!plant) {
+    const weapon = model.getObjectByName('mageweapon');
+    const hand = model.getObjectByName('magehandR');
+    const shoe = model.getObjectByName('mage-shoe') as Mesh | undefined;
+    if (!weapon?.parent || !hand || !shoe?.isMesh) return;
+    model.updateWorldMatrix(true, true);
+    const inverse = weapon.matrixWorld.clone().invert();
+    const point = model.position.clone();
+    const contacts: Vector3[] = [];
+    for (let i = 0; i < shoe.geometry.attributes.position.count; i++) {
+      shoe.getVertexPosition(i, point);
+      contacts.push(
+        point.clone().applyMatrix4(shoe.matrixWorld).applyMatrix4(inverse),
+      );
+    }
+    plant = {
+      weapon,
+      hand,
+      fore: weapon.parent,
+      contacts,
+      inverse,
+      point,
+      target: point.clone(),
+      lowest: point.clone(),
+    };
+    staffPlants.set(model, plant);
+  }
+  const { weapon, hand, fore, contacts, inverse, point, target, lowest } =
+    plant;
+  model.updateWorldMatrix(true, true);
+  inverse.copy(fore.matrixWorld).invert();
+  const world = model.matrixWorld.elements;
+  const lift = (memo.staffLift ?? 0) * Math.hypot(world[4], world[5], world[6]);
+  const free = (memo.staffFree ?? 0) > 0.001;
+  // The bridge slopes below the whole shoe. Select the smallest terrain
+  // clearance, not the lowest world-space vertex, and converge again when
+  // the corrected shaft moves that contact along the deck.
+  for (let pass = 0; pass < 20; pass++) {
+    let local = contacts[0];
+    let clearance = Infinity;
+    let ground = 0;
+    for (const contact of contacts) {
+      point.copy(contact).applyMatrix4(weapon.matrixWorld);
+      const floor = groundAt(point.x, point.z);
+      const gap = point.y - floor;
+      if (gap < clearance) {
+        clearance = gap;
+        ground = floor;
+        local = contact;
+        lowest.copy(point);
+      }
+    }
+    // The crystal staff is intentionally free in its overhead cast. Only a
+    // below-ground shoe is corrected in that part of the cycle.
+    if (free && clearance >= -0.0002) break;
+    const height = ground + (free ? 0.001 : lift);
+    if (Math.abs(clearance - (free ? 0.001 : lift)) < 0.0002) break;
+    target.copy(lowest);
+    target.y = height;
+    target.applyMatrix4(inverse);
+    const y = local.y * weapon.scale.y;
+    const z = local.z * weapon.scale.z;
+    const length = Math.hypot(y, z);
+    const forward = clamp(target.z - weapon.position.z, -length, length);
+    const down = -Math.sqrt(Math.max(0, length * length - forward * forward));
+    const slide = target.y - down;
+    const previousY = weapon.position.y;
+    weapon.position.y = clamp(slide, wristRestY - 0.05, wristRestY + 0.05);
+    // Solve the remaining height from the full transformed forearm plane.
+    // Body roll, yaw, squash, chest turn and the planted pelvis are all in it.
+    const m = fore.matrixWorld.elements;
+    const constant =
+      m[13] +
+      m[1] * (weapon.position.x + local.x * weapon.scale.x) +
+      m[5] * weapon.position.y +
+      m[9] * weapon.position.z;
+    const a = m[5] * y + m[9] * z;
+    const b = -m[5] * z + m[9] * y;
+    const radius = Math.hypot(a, b);
+    if (radius > 1e-8) {
+      // During a cast's spring recovery the fist can still be too high for
+      // this length of staff to reach. Keep that lifted pose until it can
+      // plant, rather than snapping the shaft straight down or stretching it.
+      if (height < constant - radius - 0.0002 && clearance > 0) {
+        weapon.position.y = previousY;
+        break;
+      }
+      const phi = Math.atan2(b, a);
+      const arc = Math.acos(clamp((height - constant) / radius, -1, 1));
+      const left = nearAngle(phi - arc, weapon.rotation.x);
+      const right = nearAngle(phi + arc, weapon.rotation.x);
+      weapon.rotation.x =
+        Math.abs(left - weapon.rotation.x) < Math.abs(right - weapon.rotation.x)
+          ? left
+          : right;
+    }
+    hand.rotation.x = weapon.rotation.x;
+    hand.position.y = weapon.position.y;
+    weapon.updateWorldMatrix(false, true);
+    hand.updateWorldMatrix(false, true);
+  }
+  // Report contact only after the final transformed shoe is checked. A cast
+  // recovery whose wrist is still too high must retain its lifted pose.
+  let clearance = Infinity;
+  for (const contact of contacts) {
+    point.copy(contact).applyMatrix4(weapon.matrixWorld);
+    clearance = Math.min(clearance, point.y - groundAt(point.x, point.z));
+  }
+  memo.staffGroundGap = clearance;
+  memo.staffCanPlant = !free && Math.abs(clearance - lift) < 0.0002 ? 1 : 0;
+}
 
 function turn(p: P2, c: P2, a: number): P2 {
   const dy = p[0] - c[0];
@@ -99,7 +239,9 @@ const FIDGET_TIME = [1.5, 1.7, 2.6, 2.6];
 
 function fidget(c: MoveContext) {
   const m = c.memo;
-  if (c.idleFor < 0.05) {
+  // A newly drawn stationary troop may start after a slow frame or resume;
+  // its idle clock can already exceed the reset window on the first call.
+  if (m.fKind === undefined || c.idleFor < 0.05) {
     m.fKind = -1;
     m.fNext = 1.2 + hash(c.unit.id, 1) * 1.6;
     return { kind: -1, t: 0, k: 0 };
@@ -150,7 +292,7 @@ export const mage: Moves = {
       roll: 0.05,
       twist: 0.12,
     },
-    armSwing: 0.3,
+    armSwing: 0.24,
     lean: 0.07,
     attack: 'custom',
     windup: 0.62,
@@ -161,9 +303,9 @@ export const mage: Moves = {
     twist: 0.15,
     hips: 0.08,
     chestRoll: 0.35,
-    nod: 0.04,
-    armOut: 0.07,
-    bounce: 0.05,
+    nod: 0.016,
+    armOut: 0,
+    bounce: 0.018,
     weaponArm: 0.5,
   },
   // Soft cloth, felt and hair: low stiffness and damping so they swing
@@ -176,6 +318,7 @@ export const mage: Moves = {
     extra2: 0.55,
     extra: 0.9,
     weapon: 2.6,
+    handR: 2.6,
     foreR: 1.4,
     armR: 1.1,
     foreL: 1.1,
@@ -189,10 +332,14 @@ export const mage: Moves = {
     extra: 0.5,
   },
   pose(c, p) {
-    const { aim, wind, strike, walk, idle, flinch } = c;
+    const { aim, wind, strike, walk, flinch } = c;
+    const idle = c.reduced ? 0 : c.idle;
     const m = c.memo;
     const deploying = c.deploy < 1;
     const d = c.deploy;
+    p.headX *= 1 - c.idle;
+    p.headY *= 1 - c.idle;
+    p.roll *= 1 - c.idle;
 
     // ---------------------------------------------------------- attack
     // Even hits: the staff swept up over his head and down to point the
@@ -206,15 +353,18 @@ export const mage: Moves = {
     // the ready stance; the follow-through carries past it first.
     const hit =
       aim > 0.02
-        ? c.since < 0.05
-          ? c.since / 0.05
-          : c.since < 0.26
+        ? c.since < 0.075
+          ? 1 - Math.pow(1 - clamp01(c.since / 0.075), 3)
+          : c.since < 0.14
             ? 1
-            : 1 - ease((c.since - 0.26) / 0.42)
+            : 1 - ease((c.since - 0.14) / 0.48)
         : 0;
-    const after = aim > 0.02 ? bump(c.since, 0.03, 0.42) : 0;
-    const windA = nextStaff ? wind : 0;
-    const windB = nextStaff ? 0 : wind;
+    const after = aim > 0.02 ? bump(c.since, 0.045, 0.36) : 0;
+    // Continue the loaded pose across the engine hit, then release it.
+    // Previously the raised staff reset to rest on the first hit frame.
+    const releaseWind = c.since < 0.075 ? (1 - hit) * aim : 0;
+    const windA = Math.max(nextStaff ? wind : 0, lastStaff ? releaseWind : 0);
+    const windB = Math.max(nextStaff ? 0 : wind, lastStaff ? 0 : releaseWind);
     const hitA = lastStaff ? hit * aim : 0;
     const hitB = lastStaff ? 0 : hit * aim;
     const afterA = lastStaff ? after : 0;
@@ -224,20 +374,22 @@ export const mage: Moves = {
     p.torsoX += -windB * 0.06 + hitB * 0.18 + afterB * 0.08;
     p.torsoY += aim * -0.08;
     // Between casts, a slow gathering sway.
-    p.torsoY += Math.sin(c.t * 1.9) * 0.03 * aim * (1 - wind);
-    p.armL += Math.sin(c.t * 1.9 + 0.8) * 0.06 * aim * (1 - wind);
+    p.torsoY += c.reduced ? 0 : Math.sin(c.t * 1.9) * 0.018 * aim * (1 - wind);
+    p.armL += c.reduced
+      ? 0
+      : Math.sin(c.t * 1.9 + 0.8) * 0.032 * aim * (1 - wind);
     p.torsoY += -windA * 0.28 + hitA * 0.24 + afterA * 0.1;
     p.torsoY += windB * 0.34 - hitB * 0.3 - afterB * 0.12;
     p.headX += windA * 0.12 - hitA * 0.06 + windB * 0.04;
     // The eyes stay on the target while the shoulders turn.
     p.headY -= (p.torsoY + 0.08 * aim) * 0.6;
-    p.lean += -wind * 0.05 + strike * 0.12 + after * 0.06;
+    p.lean += -(windA + windB) * 0.05 + hit * 0.12 + after * 0.06;
     p.lunge += strike * 0.14 + after * 0.05;
-    p.squash *= 1 - wind * 0.035 + strike * 0.025;
+    p.squash *= 1 - (windA + windB) * 0.035 + hit * 0.025;
     p.roll += windB * 0.04 - hitB * 0.03;
 
     // ---------------------------------------------------------- idle
-    const f = fidget(c);
+    const f = c.reduced ? { kind: -1, t: 0, k: 0 } : fidget(c);
     const fk = f.kind;
     const fe = f.kind >= 0 ? bump(f.k, 0, 1) : 0;
     const settleIn = ease(c.idleFor / 0.8) * idle;
@@ -292,14 +444,14 @@ export const mage: Moves = {
     const knock = deploying ? bump(d, 0.7, 0.86) : 0;
     p.torsoX += landing * 0.18 - thump * 0.06;
     p.headX += landing * 0.1 - thump * 0.08;
-    p.armLz -= falling * 0.7;
-    p.armL += falling * 0.3;
+    p.armLz -= falling * 0.18;
+    p.armL += falling * 0.14;
 
     // ---------------------------------------------------------- hit
     // Hit: the flame arm flung up, a twist away and a stagger back (the
     // shared flinch already throws the head back).
-    p.armL += flinch * 0.5;
-    p.armLz -= flinch * 0.35;
+    p.armL += flinch * flinch * 0.32;
+    p.armLz -= flinch * flinch * 0.2;
     p.torsoY += flinch * 0.16;
     p.lunge -= flinch * 0.05;
     p.roll += flinch * 0.04;
@@ -330,18 +482,28 @@ export const mage: Moves = {
     let staffTurn =
       sol.staff * (1 - inA) + (heldA - armR - foreR + p.torsoX + p.lean) * inA;
     const slide = sol.slide * (1 - inA);
+    m.staffFree = inA;
+    m.staffLift = lift;
+    m.staffDeploy = d;
     // A hit knocks the staff about.
     staffTurn += flinch * 0.25;
-    c.want('armR', armR, 0, p.armRz + falling * 0.5 + knock * 0.02);
+    c.want('armR', armR, 0, p.armRz + falling * 0.1 + knock * 0.02);
     c.want('foreR', foreR);
     c.want('weapon', staffTurn, 0, 0, clamp(slide, -0.05, 0.05));
+    // The closed hand follows the same wrist frame as the staff. Keeping
+    // it fixed on the forearm let the shaft turn through the fingers during
+    // the overhead cast. The two sibling frames share a rest pivot and the
+    // same spring, so contact survives planting, casting and recovery.
+    c.want('handR', staffTurn, 0, 0, clamp(slide, -0.05, 0.05));
     p.squash *= 1 - knock * 0.05;
 
     // ---------------------------------------------------------- flame arm
     // Carried steady in front of him: less swing than the shared walk,
     // the elbow giving with each step.
-    p.armL -= c.swingL * 0.45;
-    let foreL = walk * (1 - aim) * 0.07 * (1 + c.fwdR);
+    p.armL -= c.swingL * 0.6;
+    p.armL -= idle * 0.12;
+    p.armLz += idle * 0.04;
+    let foreL = walk * (1 - aim) * 0.07 * (1 + c.fwdR) - idle * 0.08;
     // Ready: held forward. B: drawn back by the hip, then tossed forward
     // and up from below, palm up. A: swung out for balance.
     // (The sculpt holds the forearm bent 1.8 up from the upper arm: the
@@ -371,9 +533,9 @@ export const mage: Moves = {
     // off the palm as he throws; tossed up while he waits.
     m.spin =
       (m.spin ?? hash(c.unit.id, 7) * 6) +
-      c.dt * (2.4 + 3 * (windB + windA * 0.5));
+      c.dt * ((c.reduced ? 0 : 2.4) + 3 * (windB + windA * 0.5));
     const flameDy =
-      Math.sin(c.t * 3.3) * 0.005 +
+      (c.reduced ? 0 : Math.sin(c.t * 3.3) * 0.005) +
       toss * 0.16 +
       windB * 0.015 +
       afterB * 0.08 +
@@ -381,7 +543,13 @@ export const mage: Moves = {
       knock * 0.03;
     // It burns upward whatever the hand does.
     const upright = -(handTilt + p.offhand) * 0.85;
-    c.want('extra', upright, m.spin, Math.sin(c.t * 2.3) * 0.08, flameDy);
+    c.want(
+      'extra',
+      upright,
+      m.spin,
+      c.reduced ? 0 : Math.sin(c.t * 2.3) * 0.08,
+      flameDy,
+    );
 
     // ---------------------------------------------------------- cloth
     // The body's motion, eased into -1..1 so a sudden turn or a stop
@@ -482,18 +650,17 @@ export const mage: Moves = {
     c.want('beard', beardX, 0, beardZ);
   },
   arrive(d) {
-    // Floating down out of the sky, turning once and slowing to a soft
-    // landing; then a knock of the staff.
+    // Settle once with the staff held. No airborne A-pose, full turn or
+    // rebound after contact; the planted legs absorb the arrival.
     const k = clamp01(d / 0.27);
     const fall = 1 - (1 - k) * (1 - k);
-    let drop = (1 - fall) * 3.2;
-    const twirl = (1 - k) * (1 - k) * Math.PI * 2;
+    const drop = (1 - fall) * 3.2;
+    const twirl = 0;
     let squash = 1 + (1 - k) * 0.04;
     if (d >= 0.27) {
-      squash = 1 - bump(d, 0.27, 0.42) * 0.12;
-      drop += bump(d, 0.3, 0.46) * 0.05;
+      squash = 1 - bump(d, 0.27, 0.42) * 0.055;
     }
-    squash -= bump(d, 0.7, 0.8) * 0.05;
+    squash -= bump(d, 0.7, 0.8) * 0.015;
     return { drop, squash, twirl };
   },
 };

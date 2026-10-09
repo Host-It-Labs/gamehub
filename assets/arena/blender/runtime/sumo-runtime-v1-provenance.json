@@ -1,0 +1,98 @@
+{
+  "runtimeCache": "/Users/williamguinaudie/Documents/code/gamehub/assets/arena/blender/runtime/sumo-runtime-v1.blend",
+  "reviewedCandidate": "/Users/williamguinaudie/Documents/code/gamehub/work/arena/2026-10-04-rebuild/sumo/master/sumo-runtime-v9.blend",
+  "candidateSHA256": "a7d645bd855dddd798a46672025390216fd5764bbffe7e8a9711b47966fc74e0",
+  "bytes": 1641852,
+  "sha256": "bc024be5d0737ffb8f51a0598b51201b1eb5bc661c4f6a4ce867d4aa4d460287",
+  "objects": 19,
+  "meshes": 17,
+  "triangles": 34227,
+  "authorScale": 1.22,
+  "bones": 16,
+  "faceControls": 7,
+  "neutralAO": true,
+  "editablePigment": "SumoPigmentCache POINT FLOAT_VECTOR",
+  "neutralSurfacePreservedFromV7": {
+    "positions": "d32aa231bbf12dadc2e58d28749ef6b8465954d9507a34507e7482afdd17a1ba",
+    "indices": "048b142681d21a0f8d8500ab51e0ec1c98bb72d405c9601cd6bd97c7dd1fc35a",
+    "normals": "a3c9464fe74bbf1d4a3161288c8cd1359204ed4b490b2a32b6dfc39735e86ad1",
+    "pigment": "086b3dd25c9216efe82fb24fc4188a3a7a06e3fe1f0e9dd11efd89bd686c2596"
+  },
+  "shoulderOwnershipRepair": {
+    "field": "sumo-shoulder-weights-v1.npz",
+    "changedVertices": 1764,
+    "maximumWeightChange": 0.48222148418426514,
+    "neutralPositionsChanged": false,
+    "handFootWeightsChanged": false,
+    "boneFramesChanged": false
+  },
+  "externalLibraries": false,
+  "imageTextures": false,
+  "addons": false,
+  "master": "work/arena/2026-10-04-rebuild/sumo/master/sumo-master-v6.blend",
+  "sourceReview": "V5 neutral anatomy; V8 finish; V6-source/V9-runtime localized guard repair",
+  "ordinaryCollectorExport": {
+    "path": "public/3d/arena/dev/sumo-runtime-canonical-v1.glb",
+    "sha256": "d095475d3b3f3d258339359b98957472aac77142fbbbad03107520988f948e94",
+    "bytes": 1288984,
+    "triangles": 34227,
+    "meshes": 17,
+    "bones": 16,
+    "faceControls": 7,
+    "exactIndexedGeometryComparedToV9": true,
+    "colorChannels": [
+      "COLOR_0"
+    ],
+    "skinColorRMSComparedToV9": 0.016805064436512744,
+    "nativeGLBBounds": {
+      "min": [
+        -0.6323569416999817,
+        0.009758011437952518,
+        -0.3086465001106262
+      ],
+      "max": [
+        0.6323601603507996,
+        1.705571889017696,
+        0.30093233521009893
+      ]
+    },
+    "parentMaterialReview": "Passed actual Arena close front and moving strike detail from eight-second recording",
+    "nativeEqualityEvidence": "work/arena/2026-10-04-rebuild/sumo/master/runtime-cache-verification.json",
+    "loaderEqualityEvidence": "work/arena/2026-10-04-rebuild/sumo/master/runtime-canonical-v1-equality.json",
+    "colorAuditEvidence": "work/arena/2026-10-04-rebuild/sumo/master/sumo-runtime-canonical-v1-color.json"
+  },
+  "motionReview": {
+    "movePath": "components/game/arena/moves/sumo.ts",
+    "moveSHA256": "78f43cf2f588eee53f65906f378d6d72131ef9c176d35519cd1b005ceed31ab7",
+    "canonicalGeometryModified": false,
+    "freeElbowRangeRadians": [
+      0.09018875658512115,
+      1.245593547821045
+    ],
+    "frameProbe": "work/arena/2026-10-04-rebuild/sumo/master/positive-free-motion.json",
+    "sourceRuntimeFrameComparison": "work/arena/2026-10-04-rebuild/sumo/master/positive-free-frames-comparison.json",
+    "sourcePoseEvidence": "work/arena/2026-10-04-rebuild/sumo/master/sumo-master-v6-positive-free-review.json",
+    "runtimePoseEvidence": "work/arena/2026-10-04-rebuild/sumo/master/sumo-runtime-canonical-v1-positive-free-review.json",
+    "parentMovingReview": "Passed complete updated eight-second Arena walk/turn, alternating strike and grounded landing cycles, plus close 20 fps impact detail",
+    "authorMatchedPoseReview": "Passed windup front/side, extended impact and ready material; source has fine shoulder compression ripples, no projecting sheet",
+    "rearGuard": {
+      "shoulderX": -0.35,
+      "inwardZ": 0.25,
+      "foreX": 0.5,
+      "wristX": 0.15,
+      "otherAxesAtRest": true
+    },
+    "lateralGuard": {
+      "shoulderX": 0.7,
+      "inwardZ": 1.1,
+      "foreX": 1.5,
+      "wristX": 0.15,
+      "otherAxesAtRest": true
+    },
+    "staticGuardReview": "Passed author and parent matched detailed source/collector poses; independent runtime pose review also passed",
+    "finalMovingTowerContactReview": "Owned by renderer reviewer, being rerun on these frozen free-motion goals",
+    "parentMatchedFreePoseReview": "Passed all four detailed-source/canonical windup front/side, impact three-quarter and ready material views; normal elbows and connected shoulders/hands, with silhouette retained",
+    "sourceRuntimeHandFrameMaxError": 5.960464477539063e-8,
+    "gameRuntimeHandFrameMaxErrorAfterNeutralPlacement": 1.0899453334323184e-7
+  }
+}

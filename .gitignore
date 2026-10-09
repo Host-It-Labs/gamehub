@@ -48,3 +48,10 @@ next-env.d.ts
 # per-conversation worktree environments (created by the harness)
 /.worktrees/
 /public/3d/arena/dev/
+
+# Python bytecode from the Blender scripts
+__pycache__/
+*.pyc
+
+# Stray git merge temp files
+.merge_file_*

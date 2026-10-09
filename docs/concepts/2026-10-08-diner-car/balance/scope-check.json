@@ -1,0 +1,170 @@
+{
+  "changes": {
+    "campaign": [
+      {
+        "scope": "shiftConfig",
+        "before": "0.07",
+        "after": "0.09"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "13",
+        "after": "12.5"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "0.6",
+        "after": "0.84"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "56",
+        "after": "48"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "2",
+        "after": "1.8"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "34",
+        "after": "30"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "60",
+        "after": "52"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "28",
+        "after": "24"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "2.3",
+        "after": "2.5"
+      },
+      {
+        "scope": "shiftConfig",
+        "before": "13",
+        "after": "10"
+      },
+      {
+        "scope": "settleShift",
+        "before": "2",
+        "after": "20"
+      }
+    ],
+    "campaign-content": [
+      {
+        "scope": "GEAR_PRICE",
+        "before": "60",
+        "after": "75"
+      },
+      {
+        "scope": "GEAR_PRICE",
+        "before": "100",
+        "after": "125"
+      },
+      {
+        "scope": "GEAR_PRICE",
+        "before": "160",
+        "after": "200"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "55",
+        "after": "305"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "35",
+        "after": "155"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "80",
+        "after": "480"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "45",
+        "after": "320"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "45",
+        "after": "250"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "95",
+        "after": "575"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "60",
+        "after": "410"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "60",
+        "after": "480"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "75",
+        "after": "560"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "80",
+        "after": "480"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "90",
+        "after": "645"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "70",
+        "after": "410"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "55",
+        "after": "320"
+      },
+      {
+        "scope": "UPGRADES",
+        "before": "130",
+        "after": "805"
+      }
+    ],
+    "road": [
+      {
+        "scope": "gasFor",
+        "before": "25",
+        "after": "35"
+      },
+      {
+        "scope": "gasFor",
+        "before": "9",
+        "after": "13"
+      },
+      {
+        "scope": "gasFor",
+        "before": "6",
+        "after": "8"
+      }
+    ]
+  },
+  "unchanged": {
+    "lib/games/diner/engine.ts": true,
+    "lib/games/diner/content.ts": true,
+    "lib/games/diner/layout.ts": true
+  }
+}

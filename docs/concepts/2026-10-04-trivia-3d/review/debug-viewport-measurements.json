@@ -1,0 +1,342 @@
+[
+  {
+    "controls": [
+      {
+        "height": 44,
+        "label": "Tower",
+        "width": 165,
+        "x": 26,
+        "y": 206
+      },
+      {
+        "height": 44,
+        "label": "Expedition",
+        "width": 165,
+        "x": 199,
+        "y": 206
+      },
+      {
+        "height": 44,
+        "label": "23456",
+        "width": 165,
+        "x": 26,
+        "y": 288
+      },
+      {
+        "height": 44,
+        "label": "Mixed: 300 / 150 / 0Everyone: 300Everyone: 0",
+        "width": 165,
+        "x": 199,
+        "y": 288
+      },
+      {
+        "height": 44,
+        "label": "TrailRiverSummit",
+        "width": 165,
+        "x": 26,
+        "y": 366
+      },
+      {
+        "height": 44,
+        "label": "Simulate round",
+        "width": 165,
+        "x": 26,
+        "y": 422
+      },
+      {
+        "height": 44,
+        "label": "Results",
+        "width": 165,
+        "x": 199,
+        "y": 422
+      },
+      {
+        "height": 44,
+        "label": "Replay animation",
+        "width": 165,
+        "x": 26,
+        "y": 474
+      },
+      {
+        "height": 44,
+        "label": "Restart",
+        "width": 165,
+        "x": 199,
+        "y": 474
+      },
+      {
+        "height": 44,
+        "label": "Close",
+        "width": 28,
+        "x": 342,
+        "y": 140
+      }
+    ],
+    "dialog": {
+      "height": 400,
+      "width": 366,
+      "x": 12,
+      "y": 132
+    },
+    "scroll": 0,
+    "viewport": {
+      "height": 664,
+      "width": 390
+    }
+  },
+  {
+    "controls": [
+      {
+        "height": 44,
+        "label": "Tower",
+        "width": 219,
+        "x": 160,
+        "y": 384
+      },
+      {
+        "height": 44,
+        "label": "Expedition",
+        "width": 219,
+        "x": 389,
+        "y": 384
+      },
+      {
+        "height": 44,
+        "label": "23456",
+        "width": 219,
+        "x": 160,
+        "y": 470
+      },
+      {
+        "height": 44,
+        "label": "Mixed: 300 / 150 / 0Everyone: 300Everyone: 0",
+        "width": 219,
+        "x": 389,
+        "y": 470
+      },
+      {
+        "height": 44,
+        "label": "TrailRiverSummit",
+        "width": 219,
+        "x": 160,
+        "y": 550
+      },
+      {
+        "height": 44,
+        "label": "Simulate round",
+        "width": 219,
+        "x": 160,
+        "y": 610
+      },
+      {
+        "height": 44,
+        "label": "Results",
+        "width": 219,
+        "x": 389,
+        "y": 610
+      },
+      {
+        "height": 44,
+        "label": "Replay animation",
+        "width": 219,
+        "x": 160,
+        "y": 664
+      },
+      {
+        "height": 44,
+        "label": "Restart",
+        "width": 219,
+        "x": 389,
+        "y": 664
+      },
+      {
+        "height": 44,
+        "label": "Close",
+        "width": 28,
+        "x": 588,
+        "y": 308
+      }
+    ],
+    "dialog": {
+      "height": 424,
+      "width": 480,
+      "x": 144,
+      "y": 300
+    },
+    "scroll": 0,
+    "viewport": {
+      "height": 1024,
+      "width": 768
+    }
+  },
+  {
+    "controls": [
+      {
+        "height": 44,
+        "label": "Tower",
+        "width": 219,
+        "x": 256,
+        "y": 142
+      },
+      {
+        "height": 44,
+        "label": "Expedition",
+        "width": 219,
+        "x": 485,
+        "y": 142
+      },
+      {
+        "height": 44,
+        "label": "23456",
+        "width": 219,
+        "x": 256,
+        "y": 228
+      },
+      {
+        "height": 44,
+        "label": "Mixed: 300 / 150 / 0Everyone: 300Everyone: 0",
+        "width": 219,
+        "x": 485,
+        "y": 228
+      },
+      {
+        "height": 44,
+        "label": "TrailRiverSummit",
+        "width": 219,
+        "x": 256,
+        "y": 308
+      },
+      {
+        "height": 44,
+        "label": "Simulate round",
+        "width": 219,
+        "x": 256,
+        "y": 368
+      },
+      {
+        "height": 44,
+        "label": "Results",
+        "width": 219,
+        "x": 485,
+        "y": 368
+      },
+      {
+        "height": 44,
+        "label": "Replay animation",
+        "width": 219,
+        "x": 256,
+        "y": 422
+      },
+      {
+        "height": 44,
+        "label": "Restart",
+        "width": 219,
+        "x": 485,
+        "y": 422
+      },
+      {
+        "height": 44,
+        "label": "Close",
+        "width": 28,
+        "x": 684,
+        "y": 66
+      }
+    ],
+    "dialog": {
+      "height": 424,
+      "width": 480,
+      "x": 240,
+      "y": 58
+    },
+    "scroll": 0,
+    "viewport": {
+      "height": 540,
+      "width": 960
+    }
+  },
+  {
+    "controls": [
+      {
+        "height": 44,
+        "label": "Tower",
+        "width": 219,
+        "x": 416,
+        "y": 232
+      },
+      {
+        "height": 44,
+        "label": "Expedition",
+        "width": 219,
+        "x": 645,
+        "y": 232
+      },
+      {
+        "height": 44,
+        "label": "23456",
+        "width": 219,
+        "x": 416,
+        "y": 318
+      },
+      {
+        "height": 44,
+        "label": "Mixed: 300 / 150 / 0Everyone: 300Everyone: 0",
+        "width": 219,
+        "x": 645,
+        "y": 318
+      },
+      {
+        "height": 44,
+        "label": "TrailRiverSummit",
+        "width": 219,
+        "x": 416,
+        "y": 398
+      },
+      {
+        "height": 44,
+        "label": "Simulate round",
+        "width": 219,
+        "x": 416,
+        "y": 458
+      },
+      {
+        "height": 44,
+        "label": "Results",
+        "width": 219,
+        "x": 645,
+        "y": 458
+      },
+      {
+        "height": 44,
+        "label": "Replay animation",
+        "width": 219,
+        "x": 416,
+        "y": 512
+      },
+      {
+        "height": 44,
+        "label": "Restart",
+        "width": 219,
+        "x": 645,
+        "y": 512
+      },
+      {
+        "height": 44,
+        "label": "Close",
+        "width": 28,
+        "x": 844,
+        "y": 156
+      }
+    ],
+    "dialog": {
+      "height": 424,
+      "width": 480,
+      "x": 400,
+      "y": 148
+    },
+    "scroll": 0,
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  }
+]

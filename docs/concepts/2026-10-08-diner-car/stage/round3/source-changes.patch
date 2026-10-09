@@ -1,0 +1,712 @@
+--- round3-start/components/game/diner/places.ts
++++ round3-final/components/game/diner/places.ts
+@@ -335,6 +335,155 @@
+   });
+ }
+ 
++/** A softly lit interior, darkest beneath the lintel and beside the frame. */
++function windowLight(k: StageKit, width: number, height: number, at: V3) {
++  const geo = new THREE.PlaneGeometry(
++    width,
++    height,
++    6,
++    k.quality === 'high' ? 8 : 4,
++  );
++  k.add('glow', '#d4a46a', geo, at);
++  const pane = k.parts.glow![k.parts.glow!.length - 1],
++    pos = pane.getAttribute('position'),
++    colour = pane.getAttribute('color'),
++    amber = new THREE.Color('#d4a46a'),
++    shade = new THREE.Color('#614731'),
++    tint = new THREE.Color();
++  for (let i = 0; i < pos.count; i++) {
++    const u = (pos.getX(i) - at[0]) / width,
++      v = THREE.MathUtils.clamp((pos.getY(i) - at[1]) / height + 0.5, 0, 1),
++      lit = (0.24 + 0.76 * (1 - v) ** 0.65) * (1 - Math.abs(u) * 0.48);
++    tint.copy(shade).lerp(amber, lit);
++    colour.setXYZ(i, tint.r, tint.g, tint.b);
++  }
++}
++
++function cinemaGradient(quality: StageQuality) {
++  const width = quality === 'high' ? 256 : 128,
++    height = width / 2,
++    bytes = new Uint8Array(width * height * 4);
++  for (let y = 0; y < height; y++)
++    for (let x = 0; x < width; x++) {
++      const u = x / (width - 1),
++        v = y / (height - 1),
++        falloff =
++          0.7 + Math.sin(u * Math.PI) * 0.15 + Math.sin(v * Math.PI) * 0.15;
++      bytes.set(
++        [
++          Math.round((132 - v * 34) * falloff),
++          Math.round((188 - v * 35) * falloff),
++          Math.round((219 - v * 25) * falloff),
++          255,
++        ],
++        (y * width + x) * 4,
++      );
++    }
++  const tex = new THREE.DataTexture(bytes, width, height, THREE.RGBAFormat);
++  tex.colorSpace = THREE.SRGBColorSpace;
++  tex.minFilter = THREE.LinearMipmapLinearFilter;
++  tex.magFilter = THREE.LinearFilter;
++  tex.generateMipmaps = true;
++  tex.needsUpdate = true;
++  return tex;
++}
++
++/** Optical haze dissipates near the lamp; the broad end has no hard cutoff. */
++function lighthouseFade() {
++  const n = 64,
++    bytes = new Uint8Array(n * n * 4);
++  for (let y = 0; y < n; y++)
++    for (let x = 0; x < n; x++) {
++      const fade = Math.round(255 * (y / (n - 1)) ** 3.6);
++      bytes.set([fade, fade, fade, 255], (y * n + x) * 4);
++    }
++  const tex = new THREE.DataTexture(bytes, n, n, THREE.RGBAFormat);
++  tex.minFilter = tex.magFilter = THREE.LinearFilter;
++  tex.needsUpdate = true;
++  return tex;
++}
++
++/** Recessed lunar bowls and raised ejecta rims retain the approved disc outline. */
++function crateredMoon(quality: StageQuality, owned: { dispose(): void }[]) {
++  const geo = new THREE.SphereGeometry(
++    2.05,
++    quality === 'high' ? 96 : 48,
++    quality === 'high' ? 64 : 32,
++  );
++  geo.scale(1, 1, 0.085);
++  const pos = geo.getAttribute('position'),
++    colours = new Float32Array(pos.count * 3),
++    craters = [
++      [-0.85, 0.45, 0.4, 0.075],
++      [0.52, -0.52, 0.31, 0.07],
++      [0.46, 1.02, 0.36, 0.07],
++      [-0.33, -1.16, 0.26, 0.06],
++      [1.16, 0.48, 0.27, 0.055],
++      [-1.32, -0.48, 0.17, 0.04],
++      [0.05, 0.05, 0.16, 0.04],
++      [0.76, -1.17, 0.14, 0.033],
++      [-0.3, 1.44, 0.15, 0.038],
++    ];
++  for (let i = 0; i < pos.count; i++) {
++    const x = pos.getX(i),
++      y = pos.getY(i),
++      z = pos.getZ(i);
++    let relief = 0;
++    const mare =
++      Math.exp(-(((x + 0.65) / 0.75) ** 2 + ((y - 0.15) / 1.1) ** 2)) +
++      0.65 * Math.exp(-(((x - 0.85) / 0.55) ** 2 + ((y - 0.8) / 0.7) ** 2));
++    let value =
++      0.88 -
++      mare * 0.34 +
++      Math.sin(x * 21 + y * 13) * Math.sin(y * 27 - x * 9) * 0.025;
++    if (z > 0) {
++      for (const [cx, cy, radius, depth] of craters) {
++        const d = Math.hypot(x - cx, y - cy) / radius,
++          bowl = Math.max(0, 1 - d * d) ** 2,
++          rim = Math.exp(-(((d - 1) / 0.16) ** 2));
++        relief += rim * 0.035 - bowl * depth * 1.4;
++        const innerLight = ((x - cx) * -0.65 + (y - cy) * 0.35) / radius;
++        value += rim * 0.12 - bowl * 0.33 + bowl * innerLight * 0.2;
++      }
++      const edge = Math.min(1, z / 0.055);
++      pos.setZ(i, z + relief * edge);
++    }
++    colours.set([value * 0.96, value * 0.95, value], i * 3);
++  }
++  geo.setAttribute('color', new THREE.BufferAttribute(colours, 3));
++  geo.computeVertexNormals();
++  // A quiet raking-light tint keeps crater walls legible in both game cameras,
++  // even where the global moon light meets this shallow face edge-on.
++  const normals = geo.getAttribute('normal');
++  for (let i = 0; i < pos.count; i++) {
++    const light = Math.max(
++        0,
++        normals.getX(i) * -0.55 +
++          normals.getY(i) * 0.65 +
++          normals.getZ(i) * 0.52,
++      ),
++      shade = 0.55 + Math.min(1, light) * 0.45;
++    for (let c = 0; c < 3; c++) colours[i * 3 + c] *= shade;
++  }
++  geo.computeBoundingSphere();
++  const mat = new THREE.MeshStandardMaterial({
++    color: '#9994ab',
++    emissive: '#6c657e',
++    emissiveIntensity: 0.18,
++    vertexColors: true,
++    roughness: 1,
++    metalness: 0,
++  });
++  mat.name = 'soft-celestial-lunar-relief';
++  owned.push(mat);
++  const moon = new THREE.Mesh(geo, mat);
++  moon.name = 'moon';
++  moon.userData.dynamic = true;
++  moon.position.set(8.3, 1.7, -4.5);
++  moon.rotation.x = (-44 * Math.PI) / 180;
++  return moon;
++}
++
+ function shop(
+   k: StageKit,
+   x: number,
+@@ -342,6 +491,7 @@
+   w: number,
+   h: number,
+   colour: string,
++  surfaces: StageKit,
+ ) {
+   k.box('paint', '#48434e', [w + 0.14, 0.28, 2.25], [x, -0.14, z]);
+   k.rbox('paint', colour, [w, h, 2.1], 0.04, [x, h / 2, z]);
+@@ -376,11 +526,7 @@
+       1.0,
+       z + 1.11,
+     ]);
+-    k.add('glow', '#d4a46a', panel(w * 0.29, 1.15, 0.12, 0.03, k.quality), [
+-      x + dx,
+-      1.0,
+-      z + 1.19,
+-    ]);
++    windowLight(surfaces, w * 0.29, 1.15, [x + dx, 1.0, z + 1.205]);
+     k.box('wood', '#73685d', [0.045, 1.18, 0.04], [x + dx, 1.0, z + 1.22]);
+     for (let row = 0; row < 2; row++) {
+       k.box(
+@@ -406,11 +552,19 @@
+       [x + dx, 1.52, z + 1.235],
+     );
+     if (h > 3) {
+-      k.add('glow', '#a5b1b8', panel(w * 0.22, 0.83, 0.06, 0.03, k.quality), [
+-        x + dx,
+-        h - 1.05,
+-        z + 1.075,
+-      ]);
++      windowLight(surfaces, w * 0.22, 0.83, [x + dx, h - 1.05, z + 1.09]);
++      k.box(
++        'wood',
++        '#615348',
++        [0.045, 0.86, 0.04],
++        [x + dx, h - 1.05, z + 1.12],
++      );
++      k.box(
++        'wood',
++        '#615348',
++        [w * 0.22, 0.035, 0.04],
++        [x + dx, h - 1.08, z + 1.12],
++      );
+       k.box(
+         'ceramic',
+         '#ac9c8f',
+@@ -832,12 +986,19 @@
+   }
+ }
+ 
+-function stall(k: StageKit, at: V3, colour: string, w = 2.9, ticket = false) {
++function stall(
++  k: StageKit,
++  at: V3,
++  colour: string,
++  w: number,
++  ticket: boolean,
++  surfaces: StageKit,
++) {
+   const [x, y, z] = at;
+   k.box('wood', '#725648', [w, 0.9, 1.6], [x, y + 0.45, z]);
+   k.box('gloss', colour, [w + 0.06, 0.07, 1.76], [x, y + 0.95, z]);
+   k.box('paint', '#3d3249', [w - 0.22, 0.9, 0.045], [x, y + 1.45, z - 0.71]);
+-  k.box('glow', '#d2a368', [w - 0.46, 0.65, 0.03], [x, y + 1.5, z - 0.66]);
++  windowLight(surfaces, w - 0.46, 0.65, [x, y + 1.5, z - 0.645]);
+   for (const dx of [-w * 0.46, w * 0.46])
+     k.cyl('wood', '#c1a270', 0.042, 0.055, 2.3, [x + dx, y + 1.1, z + 0.7], {
+       seg: 8,
+@@ -1653,6 +1814,7 @@
+   quality: StageQuality,
+   owned: { dispose(): void }[],
+   motions: Motion[],
++  surfaces: StageKit,
+ ) {
+   const pools: Pool[] = [],
+     people: WalkingPath[] = [];
+@@ -1703,7 +1865,7 @@
+     patch(k, [4.1, -0.216, 15.3], 7.5, 2.2, '#664653', true);
+     pools.push({ x: 5.5, z: 13.8, w: 9, d: 5, colour: '#9a4b54' });
+     // Lit service hall, windows, tyre stacks and tank give the far apron purpose.
+-    shop(k, 4.3, -8.25, 8.7, 2.2, '#63515a');
++    shop(k, 4.3, -8.25, 8.7, 2.2, '#63515a', surfaces);
+     k.box('gloss', '#864b3b', [9.1, 0.16, 2.9], [4.3, 2.36, -8.05]);
+     k.cyl('chrome', '#8c8081', 0.15, 0.18, 0.37, [5.6, 2.89, -8.5], {
+       seg: 10,
+@@ -1810,7 +1972,7 @@
+           pools.push({ x, z: z + 1.2, w: 3.4, d: 4.6, colour: '#507a9e' });
+       }
+     // Concession hall, lit menu panels and canopied queues at the back.
+-    shop(k, 5.5, -29, 7.8, 2.2, '#526075');
++    shop(k, 5.5, -29, 7.8, 2.2, '#526075', surfaces);
+     k.box('glow', '#688fac', [7.7, 0.06, 0.055], [5.5, 2.2, -27.84]);
+     pools.push(
+       { x: 5.5, z: -25.3, w: 12, d: 7, colour: '#75a0ba' },
+@@ -1878,7 +2040,7 @@
+     ];
+     for (let i = 0; i < sites.length; i++) {
+       const [x, z, tint] = sites[i];
+-      stall(k, [x, -0.24, z], tint, i > 3 ? 3.5 : 3.0);
++      stall(k, [x, -0.24, z], tint, i > 3 ? 3.5 : 3.0, false, surfaces);
+       pools.push({
+         x,
+         z: z + 1.5,
+@@ -1888,7 +2050,7 @@
+       });
+       people.push([x + 0.5, z + 2.1, 0.45, 0.4], [x - 0.7, z + 2.6, 0.5, 0.25]);
+     }
+-    stall(k, [5.1, -0.24, 16.7], '#914762', 2.65, true);
++    stall(k, [5.1, -0.24, 16.7], '#914762', 2.65, true, surfaces);
+     pools.push({ x: 5.1, z: 14.4, w: 5, d: 6.4, colour: '#cb846c' });
+     for (const z of [-9.0, -18, 13.4]) {
+       pennants(k, [-4.5, 2.2, z], [15.5, 2.4, z], 24);
+@@ -1986,13 +2148,19 @@
+       const raised = z < -19;
+       if (raised) {
+         k.box('paint', '#3f545e', [w + 0.2, 1.08, 2.35], [x, 0.29, z]);
+-        const source = new StageKit(quality);
+-        shop(source, 0, 0, w, 2.0, tint);
++        const source = new StageKit(quality),
++          sourceSurfaces = new StageKit(quality);
++        shop(source, 0, 0, w, 2.0, tint, sourceSurfaces);
+         for (const [mat, geo] of Object.entries(source.build())) {
+           geo.translate(x, 0.83, z);
+           (k.parts[mat as keyof typeof k.parts] ??= []).push(geo);
+         }
+-      } else shop(k, x, z, w, 2.0, tint);
++        const panes = sourceSurfaces.build().glow;
++        if (panes) {
++          panes.translate(x, 0.83, z);
++          (surfaces.parts.glow ??= []).push(panes);
++        }
++      } else shop(k, x, z, w, 2.0, tint, surfaces);
+       pools.push({
+         x,
+         z: z + 1.5,
+@@ -2121,6 +2289,7 @@
+           4.8 + (i % 2) * 0.45,
+           height,
+           ['#77545a', '#655d68', '#5a6564', '#806552'][(i + row) % 4],
++          surfaces,
+         );
+         pools.push({ x, z: z + 2.2, w: 6, d: 5.4, colour: '#bb895d' });
+       }
+@@ -2176,7 +2345,7 @@
+     }
+     // Dish sits on a low actual rise with wiring and a field observatory hut.
+     mesa(k, [2.7, -0.24, -5.6], 2.4, 0.22, '#756781');
+-    shop(k, 3.0, -18.1, 5.5, 2.2, '#5e5677');
++    shop(k, 3.0, -18.1, 5.5, 2.2, '#5e5677', surfaces);
+     k.box('gloss', '#88785f', [5.8, 0.14, 2.75], [3.0, 2.35, -18.1]);
+     k.box('paint', '#40364f', [1.0, 1.4, 0.06], [3.0, 0.62, -16.9]);
+     for (const x of [-0.6, 6.6]) {
+@@ -2203,7 +2372,7 @@
+     for (const x of [-0.3, 6.2]) lamp(k, x, -13.4, 2.5, '#c4aec6');
+     pools.push({ x: 3, z: -15.0, w: 10, d: 8, colour: '#a581ab' });
+     // Rocket motel has luminous rooms and an open desert forecourt.
+-    shop(k, 18.0, 4.8, 6.5, 2.3, '#705363');
++    shop(k, 18.0, 4.8, 6.5, 2.3, '#705363', surfaces);
+     k.box('glow', '#b36a91', [6.6, 0.055, 0.06], [18, 2.44, 6.0]);
+     for (let n = 0; n < 5; n++) {
+       k.box(
+@@ -2307,16 +2476,16 @@
+   lightPools(group, pools, owned, motions);
+ }
+ 
+-function mapDistrict(k: StageKit, place: PlaceId) {
++function mapDistrict(k: StageKit, place: PlaceId, surfaces: StageKit) {
+   if (place === 'truckstop') {
+-    shop(k, 1.9, -1.0, 1.9, 1.1, '#735847');
++    shop(k, 1.9, -1.0, 1.9, 1.1, '#735847', surfaces);
+     for (let i = 0; i < 3; i++)
+       k.cyl('paint', '#303039', 0.18, 0.18, 0.14, [2.9, 0.1 + i * 0.16, 0.3], {
+         seg: 8,
+       });
+     crate(k, 1.3, 0, 0.4, 0.35);
+   } else if (place === 'drivein') {
+-    stall(k, [2.65, 0, 0.7], '#576d85', 1.1, true);
++    stall(k, [2.65, 0, 0.7], '#576d85', 1.1, true, surfaces);
+     for (const x of [-2.0, 0.6]) {
+       k.cyl('chrome', '#81929c', 0.018, 0.026, 0.68, [x, 0.34, 1.9], {
+         seg: 6,
+@@ -2324,10 +2493,10 @@
+       k.box('paint', '#354459', [0.13, 0.15, 0.1], [x, 0.71, 1.9]);
+     }
+   } else if (place === 'fairground') {
+-    stall(k, [-2.4, 0, 1.1], '#9f5a78', 1.35, true);
++    stall(k, [-2.4, 0, 1.1], '#9f5a78', 1.35, true, surfaces);
+     pennants(k, [-1.9, 1.35, 1.6], [2.3, 1.4, 1.8], 9);
+   } else if (place === 'harbour') {
+-    shop(k, -1.8, -0.2, 1.8, 1.35, '#546c73');
++    shop(k, -1.8, -0.2, 1.8, 1.35, '#546c73', surfaces);
+     for (let i = 0; i < 7; i++)
+       k.box(
+         'wood',
+@@ -2338,7 +2507,7 @@
+     crate(k, 0.6, 0.06, 2.1, 0.3);
+     k.cyl('paint', '#3d4b50', 0.08, 0.11, 0.34, [1.85, 0.19, 2.4], { seg: 8 });
+   } else if (place === 'oldtown') {
+-    shop(k, 1.8, -0.65, 1.75, 1.6, '#786473');
++    shop(k, 1.8, -0.65, 1.75, 1.6, '#786473', surfaces);
+     bench(k, 0, 1.95, 0);
+     k.cyl('ceramic', '#9b8b7b', 0.43, 0.48, 0.13, [-1.3, 0.055, 1.7], {
+       seg: 16,
+@@ -2348,7 +2517,7 @@
+   } else {
+     desertPlants(k, -1.5, 1.25, 0.44);
+     rocks(k, -2.7, 0.6, 0.4);
+-    shop(k, 0.6, -1.5, 1.3, 0.8, '#62526f');
++    shop(k, 0.6, -1.5, 1.3, 0.8, '#62526f', surfaces);
+     k.box('glow', '#9e799b', [1.3, 0.035, 0.03], [0.6, 0.91, -0.38]);
+   }
+ }
+@@ -2364,10 +2533,14 @@
+   group.name = `place-${place}-${options.detail}`;
+   const own = glowMaterials(materials),
+     mats = own.materials,
+-    k = new StageKit(quality);
++    k = new StageKit(quality),
++    surfaces = new StageKit(quality),
++    surfaceGlow = own.glow.clone();
+   own.glow.color.setScalar(3);
++  surfaceGlow.color.setScalar(1);
++  surfaceGlow.name = 'bounded-large-place-glows';
+   const motions: Motion[] = [],
+-    owned: { dispose(): void }[] = [own.glow],
++    owned: { dispose(): void }[] = [own.glow, surfaceGlow],
+     landmarks: THREE.Vector3[] = [];
+   // Map vignettes use their own compact composition; no ground tile or diner copy.
+   const dynamic = (name: string, source: StageKit, position: V3) => {
+@@ -2382,7 +2555,7 @@
+ 
+   if (place === 'truckstop') {
+     const h = stage ? 3.65 : 4.5,
+-      sign: V3 = stage ? [3.3, 0, -3.25] : [0, 0, 0];
++      sign: V3 = stage ? [15.3, 0, 0.2] : [0, 0, 0];
+     k.cyl('chrome', '#9facb2', 0.13, 0.2, h, [sign[0], h / 2, sign[2]]);
+     k.add(
+       'gloss',
+@@ -2409,8 +2582,13 @@
+     for (const x of [-1.2, 1.2]) pump(pk, x, 0);
+     for (const x of [-2.1, 2.1])
+       pk.cyl('chrome', '#b3c4c6', 0.07, 0.07, 2.5, [x, 1.25, 0]);
+-    pk.rbox('gloss', '#dfbf91', [5.0, 0.25, 2.45], 0.1, [0, 2.5, 0]);
+-    pk.box('glow', '#ffc588', [4.8, 0.055, 0.06], [0, 2.48, 1.24]);
++    pk.rbox('gloss', '#c4a479', [5.0, 0.25, 2.45], 0.1, [0, 2.5, 0]);
++    surfaces.box(
++      'glow',
++      '#d4a46a',
++      [4.8 * s, 0.055 * s, 0.06 * s],
++      [px, 2.48 * s, pz + 1.24 * s],
++    );
+     const p = joinKit(group, pk, mats, 'pumps');
+     p.position.set(px, 0, pz);
+     p.scale.setScalar(s);
+@@ -2442,7 +2620,13 @@
+       lamp(k, -11, -5, 6.4, '#f7b278');
+       lamp(k, 23, -5, 6.4, '#f7b278');
+     }
+-    landmarks.push(new THREE.Vector3(sign[0], h + 0.8, sign[2]));
++    // Retain the original central framing envelope: roadside signs do not widen
++    // the phone camera or shrink the patio to include offscreen surroundings.
++    landmarks.push(
++      stage
++        ? new THREE.Vector3(3.3, h + 0.8, -3.25)
++        : new THREE.Vector3(sign[0], h + 0.8, sign[2]),
++    );
+   } else if (place === 'drivein') {
+     const center = stage ? ([5.5, 3.0, -3.65] as V3) : ([0, 2.0, 0] as V3);
+     const w = stage ? 10.0 : 4.5,
+@@ -2462,15 +2646,25 @@
+         [center[0] + s * w * 0.42, center[1] + h * 0.4, center[2]],
+         0.14,
+       );
++    const screenTex = cinemaGradient(quality);
+     const screenMat = new THREE.MeshBasicMaterial({
+-      color: '#82bdcc',
++      color: '#ffffff',
++      map: screenTex,
+       toneMapped: false,
+     });
+-    owned.push(screenMat);
++    owned.push(screenMat, screenTex);
+     const screenColour = screenMat.color.clone();
+     const screenGeo = panel(w - 0.18, h - 0.16, 0.08, 0.02, quality);
++    const screenUV = screenGeo.getAttribute('uv');
++    for (let i = 0; i < screenUV.count; i++)
++      screenUV.setXY(
++        i,
++        screenUV.getX(i) / (w - 0.18) + 0.5,
++        screenUV.getY(i) / (h - 0.16) + 0.5,
++      );
+     const screen = new THREE.Mesh(screenGeo, screenMat);
+     screen.position.set(center[0], center[1], center[2] + 0.32);
++    screen.name = 'blue-cinema-screen';
+     group.add(screen);
+     // Film is a considered physical silhouette of a rocket above layered mountains.
+     const film = new StageKit(quality),
+@@ -2517,11 +2711,13 @@
+       ],
+       0.1 * f,
+     );
+-    joinKit(group, film, mats, 'movie');
++    joinKit(group, film, { ...mats, glow: surfaceGlow }, 'movie');
+     motions.push((t, cues) => {
+       screenMat.color
+         .copy(screenColour)
+-        .multiplyScalar(lightLevel(cues) * (2.5 + Math.sin(t * 11) * 0.04));
++        .multiplyScalar(
++          Math.min(1.12, lightLevel(cues) * (1 + Math.sin(t * 11) * 0.02)),
++        );
+     });
+     if (stage) {
+       for (let row = 0; row < 2; row++)
+@@ -2757,25 +2953,33 @@
+     sweep.userData.dynamic = true;
+     sweep.position.set(x, (h + 0.45) * towerScale, z);
+     group.add(sweep);
++    const fade = lighthouseFade();
+     const beamMat = new THREE.MeshBasicMaterial({
+-      color: '#a6e0d5',
++      color: '#7ea6aa',
++      alphaMap: fade,
+       transparent: true,
+-      opacity: 0.065,
++      opacity: 0.035,
++      forceSinglePass: true,
+       depthWrite: false,
+       side: THREE.DoubleSide,
+       blending: THREE.AdditiveBlending,
+     });
+-    owned.push(beamMat);
++    owned.push(beamMat, fade);
++    const length = stage ? 7.5 : 4.2;
+     const beam = new THREE.Mesh(
+-      new THREE.ConeGeometry(stage ? 3 : 1.2, stage ? 17 : 6.5, 16, 1, true),
++      new THREE.ConeGeometry(stage ? 1.05 : 0.58, length, 16, 1, true),
+       beamMat,
+     );
++    beam.name = 'sea-facing-lighthouse-beam';
+     beam.rotation.z = Math.PI / 2;
+-    beam.position.x = stage ? 8.5 : 3.25;
++    beam.position.x = length / 2 + 0.45;
+     sweep.add(beam);
++    sweep.name = 'sea-facing-lighthouse-sweep';
++    sweep.rotation.y = Math.PI / 2;
+     motions.push((t, cues) => {
+-      sweep.rotation.y = t * 0.23;
+-      beamMat.opacity = 0.065 * lightLevel(cues);
++      // +y yaw points the cone's +x axis toward -z: never toward the apron.
++      sweep.rotation.y = Math.PI / 2 + Math.sin(t * 0.23) * 0.52;
++      beamMat.opacity = 0.035 * lightLevel(cues);
+     });
+     if (stage) {
+       // Water is continuous; piers meet the patio apron without a moat.
+@@ -2791,7 +2995,7 @@
+           k.cyl('wood', '#5a635e', 0.16, 0.2, 1.0, [px, 0, pz]);
+           k.torus('chrome', '#96aba7', 0.18, 0.025, [px, 0.42, pz]);
+         }
+-      shop(k, -9.5, -7, 5.2, 2.6, '#5b7e82');
++      shop(k, -9.5, -7, 5.2, 2.6, '#5b7e82', surfaces);
+       k.box('wood', '#5c574e', [5.8, 0.08, 3.0], [-9.5, -0.04, -7]);
+     }
+     for (let n = 0; n < (stage ? 3 : 1); n++) {
+@@ -2851,7 +3055,7 @@
+       [clock[0], cy, cz],
+       { axis: 'z', seg: 32 },
+     );
+-    k.cyl('glow', '#e4c894', radius, radius, 0.09, [clock[0], cy, cz], {
++    surfaces.cyl('glow', '#d4b682', radius, radius, 0.09, [clock[0], cy, cz], {
+       axis: 'z',
+       seg: 32,
+     });
+@@ -2891,12 +3095,12 @@
+         [12.3, 4.2, '#877485'],
+         [17.0, 3.4, '#9c826c'],
+       ] as [number, number, string][])
+-        shop(k, px, -7.1, 4.3, height, tint);
++        shop(k, px, -7.1, 4.3, height, tint, surfaces);
+       for (const px of [-4.5, 15.5])
+         for (const pz of [-3, 11.2]) lamp(k, px, pz, 4.2);
+     } else {
+       const sk = new StageKit(quality);
+-      shop(sk, -2.3, 0.2, 2.6, 2.4, '#9a776c');
++      shop(sk, -2.3, 0.2, 2.6, 2.4, '#9a776c', surfaces);
+       joinKit(group, sk, mats, 'shopfront');
+       lamp(k, 1.8, 1.2, 2.0);
+     }
+@@ -3003,27 +3207,7 @@
+       rg.rotation.z = Math.sin(t * 0.6) * 0.0015;
+     });
+     if (stage) {
+-      const moon = new StageKit(quality);
+-      // Celestial disc behind the parked car, never a sphere inside its roof.
+-      moon.sphere('glow', '#c7bdca', 2.05, [0, 0, 0], {
+-        scale: [1, 1, 0.05],
+-        seg: 40,
+-      });
+-      for (let i = 0; i < 8; i++) {
+-        const px = Math.sin(i * 2.17) * (0.5 + (i % 3) * 0.25),
+-          py = Math.cos(i * 2.17) * (0.4 + (i % 3) * 0.25);
+-        const depth = Math.sqrt(2.05 ** 2 - px ** 2 - py ** 2);
+-        moon.sphere(
+-          'glow',
+-          '#a99fb8',
+-          0.12 + (i % 3) * 0.075,
+-          [px, py, depth * 0.05 + 0.012],
+-          { scale: [1.1, 1, 0.08], seg: 16 },
+-        );
+-      }
+-      const lunarDisc = joinKit(group, moon, materials, 'moon');
+-      lunarDisc.position.set(8.3, 1.7, -4.5);
+-      lunarDisc.rotation.x = (-44 * Math.PI) / 180;
++      group.add(crateredMoon(quality, owned));
+       landmarks.push(new THREE.Vector3(8.3, 3.25, -5.93));
+       for (const px of [-4, 17, 22]) {
+         k.cyl('paint', '#527f78', 0.1, 0.17, 1.45, [px, 0.5, 4.8]);
+@@ -3043,7 +3227,16 @@
+   }
+   if (stage) {
+     const district = new StageKit(quality);
+-    stageDistrict(place, district, group, mats, quality, owned, motions);
++    stageDistrict(
++      place,
++      district,
++      group,
++      mats,
++      quality,
++      owned,
++      motions,
++      surfaces,
++    );
+     const scenery = joinKit(
+       group,
+       district,
+@@ -3056,7 +3249,16 @@
+     scenery.traverse((o) => {
+       if (o instanceof THREE.Mesh) o.castShadow = false;
+     });
+-  } else mapDistrict(k, place);
++  } else mapDistrict(k, place, surfaces);
++  const largeGlows = joinKit(
++    group,
++    surfaces,
++    { ...mats, glow: surfaceGlow },
++    'large-place-glows',
++  );
++  largeGlows.traverse((o) => {
++    if (o instanceof THREE.Mesh) o.castShadow = false;
++  });
+   joinKit(group, k, mats, 'place-static');
+   return {
+     group,
+@@ -3064,6 +3266,7 @@
+     update(cues) {
+       const time = cues.reduced ? 0 : cues.time;
+       own.glow.color.setScalar(lightLevel(cues, 1.3) * 3.0);
++      surfaceGlow.color.setScalar(Math.min(1.12, lightLevel(cues, 1.3)));
+       for (const motion of motions) motion(time, cues);
+     },
+     dispose: modelDisposer(group, owned),
+--- round3-start/components/game/diner/stage.ts
++++ round3-final/components/game/diner/stage.ts
+@@ -229,6 +229,47 @@
+   return tex;
+ }
+ 
++/** Cream laminate with sparse mineral chips, authored once in metre-scale UVs. */
++function counterLaminate() {
++  const n = 256,
++    bytes = new Uint8Array(n * n * 4);
++  const seed = (i: number) => {
++    let v = Math.imul(i + 41, 1597334677);
++    v = Math.imul(v ^ (v >>> 16), 2246822519);
++    return ((v ^ (v >>> 13)) >>> 0) / 4294967296;
++  };
++  for (let y = 0; y < n; y++)
++    for (let x = 0; x < n; x++) {
++      const grain = Math.round(seed(y * n + x) * 4 - 2);
++      bytes.set([224 + grain, 207 + grain, 176 + grain, 255], (y * n + x) * 4);
++    }
++  for (let i = 0; i < 190; i++) {
++    const cx = Math.floor(seed(i * 5) * n),
++      cy = Math.floor(seed(i * 5 + 1) * n),
++      rx = 1 + seed(i * 5 + 2) * 2.3,
++      ry = 0.8 + seed(i * 5 + 3) * 1.8,
++      colour = i % 4 === 0 ? [166, 116, 98] : [166, 151, 125];
++    for (let y = Math.floor(cy - ry); y <= cy + ry; y++)
++      for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
++        const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2;
++        if (d > 1) continue;
++        const at = (((y + n) % n) * n + ((x + n) % n)) * 4;
++        for (let c = 0; c < 3; c++)
++          bytes[at + c] = Math.round(bytes[at + c] * d + colour[c] * (1 - d));
++      }
++  }
++  const tex = new THREE.DataTexture(bytes, n, n, THREE.RGBAFormat);
++  tex.colorSpace = THREE.SRGBColorSpace;
++  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
++  tex.repeat.set(1 / 0.42, 1 / 0.42);
++  tex.minFilter = THREE.LinearMipmapLinearFilter;
++  tex.magFilter = THREE.LinearFilter;
++  tex.generateMipmaps = true;
++  tex.anisotropy = 4;
++  tex.needsUpdate = true;
++  return tex;
++}
++
+ function festoon(
+   k: StageKit,
+   bulbs: StageKit,
+@@ -543,11 +584,32 @@
+     [W - 0.05, 0.1, 0.09],
+     [W / 2, 0.09, COUNTER_Z - 0.045],
+   );
+-  k.rbox('chrome', C.chrome, [W + 0.18, 0.095, depth + 0.04], 0.028, [
++  k.rbox('chrome', C.chrome, [W + 0.18, 0.077, depth + 0.04], 0.028, [
+     W / 2,
+-    STAGE.counterTop - 0.0475,
++    STAGE.counterTop - 0.0565,
+     (STAGE.counterBack + COUNTER_Z) / 2 - 0.02,
+   ]);
++  const laminateTex = counterLaminate();
++  const laminateMat = new THREE.MeshPhysicalMaterial({
++    map: laminateTex,
++    vertexColors: true,
++    roughness: 0.58,
++    clearcoat: 0.28,
++    clearcoatRoughness: 0.38,
++  });
++  laminateMat.name = 'warm-speckled-counter-laminate';
++  const worktop = new StageKit(quality);
++  worktop.rbox('laminate', '#ffffff', [W + 0.135, 0.022, depth + 0.008], 0.01, [
++    W / 2,
++    STAGE.counterTop - 0.011,
++    (STAGE.counterBack + COUNTER_Z) / 2 - 0.02,
++  ]);
++  joinKit(
++    group,
++    worktop,
++    { ...materials, laminate: laminateMat },
++    'cream-laminate-worktop',
++  );
+   for (const y of [0.26, 0.62])
+     k.box(
+       'chrome',
+@@ -721,6 +783,8 @@
+     musicOwn.glow,
+     tex,
+     deckMat,
++    laminateTex,
++    laminateMat,
+     pools.texture,
+     pools.material,
+   ]);

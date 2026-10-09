@@ -1,5 +1,6 @@
 import { printedBoxArt } from './box-covers.ts';
 import { isGameAvailable } from './availability.ts';
+import { isHumanOnlyGame } from './player-policy.ts';
 import type { GameId } from './trio/engine';
 import { standaloneGames } from './standalone/registry.ts';
 import type { StandaloneId } from './standalone/types.ts';
@@ -38,6 +39,9 @@ export type LibraryGame = {
   duration: string;
   /** The same length read aloud. */
   durationSpoken: string;
+  /** A second, longer way to play the same game: it puts the game on the
+   * long shelf too. Its time is not shown. */
+  longMode?: { name: string; duration: string; durationSpoken: string };
   name: string;
   cover?: string;
   /** The cover image contains its own generated, styled game title. */
@@ -46,7 +50,9 @@ export type LibraryGame = {
   world: string;
   players: [number, number];
   mode: Mode;
-  weight: 1 | 2 | 3 | 4;
+  /** What kind of game it is in a word or two, on one badge that never
+   * wraps: the play, not the theme or the crowd. */
+  kind: string;
   genre: string;
   material: Material;
   palette: [string, string, string];
@@ -79,7 +85,7 @@ export const realGames: Record<GameId, LibraryGame> = {
     durationSpoken: '5 to 10 minutes',
     players: [3, 6],
     mode: 'Competitive',
-    weight: 2,
+    kind: 'Trick taking',
     genre: 'Trick taking',
     material: 'wood',
     palette: ['#1d1a16', '#5a4523', '#e8c777'],
@@ -92,7 +98,7 @@ export const realGames: Record<GameId, LibraryGame> = {
     durationSpoken: '5 to 10 minutes',
     players: [2, 6],
     mode: 'Competitive',
-    weight: 2,
+    kind: 'Card drafting',
     genre: 'Draft & place',
     material: 'kraft',
     palette: ['#5a6b3c', '#a3b06a', '#f3efdf'],
@@ -106,7 +112,7 @@ export const realGames: Record<GameId, LibraryGame> = {
     durationSpoken: '5 minutes',
     players: [2, 6],
     mode: 'Competitive',
-    weight: 1,
+    kind: 'Set collecting',
     genre: 'Set collection',
     material: 'card',
     palette: ['#1b2557', '#c9352d', '#ffd98a'],
@@ -137,7 +143,7 @@ const partyBoxes = {
     durationSpoken: '5 to 60 minutes or more',
     players: [2, 6],
     mode: 'Competitive',
-    weight: 1,
+    kind: 'Mind reading',
     genre: 'Knowing each other',
     material: 'card',
     palette: ['#b8432b', '#f2b531', '#fff6e2'],
@@ -145,12 +151,13 @@ const partyBoxes = {
     playing: [],
   }),
   miro: own('miro', {
-    world: 'Quick trivia rounds: pin places, size things up, date events, put things in order',
+    world:
+      'Quick Play, a tower to build, or an expedition for trophies: four trivia mini-games',
     duration: '5–60 min+',
     durationSpoken: '5 to 60 minutes or more',
     players: [2, 6],
     mode: 'Competitive',
-    weight: 1,
+    kind: 'Best guess',
     genre: 'Trivia',
     material: 'tin',
     palette: ['#1f5a4a', '#ff5a3c', '#fbf6e9'],
@@ -164,7 +171,7 @@ const partyBoxes = {
     durationSpoken: '10 to 40 minutes',
     players: [3, 8],
     mode: 'Competitive',
-    weight: 1,
+    kind: 'Draw & bluff',
     genre: 'Drawing & deduction',
     material: 'kraft',
     palette: ['#18213a', '#d2372b', '#f5ecd6'],
@@ -172,7 +179,7 @@ const partyBoxes = {
     playing: [],
   }),
 };
-/** The games inside Know Me and Quiz have no box of their own; their
+/** The games inside Know Me and Trivia have no box of their own; their
  * tables open the set's box. */
 export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
   ...partyBoxes,
@@ -186,7 +193,7 @@ export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
 const allLibraryGames: LibraryGame[] = [
   {
     id: 'folio',
-    name: 'Folio',
+    name: 'Puzzles',
     href: '/folio',
     ...printedBoxArt('folio'),
     world:
@@ -195,7 +202,7 @@ const allLibraryGames: LibraryGame[] = [
     durationSpoken: '5 to 60 minutes or more',
     players: [1, 3],
     mode: 'Co-op',
-    weight: 1,
+    kind: 'Brain teasers',
     genre: 'Puzzle roguelike',
     material: 'card',
     palette: ['#193d79', '#c5472c', '#f1dc93'],
@@ -213,7 +220,7 @@ const allLibraryGames: LibraryGame[] = [
     durationSpoken: '60 minutes or more',
     players: [1, 3],
     mode: 'Co-op',
-    weight: 1,
+    kind: 'Scratch cards',
     genre: 'Puzzle scratch tickets & factory',
     material: 'kraft',
     palette: ['#76583d', '#a5c8a0', '#f6e3bb'],
@@ -229,9 +236,14 @@ const allLibraryGames: LibraryGame[] = [
       'Two hill forts across a mountain stream. Send troops over the bridges in real time and knock the towers down',
     duration: '5 min',
     durationSpoken: '5 minutes',
+    longMode: {
+      name: 'Quest',
+      duration: '30–60 min',
+      durationSpoken: 'or a Quest of 30 to 60 minutes',
+    },
     players: [1, 4],
     mode: 'Competitive',
-    weight: 2,
+    kind: 'Tower battle',
     genre: 'Real-time battle',
     material: 'board',
     palette: ['#1d3f8f', '#c7372b', '#f4d27a'],
@@ -249,7 +261,7 @@ const allLibraryGames: LibraryGame[] = [
     durationSpoken: '10 to 20 minutes',
     players: [1, 6],
     mode: 'Competitive',
-    weight: 2,
+    kind: 'Roll & draw',
     genre: 'Roll & draw',
     material: 'board',
     palette: ['#1f5498', '#f1f6ff', '#d8b26a'],
@@ -267,7 +279,7 @@ const allLibraryGames: LibraryGame[] = [
     durationSpoken: '10 to 20 minutes',
     players: [2, 6],
     mode: 'Competitive',
-    weight: 3,
+    kind: 'Engine builder',
     genre: 'Engine building',
     material: 'cloth',
     palette: ['#1d2550', '#f3eadb', '#f0a040'],
@@ -280,12 +292,12 @@ const allLibraryGames: LibraryGame[] = [
     href: '/diner',
     ...printedBoxArt('diner'),
     world:
-      'Run a roadside diner at night: seat, cook, serve and clear, and throw out the mimics hiding among your guests',
-    duration: '3 min',
-    durationSpoken: '3 minutes',
+      'Tow a diner car through one night of forks, bosses and upgrades, or serve together in free play',
+    duration: '2–3 min / shift',
+    durationSpoken: 'Up to three minutes per shift',
     players: [1, 4],
     mode: 'Co-op',
-    weight: 2,
+    kind: 'Serving rush',
     genre: 'Real-time diner',
     material: 'board',
     palette: ['#c8162f', '#fff4de', '#7fd6c2'],
@@ -297,7 +309,9 @@ const allLibraryGames: LibraryGame[] = [
   standaloneLibraryGames.miro,
   standaloneLibraryGames.impostor,
 ];
-export const libraryGames = allLibraryGames.filter((game) => isGameAvailable(game.id));
+export const libraryGames = allLibraryGames.filter((game) =>
+  isGameAvailable(game.id),
+);
 export const playableGame = (id: string) =>
   libraryGames.find(
     (g) => g.id === id && (g.gameId || g.standaloneId || g.href),
@@ -306,36 +320,63 @@ export const gameByLibraryId = (id: string) =>
   libraryGames.find((g) => g.id === id);
 
 /**
- * The library groups games by kind. Add a new game to `libraryGames` and list its
- * id in one section here; a new kind of game gets a new section.
+ * The library has three shelves: quick games you can start on your own right
+ * now, longer ones to settle into (runs, shifts and a factory you come back
+ * to), and games made for a group of people. Bots fill any seats on the first
+ * two. A game with a long mode (Arena's Quest) sits on both. A new game goes
+ * in `quickOrder` or `longOrder`, or lands on With friends by being
+ * human-only in player-policy.ts.
  */
 export type LibrarySection = { id: string; title: string; games: string[] };
-const sectionsById = {
-  strategy: {
-    id: 'strategy',
-    title: 'Strategy',
-    games: ['arena', 'alto', 'rota', 'undertow', 'wildgrove', 'midnight'],
-  },
-  party: {
-    id: 'party',
-    title: 'Party',
-    games: ['impostor', 'orin', 'miro'],
-  },
-  solo: { id: 'solo', title: 'Solo & co-op', games: ['diner', 'folio', 'relic'].filter(isGameAvailable) },
-} satisfies Record<string, LibrarySection>;
-/** On the landing page strategy leads, then the games you can start by
- * yourself. */
+const available = (ids: string[]) =>
+  ids.filter((id) => libraryGames.some((g) => g.id === id));
+const quickOrder = [
+  'arena',
+  'rota',
+  'wildgrove',
+  'alto',
+  'midnight',
+  'undertow',
+];
+const longOrder = ['arena', 'diner', 'folio', 'relic'];
+export const quickGames = available(quickOrder).filter(
+  (id) => !isHumanOnlyGame(id),
+);
+export const longGames = available(longOrder).filter(
+  (id) => !isHumanOnlyGame(id),
+);
+export const withFriendsGames = available(['miro', 'impostor', 'orin']).filter(
+  (id) => isHumanOnlyGame(id),
+);
+/** Every game you can start alone, once each. */
+export const playNowGames = [...new Set([...quickGames, ...longGames])];
+/** On the landing page: quick games, longer ones, then the games for a group. */
 export const librarySections: LibrarySection[] = [
-  sectionsById.strategy,
-  sectionsById.solo,
-  sectionsById.party,
+  { id: 'quick', title: 'Quick games', games: quickGames },
+  { id: 'long', title: 'Stay a while', games: longGames },
+  { id: 'friends', title: 'With friends', games: withFriendsGames },
 ];
-/** At a table, the games made for a group lead. */
+/** At a table everyone is already together: the party games lead. */
 export const tableSections: LibrarySection[] = [
-  sectionsById.party,
-  sectionsById.strategy,
-  sectionsById.solo,
+  { id: 'party', title: 'Party', games: withFriendsGames },
+  { id: 'games', title: 'Games', games: playNowGames },
 ];
+/** The showcase leads with the games to show off first; the games for a
+ * group close it (Trivia, Impostor, Know Me). */
+export const showcaseGames = available([
+  'arena',
+  'rota',
+  'wildgrove',
+  'diner',
+  'alto',
+  'midnight',
+  'undertow',
+  'folio',
+  'relic',
+  'miro',
+  'impostor',
+  'orin',
+]);
 
 export const initials = (name: string) =>
   name

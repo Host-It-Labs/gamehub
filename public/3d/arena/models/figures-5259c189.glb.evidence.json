@@ -1,0 +1,69 @@
+{
+  "originalBytes": 35493988,
+  "mergedBytes": 36703508,
+  "sha256": "5259c1897a67b3ee2c170c23445d232c269e41c1bd970242d63ab24d3d2e0c1b",
+  "replaced": {
+    "gunner": "149cf6f8144ea7b84da73f0a71e26a1346115b1308583795f94abdd93136b591",
+    "imps": "f8619373ef9707efaef9d65ce1c2221761e83e27ba179396d0af5d0ca43b4c1d"
+  },
+  "unchangedRootHashes": {
+    "archers": "4d36ff92017dcf6b45a251298dde58dd090e8a9bc17da3d006bdf78d06119cc1",
+    "balloon": "c3a3f701de9f5d752a8c3fc5a41d12832200c9bb180ad5348602cea2f869fe71",
+    "bee": "465e784afd41a15221ba7057f7d88b60dc23bfe3a9e3de42e7024e1fbc28929b",
+    "beekeeper": "d65dbc62c86802a46c39d0faf480777fe0378bb4b7c403bb8ba1bea0a9f9a199",
+    "diver": "caf9708b2d3111ac8b2711cc69be1c268bb8705f97e9723977115837bfa129a3",
+    "drake": "b5f1b46d4cf71bb65a0e87cadd7e9ca5b58299d87a2d08574ccf02f3fcc44974",
+    "drummer": "ee983189b6ae0548830a679a52a15b55b9327388eaf19d5b20b098dec84a03a6",
+    "duelist": "da625fa8caab93da3fcbe7ad61f3c70cdcb3990e55077e28a19d365a1098f2b7",
+    "explorer": "49224cb13f78219dccb69887832c7ea92a8686923f7fea18a1943ae4992fffc6",
+    "firefighter": "a3202a80171fffcb43d6b04139ace6d1874ae9d998047ff0c460fc8a1986c316",
+    "gladiator": "23d0caceb6e7cb8cc936bf5df632596f99b608dc7678e899f61382d3636a230f",
+    "guard": "8191a0f285eded4339c3dbbb4872eaef8def79b746099fbe07555106f5e465bf",
+    "inventor": "db7b68c611a43e8955078f19c1e9f5cc7344dbae3e8e8aefdabe8ca3f0b92655",
+    "jetpack": "e463c4b133cd5d14a3302605bc4df5efd1b666ed2996c2909608ac51bf0c2155",
+    "linebacker": "c35f3ff68a6718720790733f0a805fb3842523f611f3e2f7b8972318c06e9f41",
+    "mage": "f2802fa7c167170dd3573d15d1aa7dc0e2503d7e7f1ffd78fbea3fde0b2b140b",
+    "medic": "ed9b31f711f8057f22e20a3c162b14945d30bb79de4a0988af4f7ceeba3b6c0e",
+    "miner": "1089674a5765137f8397a00f5ba0d078867cc013136accdcc41797545e83e8e2",
+    "ogre": "73a08369643fc5df16b24620d56883e593b34475689685398ce160f14bc0311a",
+    "pirate": "f05527167f277c88c55f42c1e8d7e47eccfb173912f72566dbd0b3fc808aa8c7",
+    "ranger": "8e0f6c6cb1a135f74745a03256659c5e90c0f4405d3fe43eb5875fa44834d29c",
+    "sumo": "4a4da59ad9e7c9eccf561b1ca8ee3ba2b0bdfa519d6fbd5219785c7ed2b519cd",
+    "viking": "d06f5e29fd27c4b2599cb4bd97e247cbe99dbc8fdb4cbf3ce09e87c3b61ede0c"
+  },
+  "skins": 22,
+  "sources": {
+    "base": "/Users/williamguinaudie/Documents/code/gamehub/public/3d/arena/models/figures-c2fb298a.glb",
+    "out": "/Users/williamguinaudie/Documents/code/gamehub/work/arena/figures-merge-candidate.glb",
+    "replace": {
+      "gunner": "/Users/williamguinaudie/Documents/code/gamehub/work/arena/2026-10-08-roster/gunner/gunner-collector-v1.glb",
+      "imps": "/Users/williamguinaudie/Documents/code/gamehub/work/arena/2026-10-08-roster/imps/imps-collector-v1.glb"
+    }
+  },
+  "unchanged": [
+    "archers",
+    "balloon",
+    "bee",
+    "beekeeper",
+    "diver",
+    "drake",
+    "drummer",
+    "duelist",
+    "explorer",
+    "firefighter",
+    "gladiator",
+    "guard",
+    "inventor",
+    "jetpack",
+    "linebacker",
+    "mage",
+    "medic",
+    "miner",
+    "ogre",
+    "pirate",
+    "ranger",
+    "sumo",
+    "viking"
+  ],
+  "validation": "All unchanged root transforms, materials, accessor contracts and raw geometry/index/AO buffers and skin joints/weights/bind matrices are byte-identical; each replaced root matches its reviewed standalone source."
+}

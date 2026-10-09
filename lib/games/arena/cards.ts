@@ -36,6 +36,12 @@ export type TroopId =
 export type SpellId = 'meteor';
 export type CardId = TroopId | SpellId;
 
+/** Every shield starts recharging after this long without taking damage,
+ *  and fills from empty in this many seconds. Card levels scale its pool
+ *  and its recharge together. */
+export const SHIELD_DELAY = 4;
+export const SHIELD_RECHARGE = 5;
+
 /** What a shot looks like; every kind but 'cannon' also splashes flyers. */
 export type ProjectileKind =
   | 'laser'
@@ -82,7 +88,8 @@ export type UnitStats = {
   /** Below `below` of its hit points it moves and strikes `boost` times
    *  as fast. */
   rage?: { below: number; boost: number };
-  /** A shield that takes every hit until it breaks. */
+  /** Maximum shield points: hits use these before health, with excess
+   *  damage reaching health. Recharges after SHIELD_DELAY quiet seconds. */
   shield?: number;
   /** Heals friendly troops within `radius` by `amount` every `every`
    *  seconds, and never attacks. */
@@ -224,7 +231,7 @@ export const troopCards: Record<TroopId, TroopCard> = {
     name: 'Dino',
     cost: 5,
     formation: [[0, 0]],
-    role: 'A big, slow rubber dinosaur that only goes for towers.',
+    role: 'A big, slow dinosaur that only goes for towers.',
     unit: {
       hp: 4091,
       damage: 254,
@@ -412,9 +419,9 @@ export const troopCards: Record<TroopId, TroopCard> = {
     name: 'Gladiator',
     cost: 3,
     formation: [[0, 0]],
-    role: 'A big shield takes the first hits, then the sword fights on.',
+    role: 'His shield takes hits before his health and recharges out of danger.',
     unit: {
-      hp: 520,
+      hp: 850,
       damage: 125,
       hitSpeed: 1.1,
       firstHit: 0.4,
@@ -425,7 +432,7 @@ export const troopCards: Record<TroopId, TroopCard> = {
       mass: 5,
       flying: false,
       targets: 'ground',
-      shield: 750,
+      shield: 650,
     },
   },
   medic: {

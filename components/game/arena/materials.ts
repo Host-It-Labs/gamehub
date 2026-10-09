@@ -157,6 +157,11 @@ const families: Record<string, Family> = {
   // The collector's miniatures: hand-painted resin, lacquered plates,
   // metallic paint, sculpted scaly hide and painted cloth.
   resin: { rough: 0.58, coat: 0.08, coatRough: 0.5, env: 0.75 },
+  // Anatomical figures use their authored surface relief. The shared leather
+  // tile would repeat across skin and scales and shimmer at the game camera.
+  skin: { rough: 0.64, coat: 0.025, coatRough: 0.65, env: 0.65 },
+  reptile: { rough: 0.76, env: 0.55 },
+  hair: { rough: 0.48, coat: 0.05, coatRough: 0.55, env: 0.6 },
   lacquer: { rough: 0.28, coat: 0.45, coatRough: 0.18, env: 1 },
   gilt: { rough: 0.32, metal: 0.85, env: 1.25 },
   hide: {
@@ -275,6 +280,10 @@ export class MaterialLibrary {
   }
 
   get(name: string, team: Team, hex?: string): THREE.Material {
+    // A frozen figure appended into a build that already has the same
+    // material gets Blender's `.001` suffix; it is still that material
+    // (a `team.001` tint would otherwise lose the side's colour).
+    name = name.replace(/\.\d{3}$/, '');
     const [texture, tint = ''] = name.split(':');
     const teamed = tint === 'team' || tint === 'team2' || tint === 'team3';
     const key = teamed ? `${name}@${team}` : name;
@@ -340,6 +349,21 @@ export class MaterialLibrary {
     const f = families[texture];
     if (f) return this.family(f, colour);
     if (texture === 'flag') return this.flag(colour);
+    // Helmet bubbles and visors (9 October 2026): clear, glossy and thin,
+    // so the face inside reads from the game camera. No vertex AO: baked
+    // occlusion would cloud the glass.
+    if (texture === 'glass')
+      return new THREE.MeshPhysicalMaterial({
+        color: colour,
+        roughness: 0.04,
+        metalness: 0,
+        clearcoat: 1,
+        clearcoatRoughness: 0.03,
+        envMapIntensity: 2.4,
+        transparent: true,
+        opacity: 0.3,
+        depthWrite: false,
+      });
     if (texture === 'fire' || texture === 'glow')
       return new THREE.MeshStandardMaterial({
         color: colour,

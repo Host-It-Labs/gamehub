@@ -1,5 +1,12 @@
 import { RAIL, ROAD, type Route } from './pieces.ts';
-import { across, liftAt, pointAt, type Edge, type Net } from './routes.ts';
+import {
+  across,
+  liftAt,
+  pointAt,
+  stubEnd,
+  type Edge,
+  type Net,
+} from './routes.ts';
 import { CARRIAGE_HALF, LANE, ROAD_TOP } from './scale.ts';
 
 /**
@@ -13,19 +20,30 @@ import { CARRIAGE_HALF, LANE, ROAD_TOP } from './scale.ts';
  *   and back axles separately, so a vehicle tilts up and over a bridge.
  * - Trains hold the squares they stand on and the next one before they
  *   enter it, so two trains never meet; a train kept waiting backs off
- *   and takes another way, as shunting does. Street crossings are held the
- *   same way by one vehicle at a time; behind one another, vehicles keep
- *   their distance by looking along their way.
- * - Goods stations are destinations: a lorry pulls up at the shed door, a
- *   train at its platform; they wait while the load goes across and leave
- *   the way they came. A street that stops short is turned in, a siding's
- *   buffers met gently and backed off from.
+ *   and takes another way, as shunting does.
+ * - Streets flow as real traffic does (8 October 2026): drivers follow the
+ *   car ahead with a smooth following model (gentle starts after a short
+ *   reaction, easing off for bends) and share a junction with anyone whose
+ *   path does not cross theirs. Only crossing or merging movements give
+ *   way, first come first served, and nobody enters a junction without
+ *   room beyond it. Bends and bridges are never held.
+ * - Stations are destinations: a car pulls up short of the station steps,
+ *   a train at its platform; they wait while people get off and on, and
+ *   leave the way they came. Cars queue for a station like a taxi rank,
+ *   as many as its street holds. A street that stops short is turned in,
+ *   a siding's buffers met gently and backed off from.
  * - Vehicles arrive and leave only out of sight: trains inside their
  *   tunnels, street traffic past the edge of the picture.
+ * - Only live networks carry traffic: one that runs off the board, or one
+ *   that links two goods stations, at least one of them served from a live
+ *   network of the other kind. A siding or a street that leads nowhere
+ *   stays empty.
  */
 
 export type Spec = {
   model: string;
+  /** Turned round on its bogies: the engine at the back of a train. */
+  flip?: boolean;
   /** Along the way, and across it. */
   length: number;
   width: number;
@@ -80,6 +98,17 @@ export type Mover = {
   resident: boolean;
   /** A train running with its engine at the back. */
   pushed: boolean;
+  /** A street vehicle's chosen way on from the next node, kept until it
+   *  is taken (drivers do not change their minds at the stop line). */
+  intent?: { node: string; plan: Step[]; since: number };
+  /** Seconds before a stopped street vehicle moves off (its reaction). */
+  go?: number;
+  /** The stop it is making now: a station's or a dead end's node. */
+  call?: { node: string; cell: number; station: boolean };
+  /** Why a street vehicle is waiting (for the tests and tuning). */
+  why?: string;
+  /** The junction boxes on its trail ahead, in order. */
+  boxes?: Box[];
 };
 
 export type SimOptions = {
@@ -88,6 +117,9 @@ export type SimOptions = {
   /** The cars of a new vehicle, front first. */
   make: (kind: Route, rand: () => number, long: boolean) => Spec[] | null;
   rand?: () => number;
+  /** A vehicle has pulled up at a station (its doors at the platform or
+   *  the kerb): how many seconds it stands there, if not the default. */
+  arrive?: (m: Mover, cell: number) => number | undefined;
 };
 
 const COUPLING = 0.018;
@@ -101,9 +133,30 @@ const PHASE = 0.85;
 /** Clearance kept to the vehicle ahead. */
 const GAP = 0.05;
 const LOOK = 0.5;
+/** How far ahead a street vehicle looks for the car in front. */
+const ROAD_LOOK = 0.62;
+
+// Street driving: the intelligent driver model, in squares and seconds.
+/** Comfortable braking. */
+const IDM_BRAKE = 0.32;
+/** Time headway kept to the car in front. */
+const HEADWAY = 0.55;
+/** Hardest braking ever used (an emergency stop never shows). */
+const HARD = 1.4;
+/** Sideways acceleration taken round a bend. */
+const BEND_GRIP = 0.085;
+/** Movements through a junction whose lanes pass closer than this cross. */
+const CONFLICT = 0.14;
+/** A junction box reaches this far either side of where lanes meet. */
+const BOX_PAD = 0.045;
+/** A road dead end is turned in by one car at a time; a station's street
+ *  queues like a taxi rank, with this much room kept to its mouth. */
+const RANK_MOUTH = 0.12;
 /** A tight three-point turn: most of the turn is driven forwards. */
 const TURN_ANGLE = Math.PI / 3;
 const TURN_MARGIN = 0.002;
+const ROAD_CAP = 22;
+const ROAD_DIV = 0.7;
 
 /** A bumper-to-bumper consist has no coupling behind its last car. */
 const consistLength = (cars: Spec[]) =>
@@ -175,6 +228,7 @@ export class TrafficSim {
   net: Net | null = null;
   private rand: () => number;
   private spawnIn = 0.4;
+  private roadNext = false;
   private nextId = 1;
   /** Squares held, by kind and square, to the mover holding them. */
   private holds = new Map<string, number>();
@@ -182,9 +236,22 @@ export class TrafficSim {
   private stations = new Map<string, number>();
   /** Road squares where three or more ways meet. */
   private crossings = new Set<number>();
+  /** Each junction's movements (a way through it, one direction) and the
+   *  movements whose lanes cross or merge with it. */
+  private moves = new Map<string, Move>();
+  /** Who is in (or committed to) each junction, on which movement. */
+  private inJunction = new Map<number, Map<number, string>>();
+  /** Drivers waiting at a junction's mouth, in order of arrival. */
+  private queue = new Map<
+    number,
+    Map<number, { key: string; since: number; ready: boolean; seen: number }>
+  >();
+  private clock = 0;
   private comps: Comp[] = [];
   private compOf = new Map<string, Comp>();
   private bodies = new Map<number, { a: P3; b: P3; r: number }[]>();
+  /** Dead-end streets, by entry, for this network. */
+  private culs = new Map<string, Cul | null>();
 
   private opts: SimOptions;
 
@@ -209,7 +276,7 @@ export class TrafficSim {
     for (const e of net.edges)
       if (e.seg.station) {
         const centre = e.a.startsWith('c:') ? e.a : e.b;
-        this.stations.set(centre, stationHalf(cellOf(e)));
+        this.stations.set(centre, stubEnd(stationHalf(cellOf(e)), e.seg.kind));
       }
     this.crossings = new Set();
     const roadSides = new Map<number, Set<string>>();
@@ -220,7 +287,13 @@ export class TrafficSim {
       set.add(e.a).add(e.b);
       roadSides.set(c, set);
     }
-    for (const [c, set] of roadSides) if (set.size >= 3) this.crossings.add(c);
+    // A station's stubs share its centre but never join: not a junction.
+    const stationCells = new Set(
+      net.edges.filter((e) => e.seg.station).map(cellOf),
+    );
+    for (const [c, set] of roadSides)
+      if (set.size >= 3 && !stationCells.has(c)) this.crossings.add(c);
+    this.junctionMoves(net);
     const byId = new Map(net.edges.map((e) => [e.id, e]));
     for (const m of this.movers) {
       if (m.steps.some((s) => !byId.has(s.edge.id))) this.fade(m);
@@ -230,12 +303,95 @@ export class TrafficSim {
           dir: s.dir,
         }));
     }
+    this.culs = new Map();
     this.components(net);
     for (const m of this.movers)
-      if (m.resident && !m.dying) {
+      if (m.resident && m.dying === undefined) {
         const comp = this.compOf.get(m.steps[0].edge.id);
         if (comp?.gates.length) m.resident = false;
+        // Its stations no longer link up: it goes, as it came.
+        else if (!comp?.live) this.fade(m);
       }
+  }
+
+  /** Every way through every junction, both directions, with the others
+   *  it crosses or merges with. Movements from the same mouth follow one
+   *  another (the car ahead is simply followed); lanes that pass apart,
+   *  such as two right turns or opposite straights, go together. */
+  private junctionMoves(net: Net) {
+    const old = this.inJunction;
+    this.moves = new Map();
+    const byCell = new Map<number, Move[]>();
+    for (const e of net.edges) {
+      if (e.exit || e.seg.kind !== ROAD) continue;
+      const cell = cellOf(e);
+      if (!this.crossings.has(cell)) continue;
+      for (const dir of [1, -1] as const) {
+        const pts: { x: number; z: number }[] = [];
+        for (let i = 0; i <= 24; i++) {
+          const t = dir === 1 ? i / 24 : 1 - i / 24;
+          const p = pointAt(e.seg, t);
+          const tx = p.tx * dir,
+            tz = p.tz * dir;
+          pts.push({ x: p.x - tz * LANE, z: p.z + tx * LANE });
+        }
+        const m: Move = {
+          key: moveKey(e, dir),
+          cell,
+          from: dir === 1 ? e.a : e.b,
+          to: dir === 1 ? e.b : e.a,
+          pts,
+          conflicts: new Set(),
+          length: e.length,
+          inAt: -1,
+          outAt: -1,
+        };
+        this.moves.set(m.key, m);
+        const list = byCell.get(cell) ?? [];
+        list.push(m);
+        byCell.set(cell, list);
+      }
+    }
+    for (const list of byCell.values())
+      for (const a of list) {
+        // Where along `a` some other movement comes close: its box.
+        let first = Infinity,
+          last = -Infinity;
+        for (const b of list) {
+          if (a === b || a.from === b.from) continue;
+          let near = false;
+          a.pts.forEach((p, i) => {
+            for (const q of b.pts)
+              if (Math.hypot(p.x - q.x, p.z - q.z) < CONFLICT) {
+                near = true;
+                first = Math.min(first, i);
+                last = Math.max(last, i);
+                break;
+              }
+          });
+          if (a.to === b.to) {
+            near = true;
+            last = a.pts.length - 1;
+            first = Math.min(first, a.pts.length - 2);
+          }
+          if (near) a.conflicts.add(b.key);
+        }
+        if (first <= last) {
+          const n = a.pts.length - 1;
+          a.inAt = Math.max(0, (first / n) * a.length - BOX_PAD);
+          a.outAt = Math.min(a.length, (last / n) * a.length + BOX_PAD);
+        }
+      }
+    // Keep who is in a junction across a rebuild, where the way still is.
+    this.inJunction = new Map();
+    for (const [cell, who] of old)
+      for (const [id, key] of who)
+        if (this.moves.has(key)) {
+          const map = this.inJunction.get(cell) ?? new Map<number, string>();
+          map.set(id, key);
+          this.inJunction.set(cell, map);
+        }
+    this.queue = new Map();
   }
 
   private components(net: Net) {
@@ -257,7 +413,14 @@ export class TrafficSim {
       const r = find(e.id);
       let c = comps.get(r);
       if (!c) {
-        c = { kind: e.seg.kind, edges: [], length: 0, gates: [] };
+        c = {
+          kind: e.seg.kind,
+          edges: [],
+          length: 0,
+          gates: [],
+          stations: new Set(),
+          live: false,
+        };
         comps.set(r, c);
       }
       c.edges.push(e);
@@ -268,20 +431,46 @@ export class TrafficSim {
       const c = this.compOf.get(g.edge.id);
       if (c && !g.pier) c.gates.push(g.edge);
     }
+    // Goods stations join a street network to a railway: which networks
+    // each station serves.
+    const served = new Map<number, Set<Comp>>();
+    for (const c of comps.values())
+      for (const e of c.edges)
+        if (e.seg.station) {
+          c.stations.add(cellOf(e));
+          const set = served.get(cellOf(e)) ?? new Set<Comp>();
+          set.add(c);
+          served.set(cellOf(e), set);
+        }
+    // Live from the outside in: a network running off the board, then one
+    // linking two stations where another live network delivers.
+    for (const c of comps.values()) c.live = c.gates.length > 0;
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const c of comps.values()) {
+        if (c.live || c.stations.size < 2) continue;
+        const fed = [...c.stations].some((cell) =>
+          [...served.get(cell)!].some((o) => o !== c && o.live),
+        );
+        if (fed) c.live = changed = true;
+      }
+    }
     this.comps = [...comps.values()].filter((c) => c.length > 0);
   }
 
-  /** How many of each kind the network carries. */
+  /** How many of each kind a live network carries: busy streets, a train
+   *  or two on the railway. */
   private wanted(c: Comp) {
+    if (!c.live) return 0;
     if (c.kind === ROAD)
       return c.gates.length
-        ? Math.max(1, Math.min(9, Math.round(c.length / 1.6)))
-        : c.length >= 2
-          ? 1
-          : 0;
+        ? Math.max(2, Math.min(ROAD_CAP, Math.round(c.length / ROAD_DIV)))
+        : // A closed goods route keeps one resident. Several visitors to its
+          // terminal branches could each await the other's return passage.
+          1;
     if (c.kind === RAIL)
       return c.gates.length
-        ? Math.min(c.gates.length, c.length >= 4 ? 2 : 1)
+        ? Math.min(c.gates.length + 1, c.length >= 4 ? 2 : 1)
         : c.length >= 1.5
           ? 1
           : 0;
@@ -303,9 +492,14 @@ export class TrafficSim {
       }))
       .filter((w) => w.short > 0);
     if (!want.length) return;
-    // Trains first: a siding without its engine looks abandoned.
+    // Trains first, then alternate when both kinds need traffic. A full
+    // railway gate must never prevent any street vehicle being attempted.
     const rail = want.filter((w) => w.c.kind === RAIL);
-    const { c } = this.pick(rail.length ? rail : want);
+    const road = want.filter((w) => w.c.kind === ROAD);
+    const pool =
+      rail.length && road.length ? (this.roadNext ? road : rail) : want;
+    this.roadNext = !this.roadNext;
+    const { c } = this.pick(pool);
     const long = c.length > 6;
     const made = this.opts.make(c.kind, this.rand, long);
     if (!made?.length) return;
@@ -323,14 +517,20 @@ export class TrafficSim {
       if (m.kind === ROAD && !this.roadWay(m.steps[0], m.cars[0], 0)) return;
       if (total + 0.04 > gate.length) return;
       m.head = total + 0.02;
+      if (m.kind === ROAD) m.head = this.justOutOfSight(gate, total);
       if (this.overlapsAny(m, 0.25)) return;
       this.claim(m, gate);
       this.movers.push(m);
       return;
     }
-    // A network with no way out keeps one resident: it appears where it
-    // stands, once, and stays.
-    const edges = c.edges.filter((e) => !e.seg.station && e.length >= 0.5);
+    // A live network with no way out keeps one resident, where it can
+    // travel in both directions without obstructing a crossing.
+    const edges = c.edges.filter(
+      (e) =>
+        !e.seg.station &&
+        e.length >= 0.5 &&
+        (c.kind !== ROAD || !this.exclusive(ROAD, e)),
+    );
     if (!edges.length) return;
     const e = this.pick(edges);
     if (c.kind === RAIL && this.holds.has(`${RAIL}:${blockOf(e)}`)) return;
@@ -345,21 +545,56 @@ export class TrafficSim {
     // Start with the whole body on real track. A short siding receives a
     // short consist, rather than clamping several wagons to its last point.
     while (!this.extendBack(m, this.length(m) + 0.05)) {
-      if (m.kind !== RAIL || m.cars.length <= 1) return;
-      m.cars.pop();
+      if (m.kind !== RAIL) return;
+      // Wagons go first; the engines at both ends stay.
+      const wagon = m.cars.findLastIndex((car, i) => i > 0 && !car.flip);
+      if (wagon < 0) return;
+      m.cars.splice(wagon, 1);
     }
     if (
       m.kind === ROAD &&
-      !this.roadWay(m.steps[m.steps.length - 1], m.cars[0], 0)
+      (!this.roadWay(m.steps[m.steps.length - 1], m.cars[0], 0) ||
+        !this.roadWay(
+          { edge: e, dir: m.steps[0].dir === 1 ? -1 : 1 },
+          m.cars[0],
+          0,
+        ))
     )
       return;
-    for (const s of m.steps) if (!this.blockFree(m.kind, s.edge)) return;
-    for (const s of m.steps) this.claim(m, s.edge);
+    if (
+      m.kind === ROAD &&
+      m.steps.some(
+        (s) =>
+          this.culFull(m, this.startNode(s), s.edge, true) ||
+          this.culFull(m, this.endNode(s), s.edge, true),
+      )
+    )
+      return;
+    for (const s of m.steps)
+      if (!this.blockFree(m.kind, s.edge, undefined, s.dir)) return;
+    for (const s of m.steps) this.claim(m, s.edge, s.dir);
     if (this.overlapsAny(m)) {
       this.release(m);
       return;
     }
     this.movers.push(m);
+  }
+
+  /** How far in along a way out (driven from its far end) a street
+   *  vehicle can start with its whole body still out of the picture, so
+   *  the streets fill quickly rather than from the far end of the town. */
+  private justOutOfSight(gate: Edge, total: number) {
+    const hidden = (d: number) => {
+      const p = pointAt(gate.seg, 1 - d / gate.length);
+      return this.opts.offscreen(p.x, p.z);
+    };
+    let head = total + 0.02;
+    for (let d = head + 0.25; d < gate.length - 0.3; d += 0.25) {
+      if (!hidden(d) || !hidden(d - total)) break;
+      head = d;
+    }
+    // Keep a little way back from the edge of the picture.
+    return Math.max(total + 0.02, head - 0.3);
   }
 
   private mover(kind: Route, cars: Spec[], steps: Step[], head: number): Mover {
@@ -386,38 +621,56 @@ export class TrafficSim {
 
   // ------------------------------------------------------------ holds
 
-  private key(kind: Route, e: Edge) {
+  private key(kind: Route, e: Edge, dir: 1 | -1 = 1) {
+    // A street junction is held movement by movement, not as a square.
+    if (kind === ROAD) return `j:${moveKey(e, dir)}`;
     return `${kind}:${blockOf(e)}`;
   }
-  /** Does this way need holding before it is entered? */
+  /** Does this way need holding before it is entered? Every track; on the
+   *  streets, only a way through a junction. */
   private exclusive(kind: Route, e: Edge) {
     if (kind === RAIL) return true;
-    // Crossings and shed yards are one at a time. Keep their curved and
-    // raised connectors clear too: a stopped vehicle there cannot turn
-    // safely, and its tail could prevent the opposite queue from leaving.
-    return (
-      !e.exit &&
-      (this.crossings.has(cellOf(e)) || e.seg.station || !straightStreet(e))
-    );
+    return !e.exit && this.crossings.has(cellOf(e));
   }
-  private blockFree(kind: Route, e: Edge, by?: Mover) {
-    if (!this.exclusive(kind, e)) return true;
-    const h = this.holds.get(this.key(kind, e));
-    return h === undefined || h === by?.id;
+  /** Whoever holds a way that conflicts with this one (or this one). */
+  private holder(kind: Route, e: Edge, dir: 1 | -1, by?: Mover) {
+    if (!this.exclusive(kind, e)) return undefined;
+    if (kind !== ROAD) {
+      const h = this.holds.get(this.key(kind, e));
+      return h === by?.id ? undefined : h;
+    }
+    const move = this.moves.get(moveKey(e, dir));
+    if (!move) return undefined;
+    for (const [id, key] of this.inJunction.get(move.cell) ?? [])
+      if (id !== by?.id && move.conflicts.has(key)) return id;
+    return undefined;
   }
-  private claim(m: Mover, e: Edge) {
+  private blockFree(kind: Route, e: Edge, by?: Mover, dir: 1 | -1 = 1) {
+    return this.holder(kind, e, dir, by) === undefined;
+  }
+  private claim(m: Mover, e: Edge, dir: 1 | -1 = 1) {
     if (!this.exclusive(m.kind, e)) return true;
-    const k = this.key(m.kind, e);
-    const h = this.holds.get(k);
-    if (h !== undefined && h !== m.id) return false;
-    this.holds.set(k, m.id);
+    if (this.holder(m.kind, e, dir, m) !== undefined) return false;
+    const k = this.key(m.kind, e, dir);
+    if (m.kind === ROAD) {
+      const cell = cellOf(e);
+      const who = this.inJunction.get(cell) ?? new Map<number, string>();
+      who.set(m.id, k.slice(2));
+      this.inJunction.set(cell, who);
+      for (const line of this.queue.values()) line.delete(m.id);
+    } else this.holds.set(k, m.id);
     m.blocks.add(k);
     return true;
   }
   private release(m: Mover, keep?: Set<string>) {
     for (const k of m.blocks)
       if (!keep?.has(k)) {
-        if (this.holds.get(k) === m.id) this.holds.delete(k);
+        if (k.startsWith('j:')) {
+          const move = this.moves.get(k.slice(2));
+          const cell = move?.cell ?? Number(k.slice(2).split(':')[0]);
+          const who = this.inJunction.get(cell);
+          if (who?.get(m.id) === k.slice(2)) who.delete(m.id);
+        } else if (this.holds.get(k) === m.id) this.holds.delete(k);
         m.blocks.delete(k);
       }
   }
@@ -491,7 +744,11 @@ export class TrafficSim {
     if (seen.has(k)) return true;
     if (seen.size >= 64) return false;
     const trail = new Set(seen).add(k);
-    const run = straightStreet(step.edge) ? before + step.edge.length : 0;
+    // A junction is no place to stand while calling or turning round.
+    const run =
+      straightStreet(step.edge) && !this.exclusive(ROAD, step.edge)
+        ? before + step.edge.length
+        : 0;
     const ways = this.ways(node, step.edge, ROAD);
     if (!ways.length) {
       const room = turnRoom(car);
@@ -515,6 +772,9 @@ export class TrafficSim {
     if (seen.has(k)) return true;
     if (seen.size >= 64) return false;
     const ways = this.ways(node, step.edge, RAIL);
+    // A station is a terminus: the train runs in to its platform and stands
+    // with its tail on the track behind, which it holds.
+    if (this.stations.has(node)) return true;
     const room =
       step.edge.length - (!ways.length ? this.stopShort(RAIL, node) : 0);
     if (room >= need) return true;
@@ -529,7 +789,7 @@ export class TrafficSim {
     let run = 0;
     for (let i = m.steps.findIndex((s) => s.edge === from); i >= 0; i--) {
       const s = m.steps[i];
-      if (!straightStreet(s.edge)) break;
+      if (!straightStreet(s.edge) || this.exclusive(m.kind, s.edge)) break;
       run += s.edge.length;
     }
     return run;
@@ -547,11 +807,114 @@ export class TrafficSim {
     });
   }
 
+  /** The street from `node` along `e` when it only leads to a dead end or
+   *  a station, where everyone turns round: its complete stem, its end
+   *  node and length. */
+  private culDeSac(node: string, e: Edge) {
+    const k = `${e.id}@${node}`;
+    if (this.culs.has(k)) return this.culs.get(k)!;
+    let out: Cul | null = {
+      edges: new Set(),
+      end: '',
+      station: false,
+      length: 0,
+    };
+    let at = node,
+      edge = e;
+    for (let guard = 0; guard <= (this.net?.edges.length ?? 0); guard++) {
+      if (edge.exit || out.edges.has(edge.id)) {
+        out = null;
+        break;
+      }
+      out.edges.add(edge.id);
+      out.length += edge.length;
+      at = across(edge, at);
+      const on = this.ways(at, edge, ROAD);
+      if (!on.length) break;
+      if (on.length > 1) {
+        out = null;
+        break;
+      }
+      edge = on[0];
+    }
+    if (out) {
+      out.end = at;
+      out.station = this.stations.has(at);
+    }
+    if (out && !this.exclusive(ROAD, e)) {
+      // Use the whole stem even when queried half-way along it (resident
+      // spawning and the return trip), rather than separate suffix quotas.
+      at = node;
+      edge = e;
+      for (;;) {
+        const back = this.ways(at, edge, ROAD);
+        if (
+          back.length !== 1 ||
+          back[0].exit ||
+          this.exclusive(ROAD, back[0]) ||
+          out.edges.has(back[0].id)
+        )
+          break;
+        edge = back[0];
+        out.edges.add(edge.id);
+        out.length += edge.length;
+        at = across(edge, at);
+      }
+    }
+    this.culs.set(k, out);
+    return out;
+  }
+
+  /** A street that leads only to a station or a dead end is a rank: cars
+   *  queue nose to tail on the way in, as many as fit short of the stop,
+   *  and each turns round at the front in turn (its swing never reaches
+   *  back past its own tail, so the queue never blocks it). */
+  private culFull(m: Mover, node: string, e: Edge, joining = false) {
+    if (m.kind !== ROAD) return false;
+    const cul = this.culDeSac(node, e);
+    if (!cul) return false;
+    // Its visitor must be able to finish the call and leave. Queues on a
+    // shared approach cannot veto a vehicle already committed to the stem.
+    if (!joining && m.steps.some((s) => cul.edges.has(s.edge.id))) return false;
+    const others = this.movers.filter(
+      (o) =>
+        o.id !== m.id &&
+        o.kind === ROAD &&
+        !o.dead &&
+        o.dying === undefined &&
+        o.steps.some((s) => cul.edges.has(s.edge.id)),
+    );
+    if (!others.length) return false;
+    if (!turnRoom(m.cars[0]).fits) {
+      m.waitingFor = others[0].id;
+      return true;
+    }
+    // Those on their way out keep to the other lane.
+    const inbound = others.filter((o) => o.served !== cul.end && !o.turn);
+    if (!inbound.length) return false;
+    let used = 0;
+    for (const o of inbound) used += this.length(o) + GAP + 0.02;
+    const room =
+      cul.length - this.stopShort(ROAD, cul.end, m.cars[0]) - RANK_MOUTH;
+    if (used + this.length(m) + GAP <= room) return false;
+    m.waitingFor = inbound[inbound.length - 1].id;
+    return true;
+  }
+
   /** Pick a way on: free ones first, stations liked, exits now and then. */
-  private choose(m: Mover, node: string, from: Edge): Step | null {
-    const list = this.usableWays(m, node, from);
+  private choose(
+    m: Mover,
+    node: string,
+    from: Edge,
+    avoid?: Set<string>,
+  ): Step | null {
+    const list = this.usableWays(m, node, from).filter(
+      (e) => !avoid?.has(e.id) && !this.culFull(m, node, e),
+    );
     if (!list.length) return null;
-    const free = list.filter((e) => this.blockFree(m.kind, e, m));
+    const free = list.filter((e) =>
+      this.blockFree(m.kind, e, m, e.a === node ? 1 : -1),
+    );
     const pool = free.length ? free : list;
     const weights = pool.map((e): number => {
       if (e.exit) return m.resident ? 0 : 0.45;
@@ -680,33 +1043,93 @@ export class TrafficSim {
 
   // ------------------------------------------------------------ motion
 
+  /** Is a car ahead driving on, so that it will have cleared the way by
+   *  the time this one gets there (as any driver assumes)? Not one standing
+   *  or about to stop: at a line just ahead, or behind a standing car. */
+  private clearing(o: Mover | undefined, need: number) {
+    if (!o || o.speed <= 0.08 || o.turn || o.pending || o.wait > 0)
+      return false;
+    const out = this.endNode(o.steps[o.steps.length - 1]).startsWith('x:');
+    const box = o.boxes?.find((b) => !b.claimed);
+    const free = Math.min(
+      this.stepsEnd(o) - (out ? 0 : 0.12),
+      box ? box.sIn : Infinity,
+    );
+    if (free - o.head < need + 0.2) return false;
+    const ahead = this.movers.find((v) => v.id === o.waitingFor);
+    return !ahead || ahead.speed > 0.05;
+  }
+
+  /** Room for this car's whole body just beyond a junction box, so it
+   *  never stands in the box waiting for the car in front. */
+  private landing(m: Mover, box: Box) {
+    const need = this.length(m) + GAP + 0.02;
+    const next = m.boxes?.find((b) => !b.claimed && b.sIn > box.sOut);
+    const end = this.endNode(m.steps[m.steps.length - 1]);
+    const limit = Math.min(
+      next ? next.sIn : Infinity,
+      end.startsWith('x:') ? Infinity : this.stepsEnd(m) - 0.12,
+    );
+    if (limit - box.sOut < need) return false;
+    const probe = { ...m, head: box.sOut, waitingFor: undefined };
+    const clear = this.clearAhead(probe);
+    if (clear < need) {
+      const o = this.movers.find((v) => v.id === probe.waitingFor);
+      if (!this.clearing(o, need)) {
+        m.waitingFor = probe.waitingFor;
+        return false;
+      }
+    }
+    return true;
+  }
+
   /** How far ahead is clear of other vehicles (Infinity if all of it). */
   private clearAhead(m: Mover) {
     const own = m.cars[0].width / 2;
-    const reach = Math.min(LOOK, this.stepsEnd(m) - m.head);
+    const reach = Math.min(
+      m.kind === ROAD ? ROAD_LOOK : LOOK,
+      this.stepsEnd(m) - m.head,
+    );
     const front = this.lanePoint(m, m.head);
     // Turning vehicles keep their patch of street: wait outside it.
     const zones = this.movers.filter(
       (o) =>
-        o !== m &&
+        o.id !== m.id &&
         o.zone &&
         !o.dead &&
         Math.hypot(front.x - o.zone.x, front.z - o.zone.z) > o.zone.r,
     );
     for (let g = 0.02; g <= reach + 1e-6; g += 0.03) {
       const p = this.lanePoint(m, m.head + g);
-      for (const o of zones)
-        if (Math.hypot(p.x - o.zone!.x, p.z - o.zone!.z) < o.zone!.r + own) {
+      // Only on the way into a turning car's patch, never on the way out.
+      for (const o of zones) {
+        const d = Math.hypot(p.x - o.zone!.x, p.z - o.zone!.z);
+        if (
+          d < o.zone!.r + own &&
+          d < Math.hypot(front.x - o.zone!.x, front.z - o.zone!.z)
+        ) {
           m.waitingFor = o.id;
           return g;
         }
+      }
       for (const o of this.movers) {
-        if (o === m || o.dead || o.kind !== m.kind) continue;
-        for (const seg of this.bodies.get(o.id) ?? [])
-          if (segDist(p.x, p.z, seg.a, seg.b) < own + seg.r + 0.012) {
+        if (o.id === m.id || o.dead || o.kind !== m.kind) continue;
+        for (const seg of this.bodies.get(o.id) ?? []) {
+          const margin = own + seg.r + 0.012;
+          // Dense streets have many distant bodies. Reject only points
+          // outside the capsule's bounds before measuring its exact gap.
+          if (
+            p.x < Math.min(seg.a.x, seg.b.x) - margin ||
+            p.x > Math.max(seg.a.x, seg.b.x) + margin ||
+            p.z < Math.min(seg.a.z, seg.b.z) - margin ||
+            p.z > Math.max(seg.a.z, seg.b.z) + margin
+          )
+            continue;
+          if (segDist(p.x, p.z, seg.a, seg.b) < margin) {
             m.waitingFor = o.id;
             return g;
           }
+        }
       }
     }
     return Infinity;
@@ -745,66 +1168,47 @@ export class TrafficSim {
     }
     if (m.pending) {
       // Turn round once the street is clear of the swing.
-      if (this.turnRound(m)) m.pending = false;
-      else m.wait = 0.25;
+      if (this.turnRound(m)) {
+        m.pending = false;
+        m.call = undefined;
+      } else m.wait = 0.25;
       return;
     }
     m.zone = undefined;
     m.waitingFor = undefined;
-    // Keep a way chosen ahead, holding it before entering.
+    if (m.call && m.kind === RAIL) m.call = undefined;
+    if (m.kind === ROAD) {
+      this.drive(m, dt);
+      return;
+    }
+    // A train keeps a way chosen ahead, holding it before entering.
     let guard = 0;
     while (this.stepsEnd(m) - m.head < 0.45 && guard++ < 4) {
       const tail = m.steps[m.steps.length - 1];
       const node = this.endNode(tail);
       if (node.startsWith('x:')) break;
       if (m.served === node) break;
-      // A queued car must not reserve the junction before the car ahead
-      // has reached it. That would hold the front car in place forever.
-      if (m.kind === ROAD && this.clearAhead(m) < Infinity) break;
       const next = this.choose(m, node, tail.edge);
       if (!next) break;
-      const plan = [next];
-      if (m.kind === ROAD) {
-        // Junctions joined by curves or bridges form one corridor: reserve
-        // a way out before entering it. Cars on opposite approaches must
-        // not each hold one end and prevent the other from leaving.
-        const seen = new Set([next.edge.id]);
-        // Unique edge IDs guarantee an outlet, terminal or cycle before
-        // this bound; never reserve a corridor truncated by a fixed cap.
-        const bound = (this.net?.edges.length ?? 0) + 1;
-        while (plan.length < bound && this.exclusive(ROAD, plan.at(-1)!.edge)) {
-          const last = plan.at(-1)!;
-          const end = this.endNode(last);
-          if (end.startsWith('x:')) break;
-          const on = this.choose(
-            { ...m, steps: [...m.steps, ...plan] },
-            end,
-            last.edge,
-          );
-          if (!on || seen.has(on.edge.id)) break;
-          plan.push(on);
-          seen.add(on.edge.id);
-        }
-      }
-      const blocked = plan.find((s) => !this.blockFree(m.kind, s.edge, m));
-      if (blocked) {
-        m.waitingFor = this.holds.get(this.key(m.kind, blocked.edge));
+      const holder = this.holder(m.kind, next.edge, next.dir, m);
+      if (holder !== undefined) {
+        m.waitingFor = holder;
         break;
       }
-      for (const s of plan) this.claim(m, s.edge);
-      m.steps.push(...plan);
+      this.claim(m, next.edge, next.dir);
+      m.steps.push(next);
     }
     const last = m.steps[m.steps.length - 1];
     const end = this.endNode(last);
     const leaving = end.startsWith('x:');
     const ways = leaving ? 1 : this.usableWays(m, end, last.edge).length;
-    // Stop where the trail ends: at a shed door, before the buffers or the
-    // barrier, or at the edge of a square someone else holds.
+    // Stop where the trail ends: at the platform, before the buffers, or
+    // at the edge of a square someone else holds.
     let stopShort = 0;
     if (!leaving) {
       if (this.stations.has(end) || !ways)
         stopShort = this.stopShort(m.kind, end, m.cars[0]);
-      else stopShort = m.kind === RAIL ? 0.06 : 0.12;
+      else stopShort = 0.06;
     }
     const stopAt = leaving ? Infinity : this.stepsEnd(m) - stopShort;
     let target = m.max;
@@ -819,8 +1223,6 @@ export class TrafficSim {
         target,
         Math.sqrt(2 * BRAKE * Math.max(0, clear - GAP)),
       );
-    // Slow on the bends and over the bridges.
-    target *= m.kind === RAIL ? 1 : 0.9;
     m.speed += Math.max(-1.2 * dt, Math.min(ACCEL * dt, target - m.speed));
     if (m.speed < 0) m.speed = 0;
     m.head = Math.min(m.head + m.speed * dt, stopAt);
@@ -831,36 +1233,336 @@ export class TrafficSim {
     }
     const atStop = m.head >= stopAt - 0.003 && m.speed < 0.05;
     if (atStop && (this.stations.has(end) || !ways)) {
-      // Served: wait while the load goes across, then go back.
+      // At the platform: people get off and on, then it runs back.
       const station = this.stations.has(end);
       m.served = end;
-      m.wait = station
-        ? m.kind === RAIL
-          ? this.between(2.2, 3.4)
-          : this.between(1.6, 2.6)
-        : this.between(0.2, 0.5);
-      if (m.kind === ROAD) m.pending = true;
-      else this.reverse(m);
+      let wait = station ? this.between(2.2, 3.4) : this.between(0.2, 0.5);
+      if (station) {
+        m.call = { node: end, cell: nodeCell(end), station };
+        wait = this.opts.arrive?.(m, nodeCell(end)) ?? wait;
+      }
+      m.wait = wait;
+      this.reverse(m);
       return;
     }
-    // Held up: by a square someone else holds, or by the vehicle ahead.
+    // Held up: by a square someone else holds, or by the train ahead.
     const ahead = this.movers.find((o) => o.id === m.waitingFor);
     const yielding = ahead && (ahead.speed > 0.02 || ahead.turn);
     m.held =
       m.speed < 0.02 && !yielding && (atStop || clear < Infinity)
         ? m.held + dt
         : 0;
-    if (m.kind === RAIL && m.held > 3 + (m.id % 3)) this.reverse(m);
-    else if (m.kind === ROAD && m.held > 7 + (m.id % 4)) {
-      // Keep waiting on a bend or bridge. A failed turn must not leave a
-      // parked vehicle permanently holding the next junction.
-      if (this.turnRound(m)) {
-        m.pending = false;
+    if (m.held > 3 + (m.id % 3)) this.reverse(m);
+    this.trimBehind(m);
+  }
+
+  // ------------------------------------------------------------ driving
+
+  /** The way on from `node` this driver has decided on: through any
+   *  junctions that touch, and one way beyond. Kept until taken; chosen
+   *  again only once it can no longer be driven. A way through junctions
+   *  never loops back onto the street the car (and its queue) is on. */
+  private intent(m: Mover, node: string, from: Edge): Step[] | null {
+    const kept = m.intent;
+    if (
+      kept &&
+      kept.node === node &&
+      this.clock - kept.since < 8 &&
+      this.usableWays(m, node, from).includes(kept.plan[0].edge) &&
+      !this.culFull(m, node, kept.plan[0].edge)
+    )
+      return kept.plan;
+    const own = new Set(m.steps.map((s) => s.edge.id));
+    const tried = new Set<string>();
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const next = this.choose(m, node, from, tried);
+      if (!next) break;
+      tried.add(next.edge.id);
+      const plan = [next];
+      const seen = new Set([next.edge.id]);
+      const bound = (this.net?.edges.length ?? 0) + 1;
+      let stuck = false;
+      while (plan.length < bound && this.exclusive(ROAD, plan.at(-1)!.edge)) {
+        const last = plan.at(-1)!;
+        const end = this.endNode(last);
+        if (end.startsWith('x:')) break;
+        const probe = { ...m, steps: [...m.steps, ...plan] };
+        const on = this.choose(
+          probe,
+          end,
+          last.edge,
+          new Set([...own, ...seen]),
+        );
+        if (!on) {
+          // The only way out is a full dead end, or back round onto this
+          // street: wait before the junction, or try another way.
+          if (this.usableWays(probe, end, last.edge).length) {
+            m.waitingFor = probe.waitingFor;
+            stuck = true;
+          }
+          break;
+        }
+        plan.push(on);
+        seen.add(on.edge.id);
+      }
+      if (stuck) continue;
+      m.intent = { node, plan, since: this.clock };
+      return plan;
+    }
+    m.intent = undefined;
+    return null;
+  }
+
+  /** Who this driver must give way to before entering these boxes:
+   *  someone in one on a crossing movement, or someone who reached its
+   *  mouth first and is only waiting for that. */
+  private giveWay(m: Mover, group: Box[]) {
+    const mine = this.queue.get(group[0].cell)?.get(m.id)?.since;
+    for (const b of group) {
+      const move = this.moves.get(b.key)!;
+      for (const [id, key] of this.inJunction.get(b.cell) ?? [])
+        if (id !== m.id && move.conflicts.has(key)) return { id, inside: true };
+      for (const [id, w] of this.queue.get(b.cell) ?? []) {
+        if (id === m.id || !w.ready || !move.conflicts.has(w.key)) continue;
+        if (mine === undefined || w.since < mine) return { id, inside: false };
+      }
+    }
+    return undefined;
+  }
+
+  /** Stand in line at these boxes (once at their mouth), so a stream
+   *  through any of them lets this driver in its turn. */
+  private join(m: Mover, group: Box[], ready: boolean) {
+    if (group[0].sIn - m.head > 0.25 && m.speed > 0.03) return;
+    const since = this.queue.get(group[0].cell)?.get(m.id)?.since ?? this.clock;
+    for (const b of group) {
+      const line = this.queue.get(b.cell) ?? new Map();
+      line.set(m.id, { key: b.key, since, ready, seen: this.clock });
+      this.queue.set(b.cell, line);
+    }
+  }
+
+  private claimBox(m: Mover, b: Box) {
+    const who = this.inJunction.get(b.cell) ?? new Map<number, string>();
+    who.set(m.id, b.key);
+    this.inJunction.set(b.cell, who);
+    m.blocks.add(`j:${b.key}`);
+    b.claimed = true;
+    for (const line of this.queue.values()) line.delete(m.id);
+  }
+
+  /** The speed this driver is happy to cruise at here: its own pace, less
+   *  for a bend ahead (sooner for a tight one) and over a bridge. */
+  private cruise(m: Mover) {
+    let v0 = m.max;
+    let start = m.offset;
+    for (const st of m.steps) {
+      const end = start + st.edge.length;
+      if (end > m.head && start < m.head + 0.45) {
+        const seg = st.edge.seg;
+        if (seg.lift !== 'flat') v0 = Math.min(v0, m.max * 0.88);
+        if (seg.shape.type === 'bend') {
+          const r = laneRadius(st);
+          const bend = Math.sqrt(BEND_GRIP * r);
+          const d = Math.max(0, start - m.head);
+          v0 = Math.min(v0, Math.sqrt(bend * bend + 1.4 * IDM_BRAKE * d));
+        }
+      }
+      start = end;
+    }
+    return Math.max(0.05, v0);
+  }
+
+  /** The speed of the vehicle ahead along this driver's way (0 when it
+   *  crosses, stands or turns). */
+  private leadSpeed(m: Mover, lead: Mover | undefined) {
+    if (!lead || lead.turn || lead.wait > 0 || lead.kind !== m.kind) return 0;
+    const body = this.bodies.get(lead.id)?.[0];
+    if (!body) return 0;
+    const dx = body.a.x - body.b.x,
+      dz = body.a.z - body.b.z;
+    const l = Math.hypot(dx, dz);
+    if (l < 1e-6) return 0;
+    const here = this.at(m, m.head);
+    const dot = (dx * here.tx + dz * here.tz) / l;
+    return dot > 0.3 ? lead.speed * dot : 0;
+  }
+
+  /** A street vehicle's step: choose the way ahead, get into the next
+   *  junction box when it is its turn, then follow the car in front (or
+   *  come to the box's mouth) smoothly. */
+  private drive(m: Mover, dt: number) {
+    const heavy = m.cars[0].length > 0.22;
+    const A = heavy ? 0.13 : m.cars[0].length > 0.175 ? 0.17 : 0.2;
+    // Look far enough ahead that a free junction never makes anyone brake.
+    const horizon =
+      0.25 + m.speed * HEADWAY + (m.speed * m.speed) / (2 * IDM_BRAKE) + 0.12;
+    m.why = undefined;
+    m.boxes ??= [];
+    let guard = 0;
+    while (
+      this.stepsEnd(m) - m.head < horizon &&
+      !m.boxes.some((b) => !b.claimed) &&
+      guard++ < 4
+    ) {
+      const tail = m.steps[m.steps.length - 1];
+      const node = this.endNode(tail);
+      if (node.startsWith('x:')) break;
+      if (m.served === node) break;
+      const plan = this.intent(m, node, tail.edge);
+      if (!plan) {
+        m.why = 'no way';
+        break;
+      }
+      let start = this.stepsEnd(m);
+      for (const st of plan) {
+        const move = this.exclusive(ROAD, st.edge)
+          ? this.moves.get(moveKey(st.edge, st.dir))
+          : undefined;
+        if (move && move.inAt >= 0)
+          m.boxes.push({
+            key: move.key,
+            cell: move.cell,
+            sIn: start + move.inAt,
+            sOut: start + move.outAt,
+            claimed: false,
+          });
+        start += st.edge.length;
+      }
+      if (plan.some((st) => this.exclusive(ROAD, st.edge)))
+        // Out of the stem it called at: it may call there again later.
+        m.served = undefined;
+      m.steps.push(...plan);
+      m.intent = undefined;
+    }
+    // The next box ahead: in when it is this driver's turn and there is
+    // room beyond. Boxes too close together to stand between go as one.
+    const at = m.boxes.findIndex((b) => !b.claimed);
+    if (at >= 0 && m.boxes[at].sIn - m.head < horizon) {
+      const group = [m.boxes[at]];
+      for (let k = at + 1; k < m.boxes.length; k++) {
+        const gap = m.boxes[k].sIn - m.boxes[k - 1].sOut;
+        if (gap >= this.length(m) + GAP + 0.04) break;
+        group.push(m.boxes[k]);
+      }
+      const first = group[0];
+      let go = true;
+      // Behind another car, wait until it is in the box itself: a queued
+      // car must not take the junction from the car in front.
+      if (this.clearAhead(m) < first.sIn - m.head + 0.02) {
+        const lead = m.waitingFor;
+        if (lead === undefined || !this.inJunction.get(first.cell)?.has(lead)) {
+          m.why = 'behind';
+          go = false;
+        }
+      }
+      if (go) {
+        const yieldTo = this.giveWay(m, group);
+        if (yieldTo) {
+          m.waitingFor = yieldTo.id;
+          m.why = yieldTo.inside ? 'crossing' : 'first come';
+          this.join(m, group, true);
+          go = false;
+        } else if (!this.landing(m, group[group.length - 1])) {
+          const why = m.waitingFor;
+          this.join(m, group, false);
+          m.waitingFor = why;
+          m.why = 'no room beyond';
+          go = false;
+        }
+      }
+      if (go) for (const b of group) this.claimBox(m, b);
+    }
+    const last = m.steps[m.steps.length - 1];
+    const end = this.endNode(last);
+    const leaving = end.startsWith('x:');
+    const ways = leaving ? 1 : this.usableWays(m, end, last.edge).length;
+    const terminal = !leaving && (this.stations.has(end) || !ways);
+    // Stop where the trail ends (short of a station's steps, before the
+    // barrier at a dead end) or at the mouth of a box not yet ours.
+    let stopAt = leaving
+      ? Infinity
+      : this.stepsEnd(m) -
+        (terminal ? this.stopShort(ROAD, end, m.cars[0]) : 0.12);
+    const box = m.boxes.find((b) => !b.claimed);
+    if (box) stopAt = Math.min(stopAt, box.sIn - 0.012);
+    const yieldTo = m.waitingFor;
+    m.waitingFor = undefined;
+    const clear = this.clearAhead(m);
+    const lead = this.movers.find((o) => o.id === m.waitingFor);
+    m.waitingFor ??= yieldTo;
+    // The intelligent driver model: free-road acceleration less the
+    // interaction with whatever is ahead (the car in front, or the line).
+    const v = m.speed;
+    const v0 = this.cruise(m);
+    const calm = 2 * Math.sqrt(A * IDM_BRAKE);
+    let ratio = 0;
+    if (stopAt < Infinity) {
+      const s = Math.max(1e-4, stopAt - m.head + 0.008);
+      const want = 0.008 + v * HEADWAY + (v * v) / calm;
+      ratio = Math.max(ratio, (want / s) ** 2);
+    }
+    if (clear < Infinity) {
+      const dv = v - this.leadSpeed(m, lead);
+      const want = Math.max(0, GAP + v * HEADWAY + (v * dv) / calm);
+      ratio = Math.max(ratio, (want / Math.max(1e-4, clear)) ** 2);
+    }
+    let a = A * (1 - (v / v0) ** 4 - ratio);
+    // A stopped driver moves off a moment after the way clears.
+    if (v < 0.01 && a > 0.02) {
+      m.go ??= this.between(0.25, 0.65) * (heavy ? 1.3 : 1);
+      m.go -= dt;
+      if (m.go > 0) a = 0;
+    } else if (v > 0.03) m.go = undefined;
+    a = Math.max(-HARD, Math.min(A, a));
+    m.speed = Math.max(0, v + a * dt);
+    // Never into the car in front, never over the line.
+    if (clear < Infinity)
+      m.speed = Math.min(
+        m.speed,
+        Math.sqrt(2 * HARD * Math.max(0, clear - 0.015)),
+      );
+    m.head = Math.min(m.head + m.speed * dt, stopAt);
+    if (m.why === undefined && box && m.head >= box.sIn - 0.05) m.why = 'box';
+
+    if (leaving && m.head >= this.stepsEnd(m)) {
+      m.dead = true;
+      return;
+    }
+    // A street vehicle on its way out is gone once the picture has lost
+    // it, rather than driving on through the old town.
+    if (leaving && m.steps.length === 1 && m.steps[0].edge.exit) {
+      const front = this.lanePoint(m, m.head);
+      const back = this.lanePoint(m, m.head - this.length(m) - 0.02);
+      if (
+        this.opts.offscreen(front.x, front.z) &&
+        this.opts.offscreen(back.x, back.z)
+      ) {
+        m.dead = true;
         return;
       }
-      m.zone = undefined;
-      m.held = 0;
     }
+    const atStop = m.head >= stopAt - 0.003 && m.speed < 0.05;
+    if (atStop && terminal && !box) {
+      // At the station: people get out (and in); then it turns round.
+      const station = this.stations.has(end);
+      m.served = end;
+      m.speed = 0;
+      let wait = station ? this.between(1.6, 2.6) : this.between(0.2, 0.5);
+      if (station) {
+        m.call = { node: end, cell: nodeCell(end), station };
+        wait = this.opts.arrive?.(m, nodeCell(end)) ?? wait;
+      }
+      m.wait = wait;
+      m.pending = true;
+      return;
+    }
+    // Held up: by the junction, or by the vehicle ahead.
+    const yielding = lead && (lead.speed > 0.02 || lead.turn);
+    m.held =
+      m.speed < 0.02 && !yielding && (atStop || clear < Infinity)
+        ? m.held + dt
+        : 0;
     this.trimBehind(m);
   }
 
@@ -871,10 +1573,20 @@ export class TrafficSim {
       m.offset += m.steps[0].edge.length;
       m.steps.shift();
     }
+    if (m.kind === ROAD) {
+      // A junction box is let go as soon as the tail is out of it.
+      const tail = m.head - this.length(m) - 0.01;
+      m.boxes = (m.boxes ?? []).filter((b) => !(b.claimed && b.sOut < tail));
+      this.release(
+        m,
+        new Set(m.boxes.filter((b) => b.claimed).map((b) => `j:${b.key}`)),
+      );
+      return;
+    }
     const keep = new Set(
       m.steps
         .filter((s) => this.exclusive(m.kind, s.edge))
-        .map((s) => this.key(m.kind, s.edge)),
+        .map((s) => this.key(m.kind, s.edge, s.dir)),
     );
     this.release(m, keep);
   }
@@ -989,6 +1701,7 @@ export class TrafficSim {
       }
     }
     this.flip(m);
+    m.boxes = [];
     m.turn = turn;
     m.speed = 0;
     m.held = 0;
@@ -999,10 +1712,15 @@ export class TrafficSim {
 
   tick(dt: number, moving = true) {
     if (!this.net) return;
+    if (moving) this.clock += dt;
+    // Whoever has stopped waiting at a junction's mouth leaves its line.
+    for (const line of this.queue.values())
+      for (const [id, w] of line)
+        if (this.clock - w.seen > 0.3) line.delete(id);
     if (moving) {
       this.spawnIn -= dt;
       if (this.spawnIn <= 0) {
-        this.spawnIn = this.between(0.6, 1.6);
+        this.spawnIn = this.between(0.2, 0.45);
         this.spawn();
       }
     }
@@ -1029,6 +1747,31 @@ export class TrafficSim {
     this.movers = keep;
   }
 
+  /** Does traffic run on the network of this edge (a station's stub)? */
+  servedAt(edgeId: string) {
+    return !!this.compOf.get(edgeId)?.live;
+  }
+
+  /** Is a vehicle like this running on the network of this edge now? */
+  runsAt(edgeId: string, like: (m: Mover) => boolean) {
+    const comp = this.compOf.get(edgeId);
+    return (
+      !!comp?.live &&
+      this.movers.some(
+        (m) =>
+          !m.dead &&
+          m.dying === undefined &&
+          like(m) &&
+          this.compOf.get(m.steps[0].edge.id) === comp,
+      )
+    );
+  }
+
+  /** Called when a vehicle stops at a station; returns how long it stands. */
+  onArrive(arrive: SimOptions['arrive']) {
+    this.opts.arrive = arrive;
+  }
+
   /** Each live vehicle's capsules, for tests. */
   footprint(m: Mover) {
     return this.body(m);
@@ -1041,7 +1784,67 @@ export class TrafficSim {
   }
 }
 
-type Comp = { kind: Route; edges: Edge[]; length: number; gates: Edge[] };
+/** One way through a junction in one direction, as its lane runs. */
+type Move = {
+  key: string;
+  cell: number;
+  from: string;
+  to: string;
+  pts: { x: number; z: number }[];
+  /** Movements whose lanes cross or merge with this one. */
+  conflicts: Set<string>;
+  length: number;
+  /** The stretch of this movement (distances along it) where it crosses or
+   *  merges with another: the box held while in it; -1 when it has none. */
+  inAt: number;
+  outAt: number;
+};
+/** A junction box on a street vehicle's trail, in trail distances. */
+type Box = {
+  key: string;
+  cell: number;
+  sIn: number;
+  sOut: number;
+  claimed: boolean;
+};
+const moveKey = (e: Edge, dir: 1 | -1) => `${e.id}/${dir}`;
+/** The square of a station's centre node (`c:<cell>:<group>:<kind>`). */
+const nodeCell = (node: string) => Number(node.split(':')[1]);
+
+const radii = new Map<string, number>();
+/** The radius a car's own lane takes round a bend: tighter turning right
+ *  (the inside, as they drive on the right), wider turning left. */
+function laneRadius(st: Step) {
+  const k = moveKey(st.edge, st.dir);
+  let r = radii.get(k);
+  if (r !== undefined) return r;
+  const a = pointAt(st.edge.seg, st.dir === 1 ? 0 : 1),
+    b = pointAt(st.edge.seg, st.dir === 1 ? 1 : 0);
+  const right = a.tx * b.tz - a.tz * b.tx > 0;
+  r = 0.5 + (right ? -LANE : LANE);
+  radii.set(k, r);
+  return r;
+}
+
+/** A street that only leads to a dead end or a station. */
+type Cul = {
+  edges: Set<string>;
+  /** Its far end: the station's centre, or where the street stops. */
+  end: string;
+  station: boolean;
+  length: number;
+};
+
+type Comp = {
+  kind: Route;
+  edges: Edge[];
+  length: number;
+  gates: Edge[];
+  /** The goods stations (their squares) this network serves. */
+  stations: Set<number>;
+  /** Runs off the board, or links two stations fed by a live network. */
+  live: boolean;
+};
 
 /** A turning car's pose: smooth through its key poses. */
 export function turning(turn: Turn) {

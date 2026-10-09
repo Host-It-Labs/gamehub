@@ -1,5 +1,10 @@
 'use client';
-import { useEffect, useState, type CSSProperties } from 'react';
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react';
 import './reveal-motion.css';
 
 /** Shared reveal motion for party results: numbers that count up, and items
@@ -11,6 +16,12 @@ export function prefersReducedMotion() {
     !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   );
 }
+function subscribeMotionPreference(changed: () => void) {
+  const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  media?.addEventListener('change', changed);
+  return () => media?.removeEventListener('change', changed);
+}
+const serverMotionPreference = () => false;
 const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
 /** Counts from `from` to `to` once per `key`, after `delay` ms. `log` counts
@@ -33,7 +44,14 @@ export function useCountUp(
   } = {},
 ) {
   const [value, setValue] = useState(from);
-  const still = duration <= 0 || prefersReducedMotion();
+  // Hydration uses the same starting number as the server. React then reads
+  // the real preference and immediately shows the final value when required.
+  const reduced = useSyncExternalStore(
+    subscribeMotionPreference,
+    prefersReducedMotion,
+    serverMotionPreference,
+  );
+  const still = duration <= 0 || reduced;
   useEffect(() => {
     if (still) return;
     let frame = 0;

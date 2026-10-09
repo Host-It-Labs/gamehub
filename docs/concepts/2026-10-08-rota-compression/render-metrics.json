@@ -1,0 +1,38 @@
+[
+  {
+    "name": "loco_steam",
+    "silhouettePixels": 1,
+    "changedPixels": 1830,
+    "maxChannelError": 177
+  },
+  {
+    "name": "car_retro",
+    "silhouettePixels": 2,
+    "changedPixels": 1831,
+    "maxChannelError": 186
+  },
+  {
+    "name": "lorry",
+    "silhouettePixels": 0,
+    "changedPixels": 2847,
+    "maxChannelError": 58
+  },
+  {
+    "name": "terrace_tall",
+    "silhouettePixels": 0,
+    "changedPixels": 1426,
+    "maxChannelError": 102
+  },
+  {
+    "name": "oak_a",
+    "silhouettePixels": 0,
+    "changedPixels": 2438,
+    "maxChannelError": 41
+  },
+  {
+    "name": "mill_big",
+    "silhouettePixels": 0,
+    "changedPixels": 2102,
+    "maxChannelError": 115
+  }
+]

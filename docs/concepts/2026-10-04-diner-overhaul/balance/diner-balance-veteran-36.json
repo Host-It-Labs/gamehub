@@ -1,0 +1,3416 @@
+{
+  "pause": 36,
+  "veteran": true,
+  "samples": [
+    {
+      "seed": 11,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 975,
+      "perks": [
+        "welcome-mat",
+        "dishwasher",
+        "bill-insurance",
+        "quiet-blender",
+        "heat-lamps",
+        "table-bells",
+        "maintenance-kit",
+        "cash-runner",
+        "express-service",
+        "house-special",
+        "crisp-fryer",
+        "hot-plates",
+        "auto-restock",
+        "safety-net",
+        "set-menu",
+        "turbo-grill",
+        "backup-battery",
+        "vip-service"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 170,
+          "stars": 5,
+          "served": 14,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 162,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: The regulars",
+          "coins": 264,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 203,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 216,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Old machines",
+          "coins": 214,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 203,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 18,
+          "burnt": 0,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 198,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Rush hour",
+          "coins": 360,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 17,
+          "burnt": 2,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 301,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 8,
+          "burnt": 0,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 407,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 8,
+          "burnt": 1,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Rush hour",
+          "coins": 334,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 450,
+          "stars": 5,
+          "served": 17,
+          "caught": 6,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 428,
+          "stars": 5,
+          "served": 16,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: The lookalikes",
+          "coins": 561,
+          "stars": 5,
+          "served": 18,
+          "caught": 9,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 517,
+          "stars": 5,
+          "served": 17,
+          "caught": 4,
+          "repairs": 0,
+          "vip": 8,
+          "burnt": 0,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 549,
+          "stars": 5,
+          "served": 18,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 0,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: Rush hour",
+          "coins": 479,
+          "stars": 5,
+          "served": 20,
+          "caught": 3,
+          "repairs": 2,
+          "vip": 7,
+          "burnt": 0,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 22,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 897,
+      "perks": [
+        "turbo-grill",
+        "heat-lamps",
+        "auto-restock",
+        "hot-plates",
+        "vip-service",
+        "dishwasher",
+        "welcome-mat",
+        "maintenance-kit",
+        "combo-till",
+        "quiet-blender",
+        "house-special",
+        "tip-jar",
+        "rubber-boots",
+        "set-menu",
+        "warm-greeting",
+        "safety-net",
+        "express-service",
+        "night-watch"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 166,
+          "stars": 5,
+          "served": 10,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 119,
+          "stars": 5,
+          "served": 10,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: Hot counter",
+          "coins": 196,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 218,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 198,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Hot counter",
+          "coins": 214,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 162,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 162,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Hot counter",
+          "coins": 468,
+          "stars": 5,
+          "served": 24,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 24,
+          "burnt": 0,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 412,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 15,
+          "burnt": 0,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 334,
+          "stars": 5,
+          "served": 21,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 0,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Big spenders",
+          "coins": 287,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 2,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 413,
+          "stars": 5,
+          "served": 19,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 303,
+          "stars": 5,
+          "served": 16,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Slippery shift",
+          "coins": 482,
+          "stars": 5,
+          "served": 18,
+          "caught": 9,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 375,
+          "stars": 5,
+          "served": 17,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Slippery shift",
+          "coins": 292,
+          "stars": 5,
+          "served": 15,
+          "caught": 2,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: Flickering lights",
+          "coins": 518,
+          "stars": 5,
+          "served": 19,
+          "caught": 4,
+          "repairs": 2,
+          "vip": 10,
+          "burnt": 0,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 33,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 1111,
+      "perks": [
+        "warm-greeting",
+        "combo-till",
+        "quiet-blender",
+        "cash-runner",
+        "table-bells",
+        "crisp-fryer",
+        "hot-plates",
+        "dishwasher",
+        "express-service",
+        "tip-jar",
+        "turbo-grill",
+        "maintenance-kit",
+        "auto-restock",
+        "spill-guard",
+        "house-special",
+        "night-watch",
+        "heat-lamps",
+        "set-menu"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 152,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 162,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: Rush hour",
+          "coins": 209,
+          "stars": 5,
+          "served": 15,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 228,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 301,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Hot counter",
+          "coins": 332,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 379,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 504,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 15,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Big spenders",
+          "coins": 568,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 20,
+          "burnt": 0,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 378,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 357,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Big spenders",
+          "coins": 602,
+          "stars": 5,
+          "served": 23,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 8,
+          "burnt": 0,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 509,
+          "stars": 5,
+          "served": 16,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 8,
+          "burnt": 0,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 586,
+          "stars": 5,
+          "served": 19,
+          "caught": 2,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 1,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Big spenders",
+          "coins": 608,
+          "stars": 5,
+          "served": 18,
+          "caught": 8,
+          "repairs": 0,
+          "vip": 8,
+          "burnt": 2,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 480,
+          "stars": 5,
+          "served": 17,
+          "caught": 4,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 2,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 543,
+          "stars": 5,
+          "served": 19,
+          "caught": 2,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: The lookalikes",
+          "coins": 616,
+          "stars": 5,
+          "served": 17,
+          "caught": 4,
+          "repairs": 2,
+          "vip": 6,
+          "burnt": 0,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 44,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 929,
+      "perks": [
+        "warm-greeting",
+        "express-service",
+        "welcome-mat",
+        "house-special",
+        "auto-restock",
+        "set-menu",
+        "dishwasher",
+        "hot-plates",
+        "table-bells",
+        "tip-jar",
+        "backup-battery",
+        "combo-till",
+        "turbo-grill",
+        "heat-lamps",
+        "maintenance-kit",
+        "cash-runner",
+        "vip-service",
+        "safety-net"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 152,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 153,
+          "stars": 5,
+          "served": 11,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: The regulars",
+          "coins": 234,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 221,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 220,
+          "stars": 5,
+          "served": 14,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Old machines",
+          "coins": 285,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 188,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 339,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 15,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Hot counter",
+          "coins": 350,
+          "stars": 5,
+          "served": 21,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 21,
+          "burnt": 2,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Flickering lights",
+          "coins": 133,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 248,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 17,
+          "burnt": 1,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Big spenders",
+          "coins": 402,
+          "stars": 5,
+          "served": 21,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 1,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 337,
+          "stars": 5,
+          "served": 17,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 12,
+          "burnt": 2,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 386,
+          "stars": 5,
+          "served": 17,
+          "caught": 2,
+          "repairs": 0,
+          "vip": 10,
+          "burnt": 1,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: The lookalikes",
+          "coins": 420,
+          "stars": 5,
+          "served": 18,
+          "caught": 6,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "Flickering lights",
+          "coins": 326,
+          "stars": 5,
+          "served": 17,
+          "caught": 2,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 594,
+          "stars": 5,
+          "served": 18,
+          "caught": 4,
+          "repairs": 0,
+          "vip": 4,
+          "burnt": 1,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: The lookalikes",
+          "coins": 624,
+          "stars": 5,
+          "served": 19,
+          "caught": 3,
+          "repairs": 2,
+          "vip": 6,
+          "burnt": 1,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 55,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 1090,
+      "perks": [
+        "welcome-mat",
+        "turbo-grill",
+        "cash-runner",
+        "set-menu",
+        "express-service",
+        "heat-lamps",
+        "backup-battery",
+        "night-watch",
+        "maintenance-kit",
+        "tip-jar",
+        "auto-restock",
+        "table-bells",
+        "dishwasher",
+        "house-special",
+        "rubber-boots",
+        "warm-greeting",
+        "quiet-blender",
+        "combo-till"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 183,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 162,
+          "stars": 5,
+          "served": 14,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: Rush hour",
+          "coins": 251,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 304,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 233,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Rush hour",
+          "coins": 290,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 267,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 350,
+          "stars": 5,
+          "served": 15,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 0,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Big spenders",
+          "coins": 401,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 17,
+          "burnt": 0,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 276,
+          "stars": 5,
+          "served": 15,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 5,
+          "burnt": 1,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Flickering lights",
+          "coins": 321,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Rush hour",
+          "coins": 390,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 524,
+          "stars": 5,
+          "served": 18,
+          "caught": 6,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 488,
+          "stars": 5,
+          "served": 14,
+          "caught": 6,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Flickering lights",
+          "coins": 697,
+          "stars": 5,
+          "served": 18,
+          "caught": 9,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 686,
+          "stars": 5,
+          "served": 20,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 0,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 632,
+          "stars": 5,
+          "served": 16,
+          "caught": 8,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: The lookalikes",
+          "coins": 743,
+          "stars": 5,
+          "served": 20,
+          "caught": 5,
+          "repairs": 2,
+          "vip": 13,
+          "burnt": 1,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 66,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 1120,
+      "perks": [
+        "hot-plates",
+        "tip-jar",
+        "warm-greeting",
+        "cash-runner",
+        "table-bells",
+        "heat-lamps",
+        "set-menu",
+        "turbo-grill",
+        "dishwasher",
+        "fast-mop",
+        "combo-till",
+        "quiet-blender",
+        "express-service",
+        "night-watch",
+        "house-special",
+        "auto-restock",
+        "welcome-mat",
+        "maintenance-kit"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 180,
+          "stars": 5,
+          "served": 14,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 151,
+          "stars": 5,
+          "served": 12,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: Rush hour",
+          "coins": 237,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 220,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 330,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Rush hour",
+          "coins": 300,
+          "stars": 4,
+          "served": 17,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 377,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 5,
+          "burnt": 1,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 407,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Big spenders",
+          "coins": 563,
+          "stars": 4,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 19,
+          "burnt": 1,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 468,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 9,
+          "burnt": 1,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Old machines",
+          "coins": 299,
+          "stars": 5,
+          "served": 15,
+          "caught": 0,
+          "repairs": 3,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Flickering lights",
+          "coins": 434,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 540,
+          "stars": 5,
+          "served": 16,
+          "caught": 4,
+          "repairs": 0,
+          "vip": 6,
+          "burnt": 0,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 587,
+          "stars": 5,
+          "served": 15,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 10,
+          "burnt": 1,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Big spenders",
+          "coins": 768,
+          "stars": 5,
+          "served": 15,
+          "caught": 10,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 0,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "Flickering lights",
+          "coins": 453,
+          "stars": 5,
+          "served": 16,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 649,
+          "stars": 5,
+          "served": 16,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 7,
+          "burnt": 0,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: Rush hour",
+          "coins": 667,
+          "stars": 5,
+          "served": 18,
+          "caught": 5,
+          "repairs": 4,
+          "vip": 9,
+          "burnt": 0,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 77,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 931,
+      "perks": [
+        "hot-plates",
+        "quiet-blender",
+        "auto-restock",
+        "dishwasher",
+        "rubber-boots",
+        "prep-shelf",
+        "vip-service",
+        "heat-lamps",
+        "turbo-grill",
+        "night-watch",
+        "warm-greeting",
+        "tip-jar",
+        "set-menu",
+        "combo-till",
+        "fast-mop",
+        "express-service",
+        "backup-battery",
+        "bill-insurance"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 196,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 136,
+          "stars": 5,
+          "served": 10,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: Rush hour",
+          "coins": 221,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 187,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 270,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: The regulars",
+          "coins": 238,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 162,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 2,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 322,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Hot counter",
+          "coins": 422,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 20,
+          "burnt": 2,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 261,
+          "stars": 5,
+          "served": 23,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 14,
+          "burnt": 0,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 310,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 15,
+          "burnt": 1,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Big spenders",
+          "coins": 202,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 7,
+          "burnt": 0,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 542,
+          "stars": 5,
+          "served": 16,
+          "caught": 4,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 0,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 431,
+          "stars": 5,
+          "served": 16,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 1,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Big spenders",
+          "coins": 628,
+          "stars": 4,
+          "served": 18,
+          "caught": 8,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 1,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 345,
+          "stars": 5,
+          "served": 16,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Flickering lights",
+          "coins": 317,
+          "stars": 5,
+          "served": 16,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: Old machines",
+          "coins": 490,
+          "stars": 5,
+          "served": 19,
+          "caught": 4,
+          "repairs": 4,
+          "vip": 7,
+          "burnt": 0,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 88,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 953,
+      "perks": [
+        "night-watch",
+        "turbo-grill",
+        "dishwasher",
+        "warm-greeting",
+        "mop-bounty",
+        "heat-lamps",
+        "tip-jar",
+        "quiet-blender",
+        "combo-till",
+        "set-menu",
+        "auto-restock",
+        "welcome-mat",
+        "fast-mop",
+        "cash-runner",
+        "table-bells",
+        "rubber-boots",
+        "bill-insurance",
+        "express-service"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 187,
+          "stars": 5,
+          "served": 14,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 132,
+          "stars": 5,
+          "served": 11,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: The regulars",
+          "coins": 219,
+          "stars": 5,
+          "served": 17,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 168,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 187,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: The regulars",
+          "coins": 289,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 198,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 176,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Big spenders",
+          "coins": 317,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 20,
+          "burnt": 0,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 230,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 282,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Big spenders",
+          "coins": 380,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 6,
+          "burnt": 1,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 418,
+          "stars": 5,
+          "served": 16,
+          "caught": 6,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 398,
+          "stars": 5,
+          "served": 16,
+          "caught": 4,
+          "repairs": 0,
+          "vip": 9,
+          "burnt": 1,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Slippery shift",
+          "coins": 623,
+          "stars": 5,
+          "served": 17,
+          "caught": 7,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 587,
+          "stars": 5,
+          "served": 18,
+          "caught": 7,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 527,
+          "stars": 5,
+          "served": 16,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: The lookalikes",
+          "coins": 679,
+          "stars": 5,
+          "served": 17,
+          "caught": 6,
+          "repairs": 4,
+          "vip": 7,
+          "burnt": 1,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 99,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 1106,
+      "perks": [
+        "set-menu",
+        "tip-jar",
+        "cash-runner",
+        "hot-plates",
+        "dishwasher",
+        "auto-restock",
+        "welcome-mat",
+        "quiet-blender",
+        "house-special",
+        "crisp-fryer",
+        "vip-service",
+        "express-service",
+        "backup-battery",
+        "combo-till",
+        "table-bells",
+        "heat-lamps",
+        "warm-greeting",
+        "night-watch"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 152,
+          "stars": 5,
+          "served": 14,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 167,
+          "stars": 5,
+          "served": 11,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: Hot counter",
+          "coins": 216,
+          "stars": 5,
+          "served": 15,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 278,
+          "stars": 5,
+          "served": 15,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 352,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Hot counter",
+          "coins": 402,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 352,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 391,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Big spenders",
+          "coins": 638,
+          "stars": 5,
+          "served": 26,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 26,
+          "burnt": 0,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 546,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 0,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 301,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 2,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Flickering lights",
+          "coins": 346,
+          "stars": 5,
+          "served": 20,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 549,
+          "stars": 5,
+          "served": 17,
+          "caught": 7,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 597,
+          "stars": 5,
+          "served": 17,
+          "caught": 1,
+          "repairs": 0,
+          "vip": 11,
+          "burnt": 0,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Flickering lights",
+          "coins": 621,
+          "stars": 5,
+          "served": 17,
+          "caught": 9,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 460,
+          "stars": 5,
+          "served": 17,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Flickering lights",
+          "coins": 491,
+          "stars": 5,
+          "served": 18,
+          "caught": 3,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: Slippery shift",
+          "coins": 612,
+          "stars": 5,
+          "served": 19,
+          "caught": 4,
+          "repairs": 4,
+          "vip": 8,
+          "burnt": 1,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    },
+    {
+      "seed": 111,
+      "reached": 18,
+      "cleared": 18,
+      "status": "complete",
+      "earned": 1111,
+      "perks": [
+        "dishwasher",
+        "cash-runner",
+        "express-service",
+        "set-menu",
+        "heat-lamps",
+        "warm-greeting",
+        "combo-till",
+        "house-special",
+        "tip-jar",
+        "backup-battery",
+        "welcome-mat",
+        "turbo-grill",
+        "crisp-fryer",
+        "quiet-blender",
+        "table-bells",
+        "night-watch",
+        "auto-restock",
+        "maintenance-kit"
+      ],
+      "shifts": [
+        {
+          "stage": 1,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 187,
+          "stars": 5,
+          "served": 13,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 80,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 2,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 170,
+          "stars": 5,
+          "served": 14,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 88,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 3,
+          "boss": "Last Bus",
+          "route": "Last Bus: The regulars",
+          "coins": 301,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 106,
+            "minStars": 1,
+            "served": 6
+          },
+          "won": true
+        },
+        {
+          "stage": 4,
+          "boss": null,
+          "route": "The regulars",
+          "coins": 272,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 97,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 5,
+          "boss": null,
+          "route": "Hot counter",
+          "coins": 250,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 105,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 6,
+          "boss": "Broken Down",
+          "route": "Broken Down: Old machines",
+          "coins": 343,
+          "stars": 5,
+          "served": 21,
+          "caught": 0,
+          "repairs": 4,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 123,
+            "minStars": 1,
+            "repairs": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 7,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 275,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 5,
+          "burnt": 1,
+          "goal": {
+            "coins": 114,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 8,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 493,
+          "stars": 5,
+          "served": 18,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 13,
+          "burnt": 1,
+          "goal": {
+            "coins": 122,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 9,
+          "boss": "The Critic",
+          "route": "The Critic: Big spenders",
+          "coins": 569,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 19,
+          "burnt": 0,
+          "goal": {
+            "coins": 140,
+            "minStars": 1,
+            "vip": 4
+          },
+          "won": true
+        },
+        {
+          "stage": 10,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 378,
+          "stars": 5,
+          "served": 16,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 4,
+          "burnt": 0,
+          "goal": {
+            "coins": 131,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 11,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 410,
+          "stars": 4,
+          "served": 15,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 6,
+          "burnt": 1,
+          "goal": {
+            "coins": 139,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 12,
+          "boss": "Blackout",
+          "route": "Blackout: Flickering lights",
+          "coins": 412,
+          "stars": 5,
+          "served": 19,
+          "caught": 0,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 157,
+            "minStars": 2,
+            "maxBurnt": 2
+          },
+          "won": true
+        },
+        {
+          "stage": 13,
+          "boss": null,
+          "route": "Flickering lights",
+          "coins": 550,
+          "stars": 5,
+          "served": 18,
+          "caught": 4,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 148,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 14,
+          "boss": null,
+          "route": "Big spenders",
+          "coins": 524,
+          "stars": 5,
+          "served": 15,
+          "caught": 2,
+          "repairs": 0,
+          "vip": 9,
+          "burnt": 0,
+          "goal": {
+            "coins": 156,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 15,
+          "boss": "Copycat Crew",
+          "route": "Copycat Crew: Slippery shift",
+          "coins": 533,
+          "stars": 5,
+          "served": 15,
+          "caught": 9,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 174,
+            "minStars": 1,
+            "caught": 3
+          },
+          "won": true
+        },
+        {
+          "stage": 16,
+          "boss": null,
+          "route": "The lookalikes",
+          "coins": 507,
+          "stars": 5,
+          "served": 14,
+          "caught": 7,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 1,
+          "goal": {
+            "coins": 165,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 17,
+          "boss": null,
+          "route": "Rush hour",
+          "coins": 555,
+          "stars": 5,
+          "served": 16,
+          "caught": 5,
+          "repairs": 0,
+          "vip": 0,
+          "burnt": 0,
+          "goal": {
+            "coins": 173,
+            "minStars": 1
+          },
+          "won": true
+        },
+        {
+          "stage": 18,
+          "boss": "Midnight Feast",
+          "route": "Midnight Feast: Big spenders",
+          "coins": 792,
+          "stars": 5,
+          "served": 17,
+          "caught": 6,
+          "repairs": 4,
+          "vip": 15,
+          "burnt": 1,
+          "goal": {
+            "coins": 191,
+            "minStars": 2,
+            "served": 12
+          },
+          "won": true
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import {
   packMatch,
   unpackMatch,
 } from '../lib/games/diner/room.ts';
+import { COUNTER_X, COUNTER_Z } from '../lib/games/diner/layout.ts';
 
 const origin = 'http://localhost:3017';
 // Diner is an unreleased game: its online fixtures exercise the dev server.
@@ -138,18 +139,18 @@ await test('a table launches a diner and every waiter steers their own', async (
     const { host, path, guests } = await table(client);
     const [guest] = guests;
     assert.equal(
-      (await host.request(`${path}/launch`, { kind: 'diner', night: 9 }))
+      (await host.request(`${path}/launch`, { kind: 'diner', level: 99 }))
         .status,
       400,
     );
     assert.equal(
-      (await guest.request(`${path}/launch`, { kind: 'diner', night: 1 }))
+      (await guest.request(`${path}/launch`, { kind: 'diner', level: 1 }))
         .status,
       403,
     );
     const launched = await host.request(`${path}/launch`, {
       kind: 'diner',
-      night: 2,
+      level: 2,
     });
     assert.equal(launched.status, 200);
     assert.match(launched.data.url, /^\/diner\/[A-Za-z0-9_-]{32}$/);
@@ -162,7 +163,7 @@ await test('a table launches a diner and every waiter steers their own', async (
     ]);
     assert.equal(mine.room.you, 0);
     assert.equal(mine.room.host, true);
-    assert.equal(mine.room.night, 2);
+    assert.equal(mine.room.level, 2);
     assert.equal(mine.room.status, 'waiting');
     const m0 = unpackMatch(mine.snap.m);
     assert.equal(m0.players.length, 2);
@@ -277,6 +278,109 @@ await test('a table launches a diner and every waiter steers their own', async (
   }
 });
 
+await test('online cooking lanes survive reconnects and concurrent clients cannot duplicate a plate', async () => {
+  const { app, client, close } = await fixture({ tickMs: 4, joinMs: 5000 });
+  try {
+    const { host, path, guests } = await table(client);
+    const [guest] = guests;
+    const launched = await host.request(`${path}/launch`, {
+      kind: 'diner',
+      level: 1,
+    });
+    const api = roomOf(launched.data.url);
+    const a = host.listen(`${api}/events`);
+    const b = guest.listen(`${api}/events`);
+    const active = app.diner.rooms.get(launched.data.url.split('/').at(-1));
+    await until(
+      () => active.match.phase === 'open' && b.events.length > 0,
+      'both waiters to enter',
+    );
+    const m = active.match;
+    m.next = Number.MAX_SAFE_INTEGER;
+    for (const p of m.players) {
+      const x = COUNTER_X.grill;
+      const z = COUNTER_Z + 0.45;
+      Object.assign(p, { x, px: x, z, pz: z, fx: 0, fz: -1 });
+    }
+    const press = { mx: 0, mz: 0, use: true, out: false };
+    await Promise.all(
+      [host, guest].map((c) =>
+        c.request(`${api}/input`, {
+          round: 1,
+          frames: [encodeFrame(1, press)],
+        }),
+      ),
+    );
+    await until(
+      () => active.seats.every((s) => s.applied === 1),
+      'both starts to apply',
+    );
+    const grill = m.stations.find((s) => s.id === 'grill');
+    // Nobody has ordered: the two presses start one burger ahead, not two.
+    assert.equal(grill.lanes[0].state, 'cook');
+    assert.equal(grill.lanes[1].state, 'idle');
+    grill.jam = 2;
+    const before = structuredClone(grill);
+    const rejoined = (await host.request(api)).data;
+    assert.deepEqual(
+      unpackMatch(rejoined.snap.m).stations.find((s) => s.id === 'grill'),
+      before,
+    );
+    // Resending already acknowledged presses cannot start or repair anything again.
+    await Promise.all(
+      [host, guest].map((c) =>
+        c.request(`${api}/input`, {
+          round: 1,
+          frames: [encodeFrame(1, press)],
+        }),
+      ),
+    );
+    assert.deepEqual(grill, before);
+    grill.jam = 0;
+    Object.assign(grill.lanes[0], { state: 'ready', t: 0 });
+    Object.assign(grill.lanes[1], { state: 'cook', t: 90 });
+    await Promise.all(
+      [host, guest].map((c) =>
+        c.request(`${api}/input`, {
+          round: 1,
+          frames: [encodeFrame(2, press)],
+        }),
+      ),
+    );
+    await until(
+      () => active.seats.every((s) => s.applied === 2),
+      'both pickup attempts to apply',
+    );
+    assert.equal(
+      m.players.filter((p) => p.hands.some((i) => i.k === 'dish')).length,
+      1,
+    );
+    await until(
+      () =>
+        a.events.some(
+          (e) => e.event === 'snap' && e.data.e.some((x) => x.type === 'take'),
+        ),
+      'the pickup snapshot',
+    );
+    const takes = a.events
+      .flatMap((e) => (e.event === 'snap' ? e.data.e : []))
+      .filter((e) => e.type === 'take');
+    assert.equal(takes.length, 1);
+    assert.equal(takes[0].slot, 0);
+    const seen = unpackMatch((await guest.request(api)).data.snap.m);
+    assert.equal(
+      seen.players.filter((p) => p.hands.some((i) => i.k === 'dish')).length,
+      1,
+    );
+    assert.equal(
+      seen.stations.find((s) => s.id === 'grill').lanes[1].state,
+      'cook',
+    );
+  } finally {
+    await close();
+  }
+});
+
 await test('a shift opens without a waiter who never comes, and the host starts the next', async () => {
   const { client, close } = await fixture({ tickMs: 0.1, joinMs: 150 });
   try {
@@ -284,7 +388,7 @@ await test('a shift opens without a waiter who never comes, and the host starts 
     const [guest] = guests;
     const launched = await host.request(`${path}/launch`, {
       kind: 'diner',
-      night: 1,
+      level: 1,
     });
     const room = roomOf(launched.data.url);
     const a = host.listen(`${room}/events`);
@@ -314,15 +418,15 @@ await test('a shift opens without a waiter who never comes, and the host starts 
     );
     assert.equal((await guest.request(`${room}/again`, {})).status, 403);
     assert.equal(
-      (await host.request(`${room}/again`, { night: 4 })).status,
+      (await host.request(`${room}/again`, { level: 41 })).status,
       400,
     );
     assert.equal(
-      (await host.request(`${room}/again`, { night: 3 })).status,
+      (await host.request(`${room}/again`, { level: 3 })).status,
       200,
     );
     await until(() => last(a, 'room')?.round === 2, 'the second shift');
-    assert.equal(last(a, 'room').night, 3);
+    assert.equal(last(a, 'room').level, 3);
     assert.equal(last(a, 'room').status, 'playing');
   } finally {
     await close();
@@ -334,7 +438,7 @@ await test('a table of five is too many waiters', async () => {
   try {
     const { host, path } = await table(client, ['B', 'C', 'D', 'E']);
     assert.equal(
-      (await host.request(`${path}/launch`, { kind: 'diner', night: 1 }))
+      (await host.request(`${path}/launch`, { kind: 'diner', level: 1 }))
         .status,
       409,
     );
@@ -360,14 +464,17 @@ await test('a packed match comes back the same', () => {
   assert.deepEqual(back.tables, m.tables);
   assert.deepEqual(back.stations, m.stations);
   assert.equal(back.players[0].x.toFixed(2), m.players[0].x.toFixed(2));
-  assert.deepEqual(back.players[0].carry, m.players[0].carry);
+  assert.deepEqual(back.players[0].hands, m.players[0].hands);
+  assert.equal(back.players[0].lead, m.players[0].lead);
   assert.ok(
     packMatch(m).length < JSON.stringify(m).length / 2,
     'much smaller than plain JSON',
   );
   // Input steps survive the round trip.
   assert.deepEqual(
-    decodeFrame(encodeFrame(9, { mx: -0.5, mz: 1, use: true, out: true })),
-    { mx: -0.5, mz: 1, use: true, out: true },
+    decodeFrame(
+      encodeFrame(9, { mx: -0.5, mz: 1, use: true, out: true, dash: true }),
+    ),
+    { mx: -0.5, mz: 1, use: true, out: true, dash: true },
   );
 });

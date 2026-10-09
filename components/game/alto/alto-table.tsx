@@ -78,7 +78,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '../../ui/dialog';
-import { AltoRules, PlanList } from './alto-rules';
+import { AltoPlanRules, AltoRules, PlanList } from './alto-rules';
 import {
   CostRow,
   EffectLine,
@@ -1100,6 +1100,7 @@ export function AltoTable({
                     <PlanFace
                       id={id}
                       next={race ? raceValue(g, plan) : undefined}
+                      earned={built ? (me.scored[id] ?? 0) : undefined}
                       stock={me.stock}
                       hideCost={built}
                       off={discount(g, me, plan.family)}
@@ -1278,7 +1279,9 @@ function Inspection({
     return (
       <>
         <DialogTitle>{plan.name}</DialogTitle>
-        <DialogDescription>{planRule(plan)}</DialogDescription>
+        <DialogDescription className="sr-only">
+          {plan.name}, {familyNames[plan.family][0]}
+        </DialogDescription>
         <div className="alto-inspect-plan">
           <PlanMark id={plan.id} size={160} />
           <div>
@@ -1299,6 +1302,11 @@ function Inspection({
             <EffectLine
               plan={plan}
               next={race ? raceValue(g, plan) : undefined}
+              earned={
+                g.players[viewer].built.includes(plan.id)
+                  ? (g.players[viewer].scored[plan.id] ?? 0)
+                  : undefined
+              }
             />
             {race && race.type === 'race' && (
               <ol className="alto-ladder" aria-label="Prizes">
@@ -1328,6 +1336,7 @@ function Inspection({
             )}
           </div>
         </div>
+        <AltoPlanRules plan={plan} />
       </>
     );
   }
@@ -1424,7 +1433,7 @@ function PlayerSheet({
       <div className="alto-sheet-stats">
         <GoodsRow amounts={p.stock} all size={20} />
         <span className="alto-stat">
-          <Package size={14} /> {hold(p)}
+          <Package size={14} aria-hidden="true" /> Hold {hold(p)}
         </span>
         {aloneBonus(p) > 0 && (
           <span className="alto-stat">Alone +{aloneBonus(p)}</span>
@@ -1464,7 +1473,10 @@ function PlayerSheet({
                     <PlanMark id={id} size={44} />
                     <span className="alto-built-detail">
                       <b>{planById[id].name}</b>
-                      <EffectLine plan={planById[id]} />
+                      <EffectLine
+                        plan={planById[id]}
+                        earned={p.scored[id] ?? 0}
+                      />
                     </span>
                   </button>
                 </li>
@@ -1559,6 +1571,11 @@ function PlansOverview({ g, viewer }: { g: AltoGame; viewer: number }) {
                   <PlanFace
                     id={id}
                     next={race ? raceValue(g, plan) : undefined}
+                    earned={
+                      g.players[viewer].built.includes(id)
+                        ? (g.players[viewer].scored[id] ?? 0)
+                        : undefined
+                    }
                   />
                   {builders.length > 0 && (
                     <span className="alto-builders">

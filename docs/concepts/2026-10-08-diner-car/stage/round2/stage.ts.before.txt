@@ -1,0 +1,581 @@
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+  COUNTER_Z,
+  DOOR_GAP,
+  FRONT_Z,
+  JUKEBOX,
+  TABLES,
+  W,
+  boothHz,
+  type TableSlot,
+} from '@/lib/games/diner/layout';
+import {
+  CAR_COLOURS as C,
+  StageKit,
+  buildDinerCar,
+  buildTruck,
+  glowMaterials,
+  joinKit,
+  lightLevel,
+  modelDisposer,
+  panel,
+} from './diner-car';
+import { buildPlace } from './places';
+import { STAGE, type BuildStage, type StageQuality } from './stage-contract';
+
+function booth(k: StageKit, t: TableSlot) {
+  const length = boothHz(t.seats) * 2 - 0.035;
+  k.rbox('chrome', C.chrome, [0.74, 0.056, length - 0.08], 0.025, [
+    t.x,
+    STAGE.tableTop - 0.047,
+    t.z,
+  ]);
+  k.rbox('laminate', '#ecddbf', [0.7, 0.039, length - 0.12], 0.019, [
+    t.x,
+    STAGE.tableTop - 0.0195,
+    t.z,
+  ]);
+  k.cyl('chrome', '#c1cfd0', 0.048, 0.06, 0.65, [t.x, 0.349, t.z]);
+  k.cyl('chrome', '#b0c0c7', 0.18, 0.22, 0.046, [t.x, 0.023, t.z]);
+  for (const side of [-1, 1]) {
+    const x = t.x + side * 0.62;
+    k.rbox('paint', '#35685f', [0.38, 0.23, length - 0.01], 0.025, [
+      x,
+      0.23,
+      t.z,
+    ]);
+    k.rbox('chrome', C.chrome, [0.43, 0.035, length], 0.017, [x, 0.353, t.z]);
+    const seat = new THREE.Shape();
+    seat.moveTo(-0.21, 0.38);
+    seat.quadraticCurveTo(-0.225, 0.465, -0.13, 0.468);
+    seat.bezierCurveTo(-0.08, 0.47, 0.09, 0.47, 0.16, 0.468);
+    seat.quadraticCurveTo(0.23, 0.46, 0.21, 0.385);
+    seat.closePath();
+    const g = new THREE.ExtrudeGeometry(seat, {
+      depth: length - 0.02,
+      bevelEnabled: false,
+      curveSegments: k.quality === 'high' ? 12 : 6,
+    });
+    g.translate(0, 0, -(length - 0.02) / 2);
+    g.computeBoundingBox();
+    g.translate(0, STAGE.seatTop - g.boundingBox!.max.y, 0);
+    k.add('vinyl', C.mint, g, [x, 0, t.z]);
+    const back = new THREE.Shape();
+    back.moveTo(0.12, 0.42);
+    back.bezierCurveTo(0.1, 0.6, 0.13, 0.85, 0.145, 0.98);
+    back.quadraticCurveTo(0.16, 1.07, 0.22, 1.01);
+    back.lineTo(0.225, 0.41);
+    back.closePath();
+    const bg = new THREE.ExtrudeGeometry(back, {
+      depth: length - 0.025,
+      bevelEnabled: true,
+      bevelThickness: 0.012,
+      bevelSize: 0.012,
+      bevelSegments: k.quality === 'high' ? 3 : 2,
+      curveSegments: k.quality === 'high' ? 12 : 6,
+    });
+    bg.translate(0, 0, -(length - 0.025) / 2);
+    k.add('vinyl', C.mint, bg, [x, 0, t.z], {
+      rot: [0, side < 0 ? Math.PI : 0, 0],
+    });
+    k.tube(
+      'chrome',
+      '#b0d3cb',
+      [
+        [x + side * 0.22, 0.45, t.z - length / 2 + 0.015],
+        [x + side * 0.22, 1.02, t.z - length / 2 + 0.015],
+        [x + side * 0.22, 1.02, t.z + length / 2 - 0.015],
+        [x + side * 0.22, 0.45, t.z + length / 2 - 0.015],
+      ],
+      0.009,
+    );
+    const channels = t.seats === 2 ? 3 : 5;
+    for (let i = 1; i < channels; i++)
+      k.tube(
+        'vinyl',
+        '#65a993',
+        [
+          [x + side * 0.15, 0.53, t.z - length / 2 + (i / channels) * length],
+          [x + side * 0.12, 0.78, t.z - length / 2 + (i / channels) * length],
+          [x + side * 0.155, 0.995, t.z - length / 2 + (i / channels) * length],
+        ],
+        0.004,
+      );
+    for (const dz of [-1, 1])
+      k.box(
+        'chrome',
+        C.chrome,
+        [0.4, 0.025, 0.07],
+        [x, 0.03, t.z + dz * length * 0.3],
+      );
+  }
+}
+
+function jukebox(k: StageKit, lit: StageKit, upgraded: boolean) {
+  const x = JUKEBOX.x,
+    z = JUKEBOX.z;
+  k.add('wood', '#6b4a4c', panel(0.65, 1.28, 0.3, 0.42, k.quality), [
+    x,
+    0.64,
+    z,
+  ]);
+  k.add('chrome', C.chrome, panel(0.61, 1.24, 0.3, 0.05, k.quality), [
+    x,
+    0.65,
+    z + 0.22,
+  ]);
+  k.add('gloss', '#963d57', panel(0.54, 1.15, 0.27, 0.02, k.quality), [
+    x,
+    0.65,
+    z + 0.26,
+  ]);
+  k.add('paint', '#3f4d53', panel(0.44, 0.45, 0.14, 0.018, k.quality), [
+    x,
+    0.38,
+    z + 0.31,
+  ]);
+  for (let i = 0; i < 9; i++)
+    k.box(
+      'chrome',
+      '#afa287',
+      [0.36, 0.009, 0.025],
+      [x, 0.21 + i * 0.04, z + 0.325],
+    );
+  k.add('glass', '#e6d8bd', panel(0.38, 0.37, 0.14, 0.02, k.quality), [
+    x,
+    0.9,
+    z + 0.315,
+  ]);
+  for (let i = 0; i < 5; i++)
+    k.box(
+      'ceramic',
+      i % 2 ? '#c4bca6' : '#f2e2bb',
+      [0.065, 0.045, 0.014],
+      [x - 0.16 + i * 0.08, 0.73, z + 0.338],
+    );
+  const contour: [number, number, number][] = [
+    [x - 0.27, 0.18, z + 0.335],
+    [x - 0.27, 0.93, z + 0.335],
+  ];
+  for (let i = 0; i <= 16; i++) {
+    const a = Math.PI - (i / 16) * Math.PI;
+    contour.push([
+      x + Math.cos(a) * 0.27,
+      0.93 + Math.sin(a) * 0.27,
+      z + 0.335,
+    ]);
+  }
+  contour.push([x + 0.27, 0.18, z + 0.335]);
+  lit.tube(
+    'glow',
+    upgraded ? '#8ae5cf' : '#b2bba9',
+    contour,
+    upgraded ? 0.016 : 0.01,
+  );
+  lit.box('glow', '#f0b891', [0.42, 0.027, 0.02], [x, 0.63, z + 0.33]);
+}
+
+function planter(target: StageKit, x: number, z: number) {
+  const k = new StageKit(target.quality);
+  k.cyl('ceramic', '#a86d67', 0.26, 0.19, 0.47, [x, 0.22, z], { seg: 16 });
+  k.cyl('paint', '#404d43', 0.23, 0.23, 0.018, [x, 0.46, z], { seg: 16 });
+  for (let i = 0; i < 7; i++) {
+    const a = i * 2.4;
+    const stem: [number, number, number][] = [
+      [x, 0.44, z],
+      [x + Math.sin(a) * 0.09, 0.7, z + Math.cos(a) * 0.09],
+      [x + Math.sin(a) * 0.3, 0.92 + (i % 2) * 0.1, z + Math.cos(a) * 0.3],
+    ];
+    k.tube('paint', '#426a5c', stem, 0.015);
+    k.sphere('paint', i % 2 ? '#6b8f68' : '#759778', 0.12, stem[2], {
+      scale: [0.6, 1.5, 0.2],
+      rot: [0.35, a, 0.35],
+      seg: 10,
+    });
+  }
+  for (const [mat, part] of Object.entries(k.build())) {
+    part.translate(0, -0.225, 0);
+    (target.parts[mat as keyof typeof target.parts] ??= []).push(part);
+  }
+}
+
+/** Made once per stage, with two tiles per repeat and restrained grout. */
+function checker(quality: StageQuality) {
+  const n = quality === 'high' ? 256 : 128,
+    bytes = new Uint8Array(n * n * 4);
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) {
+      const cell = n / 2,
+        colour =
+          (Math.floor(x / cell) + Math.floor(y / cell)) % 2
+            ? [185, 130, 123]
+            : [215, 195, 166];
+      const shade = x % cell < 1 || y % cell < 1 ? 0.89 : 1;
+      bytes.set(
+        [...colour.map((v) => Math.round(v * shade)), 255],
+        (y * n + x) * 4,
+      );
+    }
+  const tex = new THREE.DataTexture(bytes, n, n, THREE.RGBAFormat);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set((W + 0.4) / 1.6, (FRONT_Z - COUNTER_Z + 0.4) / 1.6);
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = true;
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Combine only unmoving vertex-coloured geometry; rigs retain their pivots. */
+function batch(group: THREE.Group) {
+  group.updateMatrixWorld(true);
+  const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>(),
+    originals: THREE.Mesh[] = [];
+  const walk = (node: THREE.Object3D) => {
+    if (node.userData.dynamic || node instanceof THREE.InstancedMesh) return;
+    if (node instanceof THREE.Mesh && !Array.isArray(node.material)) {
+      if (
+        Object.keys(node.geometry.attributes).sort().join(',') !==
+        'color,normal,position,uv'
+      )
+        return;
+      let geo = node.geometry.clone();
+      geo.applyMatrix4(node.matrixWorld);
+      if (geo.index) {
+        const flat = geo.toNonIndexed();
+        geo.dispose();
+        geo = flat;
+      }
+      if (!byMat.has(node.material)) byMat.set(node.material, []);
+      byMat.get(node.material)!.push(geo);
+      originals.push(node);
+    }
+    for (const child of node.children) walk(child);
+  };
+  walk(group);
+  const freed = new Set<THREE.BufferGeometry>();
+  for (const o of originals) {
+    o.removeFromParent();
+    if (!freed.has(o.geometry)) {
+      freed.add(o.geometry);
+      o.geometry.dispose();
+    }
+  }
+  for (const [mat, list] of byMat) {
+    const geo = mergeGeometries(list, false);
+    for (const g of list) g.dispose();
+    if (!geo) continue;
+    geo.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.name = 'stage-batch';
+    mesh.castShadow =
+      !(mat instanceof THREE.MeshBasicMaterial) && !mat.transparent;
+    mesh.receiveShadow = !(mat instanceof THREE.MeshBasicMaterial);
+    group.add(mesh);
+  }
+}
+
+export const buildStage: BuildStage = (materials, options) => {
+  const group = new THREE.Group();
+  group.name = 'stage';
+  const { quality, upgrades } = options;
+  const k = new StageKit(quality),
+    lit = new StageKit(quality),
+    music = new StageKit(quality);
+  const own = glowMaterials(materials),
+    musicOwn = glowMaterials(materials);
+  const car = buildDinerCar(materials, { detail: 'stage', upgrades, quality });
+  car.group.position.x = W / 2;
+  group.add(car.group);
+  const place = buildPlace(materials, options.place, {
+    detail: 'stage',
+    quality,
+  });
+  group.add(place.group);
+  const truck = buildTruck(materials, { detail: 'stage', upgrades, quality });
+  truck.group.position.set(-4.8, -0.22, -0.65);
+  truck.group.rotation.y = -0.06;
+  group.add(truck.group);
+  const tex = checker(quality);
+  const deckMat = new THREE.MeshPhysicalMaterial({
+    map: tex,
+    roughness: 0.73,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.5,
+  });
+  const deck = new THREE.Mesh(
+    new THREE.PlaneGeometry(W + 0.4, FRONT_Z - COUNTER_Z + 0.4),
+    deckMat,
+  );
+  deck.rotation.x = -Math.PI / 2;
+  deck.position.set(W / 2, STAGE.floor, (FRONT_Z + COUNTER_Z) / 2);
+  deck.receiveShadow = true;
+  group.add(deck);
+  k.box(
+    'paint',
+    '#76635d',
+    [W + 0.4, 0.14, FRONT_Z - COUNTER_Z + 0.4],
+    [W / 2, -0.075, (FRONT_Z + COUNTER_Z) / 2],
+  );
+  k.box(
+    'chrome',
+    '#a3a6a0',
+    [W + 0.45, 0.04, 0.06],
+    [W / 2, -0.03, FRONT_Z + 0.22],
+  );
+  if (upgrades.biggerPatio) {
+    k.rbox('gloss', '#b1ac91', [1.25, 0.14, 6.5], 0.06, [
+      W + 0.83,
+      -0.073,
+      6.9,
+    ]);
+    for (let i = 0; i < 12; i++)
+      k.box(
+        'chrome',
+        '#bab2a3',
+        [0.8, 0.025, 0.024],
+        [W + 0.82, 0, 3.95 + i * 0.52],
+      );
+  }
+  const depth = COUNTER_Z - STAGE.counterBack;
+  k.rbox('gloss', C.cherry, [W + 0.14, 0.83, depth], 0.025, [
+    W / 2,
+    0.415,
+    STAGE.counterBack + depth / 2,
+  ]);
+  k.box(
+    'paint',
+    '#423d42',
+    [W - 0.05, 0.1, 0.09],
+    [W / 2, 0.09, COUNTER_Z - 0.045],
+  );
+  k.rbox('chrome', C.chrome, [W + 0.18, 0.095, depth + 0.04], 0.028, [
+    W / 2,
+    STAGE.counterTop - 0.0475,
+    (STAGE.counterBack + COUNTER_Z) / 2 - 0.02,
+  ]);
+  for (const y of [0.26, 0.62])
+    k.box(
+      'chrome',
+      '#a2bbc2',
+      [W + 0.08, 0.048, 0.025],
+      [W / 2, y, COUNTER_Z + 0.015],
+    );
+  for (let x = 0.2; x < W; x += 1.15)
+    k.box(
+      'chrome',
+      '#78949f',
+      [0.012, 0.38, 0.022],
+      [x, 0.44, COUNTER_Z + 0.026],
+    );
+  // Beside the left end, clear of both the carriage shell and the first machine.
+  k.box('chrome', '#9aaead', [0.84, 0.265, 0.73], [-0.72, -0.1075, 0.4]);
+  k.rbox('gloss', '#aacbbb', [0.74, 1.88, 0.62], 0.12, [-0.72, 0.96, 0.4]);
+  k.rbox('chrome', '#c5d3cf', [0.035, 0.43, 0.05], 0.014, [-0.46, 1.11, 0.74]);
+  k.box('paint', '#56796f', [0.6, 0.018, 0.024], [-0.72, 1.5, 0.73]);
+  k.add('wood', '#6b5550', panel(1.2, 0.62, 0.055, 0.06, quality), [
+    W / 2,
+    1.72,
+    -0.14,
+  ]);
+  k.add('paint', '#324748', panel(1.1, 0.52, 0.04, 0.02, quality), [
+    W / 2,
+    1.72,
+    -0.1,
+  ]);
+  for (let i = 0; i < 3; i++)
+    k.box(
+      'paint',
+      '#b1b49e',
+      [0.65 - i * 0.1, 0.014, 0.01],
+      [W / 2 - 0.09, 1.86 - i * 0.13, -0.082],
+    );
+  k.box('chrome', '#a8babc', [2.4, 0.045, 0.16], [1.9, 1.1, -0.1]);
+  k.box('chrome', '#a8babc', [1.85, 0.045, 0.16], [8.65, 1.1, -0.1]);
+  for (const i of new Set(options.tables)) {
+    const t = TABLES[i];
+    if (t) booth(k, t);
+  }
+  const rail = (x0: number, z0: number, x1: number, z1: number) => {
+    const len = Math.hypot(x1 - x0, z1 - z0),
+      count = Math.max(1, Math.ceil(len / 1.4));
+    k.box(
+      'chrome',
+      '#a4b7b7',
+      [Math.abs(x1 - x0) + 0.04, 0.042, Math.abs(z1 - z0) + 0.04],
+      [(x0 + x1) / 2, 0.52, (z0 + z1) / 2],
+    );
+    k.box(
+      'gloss',
+      C.cherry,
+      [Math.abs(x1 - x0) + 0.03, 0.045, Math.abs(z1 - z0) + 0.03],
+      [(x0 + x1) / 2, 0.17, (z0 + z1) / 2],
+    );
+    for (let n = 0; n <= count; n++)
+      k.cyl(
+        'chrome',
+        '#a4b6b9',
+        0.025,
+        0.034,
+        0.54,
+        [x0 + ((x1 - x0) * n) / count, 0.27, z0 + ((z1 - z0) * n) / count],
+        { seg: 10 },
+      );
+  };
+  rail(-0.13, COUNTER_Z, -0.13, DOOR_GAP[0]);
+  rail(-0.13, DOOR_GAP[1], -0.13, FRONT_Z);
+  rail(W + 0.13, COUNTER_Z, W + 0.13, FRONT_Z);
+  rail(-0.13, FRONT_Z + 0.1, W + 0.13, FRONT_Z + 0.1);
+  const gate = new THREE.Group();
+  gate.name = 'entrance-gate';
+  gate.userData.dynamic = true;
+  gate.position.set(-0.13, 0, DOOR_GAP[0]);
+  group.add(gate);
+  const gk = new StageKit(quality),
+    gap = DOOR_GAP[1] - DOOR_GAP[0];
+  gk.rbox('gloss', C.cherry, [0.065, 0.26, gap - 0.06], 0.03, [
+    0,
+    0.31,
+    gap / 2,
+  ]);
+  gk.box('chrome', '#c3c4ac', [0.07, 0.04, gap - 0.06], [0, 0.48, gap / 2]);
+  joinKit(gate, gk, materials, 'gate-panel');
+  k.box(
+    'chrome',
+    '#9baaa6',
+    [0.6, 0.26, 0.55],
+    [-0.75, -0.11, DOOR_GAP[0] - 0.39],
+  );
+  k.rbox('gloss', C.mintDark, [0.47, 0.87, 0.44], 0.07, [
+    -0.75,
+    0.43,
+    DOOR_GAP[0] - 0.39,
+  ]);
+  k.rbox(
+    'wood',
+    '#dfc3a0',
+    [0.59, 0.065, 0.52],
+    0.03,
+    [-0.75, 0.9, DOOR_GAP[0] - 0.39],
+    { rot: [-0.08, 0, 0] },
+  );
+  k.box(
+    'ceramic',
+    '#e6dec5',
+    [0.28, 0.01, 0.24],
+    [-0.75, 0.955, DOOR_GAP[0] - 0.39],
+  );
+  k.rbox('chrome', '#a8b6b2', [1.05, 0.07, gap], 0.03, [
+    -0.68,
+    -0.1,
+    (DOOR_GAP[0] + DOOR_GAP[1]) / 2,
+  ]);
+  jukebox(k, music, !!upgrades.jukebox);
+  for (const [x, z] of [
+    [-0.65, 3.0],
+    [W + 0.65, 3.0],
+    [-0.66, FRONT_Z + 0.6],
+    [W + 0.65, FRONT_Z + 0.6],
+  ])
+    planter(k, x, z);
+  for (const x of [-0.58, W + 0.58]) {
+    for (const z of [2.0, FRONT_Z + 0.26]) {
+      k.cyl('chrome', '#6a808e', 0.04, 0.057, 3.49, [x, 1.505, z]);
+      k.sphere('chrome', C.chrome, 0.07, [x, 3.27, z], { seg: 10 });
+    }
+    const pts: [number, number, number][] = [];
+    for (let i = 0; i <= 24; i++) {
+      const u = i / 24;
+      pts.push([
+        x,
+        3.23 - Math.sin(Math.PI * u) * 0.36,
+        2 + u * (FRONT_Z - 1.74),
+      ]);
+    }
+    k.tube('paint', '#34434a', pts, 0.012);
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12,
+        z = 2 + u * (FRONT_Z - 1.74),
+        y = 3.23 - Math.sin(Math.PI * u) * 0.36;
+      k.cyl('paint', '#49443d', 0.028, 0.028, 0.09, [x, y - 0.04, z], {
+        seg: 6,
+      });
+      lit.sphere('glow', '#f3cb91', 0.056, [x, y - 0.115, z], {
+        seg: quality === 'high' ? 12 : 8,
+      });
+    }
+  }
+  joinKit(group, k, materials, 'patio-static');
+  joinKit(group, lit, own.materials, 'patio-bulbs');
+  joinKit(group, music, musicOwn.materials, 'jukebox-tubes');
+  const lights: THREE.PointLight[] = [];
+  for (const [x, y, z] of [
+    [2.3, 2.9, 0.9],
+    [8.7, 2.9, 0.9],
+    [5.5, 3.8, 7.3],
+  ]) {
+    const l = new THREE.PointLight(
+      '#ffc390',
+      quality === 'high' ? 7 : 4.5,
+      12,
+      2,
+    );
+    l.position.set(x, y, z);
+    l.castShadow = false;
+    lights.push(l);
+    group.add(l);
+  }
+  batch(group);
+  const disposeGeometry = modelDisposer(group, [
+    own.glow,
+    musicOwn.glow,
+    tex,
+    deckMat,
+  ]);
+  let disposed = false;
+  return {
+    group,
+    landmarks: [
+      ...car.landmarks.map((p) =>
+        p.clone().add(new THREE.Vector3(W / 2, 0, 0)),
+      ),
+      ...place.landmarks,
+      new THREE.Vector3(-1.15, 2.02, 0.8),
+      new THREE.Vector3(-1.1, 1.12, FRONT_Z + 0.74),
+      new THREE.Vector3(W + 1.1, 1.12, FRONT_Z + 0.74),
+      ...(upgrades.biggerPatio
+        ? [new THREE.Vector3(W + 1.52, 0.06, 10.2)]
+        : []),
+      new THREE.Vector3(-0.68, 3.35, FRONT_Z + 0.26),
+      new THREE.Vector3(W + 0.68, 3.35, FRONT_Z + 0.26),
+    ],
+    update(cues) {
+      car.update(cues);
+      truck.update(cues);
+      place.update(cues);
+      const level = lightLevel(cues);
+      own.glow.color.setScalar(level);
+      musicOwn.glow.color.setScalar(
+        level *
+          (cues.jukebox
+            ? 1.15 + (cues.reduced ? 0 : Math.sin(cues.time * 3) * 0.12)
+            : 0.35),
+      );
+      gate.rotation.y = -THREE.MathUtils.clamp(cues.gate, 0, 1) * 1.36;
+      for (const light of lights)
+        light.intensity = (quality === 'high' ? 7 : 4.5) * level;
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const child of [car, truck, place]) {
+        child.group.removeFromParent();
+        child.dispose();
+      }
+      disposeGeometry();
+    },
+  };
+};

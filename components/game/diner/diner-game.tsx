@@ -10,11 +10,15 @@ import {
 } from 'react';
 import {
   ChevronLeft,
+  Heart,
+  Layers,
   LogOut,
   Pause,
   RotateCcw,
   Settings2,
+  Trophy,
   WifiOff,
+  Wrench,
 } from 'lucide-react';
 import {
   Dialog,
@@ -22,16 +26,19 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  dishes,
-  nights,
-  stationDish,
-  type NightId,
-} from '@/lib/games/diner/content';
+import { dishes, nights, stationDish } from '@/lib/games/diner/content';
 import {
   clock,
   hasMimics,
+  matchEffects,
   medalsFor,
+  cookSeconds,
+  burnSeconds,
+  isRush,
+  powerOnline,
+  stationSlots,
+  campaignShiftWon,
+  eatSeconds,
   outTarget,
   actionFor,
   type DinerEvent,
@@ -40,24 +47,56 @@ import {
 } from '@/lib/games/diner/engine';
 import { COUNTER_X, QUEUE } from '@/lib/games/diner/layout';
 import { GameMenu } from '../game-menu';
+import { Rules, RuleSection } from '../rules';
+import { LeaveDialog, useLeaveDialog } from '../leave-dialog';
+import { useBadgeFit } from '../use-fit';
 import { recordCompletedGame } from '../play-experience';
 import { useResultsFeedback, WinnerCelebration } from '../results-feedback';
-import { Pacer, ladder } from '../arena/pacer';
+import { Pacer, ladder } from '../render-pacer';
+import { floorAt, nativeRatio, startLevel } from '../render-quality';
 import { DinerRules } from './diner-rules';
-import { readDiner, recordShift } from './diner-store';
+import { recordLevel } from './diner-store';
+import { CHAPTERS, LEVEL_COUNT, levelById } from '@/lib/games/diner/levels';
+import { PLACES } from '@/lib/games/diner/road';
+import { DinerLandscape } from './diner-landscape';
+import { KIT_NOTES, noteFor, TROUBLE_NOTES, troubleNote } from './level-notes';
 import { DinerIcon, type IconName } from './icons';
 import { Joystick, type Stick } from './joystick';
 import { SEAT_COLOURS } from './seats';
 import type { Controls, Session } from './session';
 import { DinerSound } from './sound';
 import { DinerView } from './view';
+import { NIGHT_PLACE, type CarUpgrades } from './stage-contract';
 import './diner.css';
+import './diner-hud.css';
 
 /** What the online room adds around a shift. */
 export type RoomInfo = {
   status: 'waiting' | 'playing' | 'over';
   seats: { name: string; connected: boolean }[];
   link: 'live' | 'lost' | 'gone';
+};
+
+/** Campaign-only information about the stop being played. */
+export type CampaignShiftInfo = {
+  /** Stops driven, counting this one. */
+  stop: number;
+  title: string;
+  place: string;
+  boss: boolean;
+  /** The trouble this shift brings, as short names. */
+  troubles: string[];
+  /** What finishing pays, in words. */
+  reward: string | null;
+};
+/** What the run made of the shift, once it is banked. */
+export type CampaignShiftResult = {
+  survived: boolean;
+  banked: number;
+  lost: number;
+  lives: number;
+  tokens: number;
+  reward: string | null;
 };
 
 type Hud = {
@@ -68,6 +107,10 @@ type Hud = {
   countdown: number;
   medals: number;
   targets: [number, number, number];
+  rush: boolean;
+  power: boolean;
+  goalProgress: string;
+  held: string;
 };
 const readHud = (m: Match): Hud => ({
   seconds: Math.ceil(clock(m)),
@@ -77,6 +120,10 @@ const readHud = (m: Match): Hud => ({
   countdown: m.countdown > 0 ? Math.ceil(m.countdown / 30) : 0,
   medals: medalsFor(m),
   targets: m.targets,
+  rush: isRush(m),
+  power: powerOnline(m),
+  goalProgress: `${m.stats.served},${m.stats.caught},${m.stats.burnt},${m.activity?.repairs ?? 0},${m.activity?.vipServed ?? 0}`,
+  held: '',
 });
 const sameHud = (a: Hud, b: Hud) =>
   a.seconds === b.seconds &&
@@ -85,6 +132,10 @@ const sameHud = (a: Hud, b: Hud) =>
   a.phase === b.phase &&
   a.countdown === b.countdown &&
   a.medals === b.medals &&
+  a.rush === b.rush &&
+  a.power === b.power &&
+  a.goalProgress === b.goalProgress &&
+  a.held === b.held &&
   a.targets.join() === b.targets.join();
 
 const time = (s: number) =>
@@ -116,7 +167,38 @@ function lookFor(a: UseAction | null): { icon: IconName; word: string } {
       return { icon: 'bin', word: 'Bin' };
     case 'mop':
       return { icon: 'mop', word: 'Mop' };
+    case 'repair':
+      return { icon: 'repair', word: 'Fix' };
+    case 'put':
+      return { icon: a.dish ?? 'burger', word: 'Shelve' };
+    case 'pick':
+      return { icon: a.dish ?? 'burger', word: 'Take' };
+    case 'pot':
+    case 'refill':
+      return { icon: 'coffee', word: a.kind === 'pot' ? 'Coffee' : 'Refill' };
+    case 'stow':
+      return { icon: 'coffee', word: 'Put back' };
+    case 'pour':
+      return { icon: 'coffee', word: 'Pour' };
+    case 'juke':
+      return { icon: 'music', word: 'Play' };
   }
+}
+
+/** What your hands hold, as pictures beside the Use button. */
+function heldIcons(
+  m: Match,
+  you: number,
+): { icon: IconName; burnt?: boolean }[] {
+  const p = m.players[you];
+  if (!p) return [];
+  return p.hands.map((i) =>
+    i.k === 'dish'
+      ? { icon: i.dish as IconName, burnt: i.burnt }
+      : i.k === 'dirty'
+        ? { icon: 'dirty' as IconName }
+        : { icon: 'coffee' as IconName },
+  );
 }
 
 // ---------------------------------------------------------------- overlays
@@ -129,11 +211,14 @@ type Bubble = {
   icons: { name: IconName; done?: boolean }[];
   state: string;
   label?: string;
+  seat?: number;
   colour?: string;
   /** Continuous values set straight on the element. */
   patience?: number;
   progress?: number;
   at: [number, number, number];
+  demanding?: boolean;
+  lanes?: { state: string; progress: number }[];
 };
 
 function bubbles(m: Match, you: number, online: boolean): Bubble[] {
@@ -169,7 +254,11 @@ function bubbles(m: Match, you: number, online: boolean): Bubble[] {
         sig: `${g.state}|${icons.map((i) => `${i.name}${i.done ? 1 : 0}`).join(',')}|${g.patience < 0.3 ? 'low' : g.patience < 0.6 ? 'mid' : 'ok'}`,
         icons,
         patience: g.patience,
-        progress: g.state === 'eat' ? Math.min(1, g.t / 180) : undefined,
+        progress:
+          g.state === 'eat'
+            ? Math.min(1, g.t / (eatSeconds(m) * 30))
+            : undefined,
+        demanding: g.demanding,
         at,
       });
     } else if (t.dirty) {
@@ -204,30 +293,60 @@ function bubbles(m: Match, you: number, online: boolean): Bubble[] {
       icons: [],
       label: String(members.length),
       patience: g.patience,
+      demanding: g.demanding,
       at: [cx, g.state === 'queue' ? 0.95 : 1.9, cz],
     });
   }
   for (const s of m.stations) {
-    if (s.state === 'idle') continue;
     const dish = stationDish[s.id];
-    const total = dishes[dish].cook * 30;
-    const burn = dishes[dish].burn;
-    const smoking = s.state === 'ready' && burn !== null && s.t > burn * 15;
+    const total = cookSeconds(m, s.id) * 30;
+    const burn = burnSeconds(m, s.id);
+    const lanes = stationSlots(s).map((lane) => ({
+      state:
+        lane.state === 'ready' && burn !== null && lane.t > burn * 15
+          ? 'smoking'
+          : lane.state,
+      progress:
+        lane.state === 'cook'
+          ? 1 - lane.t / Math.max(1, total)
+          : lane.state === 'ready' && burn !== null
+            ? 1 - lane.t / (burn * 30)
+            : 1,
+    }));
+    const smoking = lanes.some((lane) => lane.state === 'smoking');
+    const state = s.jam
+      ? 'jam'
+      : lanes.some((lane) => lane.state === 'burnt')
+        ? 'burnt'
+        : smoking
+          ? 'smoking'
+          : lanes.some((lane) => lane.state === 'ready')
+            ? 'ready'
+            : lanes.some((lane) => lane.state === 'cook')
+              ? 'cook'
+              : 'idle';
     out.push({
       key: `s${s.id}`,
       kind: 'station',
-      state: s.state === 'ready' && smoking ? 'smoking' : s.state,
-      sig: `${s.state}|${smoking}`,
-      icons: [{ name: s.state === 'burnt' ? 'burnt' : dish }],
-      progress:
-        s.state === 'cook'
-          ? 1 - s.t / Math.max(1, total)
-          : s.state === 'ready' && burn !== null
-            ? 1 - s.t / (burn * 30)
-            : 1,
-      at: [COUNTER_X[s.id], 1.75, 0.75],
+      state,
+      sig: `${lanes.map((lane) => lane.state).join(',')}|${s.jam ?? 0}`,
+      icons: [{ name: s.jam ? 'repair' : dish }],
+      // Pictures only: a jam shows how many taps are left.
+      label: s.jam ? String(s.jam) : undefined,
+      lanes: s.jam ? undefined : lanes,
+      // High in the hatch, under the striped valance: clear of the top bar.
+      at: [COUNTER_X[s.id], 2.12, 1.1],
     });
   }
+  for (const id of ['sink', 'bin'] as const)
+    out.push({
+      key: `s${id}`,
+      kind: 'station',
+      state: 'utility',
+      sig: id,
+      icons: [{ name: id === 'sink' ? 'wash' : 'bin' }],
+      at: [COUNTER_X[id], 2.12, 1.1],
+    });
   if (online)
     m.players.forEach((p, i) => {
       if (i === you) return;
@@ -238,6 +357,7 @@ function bubbles(m: Match, you: number, online: boolean): Bubble[] {
         sig: p.name,
         icons: [],
         label: p.name,
+        seat: i + 1,
         colour: SEAT_COLOURS[i],
         at: [p.x, 2.05, p.z],
       });
@@ -257,13 +377,19 @@ function BubbleView({
       ref={(el) => register(b.key, el)}
       className={`diner-bubble ${b.kind}`}
       data-state={b.state}
+      data-demanding={!!b.demanding}
       style={b.colour ? ({ '--seat': b.colour } as CSSProperties) : undefined}
     >
       {b.kind === 'name' ? (
-        <span className="diner-name">{b.label}</span>
+        <span className="diner-name" aria-label={b.label}>
+          {b.seat}
+        </span>
       ) : b.kind === 'queue' ? (
         <span className="diner-mood">
-          <i className="diner-mood-face" />
+          <i className="diner-mood-face">
+            <DinerIcon name="heart" />
+          </i>
+          {b.demanding && <DinerIcon name="star" />}
           <b>{b.label}</b>
         </span>
       ) : (
@@ -271,16 +397,40 @@ function BubbleView({
           {b.kind === 'table' && b.patience !== undefined && (
             <i className="diner-patience" />
           )}
-          {b.icons.map((icon, i) => (
-            <span
-              key={i}
-              className={`diner-bubble-icon ${icon.done ? 'done' : ''}`}
-            >
-              <DinerIcon name={icon.name} />
+          {b.demanding && (
+            <span className="diner-vip-mark">
+              <DinerIcon name="star" />
             </span>
-          ))}
+          )}
+          {b.lanes ? (
+            <span className="diner-station-lanes">
+              {b.lanes.map((lane, i) => (
+                <span
+                  key={i}
+                  className="diner-station-lane"
+                  data-state={lane.state}
+                  style={{ '--lane-fill': lane.progress } as CSSProperties}
+                >
+                  <DinerIcon
+                    name={lane.state === 'burnt' ? 'burnt' : b.icons[0].name}
+                  />
+                </span>
+              ))}
+            </span>
+          ) : (
+            b.icons.map((icon, i) => (
+              <span
+                key={i}
+                className={`diner-bubble-icon ${icon.done ? 'done' : ''}`}
+              >
+                <DinerIcon name={icon.name} />
+              </span>
+            ))
+          )}
           {b.label && <b className="diner-bubble-label">{b.label}</b>}
-          {b.kind === 'station' && <i className="diner-ring" />}
+          {b.kind === 'station' &&
+            b.progress !== undefined &&
+            b.state !== 'idle' && <i className="diner-ring" />}
         </span>
       )}
     </div>
@@ -297,8 +447,16 @@ export default function DinerGame({
   room,
   learn = false,
   onExit,
-  onNight,
+  onLevel,
+  onLevels,
   leaveNote,
+  campaign,
+  campaignResult,
+  upgrades,
+  equipment,
+  onCheckpoint,
+  onShiftEnd,
+  onResultsContinue,
 }: {
   session: Session;
   volume: number;
@@ -307,9 +465,19 @@ export default function DinerGame({
   room?: RoomInfo;
   learn?: boolean;
   onExit: () => void;
-  /** Solo: a shift ended with medals (kept on the device by the caller too). */
-  onNight?: (night: NightId) => void;
+  /** Solo free play: a level's shift ended (its medals are kept on the device). */
+  onLevel?: (level: number) => void;
+  /** Free play: back to the grid of levels. */
+  onLevels?: () => void;
   leaveNote?: string;
+  campaign?: CampaignShiftInfo;
+  campaignResult?: CampaignShiftResult | null;
+  /** What the Workshop shows on the car and patio. */
+  upgrades?: CarUpgrades;
+  equipment?: ReactNode;
+  onCheckpoint?: (match: Match) => void;
+  onShiftEnd?: (match: Match) => void;
+  onResultsContinue?: () => void;
 }) {
   const subscribe = useCallback(
     (l: () => void) => session.subscribe(l),
@@ -324,6 +492,7 @@ export default function DinerGame({
   const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const top = useRef<HTMLDivElement>(null);
+  const badges = useRef<HTMLUListElement>(null);
   const pad = useRef<HTMLDivElement>(null);
   const fxLayer = useRef<HTMLDivElement>(null);
   const coinTarget = useRef<HTMLSpanElement>(null);
@@ -332,7 +501,14 @@ export default function DinerGame({
   const audio = useRef<DinerSound | null>(null);
   const stick = useRef<Stick>({ x: 0, z: 0 });
   const keys = useRef(new Set<string>());
-  const controls = useRef<Controls>({ mx: 0, mz: 0, use: false, out: false });
+  const controls = useRef<Controls>({
+    mx: 0,
+    mz: 0,
+    use: false,
+    out: false,
+    dash: false,
+  });
+  const modalOrigin = useRef<HTMLElement | null>(null);
   const elements = useRef(new Map<string, HTMLDivElement>());
   const [hud, setHud] = useState<Hud>(() => readHud(session.match));
   const [hint, setHint] = useState<{ use: UseAction | null; out: boolean }>({
@@ -340,30 +516,85 @@ export default function DinerGame({
     out: false,
   });
   const [items, setItems] = useState<Bubble[]>([]);
-  const [panel, setPanel] = useState<'menu' | 'rules' | 'leave' | null>(
-    learn ? 'rules' : null,
-  );
-  const [results, setResults] = useState(false);
+  const [panel, setPanel] = useState<
+    'menu' | 'rules' | 'equipment' | 'progress' | null
+  >(learn ? 'rules' : null);
+  // Results belong to the round they were shown for: a new round (the host
+  // pressed Again online) never inherits the previous round's results.
+  const [resultsRound, setResultsRound] = useState<number | null>(null);
+  const results = resultsRound === round;
   const [error, setError] = useState('');
   const [touch, setTouch] = useState(
     () =>
       typeof window !== 'undefined' &&
       window.matchMedia('(pointer: coarse)').matches,
   );
-  const [started, setStarted] = useState(session.kind === 'online');
-  const [record, setRecord] = useState<{ best: boolean } | null>(null);
+  const [started, setStarted] = useState(
+    session.kind === 'online' || session.match.phase !== 'ready',
+  );
+  const [record, setRecord] = useState<{
+    best: boolean;
+    opened: number | null;
+  } | null>(null);
   const paused = useRef(false);
   const touchRef = useRef(touch);
   const remeasure = useRef<() => void>(() => {});
   const levels = useRef({ volume, music });
   const online = session.kind === 'online';
+  useBadgeFit(badges);
+  const leave = useLeaveDialog(async () => {
+    onCheckpoint?.(session.match);
+  });
+  const askLeave = leave.ask;
+  const showPanel = (next: 'rules' | 'equipment' | 'progress') => {
+    modalOrigin.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setPanel(next);
+  };
+
+  useEffect(() => {
+    const save = () => onCheckpoint?.(session.match);
+    const visibility = () => {
+      if (document.hidden) save();
+    };
+    const request = (event: Event) => {
+      const allow = (event as CustomEvent<{ allow?: () => void }>).detail
+        ?.allow;
+      askLeave(() => {
+        save();
+        allow?.();
+        onExit();
+      });
+    };
+    window.addEventListener('pagehide', save);
+    document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('diner-request-leave', request);
+    return () => {
+      save();
+      window.removeEventListener('pagehide', save);
+      document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('diner-request-leave', request);
+    };
+  }, [session, onCheckpoint, onExit, askLeave]);
 
   useEffect(() => {
     paused.current =
       session.canPause &&
-      (panel !== null || (!started && session.match.phase === 'ready'));
-    audio.current?.pause(paused.current && panel !== null);
-  }, [panel, session, started]);
+      (panel !== null ||
+        leave.open ||
+        (!started && session.match.phase === 'ready'));
+    if (panel !== null || leave.open) {
+      keys.current.clear();
+      controls.current.mx = controls.current.mz = 0;
+      controls.current.use =
+        controls.current.out =
+        controls.current.dash =
+          false;
+    }
+    audio.current?.pause(paused.current);
+  }, [panel, session, started, leave.open]);
 
   // Sound.
   useEffect(() => {
@@ -394,9 +625,9 @@ export default function DinerGame({
   }, []);
 
   const press = useCallback(
-    (which: 'use' | 'out') => {
+    (which: 'use' | 'out' | 'dash') => {
       controls.current[which] = true;
-      audio.current?.startMusic(session.night);
+      audio.current?.startMusic(session.match.night);
       try {
         navigator.vibrate?.(which === 'out' ? 18 : 10);
       } catch {
@@ -417,7 +648,7 @@ export default function DinerGame({
         setPanel((p) => (p ? p : 'menu'));
         return;
       }
-      if (panel) return;
+      if (panel || leave.open || results || !started) return;
       const k = e.key.toLowerCase();
       if (
         [
@@ -434,13 +665,16 @@ export default function DinerGame({
         keys.current.add(k);
         e.preventDefault();
       } else if ((k === ' ' || k === 'e' || k === 'enter') && !e.repeat) {
-        if (k === 'enter' && (e.target as HTMLElement)?.closest?.('button'))
-          return;
+        // A focused button keeps its own Space and Enter.
+        if (k !== 'e' && (e.target as HTMLElement)?.closest?.('button')) return;
         e.preventDefault();
         press('use');
       } else if ((k === 'q' || k === 'x') && !e.repeat) {
         e.preventDefault();
         press('out');
+      } else if (k === 'shift' && !e.repeat) {
+        e.preventDefault();
+        press('dash');
       }
     };
     const up = (e: KeyboardEvent) => keys.current.delete(e.key.toLowerCase());
@@ -453,7 +687,7 @@ export default function DinerGame({
       window.removeEventListener('keyup', up);
       window.removeEventListener('blur', blur);
     };
-  }, [panel, press]);
+  }, [panel, press, leave.open, results, started]);
 
   // Floating feedback in the DOM: amounts that rise, coins that fly home.
   const floatText = useCallback(
@@ -557,14 +791,20 @@ export default function DinerGame({
     const m0 = session.match;
     let v: DinerView;
     try {
-      v = new DinerView(
-        el,
-        m0.night,
-        m0.tables.map((t) => t.slot),
-        m0.stations.map((s) => s.id),
-        m0.players.length,
-        Math.min(window.devicePixelRatio || 1, 2),
-      );
+      const fx = matchEffects(m0);
+      v = new DinerView(el, {
+        night: m0.night,
+        place: m0.config?.place ?? NIGHT_PLACE[m0.night],
+        tables: m0.tables.map((t) => t.slot),
+        stations: m0.stations.map((s) => s.id),
+        players: m0.players.length,
+        pixelRatio: nativeRatio(),
+        upgrades: upgrades ?? {},
+        grillLanes: fx.grillLanes,
+        pass: fx.pass,
+        coffee: fx.coffee,
+        skates: fx.dash,
+      });
     } catch (e) {
       void Promise.reject(e).catch(showFailure);
       return;
@@ -583,23 +823,30 @@ export default function DinerGame({
       const s = stage.current?.getBoundingClientRect();
       if (!s) return;
       const bar = top.current?.getBoundingClientRect();
-      const p = pad.current?.getBoundingClientRect();
-      const phone = s.width <= 600;
-      const topInset = bar
-        ? Math.max(0, bar.bottom - s.top) + (phone ? 2 : 10)
-        : 60;
-      // Beside side rails (touch, landscape) keep clear of the stick and buttons.
-      const overlaid = !!p && p.height > 0 && p.top < s.bottom - 20;
-      const rails =
-        touchRef.current && overlaid ? Math.min(s.width * 0.22, 220) : 0;
-      v.resize({
-        width: s.width,
-        height: s.height,
-        top: topInset,
-        bottom: phone ? 4 : 14,
-        left: rails || (phone ? 2 : 14),
-        right: rails || (phone ? 2 : 14),
-      });
+      // A sideways phone: the top bar floats over the trailer's roof and the
+      // controls over the deck's planter corners, so play takes the screen.
+      const short = Math.min(s.width, s.height) < 500;
+      const below = bar ? Math.max(0, bar.bottom - s.top) : 56;
+      const badgeRoom = online ? 26 : 0;
+      v.resize(
+        short
+          ? {
+              width: s.width,
+              height: s.height,
+              top: 26 + badgeRoom,
+              bottom: 4,
+              left: 6,
+              right: 6,
+            }
+          : {
+              width: s.width,
+              height: s.height,
+              top: below + 2 + badgeRoom,
+              bottom: touchRef.current ? 8 : 50,
+              left: 12,
+              right: 12,
+            },
+      );
     };
     measure();
     remeasure.current = measure;
@@ -607,7 +854,14 @@ export default function DinerGame({
     if (stage.current) ro.observe(stage.current);
     if (top.current) ro.observe(top.current);
     window.visualViewport?.addEventListener('resize', measure);
-    const pacer = new Pacer(ladder(2048, 0.6), (rung) => v.setRung(rung));
+    // Native density on top; never under the 1.2× the diner always kept.
+    const rungs = ladder(2048, floorAt(1.2));
+    const pacer = new Pacer(
+      rungs,
+      (rung) => v.setRung(rung),
+      startLevel(rungs, window.innerWidth, window.innerHeight),
+    );
+    if (pacer.level) v.setRung(pacer.rung);
     let raf = 0;
     let last = performance.now();
     let prevHud: Hud | null = null;
@@ -615,6 +869,7 @@ export default function DinerGame({
     let prevSig = '';
     let resultsAt = 0;
     let recorded = false;
+    let savedTick = 0;
     let shownRound = session.round;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
@@ -629,7 +884,6 @@ export default function DinerGame({
         shownRound = session.round;
         resultsAt = 0;
         recorded = false;
-        setResults(false);
       }
       // Stick first, keys otherwise.
       const c = controls.current;
@@ -654,6 +908,10 @@ export default function DinerGame({
       }
       const alpha = session.advance(dt, paused.current, c);
       const m = session.match;
+      if (onCheckpoint && m.phase === 'open' && m.tick >= savedTick + 120) {
+        savedTick = m.tick;
+        onCheckpoint(m);
+      }
       const events = session.drain();
       if (events.length) {
         v.handle(m, events);
@@ -666,6 +924,9 @@ export default function DinerGame({
       v.frame(m, alpha, paused.current ? 0 : dt, { use, out });
       // HUD, Use button and bubbles only re-render on change.
       const h = readHud(m);
+      h.held = heldIcons(m, session.you)
+        .map((i) => `${i.icon}${i.burnt ? '!' : ''}`)
+        .join(',');
       if (!prevHud || !sameHud(prevHud, h)) {
         prevHud = h;
         setHud(h);
@@ -690,22 +951,29 @@ export default function DinerGame({
           node.style.setProperty('--p', b.patience.toFixed(3));
         if (b.progress !== undefined)
           node.style.setProperty('--progress', b.progress.toFixed(3));
+        b.lanes?.forEach((lane, i) => {
+          (
+            node.querySelectorAll('.diner-station-lane')[i] as
+              | HTMLElement
+              | undefined
+          )?.style.setProperty('--lane-fill', lane.progress.toFixed(3));
+        });
       }
       if (m.phase === 'over') {
         if (!recorded) {
           recorded = true;
           recordCompletedGame('Diner');
-          if (session.kind === 'solo') {
-            const best = m.coins > 0 && m.coins > readDiner().best[m.night];
-            recordShift(m.night, m.medals, m.coins);
-            setRecord({ best });
-            onNight?.(m.night);
+          if (session.kind === 'solo' && session.level) {
+            const r = recordLevel(session.level, m.medals, m.coins);
+            setRecord({ best: r.best, opened: r.opened });
+            onLevel?.(session.level);
           }
+          onShiftEnd?.(m);
           resultsAt = now + 1300;
         }
         if (resultsAt > 0 && now >= resultsAt) {
           resultsAt = -1;
-          setResults(true);
+          setResultsRound(session.round);
         }
       }
     };
@@ -730,7 +998,7 @@ export default function DinerGame({
             }
         } else if (e.type === 'storm') {
           const at = v.project(e.x, 1.4, e.z);
-          floatText('−★', at.x, at.y, 'bad');
+          floatText('−1 ♥', at.x, at.y, 'bad');
           root.current?.classList.remove('lost-star');
           void root.current?.offsetWidth;
           root.current?.classList.add('lost-star');
@@ -753,9 +1021,23 @@ export default function DinerGame({
       window.visualViewport?.removeEventListener('resize', measure);
       v.dispose();
       view.current = null;
+      if (process.env.NODE_ENV === 'development')
+        delete (window as unknown as { dinerDebug?: unknown }).dinerDebug;
     };
     // The view is rebuilt for a new night (its room differs).
-  }, [session, round, floatText, flyCoins, onNight, showFailure]);
+  }, [
+    session,
+    round,
+    floatText,
+    flyCoins,
+    onLevel,
+    showFailure,
+    onCheckpoint,
+    onShiftEnd,
+    campaign,
+    online,
+    upgrades,
+  ]);
   useEffect(() => {
     touchRef.current = touch;
     remeasure.current();
@@ -771,425 +1053,733 @@ export default function DinerGame({
   const open = () => {
     setStarted(true);
     session.start();
-    audio.current?.startMusic(session.night);
+    onCheckpoint?.(session.match);
+    audio.current?.startMusic(session.match.night);
   };
-  const again = (night?: NightId) => {
-    setResults(false);
+  const again = (next?: number) => {
+    setResultsRound(null);
     setRecord(null);
     if (session.kind === 'solo') setStarted(false);
-    session.again(night);
+    session.again(next);
   };
 
   const look = lookFor(hint.use);
   const m = session.match;
-  const night = nights[m.night];
-  const nextNight = m.night < 3 ? ((m.night + 1) as NightId) : null;
+  const held = heldIcons(m, session.you);
+  const effects = matchEffects(m);
+  const handSlots = Math.max(effects.hands, held.length);
+  const canDash = effects.dash;
+  const level = session.level ? levelById(session.level) : null;
+  const title = m.config?.title ?? nights[m.night].name;
+  const kicker = campaign
+    ? `Stop ${campaign.stop}${campaign.boss ? ' · Boss' : ''}`
+    : level
+      ? `Level ${level.id}${level.boss ? ' · Boss' : ''}`
+      : '';
+  const nextLevel =
+    level && hud.medals > 0 && hud.stars > 0 && level.id < LEVEL_COUNT
+      ? level.id + 1
+      : null;
   const waiting = online && room?.status === 'waiting';
   const ready = hud.phase === 'ready';
-  const won = hud.medals > 0 && hud.stars > 0;
-  const coinsBar = (
-    <span
-      className="diner-coins-meter"
-      style={
-        { '--fill': Math.min(1, hud.coins / hud.targets[2]) } as CSSProperties
-      }
-    >
-      <i className="diner-coins-track">
-        <i className="diner-coins-fill" />
-        {hud.targets.map((t, i) => (
-          <i
-            key={i}
-            className={`diner-medal-tick m${i} ${hud.coins >= t ? 'on' : ''}`}
-            style={{ '--at': t / hud.targets[2] } as CSSProperties}
-          />
-        ))}
-      </i>
-    </span>
-  );
-  const stars = (
-    <span className="diner-stars" aria-label={`${hud.stars} stars`}>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <i key={i} className={i < hud.stars ? 'on' : ''}>
-          <DinerIcon name="star" />
-        </i>
+  const won = campaign ? campaignShiftWon(m) : hud.medals > 0 && hud.stars > 0;
+  const outcome = campaign ? campaignResult : null;
+  const blocked = panel !== null || leave.open || !started || results;
+  const notes = level
+    ? level.novelties.map(noteFor)
+    : (campaign?.troubles ?? []).map(troubleNote);
+  const kit = level
+    ? level.kit.filter(
+        (k) => !level.novelties.some((n) => n.kind === 'kit' && n.kit === k),
+      )
+    : [];
+  // Trouble already met on earlier levels, still on tonight.
+  const tonight = level
+    ? level.troubles
+        .filter(
+          (t) =>
+            !level.novelties.some(
+              (n) => n.kind === 'trouble' && n.trouble === t,
+            ),
+        )
+        .map((t) => TROUBLE_NOTES[t])
+    : [];
+  const pressHandlers = (which: 'use' | 'out' | 'dash') => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault();
+      press(which);
+    },
+    onClick: (e: React.MouseEvent) => {
+      if (e.detail === 0) press(which);
+    },
+  });
+  const medalTrack = (
+    <span className="diner-meter" aria-hidden="true">
+      <span
+        className="diner-meter-fill"
+        style={
+          {
+            '--fill': Math.min(1, hud.coins / Math.max(1, hud.targets[2])),
+          } as CSSProperties
+        }
+      />
+      {hud.targets.map((t, i) => (
+        <i
+          key={i}
+          className={`m${i}`}
+          data-on={hud.coins >= t}
+          style={{ '--at': t / Math.max(1, hud.targets[2]) } as CSSProperties}
+        />
       ))}
     </span>
   );
 
   return (
-    <div
-      ref={root}
-      className="diner-game at-table"
-      data-touch={touch ? 'true' : 'false'}
-      data-night={m.night}
-      data-phase={hud.phase}
-    >
-      <div ref={stage} className="diner-stage">
-        <canvas
-          key={round}
-          ref={canvas}
-          className="diner-canvas"
-          aria-label={`The diner, night ${m.night}: ${night.name}`}
-        />
-        <div className="diner-bubbles" aria-hidden="true">
-          {items.map((b) => (
-            <BubbleView key={b.key} b={b} register={register} />
-          ))}
-        </div>
-        <div ref={fxLayer} className="diner-fx" aria-hidden="true" />
-      </div>
-
-      <div ref={top} className="diner-top">
-        <div className="diner-top-left">
-          <button
-            type="button"
-            className="diner-round-button"
-            aria-label="Leave the diner"
-            onClick={() => setPanel('leave')}
-          >
-            <ChevronLeft aria-hidden="true" />
-          </button>
-          <span className="diner-title">Diner</span>
-        </div>
-        <output
-          className="diner-clock"
-          data-urgent={
-            hud.phase === 'open' && hud.seconds <= 20 ? 'true' : 'false'
-          }
-          aria-label={`${time(hud.seconds)} left`}
-        >
-          <span key={hud.seconds <= 10 ? hud.seconds : 'calm'}>
-            {time(hud.seconds)}
-          </span>
-        </output>
-        <div className="diner-top-right">
-          {room?.link === 'lost' && (
-            <output className="diner-offline" aria-label="Reconnecting">
-              <WifiOff aria-hidden="true" />
-            </output>
-          )}
-          <span className="diner-hud-stats">
-            <span className="diner-coins" aria-label={`${hud.coins} coins`}>
-              <span ref={coinTarget} className="diner-coin-icon">
-                <DinerIcon name="coin" />
-              </span>
-              <b data-game-motion="change" data-game-motion-key={hud.coins}>
-                {hud.coins}
-              </b>
-              {coinsBar}
-            </span>
-            {stars}
-          </span>
-          <GameMenu
-            name="Diner"
-            theme="diner"
-            open={panel === 'menu'}
-            onOpenChange={(o) => setPanel(o ? 'menu' : null)}
-            triggerClassName="diner-round-button diner-menu-trigger"
-            triggerLabel={session.canPause ? 'Pause' : 'Menu'}
-            trigger={
-              session.canPause ? (
-                <Pause aria-hidden="true" />
-              ) : (
-                <Settings2 aria-hidden="true" />
-              )
-            }
-            onResume={session.canPause ? () => {} : undefined}
-            onRules={() => setPanel('rules')}
-            items={
-              session.kind === 'solo'
-                ? [
-                    {
-                      label: 'Restart',
-                      icon: RotateCcw,
-                      onSelect: () => again(),
-                    },
-                  ]
-                : []
-            }
-            sound={sound}
-            onLeave={() => setPanel('leave')}
-          />
-        </div>
-      </div>
-
-      {online && room && (
-        <ul className="diner-badges" aria-label="Waiters">
-          {room.seats.map((s, i) => (
-            <li
-              key={i}
-              style={{ '--seat': SEAT_COLOURS[i] } as CSSProperties}
-              data-away={!s.connected}
-            >
-              <i />
-              <span>{s.name}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div ref={pad} className="diner-pad">
-        <div className="diner-pad-stats">
-          <span className="diner-coins" aria-hidden="true">
-            <span ref={coinTargetPhone} className="diner-coin-icon">
-              <DinerIcon name="coin" />
-            </span>
-            <b>{hud.coins}</b>
-            {coinsBar}
-          </span>
-          {stars}
-        </div>
-        <Joystick stick={stick} disabled={panel !== null} />
-        <div className="diner-buttons">
-          {hasMimics(m) && (
-            <button
-              type="button"
-              className="diner-out"
-              data-armed={hint.out ? 'true' : 'false'}
-              aria-label="Out! Throw out the guest you face"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                press('out');
-              }}
-              onClick={(e) => {
-                if (e.detail === 0) press('out');
-              }}
-            >
-              <DinerIcon name="out" />
-              <span>Out!</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="diner-use"
-            data-armed={hint.use ? 'true' : 'false'}
-            aria-label={`Use: ${look.word}`}
-            onPointerDown={(e) => {
-              e.preventDefault();
-              press('use');
-            }}
-            onClick={(e) => {
-              if (e.detail === 0) press('use');
-            }}
-          >
-            <span key={look.icon + look.word} className="diner-use-face">
-              <DinerIcon name={look.icon} />
-              <span>{look.word}</span>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Before the doors open: the night and its medals. */}
-      {ready && !started && panel === null && !error && (
-        <div className="diner-plate-wrap">
-          <section
-            className="diner-plate intro"
-            aria-label={`Night ${m.night}`}
-          >
-            <p className="diner-plate-night">Night {m.night}</p>
-            <h2>{night.name}</h2>
-            <ul className="diner-targets">
-              {hud.targets.map((t, i) => (
-                <li key={i} className={`m${i}`}>
-                  <i className="diner-medal" />
-                  <b>{t}</b>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              className="diner-button"
-              data-starts-game
-              onClick={open}
-            >
-              Open
-            </button>
-          </section>
-        </div>
-      )}
-      {waiting && room && (
-        <div className="diner-plate-wrap">
-          <section className="diner-plate intro" aria-label="Waiters">
-            <p className="diner-plate-night">Night {m.night}</p>
-            <h2>{night.name}</h2>
-            <ul className="diner-waiters">
-              {room.seats.map((s, i) => (
-                <li
-                  key={i}
-                  style={{ '--seat': SEAT_COLOURS[i] } as CSSProperties}
-                  data-ready={s.connected}
-                >
-                  <i />
-                  <span>{s.name}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-      )}
-      {hud.countdown > 0 && (
-        <output
-          key={hud.countdown}
-          className="diner-countdown"
-          aria-label={`${hud.countdown}`}
-        >
-          {hud.countdown}
-        </output>
-      )}
-
-      {results && (
-        <div className="diner-plate-wrap results">
-          <section
-            className="diner-plate results"
-            aria-label="Results"
-            aria-live="polite"
-          >
-            <WinnerCelebration won={won && hud.medals === 3} />
-            <p className="diner-plate-night">
-              Night {m.night} · {night.name}
-            </p>
-            <h2>
-              {hud.stars <= 0
-                ? 'Closed'
-                : hud.medals === 3
-                  ? 'Perfect'
-                  : hud.medals
-                    ? 'Well done'
-                    : 'Closed'}
-            </h2>
-            <ul className="diner-medals" aria-label={`${hud.medals} medals`}>
-              {[0, 1, 2].map((i) => (
-                <li
-                  key={i}
-                  className={`m${i} ${i < hud.medals ? 'won' : ''}`}
-                  style={{ '--i': i } as CSSProperties}
-                >
-                  <i className="diner-medal" />
-                  <b>{hud.targets[i]}</b>
-                </li>
-              ))}
-            </ul>
-            <div className="diner-result-row">
-              <span className="diner-coins big">
-                <DinerIcon name="coin" />
-                <b>{hud.coins}</b>
-                {record?.best && <em>Best</em>}
-              </span>
-              {stars}
-            </div>
-            <ul className="diner-result-stats">
-              <li>
-                <DinerIcon name="burger" />
-                <b>{m.stats.served}</b>
-              </li>
-              {m.night > 1 && (
-                <li className="goo">
-                  <DinerIcon name="out" />
-                  <b>{m.stats.caught}</b>
-                </li>
-              )}
-            </ul>
-            <div className="diner-result-actions">
-              {session.host && (
-                <button
-                  type="button"
-                  className="diner-button"
-                  data-starts-game
-                  onClick={() => again()}
-                >
-                  <RotateCcw aria-hidden="true" /> Again
-                </button>
-              )}
-              {session.host && nextNight && hud.medals > 0 && (
-                <button
-                  type="button"
-                  className="diner-button"
-                  data-starts-game
-                  onClick={() => again(nextNight)}
-                >
-                  Night {nextNight}
-                </button>
-              )}
-              <button
-                type="button"
-                className="diner-button quiet"
-                onClick={onExit}
-              >
-                {online ? 'Table' : 'Games'}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {error && (
-        <div className="diner-plate-wrap">
-          <section className="diner-plate" role="alert">
-            <p>{error}</p>
-            <button type="button" className="diner-button" onClick={onExit}>
-              Back
-            </button>
-          </section>
-        </div>
-      )}
-
-      <Dialog
-        open={panel === 'rules' || panel === 'leave'}
-        onOpenChange={(o) => !o && setPanel(null)}
+    <DinerLandscape>
+      <div
+        ref={root}
+        className="diner-game at-table"
+        data-touch={touch ? 'true' : 'false'}
+        data-night={m.night}
+        data-phase={hud.phase}
+        data-campaign={!!campaign}
+        data-power={hud.power ? 'on' : 'off'}
+        data-rush={hud.rush}
       >
-        <DialogContent
-          className={`modal diner-modal ${panel === 'rules' ? 'diner-rules-modal' : ''}`}
-        >
-          {panel === 'rules' ? (
-            <>
-              <DialogTitle>How to play</DialogTitle>
-              <DialogDescription className="sr-only">
-                Rules of Diner
-              </DialogDescription>
-              <DinerRules />
+        <div ref={stage} className="diner-stage">
+          <canvas
+            key={round}
+            ref={canvas}
+            className="diner-canvas"
+            aria-label={`The diner: ${kicker ? `${kicker}, ` : ''}${title}`}
+          />
+          <div className="diner-vignette" aria-hidden="true" />
+          <div className="diner-bubbles" aria-hidden="true">
+            {items.map((b) => (
+              <BubbleView key={b.key} b={b} register={register} />
+            ))}
+          </div>
+          <div ref={fxLayer} className="diner-fx" aria-hidden="true" />
+        </div>
+
+        <div ref={top} className="diner-top">
+          <div className="diner-top-left">
+            <button
+              type="button"
+              className="diner-round-button"
+              aria-label="Leave the diner"
+              onClick={() => leave.ask()}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </button>
+            <span className="diner-title">Diner</span>
+            {kicker && (
+              <span
+                className="diner-ticket"
+                data-boss={!!(level?.boss || campaign?.boss)}
+              >
+                <b>{level ? level.id : campaign?.stop}</b>
+                <span>{title}</span>
+              </span>
+            )}
+          </div>
+          <div className="diner-top-centre">
+            <output
+              className="diner-clock"
+              data-urgent={
+                hud.phase === 'open' && hud.seconds <= 20 ? 'true' : 'false'
+              }
+              aria-label={`${time(hud.seconds)} left`}
+            >
+              <span key={hud.seconds <= 10 ? hud.seconds : 'calm'}>
+                {time(hud.seconds)}
+              </span>
+            </output>
+            {(hud.rush || !hud.power) && (
+              <output
+                className="diner-service-light"
+                aria-label={hud.rush ? 'Rush wave' : 'Power out'}
+              >
+                <DinerIcon name={hud.rush ? 'bell' : 'bolt'} />
+                {hud.rush ? 'Rush' : 'Brownout'}
+              </output>
+            )}
+          </div>
+          <div className="diner-top-right">
+            {room?.link === 'lost' && (
+              <output className="diner-offline" aria-label="Reconnecting">
+                <WifiOff aria-hidden="true" />
+              </output>
+            )}
+            <button
+              type="button"
+              className="diner-hud-stats"
+              aria-label={`${hud.coins} coins, ${hud.medals} medals, ${hud.stars} lives. Shift goals`}
+              onClick={(e) => {
+                modalOrigin.current = e.currentTarget;
+                setPanel('progress');
+              }}
+            >
+              <span className="diner-coins">
+                <span ref={coinTarget} className="diner-coin-icon">
+                  <DinerIcon name="coin" />
+                </span>
+                <b data-game-motion="change" data-game-motion-key={hud.coins}>
+                  {hud.coins}
+                </b>
+              </span>
+              {medalTrack}
+              <span className="diner-lives">
+                <Heart aria-hidden="true" />
+                <b>{hud.stars}</b>
+              </span>
+            </button>
+            <GameMenu
+              name="Diner"
+              theme="diner"
+              open={panel === 'menu'}
+              onOpenChange={(o) => setPanel(o ? 'menu' : null)}
+              triggerClassName="diner-round-button diner-menu-trigger"
+              triggerLabel={session.canPause ? 'Pause' : 'Menu'}
+              trigger={
+                session.canPause ? (
+                  <Pause aria-hidden="true" />
+                ) : (
+                  <Settings2 aria-hidden="true" />
+                )
+              }
+              onResume={session.canPause ? () => {} : undefined}
+              onRules={() => showPanel('rules')}
+              items={[
+                ...(campaign && equipment
+                  ? [
+                      {
+                        label: 'Equipment',
+                        icon: Wrench,
+                        onSelect: () => showPanel('equipment'),
+                      },
+                    ]
+                  : []),
+                ...(session.kind === 'solo' && !campaign
+                  ? [
+                      {
+                        label: 'Restart',
+                        icon: RotateCcw,
+                        onSelect: () => again(),
+                      },
+                    ]
+                  : []),
+                ...(onLevels
+                  ? [
+                      {
+                        label: 'Levels',
+                        icon: Layers,
+                        onSelect: () => onLevels(),
+                      },
+                    ]
+                  : []),
+              ]}
+              sound={sound}
+              extra={
+                <button type="button" onClick={() => showPanel('progress')}>
+                  <Trophy aria-hidden="true" />
+                  Shift goals
+                </button>
+              }
+              onLeave={() => leave.ask()}
+            />
+          </div>
+        </div>
+
+        {online && room && (
+          <ul ref={badges} className="diner-badges" aria-label="Waiters">
+            {room.seats.map((s, i) => (
+              <li
+                key={i}
+                style={{ '--seat': SEAT_COLOURS[i] } as CSSProperties}
+                data-away={!s.connected}
+                aria-label={`Waiter ${i + 1}: ${s.name}${s.connected ? '' : ', away'}`}
+              >
+                <i />
+                <b className="diner-badge-seat" aria-hidden="true">
+                  {i + 1}
+                </b>
+                <span>{s.name}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Touch: the stick on the left, the buttons on the right, over the
+          deck's two planter corners. Keys: a slim strip at the bottom. */}
+        <div ref={pad} className="diner-pad">
+          <Joystick stick={stick} disabled={blocked} />
+          <div className="diner-actions">
+            <output
+              className="diner-hands"
+              data-count={held.length}
+              aria-label={
+                held.length
+                  ? `Holding ${held.map((i) => i.icon).join(', ')}`
+                  : 'Hands free'
+              }
+            >
+              {Array.from({ length: handSlots }, (_, i) => (
+                <span key={i} data-burnt={held[i]?.burnt ? 'true' : undefined}>
+                  {held[i] && <DinerIcon name={held[i].icon} />}
+                </span>
+              ))}
+            </output>
+            {canDash && (
               <button
                 type="button"
-                className="diner-button"
-                onClick={() => setPanel(null)}
+                className="diner-dash"
+                aria-label="Dash"
+                disabled={blocked}
+                {...pressHandlers('dash')}
               >
-                {ready && !started ? 'Got it' : 'Resume'}
+                <DinerIcon name="skate" />
+                <kbd>Shift</kbd>
               </button>
-            </>
-          ) : panel === 'leave' ? (
-            <>
-              <DialogTitle>Leave the diner?</DialogTitle>
-              <DialogDescription>
-                {leaveNote ??
-                  (online
-                    ? 'Your waiter waits by the counter until you come back.'
-                    : 'This shift ends when you leave. Your medals are kept.')}
-              </DialogDescription>
+            )}
+            {hasMimics(m) && (
+              <button
+                type="button"
+                className="diner-out"
+                data-armed={hint.out ? 'true' : 'false'}
+                aria-label="Out! Throw out the guest you face"
+                disabled={blocked}
+                {...pressHandlers('out')}
+              >
+                <DinerIcon name="out" />
+                <span>Out!</span>
+                <kbd>Q</kbd>
+              </button>
+            )}
+            <button
+              type="button"
+              className="diner-use"
+              data-armed={hint.use ? 'true' : 'false'}
+              aria-label={`Use: ${look.word}${hint.use?.dish ? ` ${dishes[hint.use.dish].name}` : ''}`}
+              disabled={blocked}
+              {...pressHandlers('use')}
+            >
+              <span key={look.icon + look.word} className="diner-use-face">
+                <DinerIcon name={look.icon} />
+                <span>{look.word}</span>
+              </span>
+              <kbd>Space</kbd>
+            </button>
+          </div>
+        </div>
+
+        {/* Before the doors open: what this shift brings, your kit, the medals. */}
+        {ready && !started && panel === null && !error && (
+          <div className="diner-plate-wrap">
+            <section className="diner-plate intro" aria-label={kicker || title}>
+              <div className="diner-intro-head">
+                {kicker && <p className="diner-plate-night">{kicker}</p>}
+                <h2>{title}</h2>
+                {(level || (campaign && campaign.place !== title)) && (
+                  <p className="diner-intro-place">
+                    {level
+                      ? CHAPTERS[level.chapter].name ===
+                        PLACES[level.place].name
+                        ? PLACES[level.place].name
+                        : `${CHAPTERS[level.chapter].name} · ${PLACES[level.place].name}`
+                      : campaign!.place}
+                  </p>
+                )}
+              </div>
+              <div className="diner-intro-body">
+                {notes.length > 0 && (
+                  <ul
+                    className="diner-notes"
+                    aria-label={level ? 'New tonight' : 'This shift'}
+                  >
+                    {notes.map((n) => (
+                      <li key={n.title}>
+                        <DinerIcon name={n.icon} />
+                        <span>
+                          <strong>{n.title}</strong>
+                          {n.line && <small>{n.line}</small>}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="diner-intro-side">
+                  {tonight.length > 0 && (
+                    <ul className="diner-tonight" aria-label="Also tonight">
+                      {tonight.map((n) => (
+                        <li key={n.title}>
+                          <DinerIcon name={n.icon} />
+                          {n.title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {kit.length > 0 && (
+                    <div className="diner-kit" aria-label="Your kit">
+                      <p className="diner-plate-night">Your kit</p>
+                      <ul>
+                        {kit.map((k) => (
+                          <li key={k} title={KIT_NOTES[k].line}>
+                            <DinerIcon name={KIT_NOTES[k].icon} />
+                            <span>{KIT_NOTES[k].title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <ul
+                    className="diner-targets"
+                    aria-label="Medal goals in coins"
+                  >
+                    {hud.targets.map((t, i) => (
+                      <li key={i} className={`m${i}`}>
+                        <i className="diner-medal" aria-hidden="true" />
+                        <strong>{['Bronze', 'Silver', 'Gold'][i]}</strong>
+                        <b>{t}</b>
+                      </li>
+                    ))}
+                  </ul>
+                  {level && (
+                    <p className="diner-intro-goal">
+                      Finish with a medal to open the next level.
+                    </p>
+                  )}
+                  {campaign?.reward && (
+                    <p className="diner-shift-reward">{campaign.reward}</p>
+                  )}
+                  <div className="diner-result-actions">
+                    <button
+                      type="button"
+                      className="diner-button"
+                      data-starts-game
+                      onClick={open}
+                    >
+                      Open
+                    </button>
+                    {onLevels && (
+                      <button
+                        type="button"
+                        className="diner-button quiet"
+                        onClick={onLevels}
+                      >
+                        <Layers aria-hidden="true" /> Levels
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+        {waiting && room && (
+          <div className="diner-plate-wrap">
+            <section className="diner-plate intro" aria-label="Waiters">
+              <p className="diner-plate-night">{kicker}</p>
+              <h2>{title}</h2>
+              <ul className="diner-waiters">
+                {room.seats.map((s, i) => (
+                  <li
+                    key={i}
+                    style={{ '--seat': SEAT_COLOURS[i] } as CSSProperties}
+                    data-ready={s.connected}
+                  >
+                    <i />
+                    <span>{s.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        )}
+        {hud.countdown > 0 && (
+          <output
+            key={hud.countdown}
+            className="diner-countdown"
+            aria-label={`${hud.countdown}`}
+          >
+            {hud.countdown}
+          </output>
+        )}
+
+        {results && (
+          <div className="diner-plate-wrap results">
+            <section
+              className="diner-plate results"
+              aria-label="Results"
+              aria-live="polite"
+            >
+              <WinnerCelebration won={won && hud.medals === 3} />
+              <p className="diner-plate-night">
+                {kicker ? `${kicker} · ${title}` : title}
+              </p>
+              <h2>
+                {campaign
+                  ? won
+                    ? 'Made it'
+                    : 'Out of lives'
+                  : hud.stars <= 0
+                    ? 'Out of lives'
+                    : hud.medals === 3
+                      ? 'Perfect'
+                      : hud.medals
+                        ? 'Well done'
+                        : 'Not yet'}
+              </h2>
+              <ul className="diner-medals" aria-label={`${hud.medals} medals`}>
+                {[0, 1, 2].map((i) => (
+                  <li
+                    key={i}
+                    className={`m${i} ${i < hud.medals ? 'won' : ''}`}
+                    style={{ '--i': i } as CSSProperties}
+                  >
+                    <i className="diner-medal" aria-hidden="true" />
+                    <strong>{['Bronze', 'Silver', 'Gold'][i]}</strong>
+                    <b>{hud.targets[i]}</b>
+                  </li>
+                ))}
+              </ul>
+              <div className="diner-result-row">
+                <span className="diner-coins big">
+                  <DinerIcon name="coin" />
+                  <b>{outcome ? outcome.banked : hud.coins}</b>
+                  {record?.best && <em>Best</em>}
+                </span>
+                <span className="diner-lives">
+                  <Heart aria-hidden="true" />
+                  <b>{hud.stars}</b>
+                </span>
+                {outcome && outcome.tokens > 0 && (
+                  <span
+                    className="diner-tokens"
+                    aria-label={`${outcome.tokens} tokens`}
+                  >
+                    <DinerIcon name="token" />
+                    <b>+{outcome.tokens}</b>
+                  </span>
+                )}
+              </div>
+              {outcome?.lost ? (
+                <p className="diner-result-lost">
+                  −{outcome.lost} {outcome.lost === 1 ? 'life' : 'lives'}
+                </p>
+              ) : null}
+              {outcome?.survived && outcome.reward && (
+                <p className="diner-shift-reward">{outcome.reward}</p>
+              )}
+              {record?.opened && (
+                <p className="diner-shift-reward">
+                  Level {record.opened} is open
+                </p>
+              )}
+              {level && !won && (
+                <p className="diner-result-lost">
+                  A medal opens the next level
+                </p>
+              )}
+              <div className="diner-result-actions">
+                {campaign && onResultsContinue && (
+                  <button
+                    type="button"
+                    className="diner-button"
+                    onClick={onResultsContinue}
+                  >
+                    {won ? 'Drive on' : 'Workshop'}
+                  </button>
+                )}
+                {session.host && !campaign && nextLevel && (
+                  <button
+                    type="button"
+                    className="diner-button"
+                    data-starts-game
+                    onClick={() => again(nextLevel)}
+                  >
+                    Level {nextLevel}
+                  </button>
+                )}
+                {session.host && !campaign && (
+                  <button
+                    type="button"
+                    className={`diner-button ${nextLevel ? 'quiet' : ''}`}
+                    data-starts-game
+                    onClick={() => again()}
+                  >
+                    <RotateCcw aria-hidden="true" /> Again
+                  </button>
+                )}
+                {onLevels ? (
+                  <button
+                    type="button"
+                    className="diner-button quiet"
+                    onClick={onLevels}
+                  >
+                    <Layers aria-hidden="true" /> Levels
+                  </button>
+                ) : (
+                  !campaign && (
+                    <button
+                      type="button"
+                      className="diner-button quiet"
+                      onClick={onExit}
+                    >
+                      {online ? 'Table' : 'Games'}
+                    </button>
+                  )
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {error && (
+          <div className="diner-plate-wrap">
+            <section className="diner-plate" role="alert">
+              <p>{error}</p>
               <button type="button" className="diner-button" onClick={onExit}>
-                <LogOut aria-hidden="true" /> Leave
+                Back
               </button>
-              <button
-                type="button"
-                className="diner-button quiet"
-                onClick={() => setPanel(null)}
-              >
-                Keep playing
-              </button>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-      <Dialog open={room?.link === 'gone'}>
-        <DialogContent className="modal diner-modal" showCloseButton={false}>
-          <DialogTitle>The diner has closed</DialogTitle>
-          <DialogDescription className="sr-only">
-            This online room no longer exists.
-          </DialogDescription>
-          <button type="button" className="diner-button" onClick={onExit}>
-            <LogOut aria-hidden="true" /> Back
-          </button>
-        </DialogContent>
-      </Dialog>
-    </div>
+            </section>
+          </div>
+        )}
+
+        <Dialog
+          open={
+            panel === 'rules' || panel === 'equipment' || panel === 'progress'
+          }
+          onOpenChange={(o) => !o && setPanel(null)}
+        >
+          <DialogContent
+            className={`modal diner-modal ${panel === 'rules' ? 'diner-rules-modal' : 'diner-equipment-modal'}`}
+            finalFocus={() =>
+              modalOrigin.current?.isConnected &&
+              modalOrigin.current.getClientRects().length
+                ? modalOrigin.current
+                : (root.current?.querySelector<HTMLButtonElement>(
+                    '.diner-menu-trigger',
+                  ) ?? null)
+            }
+          >
+            {panel === 'rules' ? (
+              <>
+                <DialogTitle>How to play</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Rules of Diner
+                </DialogDescription>
+                <DinerRules campaign={!!campaign} />
+                <button
+                  type="button"
+                  className="diner-button"
+                  onClick={() => setPanel(null)}
+                >
+                  {ready && !started ? 'Got it' : 'Resume'}
+                </button>
+              </>
+            ) : panel === 'equipment' ? (
+              <>
+                <DialogTitle>Equipment</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Your equipment for this run.
+                </DialogDescription>
+                {equipment}
+              </>
+            ) : panel === 'progress' ? (
+              <>
+                <DialogTitle>Your shift</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Coins, lives and goals for this shift.
+                </DialogDescription>
+                <div className="diner-progress-summary">
+                  <span>
+                    <DinerIcon name="coin" />
+                    <b>{hud.coins}</b>Coins
+                  </span>
+                  <span>
+                    <Heart aria-hidden="true" />
+                    <b>{hud.stars}</b>Lives
+                  </span>
+                </div>
+                <Rules>
+                  <RuleSection title="Keep your lives">
+                    <p>
+                      A party walking out, or throwing out a real guest, costs{' '}
+                      <strong>one life</strong>. At zero, the{' '}
+                      {campaign ? 'run' : 'shift'} ends.
+                    </p>
+                  </RuleSection>
+                  {level && (
+                    <RuleSection title="Finish the level">
+                      <p>
+                        End the shift with a life left and at least the{' '}
+                        <strong>bronze</strong> coins to open the next level.
+                      </p>
+                    </RuleSection>
+                  )}
+                  {campaign && (
+                    <RuleSection title="Medals">
+                      <p>
+                        Medals pay <strong>tokens</strong> for the Workshop.
+                        Lives you lose here stay lost for the rest of the run.
+                      </p>
+                    </RuleSection>
+                  )}
+                </Rules>
+                <div
+                  className="diner-progress-medals"
+                  aria-label="Medal targets"
+                >
+                  {hud.targets.map((target, i) => (
+                    <span
+                      key={i}
+                      className={`m${i}`}
+                      data-earned={hud.coins >= target}
+                    >
+                      <i className="diner-medal" aria-hidden="true" />
+                      <strong>{['Bronze', 'Silver', 'Gold'][i]}</strong>
+                      <span>{target} coins</span>
+                    </span>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="diner-button"
+                  onClick={() => setPanel(null)}
+                >
+                  Resume
+                </button>
+              </>
+            ) : null}
+          </DialogContent>
+        </Dialog>
+        <LeaveDialog
+          state={leave}
+          title="Leave the diner?"
+          saved={
+            leaveNote ??
+            (campaign
+              ? 'Your campaign is saved on this device.'
+              : online
+                ? 'Your place at the diner is saved.'
+                : 'Your medals are saved on this device.')
+          }
+          theme="diner"
+          onLeave={onExit}
+        />
+        <Dialog open={room?.link === 'gone'}>
+          <DialogContent className="modal diner-modal" showCloseButton={false}>
+            <DialogTitle>The diner has closed</DialogTitle>
+            <DialogDescription className="sr-only">
+              This online room no longer exists.
+            </DialogDescription>
+            <button type="button" className="diner-button" onClick={onExit}>
+              <LogOut aria-hidden="true" /> Back
+            </button>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DinerLandscape>
   );
 }

@@ -109,6 +109,9 @@ FAMILY = {
     "felt": (0.95, 0.0),      # felt and plush
     # Collector's miniatures (the diorama figures, figures.py).
     "resin": (0.58, 0.0),     # hand-painted resin, matte satin
+    "skin": (0.64, 0.0),      # sculpted skin; authored relief, no leather tile
+    "reptile": (0.76, 0.0),   # matte scales sculpted into the anatomical source
+    "hair": (0.48, 0.0),      # authored hair ridges with a restrained highlight
     "lacquer": (0.28, 0.0),   # gloss-varnished lacquer plates
     "gilt": (0.32, 0.85),     # metallic paint: steel, brass, gold leaf
     "hide": (0.55, 0.0),      # sculpted skin with fine scales

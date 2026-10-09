@@ -235,7 +235,8 @@
       var(--folio-sky);
   }
 }
-@media (orientation: landscape) and (max-width: 1000px) {
+/* Small art only where the screen cannot show more; dense screens keep the full plate. */
+@media (orientation: landscape) and (max-width: 1000px) and (max-resolution: 1.49dppx) {
   .folio-backdrop {
     background:
       linear-gradient(180deg, #f6e8b0cc 0%, #f6e8b000 38%),

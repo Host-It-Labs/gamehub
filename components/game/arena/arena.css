@@ -267,13 +267,53 @@
 /* Troop bars grow with the figures (--figure, set from the view). */
 .arena-bar.troop {
   --w: calc(30px * var(--figure, 1));
+  --h: calc(5px * var(--figure, 1));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   width: var(--w);
-  height: calc(5px * var(--figure, 1));
-  margin: -2px 0 0 calc(var(--w) / -2);
+  margin-left: calc(var(--w) / -2);
+  margin-top: calc(var(--h) * -1);
+  transform-origin: center bottom;
+}
+.arena-bar.troop[data-shielded='true'] {
+  margin-top: calc((var(--h) * 2 + 5px) * -1);
+}
+.arena-hp-track,
+.arena-shield-track {
+  position: relative;
+  display: block;
+  height: var(--h);
+  flex: none;
   overflow: hidden;
-  border-radius: 3px;
-  background: #0b0c0fcc;
-  box-shadow: 0 0 0 1px #ffffff30;
+  border-radius: 999px;
+  background: #0b1420e8;
+  box-shadow:
+    0 0 0 1px #d5e8ff55,
+    0 2px 4px #0007;
+}
+.arena-shield-track {
+  height: calc(var(--h) + 2px);
+  overflow: visible;
+  background: #12304ee8;
+  box-shadow:
+    0 0 0 1px #8edbff99,
+    0 1px 5px #07294299;
+}
+.arena-bar[data-shielded='false'] .arena-shield-track {
+  display: none;
+}
+.arena-shield-track svg {
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  width: 12px;
+  height: 14px;
+  transform: translateY(-50%);
+  fill: #c8f2ff;
+  stroke: #205375;
+  stroke-width: 1.5px;
+  filter: drop-shadow(0 1px 2px #071525);
 }
 .arena-bar i {
   display: block;
@@ -285,6 +325,11 @@
 }
 .arena-bar.team-1 i {
   background: linear-gradient(180deg, var(--team-1-light), var(--team-1) 60%);
+}
+.arena-bar .arena-shield-track i {
+  border-radius: inherit;
+  background: linear-gradient(180deg, #e3faff, #79d9ff 45%, #368bc8);
+  transform: scaleX(var(--shield, 0));
 }
 .arena-bar.princess,
 .arena-bar.king {
@@ -319,20 +364,8 @@
   width: 80px;
   height: 8px;
 }
-/* A shield rides over the hit points as a bronze band. */
 .arena-bar-track {
   position: relative;
-}
-.arena-bar-track::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, #f1d9a2, #b98a3e);
-  transform: scaleX(var(--shield, 0));
-  transform-origin: left;
-  transition: transform 0.15s;
-  pointer-events: none;
 }
 .arena-bar[data-asleep='true']::after {
   content: '☾';
@@ -1152,7 +1185,7 @@
   }
   .arena-bar.troop {
     --w: calc(24px * var(--figure, 1));
-    height: calc(4px * var(--figure, 1));
+    --h: calc(4px * var(--figure, 1));
   }
 }
 

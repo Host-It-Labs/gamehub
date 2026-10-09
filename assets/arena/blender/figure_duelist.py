@@ -733,6 +733,22 @@ def face_pt(a, z, off=0.0):
     return V(0, HEAD_CY, z) + r + n * push
 
 
+def kabuto_visor(t):
+    """The brow visor descends away from the gold bowl band with a clear lip."""
+    def peak(u, v):
+        a = math.radians(90 + u)
+        r = lerp(0.136, 0.158, v)
+        drop = 0.015 * v * v
+        return V(math.cos(a) * r, HEAD_CY + math.sin(a) * r * 0.76,
+                 1.228 - drop - 0.004 * (abs(u) / 75) ** 2)
+
+    return dk.panel(f"{t}-peak", peak,
+                    [-64 + i * 12.8 for i in range(11)],
+                    [0.0, 0.8, 1.0], TEAM2, 0.006,
+                    faces=lambda i, j: GOLD if j == 1 else None,
+                    inside=V(0, HEAD_CY, 1.4), rim_mat=GOLD)
+
+
 def head(t):
     """The head, the neck guard (`hat`, a soft joint under the head) and
     the chin cord's knot and ends (`beard`)."""
@@ -843,18 +859,7 @@ def head(t):
                           GOLD, start="flat", end="flat", levels=0))
 
     # The visor (mabizashi) over the brow.
-    def peak(u, v):
-        a = math.radians(90 + u)
-        r = lerp(0.136, 0.145, v)
-        drop = -0.025 * v * v
-        return V(math.cos(a) * r, cy + math.sin(a) * r * 0.76,
-                 1.228 - drop - 0.004 * (abs(u) / 75) ** 2)
-
-    pieces.append(dk.panel(f"{t}-peak", peak,
-                           [-64 + i * 12.8 for i in range(11)],
-                           [0.0, 0.8, 1.0], TEAM2, 0.006,
-                           faces=lambda i, j: GOLD if j == 1 else None,
-                           inside=V(0, cy, 1.4), rim_mat=GOLD))
+    pieces.append(kabuto_visor(t))
 
     # Shikoro: four lames flaring from under the bowl, close at the sides
     # (the raised arms pass there) and wide at the back.
@@ -1248,7 +1253,7 @@ def scabbards(t):
 
 # ------------------------------------------------------------- build
 
-def build(root_name="duelist"):
+def build_original(root_name="duelist"):
     t = root_name
     root = kit.empty(t)
 
@@ -1322,3 +1327,22 @@ POSES = {
              "weapon": (-0.6, 0, 0), "torso": (0.0, -0.9, 0),
              "head": (0, 0.8, 0)},
 }
+
+
+def build(root_name="duelist"):
+    """Quality-first Samurai source, or its independently reviewed runtime copy.
+
+    The historical source remains above as build_original(). The bespoke
+    sculpt retains native pivots and the shared two-hand katana contract.
+    """
+    import figure_duelist_sculpt as sculpt
+    root = sculpt.build_master(root_name)
+    if os.environ.get("DUELIST_MASTER") != "1":
+        import figure_duelist_runtime as runtime
+        root = runtime.reduce_runtime(root)
+    return root
+
+
+def finish_ao(root):
+    import figure_duelist_sculpt as sculpt
+    sculpt.finish_ao(root)

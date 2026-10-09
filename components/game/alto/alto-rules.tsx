@@ -1,5 +1,4 @@
 'use client';
-import { House, Rocket } from 'lucide-react';
 import { RuleList, RuleSection, Rules } from '../rules';
 import {
   baseHold,
@@ -13,10 +12,11 @@ import {
   plansPerSeason,
   planById,
   windBonus,
+  type Plan,
 } from '@/lib/games/alto/content';
 import type { AltoOptions, ExtensionKey } from '@/lib/games/alto/engine';
 import { captainArt, seasonNames } from '@/lib/games/alto/art';
-import { familyLabel, planRule } from '@/lib/games/alto/text';
+import { effectRuleParts, familyLabel, planRule } from '@/lib/games/alto/text';
 import { FamilyIcon, GoodsRow, PlanMark } from './alto-parts';
 
 /** How to play Alto, in Arena's pattern: the goal, a turn, building, the
@@ -60,17 +60,28 @@ export function AltoRules({
           cargo lands after it.
         </p>
       </RuleSection>
-      <RuleSection
-        title="Ship parts and modules"
-        note="Builders of a trophy module on the same turn all score the lower prize."
-      >
+      <RuleSection title="Ship and base">
         <p>
-          <b>Ship parts</b> (blue, <Rocket size={13} aria-hidden="true" />) bolt
+          <b>Ship parts</b> (blue, <FamilyIcon family="ship" size={13} />) bolt
           onto your ship and <b>load more</b>: a bigger hold, more of one cargo,
           more alone or shared. <b>Base modules</b> (gold,{' '}
-          <House size={13} aria-hidden="true" />) are the blocks of your base
-          and <b>score points</b>; a trophy pays most to the <b>first</b> to
-          build it.
+          <FamilyIcon family="base" size={13} />) build up your base to{' '}
+          <b>score points</b> or make later upgrades <b>cost less</b>.
+        </p>
+      </RuleSection>
+      <RuleSection
+        title="Read the points"
+        note="Build a race module on the same turn as others and you all get the last builder’s prize."
+      >
+        <p>
+          A <b>star</b> means points. <b>Now</b> scores when you build the
+          module. <b>Next in race</b> shows the next builder’s prize; later
+          builders score less.
+        </p>
+        <p>
+          <b>Per</b> bonuses score at the end: count the named upgrades or
+          cargo. A <b>cargo slot</b> is one space in your ship’s hold; empty
+          slots count too.
         </p>
       </RuleSection>
       <RuleSection title="Three years">
@@ -85,6 +96,30 @@ export function AltoRules({
         <AltoExtensionRules key={key} kind={key} titled />
       ))}
       {plans && <PlanList plans={plans} />}
+    </Rules>
+  );
+}
+
+/** The same upgrade wording as its accessible label, in the shared rules UI. */
+export function AltoPlanRules({ plan }: { plan: Plan }) {
+  const race = plan.effects.some((e) => e.type === 'race');
+  const capacity = plan.effects.find((e) => e.type === 'perHold');
+  const note = race
+    ? 'Build this module on the same turn as others and you all get the last builder’s prize.'
+    : capacity?.type === 'perHold'
+      ? `A hold of ${baseHold} scores ${baseHold * capacity.points} points. Ship parts that expand your hold count too.`
+      : undefined;
+  return (
+    <Rules className="alto-rules">
+      <RuleSection title="What it does" note={note}>
+        {plan.effects.map((effect, i) => (
+          <p key={i}>
+            {effectRuleParts(effect).map((part, j) =>
+              typeof part === 'string' ? part : <b key={j}>{part.bold}</b>,
+            )}
+          </p>
+        ))}
+      </RuleSection>
     </Rules>
   );
 }

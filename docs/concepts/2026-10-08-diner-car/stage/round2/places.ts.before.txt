@@ -1,0 +1,1182 @@
+import * as THREE from 'three';
+import type { PlaceId } from '@/lib/games/diner/road';
+import { type Materials } from './kit';
+import {
+  StageKit,
+  glowMaterials,
+  joinKit,
+  lightLevel,
+  modelDisposer,
+  neon,
+  panel,
+  type ModelDetail,
+} from './diner-car';
+import type { StageCues, StageQuality } from './stage-contract';
+
+export type PlaceOptions = { detail: ModelDetail; quality?: StageQuality };
+export type PlaceModel = {
+  group: THREE.Group;
+  landmarks: readonly THREE.Vector3[];
+  update(cues: StageCues): void;
+  dispose(): void;
+};
+type V3 = [number, number, number];
+type Motion = (time: number, cues: StageCues) => void;
+
+function strut(
+  k: StageKit,
+  mat: 'chrome' | 'paint' | 'wood' | 'glow',
+  colour: string,
+  a: V3,
+  b: V3,
+  r: number,
+) {
+  const p = new THREE.Vector3(...a),
+    q = new THREE.Vector3(...b),
+    d = q.clone().sub(p);
+  const g = new THREE.CylinderGeometry(
+    r,
+    r,
+    d.length(),
+    k.quality === 'high' ? 12 : 6,
+  );
+  g.applyQuaternion(
+    new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      d.normalize(),
+    ),
+  );
+  k.add(mat, colour, g, p.add(q).multiplyScalar(0.5).toArray() as V3);
+}
+
+function lamp(k: StageKit, x: number, z: number, h = 3.8, tint = '#ffd39b') {
+  k.cyl('paint', '#34464f', 0.043, 0.072, h, [x, h / 2, z]);
+  k.cyl('chrome', '#b6c0ad', 0.18, 0.24, 0.18, [x, 0.08, z]);
+  k.cyl('glow', tint, 0.15, 0.1, 0.33, [x, h, z], { seg: 8 });
+  k.cyl('paint', '#34464f', 0, 0.29, 0.17, [x, h + 0.25, z], { seg: 8 });
+  for (const side of [-1, 1])
+    k.box(
+      'paint',
+      '#34464f',
+      [0.025, 0.34, 0.025],
+      [x + side * 0.13, h, z + 0.08],
+    );
+}
+
+function sedan(k: StageKit, at: V3, colour: string, yaw = 0, scale = 1) {
+  const car = new StageKit(k.quality);
+  car.rbox('gloss', colour, [1.85, 0.36, 0.79], 0.16, [0, 0.34, 0]);
+  car.rbox('gloss', '#c1c5b5', [0.91, 0.39, 0.72], 0.17, [0.03, 0.63, 0]);
+  car.add(
+    'glass',
+    '#b1d4d5',
+    panel(0.52, 0.26, 0.08, 0.025, k.quality),
+    [0.03, 0.65, 0.369],
+  );
+  car.rbox('chrome', '#b7c4cc', [0.08, 0.07, 0.82], 0.025, [-0.93, 0.27, 0]);
+  for (const x of [-0.59, 0.56])
+    for (const s of [-1, 1]) {
+      car.cyl('paint', '#26333f', 0.19, 0.19, 0.07, [x, 0.19, s * 0.39], {
+        axis: 'z',
+        seg: 12,
+      });
+      car.cyl('chrome', '#c4d2d5', 0.1, 0.1, 0.08, [x, 0.19, s * 0.39], {
+        axis: 'z',
+        seg: 10,
+      });
+      car.box('glow', '#ffe1a4', [0.035, 0.08, 0.095], [-0.92, 0.4, s * 0.28]);
+      car.box('glow', '#e26656', [0.03, 0.06, 0.08], [0.92, 0.4, s * 0.28]);
+    }
+  const parts = car.build();
+  for (const [mat, g] of Object.entries(parts)) {
+    g.scale(scale, scale, scale);
+    g.rotateY(yaw);
+    g.translate(...at);
+    (k.parts[mat as keyof typeof k.parts] ??= []).push(g);
+  }
+}
+
+/** Carved carousel pony: connected body/neck/head and two posed legs, not beads. */
+function carouselHorse(
+  k: StageKit,
+  at: V3,
+  yaw: number,
+  scale: number,
+  coat: string,
+) {
+  const horse = new StageKit(k.quality),
+    profile = new THREE.Shape();
+  profile.moveTo(-0.4, 0.12);
+  profile.bezierCurveTo(-0.5, 0.08, -0.48, -0.11, -0.35, -0.14);
+  profile.lineTo(-0.44, -0.37);
+  profile.lineTo(-0.3, -0.4);
+  profile.lineTo(-0.2, -0.15);
+  profile.quadraticCurveTo(-0.03, -0.21, 0.13, -0.12);
+  profile.lineTo(0.33, -0.36);
+  profile.lineTo(0.45, -0.35);
+  profile.lineTo(0.3, -0.07);
+  profile.quadraticCurveTo(0.31, 0.1, 0.33, 0.21);
+  profile.lineTo(0.49, 0.38);
+  profile.lineTo(0.64, 0.35);
+  profile.quadraticCurveTo(0.77, 0.36, 0.76, 0.49);
+  profile.lineTo(0.51, 0.6);
+  profile.lineTo(0.46, 0.73);
+  profile.lineTo(0.4, 0.59);
+  profile.bezierCurveTo(0.2, 0.56, 0.25, 0.28, 0.06, 0.17);
+  profile.lineTo(-0.3, 0.19);
+  profile.quadraticCurveTo(-0.37, 0.19, -0.4, 0.12);
+  const geo = new THREE.ExtrudeGeometry(profile, {
+    depth: 0.17,
+    bevelEnabled: true,
+    bevelSize: 0.022,
+    bevelThickness: 0.025,
+    bevelSegments: k.quality === 'high' ? 3 : 2,
+    curveSegments: k.quality === 'high' ? 8 : 4,
+  });
+  geo.translate(0, 0, -0.085);
+  horse.add('gloss', coat, geo, [0, 0, 0]);
+  horse.rbox('gloss', '#9c4567', [0.26, 0.05, 0.25], 0.025, [-0.03, 0.18, 0]);
+  horse.tube(
+    'gloss',
+    '#735574',
+    [
+      [-0.4, 0.12, 0],
+      [-0.58, 0.02, 0],
+      [-0.52, -0.19, 0],
+    ],
+    0.036,
+  );
+  horse.tube(
+    'gloss',
+    '#735574',
+    [
+      [0.08, 0.19, 0],
+      [0.23, 0.34, 0],
+      [0.27, 0.51, 0],
+      [0.4, 0.58, 0],
+    ],
+    0.03,
+  );
+  for (const side of [-1, 1]) {
+    horse.sphere('paint', '#334452', 0.024, [0.5, 0.5, side * 0.115], {
+      seg: 8,
+    });
+    horse.tube(
+      'chrome',
+      '#d1aa79',
+      [
+        [0.65, 0.44, side * 0.114],
+        [0.29, 0.27, side * 0.123],
+        [0.06, 0.17, side * 0.135],
+      ],
+      0.009,
+    );
+  }
+  for (const [mat, part] of Object.entries(horse.build())) {
+    part.scale(scale, scale, scale);
+    part.rotateY(yaw);
+    part.translate(...at);
+    (k.parts[mat as keyof typeof k.parts] ??= []).push(part);
+  }
+}
+
+function pump(k: StageKit, x: number, z: number) {
+  k.rbox('chrome', '#acbcc7', [0.84, 0.09, 0.65], 0.045, [x, 0.03, z]);
+  k.rbox('gloss', '#bb4f46', [0.67, 1.14, 0.51], 0.13, [x, 0.64, z]);
+  k.rbox('gloss', '#eddabb', [0.7, 0.6, 0.52], 0.1, [x, 1.46, z]);
+  k.box('paint', '#243945', [0.46, 0.17, 0.035], [x, 1.55, z + 0.27]);
+  for (let i = 0; i < 4; i++)
+    k.box(
+      'glow',
+      '#bdedc7',
+      [0.042, 0.06, 0.014],
+      [x - 0.13 + i * 0.087, 1.55, z + 0.29],
+    );
+  k.sphere('glow', '#ffe3af', 0.21, [x, 1.91, z], {
+    scale: [1, 1.0, 0.47],
+    seg: 16,
+  });
+  k.tube(
+    'paint',
+    '#243039',
+    [
+      [x + 0.35, 1.55, z],
+      [x + 0.6, 1.31, z],
+      [x + 0.59, 0.42, z],
+      [x + 0.35, 0.68, z],
+    ],
+    0.027,
+  );
+  k.rbox('chrome', '#9eaab3', [0.09, 0.24, 0.07], 0.023, [x + 0.39, 1.25, z]);
+}
+
+function tent(k: StageKit, at: V3, radius: number, colour: string, top = 2.8) {
+  const n = 12;
+  for (let i = 0; i < n; i++) {
+    const g = new THREE.ConeGeometry(
+      radius,
+      top * 0.44,
+      1,
+      1,
+      true,
+      (i / n) * Math.PI * 2,
+      (Math.PI * 2) / n,
+    );
+    k.add('gloss', i % 2 ? '#eedeb7' : colour, g, [
+      at[0],
+      at[1] + top * 0.78,
+      at[2],
+    ]);
+    const a = (i / n) * Math.PI * 2;
+    strut(
+      k,
+      'chrome',
+      '#839ab0',
+      [at[0] + Math.sin(a) * radius, at[1], at[2] + Math.cos(a) * radius],
+      [
+        at[0] + Math.sin(a) * radius,
+        at[1] + top * 0.57,
+        at[2] + Math.cos(a) * radius,
+      ],
+      0.04,
+    );
+    k.sphere(
+      'glow',
+      '#ffd89c',
+      0.07,
+      [
+        at[0] + Math.sin(a) * radius,
+        at[1] + top * 0.57,
+        at[2] + Math.cos(a) * radius,
+      ],
+      { seg: 6 },
+    );
+  }
+  k.cyl('gloss', colour, 0.08, 0.11, 0.36, [at[0], at[1] + top + 0.08, at[2]], {
+    seg: 8,
+  });
+}
+
+function shop(
+  k: StageKit,
+  x: number,
+  z: number,
+  w: number,
+  h: number,
+  colour: string,
+) {
+  k.rbox('paint', colour, [w, h, 2.1], 0.04, [x, h / 2, z]);
+  k.box('paint', '#465064', [w + 0.28, 0.19, 2.36], [x, h + 0.04, z]);
+  k.box('ceramic', '#bbac91', [w + 0.14, 0.13, 0.14], [x, h - 0.23, z + 1.1]);
+  for (const dx of [-w * 0.26, w * 0.26]) {
+    k.add('wood', '#594b4c', panel(w * 0.36, 1.3, 0.16, 0.11, k.quality), [
+      x + dx,
+      1.0,
+      z + 1.11,
+    ]);
+    k.add('glow', '#ddab75', panel(w * 0.29, 1.15, 0.12, 0.03, k.quality), [
+      x + dx,
+      1.0,
+      z + 1.19,
+    ]);
+    k.box('wood', '#73685d', [0.045, 1.18, 0.04], [x + dx, 1.0, z + 1.22]);
+    if (h > 3) {
+      k.add('glow', '#a5b1b8', panel(w * 0.22, 0.83, 0.06, 0.03, k.quality), [
+        x + dx,
+        h - 1.05,
+        z + 1.075,
+      ]);
+      k.box(
+        'ceramic',
+        '#ac9c8f',
+        [w * 0.27, 0.1, 0.18],
+        [x + dx, h - 1.52, z + 1.13],
+      );
+    }
+  }
+  for (let i = 0; i < 11; i++)
+    k.box(
+      'gloss',
+      i % 2 ? '#edd7ad' : '#517f77',
+      [w / 11, 0.075, 0.69],
+      [x - w / 2 + ((i + 0.5) * w) / 11, 1.9, z + 1.32],
+      { rot: [0.15, 0, 0] },
+    );
+  if (k.quality === 'high')
+    for (let row = 0; row < 12; row++)
+      for (let i = 0; i < 5; i++) {
+        const dx = -w / 2 + 0.16 + (i * w) / 5 + (row % 2) * 0.1;
+        k.box(
+          'paint',
+          '#977266',
+          [w / 5 - 0.05, 0.014, 0.009],
+          [x + dx, 0.18 + (row * h) / 12, z + 1.055],
+        );
+      }
+}
+
+function mesa(k: StageKit, at: V3, r: number, h: number, colour: string) {
+  const g = new THREE.CylinderGeometry(r * 0.61, r, h, 9, 4);
+  const pos = g.getAttribute('position');
+  for (let i = 0; i < pos.count; i++) {
+    const a = Math.atan2(pos.getZ(i), pos.getX(i));
+    const f = 1 + Math.sin(a * 3 + at[0]) * 0.14;
+    pos.setXYZ(i, pos.getX(i) * f, pos.getY(i), pos.getZ(i) * f);
+  }
+  g.computeVertexNormals();
+  k.add('paint', colour, g, [at[0], at[1] + h / 2, at[2]]);
+  k.cyl(
+    'paint',
+    '#866b87',
+    r * 0.66,
+    r * 0.66,
+    h * 0.04,
+    [at[0], at[1] + h * 0.92, at[2]],
+    { seg: 9 },
+  );
+}
+
+function boat(k: StageKit, colour: string) {
+  // Cross-section swept in rings: full sheer and pointed bow, not a cuboid raft.
+  const shape = new THREE.Shape();
+  shape.moveTo(-1.3, 0.23);
+  shape.quadraticCurveTo(-0.7, -0.21, 0.8, -0.17);
+  shape.quadraticCurveTo(1.4, 0, 1.55, 0.45);
+  shape.lineTo(-1.3, 0.38);
+  shape.closePath();
+  const g = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.73,
+    bevelEnabled: true,
+    bevelSize: 0.07,
+    bevelThickness: 0.08,
+    bevelSegments: 2,
+  });
+  g.translate(0, 0, -0.365);
+  k.add('gloss', colour, g, [0, 0.24, 0]);
+  k.rbox('wood', '#a78266', [2.18, 0.055, 0.6], 0.04, [0, 0.62, 0]);
+  k.rbox('gloss', '#e9d8b8', [0.74, 0.62, 0.56], 0.07, [-0.35, 0.95, 0]);
+  k.box('glass', '#97c3c7', [0.38, 0.31, 0.035], [-0.35, 1.05, 0.3]);
+  k.box('paint', '#31454c', [0.88, 0.07, 0.69], [-0.35, 1.32, 0]);
+  strut(k, 'wood', '#8f8c7d', [0.18, 0.64, 0], [0.18, 2.5, 0], 0.026);
+  strut(k, 'paint', '#55626a', [-1.07, 0.58, 0], [0.18, 2.45, 0], 0.008);
+  k.box('glow', '#ecc692', [0.09, 0.08, 0.12], [0.18, 2.47, 0]);
+}
+
+export function buildPlace(
+  materials: Materials,
+  place: PlaceId,
+  options: PlaceOptions,
+): PlaceModel {
+  const stage = options.detail === 'stage',
+    quality = options.quality ?? (stage ? 'high' : 'low');
+  const group = new THREE.Group();
+  group.name = `place-${place}-${options.detail}`;
+  const own = glowMaterials(materials),
+    mats = own.materials,
+    k = new StageKit(quality);
+  const motions: Motion[] = [],
+    owned: { dispose(): void }[] = [own.glow],
+    landmarks: THREE.Vector3[] = [];
+  // Map vignettes use their own compact composition; no ground tile or diner copy.
+  const dynamic = (name: string, source: StageKit, position: V3) => {
+    const g = joinKit(group, source, mats, name);
+    g.position.set(...position);
+    g.userData.dynamic = true;
+    return g;
+  };
+  if (stage) {
+    const ground = new THREE.PlaneGeometry(180, 180, 1, 1);
+    ground.rotateX(-Math.PI / 2);
+    k.add(
+      'paint',
+      {
+        truckstop: '#454455',
+        drivein: '#354453',
+        fairground: '#49525c',
+        harbour: '#234755',
+        oldtown: '#525062',
+        moonmile: '#66536f',
+      }[place],
+      ground,
+      [5.5, -0.24, -18],
+    );
+    // Quiet paving/shore approach below the unfolded patio, extending to screen edges.
+    if (place !== 'harbour' && place !== 'moonmile')
+      k.box('paint', '#6b6470', [60, 0.015, 5.3], [5.5, -0.22, 13.65]);
+  }
+
+  if (place === 'truckstop') {
+    const h = stage ? 3.65 : 4.5,
+      sign: V3 = stage ? [3.3, 0, -3.25] : [0, 0, 0];
+    k.cyl('chrome', '#9facb2', 0.13, 0.2, h, [sign[0], h / 2, sign[2]]);
+    k.add(
+      'gloss',
+      '#a9623f',
+      panel(stage ? 3.8 : 2.6, stage ? 1.12 : 1, 0.38, 0.17, quality),
+      [sign[0], h, sign[2]],
+    );
+    neon(
+      k,
+      'FUEL',
+      stage ? 0.65 : 0.46,
+      [sign[0], h - (stage ? 0.29 : 0.2), sign[2] + 0.12],
+      '#ffd084',
+    );
+    k.rbox('glow', '#f4ae65', [stage ? 4.1 : 2.85, 0.06, 0.08], 0.025, [
+      sign[0],
+      h - 0.66,
+      sign[2] + 0.07,
+    ]);
+    const px = stage ? -4.9 : -1.4,
+      pz = stage ? -3.6 : 1.0,
+      s = stage ? 1 : 0.6;
+    const pk = new StageKit(quality);
+    for (const x of [-1.2, 1.2]) pump(pk, x, 0);
+    for (const x of [-2.1, 2.1])
+      pk.cyl('chrome', '#b3c4c6', 0.07, 0.07, 2.5, [x, 1.25, 0]);
+    pk.rbox('gloss', '#dfbf91', [5.0, 0.25, 2.45], 0.1, [0, 2.5, 0]);
+    pk.box('glow', '#ffc588', [4.8, 0.055, 0.06], [0, 2.48, 1.24]);
+    const p = joinKit(group, pk, mats, 'pumps');
+    p.position.set(px, 0, pz);
+    p.scale.setScalar(s);
+    if (stage) {
+      for (let n = 0; n < 3; n++) {
+        const x = 13.9 + n * 5.7,
+          z = -5.9 - (n % 2) * 3.1;
+        k.rbox(
+          'paint',
+          ['#869da6', '#acada2', '#735d66'][n],
+          [3.4, 2.7, 7.6],
+          0.17,
+          [x, 1.43, z],
+        );
+        k.box('gloss', '#a45742', [3.4, 0.26, 0.03], [x, 1.5, z + 3.82]);
+        for (let i = 0; i < 15; i++)
+          k.box(
+            'chrome',
+            '#8ca1b2',
+            [0.018, 2.2, 0.018],
+            [x - 1.5 + i * 0.215, 1.48, z + 3.815],
+          );
+        for (const dx of [-1.05, 1.05])
+          k.cyl('paint', '#273342', 0.4, 0.4, 0.24, [x + dx, 0.16, z + 2.8], {
+            axis: 'x',
+            seg: 12,
+          });
+      }
+      k.box('paint', '#2e3444', [110, 0.02, 4.4], [0, -0.215, -13]);
+      for (let i = -18; i < 22; i++)
+        k.box('paint', '#aa9c88', [1.15, 0.008, 0.065], [i * 3.2, -0.2, -13]);
+      const tk = new StageKit(quality);
+      sedan(tk, [0, 0, 0], '#c28c57');
+      const traffic = dynamic('highway-traffic', tk, [0, -0.19, -12.7]);
+      motions.push((t) => {
+        traffic.position.x = -32 + ((t * 3.2) % 65);
+      });
+      lamp(k, -11, -5, 6.4, '#f7b278');
+      lamp(k, 23, -5, 6.4, '#f7b278');
+    }
+    landmarks.push(new THREE.Vector3(sign[0], h + 0.8, sign[2]));
+  } else if (place === 'drivein') {
+    const center = stage ? ([5.5, 3.0, -3.65] as V3) : ([0, 2.0, 0] as V3);
+    const w = stage ? 10.0 : 4.5,
+      h = stage ? 3.0 : 2.5;
+    k.rbox('paint', '#344964', [w + 0.48, h + 0.5, 0.48], 0.16, center);
+    k.rbox('chrome', '#a5c2d2', [w + 0.13, h + 0.13, 0.07], 0.03, [
+      center[0],
+      center[1],
+      center[2] + 0.27,
+    ]);
+    for (const s of [-1, 1])
+      strut(
+        k,
+        'paint',
+        '#627582',
+        [center[0] + s * w * 0.42, 0, center[2]],
+        [center[0] + s * w * 0.42, center[1] + h * 0.4, center[2]],
+        0.14,
+      );
+    const screenMat = new THREE.MeshBasicMaterial({
+      color: '#b2d5dd',
+      toneMapped: false,
+    });
+    owned.push(screenMat);
+    const screenColour = screenMat.color.clone();
+    const screenGeo = panel(w - 0.18, h - 0.16, 0.08, 0.02, quality);
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(center[0], center[1], center[2] + 0.32);
+    group.add(screen);
+    // Film is a considered physical silhouette of a rocket above layered mountains.
+    const film = new StageKit(quality),
+      f = stage ? 0.66 : 0.43;
+    film.sphere(
+      'glow',
+      '#ffdfa1',
+      0.62 * f,
+      [center[0] - 2.9 * f, center[1] + 1.55 * f, center[2] + 0.35],
+      { scale: [1, 1, 0.035], seg: 24 },
+    );
+    for (let n = 0; n < 4; n++) {
+      const s = new THREE.Shape();
+      s.moveTo(-1.7 * f, 0);
+      s.lineTo(-0.6 * f, (0.5 + (n % 2)) * f);
+      s.lineTo(0.3 * f, 0.7 * f);
+      s.lineTo(1.7 * f, 0);
+      s.closePath();
+      film.add(
+        'glow',
+        n % 2 ? '#3e6b8d' : '#527fa0',
+        new THREE.ShapeGeometry(s),
+        [
+          center[0] + (n - 1.5) * 2.3 * f,
+          center[1] - h * 0.44,
+          center[2] + 0.355,
+        ],
+      );
+    }
+    film.capsule(
+      'glow',
+      '#e9ebd3',
+      0.2 * f,
+      1.15 * f,
+      [center[0] + 1.5 * f, center[1] + 0.3 * f, center[2] + 0.38],
+      { rot: [0, 0, -0.4], scale: [1, 1, 0.14] },
+    );
+    film.tube(
+      'glow',
+      '#eaaa75',
+      [
+        [center[0] + 1.22 * f, center[1] - 0.42 * f, center[2] + 0.39],
+        [center[0] + 0.58 * f, center[1] - 1.15 * f, center[2] + 0.39],
+      ],
+      0.1 * f,
+    );
+    joinKit(group, film, mats, 'movie');
+    motions.push((t, cues) => {
+      screenMat.color
+        .copy(screenColour)
+        .multiplyScalar(lightLevel(cues) * (0.82 + Math.sin(t * 11) * 0.014));
+    });
+    if (stage) {
+      for (let row = 0; row < 2; row++)
+        for (let i = 0; i < 7; i++) {
+          const px = -7.5 + i * 4.5;
+          // Rows flank the trailer; a parked car never occupies its closed back.
+          if (px > -2 && px < 13) continue;
+          sedan(
+            k,
+            [px, -0.24, -2.8 - row * 2.8],
+            ['#b36375', '#a9b9a3', '#719bad', '#bba17d'][i % 4],
+            Math.PI / 2,
+            1.13,
+          );
+        }
+      k.rbox('paint', '#526479', [2.2, 1.8, 1.8], 0.15, [-7.2, 0.9, 0.8]);
+      k.cyl('chrome', '#91b2c6', 0.19, 0.28, 0.5, [-7.2, 1.92, 0.75], {
+        axis: 'z',
+      });
+      const beam = new THREE.Mesh(
+        new THREE.ConeGeometry(1.8, 9, 16, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: '#99c4e9',
+          transparent: true,
+          opacity: 0.055,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+          blending: THREE.AdditiveBlending,
+        }),
+      );
+      owned.push(beam.material);
+      beam.position.set(-4.3, 3.0, -3.4);
+      beam.rotation.z = -0.62;
+      beam.rotation.x = -0.9;
+      group.add(beam);
+      motions.push((t, cues) => {
+        beam.material.opacity = cues.power
+          ? 0.048 + Math.sin(t * 13) * 0.003
+          : 0.004;
+      });
+    } else {
+      sedan(k, [-1.4, 0, 1.7], '#b57377', 0.2, 0.7);
+      sedan(k, [1.1, 0, 1.9], '#77a59a', -0.1, 0.7);
+    }
+    landmarks.push(new THREE.Vector3(center[0], center[1] + h / 2, center[2]));
+  } else if (place === 'fairground') {
+    const x = stage ? 3.3 : 0,
+      z = stage ? -4.1 : 0,
+      r = 1.65,
+      hub = stage ? 2.3 : 2.15;
+    for (const s of [-1, 1])
+      for (const dz of [-0.4, 0.4])
+        strut(
+          k,
+          'paint',
+          '#cf7b9b',
+          [x + s * r * 0.8, 0, z + dz * 2],
+          [x, hub, z + dz],
+          stage ? 0.11 : 0.065,
+        );
+    const wk = new StageKit(quality);
+    wk.torus('gloss', '#cf83a2', r, r * 0.035, [0, 0, 0], {
+      rot: [Math.PI / 2, 0, 0],
+    });
+    wk.torus('glow', '#ffd89b', r * 0.95, r * 0.009, [0, 0, 0.07], {
+      rot: [Math.PI / 2, 0, 0],
+    });
+    const count = stage ? 12 : 8;
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2;
+      strut(
+        wk,
+        'chrome',
+        '#839eb8',
+        [0, 0, 0],
+        [Math.sin(a) * r, Math.cos(a) * r, 0],
+        r * 0.015,
+      );
+    }
+    wk.cyl('chrome', '#c2ccd1', r * 0.13, r * 0.13, 0.35, [0, 0, 0], {
+      axis: 'z',
+    });
+    const wheel = dynamic('ferris-wheel', wk, [x, hub, z]);
+    // One batch of gondolas is rebuilt as instances, keeping each cabin upright.
+    const cabin = new StageKit(quality),
+      s = stage ? 0.72 : 0.53;
+    cabin.rbox('gloss', '#79bab2', [0.6 * s, 0.3 * s, 0.46 * s], 0.09 * s, [
+      0,
+      -0.08 * s,
+      0,
+    ]);
+    cabin.rbox('gloss', '#f3d6a6', [0.68 * s, 0.1 * s, 0.53 * s], 0.05 * s, [
+      0,
+      0.41 * s,
+      0,
+    ]);
+    for (const dx of [-0.23, 0.23])
+      strut(
+        cabin,
+        'chrome',
+        '#bdc8cd',
+        [dx * s, 0, 0],
+        [dx * s, 0.39 * s, 0],
+        0.017 * s,
+      );
+    const cabins: THREE.InstancedMesh[] = [];
+    for (const [mat, geo] of Object.entries(cabin.build())) {
+      const mesh = new THREE.InstancedMesh(
+        geo,
+        mats[mat as keyof Materials],
+        count,
+      );
+      mesh.castShadow = mat !== 'glow';
+      group.add(mesh);
+      cabins.push(mesh);
+    }
+    const matrix = new THREE.Matrix4();
+    const animate = (t: number) => {
+      const angle = t * 0.12;
+      wheel.rotation.z = angle;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 - angle;
+        matrix.makeTranslation(
+          x + Math.sin(a) * r,
+          hub + Math.cos(a) * r - 0.15 * s,
+          z + 0.25,
+        );
+        for (const mesh of cabins) mesh.setMatrixAt(i, matrix);
+      }
+      for (const mesh of cabins) {
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.computeBoundingSphere();
+      }
+    };
+    animate(0);
+    motions.push(animate);
+    const ck = new StageKit(quality);
+    tent(ck, [0, 0, 0], stage ? 2.4 : 0.95, '#d39169', stage ? 3.0 : 1.4);
+    ck.cyl(
+      'gloss',
+      '#bf7897',
+      stage ? 2.3 : 0.9,
+      stage ? 2.3 : 0.9,
+      0.18,
+      [0, 0.11, 0],
+      { seg: 24 },
+    );
+    const carousel = dynamic(
+      'carousel',
+      ck,
+      stage ? [13.9, 0, -4.4] : [2.65, 0, 0.1],
+    );
+    const horses = new StageKit(quality);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2,
+        rad = stage ? 1.5 : 0.56,
+        px = Math.sin(a) * rad,
+        pz = Math.cos(a) * rad;
+      strut(
+        horses,
+        'chrome',
+        '#e5c383',
+        [px, 0.15, pz],
+        [px, stage ? 2.3 : 1.0, pz],
+        0.025,
+      );
+      carouselHorse(
+        horses,
+        [px, stage ? 0.96 : 0.48, pz],
+        a + Math.PI / 2,
+        stage ? 0.85 : 0.38,
+        i % 2 ? '#e1bc90' : '#9dd3c2',
+      );
+    }
+    joinKit(carousel, horses, mats, 'carousel-mounts');
+    motions.push((t) => {
+      carousel.rotation.y = t * 0.16;
+    });
+    if (stage) tent(k, [-7.2, 0, -5.2], 3.6, '#728aa9', 4.6);
+    landmarks.push(new THREE.Vector3(x, hub + r + 0.4, z));
+  } else if (place === 'harbour') {
+    const lighthouse = new StageKit(quality),
+      h = stage ? 3.5 : 4.2,
+      x = stage ? 8.1 : 0,
+      z = stage ? -4.3 : 0,
+      towerScale = stage ? 0.79 : 1;
+    for (let i = 0; i < 5; i++)
+      lighthouse.cyl(
+        'paint',
+        i % 2 ? '#b36368' : '#dcd7c3',
+        0.56 + (4 - i) * 0.075,
+        0.56 + (5 - i) * 0.075,
+        h / 5,
+        [0, ((i + 0.5) * h) / 5, 0],
+        { seg: 24 },
+      );
+    lighthouse.cyl('chrome', '#6b909c', 0.96, 0.83, 0.16, [0, h, 0], {
+      seg: 24,
+    });
+    lighthouse.cyl('glow', '#f2d6a0', 0.54, 0.54, 0.76, [0, h + 0.45, 0], {
+      seg: 12,
+    });
+    for (let i = 0; i < 8; i++)
+      strut(
+        lighthouse,
+        'paint',
+        '#344c62',
+        [
+          Math.sin((i * Math.PI) / 4) * 0.58,
+          h + 0.1,
+          Math.cos((i * Math.PI) / 4) * 0.58,
+        ],
+        [
+          Math.sin((i * Math.PI) / 4) * 0.58,
+          h + 0.85,
+          Math.cos((i * Math.PI) / 4) * 0.58,
+        ],
+        0.035,
+      );
+    lighthouse.cyl('gloss', '#416d79', 0, 1.0, 0.55, [0, h + 1.06, 0], {
+      seg: 16,
+    });
+    lighthouse.add(
+      'wood',
+      '#564b50',
+      panel(0.48, 0.9, 0.18, 0.055, quality),
+      [0, 0.52, 0.9],
+    );
+    const tower = joinKit(group, lighthouse, mats, 'lighthouse');
+    tower.position.set(x, 0, z);
+    tower.scale.setScalar(towerScale);
+    const sweep = new THREE.Group();
+    sweep.userData.dynamic = true;
+    sweep.position.set(x, (h + 0.45) * towerScale, z);
+    group.add(sweep);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: '#a6e0d5',
+      transparent: true,
+      opacity: 0.065,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    });
+    owned.push(beamMat);
+    const beam = new THREE.Mesh(
+      new THREE.ConeGeometry(stage ? 3 : 1.2, stage ? 17 : 6.5, 16, 1, true),
+      beamMat,
+    );
+    beam.rotation.z = Math.PI / 2;
+    beam.position.x = stage ? 8.5 : 3.25;
+    sweep.add(beam);
+    motions.push((t, cues) => {
+      sweep.rotation.y = t * 0.23;
+      beamMat.opacity = 0.065 * lightLevel(cues);
+    });
+    if (stage) {
+      // Water is continuous; piers meet the patio apron without a moat.
+      k.box('gloss', '#22505f', [160, 0.035, 150], [5.5, -0.205, -18]);
+      for (let i = 0; i < 110; i++) {
+        const px = -48 + ((i * 13.7) % 110),
+          pz = -29 + ((i * 7.3) % 64);
+        if (px > -1 && px < 12 && pz > -2 && pz < 12) continue;
+        k.box(
+          'gloss',
+          i % 2 ? '#436678' : '#315764',
+          [0.4 + (i % 5) * 0.24, 0.005, 0.024],
+          [px, -0.18, pz],
+        );
+      }
+      for (let i = 0; i < 44; i++)
+        k.box(
+          'wood',
+          i % 3 ? '#8b8179' : '#a1917d',
+          [16, 0.07, 0.38],
+          [5.5, -0.08, -3.8 + i * 0.4],
+        );
+      for (const px of [-3.1, 14.1])
+        for (const pz of [-2.7, 4.0, 10.7]) {
+          k.cyl('wood', '#5a635e', 0.16, 0.2, 1.0, [px, 0, pz]);
+          k.torus('chrome', '#96aba7', 0.18, 0.025, [px, 0.42, pz]);
+        }
+      shop(k, -9.5, -7, 5.2, 2.6, '#5b7e82');
+    }
+    for (let n = 0; n < (stage ? 3 : 1); n++) {
+      const bk = new StageKit(quality);
+      boat(bk, ['#b57063', '#81afa4', '#667996'][n]);
+      const b = dynamic(
+        'fishing-boat',
+        bk,
+        stage ? [-5.1 + n * 11.8, -0.18, -3.6 - (n % 2) * 3.5] : [2.1, 0, 0.7],
+      );
+      if (!stage) b.scale.setScalar(0.65);
+      const baseY = b.position.y;
+      motions.push((t) => {
+        b.position.y = baseY + Math.sin(t * 1.3 + n * 1.8) * 0.07;
+        b.rotation.x = Math.sin(t * 1.15 + n) * 0.032;
+        b.rotation.z = Math.sin(t * 0.9 + n) * 0.028;
+      });
+    }
+    landmarks.push(new THREE.Vector3(x, (h + 1.4) * towerScale, z));
+  } else if (place === 'oldtown') {
+    const clock = stage ? ([8.45, 0, -4.1] as V3) : ([0, 0, 0] as V3);
+    const h = stage ? 3.7 : 3.1,
+      w = stage ? 1.65 : 1.4,
+      roofHeight = stage ? 0.8 : 1.6;
+    k.rbox('paint', '#917576', [w, h, w], 0.065, [clock[0], h / 2, clock[2]]);
+    for (let i = 0; i < 4; i++)
+      k.box(
+        'ceramic',
+        '#b7aa95',
+        [w + 0.2, 0.11, w + 0.2],
+        [clock[0], h * (0.21 + i * 0.19), clock[2]],
+      );
+    k.cyl(
+      'paint',
+      '#384c5f',
+      0,
+      w * 0.82,
+      roofHeight,
+      [clock[0], h + roofHeight / 2, clock[2]],
+      { seg: 4, rot: [0, Math.PI / 4, 0] },
+    );
+    const radius = w * 0.35,
+      cy = h - radius - 0.12,
+      cz = clock[2] + w / 2 + 0.21;
+    k.add(
+      'paint',
+      '#80686b',
+      panel(radius * 2 + 0.22, radius * 2 + 0.22, 0.15, 0.24, quality),
+      [clock[0], cy, cz - 0.14],
+    );
+    k.cyl(
+      'chrome',
+      '#cab992',
+      radius + 0.07,
+      radius + 0.07,
+      0.08,
+      [clock[0], cy, cz],
+      { axis: 'z', seg: 32 },
+    );
+    k.cyl('glow', '#e4c894', radius, radius, 0.09, [clock[0], cy, cz], {
+      axis: 'z',
+      seg: 32,
+    });
+    for (let i = 0; i < 12; i++)
+      k.box(
+        'paint',
+        '#5b5151',
+        [0.02, 0.095, 0.02],
+        [
+          clock[0] + Math.sin((i * Math.PI) / 6) * radius * 0.79,
+          cy + Math.cos((i * Math.PI) / 6) * radius * 0.79,
+          cz + 0.06,
+        ],
+        { rot: [0, 0, (-i * Math.PI) / 6] },
+      );
+    const hand = new StageKit(quality);
+    hand.box(
+      'paint',
+      '#4a4e58',
+      [0.045, radius * 0.66, 0.035],
+      [0, radius * 0.23, 0],
+    );
+    hand.box(
+      'paint',
+      '#4a4e58',
+      [radius * 0.5, 0.046, 0.04],
+      [radius * 0.18, 0, 0],
+    );
+    const hands = dynamic('clock-hands', hand, [clock[0], cy, cz + 0.08]);
+    motions.push((t) => {
+      hands.rotation.z = -t * 0.007;
+    });
+    if (stage) {
+      for (const [px, height, tint] of [
+        [-7.9, 3.8, '#946f66'],
+        [-3.2, 4.7, '#78817e'],
+        [12.3, 4.2, '#877485'],
+        [17.0, 3.4, '#9c826c'],
+      ] as [number, number, string][])
+        shop(k, px, -7.1, 4.3, height, tint);
+      for (let row = 0; row < 17; row++)
+        for (let i = 0; i < 32; i++)
+          k.box(
+            'paint',
+            ['#6f6b78', '#686777', '#747180'][(i + row) % 3],
+            [0.72, 0.025, 0.44],
+            [-8 + i * 0.88 + (row % 2) * 0.44, -0.19, -4 + row * 1.05],
+          );
+      for (const px of [-4.5, 15.5])
+        for (const pz of [-3, 11.2]) lamp(k, px, pz, 4.2);
+    } else {
+      const sk = new StageKit(quality);
+      shop(sk, -2.3, 0.2, 2.6, 2.4, '#9a776c');
+      joinKit(group, sk, mats, 'shopfront');
+      lamp(k, 1.8, 1.2, 2.0);
+    }
+    landmarks.push(new THREE.Vector3(clock[0], h + roofHeight, clock[2]));
+  } else {
+    // Sandstone bodies with angled strata and a retained, legible summit.
+    if (stage) {
+      mesa(k, [-8, -0.23, -16], 8, 5.5, '#6e5872');
+      mesa(k, [18, -0.23, -15], 7, 7.1, '#75637f');
+      mesa(k, [1, -0.23, -26], 8, 6.3, '#554b69');
+    } else mesa(k, [-2.2, 0, -1.5], 1.2, 1.6, '#80687e');
+    const x = stage ? 2.7 : 0,
+      z = stage ? -5.0 : 0,
+      sc = stage ? 0.72 : 0.48;
+    k.rbox('paint', '#626c84', [1.6 * sc, 0.24 * sc, 1.5 * sc], 0.1 * sc, [
+      x,
+      0.1 * sc,
+      z,
+    ]);
+    for (const dx of [-0.62, 0.62])
+      strut(
+        k,
+        'chrome',
+        '#98adb9',
+        [x + dx * sc, 0.2 * sc, z],
+        [x, 3.1 * sc, z],
+        0.1 * sc,
+      );
+    const dish = new THREE.Group();
+    dish.userData.dynamic = true;
+    dish.position.set(x, 3.25 * sc, z);
+    dish.rotation.x = -0.55;
+    group.add(dish);
+    const dk = new StageKit(quality);
+    const bowl = new THREE.LatheGeometry(
+      [
+        new THREE.Vector2(0.0, -0.78),
+        new THREE.Vector2(0.36, -0.74),
+        new THREE.Vector2(0.95, -0.59),
+        new THREE.Vector2(1.54, -0.3),
+        new THREE.Vector2(2.05, 0),
+        new THREE.Vector2(2.06, 0.07),
+        new THREE.Vector2(1.53, -0.23),
+        new THREE.Vector2(0.95, -0.52),
+        new THREE.Vector2(0.35, -0.67),
+        new THREE.Vector2(0, -0.7),
+      ],
+      quality === 'high' ? 40 : 20,
+    );
+    dk.add('chrome', '#b4c3cd', bowl, [0, 0, 0], { scale: [sc, sc, sc] });
+    dk.torus('chrome', '#d1d4d0', 2.05 * sc, 0.045 * sc, [0, 0.035 * sc, 0]);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      strut(
+        dk,
+        'chrome',
+        '#8195a7',
+        [Math.sin(a) * 1.93 * sc, 0, Math.cos(a) * 1.93 * sc],
+        [0, 1.2 * sc, 0],
+        0.032 * sc,
+      );
+    }
+    dk.cyl('gloss', '#866a84', 0.1 * sc, 0.1 * sc, 0.31 * sc, [0, 1.2 * sc, 0]);
+    joinKit(dish, dk, mats, 'radio-bowl');
+    motions.push((t) => {
+      dish.rotation.y = Math.sin(t * 0.1) * 0.12;
+    });
+    const rocket = new StageKit(quality),
+      rx = stage ? 12.4 : 1.8,
+      rz = stage ? -4.2 : 0.4,
+      rh = stage ? 3.4 : 2.6;
+    rocket.cyl('paint', '#514d70', 0.1, 0.15, rh * 0.65, [rx, rh * 0.32, rz]);
+    rocket.capsule(
+      'gloss',
+      '#d4c3b4',
+      rh * 0.14,
+      rh * 0.4,
+      [rx, rh * 0.8, rz],
+      { rot: [0, 0, -0.24] },
+    );
+    for (const dx of [-1, 1]) {
+      const s = new THREE.Shape();
+      s.moveTo(0, 0);
+      s.lineTo(dx * rh * 0.23, -rh * 0.16);
+      s.lineTo(dx * rh * 0.19, rh * 0.16);
+      s.closePath();
+      rocket.add(
+        'gloss',
+        '#b55c85',
+        new THREE.ExtrudeGeometry(s, { depth: 0.09, bevelEnabled: false }),
+        [rx, rh * 0.58, rz],
+      );
+    }
+    rocket.sphere(
+      'glow',
+      '#85d6cb',
+      rh * 0.085,
+      [rx - rh * 0.03, rh * 0.86, rz + rh * 0.14],
+      { scale: [1, 1, 0.2], seg: 16 },
+    );
+    const rg = joinKit(group, rocket, mats, 'rocket-sign');
+    rg.userData.dynamic = true;
+    motions.push((t) => {
+      rg.rotation.z = Math.sin(t * 0.6) * 0.0015;
+    });
+    if (stage) {
+      const moon = new StageKit(quality);
+      // Celestial disc behind the parked car, never a sphere inside its roof.
+      moon.sphere('glow', '#c7bdca', 2.05, [0, 0, 0], {
+        scale: [1, 1, 0.05],
+        seg: 40,
+      });
+      for (let i = 0; i < 8; i++) {
+        const px = Math.sin(i * 2.17) * (0.5 + (i % 3) * 0.25),
+          py = Math.cos(i * 2.17) * (0.4 + (i % 3) * 0.25);
+        const depth = Math.sqrt(2.05 ** 2 - px ** 2 - py ** 2);
+        moon.sphere(
+          'glow',
+          '#a99fb8',
+          0.12 + (i % 3) * 0.075,
+          [px, py, depth * 0.05 + 0.012],
+          { scale: [1.1, 1, 0.08], seg: 16 },
+        );
+      }
+      const lunarDisc = joinKit(group, moon, materials, 'moon');
+      lunarDisc.position.set(8.3, 1.7, -4.5);
+      lunarDisc.rotation.x = (-44 * Math.PI) / 180;
+      landmarks.push(new THREE.Vector3(8.3, 3.25, -5.93));
+      for (const px of [-4, 17, 22]) {
+        k.cyl('paint', '#527f78', 0.1, 0.17, 1.45, [px, 0.5, 4.8]);
+        k.tube(
+          'paint',
+          '#527f78',
+          [
+            [px, 0.45, 4.8],
+            [px + 0.38, 0.6, 4.8],
+            [px + 0.38, 1.1, 4.8],
+          ],
+          0.095,
+        );
+      }
+    }
+    landmarks.push(new THREE.Vector3(x, 5.1 * sc, z));
+  }
+  joinKit(group, k, mats, 'place-static');
+  return {
+    group,
+    landmarks,
+    update(cues) {
+      const time = cues.reduced ? 0 : cues.time;
+      own.glow.color.setScalar(lightLevel(cues, 1.3));
+      for (const motion of motions) motion(time, cues);
+    },
+    dispose: modelDisposer(group, owned),
+  };
+}
+
+export function buildMapStop(
+  materials: Materials,
+  kind: 'garage' | 'motel',
+): PlaceModel {
+  const group = new THREE.Group();
+  group.name = `map-${kind}`;
+  const own = glowMaterials(materials),
+    k = new StageKit('low');
+  if (kind === 'garage') {
+    k.rbox('gloss', '#77a99c', [3.5, 1.7, 2.3], 0.12, [0, 0.85, 0]);
+    k.rbox('gloss', '#e0cdab', [3.8, 0.2, 2.5], 0.07, [0, 1.75, 0]);
+    k.box('paint', '#2e4151', [1.7, 1.25, 0.06], [-0.35, 0.68, 1.17]);
+    for (const dx of [-1.28, 0.56])
+      k.box('chrome', '#a0b7bb', [0.07, 1.3, 0.08], [dx, 0.7, 1.22]);
+    sedan(k, [-0.35, 0.03, 1.3], '#bd6976', Math.PI / 2, 0.67);
+    k.box('gloss', '#bd6976', [0.52, 0.06, 0.56], [-0.35, 0.65, 1.96], {
+      rot: [-0.8, 0, 0],
+    });
+    neon(k, 'GARAGE', 0.38, [0, 2.1, 0], '#b3edd4');
+    k.cyl('chrome', '#839da9', 0.05, 0.05, 2.7, [2.2, 1.35, 0.2]);
+    k.cyl('gloss', '#9c425c', 0.49, 0.49, 0.12, [2.2, 2.55, 0.2], {
+      axis: 'z',
+      seg: 32,
+    });
+    const wrench = new THREE.Shape();
+    wrench.moveTo(-0.055, -0.35);
+    wrench.lineTo(0.055, -0.35);
+    wrench.lineTo(0.08, 0.04);
+    wrench.lineTo(0.25, 0.18);
+    wrench.lineTo(0.23, 0.36);
+    wrench.lineTo(0.13, 0.23);
+    wrench.lineTo(-0.01, 0.18);
+    wrench.lineTo(-0.12, 0.28);
+    wrench.lineTo(-0.15, 0.42);
+    wrench.lineTo(-0.28, 0.23);
+    wrench.lineTo(-0.19, 0.1);
+    wrench.lineTo(-0.07, 0.04);
+    wrench.closePath();
+    k.add(
+      'glow',
+      '#f0c191',
+      new THREE.ExtrudeGeometry(wrench, { depth: 0.025, bevelEnabled: false }),
+      [2.2, 2.53, 0.27],
+    );
+  } else {
+    k.rbox('paint', '#c1b295', [4.7, 1.35, 1.25], 0.04, [0, 0.68, -0.15]);
+    k.rbox('paint', '#c1b295', [1.25, 1.35, 2.8], 0.04, [-1.72, 0.68, 0.7]);
+    k.box('gloss', '#a75664', [4.9, 0.14, 1.55], [0, 1.4, -0.15]);
+    for (let i = 0; i < 5; i++) {
+      k.box('paint', '#546776', [0.3, 0.88, 0.05], [-1.6 + i * 0.8, 0.48, 0.5]);
+      k.box('glow', '#e3ba86', [0.32, 0.4, 0.06], [-1.2 + i * 0.8, 0.8, 0.5]);
+    }
+    k.rbox('ceramic', '#dcc8a5', [2.3, 0.13, 1.2], 0.15, [0.6, 0.065, 1.6]);
+    k.rbox('gloss', '#5eaaaa', [2.0, 0.05, 0.9], 0.13, [0.6, 0.15, 1.6]);
+    k.cyl('chrome', '#9aacb0', 0.05, 0.07, 2.9, [2.75, 1.45, 0]);
+    k.add(
+      'gloss',
+      '#9c425c',
+      panel(2.6, 0.72, 0.16, 0.1, 'low'),
+      [2.75, 2.9, 0],
+    );
+    neon(k, 'MOTEL', 0.46, [2.75, 2.66, 0.07], '#ffb38c');
+  }
+  joinKit(group, k, own.materials, kind);
+  return {
+    group,
+    landmarks: [new THREE.Vector3(0, 3.3, 0)],
+    update(cues) {
+      own.glow.color.setScalar(lightLevel(cues, 0.4));
+    },
+    dispose: modelDisposer(group, [own.glow]),
+  };
+}

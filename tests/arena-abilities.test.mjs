@@ -4,6 +4,8 @@ import {
   allCards,
   cards,
   deck,
+  SHIELD_DELAY,
+  SHIELD_RECHARGE,
   troopCards,
   validDeck,
 } from '../lib/games/arena/cards.ts';
@@ -16,10 +18,11 @@ import {
   clock,
   createMatch,
   deploy,
+  plainShot,
   step,
   summon,
 } from '../lib/games/arena/engine.ts';
-import { checksum } from '../lib/games/arena/net.ts';
+import { checksum, snapshot } from '../lib/games/arena/net.ts';
 
 /** A match in battle with nothing on the field and full elixir. */
 function battle(options) {
@@ -137,9 +140,136 @@ await test('the Gladiator’s shield takes the hits before his hit points', () =
     m.events.length = 0;
   }
   assert.ok(broke, 'the shield broke');
-  // The Samurai's 720 blow broke a 650 shield without touching hit points.
-  assert.equal(g.hp, g.maxHp);
+  // A breaking hit uses the shield's actual pool; excess reaches health.
+  assert.equal(g.hp, g.maxHp - (troopCards.duelist.unit.damage - shield));
   assert.equal(g.shield, 0);
+  assert.equal(g.shieldDelay, SHIELD_DELAY);
+});
+
+await test('melee damage restarts the same full shield delay in either unit order', () => {
+  for (const attackerFirst of [false, true]) {
+    const m = battle();
+    const g = ready(m, 0, 'gladiator', 9, 10);
+    const foe = ready(m, 1, 'duelist', 9, 11);
+    if (attackerFirst) m.units.reverse();
+    g.stun = 100;
+    foe.pace = 0;
+    foe.state = 'attacking';
+    foe.targetId = g.id;
+    foe.attackTimer = 0;
+    step(m);
+    assert.equal(g.shield, 0);
+    assert.equal(g.shieldDelay, SHIELD_DELAY);
+    foe.stun = 100;
+    for (let i = 0; i < SHIELD_DELAY / TICK; i++) step(m);
+    assert.ok(g.shield < 1e-8, 'four complete quiet seconds before refill');
+    step(m);
+    assert.ok(
+      Math.abs(g.shield - (g.maxShield / SHIELD_RECHARGE) * TICK) < 1e-8,
+    );
+  }
+});
+
+/** A direct hit independent of attack timing or target movement. */
+function hit(m, u, amount) {
+  m.projectiles.push({
+    ...plainShot,
+    id: m.nextId++,
+    side: u.side === 0 ? 1 : 0,
+    sourceId: -1,
+    targetId: u.id,
+    kind: 'laser',
+    x: u.x,
+    y: u.y,
+    sx: u.x,
+    sy: u.y,
+    sz: 1,
+    tx: u.x,
+    ty: u.y,
+    speed: 1,
+    damage: amount,
+    splash: 0,
+    air: true,
+    travelled: 0,
+    distance: 0,
+  });
+  step(m);
+}
+
+await test('a shield waits after each hit, then refills its own pool without healing health', () => {
+  const m = battle();
+  const g = ready(m, 0, 'gladiator', 9, 10);
+  g.stun = 100;
+  hit(m, g, g.maxShield + 100);
+  assert.equal(g.hp, g.maxHp - 100);
+  assert.equal(g.shield, 0);
+  for (let i = 0; i < SHIELD_DELAY / TICK; i++) step(m);
+  assert.ok(g.shield < 1e-8, 'nothing recharges before four quiet seconds');
+  for (let i = 0; i < SHIELD_RECHARGE / TICK / 2; i++) step(m);
+  assert.ok(Math.abs(g.shield - g.maxShield / 2) < 1e-8);
+  assert.equal(g.hp, g.maxHp - 100, 'shield recharge never heals health');
+  hit(m, g, 1);
+  const partial = g.shield;
+  assert.equal(
+    g.shieldDelay,
+    SHIELD_DELAY,
+    'a hit interrupts partial recharge',
+  );
+  for (let i = 0; i < SHIELD_DELAY / TICK; i++) step(m);
+  assert.ok(Math.abs(g.shield - partial) < 1e-8);
+  for (let i = 0; i < SHIELD_RECHARGE / TICK + 1; i++) step(m);
+  assert.equal(g.shield, g.maxShield, 'the pool caps at its full value');
+});
+
+await test('damage resets recharge while empty and damage to a renewed shield spills once', () => {
+  const m = battle();
+  const g = ready(m, 0, 'gladiator', 9, 10);
+  g.stun = 100;
+  hit(m, g, g.maxShield);
+  assert.equal(g.hp, g.maxHp, 'an exact shield hit never touches health');
+  run(m, SHIELD_DELAY / 2);
+  hit(m, g, 10);
+  assert.equal(
+    g.shieldDelay,
+    SHIELD_DELAY,
+    'health damage also restarts the delay',
+  );
+  run(m, SHIELD_DELAY / 2);
+  assert.equal(g.shield, 0);
+  run(m, SHIELD_DELAY / 2 + SHIELD_RECHARGE + TICK);
+  assert.equal(g.shield, g.maxShield);
+  hit(m, g, g.maxShield + 50);
+  assert.equal(g.hp, g.maxHp - 60);
+  assert.equal(g.shield, 0);
+  assert.equal(
+    m.events.filter((e) => e.type === 'shield' && e.id === g.id).length,
+    2,
+  );
+});
+
+await test('any shield-bearing troop scales and recharges through haste, frost and stun', () => {
+  const stats = troopCards.archers.unit;
+  stats.shield = 100;
+  try {
+    const m = battle({ boosts: [{ levels: { archers: 3 }, troopHp: 1.1 }] });
+    const u = ready(m, 0, 'archers', 9, 10);
+    assert.equal(u.maxShield, 132);
+    u.stun = 100;
+    u.beat = 2;
+    u.slow = 100;
+    u.slowFactor = 0.4;
+    hit(m, u, 132);
+    for (let i = 0; i < (SHIELD_DELAY + SHIELD_RECHARGE / 2) / TICK; i++)
+      step(m);
+    assert.ok(Math.abs(u.shield - 66) < 1e-8);
+    assert.equal(u.hp, u.maxHp);
+    const copy = snapshot(m);
+    assert.equal(copy.units[0].maxShield, 132);
+    assert.equal(copy.units[0].shieldDelay, u.shieldDelay);
+    assert.equal(checksum(copy), checksum(m));
+  } finally {
+    delete stats.shield;
+  }
 });
 
 await test('the Medic heals troops around her and never attacks', () => {
@@ -153,7 +283,10 @@ await test('the Medic heals troops around her and never attacks', () => {
   foe.pace = 0;
   foe.hp = foe.maxHp = 9999;
   // Towers stand aside so only the Medic could hurt the foe.
-  for (const t of m.towers) t.active = false;
+  for (const t of m.towers) {
+    t.active = false;
+    t.damage = 0;
+  }
   run(m, 2.1);
   assert.ok(friend.hp >= 500 + troopCards.medic.unit.heal.amount * 2 - 1);
   assert.equal(foe.hp, 9999, 'she never hits');
@@ -164,11 +297,16 @@ await test('the Miner may go anywhere on the field and pops up after digging', (
   const m = battle();
   // Deep on the other side, next to their small tower but not on it.
   assert.equal(canDeployAt(m, 0, 3.5, 22), false);
-  assert.equal(canPlayAt(m, 0, 'miner', 3.5, 23.4), true);
+  assert.equal(canPlayAt(m, 0, 'miner', 3.5, 22.8), true);
+  assert.equal(
+    canPlayAt(m, 0, 'miner', 3.5, 23.4),
+    false,
+    'its drawn body needs room',
+  );
   assert.equal(canPlayAt(m, 0, 'miner', 3.5, 25.5), false, 'not on a tower');
   assert.equal(canPlayAt(m, 0, 'miner', 9, 16), false, 'not in the river');
   m.players[0].hand.cards[0] = 'miner';
-  const r = deploy(m, 0, 0, 3.5, 23.4);
+  const r = deploy(m, 0, 0, 3.5, 22.8);
   assert.ok(r.ok);
   const u = m.units.find((x) => x.id === r.ids[0]);
   assert.equal(u.deployLeft, troopCards.miner.unit.burrow);
@@ -269,12 +407,19 @@ await test('a fallen tower refills its side with a Second Wind', () => {
   assert.ok(m.players[0].elixir >= 6 - 1e-9);
 });
 
-await test('shields and stuns count in the online checksum', () => {
+await test('shield pools, recharge timers and stuns count in the online checksum', () => {
   const m = battle();
   const g = ready(m, 0, 'gladiator', 9, 10);
   const before = checksum(m);
   g.shield -= 1;
   assert.notEqual(checksum(m), before);
+  g.shield += 1;
+  assert.equal(checksum(m), before);
+  for (const field of ['maxShield', 'shieldDelay', 'stun']) {
+    g[field] += 1;
+    assert.notEqual(checksum(m), before, field);
+    g[field] -= 1;
+  }
 });
 
 await test('bots play every ready-made deck to a finish, legally', async () => {

@@ -62,7 +62,12 @@ export class DinerSound {
     if (!this.ctx || !this.fx || !this.music) return;
     const now = this.ctx.currentTime;
     const hidden = typeof document !== 'undefined' && document.hidden;
-    this.fx.gain.setTargetAtTime(hidden ? 0 : this.volume * 0.55, now, 0.03);
+    // Pausing silences what is still ringing, not only the jukebox.
+    this.fx.gain.setTargetAtTime(
+      this.paused || hidden ? 0 : this.volume * 0.55,
+      now,
+      0.03,
+    );
     this.music.gain.setTargetAtTime(
       this.paused || hidden ? 0 : this.ambience * 0.16,
       now,
@@ -275,6 +280,48 @@ export class DinerSound {
       case 'tap':
         this.tone(900, t, 0.04, { gain: 0.05, type: 'triangle' });
         break;
+      case 'repair':
+        this.tone(680, t, 0.07, { gain: 0.1, type: 'triangle' });
+        this.tone(1120, t + 0.04, 0.13, { gain: 0.07, type: 'sine' });
+        this.hiss(t, 0.04, { freq: 3200, q: 2, gain: 0.07 });
+        break;
+      case 'jam':
+        this.tone(260, t, 0.17, { gain: 0.06, type: 'sawtooth', to: 125 });
+        this.hiss(t + 0.05, 0.08, { freq: 900, q: 2, gain: 0.09 });
+        break;
+      case 'rush':
+        this.tone(659, t, 0.18, { gain: 0.06, type: 'triangle' });
+        this.tone(880, t + 0.14, 0.25, { gain: 0.06, type: 'triangle' });
+        break;
+      case 'power':
+        this.tone(160, t, 0.18, { gain: 0.035, type: 'sawtooth', to: 55 });
+        break;
+      case 'pour':
+        // A short gurgle: coffee into a cup.
+        for (let i = 0; i < 5; i++)
+          this.tone(320 + i * 45, t + i * 0.05, 0.07, {
+            gain: 0.05,
+            to: 520 + i * 40,
+          });
+        this.hiss(t, 0.3, { freq: 1600, q: 1.2, gain: 0.05 });
+        break;
+      case 'dash':
+        this.hiss(t, 0.22, { freq: 900, q: 0.8, gain: 0.09, to: 2600 });
+        this.tone(220, t, 0.12, { gain: 0.04, type: 'triangle', to: 440 });
+        break;
+      case 'clink':
+        this.tone(2093, t, 0.08, { gain: 0.07, type: 'triangle' });
+        this.tone(2794, t + 0.03, 0.12, { gain: 0.05, type: 'sine' });
+        break;
+      case 'juke':
+        [67, 71, 74, 79].forEach((n, i) =>
+          this.tone(NOTE(n), t + i * 0.07, 0.3, {
+            gain: 0.08,
+            type: 'triangle',
+          }),
+        );
+        this.hiss(t, 0.15, { freq: 4000, q: 1, gain: 0.04 });
+        break;
     }
   }
 
@@ -343,6 +390,38 @@ export class DinerSound {
           break;
         case 'end':
           this.play('end');
+          break;
+        case 'jam':
+          this.play('jam');
+          break;
+        case 'repair':
+          this.play(e.left > 0 ? 'repair' : 'ready');
+          break;
+        case 'rush':
+          if (e.active) this.play('rush');
+          break;
+        case 'power':
+          this.play(e.active ? 'tap' : 'power');
+          break;
+        case 'combo':
+          this.play('coin');
+          break;
+        case 'pour':
+          this.play('pour');
+          break;
+        case 'pot':
+        case 'put':
+        case 'pick':
+          this.play('clink');
+          break;
+        case 'dash':
+          if (e.player === you) this.play('dash');
+          break;
+        case 'juke':
+          this.play('juke');
+          break;
+        case 'shield':
+          this.play('pop');
           break;
       }
     }

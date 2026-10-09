@@ -1,0 +1,232 @@
+/* Free play's levels (9 October 2026): eight chapter postcards, five level
+   tiles on each. One screen on desktop and on a sideways phone. */
+.diner-levels {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 70% at 50% 0%, #3a2a4a 0%, transparent 60%),
+    radial-gradient(120% 90% at 50% 100%, #2a1b26 0%, #121424 70%);
+  color: #f6ecd9;
+  font-family: 'Futura', 'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
+}
+.diner-levels-total {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #1a1c2ecc;
+  box-shadow: 0 0 0 1px #ffffff1a;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: #d9cfbf;
+}
+.diner-levels-total > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.diner-levels-total b {
+  color: #fff4dc;
+  font-size: 16px;
+}
+.diner-levels-total .diner-medal {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #0003;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6c2, #f0bf2a 55%, #b58208);
+}
+.diner-chapters {
+  position: absolute;
+  inset: calc(max(10px, env(safe-area-inset-top)) + 58px)
+    max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: clamp(8px, 1.4vw, 16px);
+}
+.diner-chapter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  overflow: hidden;
+  padding: clamp(6px, 1vw, 12px);
+  border-radius: clamp(12px, 1.6vw, 20px);
+  background-color: #2a2433;
+  background-position: center 30%;
+  /* The postcards carry a thin cream border: crop it away. */
+  background-size: auto 118%;
+  box-shadow:
+    0 0 0 2px #ffffff14,
+    0 10px 24px #0008;
+}
+.diner-chapter::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #0e101c66 0%,
+    transparent 32%,
+    transparent 48%,
+    #0e101cdd 100%
+  );
+  pointer-events: none;
+}
+.diner-chapter[data-reached='false'] {
+  filter: grayscale(0.85) brightness(0.55);
+}
+.diner-chapter > * {
+  position: relative;
+}
+.diner-chapter h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: clamp(13px, 1.5vw, 19px);
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 6px #000c;
+}
+.diner-chapter h2 > span {
+  display: grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: var(--place);
+  color: #1a1420;
+  font-size: 0.8em;
+  text-shadow: none;
+  box-shadow: 0 2px 6px #0007;
+}
+.diner-chapter-levels {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(3px, 0.6vw, 8px);
+}
+.diner-level-tile {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+  aspect-ratio: 0.86;
+  max-height: 78px;
+  padding: 0;
+  border: 2px solid #ffffff2a;
+  border-radius: clamp(8px, 1vw, 13px);
+  background: linear-gradient(180deg, #fff8ea, #ead9b8);
+  box-shadow:
+    0 3px 0 #a99070,
+    0 6px 12px #0006;
+  color: #5a2a2f;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.12s;
+}
+.diner-level-tile > b {
+  font-size: clamp(14px, 1.7vw, 22px);
+  line-height: 1;
+}
+.diner-level-tile[data-boss='true'] {
+  background: linear-gradient(180deg, #ffe7a0, #e5b64a);
+  border-color: #fff3c0;
+}
+.diner-level-tile[data-current='true'] {
+  outline: 3px solid #8fe0c8;
+  outline-offset: 2px;
+  animation: diner-level-now 1.6s ease-in-out infinite;
+}
+@keyframes diner-level-now {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.diner-level-tile:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+.diner-level-tile:active {
+  transform: translateY(2px);
+}
+.diner-level-tile:focus-visible {
+  outline: 3px solid #8fe0c8;
+  outline-offset: 2px;
+}
+.diner-level-tile:disabled {
+  background: #2a2733cc;
+  border-color: #ffffff18;
+  box-shadow: none;
+  color: #a69fb0;
+  cursor: default;
+}
+.diner-level-tile:disabled svg {
+  width: clamp(11px, 1.2vw, 15px);
+  height: clamp(11px, 1.2vw, 15px);
+  opacity: 0.7;
+}
+.diner-level-medals {
+  display: inline-flex;
+  gap: 2px;
+}
+.diner-level-medals > i {
+  width: clamp(6px, 0.7vw, 9px);
+  height: clamp(6px, 0.7vw, 9px);
+  border-radius: 50%;
+  background: #00000024;
+  box-shadow: inset 0 1px 1px #0003;
+}
+.diner-level-medals > i[data-won='true'].m0 {
+  background: #c9814a;
+}
+.diner-level-medals > i[data-won='true'].m1 {
+  background: #b9c3cd;
+}
+.diner-level-medals > i[data-won='true'].m2 {
+  background: #f0bf2a;
+  box-shadow: 0 0 5px #f4c542;
+}
+@media (max-height: 500px) {
+  .diner-levels-total {
+    top: max(8px, env(safe-area-inset-top));
+    padding: 3px 12px;
+  }
+  .diner-chapters {
+    inset: calc(max(6px, env(safe-area-inset-top)) + 42px)
+      max(10px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    gap: 8px;
+  }
+  .diner-chapter {
+    padding: 6px;
+  }
+  .diner-chapter h2 {
+    font-size: 12px;
+  }
+  .diner-level-tile {
+    aspect-ratio: auto;
+    height: 40px;
+  }
+}
+@media (max-width: 640px) and (min-height: 501px) {
+  .diner-chapters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .diner-level-tile[data-current='true'] {
+    animation: none;
+  }
+}

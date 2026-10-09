@@ -136,7 +136,7 @@ export default function AltoLab() {
 
 /** Renders every planet and modelled upgrade once, on a clear background. */
 function Stills() {
-  const [done, setDone] = useState(0);
+  const [images, setImages] = useState<Record<string, string>>({});
   useEffect(() => {
     const SIZE = 512;
     const canvas = document.createElement('canvas');
@@ -172,6 +172,8 @@ function Stills() {
     };
     const modulesOnly =
       new URLSearchParams(window.location.search).get('stills') === 'modules';
+    const planetsOnly =
+      new URLSearchParams(window.location.search).get('stills') === 'planets';
     for (const island of modulesOnly ? [] : islands) {
       const planet = buildPlanet(island.id);
       const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
@@ -186,9 +188,11 @@ function Stills() {
         0.35,
       );
     }
-    const renderIds = modulesOnly
-      ? [...baseModules, 'windmill']
-      : modelledPlans;
+    const renderIds = planetsOnly
+      ? []
+      : modulesOnly
+        ? [...baseModules, 'windmill']
+        : modelledPlans;
     for (const id of renderIds) {
       const model = buildShopModel(id)!;
       const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 20);
@@ -205,13 +209,22 @@ function Stills() {
     (window as unknown as { altoStills: Record<string, string> }).altoStills =
       out;
     renderer.dispose();
-    const frame = requestAnimationFrame(() => setDone(Object.keys(out).length));
+    const frame = requestAnimationFrame(() => setImages(out));
     return () => cancelAnimationFrame(frame);
   }, []);
   return (
-    <p className="alto-lab-stills">
-      {done ? `${done} stills ready` : 'Rendering…'}
-    </p>
+    <section className="alto-lab-stills">
+      <p>
+        {Object.keys(images).length
+          ? `${Object.keys(images).length} stills ready`
+          : 'Rendering…'}
+      </p>
+      {Object.entries(images).map(([name, src]) => (
+        <a key={name} href={src} download={`${name}.png`}>
+          <img src={src} alt={name} width={256} height={256} />
+        </a>
+      ))}
+    </section>
   );
 }
 

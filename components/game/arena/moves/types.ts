@@ -89,7 +89,18 @@ export type PartName =
   | 'sleeveR'
   | 'handL'
   | 'handR'
-  | 'extra2';
+  | 'extra2'
+  /** The upper spine (8 October 2026): a child of `torso`, which then
+   *  works as the lower back, carrying the neck, head, clavicles and arms.
+   *  troops.ts splits the torso's bends and twists between the two. */
+  | 'chest'
+  /** The shoulder girdle at the breastbone end, parents of the arms.
+   *  troops.ts moves them with the arms (a shrug as an arm rises, the
+   *  shoulder forward on a reach and back on a pull) unless a pose asks
+   *  for them itself; +z/-z lifts them like `armRz`/`armLz` lifts an arm,
+   *  and a turn about y brings the shoulder forward (- for L, + for R). */
+  | 'clavL'
+  | 'clavR';
 
 export type Attack =
   | 'blaster'
@@ -227,6 +238,11 @@ export type MoveContext = {
   memo: Record<string, number>;
   /** 0..1 through deploying (1 once it stands on the field). */
   deploy: number;
+  /** A joint's place in its parent at rest (the figure's own units,
+   *  three.js axes: x to the figure's right, y up, z backwards), or null
+   *  when the figure has no such joint. `reach` (moves/reach.ts) reads the
+   *  arm's lengths from it. */
+  rest(part: PartName): readonly [number, number, number] | null;
   /** Ask any joint for a turn (and lift) this frame. */
   want(
     part: PartName,

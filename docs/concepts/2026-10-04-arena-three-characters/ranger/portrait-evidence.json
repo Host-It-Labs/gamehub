@@ -1,0 +1,18 @@
+{
+  "a": {
+    "source": "assets/arena/cards/card-ranger-v10-a.png",
+    "bytes": 2253995,
+    "sha256": "bfcf0d7eb28a378adad7299835de4ffb23d6e690e6c4fac2c39f5f5bd92c63cc",
+    "prompt": "docs/concepts/2026-10-04-arena-three-characters/ranger/prompts/card-ranger-v10-a.txt",
+    "candidate": "public/3d/arena/dev/three-ranger-card-v10-a.webp",
+    "review": "rejected and preserved"
+  },
+  "b": {
+    "source": "assets/arena/cards/card-ranger-v10-b.png",
+    "bytes": 2105020,
+    "sha256": "a836893f209554231d4838fafbda7b99e716fa1b35ef9517802ed701c4e58fe4",
+    "prompt": "docs/concepts/2026-10-04-arena-three-characters/ranger/prompts/card-ranger-v10-b.txt",
+    "candidate": "public/3d/arena/dev/three-ranger-card-v10-b.webp",
+    "review": "root selected v10-b; v10-a rejected for realistic face and muted blue"
+  }
+}

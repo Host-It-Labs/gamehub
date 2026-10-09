@@ -19,9 +19,10 @@ import {
 } from '@/lib/games/arena/engine';
 import { figureDimensions, toWorld } from '@/lib/games/arena/layout';
 import { teamColours, type Team } from './materials';
-import { FLY_HEIGHT, TROOP_SCALE } from './troops';
+import { FLY_HEIGHT, TROOP_SCALE, figureSize } from './troops';
 import { standHeight, type ArenaWorld } from './world';
 import { TroopStatuses } from './status';
+import { projectileAhead, projectileOrigin } from './projectile-motion';
 
 // ---------------------------------------------------------------- particles
 
@@ -180,9 +181,227 @@ class ParticleLayer {
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
+type Bolt = {
+  a: THREE.Vector3;
+  b: THREE.Vector3;
+  age: number;
+  life: number;
+  /** When it next re-forks, so it flickers while it lasts. */
+  next: number;
+  strands: THREE.Vector3[][];
+};
+
+const LIGHTNING_QUADS = 1800;
+const tmpDir = new THREE.Vector3();
+const tmpSide = new THREE.Vector3();
+const tmpEye = new THREE.Vector3();
+const tmpAxis = new THREE.Vector3();
+const tmpUp = new THREE.Vector3();
+const tmpA = new THREE.Vector3();
+const tmpB = new THREE.Vector3();
+
+/** Lightning drawn as glowing ribbons facing the camera: a jagged main
+ *  strand and a fork, each a wide blue glow round a thin white-hot core,
+ *  re-forked every few frames so it crackles, gone in about a fifth of a
+ *  second. */
+class Lightning {
+  readonly mesh: THREE.Mesh;
+  private bolts: Bolt[] = [];
+  private geometry = new THREE.BufferGeometry();
+  private positions = new Float32Array(LIGHTNING_QUADS * 4 * 3);
+  private tints = new Float32Array(LIGHTNING_QUADS * 4 * 4);
+  private sides = new Float32Array(LIGHTNING_QUADS * 4);
+
+  constructor(private camera: THREE.Camera) {
+    const index = new Uint16Array(LIGHTNING_QUADS * 6);
+    for (let q = 0; q < LIGHTNING_QUADS; q++) {
+      index.set(
+        [q * 4, q * 4 + 1, q * 4 + 2, q * 4, q * 4 + 2, q * 4 + 3],
+        q * 6,
+      );
+    }
+    this.geometry.setIndex(new THREE.BufferAttribute(index, 1));
+    this.geometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(this.positions, 3).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    this.geometry.setAttribute(
+      'tint',
+      new THREE.BufferAttribute(this.tints, 4).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.geometry.setAttribute(
+      'side',
+      new THREE.BufferAttribute(this.sides, 1).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.geometry.setDrawRange(0, 0);
+    const material = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute vec4 tint;
+        attribute float side;
+        varying vec4 vTint;
+        varying float vSide;
+        void main() {
+          vTint = tint;
+          vSide = side;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        varying vec4 vTint;
+        varying float vSide;
+        void main() {
+          float edge = 1.0 - abs(vSide);
+          gl_FragColor = vec4(vTint.rgb, vTint.a * sqrt(edge));
+        }`,
+      transparent: true,
+      depthWrite: false,
+      // Ordinary blending, not additive: on the bright field additive light
+      // washes out to a pale haze.
+    });
+    this.mesh = new THREE.Mesh(this.geometry, material);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 5;
+  }
+
+  add(a: THREE.Vector3, b: THREE.Vector3) {
+    if (this.bolts.length >= 24) this.bolts.shift();
+    const bolt: Bolt = {
+      a: a.clone(),
+      b: b.clone(),
+      age: 0,
+      life: 0.22,
+      next: 0,
+      strands: [],
+    };
+    this.fork(bolt);
+    this.bolts.push(bolt);
+  }
+
+  /** A fresh jagged path from a to b, and a fork off it. */
+  private fork(bolt: Bolt) {
+    const { a, b } = bolt;
+    tmpDir.subVectors(b, a);
+    const length = tmpDir.length();
+    if (length < 1e-4) {
+      bolt.strands = [];
+      return;
+    }
+    tmpDir.divideScalar(length);
+    tmpUp.set(0, 1, 0);
+    if (Math.abs(tmpDir.y) > 0.9) tmpUp.set(1, 0, 0);
+    tmpSide.crossVectors(tmpDir, tmpUp).normalize();
+    tmpAxis.crossVectors(tmpSide, tmpDir).normalize();
+    const path = (
+      from: THREE.Vector3,
+      to: THREE.Vector3,
+      amplitude: number,
+      pinned: boolean,
+    ) => {
+      const span = from.distanceTo(to);
+      const steps = Math.max(5, Math.min(22, Math.round(span * 5)));
+      const out: THREE.Vector3[] = [];
+      let u = 0;
+      let w = 0;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        u = (u + rand(-1, 1) * amplitude) * 0.72;
+        w = (w + rand(-1, 1) * amplitude) * 0.72;
+        const pin = pinned ? Math.sin(t * Math.PI) : Math.min(1, t * 3);
+        out.push(
+          from
+            .clone()
+            .lerp(to, t)
+            .addScaledVector(tmpSide, u * pin * 1.6)
+            .addScaledVector(tmpAxis, w * pin * 1.6),
+        );
+      }
+      return out;
+    };
+    const amplitude = Math.min(0.32, 0.08 + length * 0.04);
+    const main = path(a, b, amplitude, true);
+    const at = main[Math.floor(main.length * rand(0.3, 0.6))];
+    const end = at
+      .clone()
+      .addScaledVector(tmpDir, length * rand(0.2, 0.35))
+      .addScaledVector(tmpSide, length * rand(-0.25, 0.25))
+      .addScaledVector(tmpAxis, length * rand(-0.15, 0.1));
+    bolt.strands = [main, path(at, end, amplitude * 0.8, false)];
+  }
+
+  update(dt: number) {
+    this.bolts = this.bolts.filter((bolt) => {
+      bolt.age += dt;
+      if (bolt.age >= bolt.life) return false;
+      if (bolt.age >= bolt.next) {
+        bolt.next = bolt.age + 0.045;
+        this.fork(bolt);
+      }
+      return true;
+    });
+    const eye = this.camera.position;
+    let q = 0;
+    const quad = (
+      p0: THREE.Vector3,
+      p1: THREE.Vector3,
+      width: number,
+      r: number,
+      g: number,
+      b: number,
+      alpha: number,
+    ) => {
+      if (q >= LIGHTNING_QUADS) return;
+      tmpDir.subVectors(p1, p0);
+      tmpEye.addVectors(p0, p1).multiplyScalar(0.5).sub(eye).negate();
+      tmpSide.crossVectors(tmpDir, tmpEye);
+      const n = tmpSide.length();
+      if (n < 1e-6) return;
+      tmpSide.multiplyScalar(width / n);
+      // Run a little past each end so neighbouring segments overlap.
+      const corners = [
+        [p0, -1],
+        [p0, 1],
+        [p1, 1],
+        [p1, -1],
+      ] as const;
+      corners.forEach(([p, side], k) => {
+        const v = q * 4 + k;
+        this.positions[v * 3] = p.x + tmpSide.x * side;
+        this.positions[v * 3 + 1] = p.y + tmpSide.y * side;
+        this.positions[v * 3 + 2] = p.z + tmpSide.z * side;
+        this.tints.set([r, g, b, alpha], v * 4);
+        this.sides[v] = side;
+      });
+      q++;
+    };
+    for (const bolt of this.bolts) {
+      const t = bolt.age / bolt.life;
+      // Full strength at once, then a flickering fade.
+      const fade = (1 - t) * (1 - t) * (0.75 + Math.random() * 0.25);
+      bolt.strands.forEach((strand, s) => {
+        const thin = s === 0 ? 1 : 0.6;
+        for (let i = 0; i < strand.length - 1; i++) {
+          quad(strand[i], strand[i + 1], 0.3 * thin, 0.2, 0.5, 1, fade * 0.85);
+          quad(strand[i], strand[i + 1], 0.09 * thin, 0.94, 0.98, 1, fade);
+        }
+      });
+    }
+    this.geometry.setDrawRange(0, q * 6);
+    for (const name of ['position', 'tint', 'side'])
+      (this.geometry.attributes[name] as THREE.BufferAttribute).needsUpdate =
+        true;
+  }
+
+  dispose() {
+    this.geometry.dispose();
+    (this.mesh.material as THREE.Material).dispose();
+  }
+}
+
 export class Particles {
   readonly glow: ParticleLayer;
   readonly smoke: ParticleLayer;
+  private lightning: Lightning;
   private debris: THREE.InstancedMesh;
   private chunks: {
     p: THREE.Vector3;
@@ -199,6 +418,8 @@ export class Particles {
     this.glow = new ParticleLayer(900, true, 0.0);
     this.smoke = new ParticleLayer(1400, false, 0.35);
     world.scene.add(this.glow.points, this.smoke.points);
+    this.lightning = new Lightning(world.camera);
+    world.scene.add(this.lightning.mesh);
     // A fallen tower throws out chunks of its stone, each a little
     // different in tone.
     const geo = new THREE.DodecahedronGeometry(0.16, 0);
@@ -317,6 +538,88 @@ export class Particles {
         alpha: 0.7,
       });
     }
+  }
+
+  /** A gun going off where its shot first shows: a flash, sparks and,
+   *  for powder guns, a puff of smoke. */
+  muzzle(
+    x: number,
+    y: number,
+    z: number,
+    kind: ProjectileKind,
+    colour: number[] = [1, 0.9, 0.6],
+  ) {
+    const look: Partial<
+      Record<
+        ProjectileKind,
+        { flash: number; tint: number[]; sparks: number; smoke: number }
+      >
+    > = {
+      laser: { flash: 0.55, tint: colour, sparks: 5, smoke: 0 },
+      bolt: { flash: 0.6, tint: [1, 0.86, 0.5], sparks: 4, smoke: 4 },
+      frost: { flash: 0.55, tint: [0.75, 0.95, 1], sparks: 7, smoke: 3 },
+      shell: { flash: 1.1, tint: [1, 0.62, 0.22], sparks: 8, smoke: 10 },
+      fire: { flash: 0.7, tint: [1, 0.55, 0.15], sparks: 6, smoke: 0 },
+    };
+    const it = look[kind];
+    if (!it) return;
+    this.glow.add({
+      x,
+      y,
+      z,
+      life: 0.1,
+      size: it.flash,
+      grow: it.flash * 0.6,
+      r: 1,
+      g: 1,
+      b: 1,
+    });
+    this.glow.add({
+      x,
+      y,
+      z,
+      life: 0.16,
+      size: it.flash * 1.4,
+      grow: it.flash * 0.5,
+      r: it.tint[0],
+      g: it.tint[1],
+      b: it.tint[2],
+    });
+    for (let i = 0; i < it.sparks; i++) {
+      const a = rand(0, Math.PI * 2);
+      const v = rand(1.2, 3);
+      this.glow.add({
+        x,
+        y,
+        z,
+        vx: Math.cos(a) * v,
+        vz: Math.sin(a) * v,
+        vy: rand(-0.3, 1.6),
+        drag: 5,
+        life: rand(0.12, 0.26),
+        size: rand(0.08, 0.16),
+        r: it.tint[0],
+        g: it.tint[1],
+        b: it.tint[2],
+      });
+    }
+    for (let i = 0; i < it.smoke; i++)
+      this.smoke.add({
+        x: x + rand(-0.08, 0.08),
+        y: y + rand(-0.05, 0.08),
+        z: z + rand(-0.08, 0.08),
+        vx: rand(-0.4, 0.4),
+        vy: rand(0.3, 0.9),
+        vz: rand(-0.4, 0.4),
+        drag: 2,
+        life: rand(0.5, 0.9),
+        size: kind === 'shell' ? rand(0.3, 0.5) : rand(0.12, 0.22),
+        grow: kind === 'shell' ? 0.6 : 0.3,
+        r: kind === 'frost' ? 0.9 : 0.92,
+        g: kind === 'frost' ? 0.97 : 0.9,
+        b: kind === 'frost' ? 1 : 0.86,
+        alpha: 0.55,
+      });
   }
 
   trail(
@@ -473,16 +776,18 @@ export class Particles {
   /** A crackling bolt from one troop to the next: glowing beads along a
    *  jagged line, bright at both ends. */
   bolt(ax: number, ay: number, az: number, bx: number, by: number, bz: number) {
-    const steps = 12;
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const j = i === 0 || i === steps ? 0 : 0.18;
+    this.lightning.add(tmpA.set(ax, ay, az), tmpB.set(bx, by, bz));
+    // A few sparks scattered along it.
+    for (let i = 0; i < 6; i++) {
+      const t = Math.random();
       this.glow.add({
-        x: ax + (bx - ax) * t + rand(-j, j),
-        y: ay + (by - ay) * t + rand(-j, j),
-        z: az + (bz - az) * t + rand(-j, j),
-        life: rand(0.12, 0.22),
-        size: rand(0.16, 0.26),
+        x: ax + (bx - ax) * t + rand(-0.15, 0.15),
+        y: ay + (by - ay) * t + rand(-0.15, 0.15),
+        z: az + (bz - az) * t + rand(-0.15, 0.15),
+        vy: rand(-0.4, 0.8),
+        drag: 4,
+        life: rand(0.15, 0.3),
+        size: rand(0.1, 0.18),
         r: 0.7,
         g: 0.9,
         b: 1,
@@ -617,6 +922,7 @@ export class Particles {
   update(dt: number) {
     this.glow.update(dt);
     this.smoke.update(dt);
+    this.lightning.update(dt);
     const keep = [];
     for (const c of this.chunks) {
       c.age += dt;
@@ -653,6 +959,7 @@ export class Particles {
   dispose() {
     this.glow.dispose();
     this.smoke.dispose();
+    this.lightning.dispose();
     this.debris.geometry.dispose();
   }
 }
@@ -670,6 +977,8 @@ const laserColours: Record<Team, number[]> = {
 
 export class ProjectileViews {
   private meshes = new Map<number, THREE.Object3D>();
+  /** Shots whose launch flash has gone off. */
+  private flashed = new Set<number>();
   private kinds: Record<ProjectileKind, (team: Team) => THREE.Object3D>;
   private geometries: THREE.BufferGeometry[] = [];
   private mats: THREE.Material[] = [];
@@ -687,6 +996,9 @@ export class ProjectileViews {
   /** A shot drawn leaving its shooter's hand (a tower archer's bow) rather
    *  than the engine's launch spot: the gap, closed as it flies. */
   private offsets = new Map<number, THREE.Vector3>();
+  private meshRadii = new Map<ProjectileKind, number>();
+  private shotBounds = new THREE.Box3();
+  private shotSphere = new THREE.Sphere();
 
   constructor(
     private world: ArenaWorld,
@@ -906,7 +1218,7 @@ export class ProjectileViews {
     m: Match,
     alpha: number,
     targetHeight: (id: number) => number,
-    origin?: (sourceId: number) => THREE.Vector3 | null,
+    origin?: (sourceId: number, kind: ProjectileKind) => THREE.Vector3 | null,
   ) {
     const seen = new Set<number>();
     for (const p of m.projectiles) {
@@ -917,6 +1229,15 @@ export class ProjectileViews {
         const team: Team = p.side === this.world.viewSide ? 0 : 1;
         this.team.set(p.id, team);
         mesh = this.kinds[p.kind](team);
+        if (!this.meshRadii.has(p.kind)) {
+          this.shotBounds
+            .setFromObject(mesh)
+            .getBoundingSphere(this.shotSphere);
+          this.meshRadii.set(
+            p.kind,
+            this.shotSphere.radius + this.shotSphere.center.length(),
+          );
+        }
         mesh.castShadow = p.kind !== 'fire' && p.kind !== 'laser';
         mesh.scale.setScalar(this.size);
         this.meshes.set(p.id, mesh);
@@ -924,7 +1245,7 @@ export class ProjectileViews {
         // (Seen within its first ticks: a shot seen late, after a resync,
         // has long left the bow.)
         const fresh = p.travelled <= p.speed * TICK * 2.5;
-        const from = fresh ? origin?.(p.sourceId) : null;
+        const from = fresh ? origin?.(p.sourceId, p.kind) : null;
         if (from) {
           const [sx, , sz] = toWorld(p.sx, p.sy);
           this.offsets.set(
@@ -939,7 +1260,18 @@ export class ProjectileViews {
           this.world.scene.add(glow);
         }
       }
-      this.place(mesh, p, alpha, targetHeight(p.targetId));
+      this.place(mesh, p, alpha, targetHeight(p.targetId), m);
+      if (this.flashed.size > 64) this.flashed.clear();
+      if (!this.flashed.has(p.id) && p.travelled <= p.speed * TICK * 2.5) {
+        this.flashed.add(p.id);
+        this.particles.muzzle(
+          mesh.position.x,
+          mesh.position.y,
+          mesh.position.z,
+          p.kind,
+          laserColours[this.team.get(p.id) ?? 0],
+        );
+      }
       const glow = this.glows.get(p.id);
       if (glow) {
         // Brighter and tighter as the fireball comes down.
@@ -981,11 +1313,12 @@ export class ProjectileViews {
     p: Projectile,
     alpha: number,
     endHeight: number,
+    m: Match,
   ) {
     const dx = p.tx - p.x;
     const dy = p.ty - p.y;
     const d = Math.hypot(dx, dy);
-    const ahead = Math.min(d, p.speed * TICK * alpha);
+    const ahead = projectileAhead(m, p, alpha);
     const fx = d > 0 ? p.x + (dx / d) * ahead : p.x;
     const fy = d > 0 ? p.y + (dy / d) * ahead : p.y;
     const t = Math.min(1, (p.travelled + ahead) / Math.max(0.01, p.distance));
@@ -1030,6 +1363,19 @@ export class ProjectileViews {
       mesh.position.addScaledVector(offset, 1 - t);
       this.next.addScaledVector(offset, 1 - t2);
     }
+    const [cx, cy] = projectileOrigin(
+      m,
+      p,
+      mesh.position.x + WIDTH / 2,
+      LENGTH / 2 - mesh.position.z,
+      (this.meshRadii.get(p.kind) ?? 0) * this.size,
+    );
+    const shiftX = cx - WIDTH / 2 - mesh.position.x;
+    const shiftZ = LENGTH / 2 - cy - mesh.position.z;
+    mesh.position.x += shiftX;
+    mesh.position.z += shiftZ;
+    this.next.x += shiftX;
+    this.next.z += shiftZ;
     if (this.next.distanceToSquared(mesh.position) > 1e-6)
       mesh.lookAt(this.next);
     this.particles.trail(
@@ -1688,6 +2034,18 @@ export class Ghost {
     this.card = null;
   }
 
+  /** Preview copies own their cloned skeleton textures; their geometry,
+   *  source materials and library textures still belong to the assets. */
+  private clear() {
+    const skeletons = new Set<THREE.Skeleton>();
+    this.group.traverse((node) => {
+      const mesh = node as THREE.SkinnedMesh;
+      if (mesh.isSkinnedMesh) skeletons.add(mesh.skeleton);
+    });
+    for (const skeleton of skeletons) skeleton.dispose();
+    this.group.clear();
+  }
+
   /** Shows the card at (x, y); `from` is the finger's field point when the
    *  card snapped elsewhere. */
   show(
@@ -1705,14 +2063,14 @@ export class Ghost {
     if (card !== this.card && isSpell(card)) {
       // A spell: the blast circle it will hit.
       this.card = card;
-      this.group.clear();
+      this.clear();
       const r = spellCards[card].spell.radius;
       this.circle.scale.setScalar(r);
       this.area.scale.setScalar(r);
       this.group.add(this.circle, this.area);
     } else if (card !== this.card && !isSpell(card)) {
       this.card = card;
-      this.group.clear();
+      this.clear();
       const c = troopCards[card];
       // The collector figure where one is built, else the older model.
       const { figures, troops } = this.world.assets;
@@ -1734,7 +2092,11 @@ export class Ghost {
           }
         });
         model.position.set(ox, c.unit.flying ? FLY_HEIGHT : 0, -oy);
-        model.scale.set(...figureDimensions(this.figureScale));
+        model.scale.set(
+          ...figureDimensions(
+            this.figureScale * (known ? figureSize(card) : 1),
+          ),
+        );
         this.group.add(model);
       }
       const reach = c.formation.length > 1 ? 0.7 : 0;
@@ -1768,6 +2130,7 @@ export class Ghost {
   }
 
   dispose() {
+    this.clear();
     this.world.scene.remove(this.group, this.tether);
     this.tether.geometry.dispose();
     (this.tether.material as THREE.Material).dispose();
@@ -1931,6 +2294,10 @@ export class AbilityEffects {
 
   heal(ids: number[]) {
     this.statuses.heal(ids);
+  }
+
+  hud(height: number, trackHeight: number) {
+    this.statuses.hud(height, trackHeight);
   }
 
   /** The Drummer's beat: a ring of his team's light colour sweeping out

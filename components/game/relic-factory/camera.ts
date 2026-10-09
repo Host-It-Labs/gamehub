@@ -2,6 +2,15 @@ import * as THREE from 'three';
 import { MIN_ZOOM, MAX_ZOOM } from './limits.ts';
 const FOV = 30;
 export type ScreenPoint = { x: number; y: number };
+/** Pixels along each edge covered by floating controls: the overview fits
+ * the floor in the rest, while the canvas still fills the whole view. */
+export type Insets = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
 
 /** The factory keeps its viewing angle while you inspect a closer area.
  * Floor points, picking and other players' pointers all use this camera. */
@@ -10,6 +19,7 @@ export class FactoryCamera {
   turned = false;
   private floor = { width: 0, height: 0 };
   private size = { w: 1, h: 1 };
+  private insets = NO_INSETS;
   private base = {
     d: 20,
     target: new THREE.Vector3(),
@@ -24,8 +34,22 @@ export class FactoryCamera {
   }
 
   /** Resize/refit the overview without discarding the inspected area. */
-  fit(width: number, height: number, w: number, h: number) {
+  fit(
+    width: number,
+    height: number,
+    w: number,
+    h: number,
+    insets: Insets = NO_INSETS,
+  ) {
     if (Math.min(width, height, w, h) <= 0) return;
+    // Controls never cover more than most of the view.
+    const clampInset = (a: number, b: number, size: number) => {
+      const room = Math.max(0, size * 0.7 - a - b);
+      return room > 0 ? [a, b] : [a * 0.5, b * 0.5];
+    };
+    const [top, bottom] = clampInset(insets.top, insets.bottom, h),
+      [left, right] = clampInset(insets.left, insets.right, w);
+    this.insets = { top, right, bottom, left };
     const zoom = this.zoom;
     const focus =
       this.floor.width && zoom > MIN_ZOOM
@@ -130,8 +154,14 @@ export class FactoryCamera {
       for (const z of [-margin, height + margin])
         for (const y of [-0.35, 0.9]) points.push(new THREE.Vector3(x, y, z));
     const target = new THREE.Vector3(width / 2, 0, height / 2);
-    const limX = Math.max(0.1, 1 - 16 / w),
-      limY = Math.max(0.1, 1 - 16 / h);
+    // The free area, in normalised device coordinates.
+    const ins = this.insets,
+      x0 = -1 + (2 * (ins.left + 16)) / w,
+      x1 = 1 - (2 * (ins.right + 16)) / w,
+      y0 = -1 + (2 * (ins.bottom + 16)) / h,
+      y1 = 1 - (2 * (ins.top + 16)) / h,
+      cx = (x0 + x1) / 2,
+      cy = (y0 + y1) / 2;
     const v = new THREE.Vector3();
     let distance = 20;
     const place = (d: number) => {
@@ -165,8 +195,7 @@ export class FactoryCamera {
         const mid = (lo + hi) / 2;
         place(mid);
         const b = bounds();
-        if (Math.max(-b.x0, b.x1) <= limX && Math.max(-b.y0, b.y1) <= limY)
-          hi = mid;
+        if (b.x0 >= x0 && b.x1 <= x1 && b.y0 >= y0 && b.y1 <= y1) hi = mid;
         else lo = mid;
       }
       distance = hi;
@@ -176,8 +205,8 @@ export class FactoryCamera {
         halfH = distance * Math.tan(THREE.MathUtils.degToRad(FOV / 2));
       const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
       const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
-      target.addScaledVector(right, ((b.x0 + b.x1) / 2) * halfH * (w / h));
-      target.addScaledVector(up, ((b.y0 + b.y1) / 2) * halfH * 0.9);
+      target.addScaledVector(right, ((b.x0 + b.x1) / 2 - cx) * halfH * (w / h));
+      target.addScaledVector(up, ((b.y0 + b.y1) / 2 - cy) * halfH * 0.9);
       target.y = 0;
     }
     return { d: distance, target, dir };

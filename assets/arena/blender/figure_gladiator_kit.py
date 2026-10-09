@@ -19,6 +19,7 @@ import kit
 from mathutils import Matrix, Quaternion, Vector
 
 TAU = math.tau
+MASTER_DETAIL = False
 
 # Metres per texture repeat for the Cowboy's surfaces: the miniature
 # families borrow the fine small-scale densities of their relief tiles.
@@ -220,6 +221,8 @@ def loft(name, rings, mat, bands=None, start=None, end=None, closed=True,
 
 def tube(name, path, radii, mat, n=8, up=(0, 0, 1), power=2.0,
          caps=("dome", "dome"), bands=None, phase=0.0, levels=0, flute=0.0):
+    if MASTER_DETAIL:
+        n = max(n, 20)
     path = [Vector(p) for p in path]
     radii = list(radii)
     rings = rings_along(path, radii, n, up, power, phase, flute)
@@ -245,6 +248,8 @@ def tube(name, path, radii, mat, n=8, up=(0, 0, 1), power=2.0,
 
 
 def ball(name, r, at, mat, scale=(1, 1, 1), seg=10, rings=None):
+    if MASTER_DETAIL:
+        seg, rings = max(seg, 28), max(rings or 0, 18)
     obj = kit.sphere(name, r, at, scale=scale, mat=mat, segments=seg,
                      rings=rings or max(4, seg // 2))
     kit.apply_transform(obj)
@@ -298,6 +303,11 @@ def sheet(name, fn, us, vs, mat, rim=0.0, inside=None, closed_u=False,
     away from `inside`. With `rim`, the boundary is folded back toward
     `inside` by that thickness (a cloth edge with no hidden inner skin);
     `back` adds the full inner skin too."""
+    if MASTER_DETAIL:
+        def samples(values):
+            return [lerp(a, b, i / 3) for a, b in zip(values, values[1:])
+                    for i in range(3)] + [values[-1]]
+        us, vs = samples(us), samples(vs)
     c = Mesh(name, None if callable(mat) else mat)
     pts = [[Vector(fn(u, v)) for u in us] for v in vs]
     rows = [[c.v(p) for p in row] for row in pts]
@@ -616,6 +626,10 @@ class Head:
               closed=False):
         """A layer on the skull (a bandana, a beard): between `bottom(ad)`
         and `top(ad)`, lifted `lift(ad, t)` off the surface (t 0..1 up)."""
+        if MASTER_DETAIL:
+            rows = max(rows, 28)
+            cols = [lerp(a, b, i / 3) for a, b in zip(cols, cols[1:])
+                    for i in range(3)] + [cols[-1]]
         c = Mesh(name, mat)
         grid = []
         for a in cols:

@@ -107,6 +107,7 @@ export function CardPanel({
   team,
   className = '',
   live,
+  compact = false,
 }: {
   id: CardId;
   boost?: Boost;
@@ -115,9 +116,19 @@ export function CardPanel({
   className?: string;
   /** Announce changes (the browser's panel, not the hover card). */
   live?: boolean;
+  /** A held card's four key numbers, in the narrow band above the hand. */
+  compact?: boolean;
 }) {
   const f = cardFacts(id, boost);
   const src = artOf(id, art);
+  const stats = compact
+    ? f.stats.filter((s) =>
+        (f.kind === 'troop'
+          ? ['hp', 'damage', 'hitSpeed', 'range']
+          : ['damage', 'towerDamage', 'radius', 'delay']
+        ).includes(s.key),
+      )
+    : f.stats;
   return (
     <article
       className={`arena-cardinfo ${className}`}
@@ -126,52 +137,65 @@ export function CardPanel({
       aria-label={f.name}
       aria-live={live ? 'polite' : undefined}
     >
-      <div className="arena-cardinfo-art">
-        {src ? (
-          <img src={src} alt="" draggable={false} />
-        ) : (
-          <span className="arena-cardinfo-blank" aria-hidden="true">
-            {f.name[0]}
-          </span>
-        )}
-        {f.cost > 0 && (
-          <span className="arena-cardinfo-cost" aria-label={`${f.cost} elixir`}>
+      {!compact && (
+        <div className="arena-cardinfo-art">
+          {src ? (
+            <img src={src} alt="" draggable={false} />
+          ) : (
+            <span className="arena-cardinfo-blank" aria-hidden="true">
+              {f.name[0]}
+            </span>
+          )}
+          {f.cost > 0 && (
+            <span
+              className="arena-cardinfo-cost"
+              aria-label={`${f.cost} elixir`}
+            >
+              {f.cost}
+            </span>
+          )}
+          {f.count > 1 && (
+            <span
+              className="arena-cardinfo-count"
+              aria-label={`${f.count} troops`}
+            >
+              ×{f.count}
+            </span>
+          )}
+          {f.level > 1 && (
+            <span
+              className="arena-cardinfo-level"
+              aria-label={`Level ${f.level}`}
+            >
+              {f.level}
+            </span>
+          )}
+        </div>
+      )}
+      <header className="arena-cardinfo-head">
+        <h3>{f.name}</h3>
+        {compact && (
+          <span className="arena-cardinfo-mini-cost">
+            <Droplets aria-hidden="true" />
             {f.cost}
           </span>
         )}
-        {f.count > 1 && (
-          <span
-            className="arena-cardinfo-count"
-            aria-label={`${f.count} troops`}
-          >
-            ×{f.count}
-          </span>
+        {!compact && (
+          <p className="arena-cardinfo-roles">
+            {f.roles.map((r) => (
+              <span key={r}>{r}</span>
+            ))}
+            {f.flying && (
+              <span className="fly">
+                <Bird aria-hidden="true" />
+                Flies
+              </span>
+            )}
+          </p>
         )}
-        {f.level > 1 && (
-          <span
-            className="arena-cardinfo-level"
-            aria-label={`Level ${f.level}`}
-          >
-            {f.level}
-          </span>
-        )}
-      </div>
-      <header className="arena-cardinfo-head">
-        <h3>{f.name}</h3>
-        <p className="arena-cardinfo-roles">
-          {f.roles.map((r) => (
-            <span key={r}>{r}</span>
-          ))}
-          {f.flying && (
-            <span className="fly">
-              <Bird aria-hidden="true" />
-              Flies
-            </span>
-          )}
-        </p>
       </header>
       <dl className="arena-cardinfo-stats">
-        {f.stats.map((s) => {
+        {stats.map((s) => {
           const Icon = s.key === 'speed' && f.flying ? Bird : STAT_ICON[s.key];
           return (
             <div key={s.key} data-stat={s.key}>
@@ -184,7 +208,7 @@ export function CardPanel({
           );
         })}
       </dl>
-      {f.abilities.length > 0 && (
+      {!compact && f.abilities.length > 0 && (
         <ul className="arena-cardinfo-abilities">
           {f.abilities.map((a) => {
             const Icon = ABILITY_ICON[a.key] ?? Sparkles;
@@ -343,8 +367,9 @@ const finePointer = () =>
  * seen across and fills the width, on its side in the meadow under it, right
  * of the hand), never over the field, the hand or the top bar. Picking runs ten times a second against where the
  * mouse last was, so a troop walking out from under a still mouse hides
- * it; React renders only when what is hovered changes. Nothing shows while
- * a button is held (a drag) or where the side band has no room.
+ * it; React renders only when what is hovered changes. A selected or
+ * dragged hand card takes priority, including on touch screens, where its
+ * compact stats sit directly above the hand without changing the camera.
  */
 export function CardPeek({
   root,
@@ -352,6 +377,7 @@ export function CardPeek({
   view,
   session,
   hand,
+  activeCard = null,
   art,
   enabled,
 }: {
@@ -366,6 +392,8 @@ export function CardPeek({
   };
   /** The hand's card buttons, in slot order. */
   hand: RefObject<(HTMLElement | null)[]>;
+  /** Selection and drag share the same preview. */
+  activeCard?: CardId | null;
   art?: Partial<Record<string, string>>;
   enabled: boolean;
 }) {
@@ -377,6 +405,7 @@ export function CardPeek({
     height: number;
     /** Beside the hand, under the field: the card lies on its side. */
     wide?: boolean;
+    compact?: boolean;
   } | null>(null);
   const shownKey = useRef('');
   // Nothing shows while the hover card is off or has no room; going off
@@ -391,7 +420,7 @@ export function CardPeek({
   // The room at the right of the field: from the walls' rightmost point on
   // screen to the window's edge, below the top corner.
   useEffect(() => {
-    if (!enabled || !finePointer()) return;
+    if (!enabled) return;
     let raf = 0;
     const fit = () => {
       cancelAnimationFrame(raf);
@@ -411,7 +440,7 @@ export function CardPeek({
         // A little larger where the forest is wide (1920 and up).
         const width = Math.min(room > 420 ? 312 : 280, room);
         const height = r.height - top - 16;
-        if (width >= 196 && height >= 300)
+        if (finePointer() && width >= 196 && height >= 300)
           return setBand({
             left: Math.round(right + (room - width) / 2 + 14),
             top: Math.round(top),
@@ -433,17 +462,22 @@ export function CardPeek({
             tray ? tray.top - r.top : r.height,
           ) - 80;
         const across = Math.min(440, r.width - left - 16);
-        setBand(
-          across >= 300 && r.height - below - 14 >= 260
-            ? {
-                left: Math.round(left + (r.width - left - 16 - across) / 2),
-                top: Math.round(below),
-                width: Math.round(across),
-                height: Math.round(r.height - below - 14),
-                wide: true,
-              }
-            : null,
-        );
+        if (finePointer() && across >= 300 && r.height - below - 14 >= 260)
+          return setBand({
+            left: Math.round(left + (r.width - left - 16 - across) / 2),
+            top: Math.round(below),
+            width: Math.round(across),
+            height: Math.round(r.height - below - 14),
+            wide: true,
+          });
+        const compactWidth = Math.min(350, r.width - 24);
+        setBand({
+          left: Math.round((r.width - compactWidth) / 2),
+          top: Math.round(Math.max(top, (tray?.top ?? r.bottom) - r.top - 118)),
+          width: compactWidth,
+          height: 108,
+          compact: true,
+        });
       });
     };
     fit();
@@ -483,6 +517,7 @@ export function CardPeek({
       setPeek(next);
     };
     const pick = () => {
+      if (activeCard || band.compact) return show(null);
       if (!pointer.in || pointer.held || el.classList.contains('dragging'))
         return show(null);
       const at = document.elementFromPoint(pointer.x, pointer.y);
@@ -525,15 +560,18 @@ export function CardPeek({
       el.removeEventListener('pointerleave', onLeave);
       window.clearInterval(timer);
     };
-  }, [enabled, band, root, canvas, view, session, hand]);
+  }, [enabled, band, root, canvas, view, session, hand, activeCard]);
 
-  if (!peek || !band) return null;
-  const owner = session.match.players[peek.seat];
+  const shown = activeCard
+    ? { id: activeCard, seat: session.you, key: `held-${activeCard}` }
+    : peek;
+  if (!enabled || !shown || !band) return null;
+  const owner = session.match.players[shown.seat];
   const team = owner && owner.side !== session.side ? 1 : 0;
   return (
     <div
-      className={`arena-peek${band.wide ? ' wide' : ''}`}
-      aria-hidden="true"
+      className={`arena-peek${band.wide ? ' wide' : ''}${band.compact ? ' compact' : ''}`}
+      aria-hidden={activeCard ? undefined : true}
       style={
         {
           left: band.left,
@@ -546,11 +584,12 @@ export function CardPeek({
       }
     >
       <CardPanel
-        key={peek.key}
-        id={peek.id}
+        key={shown.key}
+        id={shown.id}
         boost={owner?.boost}
         art={art}
         team={team}
+        compact={band.compact}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { BatchedMesh, Box3, Vector3 } from 'three';
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { resolutionFloor } from '../components/game/arena/quality.ts';
 import { ladder } from '../components/game/arena/pacer.ts';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -55,6 +56,47 @@ await test('every figure keeps a naturally proportioned articulated head and its
   }
 });
 
+await test('Cowboy, Samurai and Wizard keep connected arm deformation within their original geometry costs', async () => {
+  const figures = await model('figures');
+  // Measured from the preserved pre-rework bundle, including their costumes
+  // and weapons. Detailed masters are kept separately from shipped copies.
+  for (const [id, ceiling] of [
+    ['ranger', 17200],
+    ['duelist', 19140],
+    ['mage', 18548],
+  ]) {
+    const root = figures.getObjectByName(id);
+    let triangles = 0;
+    const armJoints = new Set();
+    root.traverse((node) => {
+      if (!node.isMesh) return;
+      triangles +=
+        (node.geometry.index?.count ??
+          node.geometry.attributes.position.count) / 3;
+      assert.ok(
+        !Object.keys(node.geometry.attributes).some((name) =>
+          /^color_?\d+$/.test(name),
+        ),
+        `${id} has one active pigment/AO channel`,
+      );
+      if (!node.isSkinnedMesh) return;
+      const indices = node.geometry.attributes.skinIndex;
+      const weights = node.geometry.attributes.skinWeight;
+      for (let vertex = 0; vertex < weights.count; vertex++)
+        for (let component = 0; component < 4; component++) {
+          if (weights.getComponent(vertex, component) <= 1e-6) continue;
+          const name =
+            node.skeleton.bones[indices.getComponent(vertex, component)].name;
+          if (/^(arm|fore)[LR]$/.test(name.slice(id.length)))
+            armJoints.add(name);
+        }
+    });
+    assert.ok(triangles <= ceiling, `${id}: ${triangles} exceeds ${ceiling}`);
+    for (const part of ['armL', 'armR', 'foreL', 'foreR'])
+      assert.ok(armJoints.has(id + part), `${id} ${part} deforms real cloth`);
+  }
+});
+
 await test('Dino visual scale survives the shared runtime scale and retains grounded feet', async () => {
   const figures = await model('figures');
   const dino = figures.getObjectByName('ogre');
@@ -92,8 +134,8 @@ await test('all walking figures have independent knee and ankle joints', async (
       const knee = figures.getObjectByName(`${id}knee${side}`);
       const foot = figures.getObjectByName(`${id}foot${side}`);
       assert.ok(knee && foot, `${id} ${side} has both bending joints`);
-      assert.equal(knee.parent, hip);
-      assert.equal(foot.parent, knee);
+      assert.equal(knee.parent?.name, hip?.name);
+      assert.equal(foot.parent?.name, knee?.name);
       const before = new Vector3();
       figures.updateMatrixWorld(true);
       foot.getWorldPosition(before);
@@ -109,7 +151,7 @@ await test('all walking figures have independent knee and ankle joints', async (
   }
 });
 
-await test('articulated figure meshes remain compatible with material batching', async () => {
+await test('rigid figure parts remain compatible with material batching alongside connected skins', async () => {
   const figures = await model('figures');
   // Batched as the game does (TroopRenderer): per material and attribute
   // layout, so cloth with its wave uv set has a batch of its own.
@@ -122,13 +164,15 @@ await test('articulated figure meshes remain compatible with material batching',
       })
       .join(',');
   const groups = new Map();
-  figures.traverse((node) => {
-    if (!node.isMesh) return;
-    const key = `${node.material.uuid}|${layout(node.geometry)}`;
-    const entry = groups.get(key) ?? { material: node.material, list: [] };
-    entry.list.push(node.geometry);
-    groups.set(key, entry);
-  });
+  for (const figure of figures.children) {
+    figure.traverse((node) => {
+      if (!node.isMesh || node.isSkinnedMesh) return;
+      const key = `${node.material.uuid}|${layout(node.geometry)}`;
+      const entry = groups.get(key) ?? { material: node.material, list: [] };
+      entry.list.push(node.geometry);
+      groups.set(key, entry);
+    });
+  }
   for (const { material, list: geometries } of groups.values()) {
     const vertices = geometries.reduce(
       (n, g) => n + g.attributes.position.count,
@@ -141,5 +185,66 @@ await test('articulated figure meshes remain compatible with material batching',
     } finally {
       batch.dispose();
     }
+  }
+});
+
+await test('exported skins keep local bones, normalized weights and real independent deformation', async (t) => {
+  const figures = await model('figures');
+  const originals = [];
+  figures.traverse((node) => {
+    if (node.isSkinnedMesh) originals.push(node);
+  });
+  if (!originals.length)
+    return t.skip('replacement skinned asset is not merged yet');
+  const copy = cloneSkeleton(figures);
+  const point = new Vector3();
+  const moved = new Vector3();
+  for (const skin of originals) {
+    const cloned = copy.getObjectByName(skin.name);
+    assert.ok(cloned?.isSkinnedMesh);
+    assert.notEqual(cloned.skeleton, skin.skeleton);
+    assert.equal(cloned.geometry, skin.geometry);
+    const indices = skin.geometry.attributes.skinIndex;
+    const weights = skin.geometry.attributes.skinWeight;
+    assert.equal(indices.count, skin.geometry.attributes.position.count);
+    assert.equal(weights.count, indices.count);
+    let influenced = -1;
+    let boneIndex = -1;
+    for (let i = 0; i < weights.count; i++) {
+      let sum = 0;
+      for (let component = 0; component < 4; component++) {
+        const weight = weights.getComponent(i, component);
+        const index = indices.getComponent(i, component);
+        assert.ok(weight >= 0 && Number.isFinite(weight));
+        assert.ok(index >= 0 && index < skin.skeleton.bones.length);
+        sum += weight;
+        if (weight > 0.4 && influenced < 0) {
+          influenced = i;
+          boneIndex = index;
+        }
+      }
+      assert.ok(
+        Math.abs(sum - 1) < 0.001,
+        `${skin.name} vertex ${i} weights sum to ${sum}`,
+      );
+    }
+    assert.ok(influenced >= 0);
+    for (let i = 0; i < skin.skeleton.bones.length; i++) {
+      assert.notEqual(cloned.skeleton.bones[i], skin.skeleton.bones[i]);
+      assert.ok(copy.getObjectById(cloned.skeleton.bones[i].id));
+    }
+    figures.updateMatrixWorld(true);
+    copy.updateMatrixWorld(true);
+    cloned.getVertexPosition(influenced, point);
+    const original = skin.getVertexPosition(influenced, new Vector3());
+    cloned.skeleton.bones[boneIndex].position.x += 0.1;
+    copy.updateMatrixWorld(true);
+    cloned.getVertexPosition(influenced, moved);
+    assert.ok(moved.distanceTo(point) > 0.035, `${skin.name} actually deforms`);
+    assert.ok(
+      skin.getVertexPosition(influenced, new Vector3()).distanceTo(original) <
+        1e-8,
+      'posing the copy preserves the source',
+    );
   }
 });

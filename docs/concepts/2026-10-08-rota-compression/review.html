@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <title>Rota GLB comparison</title>
+  <style>
+    body {
+      margin: 0;
+      background: #e3ded3;
+      color: #232b30;
+      font: 14px system-ui;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 20px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+    #models {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0 12px 12px;
+    }
+    article {
+      background: #f6f2e9;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    h2 {
+      font-size: 14px;
+      margin: 8px 12px;
+    }
+    .pair {
+      display: flex;
+    }
+    figure {
+      margin: 0;
+      width: 50%;
+    }
+    figcaption {
+      padding: 0 12px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 230px;
+    }
+    body.close #models {
+      grid-template-columns: 1fr;
+    }
+    body.close canvas {
+      height: 510px;
+    }
+    #status {
+      margin-left: auto;
+    }
+  </style>
+  <header>
+    <h1>Rota · original / meshopt</h1>
+    <label
+      >Model
+      <select id="model">
+        <option value="all">Contact sheet</option>
+        <option>loco_steam</option>
+        <option>car_retro</option>
+        <option>lorry</option>
+        <option>terrace_tall</option>
+        <option>oak_a</option>
+        <option>mill_big</option>
+      </select></label
+    >
+    <label
+      >View
+      <select id="view">
+        <option value="game">Game camera</option>
+        <option value="front">Front</option>
+        <option value="rear">Rear</option>
+      </select></label
+    >
+    <label><input id="spin" type="checkbox" /> Spin wheels</label>
+    <span id="status">Loading models…</span>
+  </header>
+  <main id="models"></main>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+    import { Materials } from '/components/game/rota/three/materials.ts';
+
+    const manifest = await (
+      await fetch('/lib/games/rota/assets.json', { cache: 'no-store' })
+    ).json();
+    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    const originals = {},
+      compressed = {};
+    for (const family of ['vehicles', 'town', 'nature', 'works']) {
+      originals[family] = (
+        await loader.loadAsync(`/assets/rota/build/${family}.glb`)
+      ).scene;
+      compressed[family] = (
+        await loader.loadAsync(manifest.models[family].path)
+      ).scene;
+    }
+    const families = {
+      loco_steam: 'vehicles',
+      car_retro: 'vehicles',
+      lorry: 'vehicles',
+      terrace_tall: 'town',
+      oak_a: 'nature',
+      mill_big: 'works',
+    };
+    let views = [];
+    function draw() {
+      for (const v of views) {
+        v.renderer.dispose();
+        v.mats.dispose();
+      }
+      views = [];
+      const selected = document.querySelector('#model').value;
+      const names =
+        selected === 'all'
+          ? ['loco_steam', 'car_retro', 'lorry', 'terrace_tall']
+          : [selected];
+      document.body.classList.toggle('close', selected !== 'all');
+      document.querySelector('#models').replaceChildren();
+      for (const name of names) {
+        const article = document.createElement('article');
+        const title = document.createElement('h2');
+        title.textContent = name;
+        article.append(title);
+        const pair = document.createElement('div');
+        pair.className = 'pair';
+        article.append(pair);
+        document.querySelector('#models').append(article);
+        const original = originals[families[name]].children.find(
+          (n) => n.name === name,
+        );
+        const bounds = new THREE.Box3().setFromObject(original);
+        const center = bounds.getCenter(new THREE.Vector3()),
+          size = bounds.getSize(new THREE.Vector3());
+        for (const [label, library] of [
+          ['Original', originals],
+          ['Meshopt', compressed],
+        ]) {
+          const figure = document.createElement('figure'),
+            caption = document.createElement('figcaption');
+          caption.textContent = label;
+          figure.append(caption);
+          pair.append(figure);
+          const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            preserveDrawingBuffer: true,
+          });
+          renderer.setPixelRatio(1);
+          renderer.setSize(
+            figure.clientWidth,
+            selected === 'all' ? 230 : 510,
+            false,
+          );
+          renderer.shadowMap.enabled = true;
+          renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          figure.append(renderer.domElement);
+          const scene = new THREE.Scene();
+          scene.background = new THREE.Color('#e0ddd1');
+          scene.add(new THREE.HemisphereLight('#fff3dc', '#5b6a65', 2));
+          const light = new THREE.DirectionalLight('#ffedca', 3);
+          light.position.set(0.5, 1, 0.7);
+          light.castShadow = true;
+          light.shadow.mapSize.set(1024, 1024);
+          light.shadow.bias = -0.00005;
+          light.shadow.camera.left = light.shadow.camera.bottom = -1;
+          light.shadow.camera.right = light.shadow.camera.top = 1;
+          scene.add(light);
+          const object = library[families[name]].children
+            .find((n) => n.name === name)
+            .clone(true);
+          // dress mutates AO: use private geometries so repeated views are identical.
+          object.traverse((o) => {
+            if (o.isMesh) o.geometry = o.geometry.clone();
+          });
+          const mats = new Materials();
+          mats.dress(object, 0, '#a93c32');
+          scene.add(object);
+          const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(5, 5),
+            new THREE.MeshToonMaterial({ color: '#b6b79d' }),
+          );
+          ground.rotation.x = -Math.PI / 2;
+          ground.position.y = bounds.min.y - 0.0001;
+          ground.receiveShadow = true;
+          scene.add(ground);
+          const aspect = figure.clientWidth / (selected === 'all' ? 230 : 510);
+          const span = Math.max(size.x, size.y, size.z) * 1.55;
+          const camera = new THREE.OrthographicCamera(
+            (-span * aspect) / 2,
+            (span * aspect) / 2,
+            span / 2,
+            -span / 2,
+            0.001,
+            20,
+          );
+          const view = document.querySelector('#view').value;
+          const dir =
+            view === 'front'
+              ? new THREE.Vector3(0.01, 0.12, 1)
+              : view === 'rear'
+                ? new THREE.Vector3(-0.7, 0.3, -1)
+                : new THREE.Vector3(0.8, 1.3, 1);
+          camera.position.copy(center).addScaledVector(dir.normalize(), 2);
+          camera.lookAt(center);
+          const wheels = [];
+          object.traverse((o) => {
+            if (o.name.startsWith('wheel'))
+              wheels.push({ object: o, rotation: o.rotation.x });
+          });
+          views.push({ renderer, scene, camera, wheels, mats });
+        }
+      }
+      document.querySelector('#status').textContent =
+        'All four files decoded with Three.js';
+    }
+    for (const id of ['model', 'view'])
+      document.querySelector(`#${id}`).addEventListener('change', draw);
+    draw();
+    const begin = performance.now();
+    function frame(now) {
+      const spin = document.querySelector('#spin').checked
+        ? (now - begin) / 700
+        : 0;
+      for (const v of views) {
+        for (const wheel of v.wheels)
+          wheel.object.rotation.x = wheel.rotation + spin;
+        v.renderer.render(v.scene, v.camera);
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</html>

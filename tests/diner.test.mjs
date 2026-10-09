@@ -98,13 +98,14 @@ await test('a whole visit: seat, order, cook, serve, eat, pay, clear and wash', 
   assert.equal(actionFor(m, 0)?.kind, 'lead');
   press(m);
   assert.equal(g.state, 'follow');
-  assert.deepEqual(m.players[0].carry, { k: 'lead', group: g.id });
+  assert.equal(m.players[0].lead, g.id);
+  assert.deepEqual(m.players[0].hands, [], 'leading needs no hands');
   // A two-seat booth fits a party of two.
   atTable(m, 0);
   assert.equal(actionFor(m, 0)?.kind, 'seat');
   let events = press(m);
   assert.ok(events.some((e) => e.type === 'seat' && e.table === 0));
-  assert.equal(m.players[0].carry, null);
+  assert.equal(m.players[0].lead, -1);
   events = until(m, () => g.state === 'order', 'the bell');
   assert.ok(events.some((e) => e.type === 'bell'));
   atTable(m, 0);
@@ -119,24 +120,25 @@ await test('a whole visit: seat, order, cook, serve, eat, pay, clear and wash', 
     atCounter(m, station);
     assert.equal(actionFor(m, 0)?.kind, 'cook');
     press(m);
-    assert.equal(m.stations.find((s) => s.id === station).state, 'cook');
+    assert.equal(
+      m.stations.find((s) => s.id === station).lanes[0].state,
+      'cook',
+    );
     until(
       m,
-      () => m.stations.find((s) => s.id === station).state === 'ready',
+      () => m.stations.find((s) => s.id === station).lanes[0].state === 'ready',
       'the dish',
     );
     atCounter(m, station);
     assert.equal(actionFor(m, 0)?.kind, 'take');
     press(m);
-    assert.deepEqual(m.players[0].carry, {
-      k: 'dish',
-      dish: guest.dish,
-      burnt: false,
-    });
+    assert.deepEqual(m.players[0].hands, [
+      { k: 'dish', dish: guest.dish, burnt: false },
+    ]);
     atTable(m, 0);
     assert.equal(actionFor(m, 0)?.kind, 'serve');
     press(m);
-    assert.equal(m.players[0].carry, null);
+    assert.deepEqual(m.players[0].hands, []);
   }
   assert.equal(g.state, 'eat');
   events = until(m, () => m.tables[0].dirty, 'the bill');
@@ -147,12 +149,12 @@ await test('a whole visit: seat, order, cook, serve, eat, pay, clear and wash', 
   assert.equal(actionFor(m, 0)?.kind, 'clear');
   press(m);
   assert.equal(m.coins, paid.coins);
-  assert.deepEqual(m.players[0].carry, { k: 'dirty', n: 2 });
+  assert.deepEqual(m.players[0].hands, [{ k: 'dirty', n: 2 }]);
   assert.equal(m.tables[0].dirty, false);
   atCounter(m, 'sink');
   assert.equal(actionFor(m, 0)?.kind, 'wash');
   press(m);
-  assert.equal(m.players[0].carry, null);
+  assert.deepEqual(m.players[0].hands, []);
   until(m, () => !m.groups.length, 'the party to leave');
   assert.equal(m.stars, 5);
 });
@@ -162,21 +164,24 @@ await test('a burger left on the grill burns and only goes in the bin', () => {
   atCounter(m, 'grill');
   press(m);
   const grill = m.stations.find((s) => s.id === 'grill');
-  const events = until(m, () => grill.state === 'burnt', 'burning', 20 * HZ);
+  const events = until(
+    m,
+    () => grill.lanes[0].state === 'burnt',
+    'burning',
+    20 * HZ,
+  );
   assert.ok(events.some((e) => e.type === 'ready'));
   assert.ok(events.some((e) => e.type === 'smoke'));
   assert.ok(events.some((e) => e.type === 'burnt'));
   atCounter(m, 'grill');
   press(m);
-  assert.deepEqual(m.players[0].carry, {
-    k: 'dish',
-    dish: 'burger',
-    burnt: true,
-  });
+  assert.deepEqual(m.players[0].hands, [
+    { k: 'dish', dish: 'burger', burnt: true },
+  ]);
   // A burnt plate is never served.
   const g = spawnParty(m, 1);
   until(m, () => g.state === 'queue', 'the party');
-  m.players[0].carry = null;
+  m.players[0].hands = [];
   atGuest(m, party(m, g)[0]);
   press(m);
   atTable(m, 0);
@@ -185,13 +190,13 @@ await test('a burger left on the grill burns and only goes in the bin', () => {
   atTable(m, 0);
   press(m);
   party(m, g)[0].dish = 'burger';
-  m.players[0].carry = { k: 'dish', dish: 'burger', burnt: true };
+  m.players[0].hands = [{ k: 'dish', dish: 'burger', burnt: true }];
   atTable(m, 0);
-  assert.equal(actionFor(m, 0), null);
+  assert.notEqual(actionFor(m, 0)?.kind, 'serve');
   atCounter(m, 'bin');
   assert.equal(actionFor(m, 0)?.kind, 'bin');
   press(m);
-  assert.equal(m.players[0].carry, null);
+  assert.deepEqual(m.players[0].hands, []);
   assert.equal(m.stats.burnt, 1);
 });
 
@@ -263,7 +268,7 @@ await test('an unspotted mimic bursts out with the bill and leaves goo to mop', 
   atTable(m, 1);
   press(m);
   for (const x of party(m, g)) {
-    m.players[0].carry = { k: 'dish', dish: x.dish, burnt: false };
+    m.players[0].hands = [{ k: 'dish', dish: x.dish, burnt: false }];
     atTable(m, 1);
     press(m);
   }
@@ -289,7 +294,7 @@ await test('an unspotted mimic bursts out with the bill and leaves goo to mop', 
   assert.ok(Math.abs(free - SPEED / HZ) < 1e-6);
   // Use in the puddle mops it in a second and a half.
   place(m, u.x, u.z);
-  p.carry = null;
+  p.hands = [];
   assert.equal(actionFor(m, 0)?.kind, 'mop');
   press(m);
   assert.ok(p.mop > 0);
@@ -301,40 +306,95 @@ await test('an unspotted mimic bursts out with the bill and leaves goo to mop', 
   assert.equal(m.puddles.length, 0);
 });
 
-await test('you carry one thing at a time', () => {
+await test('two hands: give first, then take, then start; never a dish nobody needs', () => {
   const m = fresh();
-  m.players[0].carry = { k: 'dish', dish: 'shake', burnt: false };
-  // A full hand cannot take another plate, lead a party or clear a table…
   const shake = m.stations.find((s) => s.id === 'shake');
-  shake.state = 'ready';
+  // Nobody has ordered: the machine makes one ahead, then stops.
   atCounter(m, 'shake');
-  assert.notEqual(actionFor(m, 0)?.kind, 'take');
+  assert.equal(actionFor(m, 0)?.kind, 'cook');
+  press(m);
+  assert.equal(shake.lanes[0].state, 'cook');
+  assert.equal(actionFor(m, 0), null, 'no second shake nobody wants');
+  until(m, () => shake.lanes[0].state === 'ready', 'the shake');
+  assert.equal(actionFor(m, 0)?.kind, 'take');
+  press(m);
+  assert.deepEqual(m.players[0].hands, [
+    { k: 'dish', dish: 'shake', burnt: false },
+  ]);
+  // Pressing again with a shake in hand does not start another.
+  assert.equal(actionFor(m, 0), null);
+  // Two guests ordered shakes: one is in hand, so one more may start.
   const g = spawnParty(m, 2);
   until(m, () => g.state === 'queue', 'the party');
   atGuest(m, party(m, g)[0]);
-  assert.equal(actionFor(m, 0), null);
-  m.tables[0].dirty = true;
-  m.tables[0].plates = 1;
-  atTable(m, 0);
-  assert.equal(actionFor(m, 0), null);
-  // …but starting the grill needs no hands.
-  atCounter(m, 'grill');
-  assert.equal(actionFor(m, 0)?.kind, 'cook');
-  // Leading a party fills your hands too.
-  m.players[0].carry = null;
-  atGuest(m, party(m, g)[0]);
   press(m);
+  atTable(m, 0);
+  press(m);
+  until(m, () => g.state === 'order', 'the bell');
+  atTable(m, 0);
+  press(m);
+  for (const x of party(m, g)) x.dish = 'shake';
   atCounter(m, 'shake');
+  assert.equal(actionFor(m, 0)?.kind, 'cook');
+  press(m);
+  assert.equal(actionFor(m, 0), null, 'both shakes are covered');
+  // A second free hand takes the next ready plate.
+  until(
+    m,
+    () => shake.lanes.some((l) => l.state === 'ready'),
+    'the second shake',
+  );
+  assert.equal(actionFor(m, 0)?.kind, 'take');
+  press(m);
+  assert.equal(m.players[0].hands.length, 2);
+  // Full hands take nothing more, but still start a needed dish.
+  shake.lanes[1] = { state: 'ready', t: 0 };
+  assert.notEqual(actionFor(m, 0)?.kind, 'take');
+  // Serving gives the wanted plate before anything else.
+  atTable(m, 0);
+  assert.equal(actionFor(m, 0)?.kind, 'serve');
+  press(m);
+  press(m);
+  assert.deepEqual(m.players[0].hands, []);
+  assert.equal(g.state, 'eat');
+});
+
+await test('leading needs no hands; a stack of dirty plates fills both', () => {
+  const m = fresh();
+  m.players[0].hands = [{ k: 'dish', dish: 'burger', burnt: false }];
+  const g = spawnParty(m, 2);
+  until(m, () => g.state === 'queue', 'the party');
+  atGuest(m, party(m, g)[0]);
+  assert.equal(actionFor(m, 0)?.kind, 'lead', 'plates in hand can still lead');
+  press(m);
+  assert.equal(m.players[0].lead, g.id);
+  atTable(m, 0);
+  assert.equal(actionFor(m, 0)?.kind, 'seat');
+  press(m);
+  assert.equal(m.players[0].hands.length, 1);
+  // A dirty table needs empty hands, and its plates fill every hand.
+  m.tables[1].dirty = true;
+  m.tables[1].plates = 3;
+  atTable(m, 1);
+  assert.notEqual(actionFor(m, 0)?.kind, 'clear');
+  m.players[0].hands = [];
+  assert.equal(actionFor(m, 0)?.kind, 'clear');
+  press(m);
+  assert.deepEqual(m.players[0].hands, [{ k: 'dirty', n: 3 }]);
+  atCounter(m, 'pie');
   assert.notEqual(actionFor(m, 0)?.kind, 'take');
   // A party only sits at a booth big enough for it.
+  m.players[0].hands = [];
   const big = spawnParty(m, 4);
   until(m, () => big.state === 'queue', 'the big party');
-  m.players[0].carry = { k: 'lead', group: big.id };
-  big.state = 'follow';
+  atGuest(m, party(m, big)[0]);
+  press(m);
   atTable(m, 0);
-  assert.equal(actionFor(m, 0), null, 'a two-seat booth is too small');
-  atTable(m, 1);
-  assert.equal(actionFor(m, 0)?.kind, 'seat');
+  assert.notEqual(
+    actionFor(m, 0)?.kind,
+    'seat',
+    'a two-seat booth is too small',
+  );
 });
 
 await test('the same seed and inputs give the same shift', () => {
@@ -413,10 +473,10 @@ await test('nights add stations, booths and mimics', () => {
 });
 
 await test('a party walks around the booths, never through them', () => {
-  const tables = [0, 1, 2, 3, 4];
+  const tables = [0, 1, 2, 3, 4, 5];
   const o = obstacles(tables);
-  const path = route(tables, [3.4, 9.5], [9.2, 2.6]);
-  let [x, z] = [3.4, 9.5];
+  const path = route(tables, [5.2, 9.0], [11.6, 2.6]);
+  let [x, z] = [5.2, 9.0];
   for (const [tx, tz] of path) {
     const n = Math.ceil(Math.hypot(tx - x, tz - z) / 0.05);
     for (let i = 1; i <= n; i++) {
@@ -431,10 +491,10 @@ await test('a party walks around the booths, never through them', () => {
     [x, z] = [tx, tz];
   }
   // Walls and booths stop a waiter.
-  let [sx, sz] = [3.4, 6];
+  let [sx, sz] = [5.2, 5.4];
   for (let i = 0; i < 40; i++) [sx, sz] = slide(sx, sz, 0, -SPEED / HZ, 0.3, o);
   assert.ok(
-    sz >= boothRect({ x: 3.4, z: 4.5, seats: 2 }).z1 + 0.29,
+    sz >= boothRect({ x: 5.2, z: 3.85, seats: 2 }).z1 + 0.29,
     `stopped at ${sx},${sz}`,
   );
   for (let i = 0; i < 80; i++) [sx, sz] = slide(sx, sz, -SPEED / HZ, 0, 0.3, o);
@@ -467,4 +527,20 @@ await test('the bot spots mimics by their outfit and never throws out a real gue
   }
   assert.ok(m.stats.caught >= 2, `caught ${m.stats.caught}`);
   assert.equal(m.stats.wrong, 0);
+});
+
+await test('two waiters throwing out the same mimic never hit a real guest', () => {
+  const m = fresh(2, ['A', 'B']);
+  const g = spawnParty(m, 4, true);
+  until(m, () => g.state === 'queue', 'the party');
+  const mimic = party(m, g).find((x) => x.mimic);
+  for (const pi of [0, 1]) atGuest(m, mimic, pi);
+  assert.equal(outTarget(m, 0), mimic.id);
+  assert.equal(outTarget(m, 1), mimic.id);
+  step(m, [OUT, OUT]);
+  const events = m.events.splice(0);
+  assert.equal(events.filter((e) => e.type === 'reveal').length, 1);
+  assert.ok(events.some((e) => e.type === 'deny' && e.player === 1));
+  assert.equal(m.stats.wrong, 0);
+  assert.equal(m.stars, 5);
 });

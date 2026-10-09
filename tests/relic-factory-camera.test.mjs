@@ -183,16 +183,51 @@ await test('pinching or panning cannot commit any pending placement, drag or era
 });
 
 await test('detail adaptation keeps sharp pixels and shadows at overview and inspection zoom', () => {
-  for (const ratio of [0.67, 0.8, 1, 1.25, 1.5, 2])
+  for (const ratio of [0.67, 0.8, 1, 1.25, 1.5, 2, 3])
     for (const close of [false, true]) {
       const rungs = factoryQuality(ratio, close);
       assert.ok(rungs.length > 0);
       assert.equal(rungs[0].resolution, 1);
       assert.equal(rungs[0].shadowSize, close ? 4096 : 2048);
       for (const rung of rungs) {
-        assert.ok(rung.resolution >= 0.85);
-        assert.ok(rung.resolution * Math.max(1, ratio) >= 1);
+        const native = Math.max(1, ratio);
+        // Native on top; never under 85% of the old 2× cap.
+        assert.ok(rung.resolution * native >= 0.85 * Math.min(native, 2) - 1e-3);
+        assert.ok(rung.resolution * native >= 1);
         assert.ok(rung.shadowSize >= 2048);
       }
+    }
+});
+
+await test('Fit keeps the floor clear of the floating controls along each edge', () => {
+  for (const { w, h, insets } of [
+    { w: 1440, h: 900, insets: { top: 66, right: 0, bottom: 170, left: 0 } },
+    { w: 390, h: 844, insets: { top: 64, right: 0, bottom: 230, left: 0 } },
+    { w: 1024, h: 768, insets: { top: 70, right: 0, bottom: 150, left: 0 } },
+  ])
+    for (const [width, height] of [
+      [8, 5],
+      [16, 9],
+    ]) {
+      const rig = new FactoryCamera();
+      rig.fit(width, height, w, h, insets);
+      let top = Infinity,
+        bottom = -Infinity;
+      for (const x of [-0.4, width + 0.4])
+        for (const z of [-0.4, height + 0.4])
+          for (const y of [-0.35, 0.9]) {
+            const p = new THREE.Vector3(x, y, z).project(rig.camera);
+            top = Math.min(top, ((1 - p.y) / 2) * h);
+            bottom = Math.max(bottom, ((1 - p.y) / 2) * h);
+            assert.ok(Math.abs(p.x) <= 1 + 1e-5, `${w}×${h} horizontal`);
+          }
+      assert.ok(
+        top >= insets.top + 15.9,
+        `${w}×${h} clears the top bar (${top})`,
+      );
+      assert.ok(
+        bottom <= h - insets.bottom - 15.9,
+        `${w}×${h} clears the dock (${bottom})`,
+      );
     }
 });

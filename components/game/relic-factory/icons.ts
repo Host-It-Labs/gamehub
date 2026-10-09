@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import type { MachineKind } from '@/lib/games/relic/factory';
+import { ORDER, type MachineKind } from '@/lib/games/relic/factory';
 import { makeMaterials, chevronTexture } from './look';
 import { beltModel, buildModel, pose, type Pose } from './models';
 import type { MatKey } from './kit';
@@ -8,21 +8,8 @@ import type { MatKey } from './kit';
 /**
  * Palette pictures of the machines, rendered once from the same models the
  * floor uses, so the palette, inspector and notes always match the floor.
- * One small offscreen renderer draws all eleven and is then thrown away.
+ * One small offscreen renderer draws all ten and is then thrown away.
  */
-const KINDS: MachineKind[] = [
-  'belt',
-  'printer',
-  'bot',
-  'cashier',
-  'splitter',
-  'lamp',
-  'ink',
-  'stamper',
-  'gilder',
-  'charm',
-  'bundler',
-];
 let made: Promise<Record<MachineKind, string>> | null = null;
 
 export function machineIcons() {
@@ -52,7 +39,7 @@ function render(): Record<MachineKind, string> {
   renderer.setClearColor(0, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 0.98;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene();
@@ -61,9 +48,9 @@ function render(): Record<MachineKind, string> {
   const env = pmrem.fromScene(room, 0.04);
   room.dispose();
   scene.environment = env.texture;
-  scene.environmentIntensity = 0.55;
-  scene.add(new THREE.HemisphereLight('#fff0d4', '#1c3a31', 1.4));
-  const sun = new THREE.DirectionalLight('#ffe2b4', 2.4);
+  scene.environmentIntensity = 0.4;
+  scene.add(new THREE.HemisphereLight('#fff0d4', '#655e57', 1.4));
+  const sun = new THREE.DirectionalLight('#fff0dc', 2.4);
   sun.position.set(-3, 6, 4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(512, 512);
@@ -96,7 +83,7 @@ function render(): Record<MachineKind, string> {
     .crossVectors(new THREE.Vector3(0, 1, 0), direction)
     .normalize();
   const up = new THREE.Vector3().crossVectors(direction, right).normalize();
-  for (const kind of KINDS) {
+  for (const kind of ORDER) {
     const group = new THREE.Group();
     const add = (
       geo: THREE.BufferGeometry | undefined,
@@ -148,6 +135,8 @@ function render(): Record<MachineKind, string> {
             boost: true,
             hold: 3,
             seed: 0,
+            energy: 1,
+            spin: 0.05,
           },
           posed,
         );
@@ -160,7 +149,7 @@ function render(): Record<MachineKind, string> {
             mats[mat],
             p.pivot,
             p.tint === 'status'
-              ? '#5cff8a'
+              ? '#86e09c'
               : p.tint === 'book'
                 ? '#c8363a'
                 : p.tint === 'boost'
@@ -220,6 +209,5 @@ function render(): Record<MachineKind, string> {
 }
 const BOOST: Partial<Record<MachineKind, string>> = {
   lamp: '#fff0b8',
-  ink: '#3d6bff',
-  charm: '#3fe07f',
+  charm: '#28ad50',
 };

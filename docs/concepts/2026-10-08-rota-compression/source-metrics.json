@@ -1,0 +1,92 @@
+{
+  "vehicles": {
+    "oldShippedBytes": 5563420,
+    "buildBytes": 5563420,
+    "semanticallyIdentical": true,
+    "geometryDifferences": []
+  },
+  "nature": {
+    "oldShippedBytes": 4858272,
+    "buildBytes": 4858272,
+    "semanticallyIdentical": true,
+    "geometryDifferences": []
+  },
+  "town": {
+    "oldShippedBytes": 2301960,
+    "buildBytes": 2301960,
+    "semanticallyIdentical": true,
+    "geometryDifferences": []
+  },
+  "works": {
+    "oldShippedBytes": 2942384,
+    "buildBytes": 2942376,
+    "semanticallyIdentical": false,
+    "geometryDifferences": [
+      {
+        "root": "goods_grand",
+        "before": {
+          "vertices": 4564,
+          "triangles": 2512,
+          "primitives": 15
+        },
+        "after": {
+          "vertices": 4536,
+          "triangles": 2508,
+          "primitives": 15
+        }
+      },
+      {
+        "root": "goods_shed",
+        "before": {
+          "vertices": 3017,
+          "triangles": 1644,
+          "primitives": 14
+        },
+        "after": {
+          "vertices": 3035,
+          "triangles": 1672,
+          "primitives": 14
+        }
+      },
+      {
+        "root": "mill_big",
+        "before": {
+          "vertices": 6083,
+          "triangles": 3536,
+          "primitives": 15
+        },
+        "after": {
+          "vertices": 6084,
+          "triangles": 3536,
+          "primitives": 15
+        }
+      },
+      {
+        "root": "outcrop_a",
+        "before": {
+          "vertices": 7384,
+          "triangles": 3472,
+          "primitives": 8
+        },
+        "after": {
+          "vertices": 7392,
+          "triangles": 3472,
+          "primitives": 8
+        }
+      },
+      {
+        "root": "outcrop_b",
+        "before": {
+          "vertices": 7337,
+          "triangles": 3460,
+          "primitives": 7
+        },
+        "after": {
+          "vertices": 7334,
+          "triangles": 3460,
+          "primitives": 7
+        }
+      }
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-import { createFactory, type FactoryState } from './factory.ts';
+import { createFactory, migrateFactory, type FactoryState } from './factory.ts';
 import {
   BOOKS,
   LEVEL_AT,
@@ -70,7 +70,8 @@ export const STREAK_STEPS = [0, 0.1, 0.25, 0.5] as const;
 export const GOLD_CHANCE = [0, 0.15, 0.3, 0.5, 0.8] as const;
 export const HEART_BONUS = [0, 0.05, 0.1, 0.2, 0.35] as const;
 export const DISCOUNTS = [0, 0.1, 0.2, 0.3, 0.4] as const;
-export const INSURANCE = [0, 0.25, 0.5, 0.75] as const;
+/** Loyalty card: every this many bought tickets, the next one is free. */
+export const LOYALTY = [0, 10, 7, 5] as const;
 export const FREE_CHANCE = [0, 0.05, 0.1, 0.15, 0.25] as const;
 export const EARLY = [1, 0.7, 0.5, 0.3] as const;
 /** A book's own prize upgrade, per rank; factory sales, per rank. */
@@ -78,8 +79,21 @@ export const BOOK_BOOST = 1.5;
 export const SALES = 1.4;
 /** A ticket costs this share of what a careful player wins on average. */
 export const PRICE_SHARE = 0.5;
-/** After difficulty III opens, each level needs 15 more hard tickets than
- * the previous one (15, 30, 45, ...), reduced by Early print. */
+/** Book XP is saved and shown as whole numbers: a careful ticket of
+ * difficulty ∞ earns about this much. */
+export const XP_SCALE = 100;
+/** Each difficulty's share of `XP_SCALE` (I, II, III, ∞): ∞ levels a book
+ * fastest; easier tickets still count, only more slowly. */
+export const XP_WEIGHTS = [0.1, 0.25, 0.5, 1] as const;
+/** The most one ticket's quality can be worth: twice the careful average. */
+export const QUALITY_CAP = 2;
+/** Difficulty ∞ opens at this book level: once level 3 is complete. */
+export const INFINITY_AT = 4;
+/** The book level at which each difficulty (I, II, III, ∞) opens. */
+export const DIFFICULTY_AT = [1, 2, 3, INFINITY_AT] as const;
+/** Book level 4 needs this many careful ∞ tickets' worth of XP after level
+ * 3 (×XP_SCALE), level 5 twice as many, then three times..., reduced by
+ * Early print. */
 export const BOOK_LEVEL_STEP = 15;
 /** Additive prize/price bonus per book level beyond 3, avoiding exponential inflation. */
 export const BOOK_LEVEL_GAIN = 0.5;
@@ -314,14 +328,14 @@ export const UPGRADES: Upgrade[] = [
     show: (r) => (r ? `−${pct(DISCOUNTS[r])}` : 'full'),
   }),
   upgrade({
-    id: 'insurance',
+    id: 'loyalty',
     path: 'shop',
-    name: 'Insurance',
-    label: 'A losing ticket refunds',
+    name: 'Loyalty card',
+    label: 'A free ticket',
     at: [0, 1],
     prices: span(8 * K, 10 * T, 3),
     requires: 'discount',
-    show: (r) => pct(INSURANCE[r]),
+    show: (r) => (r ? `every ${LOYALTY[r]}th` : 'never'),
   }),
   upgrade({
     id: 'freebie',
@@ -337,12 +351,11 @@ export const UPGRADES: Upgrade[] = [
     id: 'early',
     path: 'shop',
     name: 'Early print',
-    label: 'Levels open after',
+    label: 'Book XP per level',
     at: [0.5, 2],
     prices: span(100 * K, 100 * T, 3),
-    requires: 'insurance',
-    show: (r) =>
-      `${Math.ceil(LEVEL_AT[1] * EARLY[r])}/${Math.ceil(LEVEL_AT[2] * EARLY[r])}`,
+    requires: 'loyalty',
+    show: (r) => pct(EARLY[r]),
   }),
   ...BOOKS.flatMap((b, i) => {
     const base = Math.max(500, b.price),
@@ -434,7 +447,7 @@ export const UPGRADES: Upgrade[] = [
   }),
 ];
 export type ScratchState = {
-  version: 4;
+  version: 5;
   upgrades: Record<string, number>;
   unlocked: PackId[];
   /** The ticket each player holds: being scratched, or just paid out. */
@@ -445,9 +458,13 @@ export type ScratchState = {
   completed: number;
   earned: number;
   activeMs: number;
-  /** Tickets finished per book; they open the book's levels. */
+  /** Tickets finished per book. */
   books: Partial<Record<PackId, number>>;
-  /** Difficulty III tickets finished per book; these keep raising its level. */
+  /** Book XP per book, shared by the desk: it sets the book level, which
+   * opens the difficulties (`bookExperience`, `levelOpen`). */
+  xp: Partial<Record<PackId, number>>;
+  /** Version 4 and older: difficulty III tickets per book, read once by the
+   * migration to XP. */
   top?: Partial<Record<PackId, number>>;
   /** Recent purchases, level-ups and payouts, newest last, for the other
    * players' notifications. */
@@ -456,26 +473,34 @@ export type ScratchState = {
   best: number;
   migrationCredit: number;
   factory: FactoryState;
+  /** Tickets bought since the Loyalty card last gave one free. */
+  punches?: number;
 };
 export type FeedEntry = {
   id: number;
   at: number;
   /** The member who did it. */
   by: string;
-  kind: 'book' | 'upgrade' | 'blueprint' | 'machine' | 'win' | 'level' | 'max';
+  kind:
+    | 'book'
+    | 'upgrade'
+    | 'blueprint'
+    | 'machine'
+    | 'win'
+    | 'level'
+    | 'infinity'
+    | 'max';
   /** A book, upgrade, blueprint or machine id. */
   what: string;
-  /** The upgrade's new rank, the level opened, or how many machines. */
+  /** The upgrade's new rank, the book level reached minus one ('level'),
+   * the ticket's difficulty ('win'), 3 ('infinity'), or how many machines. */
   n?: number;
-  /** What a ticket paid, refund included, and what it cost. */
+  /** What a ticket paid and what it cost. */
   amount?: number;
   cost?: number;
 };
 /** Keeps the last few entries: enough for everyone polling to see each one. */
-export function announce(
-  s: ScratchState,
-  entry: Omit<FeedEntry, 'id'>,
-) {
+export function announce(s: ScratchState, entry: Omit<FeedEntry, 'id'>) {
   s.feedId = (s.feedId ?? 0) + 1;
   s.feed = [...(s.feed ?? []), { id: s.feedId, ...entry }].slice(-24);
 }
@@ -511,7 +536,7 @@ export type ScratchResult = {
 };
 export function createScratch(): ScratchState {
   return {
-    version: 4,
+    version: 5,
     upgrades: {},
     unlocked: ['seven'],
     hands: {},
@@ -521,7 +546,7 @@ export function createScratch(): ScratchState {
     earned: 0,
     activeMs: 0,
     books: {},
-    top: {},
+    xp: {},
     feed: [],
     feedId: 0,
     best: 0,
@@ -547,6 +572,7 @@ const OLD_BOOKS = [
 const renamed = (id: string) =>
   BOOKS[OLD_BOOKS.indexOf(id)]?.id ??
   (BOOKS.some((b) => b.id === id) ? (id as PackId) : 'seven');
+const OLD_INSURANCE = span(8 * K, 10 * T, 3);
 /** Version 2 upgrade prices, refunded rank by rank. The floor keeps its rank. */
 const OLD_UPGRADES: Record<string, [number, number]> = {
   coin: [40, 2.2],
@@ -655,7 +681,36 @@ function migrate(g: ScratchHost, old: OldScratch): ScratchState {
   }
   s.migrationCredit = (Number(old.migrationCredit) || 0) + refund;
   g.coins = Math.min(1e18, g.coins + refund);
+  migrateBookXp(s);
   return s;
+}
+/** Version 4 and older counted tickets: books opened II and III after 8 and
+ * 25 tickets, then difficulty III tickets (`top`) raised the level by 15, 30,
+ * 45... Each book gets the XP that puts it at the same level with the same
+ * fraction of the way to the next one, so books past level 3 keep ∞ open. */
+function migrateBookXp(s: ScratchState) {
+  s.xp = {};
+  for (const b of BOOKS) {
+    const played = count(s.books[b.id], 1e15);
+    const opened =
+      played >= levelAt(s, 2) ? 2 : played >= levelAt(s, 1) ? 1 : 0;
+    if (opened < 2) {
+      s.xp[b.id] =
+        bookXpAt(s, opened + 1) +
+        (played - levelAt(s, opened)) * XP_SCALE * xpWeight(opened);
+      continue;
+    }
+    const top = count(s.top?.[b.id], Number.MAX_SAFE_INTEGER),
+      step = bookStep(s),
+      ranks = triangularRank(top, step);
+    s.xp[b.id] = Math.min(
+      Number.MAX_SAFE_INTEGER,
+      bookXpAt(s, 3 + ranks) +
+        (top - (step * ranks * (ranks + 1)) / 2) * XP_SCALE,
+    );
+  }
+  delete s.top;
+  (s as { version: number }).version = 5;
 }
 export function scratchFor(g: ScratchHost): ScratchState {
   const version = (g.scratch as { version?: number } | undefined)?.version;
@@ -664,7 +719,11 @@ export function scratchFor(g: ScratchHost): ScratchState {
   if (version === 3) {
     // Tables of free tickets became one bought ticket in hand; the free
     // tickets still on the tables are retired and nothing else changes.
-    const old = g.scratch as unknown as ScratchState & { tickets?: unknown };
+    const old = g.scratch as unknown as {
+      tickets?: unknown;
+      hands: Record<string, ScratchTicket>;
+      version: number;
+    };
     delete old.tickets;
     old.hands = {};
     old.version = 4;
@@ -705,6 +764,20 @@ export function scratchFor(g: ScratchHost): ScratchState {
     g.coins = Math.min(1e18, g.coins + g.scratch.migrationCredit);
     delete g.arcade;
   }
+  if (version === 3 || version === 4) migrateBookXp(g.scratch);
+  g.scratch.xp ??= {};
+  g.scratch.factory ??= createFactory();
+  // Insurance (until 9 October 2026) gave back part of a losing ticket; a
+  // ticket can now simply lose. Its ranks are refunded and the Loyalty card
+  // takes its place in the shop.
+  const insured = count(g.scratch.upgrades.insurance, OLD_INSURANCE.length);
+  if (insured) {
+    const refund = OLD_INSURANCE.slice(0, insured).reduce((a, b) => a + b, 0);
+    g.coins = Math.min(1e18, g.coins + refund);
+  }
+  delete g.scratch.upgrades.insurance;
+  const factoryRefund = migrateFactory(g.scratch.factory);
+  if (factoryRefund) g.coins = Math.min(1e18, g.coins + factoryRefund);
   return g.scratch;
 }
 
@@ -733,37 +806,98 @@ export function packOpen(s: ScratchState, id: PackId) {
 export function nextBook(s: ScratchState) {
   return BOOKS.find((p) => !packOpen(s, p.id));
 }
-/** Tickets finished in a book before level `k` opens. */
+/** Careful tickets' worth of XP before difficulty `k` (I, II, III) opens,
+ * shortened by Early print. */
 export function levelAt(s: ScratchState, k: number) {
+  if (k < 0 || k >= LEVEL_AT.length) return Infinity;
   return Math.ceil(
     LEVEL_AT[k] * EARLY[Math.min(level(s, 'early'), EARLY.length - 1)],
   );
 }
-/** The highest level of a book this desk has played its way into. */
-export function levelOpen(s: ScratchState, id: PackId) {
-  const played = s.books[id] ?? 0;
-  return LEVEL_AT.filter((_, k) => played >= levelAt(s, k)).length - 1;
+/** Careful ∞ tickets' worth of XP for book level 4; later levels need two,
+ * three, four... times as much. */
+function bookStep(s: ScratchState) {
+  return Math.ceil(
+    BOOK_LEVEL_STEP * EARLY[Math.min(level(s, 'early'), EARLY.length - 1)],
+  );
 }
-/** Shared book experience, separate from the three puzzle difficulties.
- * The original books/top counters keep old saves, including maxed books,
- * progressing without a reset. There is no gameplay level cap. */
-export function bookExperience(s: ScratchState, id: PackId) {
-  const difficulty = levelOpen(s, id);
-  if (difficulty < 2) {
-    const from = levelAt(s, difficulty), to = levelAt(s, difficulty + 1);
-    return { level: difficulty + 1, current: (s.books[id] ?? 0) - from, needed: to - from };
-  }
-  const step = Math.ceil(BOOK_LEVEL_STEP * EARLY[Math.min(level(s, 'early'), EARLY.length - 1)]);
-  const played = s.top?.[id] ?? 0;
-  // Invert the triangular total in constant time, even for very old saves.
-  let ranks = Math.floor((Math.sqrt(1 + 8 * played / step) - 1) / 2);
-  const threshold = (rank: number) => step * rank * (rank + 1) / 2;
-  if (threshold(ranks + 1) <= played) ranks++;
-  if (threshold(ranks) > played) ranks--;
-  return { level: 3 + ranks, current: played - threshold(ranks), needed: step * (ranks + 1) };
+/** How many triangular steps (step, 2·step, 3·step...) fit in `total`. */
+function triangularRank(total: number, step: number) {
+  // Inverted in constant time, even for very large totals.
+  let ranks = Math.floor((Math.sqrt(1 + (8 * total) / step) - 1) / 2);
+  const threshold = (rank: number) => (step * rank * (rank + 1)) / 2;
+  if (threshold(ranks + 1) <= total) ranks++;
+  if (threshold(ranks) > total) ranks--;
+  return Math.max(0, ranks);
+}
+/** A difficulty's share of a full XP unit (`XP_WEIGHTS`). */
+export function xpWeight(lvl: number): number {
+  return XP_WEIGHTS[
+    Math.max(0, Math.min(XP_WEIGHTS.length - 1, Math.floor(lvl) || 0))
+  ];
+}
+/** The book XP at which book level `bookLvl` starts: level 2 after 8 careful
+ * difficulty I tickets (10 XP each), level 3 after 17 careful II tickets
+ * (25 XP each), then 15, 30, 45... careful ∞ tickets (100 XP each) per level.
+ * Early print shortens every step. */
+export function bookXpAt(s: ScratchState, bookLvl: number): number {
+  const lvl = Math.floor(bookLvl);
+  if (lvl <= 1) return 0;
+  const second = levelAt(s, 1) * XP_SCALE * xpWeight(0);
+  if (lvl === 2) return second;
+  const third =
+      second + (levelAt(s, 2) - levelAt(s, 1)) * XP_SCALE * xpWeight(1),
+    ranks = lvl - 3;
+  return third + (bookStep(s) * XP_SCALE * ranks * (ranks + 1)) / 2;
+}
+/** The desk's book XP for one book: a whole number, never negative. */
+export function bookXp(s: ScratchState, id: PackId) {
+  return count(s.xp?.[id], Number.MAX_SAFE_INTEGER);
+}
+/** The book level and the XP gathered toward the next one (`current` of
+ * `needed`, whole numbers). Levels never stop; each beyond 3 adds
+ * `BOOK_LEVEL_GAIN` to prizes and prices. */
+export function bookExperience(
+  s: ScratchState,
+  id: PackId,
+): { level: number; current: number; needed: number } {
+  const xp = bookXp(s, id),
+    second = bookXpAt(s, 2),
+    third = bookXpAt(s, 3);
+  if (xp < second) return { level: 1, current: xp, needed: second };
+  if (xp < third)
+    return { level: 2, current: xp - second, needed: third - second };
+  const step = bookStep(s) * XP_SCALE,
+    beyond = xp - third,
+    ranks = triangularRank(beyond, step);
+  return {
+    level: 3 + ranks,
+    current: beyond - (step * ranks * (ranks + 1)) / 2,
+    needed: step * (ranks + 1),
+  };
 }
 export function bookLevel(s: ScratchState, id: PackId) {
   return bookExperience(s, id).level;
+}
+/** The highest difficulty open for a book: II at book level 2, III at 3 and
+ * ∞ (3) at `INFINITY_AT`. Any easier difficulty can still be chosen. */
+export function levelOpen(s: ScratchState, id: PackId): 0 | 1 | 2 | 3 {
+  const lvl = bookLevel(s, id);
+  return lvl >= INFINITY_AT ? 3 : lvl >= 3 ? 2 : lvl >= 2 ? 1 : 0;
+}
+/** Book XP still missing before difficulty `k` opens (0 once it is open). */
+export function xpToOpen(s: ScratchState, id: PackId, k: number) {
+  const at = DIFFICULTY_AT[Math.max(0, Math.min(DIFFICULTY_AT.length - 1, k))];
+  return Math.max(0, bookXpAt(s, at) - bookXp(s, id));
+}
+/** Book XP still missing before difficulty ∞ opens, for its lock. */
+export function xpToInfinity(s: ScratchState, id: PackId) {
+  return xpToOpen(s, id, 3);
+}
+/** The difficulty factory printers print and bots play: the highest open,
+ * but never ∞, which stays a hand-played ticket. */
+export function printLevel(s: ScratchState, id: PackId) {
+  return Math.min(LEVEL_AT.length - 1, levelOpen(s, id));
 }
 export function bookBonus(s: ScratchState, id: PackId) {
   return 1 + Math.max(0, bookLevel(s, id) - 3) * BOOK_LEVEL_GAIN;
@@ -772,8 +906,14 @@ export function levelProgress(s: ScratchState, id: PackId) {
   const { current, needed } = bookExperience(s, id);
   return Math.max(0, Math.min(1, current / needed));
 }
+/** A difficulty's prize multiplier (`LEVEL_MULT`). Mastery raises the step
+ * from I to II and II to III; ∞ adds its own fixed step on top of III. */
 export function levelMult(mastery: number, lvl: number) {
-  return (LEVEL_MULT[1] + mastery * 0.5) ** Math.max(0, Math.min(2, lvl));
+  const d = Math.max(0, Math.min(LEVEL_MULT.length - 1, Math.floor(lvl) || 0));
+  return (
+    (LEVEL_MULT[1] + mastery * 0.5) ** Math.min(2, d) *
+    (d === 3 ? LEVEL_MULT[3] / LEVEL_MULT[2] : 1)
+  );
 }
 export function brushRadius(s: ScratchState) {
   return 0.03 * COIN_SIZES[Math.min(level(s, 'coin'), COIN_SIZES.length - 1)];
@@ -813,6 +953,30 @@ function expectedUnits(id: PackId, lvl: number) {
   const [units, perfect] = AVERAGES[id]?.[lvl] ?? [10, 0];
   return units * (1 + perfect * (JACKPOTS[0] - 1));
 }
+/** How well a finished ticket was played, for book XP: the prize units it
+ * won (golden seals and the jackpot upgrades left out, a perfect ticket's
+ * plain ×3 jackpot kept, so hitting the jackpot is the big bonus) over what a
+ * careful player wins on average at that book and difficulty. Half the
+ * average or less (a losing ticket) earns nothing, the average earns 1, and
+ * it stops at `QUALITY_CAP`. */
+export function ticketQuality(t: ScratchTicket): number {
+  if (!t.ended) return 0;
+  const units =
+    t.cells.reduce((sum, c) => sum + (c.paid ? c.prize : 0), 0) + t.bonus;
+  const ratio =
+    (units * (t.perfect ? JACKPOTS[0] : 1)) / expectedUnits(t.pack, t.level);
+  if (!(ratio > 0.5)) return 0;
+  return ratio < 1 ? 2 * ratio - 1 : Math.min(QUALITY_CAP, ratio);
+}
+/** The whole book XP a finished ticket earns: `XP_SCALE` × its difficulty's
+ * weight × its quality, never more than the current level's whole step, so
+ * one ticket can never skip a level. */
+export function ticketXp(t: ScratchTicket, s: ScratchState): number {
+  return Math.min(
+    bookExperience(s, t.pack).needed,
+    Math.round(XP_SCALE * xpWeight(t.level) * ticketQuality(t)),
+  );
+}
 /** What a ticket costs: half of what a careful player wins with it on
  * average, so a careless or unlucky ticket can lose. Richer prizes raise the
  * stakes; the jackpot, stars, streaks and the shop tilt the odds. */
@@ -835,6 +999,11 @@ export function houseTicket(
   lvl: number,
 ) {
   return id === 'seven' && lvl === 0 && coins < ticketPrice(s, id, 0);
+}
+/** The Loyalty card's free ticket is the next one. */
+export function loyaltyDue(s: ScratchState) {
+  const every = LOYALTY[Math.min(level(s, 'loyalty'), LOYALTY.length - 1)];
+  return every > 0 && (s.punches ?? 0) >= every - 1;
 }
 /** Seconds a ticket may take for the quick-hands bonus. */
 export function quickSeconds(t: ScratchTicket) {
@@ -862,54 +1031,62 @@ export function ticketReward(t: ScratchTicket, s: ScratchState, streak = 0) {
       hearts,
   );
 }
-/** Average prize units and perfect rate per book level for a careful player,
- * measured with `suggest` over 2 000 tickets each. */
+/** Average prize units and perfect rate per difficulty (I, II, III, ∞) for a
+ * careful player, measured with `suggest` over 2 000 tickets each. */
 export const AVERAGES: Record<PackId, [number, number][]> = {
   seven: [
     [18, 1],
     [29, 0.92],
     [32.5, 0.35],
+    [39, 0.13],
   ],
   twins: [
     [57.5, 1],
     [57.5, 1],
     [57.5, 1],
+    [72, 1],
   ],
   path: [
     [26, 1],
     [41, 1],
     [53, 0.82],
+    [42, 0.4],
   ],
   ladder: [
     [12, 0.27],
     [21, 0.14],
     [22, 0.07],
+    [24, 0.06],
   ],
   mine: [
     [29.5, 0.6],
     [36, 0.38],
     [40, 0.19],
+    [38, 0.1],
   ],
   sunmoon: [
     [34.5, 1],
     [41.5, 1],
     [47, 1],
+    [81.5, 1],
   ],
   chart: [
     [31, 0.95],
     [45.5, 0.9],
     [49, 0.58],
+    [56, 0.41],
   ],
   crown: [
     [36, 1],
     [42, 1],
     [48, 1],
+    [48, 1],
   ],
 };
 /** What a factory bot's ticket pays on average: a bot plays the book's
- * highest open level, at its skill, without stars or streaks. */
+ * `printLevel` (never ∞), at its skill, without stars or streaks. */
 export function botReward(s: ScratchState, id: PackId) {
-  const lvl = levelOpen(s, id),
+  const lvl = printLevel(s, id),
     [units, perfect] = AVERAGES[id]?.[lvl] ?? [10, 0];
   const skill = botSkill(level(s, 'cashiers'));
   return (
@@ -1034,7 +1211,28 @@ export function rubTicket(
   }
   return reveals;
 }
-/** Pays a finished ticket once. */
+/** Tells the desk a book gained a level ('level', `n` is the level minus
+ * one) and, the first time, that its ∞ difficulty opened ('infinity'). */
+function announceBookProgress(
+  s: ScratchState,
+  id: PackId,
+  before: { level: number; open: number },
+  actor: string,
+  now: number,
+) {
+  const reached = bookLevel(s, id);
+  if (reached > before.level)
+    announce(s, {
+      at: now,
+      by: actor,
+      kind: 'level',
+      what: id,
+      n: reached - 1,
+    });
+  if (before.open < 3 && levelOpen(s, id) === 3)
+    announce(s, { at: now, by: actor, kind: 'infinity', what: id, n: 3 });
+}
+/** Pays a finished ticket and adds the book XP it earned, once. */
 function settle(
   g: ScratchHost,
   s: ScratchState,
@@ -1045,30 +1243,25 @@ function settle(
   const streak = s.streaks[actor] ?? 0;
   t.quick = now - (t.bornAt ?? now) <= quickSeconds(t) * 1000;
   t.payout = ticketReward(t, s, streak);
-  // Insurance gives back part of what a losing ticket lost.
-  const lost = (t.cost ?? 0) - t.payout,
-    cover = INSURANCE[Math.min(level(s, 'insurance'), 3)];
-  t.refund = lost > 0 && cover ? Math.floor(lost * cover) : 0;
   t.claimed = true;
   s.streaks[actor] = t.perfect ? Math.min(10, streak + 1) : 0;
   s.completed++;
-  const opened = bookLevel(s, t.pack);
+  const before = { level: bookLevel(s, t.pack), open: levelOpen(s, t.pack) };
+  t.xp = ticketXp(t, s);
+  s.xp[t.pack] = Math.min(Number.MAX_SAFE_INTEGER, bookXp(s, t.pack) + t.xp);
   s.books[t.pack] = (s.books[t.pack] ?? 0) + 1;
-  if (t.level === LEVEL_AT.length - 1)
-    (s.top ??= {})[t.pack] = (s.top[t.pack] ?? 0) + 1;
   s.best = Math.max(s.best, t.payout);
-  earn(g, t.payout + t.refund);
+  earn(g, t.payout);
   announce(s, {
     at: now,
     by: actor,
     kind: 'win',
     what: t.pack,
     n: t.level,
-    amount: t.payout + t.refund,
+    amount: t.payout,
     cost: t.cost ?? 0,
   });
-  if (bookLevel(s, t.pack) > opened)
-    announce(s, { at: now, by: actor, kind: 'level', what: t.pack, n: bookLevel(s, t.pack) - 1 });
+  announceBookProgress(s, t.pack, before, actor, now);
 }
 export function handFor(s: ScratchState, actor: string) {
   return s.hands[actor] as ScratchTicket | undefined;
@@ -1088,9 +1281,25 @@ export function actScratch(
       throw new Error('Buy the upgrade before it first.');
     const cost = upgradeCost(s, u);
     if (g.coins < cost) throw new Error('You need more coins for that.');
+    // Early print shortens every level, so books may level up at once.
+    const before =
+      u.id === 'early'
+        ? s.unlocked.map((id) => ({
+            id,
+            level: bookLevel(s, id),
+            open: levelOpen(s, id),
+          }))
+        : [];
     g.coins -= cost;
     s.upgrades[u.id] = level(s, u.id) + 1;
-    announce(s, { at: now, by: actorId, kind: 'upgrade', what: u.id, n: s.upgrades[u.id] });
+    announce(s, {
+      at: now,
+      by: actorId,
+      kind: 'upgrade',
+      what: u.id,
+      n: s.upgrades[u.id],
+    });
+    for (const b of before) announceBookProgress(s, b.id, b, actorId, now);
     return {};
   }
   if (action.type === 'scratch-book') {
@@ -1113,14 +1322,19 @@ export function actScratch(
     if (hand && !hand.ended)
       throw new Error('Finish the ticket in your hand first.');
     const free = houseTicket(s, g.coins, action.pack, lvl),
+      loyal = !free && loyaltyDue(s),
       price = ticketPrice(s, action.pack, lvl);
-    if (!free && g.coins < price)
+    if (!free && !loyal && g.coins < price)
       throw new Error('You need more coins for that ticket.');
     const lucky =
       !free &&
+      !loyal &&
       level(s, 'freebie') > 0 &&
       random(g) < FREE_CHANCE[Math.min(level(s, 'freebie'), 4)];
-    const cost = free || lucky ? 0 : price;
+    const cost = free || loyal || lucky ? 0 : price;
+    // Bought tickets punch the Loyalty card; its free ticket starts it over.
+    if (loyal) s.punches = 0;
+    else if (cost) s.punches = (s.punches ?? 0) + 1;
     g.coins -= cost;
     const ticket = printTicket(
       s.nextId++,
@@ -1137,7 +1351,7 @@ export function actScratch(
     ticket.star = random(g) < starChance(level(s, 'star'));
     ticket.cost = cost;
     s.hands[actorId] = ticket;
-    return { scratchCost: cost, scratchFree: lucky || free };
+    return { scratchCost: cost, scratchFree: lucky || free || loyal };
   }
   const ticket = hand?.id === action.ticket ? hand : undefined;
   if (!ticket) throw new Error('Your ticket changed. Your desk is refreshing.');

@@ -14,6 +14,7 @@ import {
   TICK,
   WIDTH,
   canDeployAt,
+  clearAttackLine,
   dist,
   onField,
   sideOf,
@@ -131,7 +132,7 @@ export const botLevels = {
     attackAt: 8.5,
     smart: 1,
     jitter: 0.6,
-    engage: 15.5,
+    engage: 14.5,
     support: true,
     punish: true,
     coverage: true,
@@ -178,13 +179,17 @@ const each = (u: Unit) =>
     ? 0.5
     : troopCards[u.card].cost / troopCards[u.card].formation.length;
 
+const durability = (u: Unit) => u.hp + u.shield;
+const fullDurability = (u: Unit) => u.maxHp + u.maxShield;
+const healthShare = (u: Unit) => durability(u) / fullDurability(u);
+
 /** Whether a spell our side already cast will finish this troop. */
 function doomed(m: Match, side: Side, u: Unit) {
   const r = unitStats(u).radius;
   return m.spells.some(
     (s) =>
       s.side === side &&
-      s.damage >= u.hp &&
+      s.damage >= durability(u) &&
       dist(u.x - s.x, u.y - s.y) <= s.radius + r,
   );
 }
@@ -203,7 +208,7 @@ function threats(m: Match, side: Side): Threat[] {
     );
     if (!units.length) continue;
     let cost = 0;
-    for (const u of units) cost += each(u) * (u.hp / u.maxHp);
+    for (const u of units) cost += each(u) * healthShare(u);
     const lead = units.reduce((a, b) =>
       depthOf(side, b.y) < depthOf(side, a.y) ? b : a,
     );
@@ -214,7 +219,7 @@ function threats(m: Match, side: Side): Threat[] {
         dist(f.x - lead.x, f.y - lead.y) < 5 &&
         depthOf(side, f.y) < 17
       )
-        covered += each(f) * (f.hp / f.maxHp);
+        covered += each(f) * healthShare(f);
     out.push({
       lane,
       units,
@@ -320,6 +325,7 @@ function place(
   x: number,
   y: number,
   card?: CardId,
+  target?: Unit,
 ): [number, number] | null {
   // Try the spot, then rings around it, until the rules allow one.
   for (let r = 0; r <= 4; r += 0.5) {
@@ -328,7 +334,28 @@ function place(
       const a = (i / steps) * Math.PI * 2;
       const px = Math.round((x + Math.cos(a) * r) * 2) / 2;
       const py = Math.round((y + Math.sin(a) * r) * 2) / 2;
-      if (canDeployAt(m, side, px, py, card)) return [px, py];
+      if (!canDeployAt(m, side, px, py, card)) continue;
+      const troop = card && troopOf(card);
+      // A legal drop behind a tower can still leave every shot blocked.
+      // Defenders choose a nearby opening, including each swarm member.
+      if (
+        target &&
+        troop &&
+        !troop.unit.flying &&
+        troop.unit.projectile?.kind !== 'shell' &&
+        !troop.formation.every(([ox, oy]) =>
+          clearAttackLine(
+            m,
+            {
+              x: px + ox * (side === 0 ? 1 : -1),
+              y: py + oy * (side === 0 ? 1 : -1),
+            },
+            target,
+          ),
+        )
+      )
+        continue;
+      return [px, py];
     }
   }
   return null;
@@ -340,9 +367,10 @@ function play(
   slot: number,
   x: number,
   y: number,
+  target?: Unit,
 ): BotMove | null {
   const card = m.players[mem.player].hand.cards[slot];
-  const spot = place(m, mem.side, x, y, card);
+  const spot = place(m, mem.side, x, y, card, target);
   return spot ? { player: mem.player, slot, x: spot[0], y: spot[1] } : null;
 }
 
@@ -413,6 +441,7 @@ function defend(m: Match, mem: BotMemory, t: Threat) {
     choice.slot,
     x + jitter(),
     atDepth(side, depth) + jitter(),
+    lead,
   );
 }
 
@@ -474,7 +503,28 @@ function attack(m: Match, mem: BotMemory): BotMove | null {
   // Knowing the enemy just spent big is the moment to punish the other lane.
   const enemies = m.players.filter((p) => p.side === enemySide);
   const theirs = enemies.reduce((sum, p) => sum + p.elixir, 0) / enemies.length;
-  const punish = level.punish && theirs < 3 && elixir >= 4;
+  const committed = m.units
+    .filter(
+      (u) => u.side === enemySide && u.hp > 0 && depthOf(enemySide, u.y) > 6,
+    )
+    .sort((a, b) => each(b) * healthShare(b) - each(a) * healthShare(a))[0];
+  const punishLane = committed ? (laneOf(committed.x) === 0 ? 1 : 0) : null;
+  // Low elixir alone does not mean an open lane: the troop they just
+  // bought may be defending it. Punish a push committed to the other
+  // lane, and keep building a supported attack when both lanes are held.
+  const punish =
+    level.punish &&
+    theirs < 3 &&
+    elixir >= 4 &&
+    punishLane !== null &&
+    !m.units.some(
+      (u) =>
+        u.side === enemySide &&
+        u.hp > 0 &&
+        laneOf(u.x) === punishLane &&
+        depthOf(enemySide, u.y) < 20 &&
+        healthShare(u) > 0.4,
+    );
   if (elixir < level.attackAt && !punish) return null;
   const enemy = m.towers.filter(
     (t) => t.side === enemySide && t.kind === 'princess',
@@ -484,10 +534,7 @@ function attack(m: Match, mem: BotMemory): BotMove | null {
     .slice()
     .sort((a, b) => (a.destroyed ? -1 : a.hp) - (b.destroyed ? -1 : b.hp))[0]
     .lane as 0 | 1;
-  if (punish) {
-    const busy = threats(m, side)[0];
-    if (busy) lane = busy.lane === 0 ? 1 : 0;
-  }
+  if (punish) lane = punishLane!;
   if (mem.level === 'easy') {
     const options = affordable(m, mem);
     if (!options.length) return null;
@@ -606,8 +653,12 @@ function lead(m: Match, u: Unit, delay: number, how: Lead): [number, number] {
 
 /** Elixir worth a spell destroys on a troop, with a little extra for a kill. */
 function spellWorth(u: Unit, spell: SpellStats) {
-  const dealt = Math.min(u.hp, spell.damage);
-  return (each(u) * dealt) / u.maxHp + (dealt >= u.hp ? each(u) * 0.25 : 0);
+  const remaining = durability(u);
+  const dealt = Math.min(remaining, spell.damage);
+  return (
+    (each(u) * dealt) / fullDurability(u) +
+    (dealt >= remaining ? each(u) * 0.25 : 0)
+  );
 }
 
 /**
@@ -696,7 +747,10 @@ function meteor(m: Match, mem: BotMemory): BotMove | null {
   for (const at of spots) {
     const { hits, value } = score(at[0], at[1]);
     // One troop alone must be worth half as much again.
-    const need = (hits >= 2 ? level.worth : level.worth + 0.5) + short;
+    // A defensive cast already buys the time that the reserve protects.
+    // Keeping three elixir should not prevent clearing a push at home.
+    const reserve = depthOf(side, at[1]) < LENGTH / 2 ? 0 : short;
+    const need = (hits >= 2 ? level.worth : level.worth + 0.5) + reserve;
     if (value >= need) good.push({ at, value });
   }
   if (!good.length) return null;

@@ -1,0 +1,10 @@
+{
+  "buildMs": 1316.9590409999998,
+  "deterministic": true,
+  "hashes": {
+    "vehicles": "7cf8ef26da242b78736b7e4f552fe88886bc5e2d435d086ef6f21b625437e31a",
+    "nature": "1de73f03b403f50ba536acb4c65771674031f52703b3f249f2c149cce938191c",
+    "town": "c01b9eebae8e34c591550b6a2924fb03cebe8187957405830491f6c78e0ee186",
+    "works": "64f4a61383b30126a465a967b5be2ddce50dd862f3fa0dad7f12fc0dd9d64cf8"
+  }
+}

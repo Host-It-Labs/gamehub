@@ -724,6 +724,7 @@ export function RotaTable({
         stage={stage}
         onWorld={(w) => (world3d.current = w)}
         livery={viewSeat}
+        dusk={over ? 1 : (0.8 * (g.round - 1)) / Math.max(1, g.rounds - 1)}
         map={map}
         cells={over ? g.seats[viewSeat].cells : me.cells}
         rubble={g.seats[viewSeat].rubble}

@@ -2,6 +2,8 @@ import {
   cards,
   deck,
   isSpell,
+  SHIELD_DELAY,
+  SHIELD_RECHARGE,
   troopCards,
   type CardId,
   type ProjectileKind,
@@ -29,6 +31,7 @@ export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Mode = 'duel' | 'team';
 
 export const TICK = 1 / 30;
+export const ARENA_MATCH_VERSION = 7;
 export const WIDTH = 18;
 export const LENGTH = 32;
 /** The river runs across the middle, from y 15 to 17. */
@@ -91,6 +94,8 @@ export type Unit = {
   targetId: number | null;
   /** Seconds until the next hit while attacking. */
   attackTimer: number;
+  /** Authoritative long-body heading; old snapshots recover from side. */
+  bodyDirection?: [number, number];
   /** Radians, 0 facing +y (towards the bot). */
   facing: number;
   /** Seconds since the last hit landed, for the swing animation. */
@@ -100,11 +105,18 @@ export type Unit = {
    *  tower never change it; only chasing a troop across the middle does. */
   lane: 0 | 1;
   bridge: number;
+  /** A clear corner on the route around a building, kept until reached.
+   *  Null when walking straight to its current goal. */
+  detour: { x: number; y: number; target: number | null } | null;
   /** Damage and speed multipliers from the owner's card level and boosts. */
   power: number;
   pace: number;
   /** Hit points left on a shield (0 without one). */
   shield: number;
+  /** The shield's full pool, including the owner's level and boosts. */
+  maxShield: number;
+  /** Seconds without damage still needed before the shield recharges. */
+  shieldDelay: number;
   /** Seconds it is stopped by a stun. */
   stun: number;
   /** Leaping at its target (the Pirate). */
@@ -350,7 +362,8 @@ export type MatchOptions = {
 };
 
 export type Match = {
-  version: 5;
+  /** Version 5 and 6 snapshots migrate before replay or their first step. */
+  version: 5 | 6 | 7;
   mode: Mode;
   /** Seconds of regulation time; overtime follows. */
   regulation: number;
@@ -411,6 +424,683 @@ export const flipY = (y: number) => LENGTH - y;
 /** Distance without Math.hypot, whose last digit differs between browsers. */
 export const dist = (dx: number, dy: number) => Math.sqrt(dx * dx + dy * dy);
 
+/** The largest drawn tower bases, including the king's projecting door.
+ *  These rounded squares are solid on every camera; combat radii remain
+ *  the circles in towerStats. The renderer must never grow shells beyond
+ *  these footprints at 0.9 times the native shell size. */
+export const towerFootprint: Record<
+  TowerKind,
+  { half: number; corner: number }
+> = {
+  king: { half: 1.8, corner: 0.18 },
+  princess: { half: 1.314, corner: 0.18 },
+};
+
+/** A drawn troop's body and normal stride, at the largest portrait scale.
+ *  Weapons can reach beyond the body; the Dino also has an oriented hull. This
+ *  clearance only concerns buildings: troop spacing and bridge widths
+ *  retain their gameplay radii. Longer animated strides shorten near walls. */
+const BUILDING_RADII: Partial<Record<TroopId, number>> = {
+  ogre: 1.3,
+  sumo: 1.3,
+  archers: 1.03,
+  duelist: 1.38,
+  gladiator: 1.2,
+  mage: 1.33,
+};
+export const troopBuildingRadius = (card: TroopId) =>
+  BUILDING_RADII[card] ?? troopCards[card].unit.radius * 2.1;
+
+/** Signed distance from a point to a building's solid edge. */
+export function towerGap(t: Tower, x: number, y: number) {
+  const { half, corner } = towerFootprint[t.kind];
+  const core = half - corner;
+  const dx = Math.abs(x - t.x) - core;
+  const dy = Math.abs(y - t.y) - core;
+  return (
+    dist(Math.max(dx, 0), Math.max(dy, 0)) +
+    Math.min(Math.max(dx, dy), 0) -
+    corner
+  );
+}
+
+/** The surface normal at a point on or inside an expanded building. */
+export function towerNormal(t: Tower, x: number, y: number): [number, number] {
+  const core = towerFootprint[t.kind].half - towerFootprint[t.kind].corner;
+  const dx = x - t.x;
+  const dy = y - t.y;
+  const nx = dx - clamp(dx, -core, core);
+  const ny = dy - clamp(dy, -core, core);
+  const d = dist(nx, ny);
+  if (d > 1e-9) return [nx / d, ny / d];
+  if (Math.abs(dx) > Math.abs(dy)) return [dx < 0 ? -1 : 1, 0];
+  return [0, dy < 0 ? -1 : dy > 0 ? 1 : t.side === 0 ? 1 : -1];
+}
+
+/** At the largest phone scale: a narrow head/countertail capsule and the
+ *  ordinary 1.3-tile stance. Troop separation and bridges remain unchanged. */
+export const dinoBuildingFootprint = { radius: 0.85, front: 2.35, rear: 3.45 };
+export type BodyDirection = readonly [number, number];
+const forward: BodyDirection = [0, 1];
+export const unitBodyDirection = (
+  u: Pick<Unit, 'bodyDirection' | 'side'>,
+): BodyDirection => u.bodyDirection ?? (u.side === 0 ? forward : [0, -1]);
+type Hull = {
+  points: number[];
+  directionX: number;
+  directionY: number;
+  winding: number;
+  radius: number;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+};
+const dinoHulls: Record<TowerKind, WeakMap<BodyDirection, Hull>> = {
+  king: new WeakMap(),
+  princess: new WeakMap(),
+};
+
+/** Minkowski difference of a tower's square core and the capsule axis.
+ *  Six ordered vertices avoid a hull sort; rounding is applied separately. */
+function dinoHull(kind: TowerKind, direction: BodyDirection): Hull {
+  const cache = dinoHulls[kind];
+  const [fx, fy] = direction;
+  const old = cache.get(direction);
+  if (old && old.directionX === fx && old.directionY === fy) return old;
+  const sx = fx < 0 ? -1 : 1;
+  const sy = fy < 0 ? -1 : 1;
+  const core = towerFootprint[kind].half - towerFootprint[kind].corner;
+  const { front, rear, radius } = dinoBuildingFootprint;
+  const ax = -front * fx,
+    ay = -front * fy;
+  const bx = rear * fx,
+    by = rear * fy;
+  const cx = core * sx,
+    cy = core * sy;
+  const made = {
+    directionX: fx,
+    directionY: fy,
+    points: [
+      ax - cx,
+      ay - cy,
+      ax + cx,
+      ay - cy,
+      bx + cx,
+      by - cy,
+      bx + cx,
+      by + cy,
+      bx - cx,
+      by + cy,
+      ax - cx,
+      ay + cy,
+    ],
+    winding: sx * sy,
+    radius: towerFootprint[kind].corner + radius,
+    minX: Math.min(ax, bx) - core,
+    maxX: Math.max(ax, bx) + core,
+    minY: Math.min(ay, by) - core,
+    maxY: Math.max(ay, by) + core,
+  };
+  cache.set(direction, made);
+  return made;
+}
+
+function hullContact(
+  hull: Hull,
+  x: number,
+  y: number,
+): [number, number, number] {
+  const p = hull.points;
+  let inside = true,
+    best = Infinity,
+    qx = 0,
+    qy = 0,
+    nx = 0,
+    ny = 1;
+  for (let i = 0; i < p.length; i += 2) {
+    const j = (i + 2) % p.length;
+    const dx = p[j] - p[i],
+      dy = p[j + 1] - p[i + 1];
+    const size2 = dx * dx + dy * dy;
+    if (size2 < 1e-18) continue;
+    const rx = x - p[i],
+      ry = y - p[i + 1];
+    if ((dx * ry - dy * rx) * hull.winding < -1e-10) inside = false;
+    const at = clamp((rx * dx + ry * dy) / size2, 0, 1);
+    const cx = p[i] + dx * at,
+      cy = p[i + 1] + dy * at;
+    const ox = x - cx,
+      oy = y - cy,
+      d2 = ox * ox + oy * oy;
+    if (d2 < best) {
+      best = d2;
+      qx = cx;
+      qy = cy;
+      const size = Math.sqrt(size2);
+      nx = (dy * hull.winding) / size;
+      ny = (-dx * hull.winding) / size;
+    }
+  }
+  const d = Math.sqrt(best);
+  if (d > 1e-9) {
+    nx = ((x - qx) / d) * (inside ? -1 : 1);
+    ny = ((y - qy) / d) * (inside ? -1 : 1);
+  }
+  return [(inside ? -d : d) - hull.radius, nx, ny];
+}
+
+function troopContact(
+  t: Tower,
+  card: TroopId,
+  x: number,
+  y: number,
+  direction: BodyDirection,
+): [number, number, number] {
+  const gap = towerGap(t, x, y) - troopBuildingRadius(card);
+  if (card === 'ogre') {
+    const contact = hullContact(dinoHull(t.kind, direction), x - t.x, y - t.y);
+    if (contact[0] < gap) return contact;
+  }
+  const [nx, ny] = towerNormal(t, x, y);
+  return [gap, nx, ny];
+}
+
+/** Pure signed clearance of the complete building hull (zero is contact). */
+export function troopTowerGap(
+  t: Tower,
+  card: TroopId,
+  x: number,
+  y: number,
+  direction: BodyDirection = forward,
+) {
+  const body = towerGap(t, x, y) - troopBuildingRadius(card);
+  return card === 'ogre'
+    ? Math.min(
+        body,
+        hullContact(dinoHull(t.kind, direction), x - t.x, y - t.y)[0],
+      )
+    : body;
+}
+
+function troopTowerClear(
+  t: Tower,
+  card: TroopId,
+  x: number,
+  y: number,
+  direction: BodyDirection,
+  margin = 0,
+) {
+  if (towerGap(t, x, y) - troopBuildingRadius(card) < margin - 1e-9)
+    return false;
+  if (card !== 'ogre') return true;
+  const hull = dinoHull(t.kind, direction),
+    r = hull.radius + margin;
+  if (
+    x - t.x < hull.minX - r ||
+    x - t.x > hull.maxX + r ||
+    y - t.y < hull.minY - r ||
+    y - t.y > hull.maxY + r
+  )
+    return true;
+  return hullContact(hull, x - t.x, y - t.y)[0] >= margin - 1e-9;
+}
+
+/** Pure recovery projection, shared by deployment, snapshots and audits.
+ *  Normal walking uses swept contacts rather than this recovery jump. */
+export function projectTroopBuildings(
+  towers: readonly Tower[],
+  card: TroopId,
+  x: number,
+  y: number,
+  direction: BodyDirection = forward,
+  margin = 0,
+): [number, number] {
+  const s = troopCards[card].unit;
+  if (s.flying) return [x, y];
+  const ox = x,
+    oy = y;
+  const clear = (cx: number, cy: number) =>
+    towers.every(
+      (t) => t.destroyed || troopTowerClear(t, card, cx, cy, direction, margin),
+    );
+  for (let pass = 0; pass < 8; pass++) {
+    let changed = false;
+    for (const t of towers) {
+      if (t.destroyed) continue;
+      const [gap, nx, ny] = troopContact(t, card, x, y, direction);
+      if (gap >= margin - 1e-9) continue;
+      x = clamp(x + nx * (margin - gap + 1e-6), s.radius, WIDTH - s.radius);
+      y = clamp(y + ny * (margin - gap + 1e-6), s.radius, LENGTH - s.radius);
+      changed = true;
+    }
+    if (!changed) {
+      if (!inRiver(x, y, s.radius)) return [x, y];
+      break;
+    }
+  }
+  if (clear(x, y) && !inRiver(x, y, s.radius)) return [x, y];
+  const xs = [ox, x, s.radius, WIDTH - s.radius],
+    ys = [oy, y, s.radius, LENGTH - s.radius];
+  for (const t of towers) {
+    if (t.destroyed) continue;
+    const edge =
+      towerFootprint[t.kind].half + troopBuildingRadius(card) + margin + 1e-6;
+    xs.push(
+      clamp(t.x - edge, s.radius, WIDTH - s.radius),
+      clamp(t.x + edge, s.radius, WIDTH - s.radius),
+    );
+    ys.push(
+      clamp(t.y - edge, s.radius, LENGTH - s.radius),
+      clamp(t.y + edge, s.radius, LENGTH - s.radius),
+    );
+    if (card === 'ogre') {
+      const hull = dinoHull(t.kind, direction);
+      for (let i = 0; i < hull.points.length; i += 2) {
+        xs.push(
+          clamp(
+            t.x + hull.points[i] - hull.radius - margin - 1e-6,
+            s.radius,
+            WIDTH - s.radius,
+          ),
+          clamp(
+            t.x + hull.points[i] + hull.radius + margin + 1e-6,
+            s.radius,
+            WIDTH - s.radius,
+          ),
+        );
+        ys.push(
+          clamp(
+            t.y + hull.points[i + 1] - hull.radius - margin - 1e-6,
+            s.radius,
+            LENGTH - s.radius,
+          ),
+          clamp(
+            t.y + hull.points[i + 1] + hull.radius + margin + 1e-6,
+            s.radius,
+            LENGTH - s.radius,
+          ),
+        );
+      }
+    }
+  }
+  let best = Infinity;
+  const uniqueYs = [...new Set(ys)];
+  for (const cx of new Set(xs))
+    for (const cy of uniqueYs) {
+      if (inRiver(cx, cy, s.radius) || !clear(cx, cy)) continue;
+      const d2 = (cx - ox) * (cx - ox) + (cy - oy) * (cy - oy);
+      if (d2 < best) {
+        best = d2;
+        x = cx;
+        y = cy;
+      }
+    }
+  return [x, y];
+}
+
+function hullEntry(hull: Hull, x: number, y: number, vx: number, vy: number) {
+  const p = hull.points,
+    r = hull.radius,
+    speed2 = vx * vx + vy * vy;
+  if (speed2 <= 1e-18) return null;
+  if (
+    Math.min(x, x + vx) > hull.maxX + r ||
+    Math.max(x, x + vx) < hull.minX - r ||
+    Math.min(y, y + vy) > hull.maxY + r ||
+    Math.max(y, y + vy) < hull.minY - r
+  )
+    return null;
+  let best = Infinity;
+  for (let i = 0; i < p.length; i += 2) {
+    const j = (i + 2) % p.length,
+      k = (i + p.length - 2) % p.length;
+    const dx = p[j] - p[i],
+      dy = p[j + 1] - p[i + 1],
+      len = dist(dx, dy);
+    if (len > 1e-9) {
+      const nx = (dy * hull.winding) / len,
+        ny = (-dx * hull.winding) / len;
+      const into = vx * nx + vy * ny;
+      if (into < -1e-9) {
+        const at = (r - (x - p[i]) * nx - (y - p[i + 1]) * ny) / into;
+        const along =
+          ((x + vx * at - p[i]) * dx + (y + vy * at - p[i + 1]) * dy) / len;
+        if (at >= -1e-9 && at <= 1 && along >= -1e-9 && along <= len + 1e-9)
+          best = Math.min(best, Math.max(0, at));
+      }
+    }
+    const cx = x - p[i],
+      cy = y - p[i + 1],
+      b = cx * vx + cy * vy,
+      c = cx * cx + cy * cy - r * r;
+    const discr = b * b - speed2 * c;
+    if (discr < 0) continue;
+    const at = (-b - Math.sqrt(discr)) / speed2;
+    if (at < -1e-9 || at > 1) continue;
+    const qx = cx + vx * at,
+      qy = cy + vy * at;
+    if (
+      qx * (p[i] - p[k]) + qy * (p[i + 1] - p[k + 1]) < -1e-9 ||
+      qx * dx + qy * dy > 1e-9 ||
+      qx * vx + qy * vy >= -1e-9
+    )
+      continue;
+    best = Math.min(best, Math.max(0, at));
+  }
+  return best === Infinity ? null : best;
+}
+
+function troopBuildingEntry(
+  m: Match,
+  u: Unit,
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+  except?: Tower,
+  direction = unitBodyDirection(u),
+) {
+  let best = buildingEntry(
+    m,
+    x,
+    y,
+    vx,
+    vy,
+    troopBuildingRadius(u.card),
+    except,
+  );
+  if (u.card !== 'ogre') return best;
+  for (const t of m.towers) {
+    if (t.destroyed || t === except) continue;
+    const at = hullEntry(dinoHull(t.kind, direction), x - t.x, y - t.y, vx, vy);
+    if (at !== null && (!best || at < best.at)) best = { tower: t, at };
+  }
+  return best;
+}
+
+/** Fixed numeric rotation keeps collision independent of browser trig. */
+const TURN_COS = 0.9950041652780258,
+  TURN_SIN = 0.09983341664682815;
+function turnDino(m: Match, u: Unit, wx: number, wy: number) {
+  const d = dist(wx, wy);
+  if (d < 1e-9) return;
+  const tx = wx / d,
+    ty = wy / d,
+    [hx, hy] = unitBodyDirection(u);
+  const dot = hx * tx + hy * ty,
+    cross = hx * ty - hy * tx;
+  if (dot > 1 - 1e-14) {
+    u.facing = Math.atan2(hx, hy);
+    return;
+  }
+  const sign = cross < 0 ? -1 : cross > 0 ? 1 : u.id % 2 ? 1 : -1;
+  const nx = dot >= TURN_COS ? tx : hx * TURN_COS - hy * TURN_SIN * sign;
+  const ny = dot >= TURN_COS ? ty : hy * TURN_COS + hx * TURN_SIN * sign;
+  const at = (fraction: number): [number, number] => {
+    const x = hx + (nx - hx) * fraction,
+      y = hy + (ny - hy) * fraction,
+      size = dist(x, y);
+    return [x / size, y / size];
+  };
+  const safe = (fraction: number) => {
+    for (let i = 0; i <= 32; i++) {
+      const k = i / 32,
+        heading = at(fraction * k);
+      const x = u.px + (u.x - u.px) * k,
+        y = u.py + (u.y - u.py) * k;
+      if (
+        m.towers.some(
+          (t) =>
+            !t.destroyed &&
+            !troopTowerClear(t, u.card, x, y, heading, 0.0001 * k),
+        )
+      )
+        return false;
+    }
+    return true;
+  };
+  let fraction = 1;
+  if (!safe(1)) {
+    let lo = 0,
+      hi = 1;
+    for (let i = 0; i < 8; i++) {
+      const mid = (lo + hi) / 2;
+      if (safe(mid)) lo = mid;
+      else hi = mid;
+    }
+    fraction = lo;
+  }
+  u.bodyDirection = at(fraction);
+  u.facing = Math.atan2(u.bodyDirection[0], u.bodyDirection[1]);
+}
+
+/** First entry of a segment into a rounded square expanded by padding.
+ *  Exact face/corner intersections prevent long shoves and fast leaps
+ *  tunnelling through a building whose far side is otherwise clear. */
+function towerEntry(
+  t: Tower,
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+  padding: number,
+) {
+  const { half, corner } = towerFootprint[t.kind];
+  const core = half - corner;
+  const r = corner + padding;
+  const ox = x - t.x;
+  const oy = y - t.y;
+  const speed2 = vx * vx + vy * vy;
+  if (speed2 <= 1e-18) return null;
+  let best = Infinity;
+  for (const sign of [-1, 1]) {
+    if (sign * vx < -1e-9) {
+      const at = (sign * (core + r) - ox) / vx;
+      if (at >= -1e-9 && at <= 1 && Math.abs(oy + vy * at) <= core)
+        best = Math.min(best, Math.max(0, at));
+    }
+    if (sign * vy < -1e-9) {
+      const at = (sign * (core + r) - oy) / vy;
+      if (at >= -1e-9 && at <= 1 && Math.abs(ox + vx * at) <= core)
+        best = Math.min(best, Math.max(0, at));
+    }
+    for (const sy of [-1, 1]) {
+      const cx = ox - sign * core;
+      const cy = oy - sy * core;
+      const b = cx * vx + cy * vy;
+      const c = cx * cx + cy * cy - r * r;
+      const discriminant = b * b - speed2 * c;
+      if (discriminant < 0) continue;
+      const at = (-b - Math.sqrt(discriminant)) / speed2;
+      if (at < -1e-9 || at > 1) continue;
+      const qx = ox + vx * at;
+      const qy = oy + vy * at;
+      if (sign * qx < core - 1e-9 || sy * qy < core - 1e-9) continue;
+      if ((qx - sign * core) * vx + (qy - sy * core) * vy >= -1e-9) continue;
+      best = Math.min(best, Math.max(0, at));
+    }
+  }
+  return best === Infinity ? null : best;
+}
+
+function buildingEntry(
+  m: Match,
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+  padding = 0,
+  except?: Tower,
+) {
+  let best: { tower: Tower; at: number } | null = null;
+  for (const t of m.towers) {
+    if (t.destroyed || t === except) continue;
+    const at = towerEntry(t, x, y, vx, vy, padding);
+    if (at !== null && (!best || at < best.at)) best = { tower: t, at };
+  }
+  return best;
+}
+
+/** Pure contact query shared by the tick and interpolated drawing. An
+ *  elevated guard shot, lobbed shell or flying bomb can clear buildings;
+ *  every ground-level shot stops at the first solid facade. */
+export const isGroundProjectile = (p: Pick<Projectile, 'sz' | 'kind'>) =>
+  p.sz <= 1.5 && p.kind !== 'shell' && p.kind !== 'bomb' && p.kind !== 'drop';
+
+export function projectileWall(
+  m: Match,
+  p: Projectile,
+  dx: number,
+  dy: number,
+) {
+  if (!isGroundProjectile(p)) return null;
+  // Old snapshots allowed shots through buildings. A recovered low shot
+  // already inside stone is absorbed immediately, before the swept entry
+  // query (which assumes an outside origin) can carry it out the far side.
+  for (const tower of m.towers)
+    if (!tower.destroyed && towerGap(tower, p.x, p.y) < -1e-9)
+      return { tower, at: 0 };
+  return buildingEntry(m, p.x, p.y, dx, dy);
+}
+
+/** Recover old/injected positions and formation offsets deterministically. */
+function clearBuildings(m: Match, u: Unit) {
+  const s = unitStats(u);
+  if (s.flying) return;
+  if (u.card === 'ogre') {
+    if (!u.bodyDirection) u.bodyDirection = [...unitBodyDirection(u)];
+    const [x, y] = projectTroopBuildings(
+      m.towers,
+      u.card,
+      u.x,
+      u.y,
+      u.bodyDirection,
+    );
+    const recovered = x !== u.x || y !== u.y;
+    u.x = x;
+    u.y = y;
+    if (
+      recovered &&
+      m.towers.some(
+        (t) =>
+          !t.destroyed &&
+          troopTowerGap(t, u.card, u.px, u.py, u.bodyDirection) < -1e-9,
+      )
+    ) {
+      u.px = x;
+      u.py = y;
+    }
+    return;
+  }
+  const padding = troopBuildingRadius(u.card);
+  let recovered = false;
+  for (let pass = 0; pass < 3; pass++) {
+    let changed = false;
+    for (const t of m.towers) {
+      if (t.destroyed) continue;
+      const gap = towerGap(t, u.x, u.y);
+      if (gap >= padding - 1e-9) continue;
+      const [nx, ny] = towerNormal(t, u.x, u.y);
+      const move = padding - gap + 1e-6;
+      let x = clamp(u.x + nx * move, s.radius, WIDTH - s.radius);
+      let y = clamp(u.y + ny * move, s.radius, LENGTH - s.radius);
+      // Behind a king, the nearest projection can be outside the field.
+      // Pick the nearest feasible side instead of pushing back into it.
+      if (towerGap(t, x, y) < padding - 1e-9) {
+        let best = Infinity;
+        const edge = towerFootprint[t.kind].half + padding + 1e-6;
+        for (const [sx, sy] of [
+          [0, 1],
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+        ]) {
+          const cx = clamp(
+            sx ? t.x + sx * edge : u.x,
+            s.radius,
+            WIDTH - s.radius,
+          );
+          const cy = clamp(
+            sy ? t.y + sy * edge : u.y,
+            s.radius,
+            LENGTH - s.radius,
+          );
+          if (towerGap(t, cx, cy) < padding - 1e-9) continue;
+          const dx = cx - u.x;
+          const dy = cy - u.y;
+          const d = dx * dx + dy * dy;
+          if (d < best) {
+            best = d;
+            x = cx;
+            y = cy;
+          }
+        }
+      }
+      u.x = x;
+      u.y = y;
+      changed = true;
+      recovered = true;
+    }
+    if (!changed) break;
+  }
+  if (!recovered) return;
+  const clear = (x: number, y: number) =>
+    m.towers.every((t) => t.destroyed || towerGap(t, x, y) >= padding - 1e-9);
+  if (!clear(u.x, u.y)) {
+    // Alternating projections can approach an overlapping pair of bases
+    // without clearing both. Only for that recovery case, try their face
+    // boundaries together; the fixed candidate set also has field corners.
+    const xs = [u.x, s.radius, WIDTH - s.radius];
+    const ys = [u.y, s.radius, LENGTH - s.radius];
+    for (const t of m.towers) {
+      if (t.destroyed) continue;
+      const edge = towerFootprint[t.kind].half + padding + 1e-6;
+      for (const sign of [-1, 1]) {
+        xs.push(clamp(t.x + sign * edge, s.radius, WIDTH - s.radius));
+        ys.push(clamp(t.y + sign * edge, s.radius, LENGTH - s.radius));
+      }
+    }
+    let best = Infinity;
+    let tx = u.x;
+    let ty = u.y;
+    for (const x of xs)
+      for (const y of ys) {
+        if (inRiver(x, y, s.radius) || !clear(x, y)) continue;
+        const dx = x - u.x;
+        const dy = y - u.y;
+        const distance = dx * dx + dy * dy;
+        if (distance < best) {
+          best = distance;
+          tx = x;
+          ty = y;
+        }
+      }
+    u.x = tx;
+    u.y = ty;
+  }
+  // An invalid restored position should snap clear rather than interpolate
+  // from inside stone. Ordinary swept movement keeps its previous position.
+  if (!clear(u.px, u.py)) {
+    u.px = u.x;
+    u.py = u.y;
+  }
+}
+
+function moveBody(m: Match, u: Unit, vx: number, vy: number) {
+  if (!unitStats(u).flying) {
+    clearBuildings(m, u);
+    const hit = troopBuildingEntry(m, u, u.x, u.y, vx, vy);
+    if (hit) {
+      const at = Math.max(0, hit.at - 1e-6);
+      vx *= at;
+      vy *= at;
+    }
+  }
+  u.x += vx;
+  u.y += vy;
+}
+
 export const seatCount = (mode: Mode) => (mode === 'team' ? 4 : 2);
 export const sideOf = (player: number): Side => (player % 2) as Side;
 
@@ -425,7 +1115,7 @@ export function createMatch(
   options: MatchOptions = {},
 ) {
   const m: Match = {
-    version: 5,
+    version: ARENA_MATCH_VERSION,
     mode,
     regulation: options.regulation ?? REGULATION,
     rngState: seed >>> 0,
@@ -517,6 +1207,23 @@ const inRiver = (x: number, y: number, r: number) =>
 export const onField = (x: number, y: number) =>
   x >= 0.5 && x <= WIDTH - 0.5 && y >= 0.5 && y <= LENGTH - 0.5;
 
+function clearDrop(m: Match, side: Side, x: number, y: number, card?: CardId) {
+  const troop = card && !isSpell(card) ? troopCards[card] : undefined;
+  const padding = troop ? troopBuildingRadius(troop.id) : 0.2;
+  const dir = side === 0 ? 1 : -1;
+  return (troop?.formation ?? [[0, 0]]).every(
+    ([ox, oy]) =>
+      !m.towers.some(
+        (t) =>
+          !t.destroyed &&
+          (troop
+            ? troopTowerGap(t, troop.id, x + ox * dir, y + oy * dir, [0, dir]) <
+              0
+            : towerGap(t, x + ox * dir, y + oy * dir) < padding),
+      ),
+  );
+}
+
 /** Whether a side may drop a troop at (x, y) right now. A troop that
  *  burrows (the Miner) may go anywhere on the field off the water. */
 export function canDeployAt(
@@ -528,13 +1235,7 @@ export function canDeployAt(
 ) {
   if (!onField(x, y)) return false;
   const burrows = !!card && !isSpell(card) && !!troopCards[card].unit.burrow;
-  if (burrows)
-    return (
-      !inRiver(x, y, 0.3) &&
-      !m.towers.some(
-        (t) => !t.destroyed && dist(x - t.x, y - t.y) < t.radius + 0.4,
-      )
-    );
+  if (burrows) return !inRiver(x, y, 0.3) && clearDrop(m, side, x, y, card);
   // Your own half, or a pocket past the river once that lane's tower fell.
   const own = side === 0 ? y <= RIVER[0] - 0.5 : y >= RIVER[1] + 0.5;
   let pocket = false;
@@ -548,9 +1249,7 @@ export function canDeployAt(
     }
   }
   if (!own && !pocket) return false;
-  return !m.towers.some(
-    (t) => !t.destroyed && dist(x - t.x, y - t.y) < t.radius + 0.2,
-  );
+  return clearDrop(m, side, x, y, card);
 }
 
 /** Whether a side may play this card at (x, y): troops by `canDeployAt`,
@@ -725,6 +1424,7 @@ export function summon(
   const level = levelScale(boost, parent?.card ?? card);
   const stats = troopCards[card].unit;
   const hp = Math.round(stats.hp * level * (boost.troopHp ?? 1));
+  const shield = Math.round((stats.shield ?? 0) * level * (boost.troopHp ?? 1));
   const ux = clamp(x, stats.radius, WIDTH - stats.radius);
   const uy = clamp(y, stats.radius, LENGTH - stats.radius);
   const u: Unit = {
@@ -743,12 +1443,18 @@ export function summon(
     targetId: null,
     attackTimer: stats.firstHit,
     facing: side === 0 ? 0 : Math.PI,
+    ...(card === 'ogre'
+      ? { bodyDirection: [0, side === 0 ? 1 : -1] as [number, number] }
+      : {}),
     sinceHit: 99,
     lane,
     bridge: -1,
+    detour: null,
     power: level * (boost.troopDamage ?? 1),
     pace: boost.troopSpeed ?? 1,
-    shield: Math.round((stats.shield ?? 0) * level * (boost.troopHp ?? 1)),
+    shield,
+    maxShield: shield,
+    shieldDelay: 0,
     stun: 0,
     dash: false,
     charged: false,
@@ -766,6 +1472,9 @@ export function summon(
     slowFactor: 1,
     beat: 1,
   };
+  clearBuildings(m, u);
+  u.px = u.x;
+  u.py = u.y;
   m.units.push(u);
   return u;
 }
@@ -781,6 +1490,8 @@ export const plainUnit = {
   power: 1,
   pace: 1,
   shield: 0,
+  maxShield: 0,
+  shieldDelay: 0,
   stun: 0,
   dash: false,
   charged: false,
@@ -791,6 +1502,7 @@ export const plainUnit = {
   slow: 0,
   slowFactor: 1,
   beat: 1,
+  detour: null,
 } satisfies Partial<Unit>;
 
 /** The stun and chain fields of a shot that has none. */
@@ -830,6 +1542,56 @@ const radiusOf = (b: Unit | Tower) =>
 const flying = (b: Unit | Tower) => !isTower(b) && unitStats(b).flying;
 const edge = (a: Body, b: Unit | Tower) =>
   dist(a.x - b.x, a.y - b.y) - radiusOf(b);
+
+/** Ground melee can strike the solid edge from outside its larger drawn
+ *  body. Ranged reach retains the card's existing combat circle. */
+function attackEdge(u: Unit, b: Unit | Tower) {
+  const s = unitStats(u);
+  if (isTower(b) && !s.flying && !s.projectile && !s.cone)
+    return (
+      troopTowerGap(
+        b,
+        u.card,
+        u.x,
+        u.y,
+        u.card === 'ogre'
+          ? (() => {
+              const dx = b.x - u.x,
+                dy = b.y - u.y,
+                d = dist(dx, dy) || 1;
+              return [dx / d, dy / d] as const;
+            })()
+          : unitBodyDirection(u),
+      ) + s.radius
+    );
+  return edge(u, b);
+}
+
+/** Whether a ground attack has a clear line between two positions. */
+export function clearAttackLine(
+  m: Match,
+  from: Body,
+  to: Body,
+  except?: Tower,
+) {
+  return !buildingEntry(
+    m,
+    from.x,
+    from.y,
+    to.x - from.x,
+    to.y - from.y,
+    0,
+    except,
+  );
+}
+
+/** A high bomb arc or flyer clears buildings. Ground-level attacks need
+ *  a clear line, excluding only the tower they intend to strike. */
+function visibleAttack(m: Match, u: Unit, target: Unit | Tower) {
+  const s = unitStats(u);
+  if (s.flying || s.projectile?.kind === 'shell') return true;
+  return clearAttackLine(m, u, target, isTower(target) ? target : undefined);
+}
 
 /** Can this unit (or tower) hit that body at all. */
 function canTarget(targets: 'any' | 'ground' | 'buildings', b: Unit | Tower) {
@@ -896,7 +1658,11 @@ function acquire(m: Match, u: Unit) {
       reach <= s.sight + 0.25
     )
       return current;
-    if (isTower(current) && u.state === 'attacking' && reach <= s.range + 0.1)
+    if (
+      isTower(current) &&
+      u.state === 'attacking' &&
+      attackEdge(u, current) <= s.range + 0.1
+    )
       return current;
   }
   let best: Unit | Tower | undefined;
@@ -974,52 +1740,109 @@ function steer(u: Unit, tx: number, ty: number, own = false): [number, number] {
  * A ground troop's step direction (vx, vy) bent round any standing tower it
  * would walk into, so it slides along the tower at full speed instead of
  * pushing into it (heading straight at a tower's centre used to cancel the
- * step against `separate`'s push-out for good). The keep-off circle is the
+ * step against `separate`'s push-out for good). The solid footprint is the
  * one `separate` enforces. It turns to the side its goal lies on; dead ahead
  * it passes on the side facing the middle of the field, then towards the
- * river. The tower it is walking to is left alone: it stops in range.
+ * river. The goal's building is solid too; melee stops at its outside edge.
  */
 function skirt(
   m: Match,
   u: Unit,
-  target: Unit | Tower,
+  wx: number,
+  wy: number,
   vx: number,
   vy: number,
   step: number,
 ): [number, number] {
   const s = unitStats(u);
   if (s.flying) return [vx, vy];
-  for (const t of m.towers) {
-    if (t.destroyed || t === target) continue;
-    const min = t.radius + s.radius * 0.8;
-    const ox = u.x - t.x;
-    const oy = u.y - t.y;
-    const qx = ox + vx * step;
-    const qy = oy + vy * step;
+  const hit = troopBuildingEntry(m, u, u.x, u.y, vx * step, vy * step);
+  if (hit) {
+    const t = hit.tower;
+    const [, nx, ny] = troopContact(
+      t,
+      u.card,
+      u.x + vx * step * hit.at,
+      u.y + vy * step * hit.at,
+      unitBodyDirection(u),
+    );
+    const into = vx * nx + vy * ny;
+    if (into >= 0) return [vx, vy];
+    // Pick the side from the waypoint relative to the building, not the
+    // troop's changing position. A flat wall otherwise reverses its
+    // tangent after every sidestep towards a centred goal.
+    let tx = -ny;
+    let ty = nx;
+    const towards = tx * (wx - t.x) + ty * (wy - t.y);
+    const inward = tx * (WIDTH / 2 - t.x);
+    const forward = ty * (MID - t.y);
+    const choice =
+      Math.abs(towards) > 1e-9
+        ? towards
+        : inward !== 0
+          ? inward
+          : forward !== 0
+            ? forward
+            : tx;
+    if (choice < 0) {
+      tx = -tx;
+      ty = -ty;
+    }
+    vx = tx;
+    vy = ty;
+  }
+  return [vx, vy];
+}
+
+/** A second melee body approaches the side of an ally already fighting
+ *  a tower instead of walking into its back until the building falls. */
+function flank(
+  m: Match,
+  u: Unit,
+  target: Unit | Tower | null,
+  vx: number,
+  vy: number,
+  by: number,
+): [number, number] {
+  const s = unitStats(u);
+  if (!target || !isTower(target) || s.flying || s.projectile || s.cone)
+    return [vx, vy];
+  for (const friend of m.units) {
+    if (
+      friend === u ||
+      friend.side !== u.side ||
+      friend.hp <= 0 ||
+      friend.state !== 'attacking' ||
+      friend.targetId !== target.id ||
+      unitStats(friend).flying
+    )
+      continue;
+    const min = s.radius + unitStats(friend).radius + 0.03;
+    const ox = u.x - friend.x;
+    const oy = u.y - friend.y;
+    const qx = ox + vx * by;
+    const qy = oy + vy * by;
     if (qx * qx + qy * qy >= min * min) continue;
-    const o = dist(ox, oy);
-    if (o < 0.001) continue;
-    const nx = ox / o;
-    const ny = oy / o;
+    const d = dist(ox, oy);
+    if (d < 1e-9) continue;
+    const nx = ox / d;
+    const ny = oy / d;
     const into = vx * nx + vy * ny;
     if (into >= 0) continue;
-    // What is left of the step once the part into the tower is taken out.
     let tx = vx - into * nx;
     let ty = vy - into * ny;
-    let tl = dist(tx, ty);
-    if (tl < 1e-9) {
+    let size = dist(tx, ty);
+    if (size < 1e-9) {
       tx = -ny;
       ty = nx;
-      const inward = tx * (WIDTH / 2 - t.x);
-      const forward = ty * (MID - u.y);
-      if ((inward !== 0 ? inward : forward !== 0 ? forward : tx) < 0) {
+      if (tx * (WIDTH / 2 - target.x) < 0) {
         tx = -tx;
         ty = -ty;
       }
-      tl = 1;
+      size = 1;
     }
-    vx = tx / tl;
-    vy = ty / tl;
+    vx = tx / size;
+    vy = ty / size;
   }
   return [vx, vy];
 }
@@ -1072,11 +1895,11 @@ function damage(m: Match, target: Unit | Tower, amount: number, from: Side) {
     blocked = amount - kept;
     amount = kept;
   }
-  if (target.shield > 0) {
-    // A shield takes the whole hit, however much is left of it.
-    target.shield -= amount;
-    if (target.shield <= 0) {
-      target.shield = 0;
+  if (target.maxShield > 0 && amount > 0) target.shieldDelay = SHIELD_DELAY;
+  const absorbed = Math.min(target.shield, amount);
+  if (absorbed > 0) {
+    target.shield -= absorbed;
+    if (target.shield === 0) {
       m.events.push({
         type: 'shield',
         id: target.id,
@@ -1084,7 +1907,8 @@ function damage(m: Match, target: Unit | Tower, amount: number, from: Side) {
         y: target.y,
       });
     }
-  } else target.hp -= amount;
+  }
+  target.hp -= amount - absorbed;
   m.events.push({
     type: 'hit',
     id: target.id,
@@ -1098,10 +1922,9 @@ function damage(m: Match, target: Unit | Tower, amount: number, from: Side) {
 /** Pushes a troop (nx, ny) by `by` tiles; a ground troop never crosses the
  *  middle of the river (it stops at a bridge's middle), and `separate`
  *  settles it clear of the water and the towers afterwards. */
-function shove(e: Unit, nx: number, ny: number, by: number) {
+function shove(m: Match, e: Unit, nx: number, ny: number, by: number) {
   const y0 = e.y;
-  e.x += nx * by;
-  e.y += ny * by;
+  moveBody(m, e, nx * by, ny * by);
   const crossed = y0 < MID ? e.y >= MID : e.y < MID;
   if (!unitStats(e).flying && crossed)
     e.y = y0 < MID ? MID - 0.001 : MID + 0.001;
@@ -1129,7 +1952,7 @@ function knock(
   if (unitStats(target).mass >= mass) return;
   const [nx, ny] = away(u, target);
   const { x: fx, y: fy } = target;
-  shove(target, nx, ny, distance);
+  shove(m, target, nx, ny, distance);
   pushed(m, target, u.id, fx, fy);
 }
 
@@ -1208,10 +2031,11 @@ function spray(
     if (d - es.radius > s.range + 0.05) continue;
     // Inside the cone, or right against the nozzle.
     if (d > es.radius + s.radius && dx * nx + dy * ny < cone.cos * d) continue;
+    if (!visibleAttack(m, u, e)) continue;
     damage(m, e, amount, u.side);
     if (!es.flying && e.state !== 'deploying' && es.mass < cone.mass) {
       const { x: fx, y: fy } = e;
-      shove(e, nx, ny, cone.push);
+      shove(m, e, nx, ny, cone.push);
       pushed(m, e, u.id, fx, fy);
     }
   }
@@ -1284,17 +2108,24 @@ function splashAt(
   amount: number,
   air: boolean,
   ground: boolean,
+  /** Melee swings cannot pass through an intervening building. */
+  source?: Unit,
 ) {
   for (const e of m.units) {
     if (e.side === side || e.hp <= 0) continue;
     const f = unitStats(e).flying;
     if ((f && !air) || (!f && !ground)) continue;
+    if (source && !visibleAttack(m, source, e)) continue;
     if (dist(e.x - x, e.y - y) <= radius + unitStats(e).radius)
       damage(m, e, amount, side);
   }
   for (const t of m.towers) {
     if (t.side === side || t.destroyed || !ground) continue;
-    if (dist(t.x - x, t.y - y) <= radius + t.radius) damage(m, t, amount, side);
+    const reach = source
+      ? attackEdge(source, t)
+      : dist(t.x - x, t.y - y) - t.radius;
+    if (reach <= radius && (!source || visibleAttack(m, source, t)))
+      damage(m, t, amount, side);
   }
 }
 
@@ -1359,6 +2190,20 @@ function beats(m: Match) {
 
 function stepUnits(m: Match) {
   beats(m);
+  // Tick every shield before any melee hit, so a hit restarts a full delay
+  // regardless of the attacker's position in the unit list.
+  for (const u of m.units) {
+    if (u.hp <= 0 || u.maxShield <= 0) continue;
+    // Refill only the part of this tick after the quiet delay expires.
+    // Real elapsed time governs shields: haste, frost and stun do not.
+    const quiet = Math.max(0, TICK - u.shieldDelay);
+    u.shieldDelay = Math.max(0, u.shieldDelay - TICK);
+    if (quiet > 0 && u.shield < u.maxShield)
+      u.shield = Math.min(
+        u.maxShield,
+        u.shield + (u.maxShield / SHIELD_RECHARGE) * quiet,
+      );
+  }
   // Bees let out this step are in the list too; they only start deploying.
   for (const u of m.units) {
     u.px = u.x;
@@ -1428,8 +2273,18 @@ function stepUnits(m: Match) {
       if (s.tackle) u.charged = true;
       if (u.state === 'attacking') u.state = 'walking';
     }
-    const reach = edge(u, target);
-    if (reach <= s.range) {
+    const reach = attackEdge(u, target);
+    let aligned = true;
+    if (u.card === 'ogre' && reach <= s.range) {
+      const dx = target.x - u.x,
+        dy = target.y - u.y,
+        d = dist(dx, dy) || 1;
+      turnDino(m, u, dx, dy);
+      const [hx, hy] = unitBodyDirection(u);
+      aligned = (hx * dx) / d + (hy * dy) / d > 0.9999;
+    }
+    if (reach <= s.range && visibleAttack(m, u, target) && aligned) {
+      u.detour = null;
       if (u.dash) {
         // Landing a leap: the blow falls at once, twice as hard.
         u.dash = false;
@@ -1437,7 +2292,8 @@ function stepUnits(m: Match) {
         u.attackTimer = 0;
       }
       u.state = 'attacking';
-      u.facing = Math.atan2(target.x - u.x, target.y - u.y);
+      if (u.card !== 'ogre')
+        u.facing = Math.atan2(target.x - u.x, target.y - u.y);
       u.attackTimer -= TICK * tempo;
       if (u.attackTimer <= 0) {
         u.attackTimer += s.hitSpeed / quick;
@@ -1474,6 +2330,7 @@ function stepUnits(m: Match) {
               amount,
               s.targets === 'any',
               true,
+              u,
             );
           else if (s.splash)
             splashAt(
@@ -1527,6 +2384,7 @@ function stepUnits(m: Match) {
       target.x,
       target.y,
       u.dash && s.leap ? s.leap.speed : speed,
+      u.card === 'ogre' && reach <= s.range,
     );
   }
 }
@@ -1540,24 +2398,202 @@ function walkTowards(
   tx: number,
   ty: number,
   speed: number,
+  turned = false,
 ) {
-  const [wx, wy] = steer(u, tx, ty, !!target && isTower(target));
+  clearBuildings(m, u);
+  let [wx, wy] = steer(u, tx, ty, !!target && isTower(target));
+  if (!unitStats(u).flying) {
+    const goal =
+      target &&
+      isTower(target) &&
+      troopTowerGap(target, u.card, wx, wy, unitBodyDirection(u)) < 0
+        ? target
+        : undefined;
+    const blocked = troopBuildingEntry(
+      m,
+      u,
+      u.x,
+      u.y,
+      wx - u.x,
+      wy - u.y,
+      goal,
+    );
+    if (!blocked) u.detour = null;
+    else {
+      const old = u.detour;
+      if (
+        !old ||
+        old.target !== (target?.id ?? null) ||
+        dist(old.x - u.x, old.y - u.y) < unitStats(u).radius + 0.1 ||
+        ((u.card !== 'ogre' || m.tick % 12 === 0) &&
+          troopBuildingEntry(m, u, u.x, u.y, old.x - u.x, old.y - u.y, goal))
+      ) {
+        const point = routeCorner(m, u, wx, wy, goal);
+        u.detour = point ? { ...point, target: target?.id ?? null } : null;
+      }
+      if (u.detour) {
+        wx = u.detour.x;
+        wy = u.detour.y;
+      }
+    }
+  }
+  let bodyAim: BodyDirection | undefined;
+  if (u.card === 'ogre') {
+    const dx = wx - u.x,
+      dy = wy - u.y,
+      d = dist(dx, dy);
+    if (d > 1e-9) {
+      const heading: BodyDirection = [dx / d, dy / d];
+      bodyAim = heading;
+      if (
+        m.towers.some(
+          (t) =>
+            !t.destroyed && troopTowerGap(t, u.card, u.x, u.y, heading) < 0.05,
+        )
+      ) {
+        // Make room for the next turn at walking speed, never by a recovery
+        // teleport or by pointing the long body through the facade.
+        const [x, y] = projectTroopBuildings(
+          m.towers,
+          u.card,
+          u.x,
+          u.y,
+          heading,
+          // Match the graph's corner clearance. A larger margin cannot fit
+          // between a princess facade and the field edge, causing retreat
+          // and approach to repeat even though the full hull fits the lane.
+          0.02,
+        );
+        if (dist(x - u.x, y - u.y) > 0.01) {
+          wx = x;
+          wy = y;
+        }
+      }
+    }
+  }
   const dx = wx - u.x;
   const dy = wy - u.y;
   const d = dist(dx, dy);
   if (d <= 0.001) return;
   const step = Math.min(d, speed * TICK);
-  const [vx, vy] = target
-    ? skirt(m, u, target, dx / d, dy / d, step)
-    : [dx / d, dy / d];
-  u.x += vx * step;
-  u.y += vy * step;
+  const [fx, fy] = flank(m, u, target, dx / d, dy / d, step);
+  const [vx, vy] = skirt(m, u, wx, wy, fx, fy, step);
+  moveBody(m, u, vx * step, vy * step);
   // Turn smoothly towards the direction of travel.
+  if (u.card === 'ogre') {
+    if (!turned) {
+      const aim = bodyAim ?? [fx, fy];
+      turnDino(m, u, aim[0], aim[1]);
+    }
+    return;
+  }
   const want = Math.atan2(vx, vy);
   let turn = want - u.facing;
   while (turn > Math.PI) turn -= Math.PI * 2;
   while (turn < -Math.PI) turn += Math.PI * 2;
   u.facing += turn * Math.min(1, TICK * 10);
+}
+
+/** A visibility graph of the six buildings' expanded corners. Most steps
+ *  walk straight; a blocked path chooses the shortest clear route once
+ *  per corner. This also handles the inner king/tower corridor being too
+ *  tight for a large body, without an inward-only steering deadlock. */
+function routeCorner(m: Match, u: Unit, x: number, y: number, except?: Tower) {
+  const s = unitStats(u);
+  const padding = troopBuildingRadius(u.card);
+  const points = [
+    { x: u.x, y: u.y },
+    { x, y },
+  ];
+  for (const t of m.towers) {
+    if (t.destroyed || t === except) continue;
+    const size = towerFootprint[t.kind].half + padding + 0.02;
+    const core = towerFootprint[t.kind].half - towerFootprint[t.kind].corner;
+    const add = (ox: number, oy: number) => {
+      const cx = t.x + ox;
+      const cy = t.y + oy;
+      if (
+        cx < s.radius ||
+        cx > WIDTH - s.radius ||
+        cy < s.radius ||
+        cy > LENGTH - s.radius
+      )
+        return false;
+      if (cy < MID !== u.y < MID || inRiver(cx, cy, s.radius)) return false;
+      if (
+        m.towers.some(
+          (e) =>
+            !e.destroyed &&
+            !troopTowerClear(e, u.card, cx, cy, unitBodyDirection(u)),
+        )
+      )
+        return false;
+      points.push({ x: cx, y: cy });
+      return true;
+    };
+    for (const sx of [-1, 1])
+      for (const sy of [-1, 1]) {
+        // Two expanded bases can block an outer box corner while a
+        // rounded face tip still gives a clear way out.
+        if (!add(sx * size, sy * size)) {
+          add(sx * core, sy * size);
+          add(sx * size, sy * core);
+        }
+      }
+    if (u.card === 'ogre') {
+      const hull = dinoHull(t.kind, unitBodyDirection(u));
+      for (let i = 0; i < hull.points.length; i += 2) {
+        const j = (i + 2) % hull.points.length,
+          k = (i + hull.points.length - 2) % hull.points.length;
+        const ax = hull.points[i] - hull.points[k],
+          ay = hull.points[i + 1] - hull.points[k + 1],
+          al = dist(ax, ay) || 1;
+        const bx = hull.points[j] - hull.points[i],
+          by = hull.points[j + 1] - hull.points[i + 1],
+          bl = dist(bx, by) || 1;
+        const nx = (ay / al + by / bl) * hull.winding,
+          ny = (-ax / al - bx / bl) * hull.winding,
+          n = dist(nx, ny) || 1;
+        add(
+          hull.points[i] + (nx / n) * (hull.radius + 0.03) * 1.42,
+          hull.points[i + 1] + (ny / n) * (hull.radius + 0.03) * 1.42,
+        );
+      }
+    }
+  }
+  const lengths = points.map(() => Infinity);
+  const previous = points.map(() => -1);
+  const seen = new Set<number>();
+  lengths[0] = 0;
+  for (let n = 0; n < points.length; n++) {
+    let current = -1;
+    for (let i = 0; i < points.length; i++)
+      if (!seen.has(i) && (current < 0 || lengths[i] < lengths[current]))
+        current = i;
+    if (current < 0 || lengths[current] === Infinity) return null;
+    if (current === 1) {
+      let next = current;
+      while (previous[next] > 0) next = previous[next];
+      return points[next];
+    }
+    seen.add(current);
+    const from = points[current];
+    for (let i = 1; i < points.length; i++) {
+      if (seen.has(i)) continue;
+      const to = points[i];
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const length = lengths[current] + dist(dx, dy);
+      if (
+        length >= lengths[i] ||
+        troopBuildingEntry(m, u, from.x, from.y, dx, dy, except)
+      )
+        continue;
+      lengths[i] = length;
+      previous[i] = current;
+    }
+  }
+  return null;
 }
 
 /**
@@ -1697,26 +2733,14 @@ function separate(m: Match) {
       // Deploying troops are planted; the rest share the push by mass.
       const wa = a.state === 'deploying' ? 0 : sb.mass / (sa.mass + sb.mass);
       const wb = b.state === 'deploying' ? 0 : sa.mass / (sa.mass + sb.mass);
-      a.x -= nx * push * 2 * wa;
-      a.y -= ny * push * 2 * wa;
-      b.x += nx * push * 2 * wb;
-      b.y += ny * push * 2 * wb;
+      moveBody(m, a, -nx * push * 2 * wa, -ny * push * 2 * wa);
+      moveBody(m, b, nx * push * 2 * wb, ny * push * 2 * wb);
     }
   }
   for (const u of live) {
     const s = unitStats(u);
     if (!s.flying) {
-      for (const t of m.towers) {
-        if (t.destroyed) continue;
-        const dx = u.x - t.x;
-        const dy = u.y - t.y;
-        const d = dist(dx, dy) || 0.001;
-        const min = t.radius + s.radius * 0.8;
-        if (d < min) {
-          u.x = t.x + (dx / d) * min;
-          u.y = t.y + (dy / d) * min;
-        }
-      }
+      clearBuildings(m, u);
       if (inRiver(u.x, u.y, s.radius)) {
         // Step back onto the nearer bank.
         u.y = u.y < MID ? RIVER[0] - s.radius : RIVER[1] + s.radius;
@@ -1761,8 +2785,7 @@ function crash(m: Match, s: Spell) {
     const ny = d > 1e-6 ? dy / d : s.side === 0 ? 1 : -1;
     const fx = e.x;
     const y0 = e.y;
-    e.x += nx * s.knockback;
-    e.y += ny * s.knockback;
+    moveBody(m, e, nx * s.knockback, ny * s.knockback);
     // A ground troop shoved along a bridge stops at its middle.
     const crossed = y0 < MID ? e.y >= MID : e.y < MID;
     if (!st.flying && crossed) e.y = y0 < MID ? MID - 0.001 : MID + 0.001;
@@ -1836,16 +2859,29 @@ function stepProjectiles(m: Match) {
     const d = dist(dx, dy);
     const step = p.speed * TICK;
     p.distance = p.travelled + d;
-    if (d <= step) {
-      p.x = p.tx;
-      p.y = p.ty;
-      p.travelled = p.distance;
+    const by = Math.min(d, step);
+    const vx = d ? (dx / d) * by : 0;
+    const vy = d ? (dy / d) * by : 0;
+    // Guards fire from above the roof; lobbed shells and flying bombs
+    // clear buildings. Every ground-level shot stops at the first wall,
+    // including a target that moved behind it after the shot left.
+    const wall = projectileWall(m, p, vx, vy);
+    if (wall || d <= step) {
+      p.x += vx * (wall?.at ?? 1);
+      p.y += vy * (wall?.at ?? 1);
+      p.travelled += by * (wall?.at ?? 1);
+      p.distance = p.travelled;
       p.speed = 0;
+      const hit = wall
+        ? wall.tower.side !== p.side
+          ? wall.tower
+          : undefined
+        : target;
       if (p.splash > 0)
         splashAt(m, p.side, p.x, p.y, p.splash, p.damage, p.air, true);
-      else if (target) damage(m, target, p.damage, p.side);
-      if (target && p.stun) stun(m, target, p.stun);
-      if (target && p.slow) chill(m, target, p.slow, p.slowFactor);
+      else if (hit) damage(m, hit, p.damage, p.side);
+      if (hit && p.stun) stun(m, hit, p.stun);
+      if (hit && p.slow) chill(m, hit, p.slow, p.slowFactor);
       m.events.push({
         type: 'impact',
         kind: p.kind,
@@ -1853,11 +2889,11 @@ function stepProjectiles(m: Match) {
         y: p.y,
         splash: p.splash,
       });
-      if (p.chain > 0 && target) jump(m, p, target);
+      if (p.chain > 0 && hit) jump(m, p, hit);
       continue;
     }
-    p.x += (dx / d) * step;
-    p.y += (dy / d) * step;
+    p.x += vx;
+    p.y += vy;
     p.travelled += step;
   }
   if (m.projectiles.some((p) => p.speed <= 0))
@@ -1878,6 +2914,18 @@ function jump(m: Match, p: Projectile, first: Unit | Tower) {
     for (const e of m.units) {
       if (e.side === p.side || e.hp <= 0 || hit.has(e.id)) continue;
       if (e.state === 'deploying') continue;
+      if (
+        buildingEntry(
+          m,
+          from.x,
+          from.y,
+          e.x - from.x,
+          e.y - from.y,
+          0,
+          'kind' in from ? (from as Tower) : undefined,
+        )
+      )
+        continue;
       const d = dist(e.x - from.x, e.y - from.y) - unitStats(e).radius;
       if (d <= p.chainRange && d < bestD) {
         bestD = d;
@@ -1972,8 +3020,42 @@ function checkEnd(m: Match, crownsBefore: [number, number]) {
   }
 }
 
+/** Restore fields absent from older snapshots without rescaling live health
+ *  or shield points. Version 7 also gives the long Dino a side-facing hull. */
+export function upgradeMatch(m: Match) {
+  const legacy = m.version !== ARENA_MATCH_VERSION;
+  m.version = ARENA_MATCH_VERSION;
+  for (const u of m.units) {
+    if (u.maxShield === undefined) {
+      const boost = m.players[u.owner]?.boost;
+      // Version 5 stored only the remaining shield. Infer the new capacity
+      // from the owner's saved boosts, while retaining any larger old pool.
+      u.maxShield = Math.max(
+        u.shield,
+        Math.round(
+          (troopCards[u.card].unit.shield ?? 0) *
+            levelScale(boost, u.card) *
+            (boost?.troopHp ?? 1),
+        ),
+      );
+    }
+    u.shieldDelay ??= u.maxShield > 0 ? SHIELD_DELAY : 0;
+    u.detour ??= null;
+    if (u.card === 'ogre' && !u.bodyDirection) {
+      u.bodyDirection = [...unitBodyDirection(u)];
+      u.facing = u.side === 0 ? 0 : Math.PI;
+      clearBuildings(m, u);
+      if (legacy) {
+        u.px = u.x;
+        u.py = u.y;
+      }
+    }
+  }
+}
+
 /** Advances the match by one fixed tick. */
 export function step(m: Match) {
+  upgradeMatch(m);
   if (m.phase === 'over') return;
   m.tick++;
   m.time += TICK;

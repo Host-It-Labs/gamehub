@@ -9,6 +9,15 @@
         "dev"
       ],
       "port": 3017
+    },
+    {
+      "name": "gamehub-libverify",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd ../gamehub-libverify && VINEXT_NO_DEV_LOCK=1 DEV_PORT=3041 API_PORT=3042 npm run dev"
+      ],
+      "port": 3041
     }
   ]
 }

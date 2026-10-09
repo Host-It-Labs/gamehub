@@ -3,8 +3,9 @@ import type { MapDef } from '@/lib/games/rota/maps';
 import { DX, DY, RAIL } from '@/lib/games/rota/pieces';
 import { EXIT_RUN, RAIL_RUN } from '@/lib/games/rota/routes';
 import { FRONTAGE, HOUSE_DEPTH } from '@/lib/games/rota/scale';
-import { toon, type Materials } from './materials';
+import type { Materials } from './materials';
 import { LANE_HALF, RING } from './ground';
+import { prepareWindows } from './window-lights';
 
 /**
  * The town round the site and the moors beyond it. Close in, an unbroken
@@ -436,6 +437,9 @@ export function townRows(rows: Row[], mats: Materials) {
     wallCol: number[] = [];
   const roofs: number[] = [];
   const glass: number[] = [];
+  const stone: number[] = [];
+  const doors: number[] = [],
+    doorCol: number[] = [];
   const c = new THREE.Color();
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
@@ -559,7 +563,29 @@ export function townRows(rows: Row[], mats: Materials) {
         for (let f = 0; f < row.storeys; f++) {
           const wy = 0.05 + f * 0.095;
           for (const u of [-0.045, 0.045]) {
+            if (f === 0 && u < 0) continue;
             const wx = x0 + k * 0.2 + 0.1 + u;
+            // Dark reveal behind the pane, cream sills and separate sash
+            // bars in front: the light/curtains never paint over the frame.
+            const face = z1 + 0.003;
+            for (const [a, b, lo, hi] of [
+              [wx - 0.024, wx - 0.02, wy - 0.003, wy + 0.053],
+              [wx + 0.02, wx + 0.024, wy - 0.003, wy + 0.053],
+              [wx - 0.024, wx + 0.024, wy - 0.004, wy],
+              [wx - 0.024, wx + 0.024, wy + 0.05, wy + 0.054],
+              [wx - 0.02, wx + 0.02, wy + 0.024, wy + 0.026],
+              [wx - 0.001, wx + 0.001, wy, wy + 0.05],
+            ])
+              push(
+                stone,
+                quad(
+                  [a, lo, face + 0.001],
+                  [b, lo, face + 0.001],
+                  [b, hi, face + 0.001],
+                  [a, hi, face + 0.001],
+                ),
+                m,
+              );
             push(
               glass,
               quad(
@@ -572,13 +598,72 @@ export function townRows(rows: Row[], mats: Materials) {
             );
           }
         }
+    // Painted doors are on the exact doorway positions used by the walks.
+    if (row.windows)
+      for (let k = 0; k < row.houses; k++) {
+        const dx = x0 + (k + 0.5) * FRONTAGE - 0.045;
+        const face = z1 + 0.002;
+        const paint = ['#344f45', '#5b3b38', '#3a465a', '#55554b'][
+          (k + Math.floor(row.tint * 13)) % 4
+        ];
+        const door = quad(
+          [dx - 0.015, 0.02, face],
+          [dx + 0.015, 0.02, face],
+          [dx + 0.015, 0.104, face],
+          [dx - 0.015, 0.104, face],
+        );
+        push(doors, door, m);
+        c.set(paint);
+        for (let i = 0; i < door.length; i++) doorCol.push(c.r, c.g, c.b);
+        push(
+          glass,
+          quad(
+            [dx - 0.015, 0.104, face],
+            [dx + 0.015, 0.104, face],
+            [dx + 0.015, 0.114, face],
+            [dx - 0.015, 0.114, face],
+          ),
+          m,
+        );
+        for (const [a, b, lo, hi] of [
+          [dx - 0.019, dx - 0.015, 0.02, 0.118],
+          [dx + 0.015, dx + 0.019, 0.02, 0.118],
+          [dx - 0.019, dx + 0.019, 0.114, 0.118],
+          [dx - 0.019, dx + 0.019, 0.02, 0.025],
+          [dx - 0.015, dx + 0.015, 0.102, 0.104],
+        ])
+          push(
+            stone,
+            quad(
+              [a, lo, face + 0.002],
+              [b, lo, face + 0.002],
+              [b, hi, face + 0.002],
+              [a, hi, face + 0.002],
+            ),
+            m,
+          );
+      }
   }
   const group = new THREE.Group();
-  const make = (pos: number[], mat: THREE.Material, col?: number[]) => {
+  const make = (
+    pos: number[],
+    mat: THREE.Material,
+    col?: number[],
+    windows = false,
+  ) => {
     if (!pos.length) return;
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     if (col) g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    else if (windows)
+      g.setAttribute(
+        'color',
+        new THREE.Float32BufferAttribute(
+          new Float32Array(pos.length).fill(1),
+          3,
+        ),
+      );
+    if (windows) prepareWindows(g);
     g.computeVertexNormals();
     const mesh = new THREE.Mesh(g, mat);
     mesh.castShadow = true;
@@ -587,7 +672,9 @@ export function townRows(rows: Row[], mats: Materials) {
   };
   make(walls, mats.tiled('brick', '#ffffff', { vertexColors: true }), wallCol);
   make(roofs, mats.tiled('slate', '#5b636b'));
-  make(glass, toon('#3d4a52', { emissive: '#2a3a44', glow: 0.3 }));
+  make(stone, mats.tiled('stone', '#c5bca7'));
+  make(doors, mats.tiled('paint', '#ffffff', { vertexColors: true }), doorCol);
+  make(glass, mats.windows(true), undefined, true);
   return group;
 }
 

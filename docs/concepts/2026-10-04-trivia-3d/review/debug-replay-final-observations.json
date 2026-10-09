@@ -1,0 +1,806 @@
+{
+  "frames": [
+    {
+      "frame": 0,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.067517
+      }
+    },
+    {
+      "frame": 1,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.113003
+      }
+    },
+    {
+      "frame": 2,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.140573
+      }
+    },
+    {
+      "frame": 3,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.508117
+      }
+    },
+    {
+      "frame": 4,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.535146
+      }
+    },
+    {
+      "frame": 5,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.573685
+      }
+    },
+    {
+      "frame": 6,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.584289
+      }
+    },
+    {
+      "frame": 7,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.614593
+      }
+    },
+    {
+      "frame": 8,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.649298
+      }
+    },
+    {
+      "frame": 9,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.695212
+      }
+    },
+    {
+      "frame": 10,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.764443
+      }
+    },
+    {
+      "frame": 11,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.781783
+      }
+    },
+    {
+      "frame": 12,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.811386
+      }
+    },
+    {
+      "frame": 13,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.863633
+      }
+    },
+    {
+      "frame": 14,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.893493
+      }
+    },
+    {
+      "frame": 15,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.924172
+      }
+    },
+    {
+      "frame": 16,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142456.975387
+      }
+    },
+    {
+      "frame": 17,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.001793
+      }
+    },
+    {
+      "frame": 18,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.045725
+      }
+    },
+    {
+      "frame": 19,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.149212
+      }
+    },
+    {
+      "frame": 20,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.178999
+      }
+    },
+    {
+      "frame": 21,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.303742
+      }
+    },
+    {
+      "frame": 22,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.311971
+      }
+    },
+    {
+      "frame": 23,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.347368
+      }
+    },
+    {
+      "frame": 24,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.488884
+      }
+    },
+    {
+      "frame": 25,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.532578
+      }
+    },
+    {
+      "frame": 26,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.604488
+      }
+    },
+    {
+      "frame": 27,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.664597
+      }
+    },
+    {
+      "frame": 28,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.692437
+      }
+    },
+    {
+      "frame": 29,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.724002
+      }
+    },
+    {
+      "frame": 30,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.826108
+      }
+    },
+    {
+      "frame": 31,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.889682
+      }
+    },
+    {
+      "frame": 32,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142457.970665
+      }
+    },
+    {
+      "frame": 33,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.098973
+      }
+    },
+    {
+      "frame": 34,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.136911
+      }
+    },
+    {
+      "frame": 35,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.149993
+      }
+    },
+    {
+      "frame": 36,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.231806
+      }
+    },
+    {
+      "frame": 37,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.265748
+      }
+    },
+    {
+      "frame": 38,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.310641
+      }
+    },
+    {
+      "frame": 39,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.342628
+      }
+    },
+    {
+      "frame": 40,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.381741
+      }
+    },
+    {
+      "frame": 41,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.422391
+      }
+    },
+    {
+      "frame": 42,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.460209
+      }
+    },
+    {
+      "frame": 43,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.536789
+      }
+    },
+    {
+      "frame": 44,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.611168
+      }
+    },
+    {
+      "frame": 45,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.687032
+      }
+    },
+    {
+      "frame": 46,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.764055
+      }
+    },
+    {
+      "frame": 47,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.839119
+      }
+    },
+    {
+      "frame": 48,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.917336
+      }
+    },
+    {
+      "frame": 49,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.931135
+      }
+    },
+    {
+      "frame": 50,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142458.970356
+      }
+    },
+    {
+      "frame": 51,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.002492
+      }
+    },
+    {
+      "frame": 52,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.018789
+      }
+    },
+    {
+      "frame": 53,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.074895
+      }
+    },
+    {
+      "frame": 54,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.12082
+      }
+    },
+    {
+      "frame": 55,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.189365
+      }
+    },
+    {
+      "frame": 56,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.265551
+      }
+    },
+    {
+      "frame": 57,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.34171
+      }
+    },
+    {
+      "frame": 58,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.420031
+      }
+    },
+    {
+      "frame": 59,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.49589
+      }
+    },
+    {
+      "frame": 60,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.574323
+      }
+    },
+    {
+      "frame": 61,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.650172
+      }
+    },
+    {
+      "frame": 62,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.703591
+      }
+    },
+    {
+      "frame": 63,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.778197
+      }
+    },
+    {
+      "frame": 64,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.846629
+      }
+    },
+    {
+      "frame": 65,
+      "metadata": {
+        "deviceHeight": 720,
+        "deviceWidth": 1280,
+        "offsetTop": 0,
+        "pageScaleFactor": 1,
+        "scrollOffsetX": 0,
+        "scrollOffsetY": 0,
+        "timestamp": 1791142459.91755
+      }
+    }
+  ],
+  "final": {
+    "calls": "120",
+    "elapsed": "2.16",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "pixelRatio": "1",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  }
+}

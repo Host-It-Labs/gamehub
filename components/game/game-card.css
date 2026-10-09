@@ -1,0 +1,89 @@
+/* Game cards: each game's square cover on the library shelves and in the
+   table lobby. On a desktop, hovering a card lifts it and plays the game's
+   footage inside the square (GameCard, game-card.tsx). */
+.gcard {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+.gcard-window {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(
+    120% 100% at 50% 18%,
+    var(--gc-mid),
+    var(--gc-deep) 72%
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--lib-ink) 12%, transparent),
+    0 14px 22px -16px color-mix(in srgb, var(--lib-shadow) 75%, transparent);
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.35s ease;
+}
+.gcard-window > .artwork-frame {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  background-color: transparent;
+}
+.gcard-window > .artwork-frame > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* The footage fills the square from the middle of the desktop frame. */
+.gcard-reel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.gcard.is-playing .gcard-reel {
+  opacity: 1;
+}
+/* A thin bright rim and a soft shade at the foot. */
+.gcard-window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 #ffffff38,
+    inset 0 0 0 1px #ffffff14,
+    inset 0 -26px 34px -30px #0008;
+}
+/* Hover or keyboard focus on the tile lifts the card. */
+:is(button, a):is(:hover, :focus-visible) > .gcard .gcard-window,
+.gcard.is-playing .gcard-window {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--lib-ink) 16%, transparent),
+    0 22px 30px -18px color-mix(in srgb, var(--lib-shadow) 85%, transparent);
+}
+:is(button, a):active > .gcard .gcard-window {
+  transform: translateY(-2px) scale(0.99);
+  transition-duration: 0.1s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gcard-window,
+  .gcard-reel {
+    transition: none;
+  }
+  :is(button, a):is(:hover, :focus-visible) > .gcard .gcard-window {
+    transform: none;
+  }
+}

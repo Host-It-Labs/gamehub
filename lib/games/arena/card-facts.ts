@@ -1,4 +1,11 @@
-import { cards, troopCards, type CardId, type UnitStats } from './cards.ts';
+import {
+  cards,
+  SHIELD_DELAY,
+  SHIELD_RECHARGE,
+  troopCards,
+  type CardId,
+  type UnitStats,
+} from './cards.ts';
 import { levelScale, type Boost } from './engine.ts';
 
 /**
@@ -148,7 +155,7 @@ function abilityLines(s: UnitStats, k: Scale): Ability[] {
   if (s.shield)
     say(
       'shield',
-      `A ${Math.round(s.shield * k.hp)} shield takes every hit first.`,
+      `A ${Math.round(s.shield * k.hp)} shield takes damage first; excess hits health. After ${seconds(SHIELD_DELAY)} without damage, refills in ${seconds(SHIELD_RECHARGE)}.`,
     );
   if (s.heal)
     say(

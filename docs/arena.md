@@ -30,13 +30,30 @@ back to your finger. Enemies that could hit this placement show an amber
 exclamation mark above them; their ranges are not drawn. The server still
 checks `canPlayAt`.
 
-Ground troops walk round towers in their way (`skirt` in `engine.ts`): a step
-that would enter a standing tower turns along its edge towards the goal
-(dead ahead, towards the middle of the field), so a troop dropped behind its
-own small tower goes round it to the bridge. Troops too wide to share a
+Standing towers have solid rounded-square bases (`towerFootprint` in
+`engine.ts`), matching the largest drawn shell: half-width 1.8 for a king
+and 1.314 for a small tower. Ground troops keep their body and planted feet
+outside these bases on placement, walking, separation and pushes. Near stone,
+rendered feet shorten their step through joint IK, preserving their heading
+and pitch, while a contacting torso straightens or leans away. The path centre
+stays fixed and free poses remain intact beside distant or destroyed towers. A blocked
+path keeps a clear corner waypoint until it is reached, so a troop dropped
+behind its own small tower goes round it to the bridge without reversing
+along a flat wall. Low shots stop at the first standing facade and melee
+cannot reach through a building; elevated arrows and lobbed bombs keep their
+flight paths. Rubble is passable. Troops too wide to share a
 bridge queue along the lane near it, and two Dinos meeting head-on (neither
 can hit the other) pass through each other on a bridge and sidestep
 elsewhere (`laneShove`).
+
+The long Dino uses an oriented body hull against standing towers rather than
+an enlarged circular padding. It combines a 1.3-tile body circle with a
+0.85-tile capsule whose axis extends 2.35 tiles forward and 3.45 tiles behind
+its centre. Placement, walking, pushes, routing and bounded turns use that
+same hull. Its ordinary 0.8-tile separation and bridge radius stays intact.
+The simulation carries an arithmetic `bodyDirection`; drawing converts that
+heading to a yaw. This keeps the visible rear tail clear without folding it
+up or distorting the sculpt.
 
 ## Team battles
 
@@ -72,7 +89,7 @@ what it is good at):
 | --------- | --------- | ------ | ---------- | ------ | --------- | ----- | ----- | -------------- | ------------------------------------------------------------------------- |
 | Pirate    | pirate    | 3      | 690        | 150    | 0.9 s     | melee | 1.5   | ground         | leaps (6 tiles/s) at a troop within 3.5 tiles, first hit ×2; every 3 s    |
 | Viking    | viking    | 4      | 1400       | 180    | 1.3 s     | melee | 1.0   | ground         | hits everything within 1.4 of himself; below half HP ×1.35 speed and pace |
-| Gladiator | gladiator | 3      | 520        | 125    | 1.1 s     | melee | 1.0   | ground         | a 750 shield takes every hit first (the whole hit, whatever is left)      |
+| Gladiator | gladiator | 3      | 850        | 125    | 1.1 s     | melee | 1.0   | ground         | 650 shield; after 4 s without damage it recharges from empty in 5 s       |
 | Medic     | medic     | 3      | 780        | 0      | —         | —     | 1.1   | —              | heals friends within 3 by 70 every second; follows the nearest friend     |
 | Miner     | miner     | 3      | 1000       | 140    | 1.2 s     | melee | 1.5   | ground         | played anywhere off the water and towers; digs 2 s, then pops up          |
 | Balloon   | balloon   | 5      | 1650       | 520    | 3.0 s     | over  | 0.9   | towers only    | flies; bomb splash 1; its crash deals 240 within 2                        |
@@ -81,6 +98,14 @@ what it is good at):
 
 A stun stops a troop moving and attacking and restarts its wind-up. The
 Medic's pulse and the Inventor's jumps never touch towers.
+
+Shields are a second health resource on any troop with `UnitStats.shield`.
+Each hit drains only the shield it has left; excess damage reaches health.
+After four seconds without damage, it refills continuously from empty to
+full in five seconds. A new hit restarts that wait. Recharge follows real
+elapsed time, independent of haste, slow and stun, and scales with the
+troop's maximum shield. Medic healing only restores health. Current capacity
+and recharge delay are in online snapshots and checksums.
 
 The eight added on 1 October 2026, three of them tanks so a deck without
 the Dino still has a front line (`armour`, `taunt`, `knockback`, `tackle`,
@@ -216,8 +241,7 @@ field), drawn by `deck-layer.tsx`:
   `tank`/`siege` tags or tower-only targets; air: hits air, itself or its
   spawn; splash: splash, swarm, spin, chain or three or more troops, never
   tower-only; spell or support: spells, `support`/`fighter`/`control` tags,
-  anything else), filled scarcest role first. A lane (seats 0 and 1, 2 and
-  3) never sees a card twice, a round offers no card twice where the 24
+  anything else), filled scarcest role first. A lane (seats 0 and 1, 2 and 3) never sees a card twice, a round offers no card twice where the 24
   allow it, and the Meteor is in one offer of the match at most. You keep
   two (the second tap locks them), the other two go to the player across;
   after two rounds everyone holds eight different cards. Rounds last 12 s
@@ -310,6 +334,16 @@ until they return. The host starts the next battle; rooms nobody has open for
 ten minutes are removed. Rooms live in memory, so a server restart ends
 running battles.
 
+Match version 7 includes the Dino's authoritative numeric heading in snapshots
+and checksums, as well as shield capacity and recharge delay. Restored version
+5 and 6 snapshots acquire missing fields without rescaling existing health or
+shield points. Missing shield capacities use the saved owner's level and health
+boosts, retaining any larger old shield pool; missing recharge timers start the
+full quiet delay. A Dino without a numeric heading faces its side's direction
+and recovers any now-illegal old placement. Zero-tick replay, finished snapshots
+and between-tick poses have focused regression coverage. This is snapshot
+migration, not mixed-version lockstep support.
+
 ## Screen
 
 The top bar holds only a back button (left) and, at the right, the clock with
@@ -346,15 +380,13 @@ Troops are drawn larger than their footprint: about 2.4 times on wide
 screens, 3.1 times on portrait phones and 2.6 on tall windows elsewhere
 (`troopScale`, grown 15% on 2 October 2026), and their rings, shots,
 strides and health bars grow with them (the bars through `--figure`).
-Towers stand taller than the troops: since 3 October 2026 they are drawn
-at 1.05 of their model size looking across the field and 1.35 on portrait
-screens looking down it, where they also take more of the field
-(`towerScale` in layout.ts, read through `world.towerScale`; 0.8 before,
-0.7 until 2 October). At 1.0 a model fills the rules' footprint, which
-stays the same; a screen that changes size class places the towers again.
-Their archers grow with the square root of the towers' growth, and the
-camera's key points keep the taller tower tops on screen. Phones draw at their
-screen's full density.
+Since 4 October 2026, tower shells are drawn at 0.85 of their native size
+looking across the field and 0.9 on portrait screens looking down it
+(`towerScale` in layout.ts). Their guards keep their previous readable size
+independently (`towerGuardScale`); the camera fits each actual tower top.
+The solid base is sized for the largest shell on every screen, while the
+combat ranges keep their existing circles. Phones draw at their screen's
+full density.
 
 A troop or the placement ghost hidden behind a tower, a keep, a bridge or
 scenery shows through as a soft silhouette in its team's colour as you see
@@ -368,6 +400,10 @@ silhouette colour in the x-ray pass. The tower guards never show through.
 While a card is dragged the hand tray fades to a quarter, so the field
 beneath it (behind your king) can take the card; back over the cards
 themselves the tray returns, and letting go there cancels.
+Selecting and dragging a hand card use the same stats preview. On narrow
+screens its name, elixir and four key numbers sit in a compact floating
+panel above the hand; on wide screens it uses the existing inspection band.
+The panel does not resize the field or intercept the drag.
 
 While a troop card is held, everything of the other side that would shoot
 it where it would land (awake towers, and troops that can hit it: never a
@@ -517,6 +553,42 @@ board).
   The Cowboy's rifle clears the coat, lifts in front of his shoulder, then
   settles onto it; arm, forearm and rifle follow the same path on matched
   damped springs, lowering along it before the two-hand aim.
+- The first 4 October Dino and Sumo rebuild was rejected by the user. Their
+  replacements follow the mandatory high-fidelity-3d skill: detailed editable
+  anatomy, materials and moving visual review precede runtime optimization.
+  Dino has a horizontal forest/ochre body, deep skull, bent three-toed legs
+  and a long tapering counterweight tail. Sumo has connected shoulders,
+  elbows and hands, an adult face, weighted abdomen, combed topknot and close
+  woven blue mawashi. Both use weighted skin and their own live facial
+  controls; their fresh v9-b painted portraits match that anatomy. Other
+  figure sources stay intact. Sources, exact prompts and review evidence are
+  in [the quality rebuild brief](concepts/2026-10-04-arena-quality-rebuild/brief.md).
+  Separate versioned neutral `.blend` copies retain the approved geometry,
+  normals, weights, pigment and common-axis bone frames. The ordinary collector
+  appends them and rebakes AO; it does not decimate the detailed source during
+  each build. Dino uses 34,418 runtime triangles, Sumo 34,227. Their source
+  masters retain 982,976 and 3,229,836 triangles for future authoring. The
+  reviewed game bundle preserves the other twenty-three roots exactly.
+- The roster round of 8–9 October 2026 (brief, ownership and integration
+  log in [concepts/2026-10-08-arena-roster](concepts/2026-10-08-arena-roster/brief.md))
+  rebuilds the remaining figures and adds shared motion pieces. Arms are
+  posed by where the hand goes: `moves/reach.ts` solves shoulder, elbow
+  hinge and wrist from the figure's rest bones (`c.rest`) given a wrist
+  target, an elbow pole and a palm direction, splits the palm's roll
+  between forearm and wrist and keeps Euler goals continuous between
+  frames. Optional `chest` (upper spine) and `clavL`/`clavR` joints: the
+  torso's bends are shared with the chest, and the clavicles shrug and
+  bring the shoulder forward with the arm (`shoulderGirdle` in troops.ts)
+  unless a pose claims them. A negative `lift` crouches on planted feet.
+  The Sumo was the first on it: arms resting against his flanks, a low
+  ready stance, palm-first tsuppari driven from the hips with a lighter
+  follow-up slap, a waddle and shiko as his idle; `figure_sumo_girdle.py`
+  adds the chest and clavicle bones and weights to his frozen runtime copy
+  and lifts the baked occlusion on his inner thighs. Review tools:
+  `scripts/arena-troop-review.mjs` films one troop in the stand-alone lab
+  (`scripts/arena-lab`, port 3027) with close follow cameras and a stepped
+  clock; `scripts/arena-merge-figures.mjs` replaces reviewed roots in the
+  shipped bundle, checking every other root stays byte-identical.
 - The other sixteen card troops and the spawned Bee use the same grounded
   gait, spring poses and facial rig. Each keeps its own entrance, idle,
   attack preparation and recovery; articulated elbows, wrists and secondary
@@ -525,22 +597,30 @@ board).
   a dazed face until it expires; a push visibly skids and tips the recipient
   in the impulse direction, without pretending it walked the displacement.
 - `status-state.ts` derives active effects from the current unit, including
-  restored online snapshots. `status.ts` attaches outlined symbols above
-  each recipient: orbiting stars for stun, a snowflake for slow, an
-  exclamation mark for taunt, double chevrons for the Drummer's haste, a
-  shield while armour remains, and a flame while the Viking's health rage
-  is active. Healing events name only allies whose health actually rose and
+  restored online snapshots. `status.ts` attaches small enamel medallions
+  in one camera-facing row above each recipient: a star for stun, a
+  snowflake for slow, an exclamation mark for taunt, double chevrons for
+  the Drummer's haste, and a flame while the Viking's health rage is active.
+  A cyan shield track and shield icon sit above the separate team-colour
+  health track, including when the shield is empty or full. Projected
+  clearance keeps the status row above both tracks at every camera distance.
+  A reused unit ID refreshes shield visibility; a new battle clears the cached
+  DOM bars so an online rematch cannot inherit the previous troop's team tint
+  or shield track.
+  Healing events name only allies whose health actually rose and
   give those allies a brief plus. Push events carry origin and destination
   for the recoil and dust trail. Symbols have distinct shapes and remain
   still under reduced motion; expired effects disappear immediately.
-- The eight troops of 1 October 2026 (diver, sumo, linebacker, beekeeper,
+- The eight troops originally added on 1 October 2026 (diver, sumo, linebacker, beekeeper,
   drummer, firefighter, jetpack, explorer) and the Beekeeper's `bee` share
   one kit, `figure_folk_kit.py`: one palette of pots (so they share draw
   batches), her and his head sculpts, lighter painted eyes with a focused
   frown and a firm or gritted mouth (never a grin), shoes, limbs, grips and
-  the knee split. Each is 8.3k–10.9k triangles (the bee 530); `<ID>_POSE`
-  poses a preview. The Sumo is built at figure size and scaled 1.22 at the
-  end; his open hands are `weapon`/`offhand` on wrist joints. The Drummer's
+  the knee split. Each is 8.3k–12.3k triangles (the bee 530); `<ID>_POSE`
+  poses a preview. Sumo's later replacement uses its own connected sculpt
+  and common-axis skin bones, with the 1.22 art scale baked into the source,
+  and has its separate reviewed runtime geometry budget above.
+  The Drummer's
   drum, the Beekeeper's hive and the Jetpack's flames are `extra`. The
   bees are ordinary flying figures (wings `wingL`/`wingR`), so they get
   rings, bars and the x-ray like any troop. Their abilities draw in
@@ -571,8 +651,9 @@ board).
   merged and culled), `troops.ts` (animation: a pose per frame, every joint
   on a spring except the legs, which a ground solver puts on feet planted
   in world space, timed by a distance-driven cycle and a per-troop gait
-  profile from `lib/games/arena/gait.ts`; every troop part drawn through
-  one BatchedMesh per material),
+  profile from `lib/games/arena/gait.ts`; rigid figures use one BatchedMesh per
+  material, while complete skinned figures use independent skeleton copies
+  with direct draws, including their attachments),
   `effects.ts` (shots, the falling Meteor and its ring, scorches,
   particles, the drop zone and the placement ghost), `view.ts`, `session.ts`
   (solo battles) and `online.ts` (lockstep client), `pacer.ts` (the quality

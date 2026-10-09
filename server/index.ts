@@ -355,7 +355,7 @@ export async function makeServer(
       let who = identity(db, req);
       if (path === '/api/folio' || path.startsWith('/api/folio/')) {
         const match = /^\/api\/folio\/([A-Za-z0-9_-]{32})(?:\/(join|commands|delete))?$/.exec(path);
-        check(path === '/api/folio' || match, 404, 'Folio route not found.');
+        check(path === '/api/folio' || match, 404, 'Puzzles route not found.');
         if (path === '/api/folio' && req.method === 'GET') { send(res, 200, who ? folio.list(who) : []); return; }
         const input = req.method === 'POST' ? await body(req) : {};
         if (!who && req.method === 'POST' && (path === '/api/folio' || match?.[2] === 'join')) {
@@ -708,7 +708,7 @@ export async function makeServer(
           // Rota seats everyone at the table; bots take any seats left over.
           url = `/rota/${rota.launch(invite, t.owner, t.members, input)}`;
         } else if (input.kind === 'folio') {
-          check(t.members.length <= 3, 409, 'Folio seats one to three players.');
+          check(t.members.length <= 3, 409, 'Puzzles seats one to three players.');
           const run = input.token
             ? folio.seatTable(input.token as string, who, players)
             : folio.create(who, { seats: t.members.length, difficulty: input.difficulty ?? 1 }) as { token: string };
@@ -870,8 +870,8 @@ export async function makeServer(
         extname(file) === '.html'
           ? 'no-cache'
           : /^\/art\/(?:optimized\/)?[a-z0-9-]+-v\d+(?:-\d+)?\.webp$/.test(path) ||
-              // Arena's 3D files carry content hashes in their names.
-              /^\/3d\/arena\/[a-z]+\/[a-z0-9-]+-[0-9a-f]{8}\.(?:webp|glb)$/.test(path)
+              // Arena's and Rota's 3D files carry content hashes in their names.
+              /^\/3d\/(?:arena|rota)\/[a-z]+\/[a-z0-9-]+-[0-9a-f]{8}\.(?:webp|glb)$/.test(path)
             ? 'public, max-age=31536000, immutable'
             : 'public, max-age=3600',
     });

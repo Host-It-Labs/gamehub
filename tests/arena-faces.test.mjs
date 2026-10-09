@@ -41,8 +41,15 @@ await test('every troop carries independent eyes and pupils in the shipped model
     for (const side of ['L', 'R']) {
       assert.ok(rig[`eye${side}`], `${id} ${side} eye`);
       assert.ok(rig[`pupil${side}`], `${id} ${side} pupil`);
-      assert.equal(rig[`eye${side}`].node.parent, head);
-      assert.equal(rig[`pupil${side}`].node.parent, rig[`eye${side}`].node);
+      // Deforming figures can carry the rigid face details on a surface
+      // beneath the head bone. They still follow that named animated joint.
+      let ancestor = rig[`eye${side}`].node.parent;
+      while (ancestor && ancestor !== head) ancestor = ancestor.parent;
+      assert.ok(ancestor === head, `${id} ${side} eye follows its head joint`);
+      assert.ok(
+        rig[`pupil${side}`].node.parent === rig[`eye${side}`].node,
+        `${id} ${side} pupil follows its independent eye`,
+      );
       assert.ok(rig[`eye${side}`].width > 0 && rig[`eye${side}`].height > 0);
       if (!['imps', 'bee'].includes(id))
         assert.ok(rig[`brow${side}`], `${id} expressive brow`);

@@ -1,5 +1,5 @@
 'use client';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Coins, Heart, Lock, RotateCcw, Star, Zap } from 'lucide-react';
 import { formatNumber, type ActionResult } from '@/lib/games/relic/engine';
 import {
@@ -7,8 +7,9 @@ import {
   bookExperience,
   houseTicket,
   jackpot,
-  levelAt,
+  xpToOpen,
   levelOpen,
+  loyaltyDue,
   nextBook,
   packFor,
   packOpen,
@@ -22,8 +23,16 @@ import { useCountUp } from './reveal-motion';
 import type { ScratchAudio } from './relic-scratch-audio';
 import { ScratchSurface } from './relic-scratch-surface';
 import { TICKET_ART } from './relic-scratch-art';
+import { TicketGuide } from './relic-ticket-guide';
 
-const LEVEL_NAMES = ['I', 'II', 'III'];
+/** Difficulty names; the fourth, IV, is the hardest ticket of a book and
+ * wears its own colour. */
+export const LEVEL_NAMES = ['I', 'II', 'III', 'IV'];
+const LEVEL_WORDS = LEVEL_NAMES;
+/** A difficulty's mark: its numeral. */
+function LevelMark({ level }: { level: number }) {
+  return <>{LEVEL_NAMES[level]}</>;
+}
 type Buy = (pack: PackId, level: number) => Promise<ActionResult | null>;
 type Stroke = (
   id: number,
@@ -60,29 +69,77 @@ function useLevels(
   };
   return { levelOf, choose, chosen };
 }
-/** The ticket books: buy a ticket straight into your hand, choose its level. */
+/** A book's difficulties: I, II and III side by side, IV beneath them. */
+function Difficulty({
+  name,
+  levels,
+  top,
+  chosen,
+  until,
+  onChoose,
+}: {
+  name: string;
+  levels: number;
+  top: number;
+  chosen: number;
+  until: (level: number) => number;
+  onChoose: (level: number) => void;
+}) {
+  return (
+    <fieldset className="rs-levels" aria-label={`${name} difficulty`}>
+      {Array.from({ length: Math.max(levels, 4) }, (_, level) => {
+        const shut = level > top || level >= levels,
+          left = shut ? until(level) : 0;
+        return (
+          <button
+            key={level}
+            type="button"
+            className={level === 3 ? 'is-four' : undefined}
+            aria-pressed={chosen === level}
+            disabled={shut}
+            aria-label={
+              shut
+                ? `Difficulty ${LEVEL_WORDS[level]}${left > 0 ? `, opens after ${formatNumber(left)} more XP` : ', not open yet'}`
+                : `Difficulty ${LEVEL_WORDS[level]}`
+            }
+            title={
+              shut && left > 0 ? `${formatNumber(left)} XP more` : undefined
+            }
+            onClick={() => onChoose(level)}
+          >
+            {shut ? <Lock size={9} /> : <LevelMark level={level} />}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
+/** The ticket books. Tapping one picks it; Buy, beside the ticket, buys it. */
 function Shelf({
   state,
   coins,
+  selected,
   held,
-  locked,
   busy,
   levelOf,
   choose,
-  onBuy,
+  onSelect,
   onBuyBook,
 }: {
   state: ScratchState;
   coins: number;
+  selected: PackId;
   held: PackId | null;
-  locked: boolean;
   busy: boolean;
   levelOf: (id: PackId) => number;
   choose: (id: PackId, level: number) => void;
-  onBuy: (id: PackId) => void;
+  onSelect: (id: PackId) => void;
   onBuyBook: (id: PackId) => void;
 }) {
-  const forSale = nextBook(state);
+  const forSale = nextBook(state),
+    loyal = loyaltyDue(state),
+    // An empty purse: the house's Lucky Seven I is the way back.
+    broke = houseTicket(state, coins, 'seven', 0);
   return (
     <nav className="rs-shelf" aria-label="Ticket books" data-rs-area="shelf">
       {PACKS.map((p, i) => {
@@ -127,30 +184,28 @@ function Shelf({
             </button>
           );
         const top = levelOpen(state, p.id),
-          played = state.books[p.id] ?? 0,
           lvl = levelOf(p.id),
-          free = houseTicket(state, coins, p.id, lvl),
+          house = broke && p.id === 'seven',
+          free = loyal || house,
           price = ticketPrice(state, p.id, lvl),
           progress = bookExperience(state, p.id);
         return (
           <div
             key={p.id}
-            className={`rs-book ${held === p.id ? 'is-held' : ''}`}
+            className={`rs-book ${selected === p.id ? 'is-selected' : ''} ${held === p.id ? 'is-held' : ''} ${house ? 'is-house' : ''}`}
             data-game-motion="piece"
             data-game-motion-key={`${open}:${progress.level}`}
-            style={
-              { '--book': p.color } as React.CSSProperties
-            }
+            style={{ '--book': p.color } as React.CSSProperties}
           >
             <button
+              type="button"
               className="rs-book-take"
-              disabled={busy || locked || (!free && coins < price)}
-              aria-label={`Buy a ${p.name} ticket, difficulty ${LEVEL_NAMES[lvl]}, for ${free ? 'free' : formatNumber(price)}`}
-              onClick={() => onBuy(p.id)}
+              aria-pressed={selected === p.id}
+              aria-label={`${p.name}, difficulty ${LEVEL_WORDS[house ? 0 : lvl]}, ${free ? 'free' : formatNumber(price)}`}
+              onClick={() => onSelect(p.id)}
             >
               <span className="rs-book-cover">
                 <img src={TICKET_ART[p.id].small} alt="" />
-
               </span>
               <span className="rs-book-text">
                 <b>{p.name}</b>
@@ -159,37 +214,31 @@ function Shelf({
                   {free ? 'Free' : formatNumber(price)}
                 </small>
               </span>
+              <span
+                className="rs-book-xp"
+                title={`${formatNumber(progress.current)} / ${formatNumber(progress.needed)} XP`}
+              >
+                <span>Lv {progress.level}</span>
+                <progress
+                  className="rs-book-progress"
+                  aria-label={`${p.name}: level ${progress.level}, progress to level ${progress.level + 1}`}
+                  max={progress.needed}
+                  value={progress.current}
+                  aria-valuetext={`${progress.current} of ${progress.needed} XP`}
+                />
+              </span>
             </button>
-            <div className="rs-book-xp">
-              <span>Lv {progress.level}</span>
-              <progress className="rs-book-progress"
-                aria-label={`${p.name}: level ${progress.level}, progress to level ${progress.level + 1}`}
-                max={progress.needed} value={progress.current}
-                aria-valuetext={`${progress.current} of ${progress.needed} tickets`} />
-              <span>{progress.current}/{progress.needed}</span>
-            </div>
-            <fieldset className="rs-levels" aria-label={`${p.name} difficulty`}>
-              {LEVEL_NAMES.map((name, level) => (
-                <button
-                  key={name}
-                  aria-pressed={lvl === level}
-                  disabled={level > top}
-                  aria-label={
-                    level > top
-                      ? `Difficulty ${name} opens after ${levelAt(state, level) - played} more tickets`
-                      : `Difficulty ${name}`
-                  }
-                  title={
-                    level > top
-                      ? `${levelAt(state, level) - played} more`
-                      : undefined
-                  }
-                  onClick={() => choose(p.id, level)}
-                >
-                  {level > top ? <Lock size={9} /> : name}
-                </button>
-              ))}
-            </fieldset>
+            <Difficulty
+              name={p.name}
+              levels={p.levels.length}
+              top={top}
+              chosen={lvl}
+              until={(level) => xpToOpen(state, p.id, level)}
+              onChoose={(level) => {
+                choose(p.id, level);
+                onSelect(p.id);
+              }}
+            />
           </div>
         );
       })}
@@ -197,8 +246,7 @@ function Shelf({
   );
 }
 function Payout({ t, state }: { t: ScratchTicket; state: ScratchState }) {
-  const total = t.payout + (t.refund ?? 0),
-    net = total - (t.cost ?? 0);
+  const net = t.payout - (t.cost ?? 0);
   const value = useCountUp(t.payout, { log: true, key: t.id, duration: 1100 });
   return (
     <div
@@ -221,8 +269,8 @@ function Payout({ t, state }: { t: ScratchTicket; state: ScratchState }) {
             Quick
           </small>
         )}
-        {!!t.refund && <small>Refund +{formatNumber(t.refund)}</small>}
       </span>
+      {t.xp !== undefined && <PayoutXp t={t} state={state} />}
       {!!t.cost && (
         <span
           className="rs-net"
@@ -233,6 +281,25 @@ function Payout({ t, state }: { t: ScratchTicket; state: ScratchState }) {
         </span>
       )}
     </div>
+  );
+}
+/** The book XP this ticket earned, counting up into the book's level bar. */
+function PayoutXp({ t, state }: { t: ScratchTicket; state: ScratchState }) {
+  const xp = t.xp ?? 0,
+    gained = useCountUp(xp, { key: t.id, duration: 900 }),
+    book = bookExperience(state, t.pack);
+  return (
+    <span className="rs-payout-xp">
+      <b>+{formatNumber(Math.round(gained))} XP</b>
+      <span className="rs-payout-xp-bar">
+        <small>Lv {book.level}</small>
+        <progress
+          max={book.needed}
+          value={book.current}
+          aria-label={`Book level ${book.level}: ${formatNumber(book.current)} of ${formatNumber(book.needed)} XP`}
+        />
+      </span>
+    </span>
   );
 }
 /** One ticket held up: the painted book with its scratch panel. */
@@ -261,7 +328,7 @@ function BigTicket({
     (ticket.rows + (chart ? 0.7 : 0));
   return (
     <div
-      className={`rs-big ${ticket.star ? 'is-star' : ''}`}
+      className={`rs-big ${ticket.star ? 'is-star' : ''} ${ticket.level === 3 ? 'is-four' : ''}`}
       data-rs-area="ticket"
       style={
         {
@@ -323,7 +390,10 @@ function BigTicket({
           )}
         </div>
       </div>
-      <span className="rs-level-badge">{LEVEL_NAMES[ticket.level]}</span>
+      <TicketGuide book={ticket.pack} level={ticket.level} />
+      <span className={`rs-level-badge ${ticket.level === 3 ? 'is-four' : ''}`}>
+        <LevelMark level={ticket.level} />
+      </span>
       {ticket.star && (
         <span className="rs-star-badge">
           <Star size={13} fill="currentColor" /> ×{starPays(state)}
@@ -332,8 +402,8 @@ function BigTicket({
     </div>
   );
 }
-/** The ticket desk: the book shelf on the left and the ticket in your hand,
- * always open. When it has paid, Again buys the same one. */
+/** The ticket desk: the books, the ticket in your hand held up big, and
+ * beside it its hearts or payout and the one Buy button. */
 export const ScratchDesk = memo(function ScratchDesk({
   state,
   coins,
@@ -345,6 +415,7 @@ export const ScratchDesk = memo(function ScratchDesk({
   onStroke,
   readOnly = false,
   levels,
+  book: mirroredBook,
   onLevels,
 }: {
   state: ScratchState;
@@ -355,86 +426,103 @@ export const ScratchDesk = memo(function ScratchDesk({
   onBuy: Buy;
   onBuyBook: (id: PackId) => void;
   onStroke: Stroke;
-  /** The Watch TV: another player's desk, with the levels they chose. */
+  /** The Watch TV: another player's desk, with the book and levels they chose. */
   readOnly?: boolean;
   levels?: Partial<Record<PackId, number>>;
-  /** Tells the others which level each book is set to. */
-  onLevels?: (levels: Partial<Record<PackId, number>>) => void;
+  book?: PackId;
+  /** Tells the others which book is picked and each book's level. */
+  onLevels?: (levels: Partial<Record<PackId, number>>, book: PackId) => void;
 }) {
   const { levelOf, choose, chosen } = useLevels(state, levels);
-  useEffect(() => {
-    if (!readOnly) onLevels?.(chosen);
-  }, [chosen, onLevels, readOnly]);
   const [live, setLive] = useState<{
     ticket: ScratchTicket;
     syncing: boolean;
   } | null>(null);
-  // Without a ticket in hand the stage shows the book last played.
-  const [stored] = useState<PackId>(() =>
+  // The picked book: what Buy buys next. It starts on the last one played.
+  const [ownBook, setBook] = useState<PackId>(() =>
     remembered<PackId>('gamehub-lucky-book', 'seven'),
   );
+  const picked = mirroredBook ?? ownBook,
+    book = packOpen(state, picked) ? picked : ('seven' as PackId);
+  useEffect(() => {
+    if (!readOnly) onLevels?.(chosen, book);
+  }, [chosen, book, onLevels, readOnly]);
+  const pick = (id: PackId) => {
+    setBook(id);
+    remember('gamehub-lucky-book', id);
+  };
   const shown = live && live.ticket.id === hand?.id ? live.ticket : hand;
   const onStatus = useCallback(
     (ticket: ScratchTicket, syncing: boolean) => setLive({ ticket, syncing }),
     [],
   );
-  const heldPack = hand?.pack,
-    last = heldPack ?? stored;
-  useEffect(() => {
-    if (heldPack) remember('gamehub-lucky-book', heldPack);
-  }, [heldPack]);
   const ended = !!shown?.ended,
     settled = !!hand?.claimed,
     playing = !!hand && !ended;
-  const again = hand
-    ? {
-        pack: hand.pack,
-        level: Math.min(hand.level, levelOpen(state, hand.pack)),
-      }
-    : {
-        pack: packOpen(state, last) ? last : ('seven' as PackId),
-        level: levelOf(packOpen(state, last) ? last : 'seven'),
-      };
-  const free = houseTicket(state, coins, again.pack, again.level);
-  const price = ticketPrice(state, again.pack, again.level);
-  const canBuy = !busy && !playing && (free || coins >= price);
-  async function buy(pack: PackId, level: number) {
+  const level = levelOf(book),
+    again = !!hand && hand.pack === book && hand.level === level;
+  const price = ticketPrice(state, book, level);
+  const free = houseTicket(state, coins, book, level) || loyaltyDue(state);
+  // Out of coins for the picked ticket and for any: Buy becomes the house's
+  // free Lucky Seven I.
+  const broke = !free && coins < price && houseTicket(state, coins, 'seven', 0);
+  const canBuy = !busy && !playing && (free || broke || coins >= price);
+  async function buy() {
     setLive(null);
     await audio.unlock();
-    await onBuy(pack, level);
+    if (broke) {
+      pick('seven');
+      choose('seven', 0);
+      await onBuy('seven', 0);
+    } else await onBuy(book, level);
   }
   const lives = shown ? shown.lives - shown.mistakes : 0,
     mechanic = shown ? packFor(shown.pack).mechanic : null;
-  const againButton = (
-    <button
-      className="rs-primary rs-again"
-      disabled={!canBuy || (ended && !settled)}
-      onClick={() => void buy(again.pack, again.level)}
-    >
-      <RotateCcw size={18} />
-      {hand ? 'Again' : 'Buy'}
-      <span className="rs-again-price">
-        <Coins size={13} />
-        {free ? 'Free' : formatNumber(price)}
-      </span>
-    </button>
-  );
+  // Enter buys the picked ticket again, wherever the pointer is.
+  const buyKey = useRef(() => {});
+  useEffect(() => {
+    buyKey.current = () => {
+      if (!readOnly && canBuy && !(ended && !settled)) void buy();
+    };
+  });
+  useEffect(() => {
+    if (readOnly) return;
+    const listener = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        event.key !== 'Enter' ||
+        event.defaultPrevented ||
+        target.closest?.('button, input, select, textarea, dialog, a') ||
+        document.querySelector('.scratch-modal-backdrop')
+      )
+        return;
+      event.preventDefault();
+      buyKey.current();
+    };
+    document.addEventListener('keydown', listener);
+    return () => document.removeEventListener('keydown', listener);
+  }, [readOnly]);
   return (
-    <div className="rs-desk">
+    <div className={`rs-desk ${playing ? 'is-playing' : ''}`}>
       <Shelf
         state={state}
         coins={coins}
+        selected={book}
         held={hand?.pack ?? null}
-        locked={playing}
         busy={busy}
         levelOf={levelOf}
         choose={choose}
-        onBuy={(id) => void buy(id, levelOf(id))}
+        onSelect={pick}
         onBuyBook={onBuyBook}
       />
       <section
-        className={`rs-hand ${playing ? 'is-playing' : ''}`}
+        className="rs-hand"
         aria-label="Your ticket"
+        style={
+          {
+            '--aspect': TICKET_ART[hand?.pack ?? book].aspect,
+          } as React.CSSProperties
+        }
       >
         <div className="rs-hand-ticket">
           {hand && shown ? (
@@ -449,51 +537,103 @@ export const ScratchDesk = memo(function ScratchDesk({
             />
           ) : (
             <div
-              className="rs-big is-blank"
+              className={`rs-big is-blank ${level === 3 ? 'is-four' : ''}`}
               style={
                 {
-                  '--aspect': TICKET_ART[again.pack].aspect,
+                  '--aspect': TICKET_ART[book].aspect,
                 } as React.CSSProperties
               }
             >
               <img
                 className="rs-big-art"
-                src={TICKET_ART[again.pack].src}
+                src={TICKET_ART[book].src}
                 alt=""
                 draggable={false}
               />
+              <TicketGuide book={book} level={level} />
+              <span
+                className={`rs-level-badge ${level === 3 ? 'is-four' : ''}`}
+              >
+                <LevelMark level={level} />
+              </span>
             </div>
           )}
         </div>
-        <div className="rs-hand-rail">
-          {playing && shown ? (
-            <span
-              className={`rs-lives mechanic-${mechanic}`}
-              data-game-motion="change"
-              data-game-motion-key={lives}
-              aria-label={
-                mechanic === 'seven'
-                  ? `${lives} misses left`
-                  : `${lives} mistakes left`
-              }
-            >
-              {Array.from({ length: shown.lives }, (_, i) => (
-                <Heart
-                  key={i}
-                  size={18}
-                  className={i < lives ? 'is-left' : ''}
-                  fill={i < lives ? 'currentColor' : 'none'}
-                />
-              ))}
-            </span>
-          ) : hand && settled ? (
-            <Payout t={hand} state={state} />
-          ) : hand && ended ? (
-            <span className="rs-payout is-waiting" aria-hidden="true">
-              <Coins size={22} className="rs-spin" />
-            </span>
-          ) : null}
-          {!playing && againButton}
+        <div className="rs-hand-rail" data-rs-area="rail">
+          <TicketGuide
+            book={hand?.pack ?? book}
+            level={hand ? hand.level : level}
+            place="rail"
+          />
+          <div className="rs-rail-status">
+            {playing && shown ? (
+              <span
+                className={`rs-lives mechanic-${mechanic}`}
+                data-game-motion="change"
+                data-game-motion-key={lives}
+                aria-label={
+                  mechanic === 'seven'
+                    ? `${lives} misses left`
+                    : `${lives} mistakes left`
+                }
+              >
+                {Array.from({ length: shown.lives }, (_, i) => (
+                  <Heart
+                    key={i}
+                    size={18}
+                    className={i < lives ? 'is-left' : ''}
+                    fill={i < lives ? 'currentColor' : 'none'}
+                  />
+                ))}
+              </span>
+            ) : hand && settled ? (
+              <Payout t={hand} state={state} />
+            ) : hand && ended ? (
+              <span className="rs-payout is-waiting" aria-hidden="true">
+                <Coins size={22} className="rs-spin" />
+              </span>
+            ) : null}
+          </div>
+          {!playing && (
+            <div className="rs-rail-buy">
+              <button
+                className={`rs-primary rs-again ${broke ? 'is-house' : ''}`}
+                disabled={readOnly || !canBuy || (ended && !settled)}
+                aria-keyshortcuts="Enter"
+                aria-label={broke ? 'Free Lucky Seven I' : undefined}
+                onClick={() => void buy()}
+              >
+                {broke ? (
+                  <img
+                    className="rs-again-book"
+                    src={TICKET_ART.seven.small}
+                    alt=""
+                  />
+                ) : again ? (
+                  <RotateCcw size={18} />
+                ) : (
+                  <img
+                    className="rs-again-book"
+                    src={TICKET_ART[book].small}
+                    alt=""
+                  />
+                )}
+                <span className="rs-again-word">
+                  {broke ? 'Free' : again ? 'Again' : 'Buy'}
+                </span>
+                <span className="rs-again-price">
+                  {broke ? (
+                    'Lucky Seven I'
+                  ) : (
+                    <>
+                      <Coins size={13} />
+                      {free ? 'Free' : formatNumber(price)}
+                    </>
+                  )}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </div>

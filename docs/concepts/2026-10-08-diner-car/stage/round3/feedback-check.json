@@ -1,0 +1,118 @@
+{
+  "glows": [
+    {
+      "place": "truckstop",
+      "quality": "high",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "drivein",
+      "quality": "high",
+      "peak": 1.12
+    },
+    {
+      "place": "fairground",
+      "quality": "high",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "harbour",
+      "quality": "high",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "oldtown",
+      "quality": "high",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "moonmile",
+      "quality": "high",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "truckstop",
+      "quality": "low",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "drivein",
+      "quality": "low",
+      "peak": 1.12
+    },
+    {
+      "place": "fairground",
+      "quality": "low",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "harbour",
+      "quality": "low",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "oldtown",
+      "quality": "low",
+      "peak": 1.1193953493463273
+    },
+    {
+      "place": "moonmile",
+      "quality": "low",
+      "peak": 1.1193953493463273
+    }
+  ],
+  "beam": [
+    {
+      "quality": "high",
+      "samples": 721,
+      "frontmostZ": -4.690518774935471,
+      "length": 7.5,
+      "forceSinglePass": true
+    },
+    {
+      "quality": "low",
+      "samples": 721,
+      "frontmostZ": -4.690518774935471,
+      "length": 7.5,
+      "forceSinglePass": true
+    }
+  ],
+  "moon": [
+    {
+      "quality": "high",
+      "bowlDepth": -0.10086012590621432,
+      "rimHeight": 0.034989055111733114,
+      "emissiveIntensity": 0.18
+    },
+    {
+      "quality": "low",
+      "bowlDepth": -0.09360448666284604,
+      "rimHeight": 0.034989055111733114,
+      "emissiveIntensity": 0.18
+    }
+  ],
+  "counter": [
+    {
+      "quality": "high",
+      "maxY": 0.9300000071525574,
+      "texture": 256
+    },
+    {
+      "quality": "low",
+      "maxY": 0.9300000071525574,
+      "texture": 256
+    }
+  ],
+  "fuel": [
+    {
+      "quality": "high",
+      "minX": 13.399999618530273,
+      "vertices": 516
+    },
+    {
+      "quality": "low",
+      "minX": 13.399999618530273,
+      "vertices": 276
+    }
+  ]
+}

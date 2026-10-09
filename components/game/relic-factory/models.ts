@@ -2,48 +2,76 @@ import * as THREE from 'three';
 import type { MachineKind } from '@/lib/games/relic/factory';
 import { Kit, pathTangent, rail, strip, type MatKey } from './kit';
 
-/**
- * The factory's machines, modelled in code as enamel-and-brass miniature
- * fairground contraptions. Bevels, fittings and layered materials remain
- * present when the player zooms in. Every model faces +x (its output), stands on a
- * cell from -0.5 to 0.5, and splits into a static body and a few moving
- * parts. Each moving part has a pivot and a pose worked out every frame
- * from what the machine is doing, so the floor shows how each one works:
- * printers roll and press, bots scrub with a coin, stampers slam, the till
- * pops its drawer, lamps and charms glow when they have something to help.
- */
-
+/** Authored enamel toys, not a palette swap of a shared plinth. A cell is
+ * one unit, +x is the outlet and y is up. Low colour pads belong to the floor;
+ * every machine has its own structural base and a different primary form.
+ * Static/material and animated/part batches share full geometry at every zoom. */
 export const C = {
-  green: '#1f5c4d',
-  greenLight: '#2f8a6c',
-  greenDeep: '#143d34',
-  cream: '#f3e6c6',
-  paper: '#fbf5e4',
-  brass: '#e0ad52',
-  gold: '#f6c64f',
-  copper: '#c77b46',
-  red: '#cf3a35',
-  redDark: '#8f2125',
-  dark: '#1b2421',
-  slot: '#0d1412',
-  rubber: '#2a302d',
-  steel: '#c3ccd2',
-  ink: '#2f5bd1',
-  emerald: '#33c06f',
-  wood: '#8a5a32',
-  brassDark: '#9b7038',
-  creamShade: '#d7c7a7',
+  cobalt: '#4f73a6',
+  cobaltDeep: '#34507b',
+  charcoal: '#2e3533',
+  yellow: '#dcb55e',
+  orange: '#d4844a',
+  orangeDeep: '#a65d31',
+  emerald: '#3f8c69',
+  emeraldDeep: '#2b5f4a',
+  violet: '#7c6aa8',
+  violetDeep: '#54477a',
+  lilac: '#a58cc0',
+  red: '#bf5446',
+  redDark: '#8a3732',
+  gold: '#d6ac57',
+  ribbon: '#bf6a8f',
+  kraft: '#b08d66',
+  kraftDeep: '#7c5b3c',
+  cream: '#efe8d7',
+  paper: '#faf6ec',
+  creamShade: '#d8d1c0',
+  brass: '#c6a466',
+  brassDark: '#8f7142',
+  copper: '#a87b57',
+  dark: '#252b2b',
+  slot: '#121817',
+  rubber: '#30353a',
+  steel: '#bcc3c4',
+  steelShade: '#87918f',
+  clover: '#4fa36b',
+  stone: '#5f7466',
 } as const;
 
-/** Light colours: what a machine's lamp says about it. */
+export const MACHINE_COLOUR = {
+  printer: C.cobalt,
+  belt: C.charcoal,
+  bot: C.orange,
+  cashier: C.emerald,
+  splitter: C.charcoal,
+  lamp: C.violet,
+  stamper: C.red,
+  gilder: C.gold,
+  charm: C.lilac,
+  bundler: C.ribbon,
+} as const;
+/** Clear enamel tints; belt and splitter share the Move family's slate pad. */
+export const PAD_COLOUR = {
+  printer: '#8ea4c0',
+  belt: '#93a09a',
+  bot: '#cfa888',
+  cashier: '#8fb39c',
+  splitter: '#93a09a',
+  lamp: '#a69ec0',
+  stamper: '#c79a91',
+  gilder: '#cdb98a',
+  charm: '#b4a3c6',
+  bundler: '#c6a3b4',
+} as const;
+
 export const STATUS = {
-  work: new THREE.Color('#5cff8a'),
-  idle: new THREE.Color('#3a2f1c'),
-  full: new THREE.Color('#ffb52e'),
-  stuck: new THREE.Color('#ff2f24'),
+  work: new THREE.Color('#86e09c'),
+  idle: new THREE.Color('#323b39'),
+  full: new THREE.Color('#ecb85a'),
+  stuck: new THREE.Color('#ee5a44'),
 } as const;
 export type Status = keyof typeof STATUS;
-
 export type Tint = 'status' | 'book' | 'boost';
 export type PartDef = {
   name: string;
@@ -54,47 +82,36 @@ export type PartDef = {
 export type ModelDef = {
   body: Partial<Record<MatKey, THREE.BufferGeometry>>;
   parts: PartDef[];
-  /** Height of the machine's top, for picking. */
   height: number;
-  /** Where a ticket rests inside it (machine space), if it shows one. */
   rest?: THREE.Vector3;
+  /** Printer's book swatch; the ticket display follows this authored point. */
+  display?: THREE.Vector3;
 };
-
-/** What a machine is doing this frame, for its moving parts. */
 export type Ctx = {
-  /** Seconds since the factory opened (smooth). */
   t: number;
-  /** Work done toward the current job, 0–1, or -1 when there is none. */
   work: number;
   status: Status;
-  /** Seconds since the last finished job (print, stamp, sale, pack). */
   since: number;
-  /** Splitter: the angle of the next exit, smoothed. */
   turn: number;
-  /** A booster with something to boost. */
   boost: boolean;
-  /** Bundler: tickets waiting. */
   hold: number;
   seed: number;
+  /** Boosters: 0 idle to 1 boosting, eased so starts and stops glide. */
+  energy: number;
+  /** Boosters: accumulated turn, advanced faster the higher the energy. */
+  spin: number;
 };
 export type Pose = { p: THREE.Vector3; r: THREE.Euler; s: number };
 
-/** Every machine stands on the same brass-trimmed enamel plinth. */
-function plinth(k: Kit) {
-  k.rbox('gloss', C.greenDeep, [0.9, 0.06, 0.9], 0.024, [0, 0.04, 0]);
-  k.rbox('metal', C.brass, [0.92, 0.023, 0.92], 0.01, [0, 0.018, 0]);
-  for (const x of [-0.34, 0.34])
-    for (const z of [-0.34, 0.34]) {
-      k.cyl('dark', C.rubber, 0.055, 0.06, 0.014, [x, 0.007, z], { seg: 16 });
-      screw(k, [x, 0.073, z], 0.016);
-    }
+/** This is a 16mm floor pad, not the old raised gold platform. */
+function pad(k: Kit, kind: keyof typeof PAD_COLOUR) {
+  k.rbox('paint', PAD_COLOUR[kind], [0.88, 0.016, 0.88], 0.007, [0, 0.012, 0]);
 }
-/** Small domed screws have a recessed slot, so the fittings read at close range. */
 function screw(k: Kit, at: [number, number, number], r = 0.012) {
-  k.cyl('metal', C.brass, r, r * 1.05, r * 0.45, at, { seg: 12 });
+  k.cyl('metal', C.steel, r, r * 1.05, r * 0.45, at, { seg: 12 });
   k.box(
     'dark',
-    C.brassDark,
+    C.dark,
     [r * 1.35, 0.002, r * 0.22],
     [at[0], at[1] + r * 0.24, at[2]],
   );
@@ -106,70 +123,76 @@ const SIDE: Record<Side, [number, number]> = {
   left: [0, -1],
   right: [0, 1],
 };
-/** A dark intake mouth with a brass lip at `reach` from the centre. */
-function intake(k: Kit, side: Side, reach = 0.36, y = 0.13) {
-  const [sx, sz] = SIDE[side],
-    along = sx ? 'z' : 'x';
+/** Dark inset mouth plus a broad dark apron: visible from above as well as behind. */
+function intake(k: Kit, side: Side, reach = 0.42, y = 0.12) {
+  const [sx, sz] = SIDE[side];
   const size = (w: number, h: number, d: number): [number, number, number] =>
-    along === 'z' ? [d, h, w] : [w, h, d];
-  k.rbox('metal', C.brass, size(0.36, 0.12, 0.05), 0.014, [
+    sx ? [d, h, w] : [w, h, d];
+  k.rbox('paint', C.steel, size(0.39, 0.105, 0.046), 0.012, [
     sx * reach,
     y,
     sz * reach,
   ]);
-  k.rbox('dark', C.slot, size(0.285, 0.067, 0.055), 0.01, [
-    sx * (reach + 0.01),
+  k.rbox('dark', C.slot, size(0.325, 0.071, 0.05), 0.009, [
+    sx * (reach + 0.012),
     y,
-    sz * (reach + 0.01),
+    sz * (reach + 0.012),
+  ]);
+  k.rbox('dark', C.slot, size(0.34, 0.012, 0.095), 0.005, [
+    sx * (reach - 0.018),
+    y + 0.052,
+    sz * (reach - 0.018),
   ]);
   k.cyl(
     'dark',
     C.rubber,
-    0.016,
-    0.016,
-    0.26,
-    [sx * (reach + 0.034), y - 0.023, sz * (reach + 0.034)],
-    {
-      axis: along,
-      seg: 16,
-    },
+    0.019,
+    0.019,
+    0.29,
+    [sx * (reach + 0.035), y - 0.029, sz * (reach + 0.035)],
+    { axis: sx ? 'z' : 'x', seg: 20 },
   );
 }
-/** The red output chute on the front. */
-function chute(k: Kit, y = 0.15) {
-  k.rbox('gloss', C.redDark, [0.18, 0.03, 0.28], 0.01, [0.39, y - 0.025, 0], {
-    rot: [0, 0, -0.28],
-  });
-  k.rbox(
-    'metal',
-    C.brass,
-    [0.18, 0.05, 0.025],
-    0.008,
-    [0.39, y - 0.01, 0.145],
-    {
-      rot: [0, 0, -0.28],
-    },
-  );
-  k.rbox(
-    'metal',
-    C.brass,
-    [0.18, 0.05, 0.025],
-    0.008,
-    [0.39, y - 0.01, -0.145],
-    {
-      rot: [0, 0, -0.28],
-    },
-  );
+/** Orange lip is the permanent direction cue, independent of selection. */
+function chute(k: Kit, y = 0.16, side: Side = 'front') {
+  const [sx, sz] = SIDE[side];
+  const size = (w: number, h: number, d: number): [number, number, number] =>
+    sx ? [d, h, w] : [w, h, d];
+  k.rbox('dark', C.charcoal, size(0.38, 0.028, 0.2), 0.009, [
+    sx * 0.38,
+    y - 0.026,
+    sz * 0.38,
+  ]);
+  k.rbox('gloss', C.orange, size(0.405, 0.045, 0.035), 0.01, [
+    sx * 0.465,
+    y - 0.014,
+    sz * 0.465,
+  ]);
+  for (const s of [-1, 1])
+    k.rbox('paint', C.steel, size(0.022, 0.055, 0.16), 0.007, [
+      sx * 0.385 + (sx ? 0 : s * 0.19),
+      y + 0.002,
+      sz * 0.385 + (sx ? s * 0.19 : 0),
+    ]);
 }
-/** A status bulb on a little brass stalk. */
-function bulbStalk(k: Kit, at: [number, number, number], h = 0.08) {
-  k.cyl('metal', C.brass, 0.012, 0.016, h, [at[0], at[1] - h / 2, at[2]], {
-    seg: 16,
-  });
-  k.cyl('metal', C.brass, 0.04, 0.03, 0.02, [at[0], at[1] - 0.005, at[2]], {
-    seg: 24,
-  });
-  k.torus('dark', C.rubber, 0.031, 0.006, [at[0], at[1] + 0.002, at[2]], {
+function feeds(k: Kit) {
+  intake(k, 'back');
+  intake(k, 'left');
+  intake(k, 'right');
+  chute(k);
+}
+/** A single larger lamp at the upper back-left of each machine's structure. */
+function bulbStalk(k: Kit, at: [number, number, number]) {
+  k.cyl(
+    'dark',
+    C.charcoal,
+    0.021,
+    0.028,
+    0.055,
+    [at[0], at[1] - 0.028, at[2]],
+    { seg: 20 },
+  );
+  k.cyl('metal', C.steel, 0.052, 0.042, 0.018, [at[0], at[1] - 0.014, at[2]], {
     seg: 24,
   });
 }
@@ -183,327 +206,301 @@ function part(
   build(k);
   return { name, pivot: new THREE.Vector3(...pivot), geos: k.merged(), tint };
 }
-const light = (name: string, at: [number, number, number], r = 0.04) =>
-  part(
-    name,
+function light(at: [number, number, number]) {
+  return part(
+    'light',
     at,
-    (k) => k.sphere('glow', '#ffffff', r, [0, 0, 0], { seg: 18 }),
+    (k) =>
+      k.sphere('glow', '#ffffff', 0.05, [0, 0, 0], {
+        seg: 20,
+        scale: [1, 0.85, 1],
+      }),
     'status',
   );
+}
 
 function printer(): ModelDef {
   const k = new Kit();
-  plinth(k);
-  k.rbox('gloss', C.cream, [0.56, 0.3, 0.68], 0.05, [-0.04, 0.22, 0]);
-  k.rbox('gloss', C.green, [0.5, 0.12, 0.7], 0.014, [-0.06, 0.22, 0]);
-  k.rbox('metal', C.brass, [0.58, 0.03, 0.7], 0.01, [-0.04, 0.12, 0]);
-  k.rbox('metal', C.brass, [0.58, 0.025, 0.7], 0.01, [-0.04, 0.33, 0]);
-  // Recessed ventilation and bolted side plates, with a separate feed bed.
-  for (const z of [-0.355, 0.355]) {
-    k.rbox('gloss', C.greenDeep, [0.27, 0.105, 0.012], 0.005, [-0.06, 0.22, z]);
-    for (let i = 0; i < 5; i++)
-      k.box(
-        'dark',
-        C.slot,
-        [0.017, 0.066, 0.016],
-        [-0.14 + i * 0.042, 0.22, z],
-      );
-    for (const x of [-0.23, 0.15])
-      k.cyl('metal', C.brass, 0.012, 0.012, 0.016, [x, 0.23, z], {
+  pad(k, 'printer');
+  // Tall cobalt cabinet with small feet, broad white roll and a stepped feed bed.
+  for (const z of [-0.26, 0.26])
+    k.rbox('dark', C.rubber, [0.69, 0.052, 0.11], 0.017, [-0.05, 0.049, z]);
+  k.rbox('gloss', C.cobalt, [0.57, 0.45, 0.69], 0.065, [-0.12, 0.297, 0]);
+  k.rbox('gloss', C.cobaltDeep, [0.61, 0.078, 0.71], 0.02, [-0.11, 0.106, 0]);
+  k.rbox('paint', C.cream, [0.29, 0.056, 0.56], 0.013, [0.24, 0.208, 0]);
+  k.rbox('metal', C.steel, [0.3, 0.012, 0.53], 0.005, [0.24, 0.242, 0]);
+  for (const z of [-0.35, 0.35]) {
+    k.rbox('gloss', C.cobaltDeep, [0.32, 0.11, 0.015], 0.007, [-0.14, 0.3, z]);
+    for (let i = 0; i < 4; i++)
+      k.box('dark', C.slot, [0.018, 0.074, 0.018], [-0.24 + i * 0.061, 0.3, z]);
+    k.rbox('gloss', C.cobalt, [0.075, 0.18, 0.061], 0.023, [
+      -0.23,
+      0.565,
+      z * 0.94,
+    ]);
+    k.cyl('metal', C.steel, 0.034, 0.034, 0.018, [-0.23, 0.65, z * 0.94], {
+      axis: 'z',
+      seg: 24,
+    });
+    for (const x of [-0.3, 0.04])
+      k.cyl('metal', C.steel, 0.014, 0.014, 0.018, [x, 0.3, z], {
         axis: 'z',
         seg: 12,
       });
   }
-  k.rbox('metal', C.steel, [0.29, 0.015, 0.52], 0.006, [0.25, 0.267, 0]);
-  // Paper roll cradle at the back.
-  for (const z of [-0.28, 0.28]) {
-    k.rbox('gloss', C.green, [0.055, 0.22, 0.048], 0.016, [-0.33, 0.42, z]);
-    k.cyl('metal', C.brass, 0.049, 0.049, 0.032, [-0.33, 0.5, z], {
-      axis: 'z',
-      seg: 24,
-    });
-    k.cyl('dark', C.rubber, 0.023, 0.023, 0.035, [-0.33, 0.5, z], {
-      axis: 'z',
-      seg: 18,
-    });
-    k.cyl('metal', C.steel, 0.014, 0.014, 0.14, [0.27, 0.4, z * 0.67], {
+  // Paper unwinds down the back to the feed drum.
+  k.box('paint', C.paper, [0.008, 0.23, 0.49], [-0.1, 0.54, 0], {
+    rot: [0, 0, -0.3],
+  });
+  for (const z of [-0.26, 0.26]) {
+    k.rbox('gloss', C.cobalt, [0.15, 0.16, 0.055], 0.022, [0.12, 0.337, z]);
+    k.cyl('metal', C.steel, 0.014, 0.014, 0.12, [0.29, 0.3, z * 0.7], {
       seg: 16,
     });
   }
-  // Roller cheeks at the front.
-  k.rbox('gloss', C.cream, [0.12, 0.14, 0.05], 0.02, [0.1, 0.43, 0.3]);
-  k.rbox('gloss', C.cream, [0.12, 0.14, 0.05], 0.02, [0.1, 0.43, -0.3]);
-  chute(k, 0.17);
-  bulbStalk(k, [-0.2, 0.5, -0.3]);
+  chute(k);
+  const at: [number, number, number] = [-0.28, 0.57, -0.25];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.62,
+    height: 0.8,
+    display: new THREE.Vector3(0.0, 0.537, 0),
     parts: [
-      // The cover wears the colour of the book it prints.
+      // A small book swatch, not a book-coloured replacement for the cobalt body.
       part(
         'cover',
-        [-0.1, 0.39, 0],
-        (p) => p.rbox('gloss', '#ffffff', [0.34, 0.05, 0.6], 0.02, [0, 0, 0]),
+        [0.0, 0.523, 0],
+        (p) => p.rbox('paint', '#ffffff', [0.25, 0.022, 0.38], 0.01, [0, 0, 0]),
         'book',
       ),
-      part('roll', [-0.33, 0.5, 0], (p) => {
-        p.cyl('paint', C.paper, 0.11, 0.11, 0.5, [0, 0, 0], {
+      part('roll', [-0.23, 0.65, 0], (p) => {
+        p.cyl('paint', C.paper, 0.139, 0.139, 0.59, [0, 0, 0], {
           axis: 'z',
-          seg: 36,
+          seg: 40,
         });
-        p.cyl('metal', C.brass, 0.025, 0.025, 0.6, [0, 0, 0], {
+        p.cyl('metal', C.steel, 0.026, 0.026, 0.7, [0, 0, 0], {
           axis: 'z',
           seg: 20,
         });
-        // Concentric paper edges and the seam remain visible up close.
-        for (const z of [-0.251, 0.251])
-          for (const r of [0.055, 0.08, 0.104])
-            p.torus('paint', C.creamShade, r, 0.0018, [0, 0, z], {
+        for (const z of [-0.297, 0.297]) {
+          p.cyl('paint', C.kraftDeep, 0.034, 0.034, 0.006, [0, 0, z], {
+            axis: 'z',
+            seg: 24,
+          });
+          for (const r of [0.065, 0.098, 0.131])
+            p.torus('metal', C.steelShade, r, 0.002, [0, 0, z], {
               axis: 'z',
               seg: 32,
             });
-        p.box('paint', C.creamShade, [0.002, 0.011, 0.47], [0.109, 0, 0]);
+        }
+        p.box('paint', C.creamShade, [0.002, 0.012, 0.55], [0.138, 0, 0]);
       }),
-      part('drum', [0.1, 0.45, 0], (p) => {
-        p.cyl('gloss', C.redDark, 0.065, 0.065, 0.5, [0, 0, 0], {
+      part('drum', [0.12, 0.345, 0], (p) => {
+        p.cyl('gloss', C.charcoal, 0.074, 0.074, 0.49, [0, 0, 0], {
           axis: 'z',
           seg: 32,
         });
-        p.cyl('metal', C.steel, 0.015, 0.015, 0.63, [0, 0, 0], {
+        p.cyl('metal', C.steel, 0.014, 0.014, 0.59, [0, 0, 0], {
           axis: 'z',
-          seg: 16,
+          seg: 20,
         });
-        for (const z of [-0.263, 0.263]) {
-          p.cyl('metal', C.brass, 0.069, 0.069, 0.019, [0, 0, z], {
+        for (const z of [-0.245, 0.245])
+          p.cyl('gloss', C.cobaltDeep, 0.077, 0.077, 0.022, [0, 0, z], {
             axis: 'z',
-            seg: 32,
+            seg: 28,
           });
-          for (let i = 0; i < 4; i++) {
-            const a = (i / 4) * Math.PI * 2;
-            p.box(
-              'dark',
-              C.brassDark,
-              [0.035, 0.006, 0.021],
-              [Math.cos(a) * 0.038, Math.sin(a) * 0.038, z],
-              { rot: [0, 0, a] },
-            );
-          }
+        for (const z of [-0.15, 0, 0.15])
+          p.torus('metal', C.steel, 0.074, 0.003, [0, 0, z], {
+            axis: 'z',
+            seg: 28,
+          });
+      }),
+      part('press', [0.29, 0.354, 0], (p) => {
+        p.rbox('gloss', C.cobalt, [0.14, 0.056, 0.5], 0.018, [0, 0, 0]);
+        p.rbox('dark', C.rubber, [0.14, 0.012, 0.49], 0.005, [0, -0.034, 0]);
+        for (const z of [-0.18, 0.18]) {
+          p.cyl('metal', C.steel, 0.012, 0.012, 0.13, [0, 0.065, z], {
+            seg: 16,
+          });
+          screw(p, [0, 0.03, z]);
         }
-        for (const z of [-0.17, 0, 0.17])
-          p.torus('metal', C.brass, 0.066, 0.003, [0, 0, z], {
-            axis: 'z',
-            seg: 32,
-          });
       }),
-      part('press', [0.27, 0.36, 0], (p) => {
-        p.rbox('gloss', C.red, [0.13, 0.07, 0.5], 0.02, [0, 0, 0]);
-        p.rbox('metal', C.brass, [0.14, 0.015, 0.51], 0.006, [0, -0.036, 0]);
-        p.box('metal', C.brass, [0.02, 0.12, 0.02], [0, 0.08, 0.18]);
-        p.box('metal', C.brass, [0.02, 0.12, 0.02], [0, 0.08, -0.18]);
-        for (const z of [-0.18, 0.18]) screw(p, [0, 0.038, z]);
-      }),
-      light('light', [-0.2, 0.53, -0.3]),
+      light(at),
     ],
   };
 }
 
 function bot(): ModelDef {
   const k = new Kit();
-  plinth(k);
-  k.rbox('dark', C.rubber, [0.66, 0.08, 0.66], 0.03, [0.02, 0.11, 0.02]);
-  k.rbox('metal', C.brass, [0.7, 0.02, 0.7], 0.009, [0.02, 0.155, 0.02]);
-  k.box('paint', '#2c3a35', [0.5, 0.01, 0.5], [0.04, 0.16, 0.04]);
-  intake(k, 'back', 0.37, 0.12);
-  intake(k, 'left', 0.37, 0.12);
-  intake(k, 'right', 0.37, 0.12);
-  chute(k, 0.16);
-  // The robot's column in the back corner.
-  k.cyl('gloss', C.green, 0.075, 0.09, 0.26, [-0.31, 0.26, -0.31], { seg: 32 });
-  k.torus('metal', C.brass, 0.08, 0.016, [-0.31, 0.37, -0.31], { seg: 32 });
-  k.torus('metal', C.brass, 0.09, 0.014, [-0.31, 0.15, -0.31], { seg: 32 });
-  k.cyl('dark', C.rubber, 0.066, 0.066, 0.07, [-0.31, 0.408, -0.31], {
-    seg: 28,
+  pad(k, 'bot');
+  // The character stands beside its platen, with two boots and an orange torso.
+  k.rbox('dark', C.charcoal, [0.65, 0.068, 0.66], 0.032, [0.055, 0.082, 0.055]);
+  k.rbox('paint', C.steel, [0.47, 0.029, 0.47], 0.014, [0.1, 0.16, 0.1]);
+  k.rbox('dark', C.dark, [0.43, 0.008, 0.43], 0.015, [0.1, 0.179, 0.1]);
+  feeds(k);
+  for (const z of [-0.3, -0.13]) {
+    k.rbox('gloss', C.orangeDeep, [0.28, 0.08, 0.13], 0.028, [-0.24, 0.075, z]);
+    k.cyl('metal', C.steel, 0.028, 0.033, 0.1, [-0.24, 0.155, z], { seg: 20 });
+  }
+  k.rbox('gloss', C.orange, [0.25, 0.23, 0.28], 0.047, [-0.23, 0.33, -0.23]);
+  k.rbox('paint', C.cream, [0.02, 0.1, 0.18], 0.009, [-0.1, 0.33, -0.23]);
+  k.box('dark', C.dark, [0.023, 0.012, 0.11], [-0.092, 0.345, -0.23]);
+  k.cyl('dark', C.rubber, 0.054, 0.054, 0.057, [-0.23, 0.464, -0.23], {
+    seg: 24,
   });
-  for (let i = 0; i < 3; i++)
-    k.torus(
-      'metal',
-      C.brassDark,
-      0.066,
-      0.006,
-      [-0.31, 0.389 + i * 0.019, -0.31],
-      { seg: 24 },
-    );
-  for (const x of [-0.19, 0.27])
-    for (const z of [-0.21, 0.27]) screw(k, [x, 0.166, z]);
+  for (const z of [-0.38, -0.08])
+    k.cyl('metal', C.steel, 0.04, 0.04, 0.025, [-0.23, 0.383, z], {
+      axis: 'z',
+      seg: 24,
+    });
+  const at: [number, number, number] = [-0.23, 0.756, -0.25];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.69,
-    rest: new THREE.Vector3(0.04, 0.17, 0.04),
+    height: 0.81,
+    rest: new THREE.Vector3(0.12, 0.19, 0.12),
     parts: [
-      part('head', [-0.31, 0.47, -0.31], (p) => {
-        p.rbox('gloss', C.cream, [0.22, 0.16, 0.21], 0.055, [0, 0, 0]);
-        p.rbox('metal', C.brass, [0.21, 0.024, 0.2], 0.009, [0, -0.072, 0]);
-        p.rbox('dark', C.slot, [0.016, 0.067, 0.155], 0.007, [0.109, 0.015, 0]);
-        for (const z of [-0.049, 0.049])
-          p.torus('metal', C.brass, 0.028, 0.006, [0.118, 0.014, z], {
-            axis: 'x',
+      part('head', [-0.23, 0.58, -0.23], (p) => {
+        p.rbox('gloss', C.orange, [0.31, 0.225, 0.285], 0.058, [0, 0, 0]);
+        p.rbox('dark', C.slot, [0.023, 0.104, 0.23], 0.011, [0.149, 0.016, 0]);
+        for (const z of [-0.06, 0.06])
+          p.sphere('glow', '#f8fafb', 0.026, [0.165, 0.025, z], {
+            seg: 18,
+            scale: [0.42, 1, 1],
+          });
+        // Friendly, two-ended smile and enamel ear caps, distinct from the status lamp.
+        p.box('paint', C.cream, [0.021, 0.01, 0.082], [0.157, -0.056, 0]);
+        for (const z of [-0.039, 0.039])
+          p.box('paint', C.cream, [0.021, 0.022, 0.01], [0.157, -0.05, z]);
+        for (const z of [-0.147, 0.147])
+          p.cyl('gloss', C.orangeDeep, 0.045, 0.045, 0.025, [0, 0, z], {
+            axis: 'z',
             seg: 24,
           });
-        for (const z of [-0.11, 0.11]) {
-          p.cyl('metal', C.brass, 0.027, 0.027, 0.014, [0, 0, z], {
-            axis: 'z',
-            seg: 20,
-          });
-          p.cyl('gloss', C.green, 0.013, 0.013, 0.018, [0, 0, z], {
-            axis: 'z',
-            seg: 16,
-          });
-        }
-        p.box('dark', C.greenDeep, [0.011, 0.01, 0.052], [0.108, -0.044, 0]);
-        p.cyl('metal', C.brass, 0.009, 0.009, 0.08, [0, 0.11, 0], { seg: 16 });
-        p.sphere('gloss', C.red, 0.023, [0, 0.16, 0], { seg: 20 });
       }),
-      // Eyes are the status light, looking where the head looks.
-      part(
-        'eyes',
-        [-0.31, 0.47, -0.31],
-        (p) => {
-          p.sphere('glow', '#ffffff', 0.024, [0.118, 0.015, 0.049], {
-            seg: 18,
-            scale: [0.55, 1, 1],
-          });
-          p.sphere('glow', '#ffffff', 0.024, [0.118, 0.015, -0.049], {
-            seg: 18,
-            scale: [0.55, 1, 1],
-          });
-        },
-        'status',
-      ),
-      part('arm', [-0.31, 0.37, -0.31], (p) => {
-        // Paired links, elbow, piston and a wrist gripping the scratching coin.
-        p.rod('metal', C.brass, 0.022, [0, 0, 0], [0.2, 0.012, 0.2]);
+      part('arm', [-0.23, 0.39, -0.23], (p) => {
+        p.rod('metal', C.steel, 0.024, [0, 0, 0], [0.2, 0.012, 0.2]);
         p.rbox(
           'gloss',
-          C.green,
-          [0.24, 0.043, 0.065],
-          0.017,
+          C.orange,
+          [0.25, 0.068, 0.08],
+          0.024,
           [0.09, 0.012, 0.09],
           { rot: [0, -Math.PI / 4, 0] },
         );
-        p.rod('metal', C.brass, 0.021, [0.2, 0.012, 0.2], [0.35, -0.05, 0.35]);
+        p.rod('metal', C.steel, 0.02, [0.2, 0.012, 0.2], [0.35, -0.05, 0.35]);
         p.rod(
           'metal',
           C.steel,
-          0.012,
+          0.013,
           [0.065, -0.025, 0.065],
           [0.3, -0.069, 0.3],
         );
-        p.sphere('metal', C.brass, 0.039, [0.2, 0.012, 0.2], { seg: 18 });
-        p.cyl('gloss', C.redDark, 0.023, 0.023, 0.065, [0.2, 0.012, 0.2], {
+        p.sphere('gloss', C.orangeDeep, 0.049, [0.2, 0.012, 0.2], { seg: 22 });
+        p.cyl('metal', C.steel, 0.028, 0.028, 0.084, [0.2, 0.012, 0.2], {
           seg: 20,
         });
         p.rod(
           'metal',
           C.steel,
-          0.018,
+          0.019,
           [0.35, -0.05, 0.35],
-          [0.35, -0.15, 0.35],
+          [0.35, -0.145, 0.35],
         );
-        p.cyl('dark', C.rubber, 0.028, 0.024, 0.035, [0.35, -0.133, 0.35], {
-          seg: 24,
+        p.cyl('dark', C.rubber, 0.03, 0.025, 0.04, [0.35, -0.134, 0.35], {
+          seg: 20,
         });
-        for (const z of [0.324, 0.376])
-          p.rod('metal', C.brass, 0.009, [0.35, -0.13, z], [0.35, -0.173, z]);
-        p.cyl('metal', C.gold, 0.074, 0.074, 0.018, [0.35, -0.18, 0.35], {
+        for (const z of [0.319, 0.381])
+          p.rod('metal', C.steel, 0.01, [0.35, -0.13, z], [0.35, -0.169, z]);
+        p.cyl('metal', C.gold, 0.086, 0.086, 0.017, [0.35, -0.181, 0.35], {
           seg: 36,
         });
-        p.torus('metal', C.brassDark, 0.062, 0.0025, [0.35, -0.169, 0.35], {
-          seg: 36,
-        });
-        p.cyl('metal', '#ffe198', 0.05, 0.05, 0.003, [0.35, -0.169, 0.35], {
+        p.torus('metal', C.brassDark, 0.073, 0.003, [0.35, -0.171, 0.35], {
           seg: 32,
         });
-        p.sphere('metal', C.brass, 0.04, [0, 0, 0], { seg: 20 });
+        p.cyl('gloss', '#ecdcae', 0.061, 0.061, 0.003, [0.35, -0.17, 0.35], {
+          seg: 28,
+        });
+        p.sphere('metal', C.steel, 0.041, [0, 0, 0], { seg: 20 });
       }),
+      light(at),
     ],
   };
 }
 
 function cashier(): ModelDef {
   const k = new Kit();
-  plinth(k);
-  k.lathe(
-    'gloss',
-    C.green,
-    [
-      [0, 0],
-      [0.36, 0],
-      [0.388, 0.018],
-      [0.392, 0.035],
-      [0.38, 0.12],
-      [0.36, 0.15],
-      [0, 0.15],
-    ],
-    [0, 0.07, 0],
-    { seg: 40 },
-  );
-  k.torus('metal', C.brass, 0.365, 0.016, [0, 0.22, 0], { seg: 40 });
+  pad(k, 'cashier');
+  k.cyl('gloss', C.emeraldDeep, 0.39, 0.41, 0.055, [0, 0.066, 0], { seg: 40 });
+  k.cyl('gloss', C.emerald, 0.35, 0.39, 0.13, [0, 0.135, 0], { seg: 40 });
   for (const side of ['front', 'back', 'left', 'right'] as const)
-    intake(k, side, 0.37, 0.14);
-  // The till.
-  k.rbox('metal', C.brass, [0.44, 0.18, 0.34], 0.04, [0, 0.31, -0.02]);
-  for (const x of [-0.219, 0.219]) {
-    k.rbox('gloss', C.redDark, [0.014, 0.11, 0.24], 0.006, [x, 0.316, -0.02]);
-    for (let i = 0; i < 3; i++)
-      k.box(
-        'metal',
-        C.brass,
-        [0.019, 0.007, 0.16],
-        [x, 0.288 + i * 0.026, -0.02],
-      );
-  }
-  k.rbox('gloss', C.redDark, [0.4, 0.04, 0.3], 0.015, [0, 0.41, -0.04]);
-  // Keyboard on the slanted front, facing the camera.
-  k.box('gloss', C.dark, [0.4, 0.03, 0.16], [0, 0.36, 0.14], {
+    intake(k, side, 0.42, 0.12);
+  k.rbox('gloss', C.emerald, [0.5, 0.23, 0.4], 0.055, [-0.01, 0.3, -0.03]);
+  k.rbox(
+    'gloss',
+    C.emeraldDeep,
+    [0.52, 0.045, 0.4],
+    0.014,
+    [-0.01, 0.205, -0.03],
+  );
+  k.rbox('dark', C.charcoal, [0.4, 0.026, 0.17], 0.01, [-0.02, 0.4, 0.135], {
     rot: [0.55, 0, 0],
   });
   for (let r = 0; r < 2; r++)
     for (let c = 0; c < 5; c++)
       k.cyl(
-        'gloss',
-        c === 4 ? C.red : C.cream,
-        0.022,
-        0.022,
-        0.03,
-        [-0.14 + c * 0.07, 0.38 - r * 0.04, 0.1 + r * 0.07],
-        { seg: 20, rot: [0.55, 0, 0] },
+        'paint',
+        c === 4 ? C.gold : C.cream,
+        0.026,
+        0.026,
+        0.025,
+        [-0.17 + c * 0.074, 0.419 - r * 0.035, 0.1 + r * 0.06],
+        { seg: 16, rot: [0.55, 0, 0] },
       );
-  // Display box with its little window.
-  k.rbox('gloss', C.cream, [0.3, 0.1, 0.12], 0.02, [0, 0.48, -0.09]);
-  k.box('dark', C.slot, [0.22, 0.05, 0.01], [0, 0.485, -0.025]);
-  // A bevelled glass display and the little receipt tearing rail.
-  k.rbox('glass', '#b1e9dd', [0.216, 0.047, 0.01], 0.004, [0, 0.485, -0.018]);
-  k.box('metal', C.brass, [0.23, 0.012, 0.025], [0, 0.418, -0.13]);
-  k.box('paint', C.paper, [0.1, 0.003, 0.065], [-0.065, 0.417, -0.15]);
-  for (let i = 0; i < 3; i++)
-    k.box(
-      'paint',
-      C.creamShade,
-      [0.064, 0.003, 0.004],
-      [-0.065, 0.42, -0.166 + i * 0.016],
-    );
-  bulbStalk(k, [0.17, 0.58, -0.12]);
-  // A crank on the side.
+  k.rbox(
+    'gloss',
+    C.emeraldDeep,
+    [0.34, 0.09, 0.13],
+    0.02,
+    [-0.04, 0.46, -0.13],
+  );
+  k.rbox('dark', C.slot, [0.25, 0.045, 0.012], 0.006, [-0.04, 0.465, -0.06]);
+  k.box('paint', C.paper, [0.09, 0.006, 0.072], [0.13, 0.427, -0.1]);
+  // Raised coin landmark: solid colour centre, metal rim and embossed coin mark.
+  for (const x of [-0.2, 0.04])
+    k.cyl('gloss', C.emeraldDeep, 0.023, 0.027, 0.19, [x, 0.53, -0.1], {
+      seg: 20,
+    });
+  k.cyl('gloss', C.gold, 0.183, 0.183, 0.043, [-0.08, 0.685, -0.1], {
+    axis: 'z',
+    seg: 40,
+  });
+  for (const z of [-0.126, -0.074]) {
+    k.torus('metal', C.brass, 0.166, 0.012, [-0.08, 0.685, z], {
+      axis: 'z',
+      seg: 40,
+    });
+    k.cyl('gloss', '#ecdcae', 0.126, 0.126, 0.005, [-0.08, 0.685, z], {
+      axis: 'z',
+      seg: 32,
+    });
+    k.box('gloss', C.gold, [0.035, 0.145, 0.008], [-0.08, 0.685, z]);
+    for (const y of [0.638, 0.732])
+      k.rbox('gloss', C.gold, [0.085, 0.022, 0.008], 0.003, [-0.08, y, z]);
+  }
+  const at: [number, number, number] = [-0.25, 0.54, -0.25];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.66,
+    height: 0.88,
+    rest: new THREE.Vector3(0, 0.14, 0),
     parts: [
-      part('drawer', [0, 0.235, 0.12], (p) => {
-        p.rbox('gloss', C.cream, [0.36, 0.06, 0.16], 0.016, [0, 0, 0]);
-        p.box('dark', C.rubber, [0.3, 0.007, 0.11], [0, 0.032, -0.012]);
-        p.rbox('metal', C.brass, [0.12, 0.02, 0.023], 0.007, [0, 0, 0.085]);
+      part('drawer', [0, 0.235, 0.15], (p) => {
+        p.rbox('gloss', C.emeraldDeep, [0.4, 0.065, 0.18], 0.018, [0, 0, 0]);
+        p.box('dark', C.slot, [0.35, 0.009, 0.14], [0, 0.036, -0.012]);
+        p.rbox('metal', C.brass, [0.14, 0.024, 0.026], 0.007, [0, 0, 0.094]);
         for (const x of [-0.055, 0.025, 0.105])
-          p.box('metal', C.brassDark, [0.008, 0.02, 0.1], [x, 0.035, -0.012]);
+          p.box('metal', C.brassDark, [0.008, 0.02, 0.12], [x, 0.042, -0.012]);
         for (let i = 0; i < 4; i++)
           p.cyl(
             'metal',
@@ -511,587 +508,581 @@ function cashier(): ModelDef {
             0.03,
             0.03,
             0.012,
-            [-0.1 + i * 0.065, 0.035, -0.02],
-            { seg: 24 },
+            [-0.12 + i * 0.073, 0.046, -0.02],
+            { seg: 20 },
           );
       }),
-      part('flag', [0, 0.5, -0.12], (p) => {
-        p.rbox('gloss', C.red, [0.2, 0.08, 0.015], 0.006, [0, 0, 0]);
-        p.rbox('gloss', C.cream, [0.12, 0.035, 0.018], 0.005, [0, 0, 0.003]);
+      part('flag', [0.21, 0.43, -0.1], (p) => {
+        p.rbox('gloss', C.gold, [0.12, 0.07, 0.02], 0.007, [0, 0, 0]);
+        p.box('paint', C.cream, [0.065, 0.025, 0.025], [0, 0, 0.004]);
       }),
-      part('crank', [0.24, 0.32, -0.02], (p) => {
-        p.cyl('metal', C.brass, 0.015, 0.015, 0.06, [0.03, 0, 0], {
+      part('crank', [0.26, 0.32, -0.02], (p) => {
+        p.cyl('metal', C.brass, 0.018, 0.018, 0.06, [0.03, 0, 0], {
           axis: 'x',
           seg: 20,
         });
-        p.box('metal', C.brass, [0.02, 0.12, 0.02], [0.06, 0.05, 0]);
-        p.sphere('gloss', C.red, 0.025, [0.08, 0.11, 0], { seg: 20 });
+        p.rbox('metal', C.brass, [0.024, 0.13, 0.025], 0.006, [0.06, 0.05, 0]);
+        p.sphere('gloss', C.emeraldDeep, 0.028, [0.085, 0.112, 0], { seg: 20 });
       }),
-      light('light', [0.17, 0.6, -0.12]),
+      light(at),
     ],
   };
 }
 
 function splitter(): ModelDef {
   const k = new Kit();
-  plinth(k);
-  k.cyl('gloss', C.green, 0.4, 0.42, 0.07, [0, 0.105, 0], { seg: 40 });
-  k.torus('metal', C.brass, 0.41, 0.02, [0, 0.14, 0], { seg: 40 });
-  k.cyl('dark', C.rubber, 0.355, 0.355, 0.007, [0, 0.143, 0], { seg: 40 });
-  k.torus('metal', C.brassDark, 0.33, 0.008, [0, 0.15, 0], { seg: 40 });
-  intake(k, 'back', 0.38, 0.12);
-  // Exit lips: front, left and right.
-  k.rbox('gloss', C.red, [0.08, 0.03, 0.3], 0.009, [0.42, 0.11, 0]);
-  k.rbox('gloss', C.red, [0.3, 0.03, 0.08], 0.009, [0, 0.11, 0.42]);
-  k.rbox('gloss', C.red, [0.3, 0.03, 0.08], 0.009, [0, 0.11, -0.42]);
-  for (const [x, z, axis] of [
-    [0.4, 0, 'z'],
-    [0, -0.4, 'x'],
-    [0, 0.4, 'x'],
-  ] as const)
-    k.cyl('metal', C.steel, 0.022, 0.022, 0.27, [x, 0.142, z], {
-      axis,
-      seg: 24,
-    });
-  k.cyl('metal', C.brass, 0.07, 0.08, 0.06, [0, 0.17, 0], { seg: 28 });
+  pad(k, 'splitter');
+  k.cyl('dark', C.charcoal, 0.415, 0.43, 0.07, [0, 0.063, 0], { seg: 40 });
+  k.cyl('gloss', C.charcoal, 0.398, 0.415, 0.04, [0, 0.113, 0], { seg: 40 });
+  k.torus('paint', C.steel, 0.385, 0.009, [0, 0.14, 0], { seg: 40 });
+  k.cyl('dark', C.slot, 0.352, 0.352, 0.012, [0, 0.141, 0], { seg: 40 });
+  intake(k, 'back', 0.42, 0.095);
+  for (const side of ['front', 'left', 'right'] as const) chute(k, 0.12, side);
+  // Permanent yellow branches plus a large rotating next-exit arrow.
+  for (const a of [0, Math.PI / 2, -Math.PI / 2])
+    k.chevron(
+      'gloss',
+      C.yellow,
+      0.16,
+      0.18,
+      0.014,
+      [Math.cos(a) * 0.31, 0.157, -Math.sin(a) * 0.31],
+      { rot: [0, a, 0] },
+    );
+  const at: [number, number, number] = [-0.26, 0.207, -0.26];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.34,
+    height: 0.26,
+    rest: new THREE.Vector3(0, 0.166, 0),
     parts: [
-      part('wheel', [0, 0.17, 0], (p) => {
+      part('wheel', [0, 0.158, 0], (p) => {
         for (let i = 0; i < 3; i++) {
-          const a = (i / 3) * Math.PI * 2 + Math.PI / 3;
+          const a = (i * Math.PI * 2) / 3 + Math.PI / 3;
           p.rbox(
             'gloss',
-            C.green,
-            [0.3, 0.065, 0.035],
-            0.011,
-            [Math.cos(a) * 0.17, 0.0, -Math.sin(a) * 0.17],
+            C.charcoal,
+            [0.24, 0.025, 0.07],
+            0.01,
+            [Math.cos(a) * 0.145, 0, -Math.sin(a) * 0.145],
             { rot: [0, a, 0] },
           );
-          p.sphere(
-            'metal',
-            C.brass,
-            0.024,
-            [Math.cos(a) * 0.307, 0, -Math.sin(a) * 0.307],
-            { seg: 16 },
-          );
         }
       }),
-      part('arrow', [0, 0.22, 0], (p) => {
-        p.rbox('gloss', C.red, [0.18, 0.035, 0.055], 0.012, [0.05, 0, 0]);
-        for (const s of [-1, 1])
-          p.rbox(
-            'gloss',
-            C.red,
-            [0.105, 0.035, 0.045],
-            0.01,
-            [0.155, 0, s * 0.031],
-            { rot: [0, (s * Math.PI) / 4, 0] },
-          );
-        p.cyl('metal', C.brass, 0.043, 0.043, 0.018, [0, 0.003, 0], {
-          seg: 28,
+      part('arrow', [0, 0.184, 0], (p) => {
+        p.rbox('gloss', C.yellow, [0.25, 0.027, 0.06], 0.01, [0.04, 0, 0]);
+        p.chevron('gloss', C.yellow, 0.17, 0.22, 0.028, [0.18, 0, 0]);
+        p.cyl('metal', C.steel, 0.037, 0.037, 0.023, [0, 0.014, 0], {
+          seg: 24,
         });
-        screw(p, [0, 0.018, 0], 0.018);
       }),
+      light(at),
     ],
   };
 }
 
+/** The lamp machine is drawn as a Turbo (9 October 2026): a squat enamel
+ * engine drum whose three-bladed rotor spins up while it speeds up its
+ * neighbours, a speed dial whose needle swings into the red, and eight cream
+ * arrows round its foot pointing at the cells it reaches. */
+const TURBO_AT: [number, number] = [0.05, 0.05];
+/** The dial faces both factory cameras: diagonally out and tilted up. */
+const DIAL_NORMAL = new THREE.Vector3(1, 0.62, 1).normalize();
+const DIAL_SPIN = new THREE.Quaternion();
 function lamp(): ModelDef {
   const k = new Kit();
-  plinth(k);
+  const [ox, oz] = TURBO_AT;
+  pad(k, 'lamp');
+  // A round foot with eight arrows on its rim, one toward each reached cell.
+  k.cyl('paint', C.violetDeep, 0.27, 0.29, 0.05, [ox, 0.045, oz], { seg: 40 });
+  k.torus('metal', C.brass, 0.272, 0.007, [ox, 0.07, oz], { seg: 40 });
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    k.chevron(
+      'paint',
+      C.cream,
+      0.046,
+      0.05,
+      0.006,
+      [ox + Math.cos(a) * 0.228, 0.07, oz + Math.sin(a) * 0.228],
+      { rot: [0, -a, 0] },
+    );
+  }
+  // The engine drum: a slightly bellied housing with brass bands and vents.
   k.lathe(
     'gloss',
-    C.green,
+    C.violet,
     [
       [0, 0],
-      [0.185, 0],
-      [0.2, 0.014],
-      [0.2, 0.025],
-      [0.188, 0.038],
-      [0.17, 0.058],
-      [0.1, 0.087],
-      [0.062, 0.111],
-      [0.045, 0.13],
-      [0, 0.14],
+      [0.19, 0],
+      [0.198, 0.03],
+      [0.192, 0.12],
+      [0.16, 0.2],
+      [0.12, 0.226],
+      [0.05, 0.238],
+      [0, 0.238],
     ],
-    [0, 0.07, 0],
+    [ox, 0.07, oz],
     { seg: 40 },
   );
-  k.torus('metal', C.brass, 0.186, 0.009, [0, 0.104, 0], { seg: 40 });
-  k.cyl('metal', C.brass, 0.028, 0.034, 0.44, [0, 0.42, 0], { seg: 28 });
-  k.cyl('gloss', C.green, 0.038, 0.038, 0.085, [0, 0.305, 0], { seg: 28 });
-  for (const y of [0.265, 0.346, 0.61])
-    k.torus('metal', C.brass, 0.038, 0.01, [0, y, 0], { seg: 28 });
-  k.cyl('gloss', C.red, 0.024, 0.029, 0.018, [0.125, 0.13, 0.04], { seg: 24 });
-  // An open shade, with rolled brass lips and a warm inner lining.
-  k.lathe(
-    'gloss',
-    C.green,
-    [
-      [0.205, 0],
-      [0.205, 0.004],
-      [0.197, 0.013],
-      [0.078, 0.132],
-      [0.064, 0.146],
-      [0.044, 0.155],
-    ],
-    [0, 0.71, 0],
-    { seg: 40 },
+  k.torus('metal', C.brass, 0.197, 0.008, [ox, 0.095, oz], { seg: 40 });
+  k.torus('metal', C.brass, 0.15, 0.007, [ox, 0.282, oz], { seg: 40 });
+  for (let i = 0; i < 5; i++) {
+    // Vents on the back half, away from the dial.
+    const a = Math.PI * 0.75 + (i - 2) * 0.42;
+    k.rbox(
+      'dark',
+      C.slot,
+      [0.012, 0.05, 0.05],
+      0.005,
+      [ox + Math.cos(a) * 0.19, 0.18, oz + Math.sin(a) * 0.19],
+      { rot: [0, -a, 0] },
+    );
+  }
+  // The speed dial: brass bezel, cream face, a red zone toward "fast".
+  const dial = new THREE.Vector3(ox, 0.19, oz).add(
+    new THREE.Vector3(DIAL_NORMAL.x, 0, DIAL_NORMAL.z)
+      .normalize()
+      .multiplyScalar(0.175),
   );
-  k.lathe(
+  const face = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    DIAL_NORMAL,
+  );
+  const put = (
+    mat: MatKey,
+    colour: string,
+    g: THREE.BufferGeometry,
+    lift: number,
+  ) =>
+    k.add(
+      mat,
+      colour,
+      g.applyQuaternion(face),
+      dial.clone().addScaledVector(DIAL_NORMAL, lift).toArray() as [
+        number,
+        number,
+        number,
+      ],
+    );
+  put('paint', C.cream, new THREE.CylinderGeometry(0.068, 0.068, 0.02, 32), 0);
+  put(
     'metal',
     C.brass,
-    [
-      [0.055, 0.139],
-      [0.073, 0.129],
-      [0.19, 0.012],
-      [0.197, 0],
-    ],
-    [0, 0.71, 0],
-    { seg: 40 },
+    new THREE.TorusGeometry(0.07, 0.008, 6, 32).rotateX(Math.PI / 2),
+    0.01,
   );
-  k.torus('metal', C.brass, 0.201, 0.009, [0, 0.712, 0], { seg: 40 });
-  k.torus('metal', C.brass, 0.047, 0.006, [0, 0.86, 0], { seg: 28 });
-  k.cyl('dark', C.rubber, 0.037, 0.037, 0.03, [0, 0.704, 0], { seg: 24 });
-  k.sphere('gloss', C.red, 0.022, [0, 0.878, 0], { seg: 20 });
+  // The red zone: the upper-right arc of the face, where "fast" sits.
+  put(
+    'paint',
+    C.red,
+    new THREE.RingGeometry(
+      0.044,
+      0.06,
+      16,
+      1,
+      -Math.PI * 0.05,
+      Math.PI * 0.42,
+    ).rotateX(-Math.PI / 2),
+    0.0105,
+  );
+  for (let i = 0; i < 5; i++) {
+    const a = Math.PI * (0.95 - i * 0.25);
+    put(
+      'dark',
+      C.dark,
+      new THREE.BoxGeometry(0.006, 0.003, 0.016)
+        .translate(0, 0, -0.05)
+        .rotateY(a - Math.PI / 2),
+      0.0105,
+    );
+  }
+  // Spindle up to the rotor.
+  k.rod('metal', C.steel, 0.016, [ox, 0.3, oz], [ox, 0.44, oz]);
+  k.cyl('metal', C.brass, 0.034, 0.042, 0.022, [ox, 0.315, oz], { seg: 24 });
+  const at: [number, number, number] = [-0.26, 0.131, -0.22];
+  bulbStalk(k, at);
+  const blade = new THREE.Shape();
+  // A broad paddle, narrow at the hub and rounded at the tip.
+  blade.moveTo(0.035, -0.024);
+  blade.bezierCurveTo(0.11, -0.05, 0.19, -0.085, 0.24, -0.074);
+  blade.bezierCurveTo(0.29, -0.06, 0.29, 0.05, 0.245, 0.064);
+  blade.bezierCurveTo(0.19, 0.074, 0.11, 0.04, 0.035, 0.024);
+  blade.closePath();
+  const tip = new THREE.Shape();
+  tip.moveTo(0.2, -0.08);
+  tip.bezierCurveTo(0.22, -0.081, 0.232, -0.077, 0.24, -0.074);
+  tip.bezierCurveTo(0.29, -0.06, 0.29, 0.05, 0.245, 0.064);
+  tip.bezierCurveTo(0.232, 0.067, 0.22, 0.068, 0.2, 0.068);
+  tip.closePath();
+  const pitch = 0.26;
   return {
     body: k.merged(),
-    height: 0.9,
+    height: 0.52,
     parts: [
-      part(
-        'bulb',
-        [0, 0.64, 0],
-        (p) =>
-          p.sphere('glow', '#ffffff', 0.074, [0, 0.016, 0], {
-            seg: 28,
-            scale: [1, 1.12, 1],
-          }),
-        'boost',
-      ),
-    ],
-  };
-}
-
-function ink(): ModelDef {
-  const k = new Kit();
-  plinth(k);
-  k.cyl('gloss', C.green, 0.3, 0.32, 0.05, [0, 0.095, 0], { seg: 40 });
-  // A squat glass bottle; the ink inside is a moving part.
-  k.lathe(
-    'glass',
-    '#cfe6ff',
-    [
-      [0, 0],
-      [0.245, 0],
-      [0.263, 0.012],
-      [0.277, 0.035],
-      [0.28, 0.065],
-      [0.278, 0.18],
-      [0.268, 0.218],
-      [0.243, 0.248],
-      [0.15, 0.292],
-      [0.108, 0.325],
-      [0.102, 0.344],
-      [0.102, 0.365],
-      [0.083, 0.365],
-      [0.083, 0.338],
-    ],
-    [0, 0.12, 0],
-    { seg: 40 },
-  );
-  k.torus('metal', C.brass, 0.1, 0.012, [0, 0.483, 0], { seg: 32 });
-  k.torus('metal', C.brass, 0.27, 0.01, [0, 0.14, 0], { seg: 40 });
-  k.rbox('paint', C.cream, [0.18, 0.07, 0.013], 0.006, [0, 0.262, 0.276]);
-  k.cyl('gloss', C.ink, 0.019, 0.019, 0.015, [0, 0.263, 0.287], {
-    axis: 'z',
-    seg: 24,
-  });
-  for (const x of [-0.21, 0.21]) screw(k, [x, 0.126, 0.16]);
-  return {
-    body: k.merged(),
-    height: 0.88,
-    parts: [
-      part(
-        'ink',
-        [0, 0.12, 0],
-        (p) =>
-          p.lathe(
+      part('rotor', [ox, 0.45, oz], (p) => {
+        for (let i = 0; i < 3; i++) {
+          const yaw = (i / 3) * Math.PI * 2;
+          p.add(
             'paint',
-            '#ffffff',
-            [
-              [0, 0],
-              [0.235, 0],
-              [0.251, 0.02],
-              [0.261, 0.05],
-              [0.258, 0.155],
-              [0.245, 0.171],
-              [0, 0.17],
-            ],
+            C.cream,
+            new THREE.ExtrudeGeometry(blade, {
+              depth: 0.01,
+              bevelEnabled: true,
+              bevelSize: 0.004,
+              bevelThickness: 0.003,
+              bevelSegments: 1,
+              curveSegments: 10,
+            }).translate(0, 0, -0.005),
             [0, 0, 0],
-            { seg: 40 },
-          ),
-        'boost',
-      ),
-      part('quill', [0.04, 0.46, 0], (p) => {
-        const feather = new THREE.Shape();
-        feather.moveTo(0, 0.07);
-        feather.bezierCurveTo(-0.045, 0.145, -0.062, 0.22, -0.026, 0.29);
-        feather.bezierCurveTo(-0.016, 0.324, 0.001, 0.35, 0.01, 0.372);
-        feather.bezierCurveTo(0.064, 0.323, 0.092, 0.23, 0.031, 0.1);
-        feather.lineTo(0, 0.07);
-        p.add(
-          'paint',
-          C.paper,
-          new THREE.ExtrudeGeometry(feather, {
-            depth: 0.009,
-            bevelEnabled: true,
-            bevelSize: 0.003,
-            bevelThickness: 0.003,
-            bevelSegments: 2,
-            curveSegments: 10,
-            steps: 1,
-          }),
-          [0, 0, -0.005],
-        );
-        p.rod(
-          'paint',
-          C.creamShade,
-          0.0035,
-          [0, -0.065, 0.003],
-          [0.01, 0.362, 0.003],
-          12,
-        );
-        for (let i = 0; i < 7; i++) {
-          const y = 0.13 + i * 0.027;
-          p.rod(
-            'paint',
-            C.creamShade,
-            0.0014,
-            [0.006, y, 0.008],
-            [0.048 - Math.max(0, i - 3) * 0.009, y + 0.032, 0.008],
-            6,
+            { rot: [-Math.PI / 2 + pitch, yaw, 0] },
           );
-          p.rod(
-            'paint',
-            C.creamShade,
-            0.0014,
-            [0.004, y, 0.008],
-            [-0.034 + Math.max(0, i - 3) * 0.006, y + 0.021, 0.008],
-            6,
+          p.add(
+            'gloss',
+            C.violet,
+            new THREE.ExtrudeGeometry(tip, {
+              depth: 0.018,
+              bevelEnabled: true,
+              bevelSize: 0.0055,
+              bevelThickness: 0.003,
+              bevelSegments: 1,
+              curveSegments: 8,
+            }).translate(0, 0, -0.009),
+            [0, 0, 0],
+            { rot: [-Math.PI / 2 + pitch, yaw, 0] },
           );
         }
+        p.lathe(
+          'metal',
+          C.brass,
+          [
+            [0, -0.024],
+            [0.05, -0.024],
+            [0.054, -0.01],
+            [0.046, 0.016],
+            [0.026, 0.038],
+            [0, 0.044],
+          ],
+          [0, 0, 0],
+          { seg: 32 },
+        );
+        p.sphere('gloss', C.violet, 0.016, [0, 0.042, 0], { seg: 16 });
       }),
-      ...[0, 1, 2].map((i) =>
-        part(`bubble${i}`, [(i - 1) * 0.08, 0.16, (i % 2) * 0.06 - 0.03], (p) =>
-          p.sphere('glow', '#9fc4ff', 0.018, [0, 0, 0], { seg: 16 }),
-        ),
-      ),
+      part('needle', dial.toArray() as [number, number, number], (p) => {
+        p.add(
+          'gloss',
+          C.redDark,
+          new THREE.BoxGeometry(0.008, 0.004, 0.052)
+            .translate(0, 0.014, -0.022)
+            .applyQuaternion(face),
+          [0, 0, 0],
+        );
+        p.add(
+          'metal',
+          C.brass,
+          new THREE.CylinderGeometry(0.01, 0.01, 0.01, 16)
+            .translate(0, 0.014, 0)
+            .applyQuaternion(face),
+          [0, 0, 0],
+        );
+      }),
+      light(at),
     ],
   };
 }
 
 function stamper(): ModelDef {
   const k = new Kit();
-  plinth(k);
-  k.rbox('dark', C.rubber, [0.62, 0.08, 0.6], 0.03, [0, 0.11, 0]);
-  k.box('metal', C.steel, [0.36, 0.012, 0.34], [0.02, 0.156, 0]);
-  intake(k, 'back', 0.36, 0.12);
-  intake(k, 'left', 0.37, 0.12);
-  intake(k, 'right', 0.37, 0.12);
-  chute(k, 0.16);
-  // Two posts and a beam.
-  for (const z of [-0.29, 0.29]) {
-    k.cyl('metal', C.steel, 0.031, 0.031, 0.5, [-0.05, 0.4, z], { seg: 28 });
-    k.cyl('gloss', C.green, 0.046, 0.053, 0.055, [-0.05, 0.184, z], {
-      seg: 28,
-    });
-    k.cyl('gloss', C.green, 0.044, 0.044, 0.072, [-0.05, 0.515, z], {
-      seg: 28,
-    });
-    for (const y of [0.207, 0.48, 0.55])
-      k.torus('metal', C.brass, 0.043, 0.006, [-0.05, y, z], { seg: 24 });
-    k.sphere('metal', C.brass, 0.037, [-0.05, 0.661, z], { seg: 20 });
-  }
-  k.rbox('gloss', C.green, [0.16, 0.1, 0.66], 0.03, [-0.05, 0.6, 0]);
-  k.rbox('metal', C.brass, [0.17, 0.019, 0.65], 0.008, [-0.05, 0.55, 0]);
-  k.cyl('gloss', C.greenDeep, 0.073, 0.073, 0.095, [-0.02, 0.672, 0], {
-    seg: 32,
-  });
-  k.torus('metal', C.brass, 0.073, 0.008, [-0.02, 0.711, 0], { seg: 32 });
-  k.cyl('metal', C.brass, 0.034, 0.034, 0.08, [-0.02, 0.54, 0], { seg: 24 });
-  for (const z of [-0.23, 0.23]) screw(k, [-0.05, 0.654, z], 0.016);
-  bulbStalk(k, [-0.05, 0.72, -0.18]);
+  pad(k, 'stamper');
+  k.rbox('gloss', C.redDark, [0.72, 0.09, 0.74], 0.03, [-0.015, 0.074, 0]);
+  k.rbox('paint', C.steel, [0.38, 0.032, 0.42], 0.013, [0.02, 0.161, 0]);
+  feeds(k);
+  // Four thin columns and open bridges read as a press from both floor
+  // orientations. A two-post z frame disappeared end-on at the game camera.
+  for (const x of [-0.27, 0.23])
+    for (const z of [-0.28, 0.28]) {
+      k.rbox('gloss', C.red, [0.095, 0.5, 0.095], 0.021, [x, 0.391, z]);
+      k.rbox('gloss', C.redDark, [0.14, 0.055, 0.14], 0.015, [x, 0.14, z]);
+      k.cyl('metal', C.steel, 0.023, 0.023, 0.37, [x + 0.032, 0.373, z], {
+        seg: 24,
+      });
+      screw(k, [x, 0.66, z], 0.016);
+    }
+  for (const z of [-0.28, 0.28])
+    k.rbox('gloss', C.red, [0.63, 0.105, 0.105], 0.026, [-0.02, 0.652, z]);
+  k.rbox('gloss', C.red, [0.12, 0.1, 0.62], 0.025, [-0.025, 0.652, 0]);
+  k.cyl('gloss', C.redDark, 0.085, 0.085, 0.1, [-0.025, 0.723, 0], { seg: 28 });
+  const at: [number, number, number] = [-0.2, 0.774, -0.25];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.8,
-    rest: new THREE.Vector3(0.02, 0.165, 0),
+    height: 0.83,
+    rest: new THREE.Vector3(0.02, 0.18, 0),
     parts: [
-      part('stamp', [-0.02, 0.4, 0], (p) => {
-        p.cyl('metal', C.steel, 0.022, 0.022, 0.24, [0, 0.13, 0], { seg: 28 });
-        p.rbox('gloss', C.red, [0.22, 0.09, 0.26], 0.025, [0, 0, 0]);
-        p.rbox('metal', C.brass, [0.22, 0.016, 0.26], 0.007, [0, -0.045, 0]);
-        p.rbox('dark', C.redDark, [0.2, 0.029, 0.24], 0.008, [0, -0.06, 0]);
-        p.cyl('metal', C.brass, 0.047, 0.047, 0.023, [0, 0.055, 0], {
-          seg: 28,
-        });
-        for (const z of [-0.078, 0.078]) screw(p, [0, 0.048, z]);
+      part('stamp', [-0.025, 0.414, 0], (p) => {
+        p.cyl('metal', C.steel, 0.026, 0.026, 0.25, [0, 0.11, 0], { seg: 24 });
+        p.lathe(
+          'gloss',
+          C.red,
+          [
+            [0, 0],
+            [0.075, 0],
+            [0.095, 0.04],
+            [0.068, 0.072],
+            [0.052, 0.09],
+            [0.052, 0.12],
+            [0, 0.12],
+          ],
+          [0, 0.015, 0],
+          { seg: 32 },
+        );
+        p.rbox('gloss', C.red, [0.32, 0.07, 0.34], 0.03, [0, -0.014, 0]);
+        p.rbox('dark', C.slot, [0.3, 0.024, 0.32], 0.01, [0, -0.057, 0]);
+        p.torus('gloss', C.redDark, 0.085, 0.004, [0, -0.066, 0], { seg: 28 });
       }),
-      light('light', [-0.05, 0.75, -0.18]),
+      light(at),
     ],
   };
 }
 
 function gilder(): ModelDef {
   const k = new Kit();
-  plinth(k);
-  k.rbox('dark', C.rubber, [0.62, 0.08, 0.6], 0.03, [0, 0.11, 0]);
-  k.rbox('metal', C.brass, [0.43, 0.009, 0.4], 0.004, [0, 0.154, 0]);
-  intake(k, 'back', 0.36, 0.12);
-  intake(k, 'left', 0.37, 0.12);
-  intake(k, 'right', 0.37, 0.12);
-  chute(k, 0.16);
-  // A golden arch over the platen with a paint pot on top.
-  for (const x of [-0.065, 0.065])
-    k.torus('metal', C.gold, 0.3, 0.024, [x, 0.15, 0], {
-      axis: 'x',
-      arc: Math.PI,
+  pad(k, 'gilder');
+  for (const z of [-0.3, 0.3])
+    k.rbox('paint', C.cream, [0.71, 0.075, 0.14], 0.02, [-0.02, 0.072, z]);
+  k.rbox('dark', C.dark, [0.64, 0.066, 0.53], 0.024, [0, 0.113, 0]);
+  k.rbox('metal', C.gold, [0.44, 0.014, 0.44], 0.005, [0, 0.166, 0]);
+  feeds(k);
+  // A large gold burnishing drum on white cheeks. Its circular ends and
+  // broad cylindrical roller remain a drum from the overview, not a box.
+  for (const z of [-0.285, 0.285]) {
+    k.rbox('paint', C.cream, [0.32, 0.29, 0.052], 0.025, [-0.09, 0.28, z]);
+    k.cyl('paint', C.cream, 0.233, 0.233, 0.042, [-0.09, 0.408, z], {
+      axis: 'z',
       seg: 40,
     });
-  for (const z of [-0.3, 0.3]) {
-    k.rbox('gloss', C.green, [0.18, 0.11, 0.085], 0.025, [0, 0.19, z]);
-    k.cyl('metal', C.brass, 0.036, 0.036, 0.036, [0, 0.24, z], {
+    k.torus(
+      'gloss',
+      C.gold,
+      0.212,
+      0.012,
+      [-0.09, 0.408, z + (z < 0 ? -0.024 : 0.024)],
+      { axis: 'z', seg: 40 },
+    );
+    k.cyl('gloss', C.gold, 0.164, 0.164, 0.047, [-0.09, 0.408, z], {
+      axis: 'z',
+      seg: 36,
+    });
+    k.cyl('metal', C.steel, 0.042, 0.042, 0.055, [-0.09, 0.408, z], {
       axis: 'z',
       seg: 24,
-    });
-    k.cyl('dark', C.rubber, 0.019, 0.019, 0.039, [0, 0.24, z], {
-      axis: 'z',
-      seg: 20,
     });
   }
   k.lathe(
     'gloss',
-    C.green,
+    C.gold,
     [
       [0, 0],
-      [0.097, 0],
-      [0.109, 0.014],
-      [0.117, 0.075],
-      [0.126, 0.09],
-      [0.109, 0.09],
-      [0.096, 0.019],
-      [0, 0.019],
+      [0.089, 0],
+      [0.1, 0.012],
+      [0.105, 0.065],
+      [0.09, 0.083],
+      [0, 0.083],
     ],
-    [0, 0.458, 0],
+    [-0.09, 0.642, 0],
     { seg: 32 },
   );
-  k.torus('metal', C.brass, 0.118, 0.008, [0, 0.548, 0], { seg: 32 });
-  k.cyl('metal', C.gold, 0.106, 0.106, 0.004, [0, 0.535, 0], { seg: 32 });
-  k.rod('metal', C.copper, 0.012, [0.09, 0.475, 0.04], [0.12, 0.34, 0.04]);
-  k.rod('metal', C.copper, 0.012, [0.12, 0.34, 0.04], [0.05, 0.286, 0.04]);
-  bulbStalk(k, [-0.22, 0.5, 0.18]);
+  k.torus('paint', C.cream, 0.095, 0.007, [-0.09, 0.724, 0], { seg: 28 });
+  k.rod('metal', C.brass, 0.013, [0.0, 0.68, 0.02], [0.16, 0.405, 0.02]);
+  const at: [number, number, number] = [-0.25, 0.69, -0.25];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.62,
-    rest: new THREE.Vector3(0, 0.165, 0),
+    height: 0.75,
+    rest: new THREE.Vector3(0.01, 0.184, 0),
     parts: [
-      part('brush', [0, 0.24, 0], (p) => {
-        p.cyl('paint', '#e9c973', 0.068, 0.068, 0.44, [0, 0, 0], {
+      part('brush', [-0.09, 0.408, 0], (p) => {
+        p.cyl('gloss', C.gold, 0.205, 0.205, 0.51, [0, 0, 0], {
           axis: 'z',
-          seg: 36,
+          seg: 40,
         });
-        p.cyl('metal', C.steel, 0.017, 0.017, 0.61, [0, 0, 0], {
+        p.cyl('metal', C.steel, 0.018, 0.018, 0.66, [0, 0, 0], {
           axis: 'z',
           seg: 20,
         });
-        for (const z of [-0.24, 0.24]) {
-          p.cyl('gloss', C.redDark, 0.048, 0.048, 0.032, [0, 0, z], {
-            axis: 'z',
-            seg: 28,
-          });
-          p.torus('metal', C.brass, 0.048, 0.007, [0, 0, z], {
-            axis: 'z',
-            seg: 28,
-          });
-        }
-        for (let i = 0; i < 12; i++) {
-          const a = (i / 12) * Math.PI * 2;
+        for (let i = 0; i < 14; i++) {
+          const a = (i * Math.PI * 2) / 14;
           p.box(
             'paint',
-            '#fff0b0',
-            [0.008, 0.01, 0.425],
-            [Math.cos(a) * 0.068, Math.sin(a) * 0.068, 0],
-            { rot: [0, 0, a] },
+            '#ecdcae',
+            [0.012, 0.026, 0.49],
+            [Math.cos(a) * 0.207, Math.sin(a) * 0.207, 0],
+            { rot: [0, 0, a - Math.PI / 2] },
           );
         }
       }),
-      light('light', [-0.22, 0.53, 0.18]),
+      light(at),
     ],
   };
 }
 
 function charm(): ModelDef {
   const k = new Kit();
-  plinth(k);
+  pad(k, 'charm');
+  k.cyl('gloss', C.lilac, 0.28, 0.32, 0.078, [0, 0.066, 0], { seg: 6 });
   k.lathe(
     'gloss',
-    C.green,
+    C.lilac,
     [
       [0, 0],
       [0.22, 0],
-      [0.223, 0.017],
-      [0.2, 0.05],
-      [0.125, 0.081],
-      [0.1, 0.09],
-      [0.09, 0.22],
-      [0.12, 0.241],
-      [0.16, 0.26],
-      [0.16, 0.29],
-      [0, 0.29],
+      [0.215, 0.034],
+      [0.11, 0.095],
+      [0.095, 0.19],
+      [0.14, 0.215],
+      [0.18, 0.232],
+      [0.18, 0.255],
+      [0, 0.255],
     ],
-    [0, 0.07, 0],
-    { seg: 40 },
+    [0, 0.097, 0],
+    { seg: 32 },
   );
-  k.torus('metal', C.brass, 0.16, 0.012, [0, 0.36, 0], { seg: 40 });
-  k.torus('metal', C.brass, 0.2, 0.01, [0, 0.088, 0], { seg: 40 });
-  k.torus('metal', C.brass, 0.228, 0.009, [0, 0.578, 0], {
-    axis: 'z',
-    seg: 40,
-  });
-  for (const x of [-0.135, 0.135])
-    k.rod('metal', C.brass, 0.011, [x, 0.363, 0], [x * 1.25, 0.425, 0]);
+  k.torus('gloss', '#6f5a8c', 0.181, 0.012, [0, 0.342, 0], { seg: 32 });
+  k.cyl('gloss', C.clover, 0.145, 0.145, 0.006, [0, 0.36, 0], { seg: 28 });
+  const at: [number, number, number] = [-0.2, 0.25, -0.25];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.83,
+    height: 0.85,
     parts: [
       part(
         'clover',
-        [0, 0.58, 0],
+        [0, 0.615, 0],
         (p) => {
           const leaf = new THREE.Shape();
-          leaf.moveTo(0, 0.005);
-          leaf.bezierCurveTo(-0.025, 0.046, -0.077, 0.103, -0.054, 0.139);
-          leaf.bezierCurveTo(-0.04, 0.163, -0.014, 0.16, 0, 0.137);
-          leaf.bezierCurveTo(0.014, 0.16, 0.04, 0.163, 0.054, 0.139);
-          leaf.bezierCurveTo(0.077, 0.103, 0.025, 0.046, 0, 0.005);
+          leaf.moveTo(0, 0.008);
+          leaf.bezierCurveTo(-0.042, 0.064, -0.104, 0.128, -0.079, 0.175);
+          leaf.bezierCurveTo(-0.058, 0.212, -0.021, 0.214, 0, 0.18);
+          leaf.bezierCurveTo(0.021, 0.214, 0.058, 0.212, 0.079, 0.175);
+          leaf.bezierCurveTo(0.104, 0.128, 0.042, 0.064, 0, 0.008);
           for (let i = 0; i < 4; i++)
             p.add(
               'gloss',
               '#ffffff',
               new THREE.ExtrudeGeometry(leaf, {
-                depth: 0.018,
+                depth: 0.02,
                 bevelEnabled: true,
                 bevelSize: 0.009,
-                bevelThickness: 0.009,
-                bevelSegments: 3,
-                curveSegments: 8,
+                bevelThickness: 0.008,
+                bevelSegments: 2,
+                curveSegments: 10,
                 steps: 1,
               }),
-              [0, 0, -0.009],
+              [0, 0, -0.01],
               { rot: [0, 0, (i * Math.PI) / 2] },
             );
-          p.sphere('gloss', '#ffffff', 0.022, [0, 0, 0.011], { seg: 20 });
-          p.cyl('gloss', '#ffffff', 0.012, 0.012, 0.14, [0.03, -0.14, 0], {
-            seg: 16,
-            rot: [0, 0, 0.3],
-          });
+          p.sphere('gloss', '#ffffff', 0.029, [0, 0, 0.018], { seg: 20 });
+          p.rod(
+            'gloss',
+            '#ffffff',
+            0.014,
+            [0.009, -0.02, 0],
+            [0.052, -0.21, 0],
+            16,
+          );
         },
         'boost',
       ),
+      light(at),
     ],
   };
 }
 
 function bundler(): ModelDef {
   const k = new Kit();
-  plinth(k);
-  // A brass-walled tray.
-  k.rbox('dark', C.rubber, [0.62, 0.07, 0.62], 0.03, [0, 0.105, 0]);
-  for (const z of [-0.3, 0.3]) {
-    k.rbox('metal', C.brass, [0.6, 0.1, 0.03], 0.01, [0, 0.19, z]);
-    k.box('gloss', C.green, [0.42, 0.028, 0.035], [0, 0.19, z]);
+  pad(k, 'bundler');
+  // A low open kraft packing bench with a thin upright magenta reel. The
+  // reel's disc profile deliberately differs from the long white paper roll.
+  k.rbox('paint', C.kraftDeep, [0.74, 0.065, 0.74], 0.022, [0, 0.058, 0]);
+  // Split platen: the wrapping carriage travels through this central gap,
+  // below the bundle and above the low base, without crossing the bench.
+  for (const [x, w] of [
+    [-0.09, 0.36],
+    [0.31, 0.2],
+  ]) {
+    k.rbox('paint', C.kraft, [w, 0.058, 0.69], 0.02, [x, 0.12, 0]);
+    k.rbox('paint', C.cream, [w, 0.012, 0.46], 0.005, [x, 0.159, 0]);
   }
-  k.rbox('metal', C.brass, [0.03, 0.1, 0.6], 0.01, [-0.3, 0.19, 0]);
-  k.box('metal', C.steel, [0.43, 0.008, 0.44], [0.035, 0.143, 0]);
-  intake(k, 'back', 0.37, 0.12);
-  intake(k, 'left', 0.37, 0.12);
-  intake(k, 'right', 0.37, 0.12);
-  chute(k, 0.16);
-  // The ribbon spool on a gantry.
-  for (const z of [-0.3, 0.3]) {
-    k.rbox('gloss', C.green, [0.065, 0.38, 0.065], 0.018, [-0.22, 0.38, z]);
-    k.box('metal', C.brass, [0.075, 0.028, 0.075], [-0.22, 0.21, z]);
-    k.cyl('metal', C.brass, 0.026, 0.026, 0.1, [-0.1, 0.5, z], {
+  for (const z of [-0.35, 0.35])
+    k.rbox('paint', C.kraftDeep, [0.64, 0.05, 0.043], 0.008, [-0.04, 0.177, z]);
+  for (const z of [-0.315, -0.125]) {
+    k.rbox('paint', C.kraft, [0.12, 0.21, 0.054], 0.015, [-0.22, 0.239, z]);
+    k.cyl('metal', C.steel, 0.025, 0.025, 0.025, [-0.22, 0.335, z], {
       axis: 'z',
-      seg: 24,
+      seg: 20,
     });
-    k.rod('metal', C.brass, 0.012, [-0.22, 0.555, z], [-0.1, 0.5, z]);
   }
-  k.rbox('gloss', C.green, [0.08, 0.06, 0.66], 0.018, [-0.22, 0.58, 0]);
-  // The ribbon carriage runs round this fixed hoop, clear of the ticket tray.
-  k.torus('metal', C.brass, 0.222, 0.011, [0.04, 0.3, 0], {
+  feeds(k);
+  k.torus('paint', C.cream, 0.145, 0.012, [0.15, 0.265, 0], {
     axis: 'x',
-    seg: 40,
+    seg: 36,
   });
-  for (const z of [-0.235, 0.235])
-    k.rbox('gloss', C.green, [0.09, 0.1, 0.047], 0.015, [0.04, 0.235, z]);
-  bulbStalk(k, [-0.22, 0.68, 0.22]);
+  for (const z of [-0.16, 0.16])
+    k.rbox('paint', C.kraftDeep, [0.06, 0.08, 0.055], 0.012, [0.15, 0.188, z]);
+  const at: [number, number, number] = [-0.23, 0.56, -0.25];
+  bulbStalk(k, at);
   return {
     body: k.merged(),
-    height: 0.76,
-    rest: new THREE.Vector3(0.04, 0.15, 0),
+    height: 0.61,
+    rest: new THREE.Vector3(0.15, 0.166, 0),
     parts: [
-      part('spool', [-0.1, 0.5, 0], (p) => {
-        p.cyl('gloss', C.red, 0.07, 0.07, 0.3, [0, 0, 0], {
+      part('spool', [-0.22, 0.335, -0.22], (p) => {
+        p.cyl('gloss', C.ribbon, 0.176, 0.176, 0.12, [0, 0, 0], {
           axis: 'z',
-          seg: 36,
+          seg: 40,
         });
-        p.cyl('metal', C.brass, 0.1, 0.1, 0.02, [0, 0, 0.16], {
-          axis: 'z',
-          seg: 36,
-        });
-        p.cyl('metal', C.brass, 0.1, 0.1, 0.02, [0, 0, -0.16], {
-          axis: 'z',
-          seg: 36,
-        });
-        for (const z of [-0.173, 0.173]) {
-          p.torus('metal', C.brassDark, 0.075, 0.003, [0, 0, z], {
+        for (const z of [-0.066, 0.066]) {
+          p.cyl('paint', C.kraft, 0.19, 0.19, 0.015, [0, 0, z], {
             axis: 'z',
-            seg: 32,
+            seg: 40,
           });
-          for (let i = 0; i < 4; i++) {
-            const a = (i * Math.PI) / 2;
-            p.box(
-              'dark',
-              C.brassDark,
-              [0.042, 0.008, 0.006],
-              [Math.cos(a) * 0.046, Math.sin(a) * 0.046, z],
-              { rot: [0, 0, a] },
-            );
-          }
+          p.cyl('gloss', C.ribbon, 0.164, 0.164, 0.021, [0, 0, z], {
+            axis: 'z',
+            seg: 36,
+          });
+          p.torus(
+            'gloss',
+            '#dcaac0',
+            0.135,
+            0.005,
+            [0, 0, z + (z < 0 ? -0.013 : 0.013)],
+            { axis: 'z', seg: 32 },
+          );
+          p.cyl('paint', C.cream, 0.037, 0.037, 0.03, [0, 0, z], {
+            axis: 'z',
+            seg: 24,
+          });
         }
-        p.cyl('metal', C.steel, 0.017, 0.017, 0.65, [0, 0, 0], {
+        p.cyl('metal', C.steel, 0.017, 0.017, 0.24, [0, 0, 0], {
           axis: 'z',
           seg: 20,
         });
-      }),
-      part('ring', [0.04, 0.3, 0], (p) => {
-        p.torus('gloss', C.red, 0.205, 0.006, [0, 0, 0], {
-          axis: 'x',
-          seg: 40,
-        });
-        p.rbox('gloss', C.red, [0.062, 0.032, 0.063], 0.013, [0, 0.205, 0]);
-        p.cyl('metal', C.brass, 0.027, 0.027, 0.09, [0, 0.205, 0], {
-          axis: 'x',
-          seg: 24,
-        });
-        p.cyl('paint', C.paper, 0.016, 0.016, 0.073, [0, 0.175, 0], {
-          axis: 'z',
-          seg: 24,
+        p.box('gloss', '#dcaac0', [0.014, 0.06, 0.028], [0.1, 0.06, 0.08], {
+          rot: [0, 0, -0.5],
         });
       }),
-      light('light', [-0.22, 0.71, 0.22]),
+      part('ring', [0.15, 0.265, 0], (p) => {
+        p.torus('gloss', C.ribbon, 0.132, 0.009, [0, 0, 0], {
+          axis: 'x',
+          seg: 32,
+        });
+        p.rbox('gloss', C.ribbon, [0.065, 0.035, 0.06], 0.013, [0, 0.132, 0]);
+        p.cyl('metal', C.steel, 0.023, 0.023, 0.087, [0, 0.132, 0], {
+          axis: 'x',
+          seg: 20,
+        });
+      }),
+      light(at),
     ],
   };
 }
@@ -1101,13 +1092,14 @@ export type BeltShape = 'straight' | 'left' | 'right';
 export const BELT_TOP = 0.105;
 export function beltModel(shape: BeltShape) {
   const k = new Kit();
+  pad(k, 'belt');
   let path: THREE.Vector3[];
   if (shape === 'straight') {
     path = [new THREE.Vector3(-0.5, 0, 0), new THREE.Vector3(0.5, 0, 0)];
-    k.rbox('gloss', C.greenDeep, [1, 0.05, 0.5], 0.02, [0, 0.04, 0]);
+    k.rbox('gloss', C.charcoal, [1, 0.05, 0.68], 0.02, [0, 0.04, 0]);
     for (const x of [-0.42, 0, 0.42]) {
-      k.box('metal', C.brass, [0.06, 0.06, 0.04], [x, 0.04, 0.27]);
-      k.box('metal', C.brass, [0.06, 0.06, 0.04], [x, 0.04, -0.27]);
+      k.box('paint', C.charcoal, [0.06, 0.06, 0.04], [x, 0.04, 0.27]);
+      k.box('paint', C.charcoal, [0.06, 0.06, 0.04], [x, 0.04, -0.27]);
     }
   } else {
     // A quarter turn from the side edge (left: -z, right: +z) to the front.
@@ -1124,11 +1116,11 @@ export function beltModel(shape: BeltShape) {
         ),
       );
     }
-    const bed = rail(path, 0.5, 0.032, 0.033);
-    k.add('gloss', C.greenDeep, bed, [0, 0, 0]);
+    const bed = rail(path, 0.68, 0.032, 0.033);
+    k.add('gloss', C.charcoal, bed, [0, 0, 0]);
     k.cyl(
       'metal',
-      C.brass,
+      C.charcoal,
       0.05,
       0.05,
       0.06,
@@ -1141,11 +1133,16 @@ export function beltModel(shape: BeltShape) {
       const t = pathTangent(path, i);
       return new THREE.Vector3(p.x - t.z * offset, 0, p.z + t.x * offset);
     });
-  k.add('metal', C.brass, rail(sideRail(0.235), 0.035, 0.05, 0.075), [0, 0, 0]);
+  k.add(
+    'paint',
+    C.charcoal,
+    rail(sideRail(0.335), 0.035, 0.05, 0.075),
+    [0, 0, 0],
+  );
   k.add(
     'metal',
-    C.brass,
-    rail(sideRail(-0.235), 0.035, 0.05, 0.075),
+    C.charcoal,
+    rail(sideRail(-0.335), 0.035, 0.05, 0.075),
     [0, 0, 0],
   );
   // Low-profile rollers, bearing caps and rail screws remain visible by the edges.
@@ -1161,8 +1158,8 @@ export function beltModel(shape: BeltShape) {
       .clone()
       .addScaledVector(t, end === 0 ? 0.047 : -0.047)
       .setY(0.066);
-    const a = centre.clone().addScaledVector(side, -0.232),
-      b = centre.clone().addScaledVector(side, 0.232);
+    const a = centre.clone().addScaledVector(side, -0.322),
+      b = centre.clone().addScaledVector(side, 0.322);
     k.rod(
       'dark',
       C.rubber,
@@ -1175,12 +1172,12 @@ export function beltModel(shape: BeltShape) {
       'metal',
       C.steel,
       0.017,
-      centre.clone().addScaledVector(side, -0.273).toArray() as [
+      centre.clone().addScaledVector(side, -0.358).toArray() as [
         number,
         number,
         number,
       ],
-      centre.clone().addScaledVector(side, 0.273).toArray() as [
+      centre.clone().addScaledVector(side, 0.358).toArray() as [
         number,
         number,
         number,
@@ -1188,7 +1185,7 @@ export function beltModel(shape: BeltShape) {
       16,
     );
   }
-  for (const offset of [-0.235, 0.235]) {
+  for (const offset of [-0.335, 0.335]) {
     const edge = sideRail(offset);
     for (const fraction of [0.08, 0.5, 0.92]) {
       const at =
@@ -1198,7 +1195,9 @@ export function beltModel(shape: BeltShape) {
       screw(k, at.toArray() as [number, number, number], 0.01);
     }
   }
-  const top = strip(path, 0.42, BELT_TOP);
+  // A dark feed roller behind; orange lip at the front never scrolls.
+  k.rbox('gloss', C.orange, [0.028, 0.027, 0.64], 0.006, [0.481, 0.104, 0]);
+  const top = strip(path, 0.6, BELT_TOP);
   return { body: k.merged(), top, path };
 }
 
@@ -1208,13 +1207,12 @@ const BUILDERS: Record<Exclude<MachineKind, 'belt'>, () => ModelDef> = {
   cashier,
   splitter,
   lamp,
-  ink,
   stamper,
   gilder,
   charm,
   bundler,
 };
-export function buildModel(kind: Exclude<MachineKind, 'belt'>) {
+export function buildModel(kind: Exclude<MachineKind, 'belt'>): ModelDef {
   return BUILDERS[kind]();
 }
 
@@ -1258,8 +1256,8 @@ export function pose(kind: MachineKind, name: string, c: Ctx, o: Pose) {
           o.r.y = -0.12 + Math.sin(c.t * 0.7 + c.seed * 6) * 0.035;
           o.p.y = 0.018;
         }
-      } else {
-        // Head and eyes: watch the coin, or look about when idle.
+      } else if (name === 'head') {
+        // Head: watch the coin, or look about when idle.
         if (working) {
           o.r.y = -Math.PI / 4 + Math.sin(c.t * 10 + c.seed * 9) * 0.09;
           o.r.z = -0.065;
@@ -1291,22 +1289,13 @@ export function pose(kind: MachineKind, name: string, c: Ctx, o: Pose) {
       break;
     }
     case 'lamp': {
-      o.s = c.boost ? 1 + Math.sin(c.t * 4 + c.seed * 5) * 0.018 : 0.96;
-      break;
-    }
-    case 'ink': {
-      if (name === 'ink')
-        o.s = 1 + (c.boost ? Math.sin(c.t * 2 + c.seed * 4) * 0.008 : 0);
-      else if (name === 'quill') {
-        o.r.z =
-          -0.35 + (c.boost ? Math.sin(c.t * 1.3 + c.seed * 4) * 0.025 : 0);
-        o.r.x = c.boost ? Math.sin(c.t * 0.9 + c.seed * 3) * 0.022 : 0;
-      } else {
-        const i = Number(name.slice(-1)),
-          phase = (c.t * 0.45 + i / 3 + c.seed) % 1;
-        o.p.y = phase * 0.15;
-        o.p.x = Math.sin(phase * 9 + i) * 0.01;
-        o.s = c.boost ? Math.max(0.001, Math.sin(phase * Math.PI)) : 0.001;
+      if (name === 'rotor') o.r.y = -c.spin * 9 - c.seed * 2;
+      else if (name === 'needle') {
+        // Slow on the left, into the red while it boosts, trembling there.
+        const angle =
+          Math.PI * (0.42 - 0.8 * c.energy) +
+          Math.sin(c.t * 37 + c.seed * 11) * 0.05 * c.energy;
+        o.r.setFromQuaternion(DIAL_SPIN.setFromAxisAngle(DIAL_NORMAL, angle));
       }
       break;
     }
@@ -1325,11 +1314,11 @@ export function pose(kind: MachineKind, name: string, c: Ctx, o: Pose) {
       break;
     }
     case 'charm': {
-      o.r.y =
-        c.seed * Math.PI * 2 +
-        (c.boost ? Math.sin(c.t * 0.9 + c.seed * 5) * 0.65 : 0);
-      o.p.y = c.boost ? Math.sin(c.t * 1.8 + c.seed * 5) * 0.018 : 0;
-      o.s = c.boost ? 1 : 0.96;
+      if (name !== 'clover') break;
+      // One continuous turn: drifting at rest, twirling while it helps.
+      o.r.y = c.seed * Math.PI * 2 + c.spin * 1.6;
+      o.p.y = Math.sin(c.t * 1.8 + c.seed * 5) * 0.018 * c.energy;
+      o.s = 0.96 + 0.04 * c.energy;
       break;
     }
     case 'bundler': {

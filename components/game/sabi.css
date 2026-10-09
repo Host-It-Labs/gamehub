@@ -4,7 +4,8 @@
  * from the upper left. Daylight and tactile: never Tribu's neon night, never
  * a poster. Both games use the shared pieces below (.sabi-stage, .sabi-board,
  * .sabi-card, .sabi-steps, .sabi-results, .sabi-actions). */
-.party-table.is-sabi {
+.party-table.is-sabi,
+.trivia-progress-dialog {
   --s-mat: #1f5a4a;
   --s-mat-deep: #133a30;
   --s-mat-light: #2d7a63;

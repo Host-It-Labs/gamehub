@@ -10,6 +10,8 @@ import { useBoardLeave } from '../use-board-leave';
 import { recordCompletedGame } from '../play-experience';
 import { RotaTable } from './rota-table';
 
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
+
 const VOLUME = 'gamehub.rota.volume';
 
 /**
@@ -20,14 +22,7 @@ const VOLUME = 'gamehub.rota.volume';
 export default function RotaRoom({ token }: { token: string }) {
   const [view, setView] = useState<RotaView | null>(null);
   const [error, setError] = useState('');
-  const [volume, setVolume] = useState(() => {
-    try {
-      const v = Number(localStorage.getItem(VOLUME) ?? 0.5);
-      return Number.isFinite(v) ? v : 0.5;
-    } catch {
-      return 0.5;
-    }
-  });
+  const [volume, setVolume] = useState(() => readAudioLevel(VOLUME));
   const queue = useRef<RotaMove[]>([]);
   const sending = useRef(false);
   const local = useRef<RotaGame | null>(null);
@@ -169,9 +164,7 @@ export default function RotaRoom({ token }: { token: string }) {
         volume={volume}
         onVolume={(v) => {
           setVolume(v);
-          try {
-            localStorage.setItem(VOLUME, String(v));
-          } catch {}
+          saveAudioLevel(v, VOLUME);
         }}
         notice={error || room.error || undefined}
         tableSlot={

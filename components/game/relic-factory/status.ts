@@ -1,6 +1,7 @@
 import {
   DIRS,
-  MACHINES,
+  intakes,
+  reach,
   TICK_MS,
   boost,
   machineAt,
@@ -29,11 +30,8 @@ export function deadEnd(f: FactoryState, m: Machine) {
   const [dx, dy] = DIRS[m.dir],
     next = machineAt(f, m.x + dx, m.y + dy);
   if (!next) return true;
-  if (['printer', 'lamp', 'ink', 'charm'].includes(next.kind)) return true;
-  const [bx, by] = DIRS[next.dir];
-  return (
-    MACHINES[next.kind].turns && next.x + bx === m.x && next.y + by === m.y
-  );
+  const entering = ((m.dir + 2) % 4) as 0 | 1 | 2 | 3;
+  return !intakes(next.kind, next.dir).includes(entering);
 }
 
 /** The job a machine is on: progress 0–1 at the snapshot and progress per
@@ -61,14 +59,19 @@ export function job(s: ScratchState, f: FactoryState, m: Machine) {
   return null;
 }
 
-const BOOSTS = { lamp: 'bot', ink: 'printer', charm: 'printer' } as const;
-/** The machines a booster is helping. */
+/** Working recipients in the booster's eight-cell square. Printers with
+ * blocked output and empty bots keep the subtle pool, but no active link. */
 export function boosted(f: FactoryState, m: Machine) {
-  const target = BOOSTS[m.kind as keyof typeof BOOSTS];
-  if (!target) return [];
-  return DIRS.map(([dx, dy]) => machineAt(f, m.x + dx, m.y + dy)).filter(
-    (n): n is Machine => n?.kind === target,
-  );
+  if (m.kind !== 'lamp' && m.kind !== 'charm') return [];
+  return reach(m.x, m.y)
+    .map(({ x, y }) => machineAt(f, x, y))
+    .filter(
+      (n): n is Machine =>
+        !!n &&
+        !n.output &&
+        (n.kind === 'printer' ||
+          (m.kind === 'lamp' && n.kind === 'bot' && !!n.item)),
+    );
 }
 
 /** A machine's state at a snapshot. Cashiers are working while they sell,
@@ -76,7 +79,6 @@ export function boosted(f: FactoryState, m: Machine) {
 export function statusOf(f: FactoryState, m: Machine): MachineStatus {
   switch (m.kind) {
     case 'lamp':
-    case 'ink':
     case 'charm':
       return boosted(f, m).length ? 'work' : 'idle';
     case 'belt':

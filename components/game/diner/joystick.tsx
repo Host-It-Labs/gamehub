@@ -32,8 +32,9 @@ export function Joystick({
     if (!el) return;
     const rest = () => {
       const r = el.getBoundingClientRect();
+      // At rest it waits in the zone's bottom-left corner, off the play.
       if (base.current) {
-        base.current.style.transform = `translate3d(${r.width * 0.5}px, ${r.height * 0.55}px, 0)`;
+        base.current.style.transform = `translate3d(${Math.min(r.width * 0.5, 84)}px, ${Math.max(r.height * 0.5, r.height - 78)}px, 0)`;
         base.current.dataset.active = 'false';
       }
       if (knob.current)

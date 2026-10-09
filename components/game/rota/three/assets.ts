@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import manifest from '@/lib/games/rota/assets.json';
 import type { Textures } from './materials';
 
@@ -36,15 +37,42 @@ export function pickTier(): Tier {
   return 'hq';
 }
 
+/** Bytes of model downloaded so far, by file, for the loading screen. */
+const received = new Map<string, number>();
+const listeners = new Set<(share: number) => void>();
+function report(path: string, bytes: number) {
+  received.set(path, bytes);
+  const share = loadedShare();
+  for (const l of listeners) l(share);
+}
+/** How much of the models has arrived, 0 to 1. */
+export function loadedShare() {
+  const total = bytesFor();
+  let got = 0;
+  for (const f of Object.values(files.models))
+    got += Math.min(f.bytes, received.get(f.path) ?? 0);
+  return total ? got / total : 1;
+}
+/** Follow the download; returns the unsubscribe. */
+export function onProgress(l: (share: number) => void) {
+  listeners.add(l);
+  return () => void listeners.delete(l);
+}
+
 async function load(): Promise<Library> {
   // Procedural material detail is drawn at the canvas's current resolution.
   const textures: Textures = {};
   const loader = new GLTFLoader();
+  // The models are meshopt-compressed and quantized (scripts/rota-assets.mjs).
+  loader.setMeshoptDecoder(MeshoptDecoder);
   const models = new Map<string, THREE.Object3D>();
   await Promise.all(
     Object.values(files.models).map(async (file) => {
       try {
-        const gltf = await loader.loadAsync(file.path);
+        const gltf = await loader.loadAsync(file.path, (e) =>
+          report(file.path, e.loaded),
+        );
+        report(file.path, file.bytes);
         for (const root of gltf.scene.children.slice()) {
           // Shared by every copy: boards never free a model's geometry.
           root.traverse((o) => {

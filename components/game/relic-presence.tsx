@@ -15,6 +15,8 @@ export type PresenceView = {
   preview?: string;
   selected?: { x: number; y: number }[];
   levels?: Record<string, number>;
+  /** The book picked on the shelf. */
+  book?: string;
 };
 export type Presence = {
   session: string;

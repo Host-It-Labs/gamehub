@@ -5,6 +5,7 @@ import {
   liftAt,
   pointAt,
   segLength,
+  stubEnd,
   type Segment,
   type Vec,
 } from '@/lib/games/rota/routes';
@@ -137,6 +138,31 @@ const pavement =
     pts.push([o + (raised(p) ? 0.012 * side : 0), underside(p)]);
     return side === 1 ? pts : pts.reverse();
   };
+/** The kerb: a line of dressed granite along the pavement's edge, its face
+ *  and top a little proud of the flags, so the street reads crisply. */
+const KERB = 0.009;
+const kerb =
+  (side: 1 | -1): Profile =>
+  (p) => {
+    const k = CARRIAGE_HALF * side;
+    const pts: [number, number][] = [
+      [k - 0.0004 * side, ROAD_TOP + p.y],
+      [k - 0.0004 * side, PAVEMENT_TOP + p.y + 0.0007],
+      [k + KERB * side, PAVEMENT_TOP + p.y + 0.0007],
+    ];
+    return side === 1 ? pts : pts.reverse();
+  };
+/** The gutter: a run of darker setts along the foot of the kerb. */
+const gutter =
+  (side: 1 | -1): Profile =>
+  (p) => {
+    const k = CARRIAGE_HALF * side;
+    const pts: [number, number][] = [
+      [k - 0.014 * side, ROAD_TOP + p.y + 0.0004],
+      [k - 0.0004 * side, ROAD_TOP + p.y + 0.0004],
+    ];
+    return side === 1 ? pts : pts.reverse();
+  };
 /** The underside of a deck over the cutting. */
 const deckUnder: Profile = (p) => [
   [STREET_HALF + 0.012, underside(p)],
@@ -239,6 +265,8 @@ export type RouteLook = {
   coping: THREE.Material;
   iron: THREE.Material;
   plank: THREE.Material;
+  kerb: THREE.Material;
+  gutter: THREE.Material;
 };
 
 /** Dark warm setts and pale flagstones; cinder ballast under oiled
@@ -254,6 +282,8 @@ export function routeLook(mats: Materials): RouteLook {
     coping: mats.tiled('stone', '#cbb894'),
     iron: mats.tiled('metal', '#3e4449'),
     plank: mats.tiled('wood', '#7a5a40'),
+    kerb: mats.tiled('stone', '#82807b'),
+    gutter: mats.tiled('cobble', '#3d3d41'),
   };
 }
 
@@ -269,10 +299,11 @@ function mesh(
   return out;
 }
 
-/** The part of a segment that is drawn: a station's stubs stop at its walls. */
+/** The part of a segment that is drawn: a station's tracks stop at its
+ *  bank, its streets at the foot of its steps. */
 function span(seg: Segment, stationHalf: number): [number, number] {
   if (seg.shape.type === 'stub' && seg.station)
-    return [0, (0.5 - stationHalf + 0.004) / 0.5];
+    return [0, (0.5 - stubEnd(stationHalf, seg.kind) + 0.004) / 0.5];
   return [0, 1];
 }
 
@@ -290,6 +321,11 @@ function street(
     mesh(sweep(path, pavement(-1)), lifted ? look.brick : look.flags)!,
     mesh(sweep(path, pavement(1)), lifted ? look.brick : look.flags)!,
   );
+  for (const side of [-1, 1] as const)
+    out.push(
+      mesh(sweep(path, kerb(side)), look.kerb)!,
+      mesh(sweep(path, gutter(side)), look.gutter)!,
+    );
   if (lifted) {
     // Flagstones on the deck, sandstone coping on the parapets.
     out.push(
@@ -418,8 +454,62 @@ function junction(
       mesh(sweep(path, pavement(-1)), look.flags)!,
       mesh(sweep(path, pavement(1)), look.flags)!,
     );
+    for (const side of [-1, 1] as const)
+      out.push(
+        mesh(sweep(path, kerb(side)), look.kerb)!,
+        mesh(sweep(path, gutter(side)), look.gutter)!,
+      );
   }
   const k = CARRIAGE_HALF;
+  // Kerbs round the corners and along the sides with no street.
+  const edge = (x0: number, z0: number, x1: number, z1: number) => {
+    const g = new THREE.BoxGeometry(
+      Math.max(KERB, x1 - x0),
+      PAVEMENT_TOP + 0.0007 - ROAD_TOP,
+      Math.max(KERB, z1 - z0),
+    );
+    g.translate(
+      at.x + (x0 + x1) / 2,
+      (PAVEMENT_TOP + 0.0007 + ROAD_TOP) / 2,
+      at.z + (z0 + z1) / 2,
+    );
+    const m = new THREE.Mesh(g, look.kerb);
+    m.receiveShadow = true;
+    out.push(m);
+  };
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ]) {
+    // A corner's edge facing the carriageway: across from it is the arm
+    // of a street (where one leaves by that side) or more pavement.
+    const zx = sz * (k + KERB / 2),
+      xz = sx * (k + KERB / 2);
+    if (sides.includes(sx < 0 ? 3 : 1))
+      edge(
+        Math.min(sx * k, sx * c),
+        zx - KERB / 2,
+        Math.max(sx * k, sx * c),
+        zx + KERB / 2,
+      );
+    if (sides.includes(sz < 0 ? 0 : 2))
+      edge(
+        xz - KERB / 2,
+        Math.min(sz * k, sz * c),
+        xz + KERB / 2,
+        Math.max(sz * k, sz * c),
+      );
+  }
+  for (let d = 0; d < 4; d++) {
+    if (sides.includes(d)) continue;
+    // The kerb across a side no street leaves by.
+    const along = d % 2 === 0;
+    const off = (d === 0 || d === 3 ? -1 : 1) * (k + KERB / 2);
+    if (along) edge(-k, off - KERB / 2, k, off + KERB / 2);
+    else edge(off - KERB / 2, -k, off + KERB / 2, k);
+  }
   out.push(slab(at.x - c, at.z - c, at.x + c, at.z + c, ROAD_TOP, look.setts));
   // Corners, then the sides without a street.
   for (const [sx, sz] of [

@@ -20,6 +20,8 @@ const InkShader = {
     uWidth: { value: 1.5 },
     uInk: { value: new THREE.Color('#2a2b22') },
     uFade: { value: new THREE.Vector2(20, 60) },
+    uGlow: { value: 0 },
+    uGlowQuality: { value: 1 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -36,11 +38,19 @@ const InkShader = {
     uniform float uWidth;
     uniform vec3 uInk;
     uniform vec2 uFade;
+    uniform float uGlow, uGlowQuality;
     varying vec2 vUv;
     float viewZ(float d) {
       return (uNear * uFar) / ((uFar - uNear) * d - uFar);
     }
     float raw(vec2 uv) { return texture2D(tDepth, uv).x; }
+    // Only HDR warm lenses/interiors spill a little colour. Cream stone,
+    // the chalk grid and red gameplay marks stay crisp. No blur buffers.
+    vec3 lamp(vec2 uv) {
+      vec3 c = texture2D(tDiffuse, uv).rgb;
+      float warm = step(c.b * 1.28, c.r) * step(c.r * 0.35, c.g);
+      return c * min(1.0, max(0.0, max(c.r, c.g) - 1.4)) * warm;
+    }
     void main() {
       vec4 base = texture2D(tDiffuse, vUv);
       float d = raw(vUv);
@@ -57,7 +67,18 @@ const InkShader = {
       float edge = max(smoothstep(0.0035, 0.01, jx), smoothstep(0.0035, 0.01, jy));
       float fade = 1.0 - smoothstep(uFade.x, uFade.y, z);
       if (d >= 1.0) edge = 0.0;
-      gl_FragColor = vec4(mix(base.rgb, uInk, edge * fade * 0.88), base.a);
+      vec3 col = mix(base.rgb, uInk, edge * fade * 0.88);
+      if (uGlowQuality > 0.01 && uGlow > 0.001) {
+        vec2 halo = uTexel * uWidth * 2.2;
+        vec3 glow = lamp(vUv + vec2(halo.x, 0.0)) + lamp(vUv - vec2(halo.x, 0.0))
+          + lamp(vUv + vec2(0.0, halo.y)) + lamp(vUv - vec2(0.0, halo.y));
+        if (uGlowQuality > 0.75) {
+          glow += (lamp(vUv + halo) + lamp(vUv - halo)
+            + lamp(vUv + vec2(halo.x, -halo.y)) + lamp(vUv + vec2(-halo.x, halo.y))) * 0.5;
+        }
+        col += glow * (uGlow * 0.25);
+      }
+      gl_FragColor = vec4(col, base.a);
     }`,
 };
 

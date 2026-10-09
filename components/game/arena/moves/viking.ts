@@ -1,4 +1,5 @@
 import type { Moves } from './types';
+import type { BufferGeometry, Mesh, Object3D } from 'three';
 
 const clamp01 = (t: number) => (t < 0 ? 0 : t > 1 ? 1 : t);
 const clamp = (v: number, limit: number) =>
@@ -18,6 +19,43 @@ const LEVEL = 0.84;
 /** How far he coils to the right before the spin. */
 const COIL = 0.8;
 
+/** Begin lifting the complete two-hand hold before its long blade reaches
+ *  nearby stone. The radius scales with the displayed figure, while the
+ *  engine's body clearance and attack range remain unchanged. */
+export function vikingStoneGuard(gap: number, size: number) {
+  return ease((2.6 * size - gap) / (1.3 * size));
+}
+
+const soleVertices = new WeakMap<BufferGeometry, number[]>();
+
+/** The sculpt's rounded boot sole needs its actual posed contact, including
+ *  the small sideways roll during a planted spin. */
+export function vikingSolePenetration(
+  foot: Object3D,
+  groundAt: (x: number, z: number) => number,
+) {
+  const point = foot.position.clone();
+  let lift = 0;
+  foot.traverse((node) => {
+    const mesh = node as Mesh;
+    if (!mesh.isMesh) return;
+    const geometry = mesh.geometry;
+    const vertices = geometry.attributes.position;
+    let indices = soleVertices.get(geometry);
+    if (!indices) {
+      indices = geometry.index
+        ? [...new Set(geometry.index.array)]
+        : Array.from({ length: vertices.count }, (_, i) => i);
+      soleVertices.set(geometry, indices);
+    }
+    for (const index of indices) {
+      mesh.getVertexPosition(index, point).applyMatrix4(mesh.matrixWorld);
+      lift = Math.max(lift, groundAt(point.x, point.z) - point.y);
+    }
+  });
+  return lift;
+}
+
 /** The Viking: a heavy, rolling stomp with the long axe held low across
  *  him. Each hit is one full turn of the body with the axe swung out level,
  *  so it sweeps everyone round him; below half health he rages, hunched,
@@ -26,7 +64,7 @@ export const viking: Moves = {
   style: {
     // Heavy and rolling: the weight thrown from foot to foot.
     gait: { like: 'heavy', stride: 0.62, sway: 0.7, roll: 0.07, twist: 0.1 },
-    armSwing: 0.1,
+    armSwing: 0.08,
     lean: 0.05,
     attack: 'custom',
     windup: 0.32,
@@ -41,11 +79,33 @@ export const viking: Moves = {
     chestRoll: -0.25,
     nod: 0.016,
     armOut: 0,
-    bounce: 0.022,
+    bounce: 0.012,
     weaponArm: 1,
   },
-  stiff: { beard: 0.35, skirtL: 0.6, skirtR: 0.6, weapon: 0.85 },
-  damping: { beard: 0.42, skirtL: 0.44, skirtR: 0.44, weapon: 0.58 },
+  stiff: {
+    armL: 0.95,
+    armR: 0.95,
+    foreL: 0.95,
+    foreR: 0.95,
+    handL: 0.95,
+    handR: 0.95,
+    weapon: 0.95,
+    beard: 0.35,
+    skirtL: 0.6,
+    skirtR: 0.6,
+  },
+  damping: {
+    armL: 0.92,
+    armR: 0.92,
+    foreL: 0.92,
+    foreR: 0.92,
+    handL: 0.92,
+    handR: 0.92,
+    weapon: 0.92,
+    beard: 0.52,
+    skirtL: 0.58,
+    skirtR: 0.58,
+  },
   arrive(d) {
     const fall = clamp01(d / 0.32);
     const land = clamp01((d - 0.32) / 0.25);
@@ -63,6 +123,28 @@ export const viking: Moves = {
       ((furious ? 1 : 0) - (c.memo.rage ?? 0)) * (1 - Math.exp(-c.dt * 9)));
     const spinTime = furious ? 0.4 : 0.5;
     const idle = c.reduced ? 0 : c.idle;
+    const guard = clamp01(c.memo.vikingStoneGuard ?? 0);
+
+    // Keep the gaze still between deliberate glances. The pelvis carries
+    // his weight; the chest counters it, rather than all links rocking as
+    // one stiff block. A guarded hold keeps the accepted stone silhouette.
+    p.headX *= 1 - c.idle;
+    p.headY *= 1 - c.idle;
+    p.roll *= 1 - c.idle;
+    const resting = ease(c.idleFor / 1.1) * idle * (1 - guard);
+    const weight = Math.sin(c.t * 0.48 + u.id * 0.31) * resting;
+    p.roll += weight * 0.012;
+    p.torsoZ -= weight * 0.01;
+
+    // The authored elbows and wrists form one two-handed hold. Both
+    // shoulders pitch about the same x axis, so that whole hold lifts as
+    // one unit. Independent forearm/haft springs would pull the hands off
+    // the shaft during the circular strike and after a sudden stop.
+    c.want('foreL', 0);
+    c.want('foreR', 0);
+    c.want('handL', 0);
+    c.want('handR', 0);
+    c.want('weapon', 0);
 
     // Heavy feet: the body sinks as each foot lands.
     const land = Math.pow(1 - c.pass, 6);
@@ -92,7 +174,10 @@ export const viking: Moves = {
     // passes in front of him on the hit and ends facing the target again.
     const s = c.since < spinTime && c.aim > 0.02 ? c.since / spinTime : -1;
     const spinning = s >= 0 ? 1 : 0;
-    const e = s >= 0 ? 1 - Math.pow(1 - s, 2.2) : 0;
+    // Accelerate from the loaded stance, sweep quickly through the hit,
+    // then spend the rest of the original spin time braking the long axe.
+    // One complete turn and both rage/normal durations stay unchanged.
+    const e = s >= 0 ? 1 - Math.pow(1 - s, 2.65) : 0;
     const wind = spinning ? 1 - e : c.wind;
     const ready = c.aim * (0.3 + rage * 0.1);
     const hold = Math.max(c.wind, spinning);
@@ -109,6 +194,14 @@ export const viking: Moves = {
     p.lift -= Math.sin(Math.PI * clamp01(s)) * 0.015 * c.size * spinning;
     p.lunge += Math.sin(Math.PI * clamp01(s)) * 0.08;
     p.squash *= 1 - c.strike * 0.04;
+    const recovery =
+      ease((c.since - spinTime + 0.045) / 0.11) *
+      (1 - ease((c.since - spinTime - 0.065) / 0.18)) *
+      c.aim;
+    p.torsoX += recovery * 0.045 * (1 - guard);
+    p.headX -= recovery * 0.02;
+    p.armL += recovery * 0.055;
+    p.armR += recovery * 0.055;
 
     // Rage: hunched over the axe, chin jutting, shoulders heaving and a
     // tremble through him.
@@ -138,6 +231,30 @@ export const viking: Moves = {
 
     // The beard lies on his chest: nodding forward would bury it.
     p.headX = Math.min(p.headX, 0.06);
+
+    // The planted heavy stride lowers his chest while the feet bend.
+    // Hold the long axe above the field through that compression and
+    // recovery. Both shoulders keep the same pitch; the level spin and
+    // its timing retain their existing authored sweep.
+    const clearance = (1 - hold) * (0.32 + rage * 0.12);
+    p.armL = Math.max(p.armL, clearance);
+    p.armR = Math.max(p.armR, clearance);
+
+    // A level sweep fits open ground; beside a tower he raises the same
+    // locked hold over the coping. Both shoulders travel together, so
+    // neither fist leaves the shaft and the complete body turn remains.
+    const guarded = Math.max(p.armL, 2.15 * guard);
+    p.armL = p.armR = guarded;
+    // A quick turn beside coping keeps the chest level instead of
+    // banking the outside sleeve into a corner merlon.
+    if (guard > 0) {
+      p.roll -= clamp(c.turn * 0.05, 0.12) * guard;
+      p.torsoZ *= 1 - guard;
+      // The rage hunch stays on open ground. Against stone he braces
+      // upright under the raised axe, keeping elbows and beard clear.
+      p.torsoX *= 1 - guard;
+      p.lean *= 1 - guard;
+    }
 
     // The tunic's split skirt trails the thighs and hangs level whatever
     // the chest does.

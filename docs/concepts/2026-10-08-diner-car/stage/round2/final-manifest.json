@@ -1,0 +1,749 @@
+{
+  "capturedAt": "2026-10-09T05:37:05.036Z",
+  "method": "CPU source geometry/composition; WebGL round3 remains Claude review",
+  "sourceFiles": {
+    "components/game/diner/diner-car.ts": "1ad41eb90841b6e53b0ae0f553b1b5565cac1e60e93d50a0f30f381678e8c56f",
+    "components/game/diner/places.ts": "d4ec3743e2206bbedf9fc4d51d102f777c6ec62ede688110c7a4be550a9c982a",
+    "components/game/diner/stage.ts": "3d3d0bce90428570c9c03beed1b0d4d4e816a033759a8e08ba4dbc3dcde8a31a"
+  },
+  "checks": {
+    "strictTypeScript": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "stageAuditCases": 24,
+    "placesAuditCases": 24,
+    "ownedDisposal": "exactly once; borrowed retained",
+    "hitch": "coincident",
+    "clearances": "all reserved machine volumes clear",
+    "reducedMotion": "rigs, instance matrices and vertex buffers frozen",
+    "curveTraffic": "full-loop source bounds checked"
+  },
+  "analyticalCountsIncludingOneShadowPass": {
+    "high": {
+      "calls": 66,
+      "triangles": 325382
+    },
+    "low": {
+      "calls": 66,
+      "triangles": 174282
+    }
+  },
+  "pointLights": 3,
+  "maxTexture": 256,
+  "images": [
+    {
+      "name": "source-car-map-clay-front.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "c80be9565474c642c41d6f5c75764e9df7faf4ba34a00f84e293e65893453175"
+    },
+    {
+      "name": "source-car-map-clay-rear.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "1a32ddaf1f10bb0bdf6eba6f4a92f88a6a860abca5186fd05429f12f338ea198"
+    },
+    {
+      "name": "source-car-map-clay-side.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "ac43c8707a3269177f776035bb57654f46136c013a2a54018aa3643a0ad6091d"
+    },
+    {
+      "name": "source-car-map-clay-three-quarter.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "9eb7150a911e04038497ad90304b89b51b26a6d6bfb22a0369bb22c96c58f60b"
+    },
+    {
+      "name": "source-car-map-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "7ce90ce9036c671b8581d4db6b07a7df9643ac33c76ae736e720ab5173bae9e9"
+    },
+    {
+      "name": "source-car-map-sheet.png",
+      "width": 1000,
+      "height": 1104,
+      "sha256": "5cfef8c0e5a2159a3196c77e81d123252a70168ded6fd915d34ae3baf44d07a6"
+    },
+    {
+      "name": "source-car-stage-clay-front.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "90437e8fa0a871e568ae1e5ce5b8f4c3670552c4830736a8f24cd574f80713e6"
+    },
+    {
+      "name": "source-car-stage-clay-rear.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "6f9933604392bb2a8164ca310b9635120da8d4dd6f952c7db53888c3da5ae926"
+    },
+    {
+      "name": "source-car-stage-clay-side.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "df0fdd8bb4a4ab94770cfc0b5d7ee7b41f215124b6a349e6b001329872fc64fa"
+    },
+    {
+      "name": "source-car-stage-clay-three-quarter.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "19286a56e9d49f672983c4e343e31993fb7b082775cad0d5739fa98a176f80f1"
+    },
+    {
+      "name": "source-car-stage-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "0540ccd9460258bf82ec61d858f6583d7b9bdd33a1932cdbad352bfbe8dfc747"
+    },
+    {
+      "name": "source-car-stage-sheet.png",
+      "width": 1000,
+      "height": 1104,
+      "sha256": "44c798af45f67a1319953877b4c31f2c113c403bffcf91edfa3c3ff2a24a80e7"
+    },
+    {
+      "name": "source-drivein-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "7224d86e0bbd8a25c1e4da68f5dc07f63cbf4dc7aa6ed34336a8e9ece63dc904"
+    },
+    {
+      "name": "source-drivein-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "8801dff70d40dc1f4d933e23830a18032997eb10f8fec2f05164d907b24b9ddb"
+    },
+    {
+      "name": "source-drivein-44deg-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "ce022bebb14ef84ac70edccf911b54b265fea0ca54eb59f22d6c6cfcf4f75f11"
+    },
+    {
+      "name": "source-drivein-44deg-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "375a15d4520deae9f5527ec940f4f67bbcbbc76e4f1499fc7ddbdd054bdb9eaf"
+    },
+    {
+      "name": "source-drivein-low-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "dd2a7378a9f1da6793b899b7e178766c0ae37c3505d96e563401c4eae12047dc"
+    },
+    {
+      "name": "source-drivein-low-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "f522ecd69fbe74f0587dbcd67a97e87efa57bc47dfe20ec041cee3367f441e7e"
+    },
+    {
+      "name": "source-fairground-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "16434f9dc83d9ab0ea25eddb799c169a9222ccf6085a5fa456187da6480895a9"
+    },
+    {
+      "name": "source-fairground-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "6b0c93593c2c987b946b7f252a90d02e145d0ff1f6e3ffd75c2654f19f96cbe7"
+    },
+    {
+      "name": "source-fairground-44deg-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "559ab061fe72ca870a7acb42e0eb86cf8101d0695cb48d55f7c33e04530ddf5f"
+    },
+    {
+      "name": "source-fairground-44deg-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "82cf9ce6d47f53692e21af707244da06a1c24275c3447efbc9e680290bfa5234"
+    },
+    {
+      "name": "source-fairground-low-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "edc31155437ba6f38e65e599037b8396d9336be24e2a6fb2eb348a2416a87d25"
+    },
+    {
+      "name": "source-fairground-low-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "208eb5bad7191722cc29000ee13388482008271bf559a9f06627248cd3da7d9f"
+    },
+    {
+      "name": "source-harbour-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "1ebf25c3868f5bfce48dd84526d3db72b80eb8dfaca3cf05603e2878e30b2fd5"
+    },
+    {
+      "name": "source-harbour-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "2eb6e589ba7ddb0504a42f1d21ede91ba1d569a93fe0811acb30db95742ae8b2"
+    },
+    {
+      "name": "source-harbour-44deg-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "3f67d7bd276ae7acff386d0496c29d6735e5fe17f7bc1e6726b21845a20d85d7"
+    },
+    {
+      "name": "source-harbour-44deg-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "ff7cc56c8070c157c4e824db791c24363f80963c90864939f86b2e899dcd022c"
+    },
+    {
+      "name": "source-harbour-low-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "65b07faff23d667d4487f3f4fc5ffeeac1cbbee56b581763510f93e5d13966e9"
+    },
+    {
+      "name": "source-harbour-low-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "5f345e8c695cab8df7399bfae02003ee917b1de5386c41c67be60a8ee0c176cc"
+    },
+    {
+      "name": "source-hitched-rig-clay.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "c3809a6c6d91ede5cf663a432146b2a79657853fc1799445229d9a6ad2497ade"
+    },
+    {
+      "name": "source-hitched-rig-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "8a7415f34529fdfc5937104dcc9c4398015c0e8e96006f1d9c1fdfacb1bf9ce7"
+    },
+    {
+      "name": "source-map-contact.png",
+      "width": 1920,
+      "height": 720,
+      "sha256": "45248af044482514d8f9212ba6ed3b23e25811c7f6f2d378fa266a750d3b0c13"
+    },
+    {
+      "name": "source-map-drivein.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "2e43eb2531a83876f56e5aed16e27fd944b5430525c2c62934357acfae40c6d4"
+    },
+    {
+      "name": "source-map-fairground.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "c17c47847e512588c170552b7136e14100aa9e6b84512ca62eaa0d235ef7ac7b"
+    },
+    {
+      "name": "source-map-garage.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "16629ec3f9211208f7db86c918d303fdb071ffe1ae437456bd3dc5b20a69e8c8"
+    },
+    {
+      "name": "source-map-harbour.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "294af07876ab98f1b2420138355d0daba019d14b5bf7bc6cee4f334a26e19900"
+    },
+    {
+      "name": "source-map-moonmile.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "efd876c35f9790b29a594f68d939ab55c2de04bd790db8398a1e1f69743b7712"
+    },
+    {
+      "name": "source-map-motel.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "de9796425867e1c719ae1d1a13a1e541806bc94e45319316639a83f5487c6291"
+    },
+    {
+      "name": "source-map-oldtown.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "9dbea690c2967309528e0bdbdc98d87ac2b0a052f45b805a6533fb500171baf9"
+    },
+    {
+      "name": "source-map-truckstop.png",
+      "width": 480,
+      "height": 360,
+      "sha256": "433aacb960fdb88b1df7faa3763761e7106512e93adcd259817f8a4b087cf9f1"
+    },
+    {
+      "name": "source-moonmile-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "e775bcadd931abb9c38e6543605c792a247cf24deee1d25fde37d3262ad8a022"
+    },
+    {
+      "name": "source-moonmile-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "a62ef3e1e88838911f070ad7626b67d5294e8bca2050c35518604f6865e1761f"
+    },
+    {
+      "name": "source-moonmile-44deg-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "c88006ca7b1f3d13c2ed4d7b6e35c3cd27ccf39e81029ed339cb8fd987343072"
+    },
+    {
+      "name": "source-moonmile-44deg-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "7a4ea0df93c467986bc2dc21567d8a90f1b85b3b9412fe60ee5ad4e374a7f02b"
+    },
+    {
+      "name": "source-moonmile-low-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "eb097becccb07b1d04b000944a864351e87ba9403077897348203855dd30f348"
+    },
+    {
+      "name": "source-moonmile-low-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "7c390d84fdf9e54274f43017abf1e0ca35dee600a791f72ae14eba3f33d52af6"
+    },
+    {
+      "name": "source-motion-drivein-0.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "cc6eee05bbbae08fe1844bb986768e4303a80636f7cced8861731796b553d6ad"
+    },
+    {
+      "name": "source-motion-drivein-1.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "c8bdd038d54aa98d3bd7a9147138cd2093bf24a10bc1ce78fabecd16c6d9102d"
+    },
+    {
+      "name": "source-motion-drivein-2.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "c77ad81daf5e2fb95a90d60b5a901019ee0a99a5dbbad5f7ec600a5d0862dd27"
+    },
+    {
+      "name": "source-motion-drivein-3.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "8a52c74129cf44d8dfa3003c35e462b2d240be8432a2bf28fe2e968db35c2f38"
+    },
+    {
+      "name": "source-motion-drivein-sheet.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "61501c37e16702948425986b7593df1a415e94bd1e4ada374bf780f036652ea6"
+    },
+    {
+      "name": "source-motion-fairground-0.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "713f13cd5e5de9614e36b119f99db72b1f3bfa2340f1653dea19dc53e7f79299"
+    },
+    {
+      "name": "source-motion-fairground-1.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "f6f58e0ee58c602f968a4c9e6da04b1742e8890e5408d0ff03ca07011f51759a"
+    },
+    {
+      "name": "source-motion-fairground-2.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "2f9564bb043eb1d9a8968bd42204948a6a419ea9fba61af415e723c91bc6b178"
+    },
+    {
+      "name": "source-motion-fairground-3.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "08be9b5bfd4cb5a7acd3bd81ca4bb40764a308b2fc3f4c9d0ac0394011dd5821"
+    },
+    {
+      "name": "source-motion-fairground-sheet.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "b2625252d364b38d202f3061ef1398fcf767224514d9124008d5218d50957e89"
+    },
+    {
+      "name": "source-motion-harbour-0.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "de508be74e8c6dbba7c1d160108629d84494a22be4bd6f3b45cb7cecb15dee57"
+    },
+    {
+      "name": "source-motion-harbour-1.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "fc048095181069003ae0054235540ef5587c917618fb7676c7f7129569344241"
+    },
+    {
+      "name": "source-motion-harbour-2.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "8e43996a71c1d06f952bdcb96c7f54ab623e22847a656436bb0546e96f52edeb"
+    },
+    {
+      "name": "source-motion-harbour-3.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "bfd31c20603bcf5c4d187c531382052c16cf892f80c8c2e3a2e846ae7155acaf"
+    },
+    {
+      "name": "source-motion-harbour-sheet.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "4c133d74c7b83d469b189b489573408d2c5f6d72ff763c9a48f6a135932235e1"
+    },
+    {
+      "name": "source-motion-moonmile-0.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "be31f6eff2bcbdd4c22dd44cf0e2eec1e7f25978173a320d859d267f3895bb3d"
+    },
+    {
+      "name": "source-motion-moonmile-1.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "de781e06bdcedcaf2d27eabc3ad735160d9b3b4927fc03b348fbd7c24d14abbb"
+    },
+    {
+      "name": "source-motion-moonmile-2.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "5eb9e7b71e0636d3fd5185ca9c7f512fe96ab5b698988691e88ca44f9abf49ee"
+    },
+    {
+      "name": "source-motion-moonmile-3.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "73c91a895818c31f5e996acc8e01fea493886a919d952161dc176a56712f23a7"
+    },
+    {
+      "name": "source-motion-moonmile-sheet.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "852df8c221c3fddfd907cdfe14c443c03b6c2df49cacf230a4b45d0a4ae8a59c"
+    },
+    {
+      "name": "source-motion-oldtown-0.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "b9ad55739acbb4d8ec0e389f2bb5c989cc0a45a1cb04b7dbfedc4209c50fe0ac"
+    },
+    {
+      "name": "source-motion-oldtown-1.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "3074e2371af89ed965cec927803f888d3c09ef66cc841f79ad01530282be6814"
+    },
+    {
+      "name": "source-motion-oldtown-2.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "ce73023b17419bbc5be659ba681312a8dc4b6f72346b1264f633b87099f88a3e"
+    },
+    {
+      "name": "source-motion-oldtown-3.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "2fc1570a8be56d8488e0b45abba10326774303fa76a3c2e6ff82c9b7f5021998"
+    },
+    {
+      "name": "source-motion-oldtown-sheet.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "feedb1ab81f1cd0698eaa6d87c628538092d103dc33a2442410a98ac33e6c1d9"
+    },
+    {
+      "name": "source-motion-truckstop-0.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "4d933718b726da78cf08e8110c8e542ff77b049a4ead96652222db58de2f5c88"
+    },
+    {
+      "name": "source-motion-truckstop-1.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "ef6124e9782fd47465106402e31c38969d49ff8354d12c989678c5add36ed4cc"
+    },
+    {
+      "name": "source-motion-truckstop-2.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "b097792fac924e3c1d7ec6cb635edb7f26b5455b034523cfdc723abf449c851d"
+    },
+    {
+      "name": "source-motion-truckstop-3.png",
+      "width": 640,
+      "height": 360,
+      "sha256": "fb775ab4200ff498f33abaefb60609db29f662b276677d29a664a62cd49cfa42"
+    },
+    {
+      "name": "source-motion-truckstop-sheet.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "838637723b302022cdd237c9ae8071567f6b9a2fe1fe1710b2bdddda9574d9f9"
+    },
+    {
+      "name": "source-oldtown-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "7b6d710e6db8135f6d4353ce66dc4c1df65627203d4cb152772ed128e43c2ec0"
+    },
+    {
+      "name": "source-oldtown-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "d8c95476abe0be36e3335871a3946b711e99f1f1ffb2213406f3800d022c293f"
+    },
+    {
+      "name": "source-oldtown-44deg-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "1a19fad8e753f036c015ff3fbcd91a6bb2c1d18006aa3b1dce2959d486a72db7"
+    },
+    {
+      "name": "source-oldtown-44deg-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "eeb9470297d85633e09e181f74aadbea81872f7c306783245eb6c5d715f94269"
+    },
+    {
+      "name": "source-oldtown-low-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "34092fa06b8708d0f4ff13ab003977f79fefc9a8826d1a07d53b6b1db3442fb9"
+    },
+    {
+      "name": "source-oldtown-low-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "ae7c716ba5abed2345e2b2f339450c4977a44437f588aaa9fc23c7a93c1a90cb"
+    },
+    {
+      "name": "source-stage-44deg-desktop-sheet.png",
+      "width": 1280,
+      "height": 1164,
+      "sha256": "878aa3bcbb475997896a7944923fa4a8022bfcfaf00cf73a2a74d725a67d12a4"
+    },
+    {
+      "name": "source-stage-44deg-phone-pair-1.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "c36cbcdd85b0b7286e0fa84f8b96d6ce46bfed8591c46e819e31e7907863ebb3"
+    },
+    {
+      "name": "source-stage-44deg-phone-pair-2.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "38b383c6780a98705ef06d188d595b7f6ad9d3bad22854cad589cdf542a1889a"
+    },
+    {
+      "name": "source-stage-44deg-phone-pair-3.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "50b8a83e3cce7706a1af02328f0a3686be66fcf82a643bb7eb97ba6829f2c921"
+    },
+    {
+      "name": "source-stage-high-desktop-sheet.png",
+      "width": 1280,
+      "height": 1164,
+      "sha256": "597e0efd034d1edf3354f48e07c9098a0162d9e251d961b8a428e2f10c86ff5e"
+    },
+    {
+      "name": "source-stage-high-phone-pair-1.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "ee931f8ba1722a83122a5920a8c0a1cdacc9d3fc55d25514cb6dc73b48590f53"
+    },
+    {
+      "name": "source-stage-high-phone-pair-2.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "b6e11fb076026531db38fe4676a7f2e2b9ccd3bf1b6ac12905d097a2d7ea79e0"
+    },
+    {
+      "name": "source-stage-high-phone-pair-3.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "49d08715ca32fe774c83a91950eed5f56e5d6c8d0110ced90479ad5b7424cbfd"
+    },
+    {
+      "name": "source-stage-low-desktop-sheet.png",
+      "width": 1280,
+      "height": 1164,
+      "sha256": "f50d7133d4254f6a0352fed266676260352e82b0f1cf051c11774363a05efa1c"
+    },
+    {
+      "name": "source-stage-low-phone-pair-1.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "bf31bf3144d688de3dc6c7eb2c1cea985a32aa73d5554f84ff17c94d17e4c725"
+    },
+    {
+      "name": "source-stage-low-phone-pair-2.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "0abdb265752440a33e721c2132740889aaaa3d89f1d22f3134474f0ca1ed5620"
+    },
+    {
+      "name": "source-stage-low-phone-pair-3.png",
+      "width": 780,
+      "height": 872,
+      "sha256": "e0c1e42d4728e06c1250c7184cee685d04701cf823d23c11bc10762e1ed0af06"
+    },
+    {
+      "name": "source-truck-map-clay-front.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "df34342d4eea9a8a27e02499f2706dccde9ac2cdc0d52d45594ef3766ee8b3f4"
+    },
+    {
+      "name": "source-truck-map-clay-rear.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "5dabeb2ef93c27e8a0d535fc2eb72ea851ccf4cc45feee44082add0861844c4a"
+    },
+    {
+      "name": "source-truck-map-clay-side.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "31e4ed410afc4112e86a52d813249b1d6605856347bd294ae38c4247fa7c3bc5"
+    },
+    {
+      "name": "source-truck-map-clay-three-quarter.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "99b44d2aa9b9c020a19da9a3051382da47a50d733a173dc6ad46f346193f5f3f"
+    },
+    {
+      "name": "source-truck-map-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "cbbbd553d5a22e51784e05e3de30402016d23a12ba841c45483a421187b990db"
+    },
+    {
+      "name": "source-truck-map-sheet.png",
+      "width": 1000,
+      "height": 1104,
+      "sha256": "898d3f4e9d8daf7031e1b5144ebd0847f71ec9785bd4c3e8aba3929956116274"
+    },
+    {
+      "name": "source-truck-stage-clay-front.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "d54341a90b4dd14956eb6feb446bb88fe67692ad60ca7ee1aba846bd69681023"
+    },
+    {
+      "name": "source-truck-stage-clay-rear.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "e0a3de214b55385f69cecb58f3a40e38cdd85913285e932ac0206a49cbaa0ed9"
+    },
+    {
+      "name": "source-truck-stage-clay-side.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "d130393f880292a54996f54e5414de98619a939795b015dda9b1ebeaeb4eec4a"
+    },
+    {
+      "name": "source-truck-stage-clay-three-quarter.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "09a51131cf305c1556cd7beb26a29670ee3fa721f42120bc9044c76661dad92a"
+    },
+    {
+      "name": "source-truck-stage-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "4c008af3d455f29faebeceb1ffe1bb02c8a3c21b0351ddf6695395fe396b9812"
+    },
+    {
+      "name": "source-truck-stage-sheet.png",
+      "width": 1000,
+      "height": 1104,
+      "sha256": "9b22af1b46db5809a538069d703c84f6f92b69693a7679b7e23a4c07bf013e2d"
+    },
+    {
+      "name": "source-truckstop-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "28e56bf617ed0cd41ce334898d61d09fe135f4f397e7e81c3d6703eb2cef59ad"
+    },
+    {
+      "name": "source-truckstop-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "67e605898720012f3f92a72db80eb6fbe110dc00c9fae4db6761c2b641b35d2d"
+    },
+    {
+      "name": "source-truckstop-44deg-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "9a35024e215c8f8345ceb3c065ea8a8faa8bfb0c512dcadf908756df87152241"
+    },
+    {
+      "name": "source-truckstop-44deg-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "7f7ee7b20541f7f497bab8714078c9bb7199858aa08ab0cb2f6f1f59120231f5"
+    },
+    {
+      "name": "source-truckstop-low-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "0956d6bc28f7ea43418c924e616853b0bca305e4eb71fe22d3f83ce6f5bbf813"
+    },
+    {
+      "name": "source-truckstop-low-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "3c7a12cc2bf724fa9fd24e3d73f98fa5e3dff888d3a7300f2ad987b7a85f4ae9"
+    },
+    {
+      "name": "source-upgraded-car-map-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "63bd19ff038ef33e530f1ef859484d6112b65150732022281eff47fc88c27b86"
+    },
+    {
+      "name": "source-upgraded-car-stage-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "7e78fee23411dc1058e03bc9c667bda3196945463bdc3d028f87c9549441a485"
+    },
+    {
+      "name": "source-upgraded-fairground-low-1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "bd55bde0afc91183eb7cf1ad266afb99ad377dcb09382e27210313a581ea32b7"
+    },
+    {
+      "name": "source-upgraded-fairground-low-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "8ee2458829e8b2fd05f23bbfe9ff9aea6177d8a285e9dd646fefda4715600a56"
+    },
+    {
+      "name": "source-upgraded-truck-map-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "dd09e8a6b0645d5a92d6579418a139a086ff504fb1f4e3ab6125c9c19a5cfebc"
+    },
+    {
+      "name": "source-upgraded-truck-stage-colour.png",
+      "width": 1000,
+      "height": 680,
+      "sha256": "010c0b6d433dac0a5b29c8ac95ec70b8928e566efc17c3d69efef844826c1a0d"
+    }
+  ]
+}

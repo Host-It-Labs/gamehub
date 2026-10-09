@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { glowTexture, puffTexture, starTexture } from './models';
+import { bubbleTexture, glowTexture, puffTexture, starTexture } from './models';
 
 /**
  * Diner's particles: steam off hot plates, grill smoke, sparkles, goo
  * droplets, soap bubbles and angry puffs. One point cloud per texture, so
- * a busy rush still costs three draw calls.
+ * a busy rush still costs four draw calls, including crisp translucent bubbles.
  */
 export type Kind =
   | 'steam'
@@ -43,7 +43,7 @@ uniform float scale;
 void main() {
   vTint = tint;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = size * scale;
+  gl_PointSize = clamp(size * scale, 1.0, 160.0);
 }`;
 const FRAG = /* glsl */ `
 uniform sampler2D map;
@@ -52,6 +52,8 @@ void main() {
   vec4 t = texture2D(map, gl_PointCoord);
   gl_FragColor = vec4(vTint.rgb, vTint.a * t.a);
   if (gl_FragColor.a < 0.01) discard;
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }`;
 
 class Cloud {
@@ -157,21 +159,29 @@ export class Effects {
   private soft: Cloud;
   private puffs: Cloud;
   private stars: Cloud;
+  private bubbles: Cloud;
   private textures: THREE.Texture[];
   /** Fewer particles under reduced motion. */
   calm = false;
   constructor() {
     const glow = glowTexture(),
       puff = puffTexture(),
-      star = starTexture();
-    this.textures = [glow, puff, star];
+      star = starTexture(),
+      bubble = bubbleTexture();
+    this.textures = [glow, puff, star, bubble];
     this.soft = new Cloud(260, glow, false);
     this.puffs = new Cloud(220, puff, false);
     this.stars = new Cloud(160, star, true);
-    this.group.add(this.puffs.points, this.soft.points, this.stars.points);
+    this.bubbles = new Cloud(120, bubble, false);
+    this.group.add(
+      this.puffs.points,
+      this.soft.points,
+      this.stars.points,
+      this.bubbles.points,
+    );
   }
   setScale(pixels: number) {
-    for (const c of [this.soft, this.puffs, this.stars])
+    for (const c of [this.soft, this.puffs, this.stars, this.bubbles])
       c.material.uniforms.scale.value = pixels;
   }
 
@@ -200,9 +210,11 @@ export class Effects {
       kind === 'anger' ||
       kind === 'dust'
         ? this.puffs
-        : kind === 'spark' || kind === 'gold'
-          ? this.stars
-          : this.soft;
+        : kind === 'bubble'
+          ? this.bubbles
+          : kind === 'spark' || kind === 'gold'
+            ? this.stars
+            : this.soft;
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const spread = o.spread ?? 0.1;
@@ -289,16 +301,19 @@ export class Effects {
     this.soft.update(dt);
     this.puffs.update(dt);
     this.stars.update(dt);
+    this.bubbles.update(dt);
   }
   clear() {
     this.soft.clear();
     this.puffs.clear();
     this.stars.clear();
+    this.bubbles.clear();
   }
   dispose() {
     this.soft.dispose();
     this.puffs.dispose();
     this.stars.dispose();
+    this.bubbles.dispose();
     for (const t of this.textures) t.dispose();
   }
 }

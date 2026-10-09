@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Coins, Copy, Star, Users, Volume2, X } from 'lucide-react';
 import { GameNavigation } from './game-navigation';
 import { SoundToggle } from './sound-settings';
+import { readAudioMuted, saveAudioMuted } from '@/lib/games/audio-preferences';
 import { useGameMotion } from './game-motion';
 import {
   formatNumber,
@@ -35,7 +36,11 @@ import type { ExpeditionView } from '@/lib/games/relic/types';
 import { devSession, requestId } from '@/lib/online/client';
 import { ScratchAudio } from './relic-scratch-audio';
 import { ScratchDesk } from './relic-scratch-desk';
-import { MachineIcon, ScratchFactory, type FactoryView } from './relic-scratch-factory';
+import {
+  MachineIcon,
+  ScratchFactory,
+  type FactoryView,
+} from './relic-scratch-factory';
 import { ScratchUpgrades, UPGRADE_ICONS } from './relic-scratch-upgrades';
 import { DESK_TABS, WatchTv } from './relic-scratch-watch';
 import {
@@ -68,7 +73,11 @@ function aligned(next: RelicGame, shown: RelicGame) {
 /** The factory moves smoothly between server snapshots by running the same
  * deterministic step locally, once every tick, on the tick. */
 function usePredicted(game: RelicGame) {
-  const [live, setLive] = useState(() => ({ source: game, game, ahead: false }));
+  const [live, setLive] = useState(() => ({
+    source: game,
+    game,
+    ahead: false,
+  }));
   const latest = useRef(live),
     clock = useRef({ at: 0 });
   useEffect(() => {
@@ -96,7 +105,11 @@ function usePredicted(game: RelicGame) {
       if (playing() && g.scratch?.factory.machines.length) {
         const next = structuredClone(g);
         advanceFactory(next, ms);
-        const value = { source: latest.current.source, game: next, ahead: false };
+        const value = {
+          source: latest.current.source,
+          game: next,
+          ahead: false,
+        };
         latest.current = value;
         setLive(value);
       }
@@ -124,17 +137,26 @@ function Toast({
   colour: string;
 }) {
   const who = (
-    <b className="rs-toast-name" style={{ '--player': colour } as React.CSSProperties}>
+    <b
+      className="rs-toast-name"
+      style={{ '--player': colour } as React.CSSProperties}
+    >
       {name}
     </b>
   );
   const book = (id: string) => (
-    <img src={TICKET_ART[id as PackId]?.small} alt="" className="rs-toast-book" />
+    <img
+      src={TICKET_ART[id as PackId]?.small}
+      alt=""
+      className="rs-toast-book"
+    />
   );
   switch (entry.kind) {
     case 'win':
       return (
-        <span className={`rs-toast is-win ${(entry.amount ?? 0) < (entry.cost ?? 0) ? 'is-loss' : ''}`}>
+        <span
+          className={`rs-toast is-win ${(entry.amount ?? 0) < (entry.cost ?? 0) ? 'is-loss' : ''}`}
+        >
           {who}
           {book(entry.what)}
           <Coins size={13} />
@@ -155,7 +177,9 @@ function Toast({
       return (
         <span className="rs-toast">
           {who}
-          {u?.book && u.id.endsWith('-prize') ? book(u.book) : Icon && <Icon size={14} />}
+          {u?.book && u.id.endsWith('-prize')
+            ? book(u.book)
+            : Icon && <Icon size={14} />}
           <span>{u?.name}</span>
           {!!entry.n && (u?.max ?? 1) > 1 && <small>{entry.n}</small>}
         </span>
@@ -165,16 +189,20 @@ function Toast({
     case 'machine': {
       // Opening the factory itself unlocks belts, printers, bots and cashiers.
       const factory = entry.what === 'starter',
-        kind = (factory
-          ? 'printer'
-          : (BLUEPRINTS.find((b) => b.id === entry.what)?.kinds[0] ??
-            entry.what)) as MachineKind;
+        kind = (
+          factory
+            ? 'printer'
+            : (BLUEPRINTS.find((b) => b.id === entry.what)?.kinds[0] ??
+              entry.what)
+        ) as MachineKind;
       return (
         <span className="rs-toast">
           {who}
           <MachineIcon kind={kind} className="rs-toast-machine" />
           <span>{factory ? 'Factory' : MACHINES[kind]?.name}</span>
-          {entry.kind === 'machine' && (entry.n ?? 1) > 1 && <small>×{entry.n}</small>}
+          {entry.kind === 'machine' && (entry.n ?? 1) > 1 && (
+            <small>×{entry.n}</small>
+          )}
         </span>
       );
     }
@@ -184,6 +212,14 @@ function Toast({
           {book(entry.what)}
           <span>{packFor(entry.what as PackId)?.name}</span>
           <b className="rs-toast-level">Lv {(entry.n ?? 0) + 1}</b>
+        </span>
+      );
+    case 'infinity':
+      return (
+        <span className="rs-toast is-level is-four">
+          {book(entry.what)}
+          <span>{packFor(entry.what as PackId)?.name}</span>
+          <b className="rs-toast-level">IV</b>
         </span>
       );
     case 'max':
@@ -233,19 +269,18 @@ export function RelicScratch({
   });
   const others = view.members.filter((m) => m.id !== view.viewerId);
   const colours = Object.fromEntries(
-    view.members.map((m, i) => [m.id, PLAYER_COLOURS[i % PLAYER_COLOURS.length]]),
+    view.members.map((m, i) => [
+      m.id,
+      PLAYER_COLOURS[i % PLAYER_COLOURS.length],
+    ]),
   );
   const names = Object.fromEntries(view.members.map((m) => [m.id, m.name]));
   const [overlay, setOverlay] = useState<'players' | 'help' | null>(null);
   const [tv, setTv] = useState(false),
     [watching, setWatching] = useState<string | null>(null);
-  const [muted, setMuted] = useState(() => {
-      try {
-        return localStorage.getItem('gamehub-relic-muted') === 'true';
-      } catch {
-        return false;
-      }
-    }),
+  const [muted, setMuted] = useState(() =>
+      readAudioMuted('gamehub-relic-muted'),
+    ),
     [copied, setCopied] = useState(false);
   const [audio] = useState(() => new ScratchAudio());
   const root = useRef<HTMLElement>(null),
@@ -259,7 +294,9 @@ export function RelicScratch({
   });
 
   // ---- Live presence: others' pointers, their screens, and their strokes.
-  const [mirrorHands, setMirrorHands] = useState<Record<string, ScratchTicket>>({});
+  const [mirrorHands, setMirrorHands] = useState<Record<string, ScratchTicket>>(
+    {},
+  );
   const viewerId = view.viewerId;
   const onStrokeEvent = useCallback(
     (e: StrokeEvent) => {
@@ -268,10 +305,17 @@ export function RelicScratch({
         const saved = stateRef.current.hands?.[e.by],
           known = list[e.by];
         const base =
-          known && known.id === e.ticket && (!saved || saved.id !== known.id || known.sequence >= saved.sequence)
+          known &&
+          known.id === e.ticket &&
+          (!saved || saved.id !== known.id || known.sequence >= saved.sequence)
             ? known
             : saved;
-        if (!base || base.id !== e.ticket || base.sequence !== e.sequence || base.ended)
+        if (
+          !base ||
+          base.id !== e.ticket ||
+          base.sequence !== e.sequence ||
+          base.ended
+        )
           return list;
         const next = structuredClone(base);
         rubTicket(next, stateRef.current, e.points, e.breaks ?? []);
@@ -307,7 +351,12 @@ export function RelicScratch({
   );
   const onFactoryView = useCallback(
     (v: FactoryView) =>
-      report({ tool: v.tool, dir: v.dir, selected: v.selected, preview: v.preview ?? undefined }),
+      report({
+        tool: v.tool,
+        dir: v.dir,
+        selected: v.selected,
+        preview: v.preview ?? undefined,
+      }),
     [report],
   );
   const onUpgradeView = useCallback(
@@ -315,8 +364,8 @@ export function RelicScratch({
     [report],
   );
   const onLevels = useCallback(
-    (levels: Partial<Record<PackId, number>>) =>
-      report({ levels: levels as Record<string, number> }),
+    (levels: Partial<Record<PackId, number>>, book: PackId) =>
+      report({ levels: levels as Record<string, number>, book }),
     [report],
   );
   /** The newest copy of another player's ticket: saved, or scratched along live. */
@@ -325,7 +374,8 @@ export function RelicScratch({
       mirrored = mirrorHands[id];
     if (!mirrored) return saved;
     if (!saved) return mirrored;
-    if (mirrored.id === saved.id) return mirrored.sequence > saved.sequence ? mirrored : saved;
+    if (mirrored.id === saved.id)
+      return mirrored.sequence > saved.sequence ? mirrored : saved;
     return mirrored.id > saved.id ? mirrored : saved;
   };
   const watched =
@@ -348,7 +398,10 @@ export function RelicScratch({
     const fresh = list.filter(
       (e) =>
         e.id > since &&
-        (e.by !== viewerId || e.kind === 'level' || e.kind === 'max'),
+        (e.by !== viewerId ||
+          e.kind === 'level' ||
+          e.kind === 'max' ||
+          e.kind === 'infinity'),
     );
     seenFeed.current = Math.max(since, top);
     if (fresh.length)
@@ -388,7 +441,9 @@ export function RelicScratch({
             headers: {
               'Content-Type': 'application/json',
               // Development test players carry their own guest session.
-              ...(devSession() ? { 'X-Gamehub-Dev-Session': devSession()! } : {}),
+              ...(devSession()
+                ? { 'X-Gamehub-Dev-Session': devSession()! }
+                : {}),
             },
             body: JSON.stringify({
               sessionId,
@@ -492,7 +547,8 @@ export function RelicScratch({
       ticket: number,
       sequence: number,
       batch: { points: { x: number; y: number }[]; breaks?: number[] },
-    ) => onActRef.current({ type: 'scratch-stroke', ticket, sequence, ...batch }),
+    ) =>
+      onActRef.current({ type: 'scratch-stroke', ticket, sequence, ...batch }),
     [],
   );
   const onFactoryAct = useCallback(
@@ -572,9 +628,7 @@ export function RelicScratch({
                 audio.setMuted(!on);
                 audio.stop();
                 if (on) void audio.unlock();
-                try {
-                  localStorage.setItem('gamehub-relic-muted', String(!on));
-                } catch {}
+                saveAudioMuted(!on, 'gamehub-relic-muted');
               }}
             />
           ),
@@ -610,9 +664,16 @@ export function RelicScratch({
         progress={`${state.completed} ${state.completed === 1 ? 'ticket' : 'tickets'} · ${PACKS.filter((p) => packOpen(state, p.id)).length}/${PACKS.length} books`}
       />
       <header className="rs-top">
-        <div className="rs-tabs" role="tablist" aria-label="Lucky">
+        <div
+          className="rs-tabs"
+          role="tablist"
+          aria-label="Lucky"
+          data-rs-cover=""
+        >
           {DESK_TABS.map(({ id, name, icon: Icon }) => {
-            const here = others.filter((m) => presence.others[m.id]?.tab === id);
+            const here = others.filter(
+              (m) => presence.others[m.id]?.tab === id,
+            );
             return (
               <button
                 key={id}
@@ -632,7 +693,9 @@ export function RelicScratch({
                     {here.map((m) => (
                       <i
                         key={m.id}
-                        style={{ '--player': colours[m.id] } as React.CSSProperties}
+                        style={
+                          { '--player': colours[m.id] } as React.CSSProperties
+                        }
                       >
                         {m.name.trim().charAt(0).toUpperCase()}
                       </i>
@@ -643,7 +706,7 @@ export function RelicScratch({
             );
           })}
         </div>
-        <div className="rs-purse">
+        <div className="rs-purse" data-rs-cover="">
           <output
             className="rs-wallet"
             aria-label="Coins"
@@ -666,37 +729,51 @@ export function RelicScratch({
           </div>
         </div>
       </header>
-      <div className="rs-stage" data-game-motion="stage" data-rs-area="stage">
-        {tab === 'tickets' ? (
-          <ScratchDesk
-            state={state}
-            coins={game.coins}
-            hand={hand}
-            busy={busy}
-            audio={audio}
-            onBuy={onBuy}
-            onBuyBook={onBuyBook}
-            onStroke={onStroke}
-            onLevels={onLevels}
-          />
-        ) : tab === 'factory' ? (
-          <ScratchFactory
-            state={liveState}
-            coins={game.coins}
-            busy={busy}
-            onAct={onFactoryAct}
-            onView={onFactoryView}
-          />
-        ) : (
-          <ScratchUpgrades
-            state={state}
-            coins={game.coins}
-            busy={busy}
-            onBuy={onUpgrade}
-            onView={onUpgradeView}
-          />
-        )}
+      {/* The factory stays built while the other tabs cover it, so switching
+          back is instant; it stops drawing meanwhile. */}
+      <div
+        className="rs-stage is-factory"
+        data-rs-area={tab === 'factory' ? 'stage' : undefined}
+        hidden={tab !== 'factory'}
+      >
+        <ScratchFactory
+          state={liveState}
+          coins={game.coins}
+          busy={busy}
+          active={tab === 'factory'}
+          onAct={onFactoryAct}
+          onView={onFactoryView}
+        />
       </div>
+      {tab !== 'factory' && (
+        <div
+          className={`rs-stage is-${tab}`}
+          data-game-motion="stage"
+          data-rs-area="stage"
+        >
+          {tab === 'tickets' ? (
+            <ScratchDesk
+              state={state}
+              coins={game.coins}
+              hand={hand}
+              busy={busy}
+              audio={audio}
+              onBuy={onBuy}
+              onBuyBook={onBuyBook}
+              onStroke={onStroke}
+              onLevels={onLevels}
+            />
+          ) : (
+            <ScratchUpgrades
+              state={state}
+              coins={game.coins}
+              busy={busy}
+              onBuy={onUpgrade}
+              onView={onUpgradeView}
+            />
+          )}
+        </div>
+      )}
       <RemoteCursors
         root={root}
         others={Object.values(presence.others)}
@@ -735,9 +812,7 @@ export function RelicScratch({
             data-game-motion="piece"
             data-game-motion-key={overlay}
             aria-modal="true"
-            aria-label={
-              overlay === 'help' ? 'How to play' : 'Players'
-            }
+            aria-label={overlay === 'help' ? 'How to play' : 'Players'}
           >
             <button
               className="scratch-modal-close"

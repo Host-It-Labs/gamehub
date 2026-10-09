@@ -1,5 +1,6 @@
-import { HATS, type Look, type NightId } from './content.ts';
+import { HATS, type Look } from './content.ts';
 import type {
+  DinerConfig,
   DinerEvent,
   Guest,
   GuestState,
@@ -23,14 +24,15 @@ import type {
  * - `POST /api/diner/<token>/input`    { round, frames } → { ok: true }: your
  *     recent input steps (repeated until acknowledged, so a lost request
  *     loses nothing).
- * - `POST /api/diner/<token>/again`    { night? } → the host starts the next
- *     shift once one is over.
+ * - `POST /api/diner/<token>/again`    { level? } → the host starts the next
+ *     shift once one is over (the same level, or another).
  */
 export type DinerSeatView = { name: string; connected: boolean };
 
 export type DinerRoomView = {
   token: string;
-  night: NightId;
+  /** The free-play level the room plays (lib/games/diner/levels.ts). */
+  level: number;
   seats: DinerSeatView[];
   /** The viewer's waiter. */
   you: number;
@@ -43,7 +45,7 @@ export type DinerRoomView = {
   table: string | null;
 };
 
-/** One input step: [seq, stick x in sixteenths, stick z in sixteenths, flags (1 use, 2 out)]. */
+/** One input step: [seq, stick x in sixteenths, stick z in sixteenths, flags (1 use, 2 out, 4 dash)]. */
 export type Frame = [number, number, number, number];
 
 export type DinerSnapshot = {
@@ -68,7 +70,7 @@ export function encodeFrame(seq: number, input: Input): Frame {
     seq,
     Math.round(Math.max(-1, Math.min(1, input.mx)) * 16),
     Math.round(Math.max(-1, Math.min(1, input.mz)) * 16),
-    (input.use ? 1 : 0) | (input.out ? 2 : 0),
+    (input.use ? 1 : 0) | (input.out ? 2 : 0) | (input.dash ? 4 : 0),
   ];
 }
 
@@ -78,6 +80,7 @@ export function decodeFrame(f: Frame): Input {
     mz: f[2] / 16,
     use: (f[3] & 1) === 1,
     out: (f[3] & 2) === 2,
+    dash: (f[3] & 4) === 4,
   };
 }
 
@@ -93,7 +96,7 @@ export function validFrame(f: unknown): f is Frame {
     Math.abs(f[2]) <= 16 &&
     Number.isInteger(f[3]) &&
     f[3] >= 0 &&
-    f[3] <= 3
+    f[3] <= 7
   );
 }
 
@@ -132,7 +135,10 @@ type PackedPlayer = [
   number,
   number,
   number,
-  Player['carry'],
+  Player['hands'],
+  number,
+  number,
+  number,
   number,
   number,
   number,
@@ -141,11 +147,13 @@ type PackedPlayer = [
 /**
  * A match as sent over the wire, about a tenth of its plain JSON: guests
  * and waiters as short rows, trails and paths left on the server,
- * positions rounded to millimetres.
+ * positions rounded to millimetres. The level's rules stay behind too:
+ * every device builds them from the room's level number.
  */
 export function packMatch(m: Match): string {
-  const { guests, players, events: _events, ...rest } = m;
+  const { guests, players, events: _events, config: _config, ...rest } = m;
   void _events;
+  void _config;
   return JSON.stringify({
     ...rest,
     G: guests.map(
@@ -172,24 +180,28 @@ export function packMatch(m: Match): string {
         r2(p.fx),
         r2(p.fz),
         p.moving ? 1 : 0,
-        p.carry,
+        p.hands,
+        p.lead,
         p.mop,
         p.mopping,
         p.seq,
+        p.dash,
+        p.dashCool,
       ],
     ),
   });
 }
 
 /** The other end of `packMatch`: a match the rules and the view can use. */
-export function unpackMatch(raw: unknown): Match {
-  const o = raw as Omit<Match, 'guests' | 'players' | 'events'> & {
+export function unpackMatch(raw: unknown, config?: DinerConfig): Match {
+  const o = raw as Omit<Match, 'guests' | 'players' | 'events' | 'config'> & {
     G: PackedGuest[];
     P: PackedPlayer[];
   };
   const { G, P, ...rest } = o;
   return {
     ...rest,
+    ...(config ? { config } : {}),
     events: [],
     guests: G.map((g) => ({
       id: g[0],
@@ -218,11 +230,14 @@ export function unpackMatch(raw: unknown): Match {
       fx: p[3],
       fz: p[4],
       moving: p[5] === 1,
-      carry: p[6],
-      mop: p[7],
-      mopping: p[8],
+      hands: p[6],
+      lead: p[7],
+      mop: p[8],
+      mopping: p[9],
       trail: [],
-      seq: p[9],
+      seq: p[10],
+      dash: p[11],
+      dashCool: p[12],
     })),
   };
 }

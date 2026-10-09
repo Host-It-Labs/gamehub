@@ -1,0 +1,470 @@
+[
+  {
+    "place": "drivein",
+    "quality": "high",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 43,
+      "geometries": 33,
+      "textures": 44,
+      "triangles": 322406
+    },
+    "full": {
+      "calls": 57,
+      "geometries": 33,
+      "textures": 44,
+      "triangles": 322420
+    },
+    "ready": true
+  },
+  {
+    "place": "truckstop",
+    "quality": "high",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 46,
+      "geometries": 36,
+      "textures": 44,
+      "triangles": 252296
+    },
+    "full": {
+      "calls": 60,
+      "geometries": 36,
+      "textures": 44,
+      "triangles": 252310
+    },
+    "ready": true
+  },
+  {
+    "place": "oldtown",
+    "quality": "high",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 43,
+      "geometries": 33,
+      "textures": 43,
+      "triangles": 267628
+    },
+    "full": {
+      "calls": 57,
+      "geometries": 33,
+      "textures": 43,
+      "triangles": 267642
+    },
+    "ready": true
+  },
+  {
+    "place": "harbour",
+    "quality": "high",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 69,
+      "geometries": 51,
+      "textures": 44,
+      "triangles": 283862
+    },
+    "full": {
+      "calls": 83,
+      "geometries": 51,
+      "textures": 44,
+      "triangles": 283876
+    },
+    "ready": true
+  },
+  {
+    "place": "fairground",
+    "quality": "high",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 62,
+      "geometries": 44,
+      "textures": 46,
+      "triangles": 299888
+    },
+    "full": {
+      "calls": 76,
+      "geometries": 44,
+      "textures": 46,
+      "triangles": 299902
+    },
+    "ready": true
+  },
+  {
+    "place": "drivein",
+    "quality": "high",
+    "width": 390,
+    "height": 844,
+    "direct": {
+      "calls": 42,
+      "geometries": 32,
+      "textures": 44,
+      "triangles": 321314
+    },
+    "full": {
+      "calls": 56,
+      "geometries": 32,
+      "textures": 44,
+      "triangles": 321328
+    },
+    "ready": true
+  },
+  {
+    "place": "truckstop",
+    "quality": "high",
+    "width": 390,
+    "height": 844,
+    "direct": {
+      "calls": 45,
+      "geometries": 35,
+      "textures": 45,
+      "triangles": 251204
+    },
+    "full": {
+      "calls": 59,
+      "geometries": 35,
+      "textures": 45,
+      "triangles": 251218
+    },
+    "ready": true
+  },
+  {
+    "place": "oldtown",
+    "quality": "high",
+    "width": 390,
+    "height": 844,
+    "direct": {
+      "calls": 42,
+      "geometries": 32,
+      "textures": 44,
+      "triangles": 266536
+    },
+    "full": {
+      "calls": 56,
+      "geometries": 32,
+      "textures": 44,
+      "triangles": 266550
+    },
+    "ready": true
+  },
+  {
+    "place": "harbour",
+    "quality": "high",
+    "width": 390,
+    "height": 844,
+    "direct": {
+      "calls": 58,
+      "geometries": 46,
+      "textures": 44,
+      "triangles": 280690
+    },
+    "full": {
+      "calls": 72,
+      "geometries": 46,
+      "textures": 44,
+      "triangles": 280704
+    },
+    "ready": true
+  },
+  {
+    "place": "fairground",
+    "quality": "high",
+    "width": 390,
+    "height": 844,
+    "direct": {
+      "calls": 60,
+      "geometries": 43,
+      "textures": 46,
+      "triangles": 297452
+    },
+    "full": {
+      "calls": 74,
+      "geometries": 43,
+      "textures": 46,
+      "triangles": 297466
+    },
+    "ready": true
+  },
+  {
+    "place": "moonmile",
+    "quality": "high",
+    "width": 390,
+    "height": 844,
+    "direct": {
+      "calls": 55,
+      "geometries": 42,
+      "textures": 43,
+      "triangles": 259270
+    },
+    "full": {
+      "calls": 69,
+      "geometries": 42,
+      "textures": 43,
+      "triangles": 259284
+    },
+    "ready": true
+  },
+  {
+    "place": "moonmile",
+    "quality": "high",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 52,
+      "geometries": 39,
+      "textures": 43,
+      "triangles": 258242
+    },
+    "full": {
+      "calls": 66,
+      "geometries": 39,
+      "textures": 43,
+      "triangles": 258256
+    },
+    "ready": true
+  },
+  {
+    "place": "truckstop",
+    "quality": "low",
+    "upgrades": "plain",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 46,
+      "geometries": 36,
+      "textures": 45,
+      "triangles": 134036
+    },
+    "full": {
+      "calls": 60,
+      "geometries": 36,
+      "textures": 45,
+      "triangles": 134050
+    },
+    "ready": true
+  },
+  {
+    "place": "drivein",
+    "quality": "low",
+    "upgrades": "plain",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 43,
+      "geometries": 33,
+      "textures": 45,
+      "triangles": 172522
+    },
+    "full": {
+      "calls": 57,
+      "geometries": 33,
+      "textures": 45,
+      "triangles": 172536
+    },
+    "ready": true
+  },
+  {
+    "place": "fairground",
+    "quality": "low",
+    "upgrades": "plain",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 62,
+      "geometries": 44,
+      "textures": 46,
+      "triangles": 156712
+    },
+    "full": {
+      "calls": 76,
+      "geometries": 44,
+      "textures": 46,
+      "triangles": 156726
+    },
+    "ready": true
+  },
+  {
+    "place": "harbour",
+    "quality": "low",
+    "upgrades": "plain",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 69,
+      "geometries": 51,
+      "textures": 44,
+      "triangles": 154690
+    },
+    "full": {
+      "calls": 83,
+      "geometries": 51,
+      "textures": 44,
+      "triangles": 154704
+    },
+    "ready": true
+  },
+  {
+    "place": "oldtown",
+    "quality": "low",
+    "upgrades": "plain",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 43,
+      "geometries": 33,
+      "textures": 43,
+      "triangles": 137360
+    },
+    "full": {
+      "calls": 57,
+      "geometries": 33,
+      "textures": 43,
+      "triangles": 137374
+    },
+    "ready": true
+  },
+  {
+    "place": "moonmile",
+    "quality": "low",
+    "upgrades": "plain",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 52,
+      "geometries": 39,
+      "textures": 43,
+      "triangles": 131642
+    },
+    "full": {
+      "calls": 66,
+      "geometries": 39,
+      "textures": 43,
+      "triangles": 131656
+    },
+    "ready": true
+  },
+  {
+    "place": "truckstop",
+    "quality": "low",
+    "upgrades": "all",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 46,
+      "geometries": 36,
+      "textures": 44,
+      "triangles": 135916
+    },
+    "full": {
+      "calls": 60,
+      "geometries": 36,
+      "textures": 44,
+      "triangles": 135930
+    },
+    "ready": true
+  },
+  {
+    "place": "drivein",
+    "quality": "low",
+    "upgrades": "all",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 43,
+      "geometries": 33,
+      "textures": 44,
+      "triangles": 174402
+    },
+    "full": {
+      "calls": 57,
+      "geometries": 33,
+      "textures": 44,
+      "triangles": 174416
+    },
+    "ready": true
+  },
+  {
+    "place": "fairground",
+    "quality": "low",
+    "upgrades": "all",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 62,
+      "geometries": 44,
+      "textures": 46,
+      "triangles": 158592
+    },
+    "full": {
+      "calls": 76,
+      "geometries": 44,
+      "textures": 46,
+      "triangles": 158606
+    },
+    "ready": true
+  },
+  {
+    "place": "harbour",
+    "quality": "low",
+    "upgrades": "all",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 69,
+      "geometries": 51,
+      "textures": 45,
+      "triangles": 156570
+    },
+    "full": {
+      "calls": 83,
+      "geometries": 51,
+      "textures": 45,
+      "triangles": 156584
+    },
+    "ready": true
+  },
+  {
+    "place": "oldtown",
+    "quality": "low",
+    "upgrades": "all",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 43,
+      "geometries": 33,
+      "textures": 43,
+      "triangles": 139240
+    },
+    "full": {
+      "calls": 57,
+      "geometries": 33,
+      "textures": 43,
+      "triangles": 139254
+    },
+    "ready": true
+  },
+  {
+    "place": "moonmile",
+    "quality": "low",
+    "upgrades": "all",
+    "width": 1280,
+    "height": 720,
+    "direct": {
+      "calls": 52,
+      "geometries": 39,
+      "textures": 43,
+      "triangles": 133522
+    },
+    "full": {
+      "calls": 66,
+      "geometries": 39,
+      "textures": 43,
+      "triangles": 133536
+    },
+    "ready": true
+  }
+]

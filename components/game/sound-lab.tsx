@@ -7,6 +7,7 @@ import { labAmbiences as ambiences } from '@/lib/games/lab-ambiences';
 import { defaultMix, mixedAmbience, readAmbienceMix, saveAmbienceMix, type AmbienceMix } from '@/lib/games/ambience-mix';
 import { pauseAmbienceWhenHidden, previewAmbience, stopAmbience } from '@/lib/games/ambience-player';
 import { audioContext } from '@/lib/games/audio-context';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { effectLevel } from '@/lib/games/game-sound';
 import { audioOptions, earlierAudioOptions, sharedSoundActions } from '@/lib/games/audio-options';
 import { boxCover } from '@/lib/games/box-covers';
@@ -21,7 +22,7 @@ export default function SoundLab() {
   const [world, setWorld] = useState('ship');
   const ambience = ambiences.find((a) => a.id === game && a.world === world) ?? ambiences.find((a) => a.id === game);
   const [mix, setMix] = useState<AmbienceMix>(() => readAmbienceMix(ambiences.find((a) => a.world === 'ship')!));
-  const [volume, setVolume] = useState(0.45);
+  const [volume, setVolume] = useState(() => process.env.NODE_ENV === 'development' ? readAudioLevel('gamehub.sound-lab.volume', 0.45) : 0.45);
   const [playing, setPlaying] = useState(false);
   const [clip, setClip] = useState<string | null>(null);
   const [status, setStatus] = useState('');
@@ -135,7 +136,11 @@ export default function SoundLab() {
       <header className="sound-lab-header">
         <a href="/" className="sound-lab-back"><ArrowLeft size={19} /> Library</a>
         <h1><Headphones size={23} /> Sound Lab</h1>
-        <label className="sound-lab-volume"><Volume2 size={18} /><span className="sr-only">Preview volume</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(Number(e.target.value))} /><output>{Math.round(volume * 100)}%</output></label>
+        <label className="sound-lab-volume"><Volume2 size={18} /><span className="sr-only">Preview volume</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => {
+          const level = Number(e.target.value);
+          setVolume(level);
+          if (process.env.NODE_ENV === 'development') saveAudioLevel(level, 'gamehub.sound-lab.volume');
+        }} /><output>{Math.round(volume * 100)}%</output></label>
       </header>
       <section className="sound-lab-panel" aria-labelledby="arena-music-heading">
         <h2 id="arena-music-heading">Arena music</h2>
@@ -197,7 +202,7 @@ export default function SoundLab() {
         </aside>
         <div className="sound-lab-desk">
           {candidates.length > 0 && <section className="sound-lab-panel" aria-label={`${entry.name} action candidates`}>
-            <h2>{game === 'orin' || game === 'miro' ? 'Know Me & Quiz' : entry.name} actions</h2>
+            <h2>{game === 'orin' || game === 'miro' ? 'Know Me & Trivia' : entry.name} actions</h2>
             <p className="sound-lab-note">Three options per action. A is the starting choice in play. Keep the world mix playing to compare the quieter effects against it.</p>
             {(game === 'folio' ? ['place'] : ['pickup', 'place']).map((category) => <section className="sound-lab-comparison" key={category}>
               <h3>{category === 'pickup' ? 'Pick up' : game === 'folio' ? 'Submit / reveal' : 'Place'}</h3>
@@ -205,7 +210,7 @@ export default function SoundLab() {
             </section>)}
           </section>}
           {game === 'relic' && <section className="sound-lab-panel" aria-label="Lucky music"><h2>Lucky music</h2><p className="sound-lab-note">Three 3-minute looping tracks are planned: Sunny pockets, Easy afternoon and Cloud lounge. Generation is blocked by insufficient ElevenLabs funds.</p></section>}
-          {game === 'folio' && <p className="sound-lab-note">Folio keeps submit and reveal sounds. Typing, cell edits and selection are silent.</p>}
+          {game === 'folio' && <p className="sound-lab-note">Puzzles keeps submit and reveal sounds. Typing, cell edits and selection are silent.</p>}
           {ambience && <section className="sound-lab-panel" aria-labelledby="ambience-heading">
             <div className="sound-lab-section-heading"><h2 id="ambience-heading">The world around you</h2>
               <button type="button" className="sound-lab-primary" onClick={toggleMix} aria-pressed={playing}>{playing ? <Square size={17} /> : <Play size={17} />}{playing ? 'Stop mix' : 'Play mix'}</button>

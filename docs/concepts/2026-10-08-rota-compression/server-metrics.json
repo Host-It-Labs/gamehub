@@ -1,0 +1,44 @@
+[
+  {
+    "encoding": "identity",
+    "status": 200,
+    "headers": {
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+      "x-frame-options": "DENY",
+      "content-type": "model/gltf-binary",
+      "content-length": 1814960,
+      "cache-control": "public, max-age=3600"
+    },
+    "bytes": 1814960,
+    "prefix": "glTF"
+  },
+  {
+    "encoding": "gzip",
+    "status": 200,
+    "headers": {
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+      "x-frame-options": "DENY",
+      "content-type": "model/gltf-binary",
+      "content-length": 1814960,
+      "cache-control": "public, max-age=3600"
+    },
+    "bytes": 1814960,
+    "prefix": "glTF"
+  },
+  {
+    "encoding": "br",
+    "status": 200,
+    "headers": {
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+      "x-frame-options": "DENY",
+      "content-type": "model/gltf-binary",
+      "content-length": 1814960,
+      "cache-control": "public, max-age=3600"
+    },
+    "bytes": 1814960,
+    "prefix": "glTF"
+  }
+]

@@ -1,0 +1,318 @@
+[
+  {},
+  {
+    "calls": "219",
+    "elapsed": "0.47",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "0.55",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "0.58",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "0.67",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "0.79",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "0.83",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "0.90",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "0.97",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "1.10",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "1.14",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "1.23",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "1.30",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "1.41",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "1.45",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "219",
+    "elapsed": "1.59",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "608944",
+    "version": "runtime"
+  },
+  {
+    "calls": "119",
+    "elapsed": "1.63",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305486",
+    "version": "runtime"
+  },
+  {
+    "calls": "119",
+    "elapsed": "1.67",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305486",
+    "version": "runtime"
+  },
+  {
+    "calls": "119",
+    "elapsed": "1.74",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305486",
+    "version": "runtime"
+  },
+  {
+    "calls": "119",
+    "elapsed": "1.82",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305486",
+    "version": "runtime"
+  },
+  {
+    "calls": "119",
+    "elapsed": "1.89",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305486",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.02",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.06",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.22",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.26",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.30",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.38",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.49",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.57",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.60",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.67",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.78",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.87",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.91",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "2.98",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  },
+  {
+    "calls": "120",
+    "elapsed": "3.11",
+    "engine": "three.js r186",
+    "motion": "animated",
+    "settled": "true",
+    "triangles": "305488",
+    "version": "runtime"
+  }
+]

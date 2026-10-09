@@ -107,7 +107,6 @@ export function LobbyGames({
             key={section.id}
             id={`lobby-${section.id}`}
             title={section.title}
-            count={section.entries.length}
           >
             {section.entries.map((box) => {
               const id = (box.gameId ??
@@ -216,6 +215,8 @@ export function LobbyGames({
                 }
                 votes={table.partyVotes ?? false}
                 onVotes={(partyVotes) => configure({ partyVotes })}
+                triviaMode={table.triviaMode ?? 'quick'}
+                onTriviaMode={(triviaMode) => configure({ triviaMode })}
                 onSeats={(capacity) => configure({ capacity })}
                 onDifficulty={(difficulty) => configure({ difficulty })}
                 onPlay={() => start()}

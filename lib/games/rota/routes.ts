@@ -17,6 +17,7 @@ import {
   GRAND_HALF,
   OVERPASS_RISE,
   RAMP,
+  STATION_STEPS,
 } from './scale.ts';
 
 /**
@@ -108,6 +109,10 @@ export function slopeAt(lift: Lift, t: number, length: number) {
 /** Half a station building's footprint: its stubs stop at the walls. */
 export const stationHalf = (p: PieceId) =>
   p === 'station-cross' ? GRAND_HALF : GOODS_HALF;
+/** How far from a station's centre a stub of each kind ends: a track at
+ *  the platform bank, a street at the foot of the station steps. */
+export const stubEnd = (half: number, kind: Route) =>
+  kind === ROAD ? half + STATION_STEPS : half;
 
 /** Point and unit tangent at `t` (0–1) along a shape, in board coordinates. */
 export function pointAt(seg: Pick<Segment, 'shape' | 'at'>, t: number) {

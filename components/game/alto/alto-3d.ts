@@ -601,12 +601,25 @@ function glowGroundMat(color: string) {
   };
   return m;
 }
-function waterSphere(color: string) {
+function waterSphere(color: string, seed: number) {
+  const noise = new SimplexNoise({ random: seeded(seed) });
+  const sea = col(color);
+  const deep = sea.clone().multiplyScalar(0.72);
+  const light = sea.clone().lerp(col('#c5edf1'), 0.35);
+  // Broad, softly curled currents give the water depth on every hemisphere;
+  // small white specks would disappear at the scale of the playing table.
+  const water = bit(new THREE.IcosahedronGeometry(1.001, 28), (p, _n, c) => {
+    const n = noise.noise3d(p.x * 2.4, p.y * 2.4, p.z * 2.4);
+    const curl = Math.sin(p.y * 14 + n * 5 + p.x * 3);
+    c.copy(deep)
+      .lerp(sea, 0.4 + 0.45 * smooth(-0.8, 0.6, n))
+      .lerp(light, smooth(0.35, 0.95, curl) * 0.28);
+  });
   return new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.001, 28),
+    water,
     new THREE.MeshPhysicalMaterial({
-      color,
-      roughness: 0.12,
+      vertexColors: true,
+      roughness: 0.2,
       metalness: 0,
       clearcoat: 1,
       clearcoatRoughness: 0.08,
@@ -836,7 +849,7 @@ function bush(seed: number, hex = '#4f9e3f', berries?: string) {
   for (const [c, r] of lobes)
     k.add(
       'matte',
-      blob(4, 0.12, seed + r * 100, 2.8),
+      blob(3, 0.12, seed + r * 100, 2.8),
       paint,
       m4(c.x, c.y, c.z, rand(), rand(), 0, [r, r * 0.88, r]),
     );
@@ -1066,7 +1079,7 @@ function appleTree(seed: number) {
     const a = (j / 4) * TAU + rand() * 0.6;
     k.add(
       'matte',
-      ball(2),
+      ball(1),
       bark,
       aim(
         v3(Math.cos(a) * 0.09, 0.0, Math.sin(a) * 0.09),
@@ -1075,41 +1088,42 @@ function appleTree(seed: number) {
       ),
     );
   }
-  const lobes: { c: V3; r: number }[] = [{ c: v3(0.07, 0.9, 0), r: 0.4 }];
-  for (let j = 0; j < 5; j++) {
-    const a = (j / 5) * TAU + rand() * 0.5;
+  // A low, spreading fruit-tree crown, with overlapping boughs rather than
+  // a stack of little balls. Its silhouette and red fruit read at table size.
+  const lobes: { c: V3; r: number }[] = [{ c: v3(0.07, 0.84, 0), r: 0.46 }];
+  for (let j = 0; j < 4; j++) {
+    const a = (j / 4) * TAU + rand() * 0.35;
     lobes.push({
-      c: v3(0.07 + Math.cos(a) * 0.3, 0.77 + rand() * 0.18, Math.sin(a) * 0.3),
-      r: 0.25 + rand() * 0.06,
+      c: v3(0.07 + Math.cos(a) * 0.3, 0.75 + rand() * 0.12, Math.sin(a) * 0.3),
+      r: 0.3 + rand() * 0.05,
     });
   }
-  lobes.push({ c: v3(0.05, 1.14, 0.02), r: 0.27 });
   const fork = v3(0.07, 0.5, 0);
-  for (const l of lobes.slice(1, 4))
-    k.add('matte', beam(fork, l.c.clone().lerp(fork, 0.3), 0.05, 6), bark);
-  const dark = col('#2a6430');
-  const mid = col('#4c9a3e');
-  const top = col('#93d35c');
+  for (const l of lobes.slice(1))
+    k.add('matte', beam(fork, l.c.clone().lerp(fork, 0.2), 0.055, 6), bark);
+  const dark = col('#153e2b');
+  const mid = col('#2f7546');
+  const top = col('#76ac4f');
   const foliage: Paint = (p, n, c) => {
     c.copy(dark)
-      .lerp(mid, smooth(0.5, 0.95, p.y))
-      .lerp(top, smooth(0.9, 1.38, p.y) * 0.85);
+      .lerp(mid, smooth(0.45, 0.9, p.y))
+      .lerp(top, smooth(0.85, 1.3, p.y) * 0.65);
     c.multiplyScalar(
-      0.82 +
-        0.22 * (0.5 + 0.5 * n.y) +
-        0.12 * tone.noise3d(p.x * 9, p.y * 9, p.z * 9),
+      0.93 +
+        0.12 * (0.5 + 0.5 * n.y) +
+        0.05 * tone.noise3d(p.x * 8, p.y * 8, p.z * 8),
     );
   };
   lobes.forEach((l, j) =>
     k.add(
       'matte',
-      blob(j === 0 || j === lobes.length - 1 ? 5 : 4, 0.1, seed * 7 + j, 2.6),
+      blob(j === 0 ? 4 : 3, 0.055, seed * 7 + j, 2.6),
       foliage,
       m4(l.c.x, l.c.y, l.c.z, rand(), rand(), 0, [l.r, l.r * 0.9, l.r]),
     ),
   );
-  // Leafy tufts break up the outline.
-  for (let j = 0; j < 10; j++) {
+  // A few soft leaf tips give the edge an organic, scalloped finish.
+  for (let j = 0; j < 6; j++) {
     const l = lobes[1 + Math.floor(rand() * (lobes.length - 1))];
     const d = randomDir(rand);
     d.y = Math.abs(d.y) * 0.8 + 0.1;
@@ -1117,13 +1131,13 @@ function appleTree(seed: number) {
     const at = l.c.clone().addScaledVector(d, l.r * 0.86);
     k.add(
       'matte',
-      blob(2, 0.12, seed + 40 + j),
+      blob(1, 0.07, seed + 40 + j),
       foliage,
-      m4(at.x, at.y, at.z, 0, 0, 0, 0.085 + rand() * 0.05),
+      m4(at.x, at.y, at.z, 0, 0, 0, 0.1 + rand() * 0.035),
     );
   }
   // Apples on the outside of the crown, a couple fallen in the grass.
-  const apple = warp(ball(2), (v) => {
+  const apple = warp(ball(1), (v) => {
     const r = Math.hypot(v.x, v.z);
     v.y = v.y * 0.9 - 0.2 * Math.max(0, 1 - r * 2.4) * Math.sign(v.y);
   });
@@ -1133,13 +1147,13 @@ function appleTree(seed: number) {
     c.copy(red).lerp(shine, smooth(-0.2, 0.9, n.y) * 0.7);
   };
   let placed = 0;
-  for (let tries = 0; placed < 9 && tries < 300; tries++) {
+  for (let tries = 0; placed < 11 && tries < 300; tries++) {
     const l = lobes[Math.floor(rand() * lobes.length)];
     const d = randomDir(rand);
     if (d.y > 0.6) continue;
     const at = l.c.clone().addScaledVector(d, l.r * 0.98);
     if (lobes.some((o) => o !== l && o.c.distanceTo(at) < o.r * 0.97)) continue;
-    const m = aim(at, v3(d.x * 0.3, 1, d.z * 0.3), 0.068, rand() * 6);
+    const m = aim(at, v3(d.x * 0.3, 1, d.z * 0.3), 0.08, rand() * 6);
     k.add('gloss', apple, applePaint, m);
     k.add('matte', beam(v3(0, 0.6, 0), v3(0.1, 1.3, 0), 0.12), '#5a3a20', m);
     placed++;
@@ -1154,7 +1168,7 @@ function appleTree(seed: number) {
       m4(Math.cos(a) * r, 0.05, Math.sin(a) * r, 1.2, a, 0.4, 0.065),
     );
   }
-  return k.ground(0.3, 0.35);
+  return k.ground(0.3, 0.2);
 }
 
 /** A glasshouse: a ribbed glass dome on a stone plinth, a glazed porch with a
@@ -5273,15 +5287,15 @@ export const planetLooks: Record<string, Look> = {
   pinewood: {
     kind: 'food',
     seed: 11,
-    ground: ['#8fd16a', '#6cbb52', '#4f9e45', '#e3c66b', '#b9d86a'],
-    water: '#3c9ad6',
-    air: '#c4f5a8',
+    ground: ['#527d4e', '#3e704b', '#2c6048', '#58824d', '#799753'],
+    water: '#469fb4',
+    air: '#b8e7c0',
     accent: ['#e8463a'],
   },
   grove: {
     kind: 'food',
     seed: 53,
-    ground: ['#d9b04a', '#c99a3e', '#a7a04a', '#8a5a30', '#e7c86a'],
+    ground: ['#c7ac62', '#af934e', '#819858', '#a97843', '#e1c777'],
     water: '#3d8fb8',
     air: '#ffe2a8',
     accent: ['#f08a24'],
@@ -5290,14 +5304,14 @@ export const planetLooks: Record<string, Look> = {
   quarry: {
     kind: 'metal',
     seed: 23,
-    ground: ['#c4572e', '#e08a4a', '#9a3f26', '#f0b07a', '#b5653a', '#7a3a2a'],
+    ground: ['#c9825e', '#d9966b', '#bd7a59', '#dfa777', '#cd9067', '#ba7958'],
     air: '#ffb98a',
     accent: ['#c9d1da', '#aab4bf', '#e7ecf1'],
   },
   cliffs: {
     kind: 'metal',
     seed: 67,
-    ground: ['#5d6470', '#7c8592', '#9aa3ae', '#4a505a', '#6c7480'],
+    ground: ['#526d85', '#708ba0', '#92a9b5', '#3e576d', '#6b879b'],
     air: '#ffcf9e',
     accent: ['#d08a52', '#e0a86a', '#c9d1da'],
     variant: 'anvil',
@@ -5781,8 +5795,8 @@ const kitNames = new WeakMap<Kit, string>();
 // ——— The four kinds of planet ———
 
 /**
- * One planet as it stands in `year`: the first year shows its first humble
- * settlement, the second the full planet, the third grows it further with
+ * One planet as it stands in `year`: the first year has a complete natural
+ * landscape and a small settlement, the second develops it, the third adds
  * more of everything and one new landmark. Every year is the same place:
  * what stands in a year stands at the same spot the next (unless a bigger
  * building clears it away), so the planet visibly grows.
@@ -6009,7 +6023,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
    * clear. */
   const grow3 = (fn: () => void) => during(3, () => loosely(fn));
   /** How much of the ground is farmed (food planets), by year. */
-  const farmed = [0.18, 0.06, -0.04][year - 1];
+  const farmed = [0.13, 0.06, -0.04][year - 1];
   let belt: 'clouds' | 'moons' | 'rings' = 'clouds';
   let cloudCount = 3;
   let cloudTint = '#ffffff';
@@ -6036,7 +6050,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
     };
     const trees = pumpkins
       ? []
-      : scatter(rand, 6, 0.66, land, taken).map((d) => spot(d, 0.1));
+      : scatter(rand, 9, 0.56, land, taken).map((d) => spot(d, 0.19));
     const houses = pumpkins
       ? []
       : scatter(rand, 2, 0.75, land, taken).map((d) => spot(d, 0.25, 0.2, 2));
@@ -6151,7 +6165,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
     );
     groundTop = Math.max(groundTop, farthest(ground));
     body.add(new THREE.Mesh(ground, groundMat()));
-    body.add(waterSphere(look.water!));
+    body.add(waterSphere(look.water!, look.seed));
     // Lily pads on the ponds and reeds at their edges.
     const lily = new Kit();
     lily.add(
@@ -6223,8 +6237,8 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
           : ['#ff8fb0', '#ffffff', '#b59bff', '#ffd23a'],
       ),
     );
-    /** The first year's trees and pumpkins are young. */
-    const young = year === 1 ? 0.72 : 1;
+    /** Nature is established already; later years grow the harvest and town. */
+    const young = year === 1 ? 0.92 : 1;
     if (!pumpkins) {
       const treeKits = [appleTree(look.seed), appleTree(look.seed + 5)].map(
         (k) => named('apple tree', k),
@@ -6237,11 +6251,11 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
             standOn(
               d,
               1 + height(d) - 0.012,
-              (0.27 + rand() * 0.05) * young,
+              (0.34 + rand() * 0.045) * young,
               rand() * TAU,
             ),
           ),
-          (k) => (trees.indexOf(mine[k]) < 3 ? 1 : 2),
+          () => 1,
         );
       });
       during(2, () => {
@@ -6254,9 +6268,9 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
       });
       if (hub) during(1, () => stand(hut(look.seed), hub, 0.2, 0.004, 0.6), 1);
       const appleCrate = named('crate', crate(look.seed, '#d9362c'));
-      trees.forEach((t, i) => {
-        during(i < 3 ? 1 : 2, () =>
-          around(t, 1 + Math.floor(rand() * 2), 0.11, 0.16, (dd) =>
+      trees.forEach((t) => {
+        during(1, () =>
+          around(t, 1 + Math.floor(rand() * 2), 0.2, 0.26, (dd) =>
             stand(
               bushKits[Math.floor(rand() * 2)],
               dd,
@@ -6266,10 +6280,10 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
           ),
         );
         // Wild flowers grow from the start; crates come with the harvest.
-        around(t, 1, 0.1, 0.15, (dd) =>
+        around(t, 1, 0.2, 0.25, (dd) =>
           rand() < 0.5
             ? during(2, () => stand(appleCrate, dd, 0.05))
-            : during(i < 3 ? 1 : 2, () => stand(flowerKit, dd, 0.07)),
+            : during(1, () => stand(flowerKit, dd, 0.07)),
         );
       });
       during(2, () => {
@@ -6328,7 +6342,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
     } else {
       const big = named('pumpkin', pumpkin(2));
       const small = named('pumpkin', pumpkin(3));
-      const firstPumpkins = (i: number) => (i < 4 ? 1 : 2);
+      const firstPumpkins = (i: number) => (i < 6 ? 1 : 2);
       plant(
         big,
         patch
@@ -6362,7 +6376,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
         flowersAt.map((d) =>
           standOn(d, 1 + height(d) - 0.01, 0.3 + rand() * 0.04, rand() * TAU),
         ),
-        (k) => (k < 3 ? 1 : 2),
+        (k) => (k < 5 ? 1 : 2),
       );
       const bale = named('hay bale', hayBale());
       bales.forEach((d, i) => {
@@ -6519,48 +6533,59 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
     const ores3 = room3(3, 0.45, 0.07, () => true);
     height = levelled(pads.filter(shown), cut);
     const ledge = g.map((c) => c.clone());
-    const face = g.map((c) => c.clone().multiplyScalar(0.6));
-    const dust = col(anvil ? '#8a919c' : '#e8a070');
+    const face = g.map((c) => c.clone().multiplyScalar(0.86));
+    const dust = col(anvil ? '#8798a3' : '#dda67a');
+    const mineral = col(anvil ? '#cfac80' : '#ebd7bf');
     const yards = pads.filter(shown);
     const ground = terrain(
       80,
       (d, c) => {
         const r = raw(d);
         if (anvil) {
-          const v = 0.5 + 0.5 * noise.noise3d(d.x * 3, d.y * 3, d.z * 3);
+          const v = 0.5 + 0.5 * noise.noise3d(d.x * 1.8, d.y * 1.8, d.z * 1.8);
           c.copy(g[0])
-            .lerp(g[1], v)
-            .lerp(g[2], smooth(0.04, 0.09, r))
-            .lerp(g[3], smooth(0, -0.04, r));
+            .lerp(g[1], 0.25 + v * 0.5)
+            .lerp(g[2], smooth(0.04, 0.09, r) * 0.45)
+            .lerp(g[3], smooth(0, -0.04, r) * 0.65);
         } else {
           const t = r / step;
           const band = ((Math.floor(t) % g.length) + g.length) % g.length;
-          c.copy(ledge[band]).lerp(
-            face[band],
-            smooth(0.7, 0.9, t - Math.floor(t)),
-          );
+          const f = t - Math.floor(t);
+          // Strata stay warm and close in value; colour eases into the next
+          // ledge instead of drawing a dark contour round every height step.
+          c.copy(ledge[band])
+            .lerp(face[band], smooth(0.52, 0.8, f))
+            .lerp(ledge[(band + 1) % g.length], smooth(0.65, 1, f));
         }
         let yard = 0;
         for (const p of yards)
           yard = Math.max(yard, smooth(p.r * 1.3, p.r * 0.7, d.angleTo(p.d)));
-        c.lerp(dust, yard * 0.45);
+        c.lerp(dust, yard * 0.25);
+        // Pale mineral seams follow the rock, with warm copper in the blue
+        // basalt and cream quartz in the terracotta terraces.
+        const seam = smooth(
+          0.1,
+          0.025,
+          Math.abs(noise.noise3d(d.x * 3.4 + 4, d.y * 3.4, d.z * 3.4)),
+        );
+        c.lerp(mineral, seam * (anvil ? 0.14 : 0.08) * (1 - yard));
         c.multiplyScalar(
-          0.93 +
-            noise.noise3d(d.x * 12, d.y * 12, d.z * 12) * 0.07 +
-            noise.noise3d(d.x * 30, d.y * 30, d.z * 30) * 0.04,
+          0.98 +
+            noise.noise3d(d.x * 12, d.y * 12, d.z * 12) * 0.025 +
+            noise.noise3d(d.x * 30, d.y * 30, d.z * 30) * 0.01,
         );
         return (
           height(d) +
           0.003 * noise.noise3d(d.x * 26, d.y * 26, d.z * 26) * (1 - yard)
         );
       },
-      0.45,
+      0.2,
     );
     groundTop = Math.max(groundTop, farthest(ground));
     body.add(new THREE.Mesh(ground, groundMat()));
     // Big heaps of ore lying about: the metal you come for.
     ores.forEach((d, k) =>
-      during(k % 2 ? 2 : 1, () =>
+      during(k < 6 ? 1 : 2, () =>
         stand(
           named(
             'ore',
@@ -6578,17 +6603,17 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
     );
     const boulder = named(
       'boulder',
-      rock(look.seed, anvil ? '#7c8592' : '#b5653a'),
+      rock(look.seed, anvil ? '#71899b' : '#bf956f'),
     );
     loosely(() => {
       for (const d of scatter(rand, 8, 0.3, () => true, []))
-        if (clear(d, 0.04)) stand(boulder, d, 0.07 + rand() * 0.05, 0.008);
+        if (clear(d, 0.07)) stand(boulder, d, 0.12 + rand() * 0.05, 0.008);
     });
     const box = named('crate', crate(look.seed, look.accent[0], 'facet'));
     const lamp = named('lamp', lampPost(anvil ? '#9fe0ff' : '#ffd27a'));
     // The first year's rig: a smaller headframe that grows into the mine.
     const rig = anvil ? domes[0] : towers[0];
-    const rigScale = year === 1 ? (anvil ? 0.3 : 0.32) : 0.4;
+    const rigScale = year === 1 ? 0.36 : 0.4;
     if (!anvil) {
       towers.forEach((d, i) => {
         during(i ? 2 : 1, () =>
@@ -6702,7 +6727,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
     const floe = look.variant === 'floe';
     if (!floe) {
       const base = (d: THREE.Vector3) =>
-        fbm(noise, d.x * 1.0, d.y * 1.0, d.z * 1.0, 4) * 0.06 + 0.03;
+        fbm(noise, d.x * 1.0, d.y * 1.0, d.z * 1.0, 4) * 0.075 + 0.033;
       const land = (d: THREE.Vector3) => base(d) > 0.012;
       const spot = (d: V3, r: number, pad = 0, from?: Year) => {
         if (pad) pads.push({ d, r: pad, h: base(d), from });
@@ -6713,7 +6738,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
       const spikes = scatter(rand, 4, 0.8, land, taken).map((d) =>
         spot(d, 0.12),
       );
-      const pines = scatter(rand, 6, 0.5, land, taken).map((d) =>
+      const pines = scatter(rand, 8, 0.47, land, taken).map((d) =>
         spot(d, 0.08),
       );
       const huts = scatter(rand, 3, 0.6, land, taken).map((d, k) =>
@@ -6753,7 +6778,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
       );
       groundTop = Math.max(groundTop, farthest(ground));
       body.add(new THREE.Mesh(ground, groundMat({ roughness: 0.75 })));
-      body.add(waterSphere(look.water!));
+      body.add(waterSphere(look.water!, look.seed));
       const spikeMat = new THREE.MeshPhysicalMaterial({
         vertexColors: true,
         roughness: 0.08,
@@ -6767,7 +6792,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
       spikeMat.onBeforeCompile = glowPatch;
       mats = materials({ icy: spikeMat });
       spikes.forEach((d, k) => {
-        during(k < 2 ? 1 : 2, () =>
+        during(k < 3 ? 1 : 2, () =>
           stand(
             named(
               'ice spike',
@@ -6789,12 +6814,12 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
         pines.map((d) =>
           standOn(d, 1 + height(d) - 0.012, 0.25 + rand() * 0.05, rand() * TAU),
         ),
-        (k) => (k < 3 ? 1 : 2),
+        () => 1,
       );
       const smallPine = named('pine', snowPine(look.seed + 1));
       const extra: THREE.Matrix4[] = [];
       for (const p of pines)
-        around(p, 1, 0.09, 0.13, (dd) =>
+        around(p, 1, 0.22, 0.28, (dd) =>
           extra.push(
             standOn(
               dd,
@@ -6804,7 +6829,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
             ),
           ),
         );
-      loosely(() => plant(smallPine, extra, () => 2));
+      loosely(() => plant(smallPine, extra, (k) => (k < 4 ? 1 : 2)));
       const print = named(
         'prints',
         new Kit().add(
@@ -6930,7 +6955,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
       );
       groundTop = Math.max(groundTop, farthest(ground));
       body.add(new THREE.Mesh(ground, groundMat()));
-      const sea = waterSphere(look.water!);
+      const sea = waterSphere(look.water!, look.seed);
       (sea.material as THREE.MeshPhysicalMaterial).opacity = 0.8;
       body.add(sea);
       const floeMat = vmat({ roughness: 0.45 });
@@ -6974,7 +6999,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
         );
       };
       scatter(rand, 8, 0.55, (d) => base(d) < -0.01, taken).forEach((d, k) =>
-        addFloe(d, k, rand, k % 2 ? 2 : 1),
+        addFloe(d, k, rand, k < 6 ? 1 : 2),
       );
       const bergs = scatter(rand, 4, 0.6, (d) => base(d) < -0.01, taken);
       [iceberg(look.seed), iceberg(look.seed + 1)].forEach((kit, v) => {
@@ -6982,7 +7007,7 @@ export function buildPlanet(id: string, year: Year = 2): Planet {
         plant(
           named('iceberg', kit),
           mine.map((d) => standOn(d, 1.0, 0.2 + rand() * 0.06, rand() * 6)),
-          (k) => (bergs.indexOf(mine[k]) < 2 ? 1 : 2),
+          (k) => (bergs.indexOf(mine[k]) < 3 ? 1 : 2),
           ['ice'],
           look.accent,
         );

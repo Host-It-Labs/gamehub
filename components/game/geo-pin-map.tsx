@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { startRatio } from './render-quality';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
@@ -114,7 +115,7 @@ export function GeoPinMap({
       'Satellite globe. Drag to rotate; pinch or scroll to zoom. Arrow keys rotate, plus and minus zoom, Enter places a pin at the crosshair. Home resets the globe.',
     );
     container.appendChild(canvas);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+    renderer.setPixelRatio(startRatio(window.innerWidth, window.innerHeight));
     const controls = new OrbitControls(camera, canvas);
     controls.enablePan = false;
     controls.enableDamping = false;
@@ -552,7 +553,7 @@ export function GeoPinMap({
       if (!width || !height) return;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+      renderer.setPixelRatio(startRatio(width, height));
       renderer.setSize(width, height, false);
       for (const l of arcs.children)
         (l as Line2).material.resolution.set(width, height);

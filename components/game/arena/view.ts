@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { troopCards, troopDeck } from '@/lib/games/arena/cards';
+import {
+  troopCards,
+  troopDeck,
+  type ProjectileKind,
+} from '@/lib/games/arena/cards';
 import { plainShot, plainUnit } from '@/lib/games/arena/engine';
 import type {
   ArenaEvent,
@@ -16,6 +20,7 @@ import {
   toField,
   toWorld,
   towerScale,
+  towerGuardScale,
   troopScale,
   type Frame,
 } from '@/lib/games/arena/layout';
@@ -30,7 +35,7 @@ import {
   SpellViews,
   ThreatMarkers,
 } from './effects';
-import type { Team } from './materials';
+import { teamColours, type Team } from './materials';
 import type { Rung } from './pacer';
 import { addDrape } from './wind';
 import {
@@ -40,9 +45,14 @@ import {
   TroopRenderer,
   TroopView,
   XRAY_LAYER,
+  SKIN_XRAY_LAYERS,
   type RingStyle,
 } from './troops';
 import { ArenaWorld, type Quality, type WorldAssets } from './world';
+
+/** Shots that leave a gun's barrel (ray guns, the rifle, the frost gun,
+ *  the Gunner's cannon). */
+const GUN_SHOTS = new Set<ProjectileKind>(['laser', 'bolt', 'frost', 'shell']);
 
 export type Bar = {
   id: number;
@@ -115,6 +125,10 @@ export class ArenaView {
     troops: this.silhouette(0xffffff),
     ghost: this.silhouette(0x8fb6ff),
   };
+  private skinXray = [
+    this.silhouette(new THREE.Color(teamColours[0].light).getHex()),
+    this.silhouette(new THREE.Color(teamColours[1].light).getHex()),
+  ];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -128,6 +142,7 @@ export class ArenaView {
     // The x-ray pass moves troops' cloth as their own shader does.
     addDrape(this.xray.mark, this.world.wind);
     addDrape(this.xray.troops, this.world.wind);
+    for (const material of this.skinXray) addDrape(material, this.world.wind);
     this.troopRenderer = new TroopRenderer(this.world);
     this.particles = new Particles(this.world);
     this.abilities = new AbilityEffects(this.world, this.particles);
@@ -178,11 +193,21 @@ export class ArenaView {
     renderer.autoClear = false;
     renderer.shadowMap.autoUpdate = false;
     camera.layers.set(XRAY_LAYER);
+    for (const layer of SKIN_XRAY_LAYERS) camera.layers.enable(layer);
     this.troopRenderer.xray(true);
     scene.overrideMaterial = this.xray.mark;
     renderer.render(scene, camera);
+    camera.layers.set(XRAY_LAYER);
     scene.overrideMaterial = this.xray.troops;
     renderer.render(scene, camera);
+    // Skinning works with the same overrides, but a direct mesh has no
+    // batch-instance colour. Each present team's layer gets its own tint.
+    for (const team of [0, 1] as Team[])
+      if (this.troopRenderer.hasSkinTeam(team)) {
+        camera.layers.set(SKIN_XRAY_LAYERS[team]);
+        scene.overrideMaterial = this.skinXray[team];
+        renderer.render(scene, camera);
+      }
     this.troopRenderer.xray(false);
     if (this.ghost.group.visible) {
       camera.layers.set(GHOST_LAYER);
@@ -371,9 +396,9 @@ export class ArenaView {
     const cam = this.side === 1 ? mirrorCamera(fit) : fit;
     // Figures, their rings, shots and bars grow on portrait phones.
     const figures = troopScale(lens, frame.width <= 600);
-    // Towers stand taller than the troops, larger still on portrait
-    // screens; a new size rebuilds them.
+    // The smaller tower shells still follow the portrait/landscape lens.
     const towers = towerScale(lens);
+    this.world.guardScale = towerGuardScale(lens);
     if (towers !== this.world.towerScale) {
       this.world.towerScale = towers;
       if (this.match) this.placeTowers(this.match);
@@ -382,6 +407,10 @@ export class ArenaView {
     this.ghost.setScale(figures);
     this.projectiles.setScale(figures / TROOP_SCALE);
     this.abilities.size = figures;
+    this.abilities.hud(
+      frame.height,
+      ((frame.width <= 600 ? 4 : 5) * figures) / TROOP_SCALE,
+    );
     this.scale = cam.scale;
     this.base.position.set(...cam.position);
     this.base.target.set(...cam.target);
@@ -446,6 +475,8 @@ export class ArenaView {
     if (t) return (t.kind === 'king' ? 2.8 : 2.4) * this.world.towerScale;
     const u = m.units.find((x) => x.id === id);
     if (!u) return 0.6;
+    const view = this.troops.get(id);
+    if (view) return view.chest(this.tmp).y;
     const s = troopCards[u.card].unit;
     return s.flying
       ? FLY_HEIGHT + 0.3
@@ -453,6 +484,54 @@ export class ArenaView {
   }
 
   private spot = new THREE.Vector3();
+
+  /** Zaps fired but not drawn yet: the engine fires at the end of the
+   *  Inventor's wind-up, with her wand still drawn back by her shoulder,
+   *  so the bolt waits for the thrust (moves/inventor.ts). */
+  private zaps: {
+    id: number;
+    target: number;
+    tx: number;
+    ty: number;
+    wait: number;
+  }[] = [];
+
+  /** The Inventor's zap: lightning leaps from her wand's tip to the target
+   *  as she thrusts it, with a flash at the wand (the shot itself is too
+   *  quick to see). Chain jumps draw their own bolts on impact. */
+  private lightning(m: Match, id: number) {
+    const shot = m.projectiles.findLast((p) => p.sourceId === id);
+    if (!shot) return;
+    this.zaps.push({
+      id,
+      target: shot.targetId,
+      tx: shot.tx,
+      ty: shot.ty,
+      wait: 0.06,
+    });
+  }
+
+  private drawZaps(m: Match, dt: number) {
+    this.zaps = this.zaps.filter((zap) => {
+      zap.wait -= dt;
+      if (zap.wait > 0) return true;
+      const shooter = this.troops.get(zap.id);
+      if (!shooter) return false;
+      const from =
+        shooter.muzzle(this.spot) ??
+        shooter.tip(this.spot) ??
+        shooter.chest(this.spot);
+      const target = this.troops.get(zap.target);
+      const [tx, , tz] = toWorld(zap.tx, zap.ty);
+      const to = target
+        ? target.chest(this.tmp)
+        : this.tmp.set(tx, this.heightOf(m, zap.target), tz);
+      this.particles.bolt(from.x, from.y, from.z, to.x, to.y, to.z);
+      this.particles.zap(from.x, from.y, from.z, [0.6, 0.85, 1]);
+      return false;
+    });
+  }
+
 
   /** The 1 October troops' abilities: the Drummer's beat, the Sumo's
    *  stomp, the water jet, armour sparks, tackles, knock-backs and the
@@ -607,6 +686,7 @@ export class ArenaView {
         }
       } else if (e.type === 'shot') {
         this.crews.get(e.id)?.shot();
+        if (e.kind === 'zap') this.lightning(m, e.id);
       } else if (e.type === 'king-wakes') {
         const king = m.towers.find(
           (t) => t.side === e.side && t.kind === 'king',
@@ -644,7 +724,7 @@ export class ArenaView {
         this.troops.set(u.id, view);
       }
       const wasLanded = view.landed;
-      view.update(u, alpha, dt, time);
+      view.update(u, alpha, dt, time, m.towers, this.world.towerScale);
       view.frost(u.slow > 0);
       // A Miner tunnelling throws up dirt where he will come out.
       if (
@@ -690,11 +770,18 @@ export class ArenaView {
       crew.update(t, tv ? tv.chest(this.tmp) : null, dt, time);
     }
     this.troopRenderer.flush();
+    this.drawZaps(m, dt);
     this.projectiles.sync(
       m,
       alpha,
       (id) => this.heightOf(m, id),
-      (id) => this.crews.get(id)?.bow() ?? null,
+      (id, kind) =>
+        this.crews.get(id)?.bow() ??
+        this.troops.get(id)?.muzzle(this.spot) ??
+        // Guns fire from the barrel's end (the figures carry no muzzle).
+        (GUN_SHOTS.has(kind) ? this.troops.get(id)?.tip(this.spot) : null) ??
+        this.troops.get(id)?.chest(this.spot) ??
+        null,
     );
     this.spells.sync(m, alpha, time);
     this.scorches.update(dt);
@@ -826,13 +913,6 @@ export class ArenaView {
 
   /** Health bars for the HTML layer, in canvas pixels. */
   bars(m: Match): Bar[] {
-    // A shield's full strength scales with the troop's hit points.
-    const full = (u: Match['units'][number]) =>
-      Math.max(
-        1,
-        (troopCards[u.card].unit.shield ?? 0) *
-          (u.maxHp / troopCards[u.card].unit.hp),
-      );
     const out: Bar[] = [];
     for (const t of m.towers) {
       if (t.destroyed) continue;
@@ -854,11 +934,10 @@ export class ArenaView {
     for (const u of m.units) {
       const view = this.troops.get(u.id);
       if (!view) continue;
-      const s = troopCards[u.card].unit;
-      const top = this.tmp.copy(view.position);
-      top.y += view.flying
-        ? FLY_HEIGHT + 1.3
-        : (s.radius * 2.2 + 0.3) * this.troopRenderer.scale;
+      // Use the sculpt's measured head, so short and tall bodies keep
+      // their two bars close instead of floating at a guessed radius.
+      const top = this.tmp.copy(view.statusAnchor);
+      top.y += this.troopRenderer.scale * 0.13;
       const p = this.project(top);
       out.push({
         id: u.id,
@@ -868,10 +947,8 @@ export class ArenaView {
         max: u.maxHp,
         x: p.x,
         y: p.y,
-        visible:
-          (u.hp < u.maxHp || (!!s.shield && u.shield < full(u))) &&
-          u.state !== 'deploying',
-        shield: s.shield ? u.shield / full(u) : 0,
+        visible: (u.hp < u.maxHp || u.maxShield > 0) && u.state !== 'deploying',
+        shield: u.maxShield > 0 ? u.shield / u.maxShield : undefined,
       });
     }
     return out;
@@ -907,6 +984,7 @@ export class ArenaView {
     this.ghost.dispose();
     this.threats.dispose();
     for (const m of Object.values(this.xray)) m.dispose();
+    for (const m of this.skinXray) m.dispose();
     this.world.dispose();
   }
 }

@@ -1,14 +1,16 @@
 import type { RelicGame } from '../lib/games/relic/engine.ts';
 import {
   BOOKS,
-  BOOK_LEVEL_STEP,
-  EARLY,
   UPGRADES,
+  bookExperience,
+  bookXpAt,
   scratchFor,
+  type PackId,
 } from '../lib/games/relic/scratch.ts';
 import {
   BLUEPRINTS,
   advanceFactory,
+  type Dir,
   type MachineKind,
 } from '../lib/games/relic/factory.ts';
 
@@ -20,20 +22,23 @@ export function seedLuckyWorkshop(game: RelicGame) {
   s.unlocked = BOOKS.map((b) => b.id);
   for (const u of UPGRADES)
     s.upgrades[u.id] = Math.min(u.max, Math.max(1, u.max - 1));
-  // A big, busy workshop with queues and room to improve: too many fast
-  // printers, slower bots, long routes, mixed books and imperfect boosters.
+  // A busy showcase with queues and room to improve: fast printers, slower
+  // bots, every book and complete routes for each working machine.
   s.upgrades.floor = 4;
   s.upgrades.printers = 7;
   s.upgrades.bots = 4;
-  const step = Math.ceil(BOOK_LEVEL_STEP * EARLY[s.upgrades.early]);
   s.completed = 0;
+  // Book levels 10–16 with ∞ open, part way to the next level; Crown Jewels
+  // stays at level 3, most of the way to ∞, so its lock can be seen.
   BOOKS.forEach((b, i) => {
-    const ranks = 9 + i;
-    const hard =
-      (step * ranks * (ranks + 1)) / 2 + Math.floor((step * (ranks + 1)) / 2);
-    (s.top ??= {})[b.id] = hard;
-    s.books[b.id] = 25 + hard;
-    s.completed += 25 + hard;
+    const last = i === BOOKS.length - 1,
+      lvl = last ? 3 : 10 + i;
+    s.xp[b.id] = bookXpAt(s, lvl);
+    s.xp[b.id]! += Math.floor(
+      bookExperience(s, b.id).needed * (last ? 0.6 : 0.5),
+    );
+    s.books[b.id] = 25 + 30 * (lvl - 3);
+    s.completed += s.books[b.id]!;
   });
   game.coins = 500_000_000_000_000_000;
   s.earned = game.coins;
@@ -44,39 +49,96 @@ export function seedLuckyWorkshop(game: RelicGame) {
     kind: MachineKind,
     x: number,
     y: number,
-    book = BOOKS[0].id as (typeof BOOKS)[number]['id'],
+    dir: Dir = 0,
+    book: PackId = BOOKS[0].id,
   ) =>
     f.machines.push({
       kind,
       x,
       y,
-      dir: 0,
+      dir,
       book: kind === 'printer' ? book : undefined,
       t: 0,
       item: null,
       output: null,
     });
-  BOOKS.forEach((b, i) => {
-    const x = (i % 2) * 8,
-      y = Math.floor(i / 2) * 2;
-    const line: MachineKind[] = [
+  const line = (x: number, y: number, kinds: MachineKind[], book: PackId) =>
+    kinds.forEach((kind, offset) => add(kind, x + offset, y, 0, book));
+
+  // Two straight routes across the top: marks stack before a sale, and a
+  // bundle is a new ticket that can receive both marks of its own.
+  line(
+    0,
+    1,
+    ['printer', 'belt', 'stamper', 'bot', 'gilder', 'belt', 'cashier'],
+    'seven',
+  );
+  line(
+    8,
+    1,
+    [
       'printer',
       'belt',
-      'stamper',
       'bot',
-      i % 3 === 0 ? 'bundler' : 'belt',
+      'bundler',
+      'stamper',
       'gilder',
+      'belt',
       'cashier',
-    ];
-    line.forEach((kind, offset) => add(kind, x + offset, y, b.id));
-    add(i % 3 === 0 ? 'lamp' : i % 3 === 1 ? 'ink' : 'charm', x + 1, y + 1);
-  });
+    ],
+    'twins',
+  );
+
+  // The splitter faces right. Its front, left and right outlets feed bots
+  // facing right, up and down, each with a separate cashier at its outlet.
+  line(1, 5, ['printer', 'belt', 'splitter', 'bot', 'cashier'], 'path');
+  add('bot', 3, 4, 3);
+  add('cashier', 3, 3);
+  add('bot', 3, 6, 1);
+  add('cashier', 3, 7);
+
+  // The later books have short, independent routes on the right half.
+  for (const [book, x, y] of [
+    ['ladder', 8, 3],
+    ['mine', 12, 3],
+    ['sunmoon', 8, 5],
+    ['chart', 12, 5],
+    ['crown', 8, 7],
+  ] as const)
+    line(x, y, ['printer', 'bot', 'belt', 'cashier'], book);
+
+  // Lamps and charms sit beside and between routes. The lamp at (2,4),
+  // for example, reaches the Garden printer and its upper bot diagonally.
+  for (const [x, y] of [
+    [0, 0],
+    [3, 0],
+    [8, 0],
+    [10, 0],
+    [2, 4],
+    [4, 6],
+    [9, 2],
+    [13, 2],
+    [9, 4],
+    [13, 4],
+    [9, 6],
+    [12, 6],
+  ])
+    add('lamp', x, y);
+  for (const [x, y] of [
+    [1, 0],
+    [9, 0],
+    [0, 4],
+    [8, 2],
+    [12, 2],
+    [8, 4],
+    [12, 4],
+    [8, 6],
+  ])
+    add('charm', x, y);
+
   // A visibly unfinished side line; it prints and queues but cannot sell.
-  add('printer', 0, 8, 'twins');
-  add('belt', 1, 8);
-  add('splitter', 2, 8);
-  add('belt', 3, 8);
+  line(0, 8, ['printer', 'belt', 'belt', 'belt'], 'twins');
   f.machines.sort((a, b) => a.y - b.y || a.x - b.x);
   // Fill real buffers by simulation so the saved floor is active on arrival.
-  advanceFactory(game, 60_000);
+  advanceFactory(game, 120_000);
 }

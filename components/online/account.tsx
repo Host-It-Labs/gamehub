@@ -2,6 +2,8 @@
 import { useEffect, useState, type SyntheticEvent } from 'react';
 import { api, rememberName } from '@/lib/online/client';
 import type { User } from '@/lib/online/types';
+import { triviaSetupLink } from '@/lib/online/trivia-setup';
+import { useTriviaSetupMode } from './use-trivia-setup';
 import { ArrowLeft, LogOut, Plus, Users } from 'lucide-react';
 import { gameByLibraryId } from '@/lib/games/library-fixtures';
 import { GameBox } from '../game/game-box';
@@ -13,6 +15,7 @@ export function Account() {
   const [signup, setSignup] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const triviaMode = useTriviaSetupMode();
   async function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -25,7 +28,7 @@ export function Account() {
         Object.fromEntries(data),
       );
       if (signup) rememberName(data.get('name') as string);
-      window.location.assign('/tables');
+      window.location.assign(triviaSetupLink('/tables', triviaMode));
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -35,7 +38,7 @@ export function Account() {
     <div className="app">
       <div className="night-library friends-page">
         <header className="lib-bar">
-          <a className="room-back" href="/tables" aria-label="Back">
+          <a className="room-back" href={triviaSetupLink('/tables', triviaMode)} aria-label="Back">
             <ArrowLeft aria-hidden="true" />
           </a>
           <h1 className="room-title">{signup ? 'Sign up' : 'Log in'}</h1>
@@ -108,6 +111,7 @@ export function MyTables() {
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
+  const triviaMode = useTriviaSetupMode();
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -138,7 +142,7 @@ export function MyTables() {
     setBusy(true);
     try {
       const t = await api<{ token: string }>('/api/tables', {});
-      window.location.assign(`/table/${t.token}`);
+      window.location.assign(triviaSetupLink(`/table/${t.token}`, triviaMode));
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -208,7 +212,7 @@ export function MyTables() {
                   <li key={t.token}>
                     <a
                       className="friends-table"
-                      href={`/table/${t.token}`}
+                      href={triviaSetupLink(`/table/${t.token}`, t.status === 'lobby' ? triviaMode : null)}
                       aria-label={`Table with ${t.count} ${t.count === 1 ? 'player' : 'players'}${box ? `, playing ${box.name}` : ''}`}
                     >
                       {box ? (
@@ -237,7 +241,7 @@ export function MyTables() {
             <section className="friends-signin">
               <Users aria-hidden="true" />
               <p>Host with an account. Friends only need the link.</p>
-              <a className="lib-friends" href="/auth">
+              <a className="lib-friends" href={triviaSetupLink('/auth', triviaMode)}>
                 Log in
               </a>
             </section>

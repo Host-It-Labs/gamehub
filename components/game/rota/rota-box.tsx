@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Bot,
   Check,
@@ -127,6 +127,16 @@ export function RotaSetupBox({
 }) {
   const [choice, setChoice] = useState<Stored>(remembered);
   const [busy, setBusy] = useState(false);
+  // Fetch the town's models while the box is open: the board then opens
+  // with them already in hand.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void import('./three/assets')
+        .then((a) => a.library(a.pickTier()))
+        .catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, []);
   const [saved] = useState(() => (table ? null : readRotaSave()));
   const people = table?.players.length ?? 1;
   const seats = Math.max(people, choice.seats);

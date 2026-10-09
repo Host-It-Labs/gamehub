@@ -1,5 +1,11 @@
 import { allCards } from './cards.ts';
-import { deploy, step, type Match } from './engine.ts';
+import {
+  ARENA_MATCH_VERSION,
+  deploy,
+  step,
+  upgradeMatch,
+  type Match,
+} from './engine.ts';
 
 /**
  * Online Arena runs in lockstep. The server owns the clock and the one true
@@ -41,6 +47,9 @@ export function replay(
   plays: Map<number, Play[]>,
   onTick?: (m: Match) => void,
 ) {
+  // A restored match may already be at this tick (or finished), so migration
+  // cannot rely solely on stepping the clock forward.
+  if (m.version !== ARENA_MATCH_VERSION) upgradeMatch(m);
   while (m.tick < tick && m.phase !== 'over') {
     step(m);
     const due = plays.get(m.tick);
@@ -63,10 +72,11 @@ function mix(h: number, v: number) {
 /**
  * A fingerprint of everything that decides the battle. Facing is left out:
  * it is only a drawing hint and uses trigonometry that browsers round
- * differently.
+ * differently. The Dino's arithmetic body direction is authoritative.
  */
 export function checksum(m: Match) {
   let h = 2166136261;
+  h = mix(h, m.version);
   h = mix(h, m.tick);
   h = mix(h, m.nextId);
   h = mix(h, m.crowns[0] * 4 + m.crowns[1]);
@@ -85,7 +95,20 @@ export function checksum(m: Match) {
     h = mix(h, u.attackTimer);
     h = mix(h, u.targetId ?? -1);
     h = mix(h, u.shield);
+    h = mix(h, u.maxShield);
+    h = mix(h, u.shieldDelay);
     h = mix(h, u.stun);
+    if (u.card === 'ogre') {
+      const direction = u.bodyDirection ?? [0, u.side === 0 ? 1 : -1];
+      h = mix(h, direction[0]);
+      h = mix(h, direction[1]);
+    }
+    h = mix(h, u.detour ? 1 : 0);
+    if (u.detour) {
+      h = mix(h, u.detour.x);
+      h = mix(h, u.detour.y);
+      h = mix(h, u.detour.target ?? -1);
+    }
   }
   for (const t of m.towers) {
     h = mix(h, t.hp);
@@ -95,6 +118,10 @@ export function checksum(m: Match) {
   for (const p of m.projectiles) {
     h = mix(h, p.x);
     h = mix(h, p.y);
+    // Launch height and shot kind decide whether a facade is solid.
+    h = mix(h, p.sz);
+    h = mix(h, p.kind.length);
+    for (let i = 0; i < p.kind.length; i++) h = mix(h, p.kind.charCodeAt(i));
   }
   // Falling spells: where and when each one lands.
   h = mix(h, m.spells.length);

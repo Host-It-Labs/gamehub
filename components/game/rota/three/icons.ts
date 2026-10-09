@@ -3,6 +3,7 @@ import {
   PIECE_IDS,
   RAIL,
   RIVER,
+  ROAD,
   orient,
   pieces,
   DX,
@@ -94,16 +95,25 @@ export async function renderIcons(lib: Library) {
     ))
       group.add(m);
     if (pieces[p].station) {
+      // The station on its bank, platforms along its tracks, steps down to
+      // its streets: as on the board.
       const grand = p === 'station-cross';
-      const src = lib.models.get(grand ? 'goods_grand' : 'goods_shed');
-      if (src) {
+      const t = orient(p, 0);
+      const r = t.edges.findIndex((e) => e === RAIL);
+      const add = (name: string, d: number) => {
+        const src = lib.models.get(name);
+        if (!src) return;
         const o = src.clone(true);
         mats.dress(o);
-        const t = orient(p, 0);
-        const r = t.edges.findIndex((e) => e === RAIL);
-        o.rotation.y = Math.atan2(DX[r], DY[r]);
+        o.rotation.y = Math.atan2(DX[d], DY[d]);
         group.add(o);
-      }
+      };
+      add(grand ? 'station_grand' : 'station_hall', r);
+      const suffix = grand ? '_grand' : '';
+      t.edges.forEach((e, d) => {
+        if (e === RAIL) add(`station_platforms${suffix}`, d);
+        else if (e === ROAD) add(`station_steps${suffix}`, d);
+      });
     }
     // Rivers sink into the tile: water under them.
     if (pieces[p].group === 'river') {

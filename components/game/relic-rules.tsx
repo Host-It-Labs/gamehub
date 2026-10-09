@@ -1,9 +1,11 @@
 import { formatNumber } from '@/lib/games/relic/engine';
-import { BLUEPRINTS } from '@/lib/games/relic/factory';
+import { BLUEPRINTS, MACHINES, ORDER } from '@/lib/games/relic/factory';
 import {
   JACKPOTS,
-  LEVEL_AT,
-  BOOK_LEVEL_STEP,
+  DIFFICULTY_AT,
+  INFINITY_AT,
+  XP_SCALE,
+  XP_WEIGHTS,
   BOOK_LEVEL_GAIN,
   PACKS,
   levelMult,
@@ -11,6 +13,7 @@ import {
   type PackId,
 } from '@/lib/games/relic/scratch';
 import { TICKET_ART } from './relic-scratch-art';
+import { MachineIcon } from './relic-factory/machine-icon';
 import { RuleList, RuleSection, Rules } from './rules';
 
 /** Each book's puzzle in one short line; names and art come from the books. */
@@ -34,11 +37,12 @@ export function LuckyRules() {
     <Rules>
       <RuleSection
         title="Scratch tickets"
-        note="Keyboard: move with the arrows while holding Space."
+        note="Keyboard: Enter buys; move with the arrows while holding Space."
       >
         <p>
-          Win <b>coins</b> by scratching tickets. Buy one from a book on the
-          shelf and <b>rub the foil</b>. A wrong seal costs a <b>heart</b>.
+          Win <b>coins</b> by scratching tickets. <b>Pick a book</b> on the
+          shelf and its difficulty, then <b>Buy</b> beside the ticket and{' '}
+          <b>rub the foil</b>. A wrong seal costs a <b>heart</b>.
         </p>
         <p>
           A ticket <b>pays</b> the moment it is over, and <b>Again</b> buys the
@@ -66,21 +70,29 @@ export function LuckyRules() {
         />
       </RuleSection>
       <RuleSection
-        title="Levels and difficulty"
-        note="Early print lowers these counts."
+        title="Difficulty"
+        note="The factory prints up to III, never IV."
       >
         <p>
-          Difficulty <b>II</b> opens after <b>{LEVEL_AT[1]}</b> tickets of a
-          book and <b>III</b> after <b>{LEVEL_AT[2]}</b>, paying{' '}
-          <b>×{levelMult(0, 1)}</b> and <b>×{levelMult(0, 2)}</b>. Easier ones
+          Each book has four difficulties: <b>I</b>, <b>II</b>, <b>III</b> and{' '}
+          <b>IV</b>, its hardest ticket. II opens at book level{' '}
+          <b>{DIFFICULTY_AT[1]}</b>, III at level <b>{DIFFICULTY_AT[2]}</b> and
+          IV at level <b>{INFINITY_AT}</b>. They pay <b>×{levelMult(0, 1)}</b>,{' '}
+          <b>×{levelMult(0, 2)}</b> and <b>×{levelMult(0, 3)}</b>. Easier ones
           stay open.
         </p>
+      </RuleSection>
+      <RuleSection title="Book levels" note="Early print shortens every level.">
         <p>
-          Your book level <b>never stops</b>. After III opens, finish
-          <b> {BOOK_LEVEL_STEP}</b> difficulty III tickets for level 4, then
-          <b> {BOOK_LEVEL_STEP * 2}</b> for level 5, and so on. Each level adds
-          <b> {BOOK_LEVEL_GAIN * 100}%</b> of the level 3 value to prizes,
-          prices and factory sales. The shelf bar shows your next level.
+          Each ticket earns <b>XP</b> for its book, for how <b>well</b> you
+          played it. A ticket that wins about the average earns{' '}
+          <b>{XP_WEIGHTS.map((w) => w * XP_SCALE).join(', ')}</b> XP on I, II,
+          III and IV; a jackpot earns more, a poor ticket nothing.
+        </p>
+        <p>
+          Levels <b>never stop</b>, and only harder tickets keep them moving
+          quickly. Each level past 3 adds <b>{BOOK_LEVEL_GAIN * 100}%</b> of the
+          level 3 value to prizes, prices and factory sales.
         </p>
       </RuleSection>
       <RuleSection title="Buy upgrades">
@@ -89,31 +101,55 @@ export function LuckyRules() {
           on the shelf adds its own.
         </p>
       </RuleSection>
-      <RuleSection
-        title="Build a factory"
-        note="Keys: V select, E remove, R rotate, 1–0 machines, Delete removes, Esc lets go. Shift-click or drag over empty floor to select several."
-      >
+      <RuleSection title="Build a factory">
         <p>
           The <b>factory</b> costs {formatNumber(BLUEPRINTS[0].price)} and runs
-          while someone has Lucky open. <b>Printers</b> print free tickets at a
-          book&rsquo;s highest difficulty, <b>bots</b> scratch them,{' '}
-          <b>cashiers</b> sell them and <b>belts</b> link them. One printer
-          keeps <b>three bots</b> busy.
+          while someone has Lucky open. <b>Printers</b> print tickets,{' '}
+          <b>bots</b> scratch them and <b>cashiers</b> sell them; <b>belts</b>{' '}
+          carry them between. One printer keeps <b>three bots</b> busy.
         </p>
         <p>
-          Each machine&rsquo;s lamp shows how it is doing: <b>green</b> working,{' '}
-          <b>amber</b> waiting for room, <b>red</b> stuck, dark with nothing to
-          do. Pick a machine to see where tickets go in (green arrows) and come
-          out (orange).
+          Tickets go into a machine at its <b>back</b> or sides and come out of
+          its <b>orange chute</b>. Its lamp shows how it is doing: <b>green</b>{' '}
+          working, <b>amber</b> waiting for room, <b>red</b> stuck, dark with
+          nothing to do.
+        </p>
+      </RuleSection>
+      <RuleSection title="The machines">
+        <RuleList
+          className="relic-machine-list"
+          items={ORDER.map((kind) => ({
+            key: kind,
+            mark: <MachineIcon kind={kind} />,
+            name: MACHINES[kind].name,
+            text: MACHINES[kind].does,
+          }))}
+        />
+      </RuleSection>
+      <RuleSection
+        title="Build and edit"
+        note="Keys: V select, E erase, R rotate, Q picks the machine under the pointer, 1–0 machines, ⌘C copy, ⌘V paste, ⌘D duplicate, ⌘Z undo, Delete removes, arrows move the selection, Esc lets go."
+      >
+        <p>
+          Pick a machine and <b>tap</b> the floor to place it. It faces the flow
+          on its own; <b>Rotate</b> turns it. <b>Drag</b> to draw belts, or drag
+          the orange handle of a selected machine to pull a belt out of it.
+        </p>
+        <p>
+          <b>Drag</b> a machine to move it, or drag across empty floor to select
+          several. Selected machines <b>rotate</b>, <b>copy</b> and{' '}
+          <b>delete</b> together; deleting gives their price back. <b>Undo</b>{' '}
+          takes back any change for free.
         </p>
       </RuleSection>
       <RuleSection
-        title="Inspect the floor"
-        note="Keys: + and − zoom, F fits the floor, P pans."
+        title="Move the view"
+        note="Keys: + and − zoom, F fits the floor, arrows pan when nothing is selected."
       >
         <p>
-          Use the <b>wheel</b> or <b>pinch</b> to zoom. Pick <b>Pan</b> to drag
-          the view, or <b>Fit</b> to see the whole factory again.
+          Use the <b>wheel</b> or <b>pinch</b> to zoom, and <b>two fingers</b>{' '}
+          or the <b>right mouse button</b> to move the view. <b>Fit</b> shows
+          the whole factory again.
         </p>
       </RuleSection>
       <RuleSection title="Play together">

@@ -644,22 +644,30 @@ export function actRelic(
       result = actScratch(g, action, actorId, now);
       break;
     case 'factory-blueprint':
-    case 'factory-build':
-    case 'factory-remove':
-    case 'factory-rotate':
-    case 'factory-move':
-    case 'factory-shift':
+    case 'factory-edit':
     case 'factory-book':
       actFactory(g, action);
       // The others hear about purchases, not about belts and tidying.
       if (action.type === 'factory-blueprint')
-        announce(scratchFor(g), { at: now, by: actorId, kind: 'blueprint', what: action.id });
-      if (action.type === 'factory-build') {
+        announce(scratchFor(g), {
+          at: now,
+          by: actorId,
+          kind: 'blueprint',
+          what: action.id,
+        });
+      if (action.type === 'factory-edit' && action.build?.length) {
         const kinds = new Map<string, number>();
-        for (const p of action.pieces)
-          if (p.kind !== 'belt') kinds.set(p.kind, (kinds.get(p.kind) ?? 0) + 1);
+        for (const p of action.build)
+          if (p.kind !== 'belt')
+            kinds.set(p.kind, (kinds.get(p.kind) ?? 0) + 1);
         for (const [kind, n] of kinds)
-          announce(scratchFor(g), { at: now, by: actorId, kind: 'machine', what: kind, n });
+          announce(scratchFor(g), {
+            at: now,
+            by: actorId,
+            kind: 'machine',
+            what: kind,
+            n,
+          });
       }
       break;
     case 'dig': {

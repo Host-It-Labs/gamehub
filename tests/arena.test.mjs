@@ -21,12 +21,17 @@ import {
   advance,
   canDeployAt,
   canPlayAt,
+  clearAttackLine,
   clock,
   createMatch,
   deploy,
   elixirMultiplier,
   dist,
+  nearestLegal,
   step,
+  summon,
+  towerGap,
+  troopBuildingRadius,
 } from '../lib/games/arena/engine.ts';
 import { botMemory, botStep } from '../lib/games/arena/bot.ts';
 import { checksum, replay, snapshot } from '../lib/games/arena/net.ts';
@@ -515,7 +520,9 @@ await test('the Meteor hits ground and air troops in its circle and knocks light
   // Just inside the circle (to the troop's edge), just outside, and heavy.
   const plane = plant(m, 1, 'drake', 9 + r + 0.6 - 0.05, 22);
   const samurai = plant(m, 1, 'duelist', 9 - (r + 0.5 + 0.05), 22);
-  const dino = plant(m, 1, 'ogre', 9, 23);
+  const dinoAt = nearestLegal(m, 1, 'ogre', 9, 23);
+  assert.ok(dinoAt, 'the long rear silhouette starts clear of its king');
+  const dino = plant(m, 1, 'ogre', ...dinoAt);
   const cowboy = plant(m, 1, 'ranger', 9, 20);
   crash(m, 0, 9, 22);
   assert.equal(plane.hp, plane.maxHp - 600, 'flyers are hit');
@@ -529,7 +536,11 @@ await test('the Meteor hits ground and air troops in its circle and knocks light
   );
   assert.ok(Math.abs(plane.y - 22) < 1e-9);
   assert.ok(Math.abs(cowboy.y - 19.4) < 1e-9, `cowboy at ${cowboy.y}`);
-  assert.deepEqual([dino.x, dino.y], [9, 23]);
+  assert.deepEqual(
+    [dino.x, dino.y],
+    dinoAt,
+    'the impact never displaces a heavy troop',
+  );
   assert.deepEqual([samurai.x, samurai.y], [9 - (r + 0.55), 22]);
 });
 
@@ -597,7 +608,9 @@ await test('two matches with the same casts stay identical, and the checksum cov
       for (const [at, player, id, x, y] of script)
         if (at === t) {
           m.players[player].elixir = 10;
-          assert.ok(deploy(m, player, give(m, player, id), x, y).ok);
+          const at = nearestLegal(m, player % 2, id, x, y);
+          assert.ok(at);
+          assert.ok(deploy(m, player, give(m, player, id), ...at).ok);
         }
       step(m);
       impacts += m.events.filter(
@@ -683,12 +696,95 @@ await test('harder bots beat easier ones most of the time', () => {
   ]) {
     let upper = 0;
     let lower = 0;
-    for (let seed = 1; seed <= 16; seed++) {
-      const m = botMatch(seed * 97, top, bottom);
-      if (m.winner === 1) upper++;
-      else if (m.winner === 0) lower++;
+    // Mirror the seats and sample more hands so side and opening order
+    // do not hide a weaker strategy behind a fortunate short trial.
+    for (let seed = 1; seed <= 96; seed++) {
+      for (const mirror of [false, true]) {
+        const m = mirror
+          ? botMatch(seed * 97, bottom, top)
+          : botMatch(seed * 97, top, bottom);
+        if (m.winner === (mirror ? 0 : 1)) upper++;
+        else if (m.winner === (mirror ? 1 : 0)) lower++;
+      }
     }
     assert.ok(upper > lower, `${top} ${upper}, ${bottom} ${lower}`);
+  }
+});
+
+await test('a ranged bot defender gets a clear firing line around its own tower', () => {
+  for (const side of [0, 1]) {
+    const m = battle(7, 'hard');
+    const target = summon(m, 1 - side, 'ogre', 1.5, side === 0 ? 9 : 23);
+    target.state = 'walking';
+    target.deployLeft = 0;
+    const wanted = { x: 6, y: side === 0 ? 4 : 28 };
+    assert.equal(
+      clearAttackLine(m, wanted, target),
+      false,
+      'the old rear spot shoots through stone',
+    );
+    m.players[side].hand.cards = ['ranger', 'ogre', 'mage', 'meteor'];
+    m.players[side].elixir = 4;
+    const mem = botMemory(side, 'hard', 7);
+    mem.nextThink = 0;
+    mem.threatSince = -10;
+    const move = botStep(m, mem);
+    assert.ok(move);
+    assert.equal(m.players[side].hand.cards[move.slot], 'ranger');
+    assert.ok(canDeployAt(m, side, move.x, move.y, 'ranger'));
+    assert.ok(
+      clearAttackLine(m, move, target),
+      `${side}: defender can aim at the threat`,
+    );
+  }
+});
+
+await test('hard bots save up a supported push when low enemy elixir leaves no open lane', () => {
+  for (const held of [false, true]) {
+    const m = battle(19, 'hard');
+    m.players[0].hand.cards = ['imps', 'duelist', 'ranger', 'drake'];
+    m.players[0].elixir = 4;
+    m.players[1].elixir = 1;
+    if (held) {
+      for (const x of BRIDGES) {
+        const u = summon(m, 1, 'ranger', x, 21.5);
+        u.state = 'walking';
+        u.deployLeft = 0;
+      }
+    }
+    const mem = botMemory(0, 'hard', 19);
+    mem.nextThink = 0;
+    assert.equal(
+      botStep(m, mem),
+      null,
+      held ? 'both lanes defended' : 'no committed enemy push',
+    );
+  }
+});
+
+await test('a defensive Meteor uses the reserve to clear a valuable push at home', () => {
+  for (const defensive of [false, true]) {
+    const m = battle(29, 'hard');
+    const y = defensive ? 12 : 20;
+    for (const [card, x] of [
+      ['mage', 9],
+      ['imps', 10],
+    ]) {
+      const u = summon(m, 1, card, x, y);
+      u.state = 'walking';
+      u.deployLeft = 0;
+    }
+    m.players[0].hand.cards = ['meteor', 'ogre', 'mage', 'diver'];
+    m.players[0].elixir = 4;
+    const mem = botMemory(0, 'hard', 29);
+    mem.nextThink = 0;
+    const move = botStep(m, mem);
+    if (defensive) {
+      assert.ok(move, 'the rock itself defends the home half');
+      assert.equal(move.slot, 0);
+      assert.ok(deploy(m, move.player, move.slot, move.x, move.y).ok);
+    } else
+      assert.equal(move, null, 'an offensive rock keeps the defensive reserve');
   }
 });
 
@@ -758,7 +854,8 @@ await test('the hard bot throws the Meteor where walking support troops will be'
   for (const p of m.players) p.elixir = 10;
   const ids = [
     ...deploy(m, 0, give(m, 0, 'archers'), 12, 9).ids,
-    ...deploy(m, 0, give(m, 0, 'mage'), 12, 7.8).ids,
+    ...deploy(m, 0, give(m, 0, 'mage'), ...nearestLegal(m, 0, 'mage', 12, 7.8))
+      .ids,
   ];
   // Let them get walking up the lane.
   for (let i = 0; i < 45; i++) step(m);
@@ -966,13 +1063,9 @@ await test('troops walk round their own towers to the bridge', async () => {
       for (const kind of kinds) {
         const m = battle(11);
         m.players[side].elixir = 10;
-        const played = deploy(
-          m,
-          side,
-          give(m, side, kind),
-          x,
-          side ? flipY(y) : y,
-        );
+        const at = nearestLegal(m, side, kind, x, side ? flipY(y) : y);
+        assert.ok(at);
+        const played = deploy(m, side, give(m, side, kind), ...at);
         assert.ok(played.ok, `${kind} ${name}`);
         const walks = played.ids.map((id) => {
           const u = m.units.find((v) => v.id === id);
@@ -1014,11 +1107,15 @@ await test('a card dropped on an illegal spot goes to the nearest legal one', as
     const king = m.towers.find((t) => t.side === side && t.kind === 'king');
     for (const t of m.towers.filter((t) => t.side === side)) {
       const spot = nearestLegal(m, side, 'imps', t.x + 0.1, t.y + 0.1);
-      assert.ok(spot && canDeployAt(m, side, spot[0], spot[1]));
-      assert.ok(
-        dist(spot[0] - t.x, spot[1] - t.y) <= t.radius + 1,
-        `${t.kind}: ${spot.join(', ')}`,
-      );
+      assert.ok(spot && canPlayAt(m, side, 'imps', ...spot));
+      for (const [ox, oy] of troopCards.imps.formation)
+        assert.ok(
+          towerGap(
+            t,
+            spot[0] + ox * (side ? -1 : 1),
+            spot[1] + oy * (side ? -1 : 1),
+          ) >= troopBuildingRadius('imps'),
+        );
     }
     assert.ok(king);
   }
@@ -1095,13 +1192,9 @@ await test('Dinos queue and pass each other at the bridges', async () => {
     const m = battle(3);
     const walks = spots.map(([side, x, y]) => {
       m.players[side].elixir = 10;
-      const played = deploy(
-        m,
-        side,
-        give(m, side, 'ogre'),
-        x,
-        side ? flipY(y) : y,
-      );
+      const at = nearestLegal(m, side, 'ogre', x, side ? flipY(y) : y);
+      assert.ok(at);
+      const played = deploy(m, side, give(m, side, 'ogre'), ...at);
       assert.ok(played.ok, name);
       const u = m.units.find((v) => v.id === played.ids[0]);
       const t = tower(m, 1 - side, 'princess', u.x < 9 ? 0 : 1);
@@ -1178,7 +1271,12 @@ await test('troops keep the lane they were dropped in', () => {
   tower(m, 1, 'princess', 0).hp = 0;
   tower(m, 1, 'princess', 0).destroyed = true;
   m.players[0].elixir = 10;
-  ({ ids } = deploy(m, 0, give(m, 0, 'duelist'), 3, 4));
+  ({ ids } = deploy(
+    m,
+    0,
+    give(m, 0, 'duelist'),
+    ...nearestLegal(m, 0, 'duelist', 3, 4),
+  ));
   const [x] = crossing(m, ids);
   assert.ok(Math.abs(x - BRIDGES[0]) <= BRIDGE_HALF + 0.05, `crossed at ${x}`);
   const samurai = m.units.find((u) => u.id === ids[0]);
@@ -1298,17 +1396,14 @@ await test('a target that leaves sight can be released for a nearby enemy', () =
   assert.notEqual(attacker.targetId, enemy.id);
 });
 
-await test('towers stand taller than the troops, larger still on portrait phones', async () => {
+await test('smaller towers fit their solid footprint on landscape and portrait screens', async () => {
   const { lensFor, towerScale, troopScale } =
     await import('../lib/games/arena/layout.ts');
   const wide = lensFor({ width: 1280, height: 800, top: 56, bottom: 150 });
   const phone = lensFor({ width: 390, height: 844, top: 60, bottom: 170 });
-  // A model at 1.0 fills its footprint; both are drawn at least that size.
-  assert.ok(towerScale(wide) >= 1);
-  assert.ok(towerScale(phone) > towerScale(wide));
-  // The troops grow on phones too, the towers keep ahead of them.
-  assert.ok(
-    towerScale(phone) / towerScale(wide) >=
-      (troopScale(phone, true) / troopScale(wide, false)) * 0.9,
-  );
+  assert.equal(towerScale(wide), 0.85);
+  assert.equal(towerScale(phone), 0.9);
+  assert.ok(towerScale(wide) <= 0.9 && towerScale(phone) <= 0.9);
+  assert.equal(troopScale(wide, false), 1.75 * 1.18 * 1.15);
+  assert.equal(troopScale(phone, true), 2.3 * 1.18 * 1.15);
 });

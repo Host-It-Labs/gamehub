@@ -3,13 +3,25 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { boxCover } from '../lib/games/box-covers.ts';
-const ids = ['undertow', 'wildgrove', 'midnight', 'orin', 'miro', 'impostor', 'diner'];
+const ids = ['undertow', 'wildgrove', 'midnight', 'orin', 'miro', 'impostor', 'diner', 'folio'];
 // Chosen generations whose 1024 square is written here from the source PNG
 // (docs/concepts/2026-10-03-impostor-diner-covers). The PNGs live in the art
 // archive beside the repo (ART_ARCHIVE), not in git; without them the
 // committed delivery files stay as they are.
 const archive = process.env.ART_ARCHIVE ?? '../gamehub-art-archive/public/art';
-const sources = { impostor: 'box-impostor-v2-a.png', diner: 'box-diner-v1-a.png' };
+const sources = {
+  impostor: 'box-impostor-v2-a.png',
+  diner: 'diner-square-b.png',
+  folio: 'puzzles-square-a.png',
+  miro: 'box-trivia-square-v1.png',
+};
+// Trivia's fresh sources stay in the workspace with their exact prompts;
+// other accepted covers retain the sibling archive convention.
+const triviaSources = 'assets/art/trivia/2026-10-04/sources';
+// Puzzles (folio) and Diner covers of 9 October 2026 keep their chosen
+// sources beside their exact prompts.
+const freshSources = 'docs/concepts/2026-10-09-puzzles-rota-diner-covers/sources';
+const roots = { miro: triviaSources, folio: freshSources, diner: freshSources };
 // Optional ids on the command line limit the run to those covers.
 const only = process.argv.slice(2);
 const manifestPath = 'lib/artwork-previews.json';
@@ -17,7 +29,7 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 for (const id of only.length ? ids.filter((id) => only.includes(id)) : ids) {
   const cover = boxCover(id);
   const path = `public${cover}`;
-  const source = sources[id] && `${archive}/${sources[id]}`;
+  const source = sources[id] && `${roots[id] ?? archive}/${sources[id]}`;
   if (source && existsSync(source))
     await sharp(source).resize(1024, 1024).webp({ quality: 88 }).toFile(path);
   const metadata = await sharp(path).metadata();

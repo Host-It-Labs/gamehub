@@ -9,21 +9,12 @@ import {
 } from 'react';
 import { ApiError, returnPath } from '@/lib/online/client';
 import { SoundSettings } from '../sound-settings';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { readAmbienceLevel, saveAmbienceLevel } from '../use-ambience';
 import { joinDiner, type OnlineSession } from './online';
 import type { RoomInfo } from './diner-game';
 
 const DinerGame = lazy(() => import('./diner-game'));
-const VOLUME = 'gamehub.volume.v3';
-
-function readVolume() {
-  try {
-    const v = Number(localStorage.getItem(VOLUME) ?? '.5');
-    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5;
-  } catch {
-    return 0.5;
-  }
-}
 
 /**
  * An online Diner room at /diner/<token>: a table sends its waiters here.
@@ -32,7 +23,7 @@ function readVolume() {
 export default function DinerRoom({ token }: { token: string }) {
   const [session, setSession] = useState<OnlineSession | null>(null);
   const [failed, setFailed] = useState('');
-  const [volume, setVolume] = useState(readVolume);
+  const [volume, setVolume] = useState(() => readAudioLevel());
   const [ambience, setAmbience] = useState(readAmbienceLevel);
   const subscribe = useCallback(
     (l: () => void) => session?.subscribe(l) ?? (() => {}),
@@ -118,11 +109,7 @@ export default function DinerRoom({ token }: { token: string }) {
               ambience={ambience}
               onVolume={(v) => {
                 setVolume(v);
-                try {
-                  localStorage.setItem(VOLUME, String(v));
-                } catch {
-                  /* Preference is optional. */
-                }
+                saveAudioLevel(v);
               }}
               onAmbience={(v) => {
                 setAmbience(v);

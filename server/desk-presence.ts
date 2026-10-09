@@ -31,7 +31,7 @@ function cleanView(raw: unknown): Record<string, unknown> {
   const view: Record<string, unknown> = {};
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return view;
   const v = raw as Record<string, unknown>;
-  for (const key of ['upgrade', 'path', 'tool', 'preview'])
+  for (const key of ['upgrade', 'path', 'tool', 'preview', 'book'])
     if (typeof v[key] === 'string' && WORD.test(v[key] as string))
       view[key] = v[key];
   if (Number.isInteger(v.dir) && number(v.dir, 0, 3)) view.dir = v.dir;
@@ -50,7 +50,7 @@ function cleanView(raw: unknown): Record<string, unknown> {
   if (v.levels && typeof v.levels === 'object' && !Array.isArray(v.levels)) {
     const levels: Record<string, number> = {};
     for (const [book, lvl] of Object.entries(v.levels).slice(0, 12))
-      if (WORD.test(book) && Number.isInteger(lvl) && number(lvl, 0, 2))
+      if (WORD.test(book) && Number.isInteger(lvl) && number(lvl, 0, 3))
         levels[book] = lvl as number;
     view.levels = levels;
   }

@@ -1,0 +1,60 @@
+{
+  "baseline": {
+    "calls": 503,
+    "dpr": 1,
+    "geometries": 278,
+    "mode": "idle",
+    "pixelRatio": 1,
+    "textures": 262,
+    "tier": {
+      "pixelRatio": 1,
+      "props": 1,
+      "shadowSize": 4096,
+      "tier": "hq"
+    },
+    "triangles": 3729506,
+    "units": 6,
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  "final": {
+    "calls": 676,
+    "dpr": 1,
+    "geometries": 307,
+    "mode": "idle",
+    "pixelRatio": 1,
+    "quality": {
+      "pixelRatio": 1,
+      "props": 1,
+      "shadowSize": 4096,
+      "tier": "hq"
+    },
+    "textures": 331,
+    "triangles": 3727920,
+    "units": 6,
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  "afterHybridMainThread": {
+    "mainThreadFrame": {
+      "maxMs": 13.700000002980232,
+      "meanMs": 8.006666666269302,
+      "p50Ms": 7.599999994039536,
+      "p95Ms": 11.700000002980232,
+      "samples": 90
+    },
+    "rafInterval": {
+      "maxMs": 75.29999999701977,
+      "meanMs": 55.335955056246746,
+      "p50Ms": 56.099999994039536,
+      "p95Ms": 70.79999999701977,
+      "samples": 89
+    }
+  },
+  "beforeHybridCalls": 1896,
+  "note": "Same current scenery and other figure roots,1280×720,hq,render pixel ratio1,six idle units. Main-thread frame includes CPU animation and WebGL submission; this is not a GPU timer or phone benchmark. Global texture/geometries counts include the scene, batch buffers and bone textures."
+}

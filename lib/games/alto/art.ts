@@ -1,7 +1,7 @@
 import { plans, type Good } from './content.ts';
 
-/** Alto artwork: the space set is v2; the attached hardware renders are v3.
- * See scripts/alto-art.mjs and scripts/alto-module-art.mjs. */
+/** Alto artwork: the space set is v2, hardware v3, revised landscapes v4.
+ * See scripts/alto-art.mjs, alto-module-art.mjs and alto-planet-art.mjs. */
 const art = (name: string) => `/art/optimized/${name}.webp`;
 export const goodIds = ['food', 'metal', 'ice', 'crystal'] as const;
 export const goodArt = (good: Good) => art(`alto-cargo-${goodIds[good]}-v2`);
@@ -20,7 +20,16 @@ export const planArt = (id: string) =>
     ? art(`alto-upgrade-${id}-${moduleArtIds.includes(id) ? 'v3' : 'v2'}`)
     : null;
 /** A still of a planet, rendered from its 3D model, for inspections. */
-export const planetArt = (id: string) => art(`alto-planet-${id}-v2`);
+export const planetArtIds = [
+  'pinewood',
+  'grove',
+  'quarry',
+  'cliffs',
+  'meadow',
+  'downs',
+];
+export const planetArt = (id: string) =>
+  art(`alto-planet-${id}-${planetArtIds.includes(id) ? 'v4' : 'v2'}`);
 export const captainArt = (id: string) => art(`alto-crew-${id}-v2`);
 export const skyArt = {
   landscape: art('alto-space-landscape-v2'),

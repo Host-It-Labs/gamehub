@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { paperWorldTarget, type PaperWorld } from '@/lib/games/mora-world';
+import { startRatio } from './render-quality';
 
 type Layout = { width: number; height: number; board: { x: number; y: number; width: number } };
 
@@ -97,7 +98,7 @@ export function ObservatoryScene({ art }: { art: PaperWorld }) {
     const featheredSource = (width: number, height: number, target: { x: number; y: number; width: number; height: number }) => {
       const scale = target.width / art.width;
       const c = art.crop;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = startRatio(width, height);
       const limit = Math.min(72 * dpr, target.width * 0.1 * dpr);
       const bands = {
         left: target.x > 0.5 ? Math.min(limit, c.left * scale * dpr) : 0,
@@ -131,7 +132,8 @@ export function ObservatoryScene({ art }: { art: PaperWorld }) {
       const current = latest.current;
       if (disposed || !loaded || !visible || document.hidden || !current) return;
       const { width, height, board } = current;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(6_000_000 / Math.max(1, width * height)));
+      // Native density on powerful devices, the power's budget elsewhere.
+      const dpr = startRatio(width, height);
       const w = Math.round(width * dpr), h = Math.round(height * dpr);
       if (element.width !== w || element.height !== h) { element.width = w; element.height = h; }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, width, height);

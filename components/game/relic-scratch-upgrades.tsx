@@ -29,7 +29,7 @@ import {
   Printer,
   Radar,
   Scroll,
-  ShieldCheck,
+  CreditCard,
   Sparkles,
   Star,
   Store,
@@ -75,7 +75,7 @@ export const UPGRADE_ICONS: Record<string, LucideIcon> = {
   mastery: Trophy,
   collector: BookOpen,
   discount: BadgePercent,
-  insurance: ShieldCheck,
+  loyalty: CreditCard,
   freebie: Gift,
   early: Clock,
   'seven-help': Thermometer,
@@ -92,6 +92,15 @@ export const UPGRADE_ICONS: Record<string, LucideIcon> = {
   cashiers: TrendingUp,
   wholesale: Store,
   floor: Grid3x3,
+};
+/** Each path's deep enamel: the solid colour of its medallions. */
+const RICH: Record<PathId, string> = {
+  scratch: '#16878b',
+  luck: '#c98a12',
+  payout: '#c0502f',
+  shop: '#8d47b0',
+  books: '#3069bd',
+  factory: '#46852f',
 };
 const PATH_ICONS: Record<PathId, LucideIcon> = {
   scratch: Hand,
@@ -119,7 +128,7 @@ const DOES: Record<string, string> = {
   mastery: 'Harder levels pay far more.',
   collector: 'Every book on the shelf adds to every prize.',
   discount: 'Every ticket costs less.',
-  insurance: 'A ticket that pays less than it cost gives some of it back.',
+  loyalty: 'One ticket in every few you buy is free, whatever the book.',
   freebie: 'Some tickets are free.',
   early: 'Harder levels open after fewer tickets.',
   'seven-help': 'Misses also show how far the nearest 7 is.',
@@ -170,21 +179,20 @@ function nodeOf(state: ScratchState, u: Upgrade): Node {
     price: upgradeCost(state, u),
   };
 }
-/** Where a node sits in its path column: books pair up two to a row. */
-function place(u: Upgrade): [number, number] {
-  if (u.path !== 'books') return u.at;
-  const book = u.at[1];
-  return [(book % 2) * 2 + u.at[0], Math.floor(book / 2)];
-}
-const WIDTHS: Record<PathId, number> = {
-  scratch: 2,
-  luck: 2,
-  payout: 2,
-  shop: 2,
-  books: 4,
-  factory: 2,
+/** Tiles are listed in tree order; Books pair each book's prize with its
+ * helper, one book to a row. */
+const order = (a: Upgrade, b: Upgrade) =>
+  a.at[1] - b.at[1] || a.at[0] - b.at[0];
+const COLUMNS: Record<PathId, number> = {
+  scratch: 1,
+  luck: 1,
+  payout: 1,
+  shop: 1,
+  books: 2,
+  factory: 1,
 };
-const Medallion = memo(function Medallion({
+/** One upgrade: an enamel icon, its name, a bar of ranks and the price. */
+const Tile = memo(function Tile({
   node,
   affordable,
   selected,
@@ -200,59 +208,64 @@ const Medallion = memo(function Medallion({
   const { u, rank, ready, hidden, max, price } = node;
   const Icon = UPGRADE_ICONS[u.id];
   const book = u.book && u.id.endsWith('-prize') ? (u.book as PackId) : null;
+  // A bare number or switch needs its label to mean anything.
+  const value = u.show(rank);
   return (
     <button
-      className={`rs-node ${ready ? '' : 'is-locked'} ${hidden ? 'is-hidden' : ''} ${max ? 'is-max' : ''} ${affordable ? 'is-affordable' : ''} ${rank ? 'is-owned' : ''}`}
+      className={`rs-tile ${ready ? '' : 'is-locked'} ${hidden ? 'is-hidden' : ''} ${max ? 'is-max' : ''} ${affordable ? 'is-affordable' : ''} ${rank ? 'is-owned' : ''}`}
       aria-pressed={selected}
       aria-label={
         hidden
           ? 'Undiscovered upgrade'
           : `${u.name}, ${rank} of ${u.max}${max ? '' : `, ${formatNumber(price)} coins`}${affordable ? ', can buy' : ''}`
       }
-      style={
-        {
-          '--rank': rank / u.max,
-        } as React.CSSProperties
-      }
       onClick={() => onSelect(u.id)}
       onDoubleClick={() => affordable && onBuy(u.id)}
     >
-      <span className="rs-node-disc">
+      <span className={`rs-tile-icon ${book ? 'is-book' : ''}`}>
         {hidden ? (
-          <b className="rs-node-mystery">?</b>
+          <b>?</b>
         ) : book ? (
           <img src={TICKET_ART[book].small} alt="" draggable={false} />
         ) : Icon ? (
-          <Icon size={22} />
+          <Icon size={19} />
         ) : null}
-        {!ready && !hidden && <Lock size={12} className="rs-node-lock" />}
-        {max && <Check size={12} className="rs-node-check" />}
         {affordable && (
-          <span className="rs-node-ready" aria-hidden="true">
-            <ArrowUp size={11} strokeWidth={3} />
+          <span className="rs-tile-ready" aria-hidden="true">
+            <ArrowUp size={10} strokeWidth={3.2} />
           </span>
         )}
       </span>
       {!hidden && (
-        <span className="rs-node-pips" aria-hidden="true">
-          {Array.from({ length: u.max }, (_, i) => (
-            <i key={i} className={i < rank ? 'is-on' : ''} />
-          ))}
+        <span className="rs-tile-text">
+          <b className="rs-tile-name">{u.name}</b>
+          <span className="rs-tile-value">
+            {value}
+            {/^(\d+|on|off)$/.test(value) && <small> {u.label}</small>}
+          </span>
+          <span className="rs-tile-meta">
+            <span className="rs-tile-ranks" aria-hidden="true">
+              {Array.from({ length: u.max }, (_, i) => (
+                <i key={i} className={i < rank ? 'is-on' : ''} />
+              ))}
+            </span>
+            {max ? (
+              <Check size={13} className="rs-tile-check" />
+            ) : (
+              <small className="rs-tile-price">
+                {ready ? <Coins size={10} /> : <Lock size={10} />}
+                {formatNumber(price)}
+              </small>
+            )}
+          </span>
         </span>
-      )}
-      <span className="rs-node-name">{hidden ? '' : u.name}</span>
-      {!hidden && !max && (
-        <small className="rs-node-price">
-          <Coins size={9} />
-          {formatNumber(price)}
-        </small>
       )}
     </button>
   );
 });
-/** The upgrade tree: six paths side by side, each a little tree of
- * medallions. An upgrade opens once the one before it has a rank; the
- * selected one is explained and bought in the bar below. */
+/** The upgrades: six paths side by side, each a column of tiles in tree
+ * order. An upgrade opens once the one before it has a rank; the selected
+ * one is explained and bought in the bar below. */
 export const ScratchUpgrades = memo(function ScratchUpgrades({
   state,
   coins,
@@ -272,7 +285,9 @@ export const ScratchUpgrades = memo(function ScratchUpgrades({
   const [ownSelected, setSelected] = useState('coin'),
     [ownPath, setPath] = useState<PathId>('scratch');
   const selected =
-    mirror?.upgrade && upgradeFor(mirror.upgrade) ? mirror.upgrade : ownSelected,
+      mirror?.upgrade && upgradeFor(mirror.upgrade)
+        ? mirror.upgrade
+        : ownSelected,
     path = (PATHS.find((p) => p.id === mirror?.path)?.id ?? ownPath) as PathId;
   useEffect(() => {
     if (!mirror) onView?.({ upgrade: ownSelected, path: ownPath });
@@ -317,21 +332,21 @@ export const ScratchUpgrades = memo(function ScratchUpgrades({
       <div className="rs-tree" data-rs-area="tree">
         {PATHS.map((p) => {
           const PathIcon = PATH_ICONS[p.id],
-            list = UPGRADES.filter((x) => x.path === p.id),
-            branch = list.map((x) => nodes.get(x.id)!),
-            rows = Math.max(...list.map((x) => place(x)[1])) + 1,
-            cols = WIDTHS[p.id];
+            list = UPGRADES.filter((x) => x.path === p.id).sort(order),
+            cols = COLUMNS[p.id];
           const bought = list.reduce((n, x) => n + level(state, x.id), 0),
             total = list.reduce((n, x) => n + x.max, 0);
           return (
             <section
               key={p.id}
-              className={`rs-branch ${path === p.id ? 'is-current' : ''}`}
+              className={`rs-branch is-${p.id} ${path === p.id ? 'is-current' : ''}`}
               style={
                 {
                   '--path': p.color,
+                  '--rich': RICH[p.id],
                   '--cols': cols,
-                  '--rows': rows,
+                  '--rows': Math.ceil(list.length / cols),
+                  '--done': bought / total,
                 } as React.CSSProperties
               }
               aria-label={p.name}
@@ -343,53 +358,20 @@ export const ScratchUpgrades = memo(function ScratchUpgrades({
                   {bought}/{total}
                 </small>
               </h3>
-              <div className="rs-branch-grid">
-                <svg
-                  className="rs-branch-links"
-                  viewBox={`0 0 ${cols} ${rows}`}
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  {list.map((x) => {
-                    const from = x.requires && upgradeFor(x.requires);
-                    if (!from || from.path !== x.path) return null;
-                    const [ax, ay] = place(from),
-                      [bx, by] = place(x);
-                    return (
-                      <line
-                        key={x.id}
-                        className={level(state, from.id) ? 'is-lit' : ''}
-                        x1={ax + 0.5}
-                        y1={ay + 0.42}
-                        x2={bx + 0.5}
-                        y2={by + 0.42}
-                      />
-                    );
-                  })}
-                </svg>
-                {branch.map((n) => {
-                  const [x, y] = place(n.u);
+              <div className="rs-branch-list">
+                {list.map((x) => {
+                  const n = nodes.get(x.id)!;
                   return (
-                    <div
-                      key={n.u.id}
-                      className="rs-node-slot"
-                      style={{
-                        left: `${(x / cols) * 100}%`,
-                        top: `${(y / rows) * 100}%`,
-                        width: `${100 / cols}%`,
-                        height: `${100 / rows}%`,
-                      }}
-                    >
-                      <Medallion
-                        node={n}
-                        affordable={
-                          n.ready && !n.max && !n.hidden && coins >= n.price
-                        }
-                        selected={selected === n.u.id}
-                        onSelect={select}
-                        onBuy={onBuy}
-                      />
-                    </div>
+                    <Tile
+                      key={x.id}
+                      node={n}
+                      affordable={
+                        n.ready && !n.max && !n.hidden && coins >= n.price
+                      }
+                      selected={selected === x.id}
+                      onSelect={select}
+                      onBuy={onBuy}
+                    />
                   );
                 })}
               </div>
@@ -401,7 +383,9 @@ export const ScratchUpgrades = memo(function ScratchUpgrades({
         className="rs-buy-bar"
         data-game-motion="change"
         data-game-motion-key={selected}
-        style={{ '--path': color } as React.CSSProperties}
+        style={
+          { '--path': color, '--rich': RICH[u.path] } as React.CSSProperties
+        }
         aria-live="polite"
       >
         <span className="rs-card-icon">

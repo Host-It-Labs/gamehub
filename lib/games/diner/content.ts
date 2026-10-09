@@ -7,7 +7,8 @@
 export type DishId = 'burger' | 'shake' | 'pie' | 'fries';
 /** Where things happen along the back counter. */
 export type StationId = 'grill' | 'fryer' | 'shake' | 'pie';
-export type CounterId = StationId | 'sink' | 'bin';
+/** Counter spots: the four machines, the sink and bin, and two Workshop fixtures. */
+export type CounterId = StationId | 'sink' | 'bin' | 'pass' | 'coffee';
 
 export type Dish = {
   name: string;
@@ -60,7 +61,7 @@ export const nights: Record<NightId, Night> = {
     id: 1,
     name: 'Opening',
     stations: ['grill', 'shake'],
-    tables: [0, 1, 3],
+    tables: [0, 1, 4],
     menu: { burger: 3, shake: 2 },
     interval: [12, 17],
     sizes: [0.3, 0.45, 0.15, 0.1],
@@ -73,7 +74,7 @@ export const nights: Record<NightId, Night> = {
     id: 2,
     name: 'Regulars',
     stations: ['grill', 'shake', 'pie'],
-    tables: [0, 1, 2, 3],
+    tables: [0, 1, 3, 4],
     menu: { burger: 3, shake: 2, pie: 2 },
     interval: [11, 15],
     sizes: [0.15, 0.4, 0.27, 0.18],

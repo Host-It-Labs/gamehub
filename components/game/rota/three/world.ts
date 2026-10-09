@@ -4,6 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import type { MapDef } from '@/lib/games/rota/maps';
+import { devicePower, nativeRatio } from '../../render-quality';
 import type { Placed } from '@/lib/games/rota/board';
 import { growTown, type Lot } from '@/lib/games/rota/growth';
 import {
@@ -48,6 +49,22 @@ import { TownLayer } from './growth';
 import { Smoke } from './smoke';
 import { InkPass } from './ink';
 import type { Library } from './assets';
+import {
+  BLUE_HOUR,
+  DAYLIGHT,
+  duskLighting,
+  DuskTransition,
+} from '@/lib/games/rota/daylight';
+import {
+  planNeighbourhood,
+  type TrafficBody,
+} from '@/lib/games/rota/neighbourhood';
+import { People } from './people';
+import { PassengerFigures } from './passengers';
+import { Passengers } from '@/lib/games/rota/passengers';
+import { Crossings } from './crossings';
+import { LanternPools } from './lanterns';
+import { TownLife } from './town-life';
 
 /**
  * Rota's board in 3D: a mill town drawn in ink and flat colour, seen from
@@ -75,6 +92,8 @@ export type BoardView = {
   livery: number;
   /** The match is over: the empty squares fill in too. */
   finished?: boolean;
+  /** How far the afternoon has worn on, 0 (first round) to 1 (match over). */
+  dusk?: number;
 };
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -145,8 +164,52 @@ export class RotaWorld {
   private built = false;
   private project = new THREE.Vector3();
   private towns = new Map<string, Lot[]>();
-  private quality = new AdaptiveQuality();
+  private quality = new AdaptiveQuality(devicePower());
   private sun: THREE.DirectionalLight;
+  private sky: THREE.HemisphereLight;
+  private daylight = new DuskTransition();
+  private palette = Object.values(DAYLIGHT).map((p) => ({
+    sun: new THREE.Color(p.sun),
+    sky: new THREE.Color(p.sky),
+    ground: new THREE.Color(p.ground),
+    haze: new THREE.Color(p.haze),
+    background: new THREE.Color(p.background),
+  }));
+  private blueHour = {
+    sun: new THREE.Color(BLUE_HOUR.sun),
+    sky: new THREE.Color(BLUE_HOUR.sky),
+    ground: new THREE.Color(BLUE_HOUR.ground),
+    haze: new THREE.Color(BLUE_HOUR.haze),
+    background: new THREE.Color(BLUE_HOUR.background),
+  };
+  private lighting = duskLighting(0, {
+    late: 0,
+    sunHeight: 0,
+    sunIntensity: 0,
+    skyIntensity: 0,
+    shadowIntensity: 0,
+    shadowRadius: 0,
+  });
+  private people: People | null = null;
+  /** Station passengers: their motion, and their figures. */
+  private passengers: Passengers;
+  private figures = new PassengerFigures();
+  private crossings: Crossings | null = null;
+  private lanterns: LanternPools | null = null;
+  private life: TownLife | null = null;
+  /** Bounded scratch buffer: the read-only pose API itself makes its arrays;
+   * our crossing sensor never grows arrays or allocates vectors per frame. */
+  private bodies: TrafficBody[] = Array.from({ length: 256 }, () => ({
+    ax: 0,
+    az: 0,
+    bx: 0,
+    bz: 0,
+    width: 0,
+    speed: 0,
+    kind: 0,
+  }));
+  private sensorAt = -1;
+  private crossingOccupancy = new Uint8Array(0);
   private environment: THREE.WebGLRenderTarget;
   private contextLost = false;
 
@@ -177,7 +240,7 @@ export class RotaWorld {
       antialias: false,
       powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
+    renderer.setPixelRatio(nativeRatio());
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = true;
@@ -199,7 +262,8 @@ export class RotaWorld {
 
     // A low warm sun from the west over a sky fill: shade stays a soft
     // smoky blue-grey, never black.
-    this.scene.add(new THREE.HemisphereLight('#e9e2d4', '#8f8272', 1.5));
+    this.sky = new THREE.HemisphereLight('#e9e2d4', '#8f8272', 1.5);
+    this.scene.add(this.sky);
     const sun = new THREE.DirectionalLight('#ffdcaa', 2.5);
     this.sun = sun;
     const n = map.size;
@@ -257,6 +321,11 @@ export class RotaWorld {
       this.offscreen(x, z),
     );
     this.root.add(this.traffic.group);
+    // People get off and on at the stations; the traffic waits for them.
+    this.passengers = new Passengers(this.traffic.sim, { still: opts.still });
+    this.traffic.sim.onArrive((m) => this.passengers.arrive(m));
+    this.traffic.doors = (id) => this.passengers.doorsOf(id);
+    this.root.add(this.figures.group);
 
     // Only the scene target needs depth and multisampling. The ink target
     // keeps HDR colour without duplicating those expensive attachments.
@@ -302,15 +371,25 @@ export class RotaWorld {
     const q = qualityLevels[this.quality.tier];
     const density = renderDensity(
       this.quality.tier,
-      window.devicePixelRatio || 1,
+      nativeRatio(),
       this.frame.width,
       this.frame.height,
+      this.quality.native,
     );
     if (this.renderer.getPixelRatio() !== density) {
       this.renderer.setPixelRatio(density);
       this.composer.setPixelRatio(density);
     }
     this.mats.detail.value = q.detail;
+    this.ink.uniforms.uGlowQuality.value = q.glow;
+    this.people?.setQuality(this.quality.tier);
+    this.crossings?.setQuality(this.quality.tier);
+    this.life?.setQuality(this.quality.tier);
+    this.lanterns?.setQuality(this.quality.tier);
+    this.traffic.setQuality(this.quality.tier);
+    this.figures.setQuality(this.quality.tier);
+    this.smoke?.setQuality(this.quality.tier);
+    this.town.setQuality(this.quality.tier);
     const shadow = Math.min(
       q.shadow,
       this.renderer.capabilities.maxTextureSize,
@@ -411,6 +490,10 @@ export class RotaWorld {
     this.smoke?.setScale(
       (size.y / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2))) * 1,
     );
+    this.town.setSmokeScale(
+      size.y / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2)),
+    );
+    this.smoke?.setFog(fog);
     this.overlay();
   }
 
@@ -487,14 +570,18 @@ export class RotaWorld {
   // ------------------------------------------------------------ the board
 
   setView(v: BoardView) {
+    this.daylight.set(v.dusk, this.quiet || this.opts.still || !this.built);
+    this.applyDusk();
     this.view = v;
     this.traffic.setLivery(v.livery);
     const map = this.map;
     const towns = v.towns.join(',');
     const placedKey = v.cells.map((c) => (c ? `${c.p}${c.o}` : '-')).join('|');
 
-    if (this.keys.statics !== towns) {
-      this.keys.statics = towns;
+    // Mill sites show their footings only while nothing is built on them.
+    const sites = v.towns.map((c) => `${c}${v.cells[c] ? '+' : ''}`).join(',');
+    if (this.keys.statics !== sites) {
+      this.keys.statics = sites;
       this.buildStatics(v);
     }
     // Squares: rebuild only the ones that changed.
@@ -625,10 +712,13 @@ export class RotaWorld {
       this.pending = {
         at,
         net: net
-          ? () =>
-              this.traffic.setNetwork(network(map, cells), (cell) =>
-                cells[cell] ? stationHalf(cells[cell]!.p) : 0.2,
-              )
+          ? () => {
+              const routes = network(map, cells);
+              const half = (cell: number) =>
+                cells[cell] ? stationHalf(cells[cell]!.p) : 0.2;
+              this.traffic.setNetwork(routes, half);
+              this.passengers.setNetwork(routes, half);
+            }
           : this.pending?.net,
         town: () => {
           // Snapshots go back and forth between sheets: keep a few towns.
@@ -726,17 +816,31 @@ export class RotaWorld {
     ))
       group.add(m);
     if (pieces[c.p].station) {
-      // The goods shed, its crane side towards the first rail.
+      // The booking hall on its bank, its clock towards the first rail;
+      // platforms along each track, a flight of steps down to each street.
       const t = orient(c.p, c.o);
       const railSide = t.edges.findIndex((e) => e === RAIL);
       const grand = c.p === 'station-cross';
+      const suffix = grand ? '_grand' : '';
       this.place(
         group,
-        grand ? 'goods_grand' : 'goods_shed',
+        grand ? 'station_grand' : 'station_hall',
         at.x,
         at.z,
         facing(railSide),
       );
+      t.edges.forEach((e, d) => {
+        if (e === RAIL)
+          this.place(
+            group,
+            `station_platforms${suffix}`,
+            at.x,
+            at.z,
+            facing(d),
+          );
+        else if (e === ROAD)
+          this.place(group, `station_steps${suffix}`, at.x, at.z, facing(d));
+      });
     }
     return group;
   }
@@ -816,8 +920,10 @@ export class RotaWorld {
             });
         } else props.push({ name: 'hoarding', x, z, rot, scale: 1.0 });
       }
-    // Mill sites (the Mills extension): footings and a standing chimney.
+    // Mill sites (the Mills extension): footings and a standing chimney,
+    // until a piece is laid on the site and the town grows over it.
     for (const c of v.towns) {
+      if (v.cells[c]) continue;
       const at = cellCentre(map, c);
       props.push({
         name: 'mill_site',
@@ -835,6 +941,7 @@ export class RotaWorld {
     const key = JSON.stringify(offRivers.map((l) => l[0]));
     if (key === this.keys.scenery) return;
     this.keys.scenery = key;
+    this.disposeLife();
     clearDispose(this.scenery);
     this.smoke?.dispose();
     const { placements, rows, stacks } = planScenery({
@@ -844,10 +951,26 @@ export class RotaWorld {
       // Quality adapts the renderer, never the number/layout of buildings.
       lite: false,
     });
+    const neighbourhood = planNeighbourhood(
+      this.map,
+      rows,
+      (x, z) => this.ground.heightAt(x, z),
+      offRivers,
+    );
+    for (const lamp of neighbourhood.lamps)
+      placements.push({
+        name: 'gas_lamp',
+        x: lamp.x,
+        y: lamp.y,
+        z: lamp.z,
+        rot: 0,
+        scale: 1,
+      });
     if (process.env.NODE_ENV === 'development')
       Object.assign(window as object, {
         rotaScenery: placements,
         rotaWorld: this,
+        rotaNeighbourhood: neighbourhood,
       });
     this.scenery.add(
       instance(
@@ -865,9 +988,137 @@ export class RotaWorld {
       ),
     );
     this.scenery.add(townRows(rows, this.mats));
+    this.crossings = new Crossings(neighbourhood, this.opts.still, this.mats);
+    this.crossingOccupancy = new Uint8Array(neighbourhood.crossings.length);
+    this.people = new People(neighbourhood, this.opts.still, this.opts.lite);
+    this.life = new TownLife(rows, this.map.size, this.opts.still, this.mats);
+    this.scenery.add(this.crossings.group, this.people.group, this.life.group);
+    if (neighbourhood.lamps.length) {
+      this.lanterns = new LanternPools(neighbourhood.lamps, this.mats.dusk);
+      this.lanterns.setQuality(this.quality.tier);
+      this.scenery.add(this.lanterns.mesh);
+    }
+    // A little hearth smoke from the near terraces as well as the works.
+    for (let i = 0; i < rows.length; i += 11) {
+      const row = rows[i];
+      const away = Math.max(
+        -row.x,
+        -row.z,
+        row.x - this.map.size,
+        row.z - this.map.size,
+      );
+      if (away > 3.5 || !row.windows) continue;
+      const partyWall = (Math.floor(row.houses / 2) - row.houses / 2) * 0.2;
+      stacks.push({
+        x: row.x + partyWall * Math.cos(row.rot),
+        z: row.z - partyWall * Math.sin(row.rot),
+        y: row.y + 0.03 + row.storeys * 0.095 + 0.135,
+      });
+    }
     this.smoke = new Smoke(stacks);
     this.scenery.add(this.smoke.points);
+    this.people.setQuality(this.quality.tier);
+    this.crossings.setQuality(this.quality.tier);
+    this.life.setQuality(this.quality.tier);
+    this.smoke.setQuality(this.quality.tier);
+    this.sensorAt = -1;
+    this.applyDusk();
     this.fit();
+  }
+
+  private disposeLife() {
+    if (this.people) this.scenery.remove(this.people.group);
+    if (this.crossings) this.scenery.remove(this.crossings.group);
+    if (this.life) this.scenery.remove(this.life.group);
+    if (this.lanterns) this.scenery.remove(this.lanterns.mesh);
+    this.people?.dispose();
+    this.crossings?.dispose();
+    this.life?.dispose();
+    this.lanterns?.dispose();
+    this.people = this.crossings = this.life = this.lanterns = null;
+  }
+
+  /** Warm, low light over a deliberately bright cool fill. The board has
+   * no night-time exposure grade: every route and gameplay mark keeps colour. */
+  private applyDusk() {
+    const dusk = this.daylight.value;
+    const light = duskLighting(dusk, this.lighting);
+    const a = this.palette[dusk < 0.5 ? 0 : 1];
+    const b = this.palette[dusk < 0.5 ? 1 : 2];
+    const t = dusk < 0.5 ? dusk * 2 : (dusk - 0.5) * 2;
+    const k = t * t * (3 - 2 * t);
+    this.sun.color
+      .copy(a.sun)
+      .lerp(b.sun, k)
+      .lerp(this.blueHour.sun, light.late);
+    this.sky.color
+      .copy(a.sky)
+      .lerp(b.sky, k)
+      .lerp(this.blueHour.sky, light.late);
+    this.sky.groundColor
+      .copy(a.ground)
+      .lerp(b.ground, k)
+      .lerp(this.blueHour.ground, light.late);
+    (this.scene.background as THREE.Color)
+      .copy(a.background)
+      .lerp(b.background, k)
+      .lerp(this.blueHour.background, light.late);
+    const fog = this.scene.fog as THREE.Fog;
+    fog.color.copy(a.haze).lerp(b.haze, k).lerp(this.blueHour.haze, light.late);
+    const reach = this.map.size * 0.75 + 4;
+    this.sun.position.set(
+      -reach * 0.95,
+      reach * light.sunHeight,
+      -reach * 0.45,
+    );
+    this.sun.intensity = light.sunIntensity;
+    this.sky.intensity = light.skyIntensity;
+    this.sun.shadow.intensity = light.shadowIntensity;
+    this.sun.shadow.radius = light.shadowRadius;
+    this.scene.environmentIntensity = 0.5 + dusk * 0.1;
+    this.ground.setDusk(dusk);
+    this.mats.tick(this.opts.still ? 11 : this.time, dusk);
+    this.traffic.setDusk(dusk);
+    this.ghostMaterial.emissiveIntensity = 0.4 + dusk * 0.25;
+    this.ink.uniforms.uGlow.value = 0.025 + dusk * 0.12;
+    this.smoke?.setDusk(dusk);
+    this.smoke?.setFog(fog);
+  }
+
+  /** The existing simulation remains the sole owner of traffic. Take its
+   * actual axle poses only at 8.3 Hz, expand to bumpers, and sense all wagons. */
+  private senseCrossings() {
+    if (!this.crossings) return;
+    let count = 0;
+    for (const m of this.traffic.sim.movers) {
+      if (m.dead) continue;
+      const poses = this.traffic.sim.poses(m);
+      for (let i = 0; i < poses.length && count < this.bodies.length; i++) {
+        const pose = poses[i];
+        const a = m.kind === RAIL && m.pushed ? pose.back : pose.front;
+        const b = m.kind === RAIL && m.pushed ? pose.front : pose.back;
+        const length = Math.hypot(a.x - b.x, a.z - b.z) || 1;
+        const spec = m.cars[i];
+        const overhang = spec.length * (m.kind === RAIL ? 0.2 : 0.22);
+        const dx = (a.x - b.x) / length,
+          dz = (a.z - b.z) / length;
+        const body = this.bodies[count++];
+        body.ax = a.x + dx * overhang;
+        body.az = a.z + dz * overhang;
+        body.bx = b.x - dx * overhang;
+        body.bz = b.z - dz * overhang;
+        body.width = spec.width;
+        body.speed =
+          m.speed > 0.002 && m.wait <= 0 && !m.pending
+            ? Math.max(m.speed, m.max)
+            : 0;
+        body.maxSpeed = m.max;
+        body.restartIn =
+          m.wait > 0 && !m.pending && m.held < 0.15 ? m.wait : undefined;
+        body.kind = m.kind;
+      }
+    }
+    this.crossings.sense(this.bodies, count);
   }
 
   /** A loose end: buffers on a rail, a barrier across a street, and a
@@ -903,6 +1154,12 @@ export class RotaWorld {
    *  to the board. */
   snapshot(view: BoardView, size = 720) {
     const saved = this.view;
+    const daylight = {
+      value: this.daylight.value,
+      target: this.daylight.target,
+      from: this.daylight.from,
+      elapsed: this.daylight.elapsed,
+    };
     this.quiet = true;
     this.traffic.group.visible = false;
     this.setView({
@@ -959,6 +1216,8 @@ export class RotaWorld {
     cam.fov = FOV;
     cam.up.set(0, 1, 0);
     if (saved) this.setView(saved);
+    Object.assign(this.daylight, daylight);
+    this.applyDusk();
     this.traffic.group.visible = true;
     this.quiet = false;
     // Back to the table's own view (fit resets the fog and the ink too).
@@ -984,11 +1243,33 @@ export class RotaWorld {
       this.fit();
     }
     this.time += dt;
+    if (this.daylight.tick(dt)) this.applyDusk();
     const still = this.opts.still;
     if (this.pending && this.time >= this.pending.at) this.flush();
     this.ground.tick(still ? 1 : this.time);
     this.traffic.tick(dt, !still);
+    this.passengers.tick(dt);
+    this.figures.draw(this.passengers.walkers);
+    if (this.time >= this.sensorAt) {
+      this.senseCrossings();
+      this.sensorAt = this.time + 0.12;
+    }
+    this.crossings?.tick(
+      dt,
+      this.time,
+      this.daylight.value,
+      this.crossingOccupancy,
+    );
+    if (this.crossings) this.people?.tick(dt, this.time, this.crossings.states);
+    this.people?.fillCrossingOccupancy(this.crossingOccupancy);
+    this.life?.tick(this.time);
+    this.mats.tick(still ? 11 : this.time, this.daylight.value);
     this.town.tick(this.time);
+    this.town.atmosphere(
+      still ? 3.1 : this.time,
+      this.daylight.value,
+      this.scene.fog as THREE.Fog,
+    );
     this.smoke?.tick(still ? 3.1 : this.time);
     // New pieces drop onto the board with a small bounce.
     for (const e of this.cells.values()) {
@@ -1028,13 +1309,16 @@ export class RotaWorld {
       'webglcontextrestored',
       this.onContextRestored,
     );
-    this.traffic.clear();
+    this.traffic.dispose();
+    this.passengers.clear();
+    this.figures.dispose();
     for (const e of this.cells.values()) disposeGroup(e.group);
     clearDispose(this.statics);
     clearDispose(this.peaks);
     clearDispose(this.rubble);
     clearDispose(this.loose);
     clearDispose(this.ghost);
+    this.disposeLife();
     clearDispose(this.scenery);
     this.town.dispose();
     this.smoke?.dispose();

@@ -41,6 +41,7 @@ import kit
 import face_paint
 import face_rig
 import figure_viking_kit as vk
+import figure_viking_sculpt as sculpt
 from figure_viking_kit import V, gauss, lerp, smooth, spow, table
 from mathutils import Matrix, Vector
 
@@ -50,12 +51,12 @@ T = kit.tint
 # ------------------------------------------------------------- paints
 # Twelve pots, one draw batch each at runtime.
 
-SKIN = "resin:" + T("viking-skin", "#eab08c")
-GINGER = "weave:" + T("viking-ginger", "#cf642a")
+SKIN = "skin:" + T("viking-skin", "#dca580")
+GINGER = "hair:" + T("viking-ginger", "#a54d23")
 IRON = "gilt:" + T("viking-iron", "#7d8591")
 EDGE = "gilt:" + T("viking-edge", "#d3dae2")
 BRONZE = "gilt:" + T("viking-bronze", "#c08d45")
-FUR = "weave:" + T("viking-fur", "#9a8c7e")
+FUR = "hair:" + T("viking-fur", "#8d8b86")
 TEAM = "weave:team"                          # tunic
 TRIM = "weave:team3"                         # tunic trim
 TROUSER = "weave:team2"                      # trousers
@@ -618,9 +619,9 @@ def helm_point(ad, z, off=0.0):
 
 def helmet():
     pieces = []
-    n = 32
+    n = 96
     angs = [i / n * 360 - 180 for i in range(n)]
-    zs = [None, None, 1.24, 1.265, 1.288, 1.308, 1.324, 1.336]
+    zs = [None, None] + [lerp(1.224, 1.342, j / 22) for j in range(23)]
     rings = []
     for j, z in enumerate(zs):
         ring = []
@@ -641,20 +642,20 @@ def helmet():
     pieces.append(vk.loft(f"{R}-browband", band, IRON))
     # Four bronze bands over the dome, riveted to the brow band.
     for k, ad in enumerate((0, 90, 180, -90)):
-        pts, zs2 = [], [rim_z(ad) + 0.02, 1.225, 1.25, 1.275, 1.3, 1.32,
-                        1.338, 1.347]
+        pts, zs2 = [], [rim_z(ad) + 0.02] + [lerp(1.225, 1.347, j / 18)
+                                           for j in range(19)]
         for z in zs2:
             pts.append(helm_point(ad, min(z, HELM_TOP - 0.003), 0.004))
         up = V(math.sin(math.radians(ad)), math.cos(math.radians(ad)), 0)
         pieces.append(vk.tube(f"{R}-spangen{k}", pts,
-                              [(0.004, 0.013)] * len(pts), BRONZE, n=6,
+                              [(0.004, 0.013)] * len(pts), BRONZE, n=12,
                               up=up, caps=("flat", None)))
         for dz in (0.008, 0.019):
             p = helm_point(ad, rim_z(ad) + dz, 0.0085)
             pieces.append(vk.ball(f"{R}-rivet{k}{dz}", 0.0048, p, BRONZE,
-                                  seg=6, rings=3))
+                                  seg=20, rings=10))
     pieces.append(vk.ball(f"{R}-boss", 0.02, V(0, 0.008, HELM_TOP), BRONZE,
-                          scale=(1, 1, 0.6), seg=10, rings=5))
+                          scale=(1, 1, 0.6), seg=32, rings=16))
     # The nasal, following the nose.
     pts = []
     for z, off in ((1.216, 0.02), (1.19, 0.011), (1.17, 0.008),
@@ -670,14 +671,14 @@ def helmet():
 
 def head():
     skull = HEAD.skull(SKIN, GINGER, hairline=hairline)
-    whiskers = beard()
+    whiskers = sculpt.beard()
     # The cheek hair and moustache stay on the face. Only the hanging mass
     # and its beaded ends swing, so the mouth never separates from its skin.
     soft = [o for o in whiskers if not any(x in o.name for x in
-                                          ("-cheeks", "-stache"))]
+                                          ("-beard-cheek", "-stache"))]
     pieces = [skull, neck()] + face() + brows() + \
         [o for o in whiskers if o not in soft] + \
-        HEAD.ears(SKIN) + nape() + helmet()
+        HEAD.ears(SKIN) + sculpt.nape() + helmet()
     vk.transform(pieces + soft, Matrix.Translation(V(0, 0, HEAD_DZ)))
     return pieces, soft
 
@@ -760,6 +761,32 @@ def build_arm(side):
     hand = vk.fist(f"{R}-hand{side}", c, xax, kax, chir, SKIN)
     vk.scale_about(hand, c, FIST_SCALE)
     return pieces + hand, s
+
+
+def articulated_arm(side, torso):
+    """Anatomical shoulder, elbow and wrist pivots with a shaft-sized grip.
+
+    Both shoulders share their x axis and both carry the same pitch.  The
+    bent elbows and wrists therefore stay in the authored two-hand hold,
+    including a complete circular attack, without drifting on separate
+    springs.  The source retains separate forearm/hand editability.
+    """
+    if side == "R":
+        s, sx, c, chir = S_R, 1, GRIP_R, -1
+        pole = S_R + V(0.7, -0.45, -0.25)
+    else:
+        s, sx, c, chir = S_L, -1, GRIP_L, 1
+        pole = S_L + V(-0.55, -0.3, -0.35)
+    e, w, xax = arm_pose(s, c, pole)
+    kax = D.cross(xax) if chir > 0 else xax.cross(D)
+    upper, lower = sculpt.sleeve(side, s, e, w, sx)
+    arm = part(f"arm{side}", upper, s, torso)
+    fore = part(f"fore{side}", lower, e, arm)
+    grip = sculpt.gripping_hand(side, c, xax, kax, chir)
+    hand = part(f"hand{side}", grip, w, fore, angle=65)
+    hand["gripCentre"] = list(c - w)
+    hand["shaftRadius"] = .0205
+    return arm, fore, hand
 
 
 # ------------------------------------------------------------- the axe
@@ -866,33 +893,90 @@ def part(name, pieces, pivot, par, angle=48):
 
 
 def build(root_name="viking"):
+    global HEAD
     assert root_name == R
+    sculpt.configure(globals())
+    HEAD = sculpt.SculptedHead(R, FACE_W, FACE_D, BACK_D, face_disp,
+                              hc=tuple(HC))
+    sculpt.configure(globals())
     root = kit.empty(R)
     for side, sx in (("L", -1), ("R", 1)):
-        pieces, hip = leg(sx)
-        part(f"leg{side}", pieces, hip, root)
+        thigh, shin, boot, hip, knee, ankle = sculpt.legs(sx)
+        thigh_obj = part(f"leg{side}", thigh, hip, root)
+        shin_obj = part(f"knee{side}", shin, knee, thigh_obj)
+        part(f"foot{side}", boot, ankle, shin_obj)
 
-    torso = tunic() + belt() + fur_collar()
+    torso = sculpt.tunic() + belt() + sculpt.fur()
     torso_obj = part("torso", torso, WAIST, root)
     for side, sx in (("L", -1), ("R", 1)):
-        part(f"skirt{side}", skirt(sx), V(sx * HIP_X, 0, HIP_Z), torso_obj)
+        part(f"skirt{side}", sculpt.skirt(sx), V(sx * HIP_X, 0, HIP_Z), torso_obj)
     face, whiskers = head()
     head_obj = face_rig.head(vk.part, R, face, NECK, torso_obj, angle=62)
     part("beard", whiskers, V(0, 0.032, 1.078 + HEAD_DZ), head_obj, angle=62)
 
-    arm_r, s_r = build_arm("R")
-    arm_r_obj = part("armR", arm_r, s_r, torso_obj)
-    blade = axe()
+    _, _, hand_r = articulated_arm("R", torso_obj)
+    blade = sculpt.axe()
     vk.transform(blade, axe_frame())
-    part("weapon", blade, GRIP_R, arm_r_obj, angle=40)
-    arm_l, s_l = build_arm("L")
-    part("armL", arm_l, s_l, torso_obj)
+    part("weapon", blade, GRIP_R, hand_r, angle=40)
+    articulated_arm("L", torso_obj)
+    sculpt.prepare_materials()
+
+    root["sourceVersion"] = "2026-10-04-viking-authored-v1"
+    root["twoHandGrip"] = "equal shoulder x; locked forearm, wrist and haft"
+    root["scaleIdentity"] = "original 1.36m miniature, unchanged gameplay size"
 
     report(root)
     pose = os.environ.get("VIKING_POSE")
     if pose:
         vk.pose(root, R, POSES, pose)
     return root
+
+
+def build_master(root_name="viking"):
+    """Reconstruct the detailed editable source, independent of runtime."""
+    return build(root_name)
+
+
+def build_runtime(root_name="viking"):
+    """Reconstruct the exact reviewed runtime topology, rest and baked AO."""
+    import figure_viking_runtime_cache
+    return figure_viking_runtime_cache.restore(root_name)
+
+
+def build_runtime_recipe(root_name="viking"):
+    """Author a new separate reduction; review it before replacing the cache."""
+    import figure_viking_runtime as runtime
+    previous = vk.RUNTIME_REDUCER
+    runtime.begin()
+    vk.RUNTIME_REDUCER = runtime
+    try:
+        root = build(root_name)
+        runtime.finish(root)
+        # Match the retained v4 review copy's rest and genuine AO. A full
+        # figures build may already contain other characters; their meshes
+        # must not cast occlusion into this independently reviewed sculpt.
+        head = next(o for o in kit.descendants(root)
+                    if o.name == f"{root_name}.head")
+        head.rotation_euler.x += math.radians(5)
+        kit.refresh()
+        meshes = [o for o in kit.descendants(root) if o.type == "MESH"]
+        own = set(meshes)
+        foreign = [(o, o.hide_render) for o in bpy.data.objects
+                   if o.type == "MESH" and o not in own]
+        try:
+            for obj, _ in foreign:
+                obj.hide_render = True
+            kit.bake_ao(meshes, samples=64, distance=.17)
+        finally:
+            for obj, hidden in foreign:
+                obj.hide_render = hidden
+        root["arenaReviewedRestPose"] = 1
+        root["arenaReviewedAO"] = 1
+        root["arenaAOSamples"] = 64
+        root["arenaAODistance"] = .17
+        return root
+    finally:
+        vk.RUNTIME_REDUCER = previous
 
 
 # Preview poses in three.js Euler terms, as moves/viking.ts sets them.

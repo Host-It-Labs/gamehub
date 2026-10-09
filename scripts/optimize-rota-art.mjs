@@ -1,18 +1,19 @@
 // Rota's delivery files: the chosen square cover (1024 square, spine and
 // responsive sizes) and the wide lid cover cut to its middle 3:1 band.
 // Mechanical crops and resizes only; never paint over the generated title.
-// Sources and prompts: docs/concepts/2026-09-29-rota-covers. The PNGs live
-// in the art archive beside the repo (ART_ARCHIVE), not in git.
+// Sources and prompts: docs/concepts/2026-10-09-puzzles-rota-diner-covers
+// (the mill town covers), where the chosen PNGs are kept.
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { boxCover, wideCover } from '../lib/games/box-covers.ts';
 
 const archive = process.env.ART_ARCHIVE ?? '../gamehub-art-archive/public/art';
+const fresh = 'docs/concepts/2026-10-09-puzzles-rota-diner-covers/sources';
 const find = (file) =>
-  [`${archive}/${file}`, `public/art/${file}`].find((p) => existsSync(p));
-const square = find('box-rota-v2-a.png');
-const wide = find('box-rota-wide-v1-b.png');
+  [`${fresh}/${file}`, `${archive}/${file}`, `public/art/${file}`].find((p) => existsSync(p));
+const square = find('rota-square-a.png');
+const wide = find('rota-wide-a.png');
 if (!square || !wide) {
   // Without the sources the committed delivery files stay as they are.
   console.log('Rota cover sources not found; nothing to do.');

@@ -1,0 +1,407 @@
+TAP version 13
+# (node:30955) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Diner appears on both shelves and resolves only in development
+ok 1 - Diner appears on both shelves and resolves only in development
+  ---
+  duration_ms: 7.009916
+  type: 'test'
+  ...
+# Subtest: Diner routes, room launch and lobby votes enforce the development gate
+not ok 2 - Diner routes, room launch and lobby votes enforce the development gate
+  ---
+  duration_ms: 41.449458
+  type: 'test'
+  location: '/Users/williamguinaudie/Documents/code/gamehub/tests/diner-availability.test.mjs:35:7'
+  failureType: 'uncaughtException'
+  error: 'listen EPERM: operation not permitted 127.0.0.1'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    listenInCluster (node:net:1997:12)
+    node:net:2206:7
+    process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+  ...
+# Subtest: free play keeps the best medals and takings per night
+ok 3 - free play keeps the best medals and takings per night
+  ---
+  duration_ms: 1.340417
+  type: 'test'
+  ...
+# Subtest: a run is saved at every step and banks its tokens once
+ok 4 - a run is saved at every step and banks its tokens once
+  ---
+  duration_ms: 20.308375
+  type: 'test'
+  ...
+# Subtest: the Workshop waits until the run is over
+ok 5 - the Workshop waits until the run is over
+  ---
+  duration_ms: 0.341375
+  type: 'test'
+  ...
+# Subtest: blocked storage keeps the run in memory and says so
+ok 6 - blocked storage keeps the run in memory and says so
+  ---
+  duration_ms: 0.715708
+  type: 'test'
+  ...
+# Subtest: a broken run never costs the Workshop its tokens
+ok 7 - a broken run never costs the Workshop its tokens
+  ---
+  duration_ms: 0.465875
+  type: 'test'
+  ...
+# Subtest: the road: three legs of 2-3-3-2 forks and a boss, every stop reachable
+ok 8 - the road: three legs of 2-3-3-2 forks and a boss, every stop reachable
+  ---
+  duration_ms: 38.6375
+  type: 'test'
+  ...
+# Subtest: a run starts with the Workshop’s lives and coins, and keeps them through the night
+ok 9 - a run starts with the Workshop’s lives and coins, and keeps them through the night
+  ---
+  duration_ms: 51.882
+  type: 'test'
+  ...
+# Subtest: gas: paid on the way; an empty wallet costs a life instead
+ok 10 - gas: paid on the way; an empty wallet costs a life instead
+  ---
+  duration_ms: 1.397167
+  type: 'test'
+  ...
+# Subtest: difficulty climbs every stop, and each leg adds dishes, booths and trouble
+ok 11 - difficulty climbs every stop, and each leg adds dishes, booths and trouble
+  ---
+  duration_ms: 1.196166
+  type: 'test'
+  ...
+# Subtest: rewards: equipment picks, cash pays more, a life heals, losing every life ends it
+ok 12 - rewards: equipment picks, cash pays more, a life heals, losing every life ends it
+  ---
+  duration_ms: 1.075458
+  type: 'test'
+  ...
+# Subtest: equipment offers never repeat what the run owns or the Workshop gives
+ok 13 - equipment offers never repeat what the run owns or the Workshop gives
+  ---
+  duration_ms: 0.550375
+  type: 'test'
+  ...
+# Subtest: the Garage sells equipment and repairs; the Motel heals or tunes
+ok 14 - the Garage sells equipment and repairs; the Motel heals or tunes
+  ---
+  duration_ms: 0.848375
+  type: 'test'
+  ...
+# Subtest: beating the third boss: keep driving into overtime, or finish
+ok 15 - beating the third boss: keep driving into overtime, or finish
+  ---
+  duration_ms: 0.359542
+  type: 'test'
+  ...
+# Subtest: the Workshop needs enough tokens for each rank
+ok 16 - the Workshop needs enough tokens for each rank
+  ---
+  duration_ms: 0.209167
+  type: 'test'
+  ...
+# Subtest: a checkpoint keeps the whole simulation; stale or foreign matches are refused
+ok 17 - a checkpoint keeps the whole simulation; stale or foreign matches are refused
+  ---
+  duration_ms: 3.679459
+  type: 'test'
+  ...
+# Subtest: the ramp: a slow, careful bot with no upgrades runs out of lives before the end of the night
+ok 18 - the ramp: a slow, careful bot with no upgrades runs out of lives before the end of the night
+  ---
+  duration_ms: 267.886125
+  type: 'test'
+  ...
+# (node:30958) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a table launches a diner and every waiter steers their own
+not ok 19 - a table launches a diner and every waiter steers their own
+  ---
+  duration_ms: 39.820667
+  type: 'test'
+  location: '/Users/williamguinaudie/Documents/code/gamehub/tests/diner-online.test.mjs:136:7'
+  failureType: 'uncaughtException'
+  error: 'listen EPERM: operation not permitted 127.0.0.1'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    listenInCluster (node:net:1997:12)
+    node:net:2206:7
+    process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+  ...
+# Subtest: online cooking lanes survive reconnects and concurrent clients cannot duplicate a plate
+not ok 20 - online cooking lanes survive reconnects and concurrent clients cannot duplicate a plate
+  ---
+  duration_ms: 38.373042
+  type: 'test'
+  location: '/Users/williamguinaudie/Documents/code/gamehub/tests/diner-online.test.mjs:281:7'
+  failureType: 'uncaughtException'
+  error: 'listen EPERM: operation not permitted 127.0.0.1'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    listenInCluster (node:net:1997:12)
+    node:net:2206:7
+    process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+  ...
+# Subtest: a shift opens without a waiter who never comes, and the host starts the next
+not ok 21 - a shift opens without a waiter who never comes, and the host starts the next
+  ---
+  duration_ms: 43.721542
+  type: 'test'
+  location: '/Users/williamguinaudie/Documents/code/gamehub/tests/diner-online.test.mjs:375:7'
+  failureType: 'uncaughtException'
+  error: 'listen EPERM: operation not permitted 127.0.0.1'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    listenInCluster (node:net:1997:12)
+    node:net:2206:7
+    process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+  ...
+# Subtest: a table of five is too many waiters
+not ok 22 - a table of five is too many waiters
+  ---
+  duration_ms: 35.030792
+  type: 'test'
+  location: '/Users/williamguinaudie/Documents/code/gamehub/tests/diner-online.test.mjs:427:7'
+  failureType: 'uncaughtException'
+  error: 'listen EPERM: operation not permitted 127.0.0.1'
+  code: 'EPERM'
+  stack: |-
+    Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    listenInCluster (node:net:1997:12)
+    node:net:2206:7
+    process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+  ...
+# Subtest: a packed match comes back the same
+ok 23 - a packed match comes back the same
+  ---
+  duration_ms: 20.965209
+  type: 'test'
+  ...
+# Subtest: a twin grill cooks three burgers side by side
+ok 24 - a twin grill cooks three burgers side by side
+  ---
+  duration_ms: 8.435
+  type: 'test'
+  ...
+# Subtest: auto restock starts the next plate only while someone still needs it
+ok 25 - auto restock starts the next plate only while someone still needs it
+  ---
+  duration_ms: 1.997833
+  type: 'test'
+  ...
+# Subtest: the heat-lamp pass: full hands shelve a plate, a free hand takes one
+ok 26 - the heat-lamp pass: full hands shelve a plate, a free hand takes one
+  ---
+  duration_ms: 0.512625
+  type: 'test'
+  ...
+# Subtest: coffee: a pot from the urn calms a waiting party, three pours a pot
+ok 27 - coffee: a pot from the urn calms a waiting party, three pours a pot
+  ---
+  duration_ms: 0.795083
+  type: 'test'
+  ...
+# Subtest: the jukebox pauses everyone’s patience for a song, then rests
+ok 28 - the jukebox pauses everyone’s patience for a song, then rests
+  ---
+  duration_ms: 1.502292
+  type: 'test'
+  ...
+# Subtest: roller skates: a short dash with a cooldown
+ok 29 - roller skates: a short dash with a cooldown
+  ---
+  duration_ms: 0.613042
+  type: 'test'
+  ...
+# Subtest: a chrome tray carries three plates
+ok 30 - a chrome tray carries three plates
+  ---
+  duration_ms: 0.5965
+  type: 'test'
+  ...
+# Subtest: every outfit retains its clue colours and finite authored surfaces within the original draw budget
+ok 31 - every outfit retains its clue colours and finite authored surfaces within the original draw budget
+  ---
+  duration_ms: 2538.742834
+  type: 'test'
+  ...
+# Subtest: hips, knees, ankles, shoulders, elbows and wrists remain a connected hierarchy in extreme poses
+ok 32 - hips, knees, ankles, shoulders, elbows and wrists remain a connected hierarchy in extreme poses
+  ---
+  duration_ms: 100.118542
+  type: 'test'
+  ...
+# Subtest: a planted sole stays at floor height and stays still as root advances through stance
+ok 33 - a planted sole stays at floor height and stays still as root advances through stance
+  ---
+  duration_ms: 96.698667
+  type: 'test'
+  ...
+# Subtest: carry palms meet the tray and the dish stays level through movement; reduced idle is calm
+ok 34 - carry palms meet the tray and the dish stays level through movement; reduced idle is calm
+  ---
+  duration_ms: 237.076917
+  type: 'test'
+  ...
+# Subtest: continuous knees and elbows have normalized skinning and each actor frees its own bone texture on removal
+ok 35 - continuous knees and elbows have normalized skinning and each actor frees its own bone texture on removal
+  ---
+  duration_ms: 88.385792
+  type: 'test'
+  ...
+# Subtest: first-frame placement and distant online corrections do not fling a walking phase
+ok 36 - first-frame placement and distant online corrections do not fling a walking phase
+  ---
+  duration_ms: 80.649792
+  type: 'test'
+  ...
+# Subtest: starting and stopping keep planted soles still while the free foot settles without snapping
+ok 37 - starting and stopping keep planted soles still while the free foot settles without snapping
+  ---
+  duration_ms: 91.028125
+  type: 'test'
+  ...
+# Subtest: source and runtime copies retain every material channel, clue palette and exact joint motion
+ok 38 - source and runtime copies retain every material channel, clue palette and exact joint motion
+  ---
+  duration_ms: 942.173208
+  type: 'test'
+  ...
+# Subtest: a failed or nested runtime build cannot lower the detailed master sampling
+ok 39 - a failed or nested runtime build cannot lower the detailed master sampling
+  ---
+  duration_ms: 0.627917
+  type: 'test'
+  ...
+# Subtest: the room, stations, queue and doorway stay clear of measured HUD and touch controls
+ok 40 - the room, stations, queue and doorway stay clear of measured HUD and touch controls
+  ---
+  duration_ms: 4.136208
+  type: 'test'
+  ...
+# Subtest: merged tactile geometry keeps finite UVs and outward-facing sculpted profiles
+ok 41 - merged tactile geometry keeps finite UVs and outward-facing sculpted profiles
+  ---
+  duration_ms: 21.819667
+  type: 'test'
+  ...
+# Subtest: every outfit has independently rigged joints; expression changes preserve outfit geometry
+ok 42 - every outfit has independently rigged joints; expression changes preserve outfit geometry
+  ---
+  duration_ms: 649.560875
+  type: 'test'
+  ...
+# Subtest: surface textures repeat with mipmaps and each owned map is freed once
+ok 43 - surface textures repeat with mipmaps and each owned map is freed once
+  ---
+  duration_ms: 121.937
+  type: 'test'
+  ...
+# Subtest: endless shifts evict unused geometry without freeing a currently visible actor
+ok 44 - endless shifts evict unused geometry without freeing a currently visible actor
+  ---
+  duration_ms: 149.350583
+  type: 'test'
+  ...
+# Subtest: leaving a room releases every remaining actor bone texture
+ok 45 - leaving a room releases every remaining actor bone texture
+  ---
+  duration_ms: 236.406792
+  type: 'test'
+  ...
+# Subtest: a whole visit: seat, order, cook, serve, eat, pay, clear and wash
+ok 46 - a whole visit: seat, order, cook, serve, eat, pay, clear and wash
+  ---
+  duration_ms: 14.640667
+  type: 'test'
+  ...
+# Subtest: a burger left on the grill burns and only goes in the bin
+ok 47 - a burger left on the grill burns and only goes in the bin
+  ---
+  duration_ms: 2.08625
+  type: 'test'
+  ...
+# Subtest: a party left waiting too long walks out and takes a star
+ok 48 - a party left waiting too long walks out and takes a star
+  ---
+  duration_ms: 4.899
+  type: 'test'
+  ...
+# Subtest: throwing out a mimic pays; throwing out a real guest costs a star
+ok 49 - throwing out a mimic pays; throwing out a real guest costs a star
+  ---
+  duration_ms: 2.198458
+  type: 'test'
+  ...
+# Subtest: an unspotted mimic bursts out with the bill and leaves goo to mop
+ok 50 - an unspotted mimic bursts out with the bill and leaves goo to mop
+  ---
+  duration_ms: 52.477
+  type: 'test'
+  ...
+# Subtest: two hands: give first, then take, then start; never a dish nobody needs
+ok 51 - two hands: give first, then take, then start; never a dish nobody needs
+  ---
+  duration_ms: 32.737708
+  type: 'test'
+  ...
+# Subtest: leading needs no hands; a stack of dirty plates fills both
+ok 52 - leading needs no hands; a stack of dirty plates fills both
+  ---
+  duration_ms: 1.349167
+  type: 'test'
+  ...
+# Subtest: the same seed and inputs give the same shift
+ok 53 - the same seed and inputs give the same shift
+  ---
+  duration_ms: 37.830041
+  type: 'test'
+  ...
+# Subtest: more waiters bring more guests and ask for more coins
+ok 54 - more waiters bring more guests and ask for more coins
+  ---
+  duration_ms: 790.957375
+  type: 'test'
+  ...
+# Subtest: nights add stations, booths and mimics
+ok 55 - nights add stations, booths and mimics
+  ---
+  duration_ms: 12.260209
+  type: 'test'
+  ...
+# Subtest: a party walks around the booths, never through them
+ok 56 - a party walks around the booths, never through them
+  ---
+  duration_ms: 0.578958
+  type: 'test'
+  ...
+# Subtest: a greedy bot earns two or three medals on Night 1
+ok 57 - a greedy bot earns two or three medals on Night 1
+  ---
+  duration_ms: 206.399958
+  type: 'test'
+  ...
+# Subtest: the bot spots mimics by their outfit and never throws out a real guest
+ok 58 - the bot spots mimics by their outfit and never throws out a real guest
+  ---
+  duration_ms: 78.273666
+  type: 'test'
+  ...
+1..58
+# tests 58
+# suites 0
+# pass 53
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4614.284292

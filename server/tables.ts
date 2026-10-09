@@ -3,6 +3,7 @@ import { isGameAvailable } from '../lib/games/availability.ts';
 
 import { placeHistoryKey } from '../lib/games/party/geography.ts';
 import { pairKey } from '../lib/games/party/impostor.ts';
+import { isTriviaMode, triviaModeOf, type TriviaMode } from '../lib/games/party/trivia.ts';
 import type { StandaloneId } from '../lib/games/standalone/types.ts';
 import { standaloneGames, isStandaloneId, observe as observeAdventure, botMove as adventureBot, decisionKey as adventureKey, tick as tickAdventure, type AnyGame } from '../lib/games/standalone/registry.ts';
 import { practice, adventureLessons } from '../lib/games/adventures/lessons.ts';
@@ -61,6 +62,8 @@ export type StoredTable = {
   fastMode?: boolean;
   /** Party games: the table votes between rounds; otherwise the host picks. */
   partyVotes?: boolean;
+  /** Retained when the table plays another game, so Trivia keeps its setup. */
+  triviaMode?: TriviaMode;
   capacity: number;
   revision: number;
   status: Table['status'];
@@ -91,7 +94,7 @@ function finishAdventure(t: StoredTable, now = Date.now()) {
   if (t.status !== 'playing' || !t.adventure?.over || t.adventure.tutorial) return;
   t.status = 'finished';
   endMatch(t);
-  t.nextVote = t.partyVotes
+  t.nextVote = t.partyVotes && triviaModeOf(t.adventure) === 'quick'
     ? { endsAt: now + nextGameMs, ballots: {} }
     : { endsAt: null, ballots: {}, host: true };
 }
@@ -207,6 +210,10 @@ export class Tables {
       const table = JSON.parse(row.state) as StoredTable;
       const legacy = { ...table } as unknown as Record<string, unknown>;
       let changed = false;
+      if (!isTriviaMode(table.triviaMode)) {
+        table.triviaMode = 'quick';
+        changed = true;
+      }
       // Dial is played inside Tribu and Sizes inside Sabi; their tables open
       // the set's box.
       if (table.gameId === 'dial') { table.gameId = 'orin'; changed = true; }
@@ -382,6 +389,7 @@ export class Tables {
       owner: who.userId,
       gameId: 'undertow',
       ambienceEnabled: false,
+      triviaMode: 'quick',
       difficulty: 'medium',
       capacity: 6,
       revision: 0,
@@ -459,6 +467,7 @@ export class Tables {
       marketSeasons: t.marketSeasons ?? false,
       fastMode: t.fastMode ?? false,
       partyVotes: t.partyVotes ?? false,
+      triviaMode: t.triviaMode ?? 'quick',
       ambienceEnabled: t.ambienceEnabled === true,
       capacity: t.capacity,
       revision: t.revision,
@@ -654,6 +663,17 @@ export class Tables {
           );
           t.partyVotes = a.partyVotes ?? t.partyVotes ?? false;
           check(
+            a.triviaMode === undefined || isTriviaMode(a.triviaMode),
+            400,
+            'Invalid Trivia mode.',
+          );
+          check(
+            a.triviaMode === undefined || a.gameId === 'miro',
+            400,
+            'Trivia mode belongs to Trivia.',
+          );
+          t.triviaMode = a.triviaMode ?? t.triviaMode ?? 'quick';
+          check(
             a.contentSet === undefined ||
               contentSetsFor(a.gameId).includes(a.contentSet),
             400,
@@ -759,9 +779,26 @@ export class Tables {
               name: `Bot ${t.seats.length + 1}`,
               bot: true,
             });
-          if(isStandaloneId(t.gameId)){
-            t.game=null;t.adventure=a.type==='start'&&a.learning?practice(t.gameId,t.capacity,t.difficulty,0):standaloneGames[t.gameId].create(t.capacity,randomInt(4294967296),t.difficulty,'individual',this.contentHistory(t),undefined,t.partyVotes??false);
-            t.adventure.seats=t.seats.map(s=>s.name);t.matchId=token();t.status='playing';t.botError=false;break;
+          if (isStandaloneId(t.gameId)) {
+            t.game = null;
+            t.adventure =
+              a.type === 'start' && a.learning
+                ? practice(t.gameId, t.capacity, t.difficulty, 0)
+                : standaloneGames[t.gameId].create(
+                    t.capacity,
+                    randomInt(4294967296),
+                    t.difficulty,
+                    'individual',
+                    this.contentHistory(t),
+                    undefined,
+                    t.partyVotes ?? false,
+                    t.gameId === 'miro' ? (t.triviaMode ?? 'quick') : undefined,
+                  );
+            t.adventure.seats = t.seats.map((s) => s.name);
+            t.matchId = token();
+            t.status = 'playing';
+            t.botError = false;
+            break;
           }
           t.adventure=null;
           t.game = createGame(
@@ -958,7 +995,16 @@ export class Tables {
     if (!standaloneGames[id].seatChoices.includes(n)) return;
     t.gameId = id;
     t.capacity = n;
-    t.adventure = standaloneGames[id].create(n, randomInt(4294967296), t.difficulty, 'individual', this.contentHistory(t), undefined, t.partyVotes ?? false);
+    t.adventure = standaloneGames[id].create(
+      n,
+      randomInt(4294967296),
+      t.difficulty,
+      'individual',
+      this.contentHistory(t),
+      undefined,
+      t.partyVotes ?? false,
+      id === 'miro' ? (t.triviaMode ?? 'quick') : undefined,
+    );
     t.adventure.seats = t.seats.map((s) => s.name);
     t.game = null;
     t.matchId = token();

@@ -2,10 +2,14 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import {
   DIRS,
+  ORDER,
   MACHINES,
   TICK_MS,
   floorSize,
+  intakes,
   itemValue,
+  outlets,
+  type Dir,
   type FactoryState,
   type Item,
   type Machine,
@@ -18,8 +22,9 @@ import {
   type ScratchState,
 } from '@/lib/games/relic/scratch';
 import { TICKET_ART } from '../relic-scratch-art';
-import { Pacer, type Rung } from '../arena/pacer';
-import { FactoryCamera, type ScreenPoint } from './camera';
+import { Pacer, type Rung } from '../render-pacer';
+import { nativeRatio, startLevel } from '../render-quality';
+import { FactoryCamera, type Insets, type ScreenPoint } from './camera';
 import { factoryQuality } from './quality';
 import { Kit, type MatKey } from './kit';
 import {
@@ -40,7 +45,11 @@ import {
   badgeTexture,
   chevronTexture,
   glowTexture,
+  FLOOR_TILES_PER_REPEAT,
+  REACH_STYLE,
   floorBumpTexture,
+  floorTexture,
+  reachTexture,
   gridTexture,
   makeMaterials,
   markTexture,
@@ -49,6 +58,7 @@ import {
 } from './look';
 import { boosted, job, statusOf, type MachineStatus } from './status';
 import { SaleFx } from './fx';
+import type { Overlay as EditorOverlay } from './editor';
 
 /**
  * Lucky's ticket factory in 3D (3 October 2026): a brass-framed enamel
@@ -66,17 +76,8 @@ import { SaleFx } from './fx';
  */
 
 export type Cell = { x: number; y: number };
-export type Overlay = {
-  mode: 'select' | 'erase' | 'build';
-  hover: Cell | null;
-  selected: Cell[];
-  erasing: Cell[];
-  /** Machines about to be built where the pointer is. */
-  ghosts: (Cell & { kind: MachineKind; dir: number })[];
-  /** Machines being dragged: drawn at their new cells. */
-  lifted: { from: Cell[]; to: Cell[]; ok: boolean } | null;
-  marquee: { x0: number; y0: number; x1: number; y1: number } | null;
-};
+/** What the editor draws over the floor; see `editor.ts`. */
+export type Overlay = EditorOverlay;
 const EMPTY: Overlay = {
   mode: 'select',
   hover: null,
@@ -85,21 +86,16 @@ const EMPTY: Overlay = {
   ghosts: [],
   lifted: null,
   marquee: null,
+  reach: [],
+  handle: null,
 };
 
 type Kind = Exclude<MachineKind, 'belt'>;
-const KINDS: Kind[] = [
-  'printer',
-  'bot',
-  'cashier',
-  'splitter',
-  'lamp',
-  'ink',
-  'stamper',
-  'gilder',
-  'charm',
-  'bundler',
-];
+/** Machines are picked up to this height: higher, thinner parts such as a
+ * lamp's head or the cashier's sign leave the cells behind them clickable. */
+const PICK_TOP = 0.72;
+const KINDS = ORDER.filter((kind): kind is Kind => kind !== 'belt');
+const MAX_LINKS = 16 * 9 * 8;
 const SHAPES: BeltShape[] = ['straight', 'left', 'right'];
 const TICKET_LONG = 0.44;
 const STEP_S = TICK_MS / 1000;
@@ -119,6 +115,9 @@ type MView = {
   last: number;
   turn: number;
   boost: boolean;
+  /** Boosters: eased 0..1 boost and accumulated spin, so turns never jump. */
+  energy: number;
+  spin: number;
   shape: BeltShape;
   phase: number;
   running: boolean;
@@ -159,10 +158,9 @@ type Ticket = {
   tilt: number;
 };
 type Particle = {
-  kind: 'coin' | 'spark';
+  kind: 'spark';
   p: THREE.Vector3;
   v: THREE.Vector3;
-  spin: number;
   born: number;
   life: number;
   colour?: THREE.Color;
@@ -315,6 +313,8 @@ export type WorldOpts = {
   /** Tells the page when the floor turns a quarter for a tall stage. */
   onTurn?: (turned: boolean) => void;
   onZoom?: (zoom: number) => void;
+  /** The view moved: refit, zoom or pan. */
+  onCamera?: () => void;
 };
 
 export class FactoryWorld {
@@ -338,14 +338,15 @@ export class FactoryWorld {
   private floorGroup = new THREE.Group();
   private floor = { width: 0, height: 0 };
   private floorTextures: THREE.Texture[] = [];
-  private bulbs: THREE.InstancedMesh | null = null;
   private grid: THREE.Mesh | null = null;
   private size = { w: 1, h: 1 };
+  private insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
   turned = false;
   private time = 0;
   private lastFrame = 0;
   private raf = 0;
   private disposed = false;
+  private paused = false;
   private pacer: Pacer | null = null;
   private shadowEvery = 1;
   private frameNo = 0;
@@ -368,16 +369,21 @@ export class FactoryWorld {
   private badges: Billboards;
   private links: THREE.InstancedMesh;
   private linkData: THREE.InstancedBufferAttribute;
+  private reachPools: THREE.InstancedMesh;
+  private poolData: THREE.InstancedBufferAttribute;
+  private poolClip: THREE.InstancedBufferAttribute;
   private particles: Particle[] = [];
-  private flyCoins: THREE.InstancedMesh;
   private fx: SaleFx | null;
   // Overlay.
   private marks: THREE.InstancedMesh;
   private arrows: THREE.InstancedMesh;
   private marquee: THREE.Mesh;
+  /** The box's four bright edges, drawn over the machines. */
+  private marqueeEdges: THREE.Mesh[];
   private ghostRoot = new THREE.Group();
   private ghostMat: THREE.MeshStandardMaterial;
   private ghostBad: THREE.MeshStandardMaterial;
+  private ghostSolid: THREE.MeshStandardMaterial;
   private ghostGeos = new Map<
     MachineKind,
     { geo: THREE.BufferGeometry; pivot?: THREE.Vector3 }[]
@@ -394,6 +400,8 @@ export class FactoryWorld {
     boost: false,
     hold: 0,
     seed: 0,
+    energy: 0,
+    spin: 0,
   };
   private poseOut: Pose = {
     p: new THREE.Vector3(),
@@ -409,6 +417,8 @@ export class FactoryWorld {
     boost: false,
     hold: 0,
     seed: 0,
+    energy: 0,
+    spin: 0,
   };
 
   constructor(
@@ -425,13 +435,11 @@ export class FactoryWorld {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 0.96;
     this.renderer.shadowMap.enabled = !opts.mirror;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
-    this.baseRatio = opts.mirror
-      ? 1
-      : Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+    this.baseRatio = opts.mirror ? 1 : Math.max(1, nativeRatio());
     this.renderer.setPixelRatio(this.baseRatio);
 
     this.pmrem = new THREE.PMREMGenerator(this.renderer);
@@ -439,17 +447,17 @@ export class FactoryWorld {
     const env = this.pmrem.fromScene(room, 0.04).texture;
     room.dispose();
     this.scene.environment = env;
-    this.scene.environmentIntensity = 0.55;
+    this.scene.environmentIntensity = 0.38;
     this.textures.push(env);
 
-    this.scene.add(new THREE.HemisphereLight('#fff0d4', '#1c3a31', 1.25));
-    this.sun = new THREE.DirectionalLight('#ffe2b4', 2.4);
+    this.scene.add(new THREE.HemisphereLight('#f4f2e2', '#4f5d52', 1.2));
+    this.sun = new THREE.DirectionalLight('#fff1dd', 2.15);
     this.sun.castShadow = !opts.mirror;
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.bias = -0.0006;
     this.sun.shadow.normalBias = 0.012;
     this.scene.add(this.sun, this.sun.target);
-    const fill = new THREE.DirectionalLight('#9fd6ff', 0.35);
+    const fill = new THREE.DirectionalLight('#bfe0d2', 0.3);
     fill.position.set(20, 8, -14);
     this.scene.add(fill);
     this.scene.add(this.floorGroup, this.ghostRoot);
@@ -471,7 +479,7 @@ export class FactoryWorld {
         'attribute float aPhase;\n' +
         shader.vertexShader.replace(
           '#include <uv_vertex>',
-          '#include <uv_vertex>\n#ifdef USE_MAP\n  vMapUv.x -= aPhase * 3.0;\n#endif',
+          '#include <uv_vertex>\n#ifdef USE_MAP\n  vMapUv.x -= aPhase * 2.0;\n#endif',
         );
     };
     for (const shape of SHAPES) {
@@ -510,7 +518,10 @@ export class FactoryWorld {
     );
     this.coinMesh = this.instanced(coinGeo, this.mats.metal, 256);
     const stampGeo = one('gloss', (k) =>
-      k.torus('gloss', C.red, 0.05, 0.012, [0, 0, 0], { seg: 18 }),
+      k
+        .cyl('gloss', C.red, 0.045, 0.045, 0.008, [0, 0, 0], { seg: 24 })
+        .torus('gloss', C.redDark, 0.046, 0.006, [0, 0.003, 0], { seg: 24 })
+        .chevron('gloss', C.cream, 0.028, 0.029, 0.003, [0.003, 0.006, 0]),
     );
     this.stampMesh = this.instanced(stampGeo, this.mats.gloss, 128);
     const star = starGeometry(0.075);
@@ -523,18 +534,13 @@ export class FactoryWorld {
     );
     this.starMesh = this.instanced(
       star,
-      new THREE.MeshBasicMaterial({ color: '#ffe066', toneMapped: false }),
+      new THREE.MeshBasicMaterial({ color: '#ecd48e', toneMapped: false }),
       128,
     );
     const ribbonGeo = one('gloss', (k) =>
-      k.box('gloss', C.red, [0.05, 0.02, 0.44], [0, 0, 0]),
+      k.box('gloss', C.ribbon, [0.05, 0.02, 0.44], [0, 0, 0]),
     );
     this.ribbonMesh = this.instanced(ribbonGeo, this.mats.gloss, 64);
-    const flyGeo = one('metal', (k) =>
-      k.cyl('metal', C.gold, 0.07, 0.07, 0.02, [0, 0, 0], { seg: 16 }),
-    );
-    this.flyCoins = this.instanced(flyGeo, this.mats.metal, 160);
-    this.flyCoins.castShadow = false;
 
     const glow = glowTexture(),
       badge = badgeTexture();
@@ -557,6 +563,58 @@ export class FactoryWorld {
       this.badges.mesh,
     );
 
+    // Always-visible 3x3 reach, clipped to the workshop, one instanced pass.
+    const warmPool = reachTexture(),
+      charmPool = reachTexture(true);
+    this.textures.push(warmPool, charmPool);
+    const poolGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    this.poolData = new THREE.InstancedBufferAttribute(
+      new Float32Array(144 * 4),
+      4,
+    );
+    this.poolClip = new THREE.InstancedBufferAttribute(
+      new Float32Array(144 * 4),
+      4,
+    );
+    poolGeo.setAttribute('aPool', this.poolData);
+    poolGeo.setAttribute('aClip', this.poolClip);
+    this.reachPools = new THREE.InstancedMesh(
+      poolGeo,
+      new THREE.ShaderMaterial({
+        uniforms: { uWarm: { value: warmPool }, uCharm: { value: charmPool } },
+        vertexShader: /* glsl */ `
+        attribute vec4 aPool;
+        attribute vec4 aClip;
+        varying vec2 vUv;
+        varying vec4 vPool;
+        void main() {
+          vUv = aClip.xy + uv * aClip.zw;
+          vPool = aPool;
+          gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+        }`,
+        fragmentShader: /* glsl */ `
+        uniform sampler2D uWarm;
+        uniform sampler2D uCharm;
+        varying vec2 vUv;
+        varying vec4 vPool;
+        void main() {
+          float charm = step(vPool.r, vPool.g);
+          float a = mix(texture2D(uWarm, vUv).a, texture2D(uCharm, vUv).a, charm) * vPool.a;
+          if (a < 0.004) discard;
+          gl_FragColor = vec4(vPool.rgb, a);
+          #include <colorspace_fragment>
+        }`,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+      144,
+    );
+    this.reachPools.count = 0;
+    this.reachPools.frustumCulled = false;
+    this.reachPools.renderOrder = 1;
+    this.scene.add(this.reachPools);
+
     // Boost links: arcs from a booster to each machine it helps, with pulses.
     const curve = new THREE.QuadraticBezierCurve3(
       new THREE.Vector3(0, 0, 0),
@@ -565,7 +623,7 @@ export class FactoryWorld {
     );
     const linkGeo = new THREE.TubeGeometry(curve, 16, 0.018, 5, false);
     this.linkData = new THREE.InstancedBufferAttribute(
-      new Float32Array(160 * 4),
+      new Float32Array(MAX_LINKS * 4),
       4,
     );
     linkGeo.setAttribute('aLink', this.linkData);
@@ -597,7 +655,7 @@ export class FactoryWorld {
         blending: THREE.AdditiveBlending,
         toneMapped: false,
       }),
-      160,
+      MAX_LINKS,
     );
     this.links.frustumCulled = false;
     this.links.count = 0;
@@ -633,14 +691,26 @@ export class FactoryWorld {
     this.marquee = new THREE.Mesh(
       mq,
       new THREE.MeshBasicMaterial({
-        color: '#f2c96b',
+        color: '#ffd25e',
         transparent: true,
-        opacity: 0.18,
+        opacity: 0.3,
         depthWrite: false,
       }),
     );
+    this.marquee.renderOrder = 4;
     this.marquee.visible = false;
-    this.scene.add(this.marks, this.arrows, this.marquee);
+    const edge = new THREE.MeshBasicMaterial({
+      color: '#ffe08a',
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.marqueeEdges = Array.from({ length: 4 }, () => {
+      const m = new THREE.Mesh(mq, edge);
+      m.renderOrder = 5;
+      m.visible = false;
+      return m;
+    });
+    this.scene.add(this.marks, this.arrows, this.marquee, ...this.marqueeEdges);
     this.ghostMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
       transparent: true,
@@ -658,13 +728,24 @@ export class FactoryWorld {
       emissive: '#5a0d08',
       depthWrite: false,
     });
+    // Just built or moved: nearly solid until the server confirms it.
+    this.ghostSolid = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.92,
+      roughness: 0.45,
+    });
 
     this.fx =
       fxLayer && !opts.mirror ? new SaleFx(fxLayer, opts.reduced) : null;
     if (!opts.mirror) {
-      this.pacer = new Pacer(factoryQuality(this.baseRatio, false), (r) =>
-        this.applyRung(r),
+      const rungs = factoryQuality(this.baseRatio, false);
+      this.pacer = new Pacer(
+        rungs,
+        (r) => this.applyRung(r),
+        startLevel(rungs, window.innerWidth, window.innerHeight, this.baseRatio),
       );
+      if (this.pacer.level) this.applyRung(this.pacer.rung);
     }
     this.lastFrame = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -693,6 +774,30 @@ export class FactoryWorld {
       this.sun.shadow.map = null;
       this.shadowDirty = true;
     }
+  }
+
+  /** The floor's size in cells, once built. */
+  get floorSize() {
+    return this.floor;
+  }
+
+  /** Stops drawing while another tab covers the factory. */
+  setPaused(paused: boolean) {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    // The first frame back must not count the hidden time.
+    if (!paused) this.lastFrame = performance.now();
+  }
+
+  /** Room taken by floating controls; the overview fits the floor beside it. */
+  setInsets(insets: Insets) {
+    const same = (Object.keys(insets) as (keyof Insets)[]).every(
+      (k) => Math.abs(insets[k] - this.insets[k]) < 1,
+    );
+    if (same) return;
+    this.insets = insets;
+    this.fx?.clear();
+    this.fit();
   }
 
   resize(w: number, h: number) {
@@ -728,10 +833,13 @@ export class FactoryWorld {
       }
     }
     this.floor = { width, height };
-    const tex = new THREE.TextureLoader().load('/art/lucky/factory/floor.webp');
+    const tex = floorTexture();
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(width / 4, height / 4);
+    tex.repeat.set(
+      width / FLOOR_TILES_PER_REPEAT,
+      height / FLOOR_TILES_PER_REPEAT,
+    );
     tex.anisotropy = Math.min(
       16,
       this.renderer.capabilities.getMaxAnisotropy(),
@@ -748,11 +856,11 @@ export class FactoryWorld {
       new THREE.MeshStandardMaterial({
         map: tex,
         bumpMap: bump,
-        bumpScale: 0.018,
-        roughness: 0.42,
-        metalness: 0.05,
-        envMapIntensity: 0.5,
-        color: '#cdd2bd',
+        bumpScale: 0.005,
+        roughness: 0.94,
+        metalness: 0,
+        envMapIntensity: 0.2,
+        color: '#a9b8a2',
       }),
     );
     tiles.position.set(width / 2, 0, height / 2);
@@ -765,7 +873,7 @@ export class FactoryWorld {
       new THREE.MeshBasicMaterial({
         map: gridTex,
         transparent: true,
-        opacity: 0.08,
+        opacity: 0.12,
         depthWrite: false,
       }),
     );
@@ -774,37 +882,45 @@ export class FactoryWorld {
     const k = new Kit(),
       t = 0.24,
       rimH = 0.13;
-    // The brass frame and the enamel apron under it.
-    k.rbox('metal', C.brass, [width + t * 2, rimH, t], 0.04, [
-      width / 2,
-      rimH / 2 - 0.02,
-      -t / 2,
-    ]);
-    k.rbox('metal', C.brass, [width + t * 2, rimH, t], 0.04, [
-      width / 2,
-      rimH / 2 - 0.02,
-      height + t / 2,
-    ]);
-    k.rbox('metal', C.brass, [t, rimH, height], 0.04, [
-      -t / 2,
-      rimH / 2 - 0.02,
-      height / 2,
-    ]);
-    k.rbox('metal', C.brass, [t, rimH, height], 0.04, [
-      width + t / 2,
-      rimH / 2 - 0.02,
-      height / 2,
-    ]);
+    // A bottle-green enamel rim with a thin satin brass cap, like the
+    // desk's own plates, and a dark apron under it.
+    for (const [size, at] of [
+      [
+        [width + t * 2, rimH, t],
+        [width / 2, rimH / 2 - 0.02, -t / 2],
+      ],
+      [
+        [width + t * 2, rimH, t],
+        [width / 2, rimH / 2 - 0.02, height + t / 2],
+      ],
+      [
+        [t, rimH, height],
+        [-t / 2, rimH / 2 - 0.02, height / 2],
+      ],
+      [
+        [t, rimH, height],
+        [width + t / 2, rimH / 2 - 0.02, height / 2],
+      ],
+    ] as [[number, number, number], [number, number, number]][]) {
+      k.rbox('paint', '#2b5246', size, 0.04, at);
+      k.rbox(
+        'paint',
+        '#a08957',
+        [size[0] - 0.02, 0.014, size[2] - 0.02],
+        0.006,
+        [at[0], rimH - 0.02 + 0.004, at[2]],
+      );
+    }
     k.rbox(
-      'gloss',
-      C.greenDeep,
+      'paint',
+      '#1d3d34',
       [width + t * 2 + 0.04, 0.42, height + t * 2 + 0.04],
       0.05,
       [width / 2, -0.23, height / 2],
     );
     k.box(
-      'metal',
-      C.copper,
+      'paint',
+      '#142e27',
       [width + t * 2 + 0.06, 0.03, height + t * 2 + 0.06],
       [width / 2, -0.33, height / 2],
     );
@@ -815,7 +931,7 @@ export class FactoryWorld {
     ][]) {
       const mesh = new THREE.Mesh(geo, this.mats[mat]);
       mesh.receiveShadow = true;
-      mesh.castShadow = mat === 'metal';
+      mesh.castShadow = true;
       this.floorGroup.add(mesh);
     }
     const shadowMap = shadowTexture();
@@ -832,35 +948,6 @@ export class FactoryWorld {
     shadow.position.set(width / 2, -0.45, height / 2 + 0.3);
     shadow.renderOrder = -1;
     this.floorGroup.add(tiles, this.grid, shadow);
-    // Marquee bulbs along the frame, chasing.
-    const spots: THREE.Vector3[] = [];
-    const along = (x0: number, z0: number, x1: number, z1: number) => {
-      const len = Math.hypot(x1 - x0, z1 - z0),
-        n = Math.max(1, Math.round(len / 0.5));
-      for (let i = 0; i < n; i++)
-        spots.push(
-          new THREE.Vector3(
-            x0 + ((x1 - x0) * i) / n,
-            rimH - 0.02 + 0.03,
-            z0 + ((z1 - z0) * i) / n,
-          ),
-        );
-    };
-    const e = -t / 2;
-    along(e, e, width - e, e);
-    along(width - e, e, width - e, height - e);
-    along(width - e, height - e, e, height - e);
-    along(e, height - e, e, e);
-    const bulbGeo = new Kit()
-      .sphere('glow', '#ffffff', 0.04, [0, 0, 0], { seg: 10 })
-      .merged().glow!;
-    this.bulbs = new THREE.InstancedMesh(bulbGeo, this.mats.glow, spots.length);
-    this.bulbs.frustumCulled = false;
-    spots.forEach((p, i) => {
-      this.bulbs!.setMatrixAt(i, tmpM.makeTranslation(p.x, p.y, p.z));
-      this.bulbs!.setColorAt(i, tmpC.set('#fff'));
-    });
-    this.floorGroup.add(this.bulbs);
     // The sun covers the floor.
     const r = Math.max(width, height) * 0.75 + 2;
     this.sun.position.set(
@@ -887,7 +974,9 @@ export class FactoryWorld {
       this.floor.height,
       this.size.w,
       this.size.h,
+      this.insets,
     );
+    this.opts.onCamera?.();
     const turned = this.cameraRig.turned;
     if (turned !== this.turned) {
       this.turned = turned;
@@ -914,14 +1003,23 @@ export class FactoryWorld {
     const previous = this.zoom;
     this.cameraRig.zoomTo(value, at && this.screenPoint(at.x, at.y));
     this.opts.onZoom?.(this.zoom);
-    if (this.zoom !== previous) this.fx?.clear();
+    if (this.zoom !== previous) {
+      this.fx?.clear();
+      this.opts.onCamera?.();
+    }
     // Hysteresis prevents reallocating the shadow buffer during tiny pinches.
     const close = this.zoom > (this.closeDetail ? 1.3 : 1.6);
     if (close !== this.closeDetail) {
       this.closeDetail = close;
+      // Keep the density the pacer had found; only the shadows change.
       const rungs = factoryQuality(this.baseRatio, close);
-      this.pacer = new Pacer(rungs, (r) => this.applyRung(r));
-      this.applyRung(rungs[0]);
+      const was = this.pacer?.rung.resolution ?? 1;
+      const at = Math.max(
+        0,
+        rungs.findIndex((r) => r.resolution <= was + 0.001),
+      );
+      this.pacer = new Pacer(rungs, (r) => this.applyRung(r), at);
+      this.applyRung(rungs[at]);
     }
   }
 
@@ -932,6 +1030,7 @@ export class FactoryWorld {
         this.screenPoint(to.x, to.y),
       );
       this.fx?.clear();
+      this.opts.onCamera?.();
     }
   }
 
@@ -966,7 +1065,7 @@ export class FactoryWorld {
     for (const v of this.views.values()) {
       if (this.hidden.has(v.key)) continue;
       box.min.set(v.m.x + 0.08, 0, v.m.y + 0.08);
-      box.max.set(v.m.x + 0.92, v.height, v.m.y + 0.92);
+      box.max.set(v.m.x + 0.92, Math.min(v.height, PICK_TOP), v.m.y + 0.92);
       if (ray.intersectBox(box, out)) {
         const d = ray.origin.distanceTo(out);
         if (d < best - 1e-6) {
@@ -1045,6 +1144,8 @@ export class FactoryWorld {
           last: -99,
           turn: 0,
           boost: false,
+          energy: 0,
+          spin: 0,
           shape: 'straight',
           phase: 0,
           running: true,
@@ -1070,8 +1171,7 @@ export class FactoryWorld {
       v.job = job(s, f, m);
       v.snapAt = now;
       v.boost =
-        v.status === 'work' &&
-        (m.kind === 'lamp' || m.kind === 'ink' || m.kind === 'charm');
+        v.status === 'work' && (m.kind === 'lamp' || m.kind === 'charm');
       v.running = !(m.item && (m.stuck ?? 0) > 0);
     }
     // Deleting while iterating a Map is safe.
@@ -1255,7 +1355,7 @@ export class FactoryWorld {
         s: 1,
       };
     }
-    if (m.kind === 'splitter') return { x: cx, y: 0.15, z: cz, s: 1 };
+    if (m.kind === 'splitter') return { x: cx, y: 0.17, z: cz, s: 1 };
     const rest =
       this.defs.get(m.kind as Kind)?.rest ?? new THREE.Vector3(0, 0.2, 0);
     const c = Math.cos(v.angle),
@@ -1410,24 +1510,6 @@ export class FactoryWorld {
     till.last = this.time;
     const x = till.m.x + 0.5,
       z = till.m.y + 0.5;
-    const n = this.opts.reduced ? 1 : 4;
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2,
-        sp = 0.35 + Math.random() * 0.45;
-      this.particles.push({
-        kind: 'coin',
-        p: new THREE.Vector3(x, 0.55, z),
-        v: new THREE.Vector3(
-          Math.cos(a) * sp,
-          1.9 + Math.random() * 0.9,
-          Math.sin(a) * sp,
-        ),
-        spin: (Math.random() - 0.5) * 20,
-        born: this.time,
-        life: 0.85,
-      });
-    }
-    this.burst(x, 0.6, z, '#ffd75e', this.opts.reduced ? 2 : 6);
     if (this.fx) {
       const at = this.project(x, z, 0.7);
       this.fx.sale(till.key, at.x, at.y, value);
@@ -1446,7 +1528,6 @@ export class FactoryWorld {
           0.6 + Math.random() * 0.8,
           Math.sin(a) * 0.7,
         ),
-        spin: 0,
         born: this.time,
         life: 0.55 + Math.random() * 0.3,
         colour: c,
@@ -1480,27 +1561,37 @@ export class FactoryWorld {
       dir: number,
       colour: string,
       inward: boolean,
+      reach = 0.56,
+      size = 0.28,
     ) => {
       if (a >= 320) return;
       const [dx, dy] = DIRS[dir];
-      const reach = 0.56;
       const angle = (-(inward ? (dir + 2) % 4 : dir) * Math.PI) / 2;
       tmpM
         .makeRotationY(angle)
-        .scale(tmpS.set(0.28, 1, 0.28))
+        .scale(tmpS.set(size, 1, size))
         .setPosition(x + 0.5 + dx * reach, 0.16, y + 0.5 + dy * reach);
       this.arrows.setMatrixAt(a, tmpM);
       this.arrows.setColorAt(a++, tmpC.set(colour));
     };
-    /** Show where a machine takes tickets in and where it sends them. */
+    /** Where a machine takes tickets in (green) and sends them (orange). */
     const flow = (kind: MachineKind, x: number, y: number, dir: number) => {
-      const ins = INTAKES[kind];
-      if (!ins && kind !== 'printer') return;
-      if (kind !== 'cashier') arrow(x, y, dir, '#ff8a3d', false);
-      for (const side of ins ?? [])
-        arrow(x, y, (dir + side) % 4, '#74f0a0', true);
+      const d = (MACHINES[kind].turns ? dir : 0) as Dir;
+      for (const side of outlets(kind, d)) arrow(x, y, side, '#ff8a3d', false);
+      for (const side of intakes(kind, d)) arrow(x, y, side, '#74f0a0', true);
     };
-    if (o.hover && o.mode !== 'build')
+    const building = o.mode === 'build' || o.mode === 'paste';
+    // A booster's reach, under everything else.
+    const booster = o.reach.length
+      ? (o.ghosts.find((g) => g.kind === 'lamp' || g.kind === 'charm')?.kind ??
+        (o.selected.length === 1 &&
+          f?.machines.find(
+            (m) => m.x === o.selected[0].x && m.y === o.selected[0].y,
+          )?.kind))
+      : null;
+    for (const c of o.reach)
+      mark(c.x, c.y, booster === 'charm' ? '#7df0a4' : '#ffd36b', 0.96, 0.02);
+    if (o.hover && !building)
       mark(
         o.hover.x,
         o.hover.y,
@@ -1509,20 +1600,21 @@ export class FactoryWorld {
       );
     for (const c of o.selected) mark(c.x, c.y, '#ffd25e', 1.04);
     for (const c of o.erasing) mark(c.x, c.y, '#ff4a3a', 1);
-    if (o.selected.length === 1 && f) {
-      const m = f.machines.find(
-        (m) => m.x === o.selected[0].x && m.y === o.selected[0].y,
-      );
-      if (m) flow(m.kind, m.x, m.y, MACHINES[m.kind].turns ? m.dir : 0);
+    if (f && o.selected.length && o.selected.length <= 24)
+      for (const c of o.selected) {
+        const m = f.machines.find((m) => m.x === c.x && m.y === c.y);
+        if (m && m.kind !== 'belt') flow(m.kind, m.x, m.y, m.dir);
+      }
+    // The outlet handle: drag it to pull a belt out of the machine.
+    if (o.handle) {
+      mark(o.handle.x, o.handle.y, '#ff9a4a', 0.9, 0.03);
+      arrow(o.handle.x, o.handle.y, o.handle.dir, '#ff9a4a', false, 0, 0.5);
     }
-    for (const g of o.ghosts) mark(g.x, g.y, '#fff3d6', 0.94);
-    if (o.ghosts.length === 1)
-      flow(
-        o.ghosts[0].kind,
-        o.ghosts[0].x,
-        o.ghosts[0].y,
-        MACHINES[o.ghosts[0].kind].turns ? o.ghosts[0].dir : 0,
-      );
+    for (const g of o.ghosts)
+      if (!g.solid) mark(g.x, g.y, g.bad ? '#ff5a4a' : '#fff3d6', 0.94);
+    const fresh = o.ghosts.filter((g) => !g.solid && g.kind !== 'belt');
+    if (fresh.length && fresh.length <= 8)
+      for (const g of fresh) flow(g.kind, g.x, g.y, g.dir);
     if (o.lifted)
       for (const c of o.lifted.to)
         mark(c.x, c.y, o.lifted.ok ? '#f6c64f' : '#ff4a3a', 1);
@@ -1537,20 +1629,45 @@ export class FactoryWorld {
       this.marquee.visible = true;
       this.marquee.scale.set(x1 - x0 + 1, 1, y1 - y0 + 1);
       this.marquee.position.set((x0 + x1 + 1) / 2, 0.015, (y0 + y1 + 1) / 2);
-    } else this.marquee.visible = false;
+      const w = x1 - x0 + 1,
+        h = y1 - y0 + 1,
+        t = 0.07,
+        cx = (x0 + x1 + 1) / 2,
+        cy = (y0 + y1 + 1) / 2;
+      const sides: [number, number, number, number][] = [
+        [cx, y0 + t / 2, w, t],
+        [cx, y1 + 1 - t / 2, w, t],
+        [x0 + t / 2, cy, t, h],
+        [x1 + 1 - t / 2, cy, t, h],
+      ];
+      sides.forEach(([x, y, sx, sy], i) => {
+        const e = this.marqueeEdges[i];
+        e.visible = true;
+        e.scale.set(sx, 1, sy);
+        e.position.set(x, 0.02, y);
+      });
+    } else {
+      this.marquee.visible = false;
+      for (const e of this.marqueeEdges) e.visible = false;
+    }
     if (this.grid)
       (this.grid.material as THREE.MeshBasicMaterial).opacity =
         o.mode === 'select' && !o.lifted ? 0.08 : 0.22;
-    // Ghost machines.
+    // Ghost machines, in their own colours: red where they cannot go.
     const wanted: {
       kind: MachineKind;
       x: number;
       y: number;
       dir: number;
-      bad: boolean;
+      look: 'ghost' | 'bad' | 'solid';
       lift: number;
     }[] = [];
-    for (const g of o.ghosts) wanted.push({ ...g, bad: false, lift: 0 });
+    for (const g of o.ghosts)
+      wanted.push({
+        ...g,
+        look: g.solid ? 'solid' : g.bad ? 'bad' : 'ghost',
+        lift: g.lift ? 0.04 : 0,
+      });
     if (o.lifted && f)
       o.lifted.from.forEach((c, i) => {
         const m = f.machines.find((m) => m.x === c.x && m.y === c.y),
@@ -1560,8 +1677,8 @@ export class FactoryWorld {
             kind: m.kind,
             x: to.x,
             y: to.y,
-            dir: m.dir,
-            bad: !o.lifted!.ok,
+            dir: o.lifted!.dirs?.[i] ?? m.dir,
+            look: o.lifted!.ok ? 'ghost' : 'bad',
             lift: 0.06,
           });
       });
@@ -1570,6 +1687,11 @@ export class FactoryWorld {
       this.ghostPool.push(g);
       this.ghostRoot.add(g);
     }
+    const looks = {
+      ghost: this.ghostMat,
+      bad: this.ghostBad,
+      solid: this.ghostSolid,
+    };
     this.ghostPool.forEach((g, i) => {
       const w = wanted[i];
       if (!w) {
@@ -1586,7 +1708,7 @@ export class FactoryWorld {
         g.userData.kind = w.kind;
       }
       for (const child of g.children)
-        (child as THREE.Mesh).material = w.bad ? this.ghostBad : this.ghostMat;
+        (child as THREE.Mesh).material = looks[w.look];
       g.visible = true;
       const turns = MACHINES[w.kind].turns;
       g.rotation.y = turns
@@ -1617,25 +1739,71 @@ export class FactoryWorld {
     return parts;
   }
 
+  /** Each booster owns exactly its 3x3 square, even when idle. */
+  private drawReach() {
+    let n = 0;
+    for (const v of this.views.values()) {
+      if ((v.kind !== 'lamp' && v.kind !== 'charm') || this.hidden.has(v.key))
+        continue;
+      const x0 = Math.max(0, v.m.x - 1),
+        x1 = Math.min(this.floor.width, v.m.x + 2);
+      const z0 = Math.max(0, v.m.y - 1),
+        z1 = Math.min(this.floor.height, v.m.y + 2);
+      tmpM
+        .makeScale(x1 - x0, 1, z1 - z0)
+        .setPosition((x0 + x1) / 2, 0.007, (z0 + z1) / 2);
+      this.reachPools.setMatrixAt(n, tmpM);
+      const style = REACH_STYLE[v.kind];
+      tmpC.set(style.colour);
+      const pulse = this.opts.reduced
+        ? 1
+        : 1 + Math.sin(this.time * 2 + v.seed * 6) * 0.055;
+      this.poolData.setXYZW(
+        n,
+        tmpC.r,
+        tmpC.g,
+        tmpC.b,
+        v.boost ? style.boost * pulse : style.idle,
+      );
+      this.poolClip.setXYZW(
+        n,
+        (x0 - v.m.x + 1) / 3,
+        (v.m.y + 2 - z1) / 3,
+        (x1 - x0) / 3,
+        (z1 - z0) / 3,
+      );
+      n++;
+    }
+    this.reachPools.count = n;
+    this.reachPools.instanceMatrix.needsUpdate = true;
+    this.poolData.needsUpdate = this.poolClip.needsUpdate = true;
+  }
+
   private drawLinks() {
     const f = this.f;
     if (!f) return;
     let n = 0;
     for (const v of this.views.values()) {
       if (!v.boost || this.hidden.has(v.key)) continue;
-      const colour = new THREE.Color(
-        v.kind === 'lamp'
-          ? '#ffc861'
-          : v.kind === 'ink'
-            ? '#6f9dff'
-            : '#5dff9c',
-      );
+      const colour = new THREE.Color(v.kind === 'lamp' ? '#efdcaa' : '#a6e2b6');
       for (const t of boosted(f, v.m)) {
-        if (n >= 160 || this.hidden.has(cellKey(t.x, t.y))) continue;
-        const angle = Math.atan2(-(t.y - v.m.y), t.x - v.m.x);
+        if (n >= MAX_LINKS || this.hidden.has(cellKey(t.x, t.y))) continue;
+        const dx = t.x - v.m.x,
+          dz = t.y - v.m.y,
+          len = Math.hypot(dx, dz);
+        const startY = Math.min(v.height, 0.5);
+        const endY = Math.min(
+          this.views.get(cellKey(t.x, t.y))?.height ?? 0.5,
+          0.5,
+        );
+        // Full displacement in the first column fits diagonals as well as sides.
         tmpM
-          .makeRotationY(angle)
-          .setPosition(v.m.x + 0.5, Math.min(v.height, 0.62), v.m.y + 0.5);
+          .makeBasis(
+            tmpV.set(dx, endY - startY, dz),
+            tmpV2.set(0, 1, 0),
+            tmpS.set(-dz / len, 0, dx / len),
+          )
+          .setPosition(v.m.x + 0.5, startY, v.m.y + 0.5);
         this.links.setMatrixAt(n, tmpM);
         this.linkData.setXYZW(n, colour.r, colour.g, colour.b, v.seed);
         n++;
@@ -1651,7 +1819,7 @@ export class FactoryWorld {
   private frame = (now: number) => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
-    if (document.hidden) return;
+    if (document.hidden || this.paused) return;
     if (this.opts.mirror && now - this.lastFrame < 30) return;
     if (this.pacer && !this.pacer.frame(now)) return;
     const dt = Math.min(0.1, (now - this.lastFrame) / 1000);
@@ -1690,6 +1858,12 @@ export class FactoryWorld {
         c.status = v.status;
         c.since = t - v.last;
         c.boost = v.boost;
+        if (kind === 'lamp' || kind === 'charm') {
+          v.energy += ((v.boost ? 1 : 0) - v.energy) * Math.min(1, dt * 2.2);
+          v.spin += dt * (0.05 + 0.95 * v.energy);
+        }
+        c.energy = v.energy;
+        c.spin = v.spin;
         c.hold = v.m.hold?.length ?? 0;
         c.work = v.job
           ? Math.min(1, v.job.work + v.job.perMs * (t - v.snapAt) * 1000)
@@ -1699,6 +1873,7 @@ export class FactoryWorld {
         this.stillCtx.turn = c.turn;
         this.stillCtx.hold = c.hold;
         this.stillCtx.seed = c.seed;
+        this.stillCtx.energy = v.boost ? 1 : 0;
         for (const p of b.parts) {
           pose(kind, p.def.name, this.opts.reduced ? this.stillCtx : c, o);
           tmpM2.makeRotationFromEuler(o.r).scale(tmpS.set(o.s, o.s, o.s));
@@ -1748,19 +1923,21 @@ export class FactoryWorld {
             0.85,
             GAUGE_TINT.bundler,
           );
-        if (
-          v.boost &&
-          (kind === 'lamp' || kind === 'charm' || kind === 'ink')
-        ) {
+        const source =
+          kind === 'charm' && v.energy > 0.02
+            ? b.def.parts.find((p) => p.tint === 'boost')
+            : undefined;
+        if (source) {
+          tmpV.copy(source.pivot).applyMatrix4(v.matrix);
           const pulse = this.opts.reduced
             ? 0.75
             : 0.75 + Math.sin(t * 3 + v.seed * 6) * 0.15;
           this.halos.push(
-            v.m.x + 0.5,
-            kind === 'lamp' ? 0.64 : kind === 'charm' ? 0.58 : 0.3,
-            v.m.y + 0.5,
-            kind === 'lamp' ? 0.9 : 0.6,
-            pulse * (kind === 'ink' ? 0.5 : 0.8),
+            tmpV.x,
+            tmpV.y,
+            tmpV.z,
+            0.5,
+            pulse * 0.28 * v.energy,
             0,
             HALO[kind],
           );
@@ -1769,7 +1946,6 @@ export class FactoryWorld {
           v.status === 'work' &&
           kind !== 'lamp' &&
           kind !== 'charm' &&
-          kind !== 'ink' &&
           b.parts.some((p) => p.def.tint === 'status')
         )
           this.halos.push(...lightSpot(v, b.def), 0.16, 0.5, 0, STATUS.work);
@@ -1796,6 +1972,7 @@ export class FactoryWorld {
             mesh.instanceColor.needsUpdate = true;
         }
     }
+    this.drawReach();
     this.gauges.end();
     this.badges.end();
     // Belts scroll while they run.
@@ -1808,21 +1985,6 @@ export class FactoryWorld {
         b.phase.setX(v.index, v.phase);
       }
       b.phase.needsUpdate = true;
-    }
-    // Marquee bulbs chase round the frame.
-    if (this.bulbs) {
-      const n = this.bulbs.count;
-      for (let i = 0; i < n; i++) {
-        const on =
-          ((i + (this.opts.reduced ? 0 : Math.floor(t * 6))) % 4 === 0
-            ? 1
-            : 0.32) * (this.opts.reduced ? 0.6 : 1);
-        this.bulbs.setColorAt(
-          i,
-          tmpC.setRGB(1.0 * on + 0.2, 0.78 * on + 0.12, 0.36 * on + 0.05),
-        );
-      }
-      this.bulbs.instanceColor!.needsUpdate = true;
     }
   }
 
@@ -1871,7 +2033,7 @@ export class FactoryWorld {
           p.z + 0.012,
           p.s,
           t.tilt - 0.08,
-          false,
+          !!it.gilded,
         );
         put(
           it.book,
@@ -1880,9 +2042,9 @@ export class FactoryWorld {
           p.z - 0.01,
           p.s,
           t.tilt + 0.06,
-          false,
+          !!it.gilded,
         );
-        put(it.book, p.x, y, p.z, p.s, t.tilt, false);
+        put(it.book, p.x, y, p.z, p.s, t.tilt, !!it.gilded);
         if (ribbons < 64) {
           tmpQ.setFromAxisAngle(yAxis, yaw + t.tilt);
           tmpM.compose(
@@ -1929,19 +2091,19 @@ export class FactoryWorld {
         );
       }
     }
-    // Each printer shows the book it prints on its cover.
+    // The book ticket sits on the small display, leaving the cobalt shell visible.
     const printers = this.batches.get('printer');
     if (printers)
       for (const v of printers.list) {
         const c = Math.cos(v.angle),
-          s = Math.sin(v.angle),
-          lx = -0.1;
+          s = Math.sin(v.angle);
+        const display = printers.def.display!;
         put(
           v.m.book ?? 'seven',
-          v.m.x + 0.5 + lx * c,
-          0.418 + this.printerCoverLift(v),
-          v.m.y + 0.5 - lx * s,
-          0.78,
+          v.m.x + 0.5 + display.x * c + display.z * s,
+          display.y + this.printerCoverLift(v),
+          v.m.y + 0.5 - display.x * s + display.z * c,
+          0.52,
           0,
           false,
         );
@@ -2017,39 +2179,28 @@ export class FactoryWorld {
   private animateEffects(dt: number) {
     const t = this.time;
     this.sparks.begin();
-    let coins = 0;
     const g = -6.5;
     this.particles = this.particles.filter((q) => t - q.born < q.life);
     for (const q of this.particles) {
       q.v.y += g * dt;
       q.p.addScaledVector(q.v, dt);
       const age = (t - q.born) / q.life;
-      if (q.kind === 'coin') {
-        if (coins >= 160) continue;
-        tmpQ.setFromAxisAngle(
-          tmpV2.set(1, 0, 0.4).normalize(),
-          q.spin * (t - q.born),
-        );
-        const s = age > 0.7 ? 1 - (age - 0.7) / 0.3 : 1;
-        tmpM.compose(q.p, tmpQ, tmpS.set(s, s, s));
-        this.flyCoins.setMatrixAt(coins++, tmpM);
-      } else
-        this.sparks.push(
-          q.p.x,
-          q.p.y,
-          q.p.z,
-          0.14 * (1 - age * 0.6),
-          1 - age,
-          0,
-          q.colour ?? WHITE,
-        );
+      this.sparks.push(
+        q.p.x,
+        q.p.y,
+        q.p.z,
+        0.1 * (1 - age * 0.6),
+        0.5 * (1 - age),
+        0,
+        q.colour ?? WHITE,
+      );
     }
     // Machines that just finished something give off a puff of sparks.
     for (const [kind, colour] of [
-      ['stamper', '#ff6a50'],
-      ['gilder', '#ffe27a'],
-      ['bundler', '#ff9a8a'],
-      ['bot', '#bdf5ff'],
+      ['stamper', '#e6a08f'],
+      ['gilder', '#efd9a0'],
+      ['bundler', '#e3b3c4'],
+      ['bot', '#d6ead9'],
     ] as const) {
       const b = this.batches.get(kind);
       if (!b) continue;
@@ -2062,13 +2213,11 @@ export class FactoryWorld {
             0.3,
             v.m.y + 0.5 + rest.z,
             colour,
-            kind === 'gilder' ? 8 : 4,
+            3,
           );
         }
       }
     }
-    this.flyCoins.count = coins;
-    this.flyCoins.instanceMatrix.needsUpdate = true;
     this.sparks.end();
     this.halos.end();
     (this.links.material as THREE.ShaderMaterial).uniforms.uTime.value = this
@@ -2106,6 +2255,7 @@ export class FactoryWorld {
     this.beltTop.dispose();
     this.ghostMat.dispose();
     this.ghostBad.dispose();
+    this.ghostSolid.dispose();
     for (const t of this.textures) t.dispose();
     for (const t of this.floorTextures) t.dispose();
     this.sun.shadow.map?.dispose();
@@ -2115,38 +2265,25 @@ export class FactoryWorld {
   }
 }
 
-/** Which sides a machine takes tickets from, in quarter turns from its front. */
-const INTAKES: Partial<Record<MachineKind, number[]>> = {
-  belt: [2, 1, 3],
-  splitter: [2],
-  bot: [2, 1, 3],
-  stamper: [2, 1, 3],
-  gilder: [2, 1, 3],
-  bundler: [2, 1, 3],
-  cashier: [0, 1, 2, 3],
-};
 const WHITE = new THREE.Color('#ffffff');
-const GILDED = new THREE.Color('#ffd06a');
-const STAR_GLOW = new THREE.Color('#ffd84a');
+const GILDED = new THREE.Color('#ead09a');
+const STAR_GLOW = new THREE.Color('#efd58e');
 const GAUGE_TINT: Record<string, THREE.Color> = {
-  printer: new THREE.Color('#f6c64f'),
-  bot: new THREE.Color('#7ff2c4'),
-  bundler: new THREE.Color('#ff8a7a'),
+  printer: new THREE.Color('#a6c0e2'),
+  bot: new THREE.Color('#e9bf96'),
+  bundler: new THREE.Color('#e2abc4'),
 };
 const HALO: Record<string, THREE.Color> = {
-  lamp: new THREE.Color('#ffb84a'),
-  charm: new THREE.Color('#44ff8c'),
-  ink: new THREE.Color('#4f7dff'),
+  lamp: new THREE.Color('#e8d7a8'),
+  charm: new THREE.Color('#9fdcae'),
 };
 const BOOST_ON: Record<string, THREE.Color> = {
-  lamp: new THREE.Color('#fff0b8'),
-  ink: new THREE.Color('#3d6bff'),
-  charm: new THREE.Color('#3fe07f'),
+  lamp: new THREE.Color('#ffffff'),
+  charm: new THREE.Color('#5fb27a'),
 };
 const BOOST_OFF: Record<string, THREE.Color> = {
-  lamp: new THREE.Color('#5f5440'),
-  ink: new THREE.Color('#283a68'),
-  charm: new THREE.Color('#355b44'),
+  lamp: new THREE.Color('#ffffff'),
+  charm: new THREE.Color('#4c9566'),
 };
 function boostColour(kind: MachineKind, on: boolean) {
   return (on ? BOOST_ON : BOOST_OFF)[kind] ?? WHITE;

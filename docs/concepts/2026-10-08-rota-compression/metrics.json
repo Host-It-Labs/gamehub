@@ -1,0 +1,3650 @@
+{
+  "models": {
+    "vehicles": {
+      "beforeBytes": 5563420,
+      "afterBytes": 1814960,
+      "vertices": 119271,
+      "nodes": 85,
+      "compressedViews": 4,
+      "roots": [
+        {
+          "name": "bus",
+          "before": {
+            "min": [
+              -0.04796770215034485,
+              0.00025763362646102905,
+              -0.13500000536441803
+            ],
+            "max": [
+              0.04796770215034485,
+              0.11192464083433151,
+              0.13500000536441803
+            ]
+          },
+          "after": {
+            "min": [
+              -0.04796914769304236,
+              0.00025773376187088193,
+              -0.13500000536441803
+            ],
+            "max": [
+              0.04796914769304236,
+              0.11192316054041516,
+              0.13500000536441803
+            ]
+          },
+          "maxBoundError": 0.0000014802939163477413
+        },
+        {
+          "name": "car_hatch",
+          "before": {
+            "min": [
+              -0.036294222343713045,
+              0.00024024024605751038,
+              -0.07499999824358383
+            ],
+            "max": [
+              0.036294222343713045,
+              0.06713521480560303,
+              0.07500000026630005
+            ]
+          },
+          "after": {
+            "min": [
+              -0.03629427231507254,
+              0.0002403359920551372,
+              -0.07499999824358383
+            ],
+            "max": [
+              0.03629427231507254,
+              0.06713426577503828,
+              0.07500000026630005
+            ]
+          },
+          "maxBoundError": 9.490305647452679e-7
+        },
+        {
+          "name": "car_retro",
+          "before": {
+            "min": [
+              -0.03490417078137398,
+              0.00022215023636817932,
+              -0.07500000187428668
+            ],
+            "max": [
+              0.03490417078137398,
+              0.06886705756187439,
+              0.0750000040861778
+            ]
+          },
+          "after": {
+            "min": [
+              -0.034903257711891886,
+              0.0002222380925995509,
+              -0.07500000187428668
+            ],
+            "max": [
+              0.034903257711891886,
+              0.06886635489961954,
+              0.0750000040861778
+            ]
+          },
+          "maxBoundError": 9.130694820919105e-7
+        },
+        {
+          "name": "car_sedan",
+          "before": {
+            "min": [
+              -0.03710409486666322,
+              0.00024240091443061829,
+              -0.08499999863852281
+            ],
+            "max": [
+              0.03710409486666322,
+              0.06572100520133972,
+              0.08499999569903594
+            ]
+          },
+          "after": {
+            "min": [
+              -0.037104145326812873,
+              0.00024249714906918532,
+              -0.08499999863852281
+            ],
+            "max": [
+              0.037104145326812873,
+              0.06572011338274328,
+              0.08499999569903594
+            ]
+          },
+          "maxBoundError": 8.918185964434944e-7
+        },
+        {
+          "name": "coach",
+          "before": {
+            "min": [
+              -0.07400000095367432,
+              0.0375710679218173,
+              -0.13552847504615784
+            ],
+            "max": [
+              0.07400000095367432,
+              0.171300008893013,
+              0.13552847504615784
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07399944905089907,
+              0.037570812856106535,
+              -0.13552847504615784
+            ],
+            "max": [
+              0.07399944905089907,
+              0.171298560255779,
+              0.13552847504615784
+            ]
+          },
+          "maxBoundError": 0.000001448637234002792
+        },
+        {
+          "name": "ferry",
+          "before": {
+            "min": [
+              -0.09866794943809509,
+              -0.020575305446982384,
+              -0.2750000059604645
+            ],
+            "max": [
+              0.09866794943809509,
+              0.16123557090759277,
+              0.2750000059604645
+            ]
+          },
+          "after": {
+            "min": [
+              -0.09867168401370834,
+              -0.020578405267184685,
+              -0.2750000059604645
+            ],
+            "max": [
+              0.09867168401370834,
+              0.16123867072779507,
+              0.2750000059604645
+            ]
+          },
+          "maxBoundError": 0.000003734575613242863
+        },
+        {
+          "name": "fishing_boat",
+          "before": {
+            "min": [
+              -0.05437344312667847,
+              -0.023385269567370415,
+              -0.1300000110641122
+            ],
+            "max": [
+              0.05437344312667847,
+              0.1719188541173935,
+              0.13000000920146704
+            ]
+          },
+          "after": {
+            "min": [
+              -0.0543733066460122,
+              -0.023386952328048966,
+              -0.1300000110641122
+            ],
+            "max": [
+              0.0543733066460122,
+              0.17192053687807204,
+              0.13000000920146704
+            ]
+          },
+          "maxBoundError": 0.0000016827606785507765
+        },
+        {
+          "name": "loco_diesel",
+          "before": {
+            "min": [
+              -0.07340000569820404,
+              0.03720000013709068,
+              -0.15052847564220428
+            ],
+            "max": [
+              0.07340000569820404,
+              0.17339999973773956,
+              0.15052847564220428
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07340140946107791,
+              0.03719993188925399,
+              -0.15052847564220428
+            ],
+            "max": [
+              0.07340140946107791,
+              0.1734017468789369,
+              0.15052847564220428
+            ]
+          },
+          "maxBoundError": 0.0000017471411973279949
+        },
+        {
+          "name": "loco_steam",
+          "before": {
+            "min": [
+              -0.07750000059604645,
+              0.037199998274445534,
+              -0.15052847564220428
+            ],
+            "max": [
+              0.07750000059604645,
+              0.2160000056028366,
+              0.15052847564220428
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07749917246266019,
+              0.037200127139168655,
+              -0.15052847564220428
+            ],
+            "max": [
+              0.07749917246266019,
+              0.21599899489088886,
+              0.15052847564220428
+            ]
+          },
+          "maxBoundError": 0.0000010107119477464899
+        },
+        {
+          "name": "lorry",
+          "before": {
+            "min": [
+              -0.04964953288435936,
+              0.00026621855795383453,
+              -0.12499999790452421
+            ],
+            "max": [
+              0.04964953288435936,
+              0.11954829096794128,
+              0.1250000020954758
+            ]
+          },
+          "after": {
+            "min": [
+              -0.04964980010376293,
+              0.00026632205524292074,
+              -0.12499999790452421
+            ],
+            "max": [
+              0.04964980010376293,
+              0.11954756714724521,
+              0.1250000020954758
+            ]
+          },
+          "maxBoundError": 7.23820696074684e-7
+        },
+        {
+          "name": "sailboat",
+          "before": {
+            "min": [
+              -0.04273812472820282,
+              -0.039243582636117935,
+              -0.10999999986961484
+            ],
+            "max": [
+              0.04273812472820282,
+              0.29226139187812805,
+              0.10999999893829226
+            ]
+          },
+          "after": {
+            "min": [
+              -0.042739425789221845,
+              -0.039243582636117935,
+              -0.10999749292472497
+            ],
+            "max": [
+              0.042739425789221845,
+              0.29226139187812805,
+              0.10999749199340239
+            ]
+          },
+          "maxBoundError": 0.0000025069448898740188
+        },
+        {
+          "name": "tractor",
+          "before": {
+            "min": [
+              -0.040347546339035034,
+              -0.00014262273907661438,
+              -0.05999999679625034
+            ],
+            "max": [
+              0.040347546339035034,
+              0.10740982741117477,
+              0.05999999679625034
+            ]
+          },
+          "after": {
+            "min": [
+              -0.04034668811330241,
+              -0.00014267646365869607,
+              -0.05999999679625034
+            ],
+            "max": [
+              0.04034668811330241,
+              0.10740922277020876,
+              0.05999999679625034
+            ]
+          },
+          "maxBoundError": 8.582257326264497e-7
+        },
+        {
+          "name": "van",
+          "before": {
+            "min": [
+              -0.041465964168310165,
+              0.00024625658988952637,
+              -0.09000000130617991
+            ],
+            "max": [
+              0.041465964168310165,
+              0.09122512489557266,
+              0.08999999839579687
+            ]
+          },
+          "after": {
+            "min": [
+              -0.04146641431166636,
+              0.00024635434809189977,
+              -0.09000000130617991
+            ],
+            "max": [
+              0.04146641431166636,
+              0.09122520506213272,
+              0.08999999839579687
+            ]
+          },
+          "maxBoundError": 4.5014335619403267e-7
+        },
+        {
+          "name": "wagon_box",
+          "before": {
+            "min": [
+              -0.07409999519586563,
+              0.03759613819420338,
+              -0.125528484582901
+            ],
+            "max": [
+              0.07409999519586563,
+              0.16870000958442688,
+              0.125528484582901
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07409808492698358,
+              0.03759660538036193,
+              -0.125528484582901
+            ],
+            "max": [
+              0.07409808492698358,
+              0.1686998274666522,
+              0.125528484582901
+            ]
+          },
+          "maxBoundError": 0.0000019102688820493707
+        },
+        {
+          "name": "wagon_logs",
+          "before": {
+            "min": [
+              -0.07199999690055847,
+              0.0375710679218173,
+              -0.125528484582901
+            ],
+            "max": [
+              0.07199999690055847,
+              0.19131535291671753,
+              0.125528484582901
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07199872857603813,
+              0.037570812856106535,
+              -0.125528484582901
+            ],
+            "max": [
+              0.07199872857603813,
+              0.1913161921684474,
+              0.125528484582901
+            ]
+          },
+          "maxBoundError": 0.0000012683245203398696
+        },
+        {
+          "name": "wagon_tank",
+          "before": {
+            "min": [
+              -0.07199999690055847,
+              0.03759613819420338,
+              -0.125528484582901
+            ],
+            "max": [
+              0.07199999690055847,
+              0.1979999989271164,
+              0.125528484582901
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07199872857603813,
+              0.03759660538036193,
+              -0.125528484582901
+            ],
+            "max": [
+              0.07199872857603813,
+              0.19799934528766017,
+              0.125528484582901
+            ]
+          },
+          "maxBoundError": 0.0000012683245203398696
+        }
+      ],
+      "meshes": [
+        {
+          "path": "bus/bus-body",
+          "mesh": "bus-body",
+          "vertices": 5439,
+          "triangles": 3930,
+          "maxPositionError": 0.0000033433541997615597,
+          "maxPositionErrorMm": 0.08358385499403899
+        },
+        {
+          "path": "bus/wheel_fl",
+          "mesh": "wheel_fl",
+          "vertices": 490,
+          "triangles": 324,
+          "maxPositionError": 3.521969682596388e-7,
+          "maxPositionErrorMm": 0.00880492420649097
+        },
+        {
+          "path": "bus/wheel_fr",
+          "mesh": "wheel_fr",
+          "vertices": 475,
+          "triangles": 324,
+          "maxPositionError": 3.521969682596388e-7,
+          "maxPositionErrorMm": 0.00880492420649097
+        },
+        {
+          "path": "bus/wheel_rl",
+          "mesh": "wheel_rl",
+          "vertices": 490,
+          "triangles": 324,
+          "maxPositionError": 3.521969682596388e-7,
+          "maxPositionErrorMm": 0.00880492420649097
+        },
+        {
+          "path": "bus/wheel_rr",
+          "mesh": "wheel_rr",
+          "vertices": 477,
+          "triangles": 324,
+          "maxPositionError": 3.521969682596388e-7,
+          "maxPositionErrorMm": 0.00880492420649097
+        },
+        {
+          "path": "car_hatch/car_hatch-body",
+          "mesh": "car_hatch-body",
+          "vertices": 4640,
+          "triangles": 3232,
+          "maxPositionError": 0.000001841309434166352,
+          "maxPositionErrorMm": 0.0460327358541588
+        },
+        {
+          "path": "car_hatch/wheel_fl",
+          "mesh": "wheel_fl",
+          "vertices": 465,
+          "triangles": 324,
+          "maxPositionError": 3.636298083402374e-7,
+          "maxPositionErrorMm": 0.009090745208505934
+        },
+        {
+          "path": "car_hatch/wheel_fr",
+          "mesh": "wheel_fr",
+          "vertices": 442,
+          "triangles": 324,
+          "maxPositionError": 3.636298083402374e-7,
+          "maxPositionErrorMm": 0.009090745208505934
+        },
+        {
+          "path": "car_hatch/wheel_rl",
+          "mesh": "wheel_rl",
+          "vertices": 452,
+          "triangles": 324,
+          "maxPositionError": 3.636298083402374e-7,
+          "maxPositionErrorMm": 0.009090745208505934
+        },
+        {
+          "path": "car_hatch/wheel_rr",
+          "mesh": "wheel_rr",
+          "vertices": 432,
+          "triangles": 324,
+          "maxPositionError": 3.636298083402374e-7,
+          "maxPositionErrorMm": 0.009090745208505934
+        },
+        {
+          "path": "car_retro/car_retro-body",
+          "mesh": "car_retro-body",
+          "vertices": 6572,
+          "triangles": 4420,
+          "maxPositionError": 0.0000018608870682314784,
+          "maxPositionErrorMm": 0.04652217670578696
+        },
+        {
+          "path": "car_retro/wheel_fl",
+          "mesh": "wheel_fl",
+          "vertices": 464,
+          "triangles": 324,
+          "maxPositionError": 3.4063014248689496e-7,
+          "maxPositionErrorMm": 0.008515753562172374
+        },
+        {
+          "path": "car_retro/wheel_fr",
+          "mesh": "wheel_fr",
+          "vertices": 451,
+          "triangles": 324,
+          "maxPositionError": 3.4063014248689496e-7,
+          "maxPositionErrorMm": 0.008515753562172374
+        },
+        {
+          "path": "car_retro/wheel_rl",
+          "mesh": "wheel_rl",
+          "vertices": 476,
+          "triangles": 324,
+          "maxPositionError": 3.4063014248689496e-7,
+          "maxPositionErrorMm": 0.008515753562172374
+        },
+        {
+          "path": "car_retro/wheel_rr",
+          "mesh": "wheel_rr",
+          "vertices": 454,
+          "triangles": 324,
+          "maxPositionError": 3.4063014248689496e-7,
+          "maxPositionErrorMm": 0.008515753562172374
+        },
+        {
+          "path": "car_sedan/car_sedan-body",
+          "mesh": "car_sedan-body",
+          "vertices": 4938,
+          "triangles": 3338,
+          "maxPositionError": 0.000002155466601024641,
+          "maxPositionErrorMm": 0.05388666502561602
+        },
+        {
+          "path": "car_sedan/wheel_fl",
+          "mesh": "wheel_fl",
+          "vertices": 472,
+          "triangles": 324,
+          "maxPositionError": 3.6681168846522456e-7,
+          "maxPositionErrorMm": 0.009170292211630614
+        },
+        {
+          "path": "car_sedan/wheel_fr",
+          "mesh": "wheel_fr",
+          "vertices": 444,
+          "triangles": 324,
+          "maxPositionError": 3.6681168846522456e-7,
+          "maxPositionErrorMm": 0.009170292211630614
+        },
+        {
+          "path": "car_sedan/wheel_rl",
+          "mesh": "wheel_rl",
+          "vertices": 469,
+          "triangles": 324,
+          "maxPositionError": 3.6681168846522456e-7,
+          "maxPositionErrorMm": 0.009170292211630614
+        },
+        {
+          "path": "car_sedan/wheel_rr",
+          "mesh": "wheel_rr",
+          "vertices": 440,
+          "triangles": 324,
+          "maxPositionError": 3.6681168846522456e-7,
+          "maxPositionErrorMm": 0.009170292211630614
+        },
+        {
+          "path": "coach/coach-body",
+          "mesh": "coach-body",
+          "vertices": 5333,
+          "triangles": 3830,
+          "maxPositionError": 0.000003208173684919068,
+          "maxPositionErrorMm": 0.0802043421229767
+        },
+        {
+          "path": "coach/wheel_f1",
+          "mesh": "wheel_f1",
+          "vertices": 525,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "coach/wheel_f2",
+          "mesh": "wheel_f2",
+          "vertices": 527,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "coach/wheel_r1",
+          "mesh": "wheel_r1",
+          "vertices": 524,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "coach/wheel_r2",
+          "mesh": "wheel_r2",
+          "vertices": 521,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "ferry/ferry-body",
+          "mesh": "ferry-body",
+          "vertices": 8919,
+          "triangles": 5992,
+          "maxPositionError": 0.0000070991250562284894,
+          "maxPositionErrorMm": 0.17747812640571223
+        },
+        {
+          "path": "fishing_boat/fishing_boat-body",
+          "mesh": "fishing_boat-body",
+          "vertices": 8301,
+          "triangles": 5649,
+          "maxPositionError": 0.0000032167311367624164,
+          "maxPositionErrorMm": 0.08041827841906041
+        },
+        {
+          "path": "loco_diesel/loco_diesel-body",
+          "mesh": "loco_diesel-body",
+          "vertices": 5773,
+          "triangles": 4136,
+          "maxPositionError": 0.0000037803580931562676,
+          "maxPositionErrorMm": 0.09450895232890669
+        },
+        {
+          "path": "loco_diesel/wheel_f1",
+          "mesh": "wheel_f1",
+          "vertices": 435,
+          "triangles": 304,
+          "maxPositionError": 0.0000010324831157506714,
+          "maxPositionErrorMm": 0.025812077893766786
+        },
+        {
+          "path": "loco_diesel/wheel_f2",
+          "mesh": "wheel_f2",
+          "vertices": 426,
+          "triangles": 304,
+          "maxPositionError": 0.0000010324831157506714,
+          "maxPositionErrorMm": 0.025812077893766786
+        },
+        {
+          "path": "loco_diesel/wheel_r1",
+          "mesh": "wheel_r1",
+          "vertices": 441,
+          "triangles": 304,
+          "maxPositionError": 0.0000010324831157506714,
+          "maxPositionErrorMm": 0.025812077893766786
+        },
+        {
+          "path": "loco_diesel/wheel_r2",
+          "mesh": "wheel_r2",
+          "vertices": 426,
+          "triangles": 304,
+          "maxPositionError": 0.0000010324831157506714,
+          "maxPositionErrorMm": 0.025812077893766786
+        },
+        {
+          "path": "loco_steam/loco_steam-body",
+          "mesh": "loco_steam-body",
+          "vertices": 4954,
+          "triangles": 3653,
+          "maxPositionError": 0.0000036743902616358287,
+          "maxPositionErrorMm": 0.09185975654089572
+        },
+        {
+          "path": "loco_steam/rod_l",
+          "mesh": "rod_l",
+          "vertices": 181,
+          "triangles": 108,
+          "maxPositionError": 9.550708448269143e-7,
+          "maxPositionErrorMm": 0.02387677112067286
+        },
+        {
+          "path": "loco_steam/rod_r",
+          "mesh": "rod_r",
+          "vertices": 179,
+          "triangles": 108,
+          "maxPositionError": 9.550708448269143e-7,
+          "maxPositionErrorMm": 0.02387677112067286
+        },
+        {
+          "path": "loco_steam/wheel_d1",
+          "mesh": "wheel_d1",
+          "vertices": 882,
+          "triangles": 536,
+          "maxPositionError": 0.0000012390836674225024,
+          "maxPositionErrorMm": 0.03097709168556256
+        },
+        {
+          "path": "loco_steam/wheel_d2",
+          "mesh": "wheel_d2",
+          "vertices": 879,
+          "triangles": 536,
+          "maxPositionError": 0.0000012390836674239591,
+          "maxPositionErrorMm": 0.03097709168559898
+        },
+        {
+          "path": "loco_steam/wheel_d3",
+          "mesh": "wheel_d3",
+          "vertices": 869,
+          "triangles": 536,
+          "maxPositionError": 0.0000012390836674225024,
+          "maxPositionErrorMm": 0.03097709168556256
+        },
+        {
+          "path": "loco_steam/wheel_lead",
+          "mesh": "wheel_lead",
+          "vertices": 355,
+          "triangles": 256,
+          "maxPositionError": 8.995361747424694e-7,
+          "maxPositionErrorMm": 0.022488404368561737
+        },
+        {
+          "path": "loco_steam/wheel_trail",
+          "mesh": "wheel_trail",
+          "vertices": 355,
+          "triangles": 256,
+          "maxPositionError": 8.995361747424694e-7,
+          "maxPositionErrorMm": 0.022488404368561737
+        },
+        {
+          "path": "lorry/lorry-body",
+          "mesh": "lorry-body",
+          "vertices": 5516,
+          "triangles": 3562,
+          "maxPositionError": 0.000003039572603839913,
+          "maxPositionErrorMm": 0.07598931509599782
+        },
+        {
+          "path": "lorry/wheel_fl",
+          "mesh": "wheel_fl",
+          "vertices": 513,
+          "triangles": 324,
+          "maxPositionError": 3.744619993622945e-7,
+          "maxPositionErrorMm": 0.009361549984057362
+        },
+        {
+          "path": "lorry/wheel_fr",
+          "mesh": "wheel_fr",
+          "vertices": 505,
+          "triangles": 324,
+          "maxPositionError": 3.744619993622945e-7,
+          "maxPositionErrorMm": 0.009361549984057362
+        },
+        {
+          "path": "lorry/wheel_ml",
+          "mesh": "wheel_ml",
+          "vertices": 534,
+          "triangles": 324,
+          "maxPositionError": 3.744619993622945e-7,
+          "maxPositionErrorMm": 0.009361549984057362
+        },
+        {
+          "path": "lorry/wheel_mr",
+          "mesh": "wheel_mr",
+          "vertices": 525,
+          "triangles": 324,
+          "maxPositionError": 3.744619993622945e-7,
+          "maxPositionErrorMm": 0.009361549984057362
+        },
+        {
+          "path": "lorry/wheel_rl",
+          "mesh": "wheel_rl",
+          "vertices": 539,
+          "triangles": 324,
+          "maxPositionError": 3.744619993622945e-7,
+          "maxPositionErrorMm": 0.009361549984057362
+        },
+        {
+          "path": "lorry/wheel_rr",
+          "mesh": "wheel_rr",
+          "vertices": 516,
+          "triangles": 324,
+          "maxPositionError": 3.744619993622945e-7,
+          "maxPositionErrorMm": 0.009361549984057362
+        },
+        {
+          "path": "sailboat/sailboat-body",
+          "mesh": "sailboat-body",
+          "vertices": 5394,
+          "triangles": 4008,
+          "maxPositionError": 0.000004346441750914537,
+          "maxPositionErrorMm": 0.10866104377286342
+        },
+        {
+          "path": "tractor/tractor-body",
+          "mesh": "tractor-body",
+          "vertices": 3919,
+          "triangles": 2504,
+          "maxPositionError": 0.0000014555689251206767,
+          "maxPositionErrorMm": 0.036389223128016915
+        },
+        {
+          "path": "tractor/wheel_fl",
+          "mesh": "wheel_fl",
+          "vertices": 540,
+          "triangles": 324,
+          "maxPositionError": 3.2851199344667096e-7,
+          "maxPositionErrorMm": 0.008212799836166775
+        },
+        {
+          "path": "tractor/wheel_fr",
+          "mesh": "wheel_fr",
+          "vertices": 551,
+          "triangles": 324,
+          "maxPositionError": 3.2851199344667096e-7,
+          "maxPositionErrorMm": 0.008212799836166775
+        },
+        {
+          "path": "tractor/wheel_rl",
+          "mesh": "wheel_rl",
+          "vertices": 1293,
+          "triangles": 736,
+          "maxPositionError": 7.089141348662769e-7,
+          "maxPositionErrorMm": 0.017722853371656924
+        },
+        {
+          "path": "tractor/wheel_rr",
+          "mesh": "wheel_rr",
+          "vertices": 1293,
+          "triangles": 736,
+          "maxPositionError": 7.089141348662769e-7,
+          "maxPositionErrorMm": 0.017722853371656924
+        },
+        {
+          "path": "van/van-body",
+          "mesh": "van-body",
+          "vertices": 6452,
+          "triangles": 4268,
+          "maxPositionError": 0.000002219221818562891,
+          "maxPositionErrorMm": 0.05548054546407228
+        },
+        {
+          "path": "van/wheel_fl",
+          "mesh": "wheel_fl",
+          "vertices": 472,
+          "triangles": 324,
+          "maxPositionError": 3.239577885105105e-7,
+          "maxPositionErrorMm": 0.008098944712762762
+        },
+        {
+          "path": "van/wheel_fr",
+          "mesh": "wheel_fr",
+          "vertices": 451,
+          "triangles": 324,
+          "maxPositionError": 3.239577885105105e-7,
+          "maxPositionErrorMm": 0.008098944712762762
+        },
+        {
+          "path": "van/wheel_rl",
+          "mesh": "wheel_rl",
+          "vertices": 473,
+          "triangles": 324,
+          "maxPositionError": 3.239577885105105e-7,
+          "maxPositionErrorMm": 0.008098944712762762
+        },
+        {
+          "path": "van/wheel_rr",
+          "mesh": "wheel_rr",
+          "vertices": 463,
+          "triangles": 324,
+          "maxPositionError": 3.239577885105105e-7,
+          "maxPositionErrorMm": 0.008098944712762762
+        },
+        {
+          "path": "wagon_box/wagon_box-body",
+          "mesh": "wagon_box-body",
+          "vertices": 5500,
+          "triangles": 3716,
+          "maxPositionError": 0.0000030049814333960005,
+          "maxPositionErrorMm": 0.07512453583490002
+        },
+        {
+          "path": "wagon_box/wheel_1",
+          "mesh": "wheel_1",
+          "vertices": 534,
+          "triangles": 352,
+          "maxPositionError": 0.0000010635040863247711,
+          "maxPositionErrorMm": 0.02658760215811928
+        },
+        {
+          "path": "wagon_box/wheel_2",
+          "mesh": "wheel_2",
+          "vertices": 534,
+          "triangles": 352,
+          "maxPositionError": 0.0000010635040863247711,
+          "maxPositionErrorMm": 0.02658760215811928
+        },
+        {
+          "path": "wagon_logs/wagon_logs-body",
+          "mesh": "wagon_logs-body",
+          "vertices": 4778,
+          "triangles": 3292,
+          "maxPositionError": 0.0000031004327150637818,
+          "maxPositionErrorMm": 0.07751081787659454
+        },
+        {
+          "path": "wagon_logs/wheel_f1",
+          "mesh": "wheel_f1",
+          "vertices": 583,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "wagon_logs/wheel_f2",
+          "mesh": "wheel_f2",
+          "vertices": 610,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "wagon_logs/wheel_r1",
+          "mesh": "wheel_r1",
+          "vertices": 579,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "wagon_logs/wheel_r2",
+          "mesh": "wheel_r2",
+          "vertices": 603,
+          "triangles": 352,
+          "maxPositionError": 0.0000011782325064949076,
+          "maxPositionErrorMm": 0.02945581266237269
+        },
+        {
+          "path": "wagon_tank/wagon_tank-body",
+          "mesh": "wagon_tank-body",
+          "vertices": 4716,
+          "triangles": 3300,
+          "maxPositionError": 0.0000030073496821939744,
+          "maxPositionErrorMm": 0.07518374205484936
+        },
+        {
+          "path": "wagon_tank/wheel_1",
+          "mesh": "wheel_1",
+          "vertices": 547,
+          "triangles": 352,
+          "maxPositionError": 0.0000010635040863247711,
+          "maxPositionErrorMm": 0.02658760215811928
+        },
+        {
+          "path": "wagon_tank/wheel_2",
+          "mesh": "wheel_2",
+          "vertices": 551,
+          "triangles": 352,
+          "maxPositionError": 0.0000010635040863247711,
+          "maxPositionErrorMm": 0.02658760215811928
+        }
+      ],
+      "maxPositionError": 0.0000070991250562284894,
+      "maxPositionErrorMm": 0.17747812640571223,
+      "maxNormalErrorDegrees": 1.00236908325153,
+      "maxUvError": 0.00005817413330078125,
+      "maxSurfaceErrorMm": 0.4523992538452148,
+      "maxColorError": 0.001953154802777135,
+      "maxBoundError": 0.000003734575613242863
+    },
+    "nature": {
+      "beforeBytes": 4858272,
+      "afterBytes": 1668148,
+      "vertices": 107507,
+      "nodes": 71,
+      "compressedViews": 4,
+      "roots": [
+        {
+          "name": "birch",
+          "before": {
+            "min": [
+              -0.06586036831140518,
+              -0.007664290722459555,
+              -0.08014505356550217
+            ],
+            "max": [
+              0.0850236788392067,
+              0.3029865026473999,
+              0.06939464807510376
+            ]
+          },
+          "after": {
+            "min": [
+              -0.06585988720222,
+              -0.007664290722459555,
+              -0.08014488284120165
+            ],
+            "max": [
+              0.08502319773002151,
+              0.3029865026473999,
+              0.06939447735080324
+            ]
+          },
+          "maxBoundError": 4.811091851852911e-7
+        },
+        {
+          "name": "buffer_stop",
+          "before": {
+            "min": [
+              -0.06000000238418579,
+              -0.0051575349643826485,
+              -0.07000000029802322
+            ],
+            "max": [
+              0.06000000238418579,
+              0.05900000035762787,
+              0.02590000070631504
+            ]
+          },
+          "after": {
+            "min": [
+              -0.06000000238418579,
+              -0.005157994628690994,
+              -0.06999946304950225
+            ],
+            "max": [
+              0.06000000238418579,
+              0.059000460021936214,
+              0.025899463457794064
+            ]
+          },
+          "maxBoundError": 5.372485209764744e-7
+        },
+        {
+          "name": "bush_a",
+          "before": {
+            "min": [
+              -0.05010618269443512,
+              -0.004384179133921862,
+              -0.048712510615587234
+            ],
+            "max": [
+              0.04499497637152672,
+              0.060269150882959366,
+              0.04228097200393677
+            ]
+          },
+          "after": {
+            "min": [
+              -0.05010618269443512,
+              -0.0043838396870731836,
+              -0.048712939309732146
+            ],
+            "max": [
+              0.04499497637152672,
+              0.06026881143611069,
+              0.04228140069808168
+            ]
+          },
+          "maxBoundError": 4.2869414491192304e-7
+        },
+        {
+          "name": "bush_b",
+          "before": {
+            "min": [
+              -0.05562560260295868,
+              -0.0050262631848454475,
+              -0.0418364591896534
+            ],
+            "max": [
+              0.06165166199207306,
+              0.041697967797517776,
+              0.041841693222522736
+            ]
+          },
+          "after": {
+            "min": [
+              -0.05562560260295868,
+              -0.005026901215318843,
+              -0.0418355916838926
+            ],
+            "max": [
+              0.06165166199207306,
+              0.041698605827991175,
+              0.04184082571676194
+            ]
+          },
+          "maxBoundError": 8.675057607959724e-7
+        },
+        {
+          "name": "fence",
+          "before": {
+            "min": [
+              -0.5,
+              -0.00308958999812603,
+              -0.010395100340247154
+            ],
+            "max": [
+              0.5,
+              0.050799839198589325,
+              0.009313898161053658
+            ]
+          },
+          "after": {
+            "min": [
+              -0.5,
+              -0.003092719267073874,
+              -0.010398079650343842
+            ],
+            "max": [
+              0.5,
+              0.050802968467537166,
+              0.009316877471150346
+            ]
+          },
+          "maxBoundError": 0.0000031292689478441826
+        },
+        {
+          "name": "flowers",
+          "before": {
+            "min": [
+              -0.024848563596606255,
+              -0.004843201953917742,
+              -0.022870933637022972
+            ],
+            "max": [
+              0.029098914936184883,
+              0.023897480219602585,
+              0.025242691859602928
+            ]
+          },
+          "after": {
+            "min": [
+              -0.024848563596606255,
+              -0.0048434338940891684,
+              -0.022871268516541195
+            ],
+            "max": [
+              0.029098914936184883,
+              0.02389771215977401,
+              0.02524302673912115
+            ]
+          },
+          "maxBoundError": 3.3487951822328e-7
+        },
+        {
+          "name": "hay_bale",
+          "before": {
+            "min": [
+              -0.018475288525223732,
+              -0.002199999988079071,
+              -0.023410992696881294
+            ],
+            "max": [
+              0.018300002440810204,
+              0.040499165654182434,
+              0.024651439860463142
+            ]
+          },
+          "after": {
+            "min": [
+              -0.018475370162140535,
+              -0.002200334372930768,
+              -0.023410992696881294
+            ],
+            "max": [
+              0.018300084077727007,
+              0.04049950003903413,
+              0.024651439860463142
+            ]
+          },
+          "maxBoundError": 3.3438485169678955e-7
+        },
+        {
+          "name": "hedge",
+          "before": {
+            "min": [
+              -0.5,
+              -0.002478216076269746,
+              -0.03500000014901161
+            ],
+            "max": [
+              0.5,
+              0.06687500327825546,
+              0.03331838548183441
+            ]
+          },
+          "after": {
+            "min": [
+              -0.5,
+              -0.002470633163739952,
+              -0.03500627869196746
+            ],
+            "max": [
+              0.5,
+              0.06686742036572567,
+              0.03332466402479026
+            ]
+          },
+          "maxBoundError": 0.000007582912529793817
+        },
+        {
+          "name": "lamp",
+          "before": {
+            "min": [
+              -0.007699999958276749,
+              -0.003000000026077032,
+              -0.009532120078802109
+            ],
+            "max": [
+              0.009231068193912506,
+              0.11620000004768372,
+              0.006200000643730164
+            ]
+          },
+          "after": {
+            "min": [
+              -0.007699641216257295,
+              -0.003000000026077032,
+              -0.009532815910031703
+            ],
+            "max": [
+              0.009230709451893053,
+              0.11620000004768372,
+              0.006200696474959758
+            ]
+          },
+          "maxBoundError": 6.958312295940461e-7
+        },
+        {
+          "name": "mountain_a",
+          "before": {
+            "min": [
+              -1.4729171991348267,
+              -0.012000024318695068,
+              -1.4729630947113037
+            ],
+            "max": [
+              1.4933220148086548,
+              1.5783450603485107,
+              1.3884528875350952
+            ]
+          },
+          "after": {
+            "min": [
+              -1.4729171991348267,
+              -0.012010150740740078,
+              -1.4729606200152947
+            ],
+            "max": [
+              1.4933220148086548,
+              1.5783551867705556,
+              1.3884504128390862
+            ]
+          },
+          "maxBoundError": 0.000010126422045009242
+        },
+        {
+          "name": "mountain_b",
+          "before": {
+            "min": [
+              -1.4700000286102295,
+              -0.012000024318695068,
+              -1.4250155687332153
+            ],
+            "max": [
+              1.4780067205429077,
+              1.323992371559143,
+              1.4183017015457153
+            ]
+          },
+          "after": {
+            "min": [
+              -1.4700000286102295,
+              -0.01200213034432318,
+              -1.4250365301298622
+            ],
+            "max": [
+              1.4780067205429077,
+              1.3239944775847712,
+              1.4183226629423622
+            ]
+          },
+          "maxBoundError": 0.000020961396646868025
+        },
+        {
+          "name": "oak_a",
+          "before": {
+            "min": [
+              -0.10147977620363235,
+              -0.008070788346230984,
+              -0.09868986159563065
+            ],
+            "max": [
+              0.10713053494691849,
+              0.26055869460105896,
+              0.0971815213561058
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10147977620363235,
+              -0.008070788346230984,
+              -0.09868966669952021
+            ],
+            "max": [
+              0.10713053494691849,
+              0.2605593617025845,
+              0.09718132645999537
+            ]
+          },
+          "maxBoundError": 6.671015255199642e-7
+        },
+        {
+          "name": "oak_b",
+          "before": {
+            "min": [
+              -0.13689467310905457,
+              -0.008578424341976643,
+              -0.10284541547298431
+            ],
+            "max": [
+              0.09663481265306473,
+              0.22865033149719238,
+              0.10288833826780319
+            ]
+          },
+          "after": {
+            "min": [
+              -0.13689467310905457,
+              -0.008578424341976643,
+              -0.10284568642654604
+            ],
+            "max": [
+              0.09663481265306473,
+              0.22865050720920035,
+              0.10288860922136492
+            ]
+          },
+          "maxBoundError": 2.709535617262393e-7
+        },
+        {
+          "name": "oak_c",
+          "before": {
+            "min": [
+              -0.1036568284034729,
+              -0.008041523396968842,
+              -0.08524806797504425
+            ],
+            "max": [
+              0.10986827313899994,
+              0.31833669543266296,
+              0.09277168661355972
+            ]
+          },
+          "after": {
+            "min": [
+              -0.1036568284034729,
+              -0.008041523396968842,
+              -0.0852466248361009
+            ],
+            "max": [
+              0.10986827313899994,
+              0.3183381990333623,
+              0.09277024347461638
+            ]
+          },
+          "maxBoundError": 0.0000015036006993374151
+        },
+        {
+          "name": "peak_a",
+          "before": {
+            "min": [
+              -0.49218183755874634,
+              -0.030821871012449265,
+              -0.4834620952606201
+            ],
+            "max": [
+              0.488260418176651,
+              0.42838022112846375,
+              0.4819892644882202
+            ]
+          },
+          "after": {
+            "min": [
+              -0.49218183755874634,
+              -0.030816079213170228,
+              -0.48346470746641995
+            ],
+            "max": [
+              0.488260418176651,
+              0.4283744293291847,
+              0.4819841620995178
+            ]
+          },
+          "maxBoundError": 0.000005791799279064591
+        },
+        {
+          "name": "peak_b",
+          "before": {
+            "min": [
+              -0.4825320839881897,
+              -0.02944061905145645,
+              -0.4817359745502472
+            ],
+            "max": [
+              0.47517311573028564,
+              0.42209523916244507,
+              0.4959539473056793
+            ]
+          },
+          "after": {
+            "min": [
+              -0.48252517925385796,
+              -0.029441810964834947,
+              -0.4817359745502472
+            ],
+            "max": [
+              0.4751662109959539,
+              0.42209643107582356,
+              0.4959539473056793
+            ]
+          },
+          "maxBoundError": 0.0000069047343317363286
+        },
+        {
+          "name": "pier",
+          "before": {
+            "min": [
+              -0.17391301691532135,
+              -0.08214491605758667,
+              -0.5
+            ],
+            "max": [
+              0.17464999854564667,
+              0.06480000168085098,
+              0.5
+            ]
+          },
+          "after": {
+            "min": [
+              -0.1739074575475193,
+              -0.08214576875183108,
+              -0.5
+            ],
+            "max": [
+              0.1746444391778446,
+              0.06480085437509539,
+              0.5
+            ]
+          },
+          "maxBoundError": 0.000005559367802054904
+        },
+        {
+          "name": "pine_a",
+          "before": {
+            "min": [
+              -0.08861042559146881,
+              -0.007499999832361937,
+              -0.08438171446323395
+            ],
+            "max": [
+              0.09731768816709518,
+              0.3399375081062317,
+              0.10147348791360855
+            ]
+          },
+          "after": {
+            "min": [
+              -0.0886104310446244,
+              -0.007499999832361937,
+              -0.08438200684133616
+            ],
+            "max": [
+              0.09731769362025078,
+              0.3399375081062317,
+              0.10147378029171077
+            ]
+          },
+          "maxBoundError": 2.923781022151628e-7
+        },
+        {
+          "name": "pine_b",
+          "before": {
+            "min": [
+              -0.06121816486120224,
+              -0.007528429850935936,
+              -0.06095840036869049
+            ],
+            "max": [
+              0.05482399836182594,
+              0.38368064165115356,
+              0.06508195400238037
+            ]
+          },
+          "after": {
+            "min": [
+              -0.06122019817204463,
+              -0.007528429850935936,
+              -0.060960985170919746
+            ],
+            "max": [
+              0.054826031672668335,
+              0.38368064165115356,
+              0.06508453880460963
+            ]
+          },
+          "maxBoundError": 0.0000025848022292551676
+        },
+        {
+          "name": "poplar",
+          "before": {
+            "min": [
+              -0.07376231253147125,
+              -0.007618711795657873,
+              -0.0749763548374176
+            ],
+            "max": [
+              0.06960558891296387,
+              0.3878752291202545,
+              0.06924085319042206
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07376201828049178,
+              -0.007618711795657873,
+              -0.07497566939059672
+            ],
+            "max": [
+              0.0696052946619844,
+              0.3878752291202545,
+              0.06924016774360117
+            ]
+          },
+          "maxBoundError": 6.854468208861153e-7
+        },
+        {
+          "name": "rail_signal",
+          "before": {
+            "min": [
+              -0.04800000041723251,
+              -0.0029999997932463884,
+              -0.008999999612569809
+            ],
+            "max": [
+              0.01329156942665577,
+              0.15800000727176666,
+              0.015283089131116867
+            ]
+          },
+          "after": {
+            "min": [
+              -0.04799959175995973,
+              -0.0029999997932463884,
+              -0.008999664916853282
+            ],
+            "max": [
+              0.013291160769382988,
+              0.15800000727176666,
+              0.01528275443540034
+            ]
+          },
+          "maxBoundError": 4.086572727851623e-7
+        },
+        {
+          "name": "reeds",
+          "before": {
+            "min": [
+              -0.0514695942401886,
+              -0.004967877175658941,
+              -0.04304123669862747
+            ],
+            "max": [
+              0.049483269453048706,
+              0.10056759417057037,
+              0.04478484392166138
+            ]
+          },
+          "after": {
+            "min": [
+              -0.05146930933830415,
+              -0.004967877175658941,
+              -0.04304199332046228
+            ],
+            "max": [
+              0.04948298455116426,
+              0.10056759417057037,
+              0.04478560054349619
+            ]
+          },
+          "maxBoundError": 7.566218348104004e-7
+        },
+        {
+          "name": "road_barrier",
+          "before": {
+            "min": [
+              -0.1599999964237213,
+              -0.002807691227644682,
+              -0.023938460275530815
+            ],
+            "max": [
+              0.1599999964237213,
+              0.058800000697374344,
+              0.023938460275530815
+            ]
+          },
+          "after": {
+            "min": [
+              -0.1599999964237213,
+              -0.0028055658205974957,
+              -0.023936276817196626
+            ],
+            "max": [
+              0.1599999964237213,
+              0.05879787529032716,
+              0.023936276817196626
+            ]
+          },
+          "maxBoundError": 0.0000021834583341893976
+        },
+        {
+          "name": "rock_a",
+          "before": {
+            "min": [
+              -0.03274913132190704,
+              -0.005705326795578003,
+              -0.034827616065740585
+            ],
+            "max": [
+              0.032425157725811005,
+              0.041258860379457474,
+              0.029981208965182304
+            ]
+          },
+          "after": {
+            "min": [
+              -0.03274913132190704,
+              -0.005705628804158754,
+              -0.034827358035611905
+            ],
+            "max": [
+              0.032425157725811005,
+              0.04125916238803823,
+              0.029980950935053624
+            ]
+          },
+          "maxBoundError": 3.0200858075479786e-7
+        },
+        {
+          "name": "rock_b",
+          "before": {
+            "min": [
+              -0.05045098066329956,
+              -0.0060000005178153515,
+              -0.0451955683529377
+            ],
+            "max": [
+              0.06340974569320679,
+              0.0646485686302185,
+              0.047389037907123566
+            ]
+          },
+          "after": {
+            "min": [
+              -0.05045098066329956,
+              -0.0059994017794582424,
+              -0.045195345563535674
+            ],
+            "max": [
+              0.06340974569320679,
+              0.06464796989186139,
+              0.04738881511772154
+            ]
+          },
+          "maxBoundError": 5.98738357115991e-7
+        },
+        {
+          "name": "rock_c",
+          "before": {
+            "min": [
+              -0.06368543952703476,
+              -0.0060000005178153515,
+              -0.056215252727270126
+            ],
+            "max": [
+              0.09311286360025406,
+              0.12390382587909698,
+              0.05938005447387695
+            ]
+          },
+          "after": {
+            "min": [
+              -0.06368543952703476,
+              -0.006000684978536244,
+              -0.05621624728865704
+            ],
+            "max": [
+              0.09311286360025406,
+              0.12390451033981788,
+              0.059381049035263866
+            ]
+          },
+          "maxBoundError": 9.945613869133396e-7
+        },
+        {
+          "name": "rubble",
+          "before": {
+            "min": [
+              -0.3993854522705078,
+              -0.029463032260537148,
+              -0.37755903601646423
+            ],
+            "max": [
+              0.38158315420150757,
+              0.10736694186925888,
+              0.3754042387008667
+            ]
+          },
+          "after": {
+            "min": [
+              -0.3993854522705078,
+              -0.029463535929545814,
+              -0.37755922817627635
+            ],
+            "max": [
+              0.38158315420150757,
+              0.10736744553826755,
+              0.3754044308606788
+            ]
+          },
+          "maxBoundError": 5.036690086668294e-7
+        },
+        {
+          "name": "signpost",
+          "before": {
+            "min": [
+              -0.028695033863186836,
+              -0.003000000026077032,
+              -0.017967140302062035
+            ],
+            "max": [
+              0.03348120301961899,
+              0.11249999701976776,
+              0.006962994113564491
+            ]
+          },
+          "after": {
+            "min": [
+              -0.028694662971020295,
+              -0.003000000026077032,
+              -0.017967838637405913
+            ],
+            "max": [
+              0.033480832127452446,
+              0.11249999701976776,
+              0.006963692448908371
+            ]
+          },
+          "maxBoundError": 6.983353438797663e-7
+        },
+        {
+          "name": "stake",
+          "before": {
+            "min": [
+              -0.010093812830746174,
+              -0.004090677946805954,
+              -0.011113414540886879
+            ],
+            "max": [
+              0.014000000432133675,
+              0.05010140314698219,
+              0.007701880764216185
+            ]
+          },
+          "after": {
+            "min": [
+              -0.010093633659469001,
+              -0.004090677946805954,
+              -0.011113758260814179
+            ],
+            "max": [
+              0.013999821260856502,
+              0.05010140314698219,
+              0.0077022244841434846
+            ]
+          },
+          "maxBoundError": 3.437199272999375e-7
+        },
+        {
+          "name": "stone_wall",
+          "before": {
+            "min": [
+              -0.5008642077445984,
+              -0.0031955100130289793,
+              -0.030083902180194855
+            ],
+            "max": [
+              0.5008807182312012,
+              0.06000061333179474,
+              0.029937900602817535
+            ]
+          },
+          "after": {
+            "min": [
+              -0.5008642077445984,
+              -0.003193364384075137,
+              -0.030079185207318598
+            ],
+            "max": [
+              0.5008807182312012,
+              0.059998467702840896,
+              0.02993318362994128
+            ]
+          },
+          "maxBoundError": 0.000004716972876257081
+        }
+      ],
+      "meshes": [
+        {
+          "path": "birch/birch-canopy",
+          "mesh": "birch-canopy",
+          "vertices": 1182,
+          "triangles": 1166,
+          "maxPositionError": 0.0000018458572399363356,
+          "maxPositionErrorMm": 0.04614643099840839
+        },
+        {
+          "path": "birch/birch-trunk",
+          "mesh": "birch-trunk",
+          "vertices": 490,
+          "triangles": 318,
+          "maxPositionError": 0.0000028714348495544994,
+          "maxPositionErrorMm": 0.07178587123886249
+        },
+        {
+          "path": "buffer_stop/buffer_stop-frame",
+          "mesh": "buffer_stop-frame",
+          "vertices": 1670,
+          "triangles": 920,
+          "maxPositionError": 0.0000014026936824021345,
+          "maxPositionErrorMm": 0.03506734206005336
+        },
+        {
+          "path": "bush_a/bush_a-leaves",
+          "mesh": "bush_a-leaves",
+          "vertices": 690,
+          "triangles": 696,
+          "maxPositionError": 0.000001129257330908002,
+          "maxPositionErrorMm": 0.028231433272700054
+        },
+        {
+          "path": "bush_b/bush_b-leaves",
+          "mesh": "bush_b-leaves",
+          "vertices": 725,
+          "triangles": 696,
+          "maxPositionError": 0.00000145068201854077,
+          "maxPositionErrorMm": 0.036267050463519246
+        },
+        {
+          "path": "fence/fence-paint",
+          "mesh": "fence-paint",
+          "vertices": 2110,
+          "triangles": 1072,
+          "maxPositionError": 0.00001185836284741131,
+          "maxPositionErrorMm": 0.29645907118528275
+        },
+        {
+          "path": "flowers/flowers-bloom",
+          "mesh": "flowers-bloom",
+          "vertices": 1714,
+          "triangles": 744,
+          "maxPositionError": 6.656161607396842e-7,
+          "maxPositionErrorMm": 0.016640404018492105
+        },
+        {
+          "path": "hay_bale/hay_bale-hay",
+          "mesh": "hay_bale-hay",
+          "vertices": 1559,
+          "triangles": 951,
+          "maxPositionError": 6.104387538346961e-7,
+          "maxPositionErrorMm": 0.015260968845867402
+        },
+        {
+          "path": "hedge/hedge-leaves",
+          "mesh": "hedge-leaves",
+          "vertices": 1496,
+          "triangles": 1442,
+          "maxPositionError": 0.000012600118642894127,
+          "maxPositionErrorMm": 0.3150029660723532
+        },
+        {
+          "path": "lamp/lamp-iron",
+          "mesh": "lamp-iron",
+          "vertices": 1037,
+          "triangles": 528,
+          "maxPositionError": 0.0000014777274642700152,
+          "maxPositionErrorMm": 0.03694318660675038
+        },
+        {
+          "path": "mountain_a/mountain_a-forest",
+          "mesh": "mountain_a-forest",
+          "vertices": 2160,
+          "triangles": 750,
+          "maxPositionError": 0.000036257616506261944,
+          "maxPositionErrorMm": 0.9064404126565486
+        },
+        {
+          "path": "mountain_a/mountain_a-rock",
+          "mesh": "mountain_a-rock",
+          "vertices": 11191,
+          "triangles": 7950,
+          "maxPositionError": 0.00003727482616152025,
+          "maxPositionErrorMm": 0.9318706540380062
+        },
+        {
+          "path": "mountain_b/mountain_b-forest",
+          "mesh": "mountain_b-forest",
+          "vertices": 2187,
+          "triangles": 750,
+          "maxPositionError": 0.00003731325623078971,
+          "maxPositionErrorMm": 0.9328314057697428
+        },
+        {
+          "path": "mountain_b/mountain_b-rock",
+          "mesh": "mountain_b-rock",
+          "vertices": 11299,
+          "triangles": 7200,
+          "maxPositionError": 0.00003744422954445814,
+          "maxPositionErrorMm": 0.9361057386114534
+        },
+        {
+          "path": "oak_a/oak_a-canopy",
+          "mesh": "oak_a-canopy",
+          "vertices": 1095,
+          "triangles": 1164,
+          "maxPositionError": 0.000002603672447645662,
+          "maxPositionErrorMm": 0.06509181119114156
+        },
+        {
+          "path": "oak_a/oak_a-trunk",
+          "mesh": "oak_a-trunk",
+          "vertices": 393,
+          "triangles": 320,
+          "maxPositionError": 0.000002352826665199589,
+          "maxPositionErrorMm": 0.05882066662998973
+        },
+        {
+          "path": "oak_b/oak_b-canopy",
+          "mesh": "oak_b-canopy",
+          "vertices": 1020,
+          "triangles": 1116,
+          "maxPositionError": 0.000002918532114424363,
+          "maxPositionErrorMm": 0.07296330286060908
+        },
+        {
+          "path": "oak_b/oak_b-trunk",
+          "mesh": "oak_b-trunk",
+          "vertices": 478,
+          "triangles": 368,
+          "maxPositionError": 0.0000021348755415700534,
+          "maxPositionErrorMm": 0.05337188853925134
+        },
+        {
+          "path": "oak_c/oak_c-canopy",
+          "mesh": "oak_c-canopy",
+          "vertices": 1078,
+          "triangles": 1070,
+          "maxPositionError": 0.0000027063088057058926,
+          "maxPositionErrorMm": 0.06765772014264732
+        },
+        {
+          "path": "oak_c/oak_c-trunk",
+          "mesh": "oak_c-trunk",
+          "vertices": 530,
+          "triangles": 414,
+          "maxPositionError": 0.0000034958583769264313,
+          "maxPositionErrorMm": 0.08739645942316078
+        },
+        {
+          "path": "peak_a/peak_a-rock",
+          "mesh": "peak_a-rock",
+          "vertices": 9015,
+          "triangles": 6617,
+          "maxPositionError": 0.000012388742476122002,
+          "maxPositionErrorMm": 0.3097185619030501
+        },
+        {
+          "path": "peak_a/peak_a-scree",
+          "mesh": "peak_a-scree",
+          "vertices": 2314,
+          "triangles": 1309,
+          "maxPositionError": 0.000012672875784199129,
+          "maxPositionErrorMm": 0.3168218946049782
+        },
+        {
+          "path": "peak_b/peak_b-rock",
+          "mesh": "peak_b-rock",
+          "vertices": 9293,
+          "triangles": 6654,
+          "maxPositionError": 0.000012050857398521811,
+          "maxPositionErrorMm": 0.30127143496304526
+        },
+        {
+          "path": "peak_b/peak_b-scree",
+          "mesh": "peak_b-scree",
+          "vertices": 2375,
+          "triangles": 1321,
+          "maxPositionError": 0.000012139228358024256,
+          "maxPositionErrorMm": 0.3034807089506064
+        },
+        {
+          "path": "pier/pier-timber",
+          "mesh": "pier-timber",
+          "vertices": 10180,
+          "triangles": 5968,
+          "maxPositionError": 0.000012416986032657899,
+          "maxPositionErrorMm": 0.3104246508164475
+        },
+        {
+          "path": "pine_a/pine_a-crown",
+          "mesh": "pine_a-crown",
+          "vertices": 1877,
+          "triangles": 999,
+          "maxPositionError": 0.000004134226275302459,
+          "maxPositionErrorMm": 0.10335565688256149
+        },
+        {
+          "path": "pine_a/pine_a-trunk",
+          "mesh": "pine_a-trunk",
+          "vertices": 83,
+          "triangles": 96,
+          "maxPositionError": 0.000003922363043574167,
+          "maxPositionErrorMm": 0.09805907608935417
+        },
+        {
+          "path": "pine_b/pine_b-crown",
+          "mesh": "pine_b-crown",
+          "vertices": 2436,
+          "triangles": 1279,
+          "maxPositionError": 0.000004694215238075045,
+          "maxPositionErrorMm": 0.11735538095187613
+        },
+        {
+          "path": "pine_b/pine_b-trunk",
+          "mesh": "pine_b-trunk",
+          "vertices": 81,
+          "triangles": 96,
+          "maxPositionError": 0.000003916740960228818,
+          "maxPositionErrorMm": 0.09791852400572044
+        },
+        {
+          "path": "poplar/poplar-canopy",
+          "mesh": "poplar-canopy",
+          "vertices": 1245,
+          "triangles": 1148,
+          "maxPositionError": 0.000003272896404152626,
+          "maxPositionErrorMm": 0.08182241010381565
+        },
+        {
+          "path": "poplar/poplar-trunk",
+          "mesh": "poplar-trunk",
+          "vertices": 511,
+          "triangles": 336,
+          "maxPositionError": 0.0000036523571035637643,
+          "maxPositionErrorMm": 0.0913089275890941
+        },
+        {
+          "path": "rail_signal/rail_signal-parts",
+          "mesh": "rail_signal-parts",
+          "vertices": 1535,
+          "triangles": 748,
+          "maxPositionError": 0.00000207286747973657,
+          "maxPositionErrorMm": 0.05182168699341425
+        },
+        {
+          "path": "reeds/reeds-blades",
+          "mesh": "reeds-blades",
+          "vertices": 1447,
+          "triangles": 589,
+          "maxPositionError": 0.0000013354398347197258,
+          "maxPositionErrorMm": 0.033385995867993144
+        },
+        {
+          "path": "road_barrier/road_barrier-paint",
+          "mesh": "road_barrier-paint",
+          "vertices": 926,
+          "triangles": 468,
+          "maxPositionError": 0.0000037902561267471515,
+          "maxPositionErrorMm": 0.09475640316867878
+        },
+        {
+          "path": "rock_a/rock_a-stone",
+          "mesh": "rock_a-stone",
+          "vertices": 855,
+          "triangles": 423,
+          "maxPositionError": 8.244140308214525e-7,
+          "maxPositionErrorMm": 0.02061035077053631
+        },
+        {
+          "path": "rock_b/rock_b-stone",
+          "mesh": "rock_b-stone",
+          "vertices": 1418,
+          "triangles": 761,
+          "maxPositionError": 0.0000014232488436602751,
+          "maxPositionErrorMm": 0.03558122109150688
+        },
+        {
+          "path": "rock_c/rock_c-stone",
+          "mesh": "rock_c-stone",
+          "vertices": 2093,
+          "triangles": 1049,
+          "maxPositionError": 0.0000018912996238863304,
+          "maxPositionErrorMm": 0.047282490597158264
+        },
+        {
+          "path": "rubble/rubble-stone",
+          "mesh": "rubble-stone",
+          "vertices": 7628,
+          "triangles": 3295,
+          "maxPositionError": 0.000009859750681459319,
+          "maxPositionErrorMm": 0.24649376703648299
+        },
+        {
+          "path": "signpost/signpost-paint",
+          "mesh": "signpost-paint",
+          "vertices": 1421,
+          "triangles": 744,
+          "maxPositionError": 0.000001445446461755628,
+          "maxPositionErrorMm": 0.036136161543890696
+        },
+        {
+          "path": "stake/stake-wood",
+          "mesh": "stake-wood",
+          "vertices": 532,
+          "triangles": 242,
+          "maxPositionError": 6.565292087548875e-7,
+          "maxPositionErrorMm": 0.016413230218872185
+        },
+        {
+          "path": "stone_wall/stone_wall-stones",
+          "mesh": "stone_wall-stones",
+          "vertices": 6138,
+          "triangles": 3117,
+          "maxPositionError": 0.000012843767356228324,
+          "maxPositionErrorMm": 0.3210941839057081
+        }
+      ],
+      "maxPositionError": 0.00003744422954445814,
+      "maxPositionErrorMm": 0.9361057386114534,
+      "maxNormalErrorDegrees": 1.1561252833181046,
+      "maxUvError": 0.0001220703125,
+      "maxSurfaceErrorMm": 0.91552734375,
+      "maxColorError": 0.001953154802777135,
+      "maxBoundError": 0.000020961396646868025
+    },
+    "town": {
+      "beforeBytes": 2301960,
+      "afterBytes": 740284,
+      "vertices": 48765,
+      "nodes": 40,
+      "compressedViews": 4,
+      "roots": [
+        {
+          "name": "allotment",
+          "before": {
+            "min": [
+              -0.20000000298023224,
+              -0.0020000000949949026,
+              -0.20000000298023224
+            ],
+            "max": [
+              0.20000000298023224,
+              0.052145522087812424,
+              0.20000000298023224
+            ]
+          },
+          "after": {
+            "min": [
+              -0.20000000298023224,
+              -0.001997157312173963,
+              -0.20000000298023224
+            ],
+            "max": [
+              0.20000000298023224,
+              0.05214267930499149,
+              0.20000000298023224
+            ]
+          },
+          "maxBoundError": 0.0000028427828209394435
+        },
+        {
+          "name": "bandstand",
+          "before": {
+            "min": [
+              -0.07999999821186066,
+              -0.0020000000949949026,
+              -0.07999999821186066
+            ],
+            "max": [
+              0.07999999821186066,
+              0.12999999523162842,
+              0.07999999821186066
+            ]
+          },
+          "after": {
+            "min": [
+              -0.07999999821186066,
+              -0.0020005502896265764,
+              -0.07999999821186066
+            ],
+            "max": [
+              0.07999999821186066,
+              0.1300005454262601,
+              0.07999999821186066
+            ]
+          },
+          "maxBoundError": 5.50194631687706e-7
+        },
+        {
+          "name": "bank",
+          "before": {
+            "min": [
+              -0.12800000607967377,
+              -0.003000006079673767,
+              -0.1290000081062317
+            ],
+            "max": [
+              0.12800000607967377,
+              0.321717768907547,
+              0.12999999523162842
+            ]
+          },
+          "after": {
+            "min": [
+              -0.1280012555504757,
+              -0.003000006079673767,
+              -0.12899765726421614
+            ],
+            "max": [
+              0.1280012555504757,
+              0.321717768907547,
+              0.12999764438961287
+            ]
+          },
+          "maxBoundError": 0.00000235084201555269
+        },
+        {
+          "name": "bench",
+          "before": {
+            "min": [
+              -0.019999999552965164,
+              0,
+              -0.006899999920278788
+            ],
+            "max": [
+              0.019999999552965164,
+              0.023499999195337296,
+              0.006300000008195639
+            ]
+          },
+          "after": {
+            "min": [
+              -0.019999999552965164,
+              -2.3665814153847609e-7,
+              -0.006899932667800732
+            ],
+            "max": [
+              0.019999999552965164,
+              0.023500235853478834,
+              0.006299932755717583
+            ]
+          },
+          "maxBoundError": 2.3665814153847609e-7
+        },
+        {
+          "name": "chapel",
+          "before": {
+            "min": [
+              -0.15024708211421967,
+              -0.003000006079673767,
+              -0.19599999487400055
+            ],
+            "max": [
+              0.15024708211421967,
+              0.4000000059604645,
+              0.20000000298023224
+            ]
+          },
+          "after": {
+            "min": [
+              -0.15024409152752247,
+              -0.003000006079673767,
+              -0.19600094793620834
+            ],
+            "max": [
+              0.15024409152752247,
+              0.4000000059604645,
+              0.20000095604244003
+            ]
+          },
+          "maxBoundError": 0.0000029905866971990935
+        },
+        {
+          "name": "corner_pub",
+          "before": {
+            "min": [
+              -0.1294800043106079,
+              -0.003000000026077032,
+              -0.13384100794792175
+            ],
+            "max": [
+              0.13384100794792175,
+              0.3779999911785126,
+              0.1294800043106079
+            ]
+          },
+          "after": {
+            "min": [
+              -0.12947826768754042,
+              -0.003000000026077032,
+              -0.13383927132485426
+            ],
+            "max": [
+              0.13383927132485426,
+              0.3779999911785126,
+              0.12947826768754042
+            ]
+          },
+          "maxBoundError": 0.000001736623067488674
+        },
+        {
+          "name": "corner_shop",
+          "before": {
+            "min": [
+              -0.1185000017285347,
+              -0.003000006079673767,
+              -0.12402202188968658
+            ],
+            "max": [
+              0.12402202188968658,
+              0.37299999594688416,
+              0.1185000017285347
+            ]
+          },
+          "after": {
+            "min": [
+              -0.11850062575473552,
+              -0.003000006079673767,
+              -0.12402264591588741
+            ],
+            "max": [
+              0.12402264591588741,
+              0.37299999594688416,
+              0.11850062575473552
+            ]
+          },
+          "maxBoundError": 6.240262008239128e-7
+        },
+        {
+          "name": "cottage",
+          "before": {
+            "min": [
+              -0.10100000351667404,
+              -0.003000000026077032,
+              -0.1090240404009819
+            ],
+            "max": [
+              0.10100000351667404,
+              0.24799999594688416,
+              0.1090240404009819
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10099902178727052,
+              -0.003000000026077032,
+              -0.10902302446623645
+            ],
+            "max": [
+              0.10099902178727052,
+              0.24799999594688416,
+              0.10902302446623645
+            ]
+          },
+          "maxBoundError": 0.000001015934745454694
+        },
+        {
+          "name": "gas_lamp",
+          "before": {
+            "min": [
+              -0.006000000052154064,
+              -0.0020000000949949026,
+              -0.006000000052154064
+            ],
+            "max": [
+              0.006000000052154064,
+              0.14000000059604645,
+              0.006000000052154064
+            ]
+          },
+          "after": {
+            "min": [
+              -0.005999908473670056,
+              -0.0020000000949949026,
+              -0.005999908473670056
+            ],
+            "max": [
+              0.005999908473670056,
+              0.14000000059604645,
+              0.005999908473670056
+            ]
+          },
+          "maxBoundError": 9.157848400789814e-8
+        },
+        {
+          "name": "lockup",
+          "before": {
+            "min": [
+              -0.10100000351667404,
+              -0.00299999862909317,
+              -0.09960493445396423
+            ],
+            "max": [
+              0.10100000351667404,
+              0.16500000655651093,
+              0.09960493445396423
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10100000351667404,
+              -0.003000731405302659,
+              -0.09960369010400112
+            ],
+            "max": [
+              0.10100000351667404,
+              0.16500073933272041,
+              0.09960369010400112
+            ]
+          },
+          "maxBoundError": 0.000001244349963111513
+        },
+        {
+          "name": "market_hall",
+          "before": {
+            "min": [
+              -0.2470824271440506,
+              -0.003000006079673767,
+              -0.16899999976158142
+            ],
+            "max": [
+              0.2470824271440506,
+              0.3400000035762787,
+              0.16899999976158142
+            ]
+          },
+          "after": {
+            "min": [
+              -0.2470824271440506,
+              -0.003003120944201798,
+              -0.16899964467764708
+            ],
+            "max": [
+              0.2470824271440506,
+              0.3400031184408067,
+              0.16899964467764708
+            ]
+          },
+          "maxBoundError": 0.0000031148645280310028
+        },
+        {
+          "name": "privy",
+          "before": {
+            "min": [
+              -0.02250000089406967,
+              -0.0020000000949949026,
+              -0.02250000089406967
+            ],
+            "max": [
+              0.02250000089406967,
+              0.054999999701976776,
+              0.02250000089406967
+            ]
+          },
+          "after": {
+            "min": [
+              -0.022500274586441545,
+              -0.0020000000949949026,
+              -0.022500274586441545
+            ],
+            "max": [
+              0.022500274586441545,
+              0.054999999701976776,
+              0.022500274586441545
+            ]
+          },
+          "maxBoundError": 2.736923718736628e-7
+        },
+        {
+          "name": "school",
+          "before": {
+            "min": [
+              -0.22699999809265137,
+              -0.003000006079673767,
+              -0.1485999971628189
+            ],
+            "max": [
+              0.22699999809265137,
+              0.3479999899864197,
+              0.1477000117301941
+            ]
+          },
+          "after": {
+            "min": [
+              -0.22699999809265137,
+              -0.0029994724980915433,
+              -0.14859889127923698
+            ],
+            "max": [
+              0.22699999809265137,
+              0.3479994564048374,
+              0.14769890584661216
+            ]
+          },
+          "maxBoundError": 0.0000011058835819310886
+        },
+        {
+          "name": "shop",
+          "before": {
+            "min": [
+              -0.10100000351667404,
+              -0.003000006079673767,
+              -0.12700000405311584
+            ],
+            "max": [
+              0.10100000351667404,
+              0.3580000102519989,
+              0.12950000166893005
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10100001982850457,
+              -0.003000006079673767,
+              -0.1270010217346205
+            ],
+            "max": [
+              0.10100001982850457,
+              0.3580000102519989,
+              0.1295010193504347
+            ]
+          },
+          "maxBoundError": 0.000001017681504650314
+        },
+        {
+          "name": "terrace_a",
+          "before": {
+            "min": [
+              -0.10100000351667404,
+              -0.003000006079673767,
+              -0.12700000405311584
+            ],
+            "max": [
+              0.10100000351667404,
+              0.3580000102519989,
+              0.12300000339746475
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10100001982850457,
+              -0.003000006079673767,
+              -0.12700095205667342
+            ],
+            "max": [
+              0.10100001982850457,
+              0.3580000102519989,
+              0.12300095140102232
+            ]
+          },
+          "maxBoundError": 9.480035575715196e-7
+        },
+        {
+          "name": "terrace_b",
+          "before": {
+            "min": [
+              -0.10100000351667404,
+              -0.003000006079673767,
+              -0.12700000405311584
+            ],
+            "max": [
+              0.10100000351667404,
+              0.3580000102519989,
+              0.1300000101327896
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10100001982850457,
+              -0.003000006079673767,
+              -0.1269989041071239
+            ],
+            "max": [
+              0.10100001982850457,
+              0.3580000102519989,
+              0.12999891018679766
+            ]
+          },
+          "maxBoundError": 0.0000010999459919558419
+        },
+        {
+          "name": "terrace_tall",
+          "before": {
+            "min": [
+              -0.10100000351667404,
+              -0.003000000026077032,
+              -0.13099999725818634
+            ],
+            "max": [
+              0.10100000351667404,
+              0.46799999475479126,
+              0.12999999523162842
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10100044139920564,
+              -0.003000000026077032,
+              -0.13100352445501923
+            ],
+            "max": [
+              0.10100044139920564,
+              0.46799999475479126,
+              0.1300035224284613
+            ]
+          },
+          "maxBoundError": 0.0000035271968328864922
+        },
+        {
+          "name": "town_hall",
+          "before": {
+            "min": [
+              -0.24699999392032623,
+              -0.003000006079673767,
+              -0.1770000010728836
+            ],
+            "max": [
+              0.24699999392032623,
+              0.7200000286102295,
+              0.1899999976158142
+            ]
+          },
+          "after": {
+            "min": [
+              -0.2470053373313432,
+              -0.003000006079673767,
+              -0.1770026046063868
+            ],
+            "max": [
+              0.2470053373313432,
+              0.7200000286102295,
+              0.1900026011493174
+            ]
+          },
+          "maxBoundError": 0.000005343411016961452
+        },
+        {
+          "name": "washing_line",
+          "before": {
+            "min": [
+              -0.08999999612569809,
+              -0.002193812048062682,
+              -0.012884600088000298
+            ],
+            "max": [
+              0.08999999612569809,
+              0.06219380721449852,
+              0.0020000000949949026
+            ]
+          },
+          "after": {
+            "min": [
+              -0.08999999612569809,
+              -0.0021936714920501033,
+              -0.01288576413727365
+            ],
+            "max": [
+              0.08999999612569809,
+              0.06219366665848594,
+              0.002001164144268255
+            ]
+          },
+          "maxBoundError": 0.0000011640492733524382
+        },
+        {
+          "name": "yard_wall",
+          "before": {
+            "min": [
+              -0.10000000149011612,
+              -0.0020000003278255463,
+              -0.006000000052154064
+            ],
+            "max": [
+              0.10000000149011612,
+              0.04419615864753723,
+              0.006000000052154064
+            ]
+          },
+          "after": {
+            "min": [
+              -0.10000000149011612,
+              -0.002001381006735206,
+              -0.005999939052387106
+            ],
+            "max": [
+              0.10000000149011612,
+              0.04419753932644689,
+              0.005999939052387106
+            ]
+          },
+          "maxBoundError": 0.0000013806789096598715
+        }
+      ],
+      "meshes": [
+        {
+          "path": "allotment/allotment-mesh",
+          "mesh": "allotment-mesh",
+          "vertices": 1493,
+          "triangles": 760,
+          "maxPositionError": 0.000004880746012604574,
+          "maxPositionErrorMm": 0.12201865031511436
+        },
+        {
+          "path": "bandstand/bandstand-mesh",
+          "mesh": "bandstand-mesh",
+          "vertices": 1054,
+          "triangles": 612,
+          "maxPositionError": 0.0000018702973366786049,
+          "maxPositionErrorMm": 0.04675743341696512
+        },
+        {
+          "path": "bank/bank-mesh",
+          "mesh": "bank-mesh",
+          "vertices": 4053,
+          "triangles": 2318,
+          "maxPositionError": 0.0000040662090762506045,
+          "maxPositionErrorMm": 0.1016552269062651
+        },
+        {
+          "path": "bench/bench-mesh",
+          "mesh": "bench-mesh",
+          "vertices": 144,
+          "triangles": 72,
+          "maxPositionError": 3.875866841965915e-7,
+          "maxPositionErrorMm": 0.009689667104914788
+        },
+        {
+          "path": "chapel/chapel-mesh",
+          "mesh": "chapel-mesh",
+          "vertices": 5110,
+          "triangles": 3007,
+          "maxPositionError": 0.000004950582235562369,
+          "maxPositionErrorMm": 0.12376455588905921
+        },
+        {
+          "path": "corner_pub/corner_pub-mesh",
+          "mesh": "corner_pub-mesh",
+          "vertices": 3388,
+          "triangles": 1902,
+          "maxPositionError": 0.000004787146461447447,
+          "maxPositionErrorMm": 0.11967866153618617
+        },
+        {
+          "path": "corner_shop/corner_shop-mesh",
+          "mesh": "corner_shop-mesh",
+          "vertices": 3467,
+          "triangles": 1892,
+          "maxPositionError": 0.0000046008900036615875,
+          "maxPositionErrorMm": 0.11502225009153969
+        },
+        {
+          "path": "cottage/cottage-mesh",
+          "mesh": "cottage-mesh",
+          "vertices": 1775,
+          "triangles": 996,
+          "maxPositionError": 0.0000032272994437357046,
+          "maxPositionErrorMm": 0.08068248609339261
+        },
+        {
+          "path": "gas_lamp/gas_lamp-mesh",
+          "mesh": "gas_lamp-mesh",
+          "vertices": 537,
+          "triangles": 296,
+          "maxPositionError": 0.000001527641508672265,
+          "maxPositionErrorMm": 0.038191037716806625
+        },
+        {
+          "path": "lockup/lockup-mesh",
+          "mesh": "lockup-mesh",
+          "vertices": 1216,
+          "triangles": 708,
+          "maxPositionError": 0.000002429746225853266,
+          "maxPositionErrorMm": 0.06074365564633165
+        },
+        {
+          "path": "market_hall/market_hall-mesh",
+          "mesh": "market_hall-mesh",
+          "vertices": 5167,
+          "triangles": 3059,
+          "maxPositionError": 0.000006023144200909354,
+          "maxPositionErrorMm": 0.15057860502273385
+        },
+        {
+          "path": "privy/privy-mesh",
+          "mesh": "privy-mesh",
+          "vertices": 120,
+          "triangles": 64,
+          "maxPositionError": 5.663793447409092e-7,
+          "maxPositionErrorMm": 0.014159483618522728
+        },
+        {
+          "path": "school/school-mesh",
+          "mesh": "school-mesh",
+          "vertices": 5895,
+          "triangles": 3362,
+          "maxPositionError": 0.000005495143315726387,
+          "maxPositionErrorMm": 0.13737858289315968
+        },
+        {
+          "path": "shop/shop-mesh",
+          "mesh": "shop-mesh",
+          "vertices": 2176,
+          "triangles": 1220,
+          "maxPositionError": 0.000004286782679880415,
+          "maxPositionErrorMm": 0.10716956699701037
+        },
+        {
+          "path": "terrace_a/terrace_a-mesh",
+          "mesh": "terrace_a-mesh",
+          "vertices": 1557,
+          "triangles": 926,
+          "maxPositionError": 0.000004325812711958101,
+          "maxPositionErrorMm": 0.10814531779895253
+        },
+        {
+          "path": "terrace_b/terrace_b-mesh",
+          "mesh": "terrace_b-mesh",
+          "vertices": 1726,
+          "triangles": 1016,
+          "maxPositionError": 0.000004527730526632999,
+          "maxPositionErrorMm": 0.11319326316582497
+        },
+        {
+          "path": "terrace_tall/terrace_tall-mesh",
+          "mesh": "terrace_tall-mesh",
+          "vertices": 2037,
+          "triangles": 1192,
+          "maxPositionError": 0.000005581925747643535,
+          "maxPositionErrorMm": 0.13954814369108837
+        },
+        {
+          "path": "town_hall/town_hall-mesh",
+          "mesh": "town_hall-mesh",
+          "vertices": 7486,
+          "triangles": 4432,
+          "maxPositionError": 0.000009128728156653983,
+          "maxPositionErrorMm": 0.22821820391634956
+        },
+        {
+          "path": "washing_line/washing_line-mesh",
+          "mesh": "washing_line-mesh",
+          "vertices": 192,
+          "triangles": 96,
+          "maxPositionError": 0.000002035404519520349,
+          "maxPositionErrorMm": 0.05088511298800872
+        },
+        {
+          "path": "yard_wall/yard_wall-mesh",
+          "mesh": "yard_wall-mesh",
+          "vertices": 172,
+          "triangles": 112,
+          "maxPositionError": 0.000002267791902907733,
+          "maxPositionErrorMm": 0.05669479757269333
+        }
+      ],
+      "maxPositionError": 0.000009128728156653983,
+      "maxPositionErrorMm": 0.22821820391634956,
+      "maxNormalErrorDegrees": 0.758133041511843,
+      "maxUvError": 0.00006103515625,
+      "maxSurfaceErrorMm": 0.6839632987976074,
+      "maxColorError": 0.001953154802777135,
+      "maxBoundError": 0.000005343411016961452
+    },
+    "works": {
+      "beforeBytes": 2942376,
+      "afterBytes": 973612,
+      "vertices": 63828,
+      "nodes": 38,
+      "compressedViews": 4,
+      "roots": [
+        {
+          "name": "chimney",
+          "before": {
+            "min": [
+              -0.03999999910593033,
+              -0.0029999995604157448,
+              -0.03999999910593033
+            ],
+            "max": [
+              0.03999999910593033,
+              1,
+              0.03999999910593033
+            ]
+          },
+          "after": {
+            "min": [
+              -0.04000735494324971,
+              -0.0029999995604157448,
+              -0.04000735494324971
+            ],
+            "max": [
+              0.04000735494324971,
+              1,
+              0.04000735494324971
+            ]
+          },
+          "maxBoundError": 0.000007355837319381053
+        },
+        {
+          "name": "coal_drops",
+          "before": {
+            "min": [
+              -0.15000000596046448,
+              -0.0030000023543834686,
+              -0.07800000160932541
+            ],
+            "max": [
+              0.15000000596046448,
+              0.11499999463558197,
+              0.07472976297140121
+            ]
+          },
+          "after": {
+            "min": [
+              -0.15000000596046448,
+              -0.0029983887227836084,
+              -0.0780015886152806
+            ],
+            "max": [
+              0.15000000596046448,
+              0.1149983810039821,
+              0.0747313499773564
+            ]
+          },
+          "maxBoundError": 0.0000016136315998671602
+        },
+        {
+          "name": "engine_shed",
+          "before": {
+            "min": [
+              -0.22951894998550415,
+              -0.003000000026077032,
+              -0.15000002086162567
+            ],
+            "max": [
+              0.22951894998550415,
+              0.2550620436668396,
+              0.15000002086162567
+            ]
+          },
+          "after": {
+            "min": [
+              -0.22951894998550415,
+              -0.0030002772818548684,
+              -0.15000300039489642
+            ],
+            "max": [
+              0.22951894998550415,
+              0.25506232092261744,
+              0.15000300039489642
+            ]
+          },
+          "maxBoundError": 0.000002979533270747181
+        },
+        {
+          "name": "gasholder",
+          "before": {
+            "min": [
+              -0.20600000023841858,
+              -0.003000000026077032,
+              -0.20600000023841858
+            ],
+            "max": [
+              0.20600000023841858,
+              0.3019999861717224,
+              0.20600000023841858
+            ]
+          },
+          "after": {
+            "min": [
+              -0.20600000023841858,
+              -0.0029992288816839685,
+              -0.20600000023841858
+            ],
+            "max": [
+              0.20600000023841858,
+              0.30199921502732935,
+              0.20600000023841858
+            ]
+          },
+          "maxBoundError": 7.711443930635831e-7
+        },
+        {
+          "name": "goods_grand",
+          "before": {
+            "min": [
+              -0.24899999797344208,
+              -0.003000006079673767,
+              -0.24899999797344208
+            ],
+            "max": [
+              0.24899999797344208,
+              0.4099999964237213,
+              0.24899999797344208
+            ]
+          },
+          "after": {
+            "min": [
+              -0.24899999797344208,
+              -0.002998187296017696,
+              -0.24899999797344208
+            ],
+            "max": [
+              0.24899999797344208,
+              0.40999817764006524,
+              0.24899999797344208
+            ]
+          },
+          "maxBoundError": 0.0000018187836560712434
+        },
+        {
+          "name": "goods_shed",
+          "before": {
+            "min": [
+              -0.19900000095367432,
+              -0.00299999862909317,
+              -0.19900000095367432
+            ],
+            "max": [
+              0.19900000095367432,
+              0.2980000078678131,
+              0.19900000095367432
+            ]
+          },
+          "after": {
+            "min": [
+              -0.19900000095367432,
+              -0.0029995535834966836,
+              -0.19900000095367432
+            ],
+            "max": [
+              0.19900000095367432,
+              0.2979995628222166,
+              0.19900000095367432
+            ]
+          },
+          "maxBoundError": 4.450455964866151e-7
+        },
+        {
+          "name": "hoarding",
+          "before": {
+            "min": [
+              -0.5002112984657288,
+              -0.0023437757045030594,
+              -0.00950000062584877
+            ],
+            "max": [
+              0.49941757321357727,
+              0.06199999898672104,
+              0.00430000014603138
+            ]
+          },
+          "after": {
+            "min": [
+              -0.5002112984657288,
+              -0.002341713035725272,
+              -0.00949462364148721
+            ],
+            "max": [
+              0.49941757321357727,
+              0.06199793631794325,
+              0.004294623161669819
+            ]
+          },
+          "maxBoundError": 0.000005376984361560658
+        },
+        {
+          "name": "mill_big",
+          "before": {
+            "min": [
+              -0.3969999849796295,
+              -0.003000000026077032,
+              -0.1649024933576584
+            ],
+            "max": [
+              0.3959999978542328,
+              0.6644999980926514,
+              0.16899999976158142
+            ]
+          },
+          "after": {
+            "min": [
+              -0.3969999849796295,
+              -0.0029963391505678505,
+              -0.1649030697168104
+            ],
+            "max": [
+              0.3959999978542328,
+              0.6644963372171422,
+              0.16900057612073344
+            ]
+          },
+          "maxBoundError": 0.0000036608755091815937
+        },
+        {
+          "name": "mill_site",
+          "before": {
+            "min": [
+              -0.39500001072883606,
+              -0.004000000189989805,
+              -0.39500001072883606
+            ],
+            "max": [
+              0.39500001072883606,
+              1,
+              0.39500001072883606
+            ]
+          },
+          "after": {
+            "min": [
+              -0.3950030824442046,
+              -0.004000000189989805,
+              -0.3950030824442046
+            ],
+            "max": [
+              0.3950030824442046,
+              1,
+              0.3950030824442046
+            ]
+          },
+          "maxBoundError": 0.0000030717153685633214
+        },
+        {
+          "name": "mill_small",
+          "before": {
+            "min": [
+              -0.2029999941587448,
+              -0.003000000026077032,
+              -0.13871262967586517
+            ],
+            "max": [
+              0.20899999141693115,
+              0.43800002336502075,
+              0.150109201669693
+            ]
+          },
+          "after": {
+            "min": [
+              -0.20299830326073937,
+              -0.003000000026077032,
+              -0.13871317220757473
+            ],
+            "max": [
+              0.2089983005189257,
+              0.43800002336502075,
+              0.15010974420140255
+            ]
+          },
+          "maxBoundError": 0.0000016908980054464173
+        },
+        {
+          "name": "outcrop_a",
+          "before": {
+            "min": [
+              -0.4970000088214874,
+              -0.004000000189989805,
+              -0.49800002574920654
+            ],
+            "max": [
+              0.4970000088214874,
+              0.32073140144348145,
+              0.49800002574920654
+            ]
+          },
+          "after": {
+            "min": [
+              -0.49699694332788485,
+              -0.003996867660823189,
+              -0.49800002574920654
+            ],
+            "max": [
+              0.49699694332788485,
+              0.32072826891431483,
+              0.49800002574920654
+            ]
+          },
+          "maxBoundError": 0.000003132529166616216
+        },
+        {
+          "name": "outcrop_b",
+          "before": {
+            "min": [
+              -0.4970000088214874,
+              -0.004000000189989805,
+              -0.49800002574920654
+            ],
+            "max": [
+              0.4970000088214874,
+              0.3227928876876831,
+              0.49800002574920654
+            ]
+          },
+          "after": {
+            "min": [
+              -0.49699694332788485,
+              -0.003999603397053797,
+              -0.49800002574920654
+            ],
+            "max": [
+              0.49699694332788485,
+              0.3227924908947471,
+              0.49800002574920654
+            ]
+          },
+          "maxBoundError": 0.0000030654936025720225
+        },
+        {
+          "name": "subsidence",
+          "before": {
+            "min": [
+              -0.3917507827281952,
+              -0.0045429132878780365,
+              -0.38999998569488525
+            ],
+            "max": [
+              0.39245402812957764,
+              0.08849601447582245,
+              0.38999998569488525
+            ]
+          },
+          "after": {
+            "min": [
+              -0.3917507827281952,
+              -0.004548738639326859,
+              -0.3899963223771733
+            ],
+            "max": [
+              0.39245402812957764,
+              0.08850183982727128,
+              0.3899963223771733
+            ]
+          },
+          "maxBoundError": 0.000005825351448829341
+        },
+        {
+          "name": "tunnel_rail",
+          "before": {
+            "min": [
+              -0.5450000166893005,
+              -0.0040000006556510925,
+              -1.399999976158142
+            ],
+            "max": [
+              0.5450000166893005,
+              0.39472001791000366,
+              0.00800000037997961
+            ]
+          },
+          "after": {
+            "min": [
+              -0.5449892789218725,
+              -0.003999587647997377,
+              -1.399999976158142
+            ],
+            "max": [
+              0.5449892789218725,
+              0.3947196049023499,
+              0.00800000037997961
+            ]
+          },
+          "maxBoundError": 0.000010737767427992928
+        },
+        {
+          "name": "warehouse_rail",
+          "before": {
+            "min": [
+              -0.20999999344348907,
+              -0.003000006079673767,
+              -0.13986684381961823
+            ],
+            "max": [
+              0.20999999344348907,
+              0.3512243926525116,
+              0.1340000033378601
+            ]
+          },
+          "after": {
+            "min": [
+              -0.20999999344348907,
+              -0.0029973931514857,
+              -0.13986569539312332
+            ],
+            "max": [
+              0.20999999344348907,
+              0.35122177972432356,
+              0.1339988549113652
+            ]
+          },
+          "maxBoundError": 0.0000026129281880671318
+        },
+        {
+          "name": "water_tower",
+          "before": {
+            "min": [
+              -0.06140613928437233,
+              -0.003000000026077032,
+              -0.06140613928437233
+            ],
+            "max": [
+              0.06140613928437233,
+              0.3190000057220459,
+              0.06140613928437233
+            ]
+          },
+          "after": {
+            "min": [
+              -0.061403760976505205,
+              -0.003000000026077032,
+              -0.061403760976505205
+            ],
+            "max": [
+              0.061403760976505205,
+              0.3190000057220459,
+              0.061403760976505205
+            ]
+          },
+          "maxBoundError": 0.0000023783078671249513
+        },
+        {
+          "name": "wharf_crane",
+          "before": {
+            "min": [
+              -0.07000000029802322,
+              -0.003000000026077032,
+              -0.07199999690055847
+            ],
+            "max": [
+              0.07000000029802322,
+              0.4198583960533142,
+              0.25099998712539673
+            ]
+          },
+          "after": {
+            "min": [
+              -0.0700032157210809,
+              -0.003000000026077032,
+              -0.07199972710003677
+            ],
+            "max": [
+              0.0700032157210809,
+              0.4198583960533142,
+              0.250999717324875
+            ]
+          },
+          "maxBoundError": 0.0000032154230576730836
+        },
+        {
+          "name": "works_shed",
+          "before": {
+            "min": [
+              -0.14994990825653076,
+              -0.003000000026077032,
+              -0.11999999731779099
+            ],
+            "max": [
+              0.14915195107460022,
+              0.2239999920129776,
+              0.11999999731779099
+            ]
+          },
+          "after": {
+            "min": [
+              -0.14994990825653076,
+              -0.0029993331768516235,
+              -0.11999856693524118
+            ],
+            "max": [
+              0.14915195107460022,
+              0.2239993251637522,
+              0.11999856693524118
+            ]
+          },
+          "maxBoundError": 0.0000014303825498079847
+        },
+        {
+          "name": "yard_crane",
+          "before": {
+            "min": [
+              -0.05999999865889549,
+              -0.0029999995604157448,
+              -0.05999999865889549
+            ],
+            "max": [
+              0.05999999865889549,
+              0.35898086428642273,
+              0.18000000715255737
+            ]
+          },
+          "after": {
+            "min": [
+              -0.060002412853911044,
+              -0.0029999995604157448,
+              -0.05999929790277943
+            ],
+            "max": [
+              0.060002412853911044,
+              0.35898086428642273,
+              0.1799993063964413
+            ]
+          },
+          "maxBoundError": 0.0000024141950155515124
+        }
+      ],
+      "meshes": [
+        {
+          "path": "chimney/chimney-mesh",
+          "mesh": "chimney-mesh",
+          "vertices": 598,
+          "triangles": 320,
+          "maxPositionError": 0.00001235693305522506,
+          "maxPositionErrorMm": 0.3089233263806265
+        },
+        {
+          "path": "coal_drops/coal_drops-mesh",
+          "mesh": "coal_drops-mesh",
+          "vertices": 2239,
+          "triangles": 1156,
+          "maxPositionError": 0.0000037303697091455694,
+          "maxPositionErrorMm": 0.09325924272863924
+        },
+        {
+          "path": "engine_shed/engine_shed-mesh",
+          "mesh": "engine_shed-mesh",
+          "vertices": 3161,
+          "triangles": 1748,
+          "maxPositionError": 0.000005925555726343512,
+          "maxPositionErrorMm": 0.1481388931585878
+        },
+        {
+          "path": "gasholder/gasholder-mesh",
+          "mesh": "gasholder-mesh",
+          "vertices": 2935,
+          "triangles": 1764,
+          "maxPositionError": 0.0000050078567392721795,
+          "maxPositionErrorMm": 0.1251964184818045
+        },
+        {
+          "path": "goods_grand/goods_grand-mesh",
+          "mesh": "goods_grand-mesh",
+          "vertices": 4536,
+          "triangles": 2508,
+          "maxPositionError": 0.0000062001585635115055,
+          "maxPositionErrorMm": 0.15500396408778763
+        },
+        {
+          "path": "goods_shed/goods_shed-mesh",
+          "mesh": "goods_shed-mesh",
+          "vertices": 3035,
+          "triangles": 1672,
+          "maxPositionError": 0.000004347575986794391,
+          "maxPositionErrorMm": 0.10868939966985978
+        },
+        {
+          "path": "hoarding/hoarding-mesh",
+          "mesh": "hoarding-mesh",
+          "vertices": 944,
+          "triangles": 472,
+          "maxPositionError": 0.000011095014056310755,
+          "maxPositionErrorMm": 0.27737535140776887
+        },
+        {
+          "path": "mill_big/mill_big-mesh",
+          "mesh": "mill_big-mesh",
+          "vertices": 6084,
+          "triangles": 3536,
+          "maxPositionError": 0.00000986815323091697,
+          "maxPositionErrorMm": 0.24670383077292424
+        },
+        {
+          "path": "mill_site/mill_site-mesh",
+          "mesh": "mill_site-mesh",
+          "vertices": 2763,
+          "triangles": 1421,
+          "maxPositionError": 0.000012522044600416049,
+          "maxPositionErrorMm": 0.3130511150104012
+        },
+        {
+          "path": "mill_small/mill_small-mesh",
+          "mesh": "mill_small-mesh",
+          "vertices": 3491,
+          "triangles": 1960,
+          "maxPositionError": 0.0000054633398302409145,
+          "maxPositionErrorMm": 0.13658349575602285
+        },
+        {
+          "path": "outcrop_a/outcrop_a-mesh",
+          "mesh": "outcrop_a-mesh",
+          "vertices": 7392,
+          "triangles": 3472,
+          "maxPositionError": 0.000012529874511347896,
+          "maxPositionErrorMm": 0.3132468627836974
+        },
+        {
+          "path": "outcrop_b/outcrop_b-mesh",
+          "mesh": "outcrop_b-mesh",
+          "vertices": 7334,
+          "triangles": 3460,
+          "maxPositionError": 0.000012523152027233545,
+          "maxPositionErrorMm": 0.31307880068083865
+        },
+        {
+          "path": "subsidence/subsidence-mesh",
+          "mesh": "subsidence-mesh",
+          "vertices": 2781,
+          "triangles": 1374,
+          "maxPositionError": 0.00001019545864960699,
+          "maxPositionErrorMm": 0.25488646624017475
+        },
+        {
+          "path": "tunnel_rail/tunnel_rail-mesh",
+          "mesh": "tunnel_rail-mesh",
+          "vertices": 5276,
+          "triangles": 2559,
+          "maxPositionError": 0.000017673188078151176,
+          "maxPositionErrorMm": 0.4418297019537794
+        },
+        {
+          "path": "warehouse_rail/warehouse_rail-mesh",
+          "mesh": "warehouse_rail-mesh",
+          "vertices": 4761,
+          "triangles": 2654,
+          "maxPositionError": 0.00000523271903972833,
+          "maxPositionErrorMm": 0.13081797599320824
+        },
+        {
+          "path": "water_tower/water_tower-mesh",
+          "mesh": "water_tower-mesh",
+          "vertices": 1983,
+          "triangles": 1110,
+          "maxPositionError": 0.000003921807805349556,
+          "maxPositionErrorMm": 0.0980451951337389
+        },
+        {
+          "path": "wharf_crane/wharf_crane-mesh",
+          "mesh": "wharf_crane-mesh",
+          "vertices": 1320,
+          "triangles": 712,
+          "maxPositionError": 0.000004776208832598098,
+          "maxPositionErrorMm": 0.11940522081495246
+        },
+        {
+          "path": "works_shed/works_shed-mesh",
+          "mesh": "works_shed-mesh",
+          "vertices": 2245,
+          "triangles": 1196,
+          "maxPositionError": 0.0000035517827911409018,
+          "maxPositionErrorMm": 0.08879456977852254
+        },
+        {
+          "path": "yard_crane/yard_crane-mesh",
+          "mesh": "yard_crane-mesh",
+          "vertices": 950,
+          "triangles": 484,
+          "maxPositionError": 0.000004379732770991841,
+          "maxPositionErrorMm": 0.10949331927479601
+        }
+      ],
+      "maxPositionError": 0.000017673188078151176,
+      "maxPositionErrorMm": 0.4418297019537794,
+      "maxNormalErrorDegrees": 1.016935742587789,
+      "maxUvError": 0.00012159347534179688,
+      "maxSurfaceErrorMm": 1.8095970153808592,
+      "maxColorError": 0.001953154802777135,
+      "maxBoundError": 0.000010737767427992928
+    }
+  },
+  "maxPositionError": 0.00003744422954445814,
+  "maxPositionErrorMm": 0.9361057386114534
+}

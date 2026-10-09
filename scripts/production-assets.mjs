@@ -21,6 +21,8 @@ import {
   captains as altoCaptains,
 } from '../lib/games/alto/content.ts';
 import { ambiences } from '../lib/games/ambience.ts';
+import { reelAssets } from '../lib/games/library-reels.ts';
+import { isGameAvailable } from '../lib/games/availability.ts';
 import { labAmbiences } from '../lib/games/lab-ambiences.ts';
 import {
   audioAssets,
@@ -55,7 +57,8 @@ for (const id of [
   'rota',
   'alto',
   'impostor',
-]) {
+  'diner',
+].filter((id) => isGameAvailable(id))) {
   const cover = boxCover(id);
   add(cover);
   add(cover.replace('.webp', '-spine.webp'));
@@ -141,6 +144,8 @@ const places = JSON.parse(
   await readFile('lib/games/party/geo-places.json', 'utf8'),
 );
 for (const place of places) add(place.photo);
+// The library's gameplay footage and its first-frame stills.
+for (const path of reelAssets()) add(path);
 // Literal URLs in source and CSS complement the dynamic catalogs above.
 async function visit(root) {
   for (const entry of await readdir(root, { withFileTypes: true })) {

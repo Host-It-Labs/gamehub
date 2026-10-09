@@ -30,7 +30,8 @@
   background: #f6e2b4 url('/art/optimized/tribu-studio-landscape-1536.webp') center / cover no-repeat;
   color: var(--t-ink);
 }
-@media (orientation: landscape) and (max-width: 1000px) {
+/* Small art only where the screen cannot show more; dense screens keep the larger plate. */
+@media (orientation: landscape) and (max-width: 1000px) and (max-resolution: 1.49dppx) {
   .party-table.is-tribu {
     background-image: url('/art/optimized/tribu-studio-landscape-960.webp');
   }
@@ -40,7 +41,7 @@
     background-image: url('/art/optimized/tribu-studio-portrait-1024.webp');
   }
 }
-@media (orientation: portrait) and (max-width: 640px) {
+@media (orientation: portrait) and (max-width: 640px) and (max-resolution: 1.49dppx) {
   .party-table.is-tribu {
     background-image: url('/art/optimized/tribu-studio-portrait-640.webp');
   }

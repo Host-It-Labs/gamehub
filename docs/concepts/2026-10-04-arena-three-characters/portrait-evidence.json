@@ -1,0 +1,38 @@
+{
+  "ranger": {
+    "source": "assets/arena/cards/card-ranger-v10-b.png",
+    "sourceSha256": "a836893f209554231d4838fafbda7b99e716fa1b35ef9517802ed701c4e58fe4",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "opaque": true,
+    "path": "/3d/arena/cards/ranger-1fa6f0a9.webp",
+    "bytes": 44476,
+    "sha256": "1fa6f0a9eae4d9f102c0c4e1bff8cabcf76009f7481c40aa1da5bff906276cbc"
+  },
+  "duelist": {
+    "source": "assets/arena/cards/card-duelist-v10-a.png",
+    "sourceSha256": "a854ca3038e25801f134a875444d6ef377b5c7ee2dfb5ab397afefe9bb01643a",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "opaque": true,
+    "path": "/3d/arena/cards/duelist-60b66308.webp",
+    "bytes": 67114,
+    "sha256": "60b6630866734cdef945c9d63b1512aaaf675bbd0dc1593ae6a60eabf2a6094c"
+  },
+  "mage": {
+    "source": "assets/arena/cards/card-mage-v8-a.png",
+    "sourceSha256": "f8edd9df7b7a069553065ac599fbedc6093994cb48658e052d2ca20250641cfa",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "opaque": true,
+    "path": "/3d/arena/cards/mage-86234066.webp",
+    "bytes": 44378,
+    "sha256": "862340660f69c06a07fa5f1341534b38139de164d8c7fedd950da8d2f72553ae"
+  }
+}

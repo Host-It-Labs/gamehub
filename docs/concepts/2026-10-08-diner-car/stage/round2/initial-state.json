@@ -1,0 +1,8 @@
+{
+  "ownedHashes": {
+    "components/game/diner/diner-car.ts": "23e6450b3bd4af7c3c8f4a4f1e4b345eeacb63000530a89d0267ee7f399192f5",
+    "components/game/diner/places.ts": "b4f1c3f1b7bb24f24a18c78194a5d8aeced14eaac4c7f0d2db732562ec52a664",
+    "components/game/diner/stage.ts": "93bb682188668ee85aad6ad9df75838fdf150a702eda345f75fcecbe36065819"
+  },
+  "dirtyEntries": 550
+}

@@ -1,0 +1,101 @@
+{
+  "initialFullSuite": {
+    "tests": 1148,
+    "pass": 1093,
+    "failed": 55,
+    "sandbox": 41
+  },
+  "other": [
+    {
+      "test": "77 - Dino contact keeps the full jaw snap and preserves free bites beside distant towers or rubble",
+      "location": "tests/arena-animation.test.mjs:527:7",
+      "error": "the original bite intersects real stone (0 vertices)",
+      "sandbox": false
+    },
+    {
+      "test": "13 - tests/arena-faces.test.mjs",
+      "location": "tests/arena-faces.test.mjs:1:1",
+      "error": "test failed",
+      "sandbox": false
+    },
+    {
+      "test": "136 - Gladiator skin at both physical grips follows its equipment through joint extremes",
+      "location": "tests/arena-gladiator-rebuild.test.mjs:115:7",
+      "error": "one connected skin carries the anatomical deformation",
+      "sandbox": false
+    },
+    {
+      "test": "139 - Medic exports connected anatomical joints and a wrist-carried tonic",
+      "location": "tests/arena-medic-rebuild.test.mjs:25:7",
+      "error": "the actual figure contains weighted surfaces",
+      "sandbox": false
+    },
+    {
+      "test": "140 - Medic retains normalized continuous shoulder, elbow and wrist weights",
+      "location": "tests/arena-medic-rebuild.test.mjs:57:7",
+      "error": "armL owns real anatomy",
+      "sandbox": false
+    },
+    {
+      "test": "141 - Medic upper-arm tissue stays on its upper arm when the bent elbow lifts",
+      "location": "tests/arena-medic-rebuild.test.mjs:106:7",
+      "error": "the joined skin is retained as weighted anatomy",
+      "sandbox": false
+    },
+    {
+      "test": "142 - Medic tailoring retains the complete shirt and both sleeves",
+      "location": "tests/arena-medic-rebuild.test.mjs:158:7",
+      "error": "the uniform follows the anatomical rig",
+      "sandbox": false
+    },
+    {
+      "test": "143 - Medic exposed medial upper arm is not pulled back into the shirt by torso weights",
+      "location": "tests/arena-medic-rebuild.test.mjs:174:7",
+      "error": "other",
+      "sandbox": false
+    },
+    {
+      "test": "144 - Medic keeps its grip attached through the complete heal and recovery excursion",
+      "location": "tests/arena-medic-rebuild.test.mjs:217:7",
+      "error": "other",
+      "sandbox": false
+    },
+    {
+      "test": "145 - Medic runtime copy respects the original geometry cost and green medical palette",
+      "location": "tests/arena-medic-rebuild.test.mjs:273:7",
+      "error": "the medical emblem palette is green",
+      "sandbox": false
+    },
+    {
+      "test": "258 - Viking exported pivots preserve shaft contact when the whole axe hold pitches",
+      "location": "tests/arena-viking-rebuild.test.mjs:145:7",
+      "error": "foreL joint exists",
+      "sandbox": false
+    },
+    {
+      "test": "289 - the Meteor hits ground and air troops in its circle and knocks light ones back",
+      "location": "tests/arena.test.mjs:517:7",
+      "error": "assertion diff",
+      "sandbox": false
+    },
+    {
+      "test": "305 - troops walk round their own towers to the bridge",
+      "location": "tests/arena.test.mjs:1037:7",
+      "error": "assertion diff",
+      "sandbox": false
+    },
+    {
+      "test": "326 - release allowlist excludes source assets and development-only Diner covers",
+      "location": "tests/build-assets.test.mjs:29:7",
+      "error": "assertion diff",
+      "sandbox": false
+    }
+  ],
+  "listenerRerun": {
+    "tests": 88,
+    "pass": 87,
+    "fail": 1,
+    "remaining": "Arena online replay deployment rejected by current engine placement rule, tests/arena-online.test.mjs:629; no engine/server edits in this rework"
+  },
+  "ownFaces": "Samurai rigid face surface beneath named head bone; old direct-parent assertion caused large Object3D diff and SIGKILL. Updated ancestor assertion now passes focused faces/models/Mage (16 checks)."
+}

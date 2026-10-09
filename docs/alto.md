@@ -47,9 +47,9 @@ were four words for two ideas, and the number of trips was hard to read. So:
   flies out and hovers in front of its planet (never through its moons,
   rings or buildings), then flies home. What each player built this turn
   rises over their base at the reveal.
-- The **planets develop by year** (`buildPlanet(id, year)`): sparse in
-  Year 1, today's look in Year 2, busier in Year 3. Next year's planets are
-  built during the last turn of the year before.
+- The **planets develop by year** (`buildPlanet(id, year)`): established
+  natural landscapes in Year 1, settlements in Year 2, busier in Year 3.
+  Next year's planets are built during the last turn of the year before.
 - A **loading screen** (the wide cover and a progress bar) stays until every
   picture is decoded and every planet, base, ship and shop object is built
   and its shaders compiled; nothing pops in.
@@ -210,8 +210,9 @@ its panel paints under the 3D and its controls over it.
   (now on fixed orbits round the spin axis), rings, shards and clouds clear
   everything standing, that `reach` matches the drawn extent, and that each
   year keeps the year before's features in place.
-- Years: Year 1 is a first settlement (a hut, young trees, one rig), Year 2
-  the full look, Year 3 adds more of everything and one landmark per planet
+- Years: Year 1 has full orchard crowns, produce, ore outcrops, snowy groves
+  and ice floes around a first settlement. Year 2 adds buildings and machinery;
+  Year 3 adds more of everything and one landmark per planet
   (a village, an ore works, a launch pad, an igloo village, a fishing camp, a
   crystal refinery or temple).
 
@@ -222,7 +223,10 @@ screen with its triangle and draw counts (`yaw`, `pitch`, `dist`, `still`);
 `?stills` renders the transparent stills that `scripts/alto-art.mjs` turns
 into the 2D pictures (inspections, rules, setup). `?stills=modules` renders
 only the seventeen revised hardware models; `scripts/alto-module-art.mjs`
-turns those preserved v3 sources into thumbnails. `?table&year=2&built=all`
+turns those preserved v3 sources into thumbnails. `?stills=planets` exports
+the revised landscapes with the live table's lighting; `scripts/alto-planet-art.mjs`
+turns their preserved v4 PNGs into inspection thumbnails. The earlier renders
+stay intact. `?table&year=2&built=all`
 shows the real interactive table using a development fixture, without
 reading or writing a saved match; `seats=6`, `long` and `orders` exercise
 the fullest layout.

@@ -55,6 +55,22 @@ const poseNames = [
   'yawKick',
 ];
 
+const shippedManifest = JSON.parse(
+  readFileSync(new URL('../lib/games/arena/assets.json', import.meta.url)),
+);
+const shippedBytes = readFileSync(
+  new URL(`../public${shippedManifest.models.figures.path}`, import.meta.url),
+);
+const shipped = (
+  await new GLTFLoader().parseAsync(
+    shippedBytes.buffer.slice(
+      shippedBytes.byteOffset,
+      shippedBytes.byteOffset + shippedBytes.length,
+    ),
+    '',
+  )
+).scene;
+
 function frame(id, changes = {}, memo = {}) {
   const joints = new Map();
   const p = Object.fromEntries(poseNames.map((name) => [name, 0]));
@@ -92,6 +108,11 @@ function frame(id, changes = {}, memo = {}) {
     time: 0,
     deploy: 1,
     reduced: false,
+    // The runtime's rest offsets, read from the shipped figure.
+    rest(part) {
+      const node = shipped.getObjectByName(id)?.getObjectByName(id + part);
+      return node ? [node.position.x, node.position.y, node.position.z] : null;
+    },
     ...changes,
     memo,
     want(part, x = 0, y = 0, z = 0, height = 0) {
@@ -176,13 +197,15 @@ await test('October movement stays finite across deployment, turns, recoil and f
 
 await test('October movement soft parts react to acceleration and impacts, not just a timer', () => {
   const secondary = {
-    diver: 'handR',
+    // The 9 October Diver grips his wrench through reach; his air hose
+    // (cape) and beard are the parts that trail.
+    diver: 'cape',
     sumo: 'extra',
     linebacker: 'hair',
     beekeeper: 'cape',
     drummer: 'antenna',
     firefighter: 'hat',
-    jetpack: 'antenna',
+    jetpack: 'cape', // the 9 October rebuild's scarf
     explorer: 'extra',
     bee: 'antenna',
   };
@@ -233,27 +256,106 @@ await test('October movement suppresses optional idle gestures under reduced mot
   }
 });
 
-await test('October movement Sumo keeps the anticipated palm through each alternating slap', () => {
-  const wind = frame('sumo', { aim: 1, idle: 0, wind: 1, hits: 0 });
-  const right = frame('sumo', {
-    aim: 1,
-    idle: 0,
-    strike: 1,
-    hits: 1,
-    since: 0.1,
-  });
-  const left = frame('sumo', {
-    aim: 1,
-    idle: 0,
-    strike: 1,
-    hits: 2,
-    since: 0.1,
-  });
-  assert.ok(wind.joints.get('foreR')[0] < wind.joints.get('foreL')[0]);
-  assert.ok(right.p.armR > right.p.armL);
-  assert.ok(right.joints.get('handR')[0] > right.joints.get('handL')[0]);
-  assert.ok(left.p.armL > left.p.armR);
-  assert.ok(left.joints.get('handL')[0] > left.joints.get('handR')[0]);
+/** The shipped Sumo's arm joints in their parents (three.js axes), for
+ *  the reach solver and for forward kinematics below. */
+const SUMO_REST = {
+  foreL: [-0.183, -0.244, -0.051],
+  handL: [-0.037, -0.239, -0.045],
+  foreR: [0.183, -0.244, -0.051],
+  handR: [0.037, -0.239, -0.045],
+};
+/** The wrist (from the shoulder) and the palm's facing for one side. */
+function sumoHand(f, side) {
+  const q = (part) =>
+    new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(...f.joints.get(part).slice(0, 3)),
+    );
+  const arm = q(`arm${side}`);
+  const fore = arm.clone().multiply(q(`fore${side}`));
+  const elbow = new THREE.Vector3(...SUMO_REST[`fore${side}`]).applyQuaternion(
+    arm,
+  );
+  const wrist = elbow.add(
+    new THREE.Vector3(...SUMO_REST[`hand${side}`]).applyQuaternion(fore),
+  );
+  const palm = new THREE.Vector3(0, 0, -1).applyQuaternion(
+    fore.multiply(q(`hand${side}`)),
+  );
+  const upper = new THREE.Vector3(...SUMO_REST[`fore${side}`]).applyQuaternion(
+    arm,
+  );
+  const hinge = new THREE.Vector3(1, 0, 0).applyQuaternion(arm);
+  return { wrist, palm, upper, hinge };
+}
+
+await test('October movement Sumo chambers each palm, then drives it out flat and alternates hands (9 October)', () => {
+  const rest = (part) => SUMO_REST[part] ?? null;
+  for (const hits of [1, 2]) {
+    const active = hits === 1 ? 'R' : 'L';
+    const inactive = hits === 1 ? 'L' : 'R';
+    const guard = frame('sumo', { aim: 1, idle: 0, hits: hits - 1, rest });
+    const wind = frame('sumo', {
+      aim: 1,
+      idle: 0,
+      wind: 1,
+      hits: hits - 1,
+      rest,
+    });
+    const impact = frame('sumo', {
+      aim: 1,
+      idle: 0,
+      strike: 1,
+      hits,
+      since: 0.05,
+      rest,
+    });
+    const g = sumoHand(guard, active);
+    const w = sumoHand(wind, active);
+    const i = sumoHand(impact, active);
+    const other = sumoHand(impact, inactive);
+    // Forward is -z: the striking wrist draws back to chamber, then drives
+    // well past the guard, further forward than the other hand.
+    assert.ok(
+      w.wrist.z > g.wrist.z + 0.05,
+      `${active} palm chambers before its hit`,
+    );
+    assert.ok(
+      i.wrist.z < g.wrist.z - 0.08,
+      `${active} palm drives out on the hit`,
+    );
+    assert.ok(
+      i.wrist.z < other.wrist.z - 0.1,
+      `${active} leads; ${inactive} is drawn back`,
+    );
+    // The heel of the hand leads: the palm faces forward on impact.
+    assert.ok(i.palm.z < -0.6, `${active} palm faces the target on impact`);
+    // The hands never swap mid-blow: the chambered hand is the one landing.
+    assert.ok(
+      sumoHand(wind, inactive).wrist.z < w.wrist.z,
+      'the anticipated hand is the striking hand',
+    );
+  }
+  // Elbows bend one way only: the forearm never folds behind the upper arm
+  // (its bend about the arm's own hinge stays positive) through a cycle.
+  for (let k = 0; k <= 20; k++) {
+    const f = frame('sumo', {
+      aim: 1,
+      idle: 0,
+      wind: k < 10 ? k / 10 : 0,
+      strike: k >= 10 ? 1 - (k - 10) / 10 : 0,
+      hits: k >= 10 ? 1 : 0,
+      since: k >= 10 ? (k - 10) * 0.03 : 99,
+      rest,
+    });
+    for (const side of ['L', 'R']) {
+      const { wrist, upper, hinge } = sumoHand(f, side);
+      const forearm = wrist.clone().sub(upper);
+      // A forward flexion about the arm's own +x hinge puts the cross
+      // product of upper arm and forearm along that hinge.
+      const fold = upper.clone().normalize().cross(forearm.normalize());
+      assert.ok(fold.dot(hinge) > -0.05, `${side} elbow never bends backwards`);
+    }
+  }
 });
 
 await test('October movement tackle memory belongs to one Linebacker and survives its impact', () => {
@@ -348,17 +450,21 @@ await test('October model joints articulate actual wrists, accessories and facia
       const eye = root.getObjectByName(id + 'eye' + side);
       const pupil = root.getObjectByName(id + 'pupil' + side);
       assert.ok(eye && pupil, `${id} has an expressive ${side} eye`);
-      assert.equal(pupil.parent, eye);
+      assert.equal(pupil.parent?.name, eye?.name);
       if (id === 'bee') continue;
       const arm = root.getObjectByName(id + 'arm' + side);
       const fore = root.getObjectByName(id + 'fore' + side);
       const hand = root.getObjectByName(id + 'hand' + side);
       assert.ok(arm && fore && hand, `${id} ${side} arm has all three links`);
-      assert.equal(fore.parent, arm);
-      assert.equal(hand.parent, fore);
+      assert.equal(fore.parent?.name, arm?.name);
+      assert.equal(hand.parent?.name, fore?.name);
     }
     const weapon = root.getObjectByName(id + 'weapon');
-    if (weapon) assert.equal(weapon.parent, root.getObjectByName(id + 'handR'));
+    if (weapon)
+      assert.equal(
+        weapon.parent?.name,
+        root.getObjectByName(id + 'handR')?.name,
+      );
     if (id === 'drummer')
       assert.equal(
         root.getObjectByName(id + 'offhand').parent,
@@ -367,82 +473,7 @@ await test('October model joints articulate actual wrists, accessories and facia
   }
 });
 
-function applyPose(root, f, rest) {
-  for (const [name, [x, y, z]] of f.joints) {
-    const joint = root.getObjectByName(root.name + name);
-    const r = rest.get(name);
-    joint.rotation.set(r.x + x, r.y + y, r.z + z);
-  }
-  for (const side of ['L', 'R'])
-    if (!f.joints.has('arm' + side)) {
-      const r = rest.get('arm' + side);
-      root
-        .getObjectByName(root.name + 'arm' + side)
-        .rotation.set(
-          r.x + f.p['arm' + side],
-          r.y,
-          r.z + f.p['arm' + side + 'z'],
-        );
-    }
-  const torso = rest.get('torso');
-  root
-    .getObjectByName(root.name + 'torso')
-    .rotation.set(
-      torso.x - f.p.torsoX,
-      torso.y + f.p.torsoY,
-      torso.z + f.p.torsoZ,
-    );
-  root.updateMatrixWorld(true);
-}
-
-await test('October model Firefighter and Explorer keep both hands on a level tool throughout aim and recoil', async () => {
-  const scene = await models();
-  const B = (x, y, z) => new THREE.Vector3(x, z, -y);
-  for (const { id, right, direction, span } of [
-    {
-      id: 'firefighter',
-      right: B(0.13, 0.17, 0.7),
-      direction: B(-0.2, 1, 0.05).normalize(),
-      span: 0.24,
-    },
-    {
-      id: 'explorer',
-      right: B(0.12, 0.13, 0.68),
-      direction: B(-0.22, 1, 0.32).normalize(),
-      span: 0.27,
-    },
-  ]) {
-    const root = scene.getObjectByName(id).clone(true);
-    root.updateMatrixWorld(true);
-    const rest = new Map();
-    root.traverse((o) => rest.set(o.name.slice(id.length), o.rotation.clone()));
-    const hand = root.getObjectByName(id + 'handL');
-    const tool = root.getObjectByName(id + 'weapon');
-    const left = right.clone().addScaledVector(direction, span);
-    const onHand = hand.worldToLocal(left.clone());
-    const onTool = tool.worldToLocal(left.clone());
-    const memo = {};
-    for (let i = 0; i <= 120; i++) {
-      const a = i / 120;
-      const f = frame(
-        id,
-        { aim: a, idle: 1 - a, since: 0.2, strike: a * 0.6, wind: 0.4 * a },
-        memo,
-      );
-      applyPose(root, f, rest);
-      const gap = hand
-        .localToWorld(onHand.clone())
-        .distanceTo(tool.localToWorld(onTool.clone()));
-      assert.ok(gap < 0.0005, `${id} left grip gap ${gap}`);
-    }
-    const f = frame(id, { aim: 1, idle: 0 }, memo);
-    applyPose(root, f, rest);
-    const forward = direction
-      .clone()
-      .applyQuaternion(tool.getWorldQuaternion(new THREE.Quaternion()));
-    assert.ok(
-      Math.abs(forward.y) < 0.15,
-      `${id} aims across the field, pitch ${forward.y}`,
-    );
-  }
-});
+// The two-hand tool test that lived here measured grip points on the
+// 1 October Firefighter and Explorer sculpts; both were rebuilt on
+// 9 October and their reach probes check the grips instead
+// (work/arena/2026-10-08-roster/{firefighter,explorer}/probe-next.mjs).

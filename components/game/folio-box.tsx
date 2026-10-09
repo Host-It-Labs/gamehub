@@ -27,7 +27,7 @@ import { KindIcon } from './folio-icons';
 import './online-boxes.css';
 
 const errorText = (e: unknown) =>
-  e instanceof Error ? e.message : 'Could not reach Folio. Please try again.';
+  e instanceof Error ? e.message : 'Could not reach Puzzles. Please try again.';
 
 /** What tells one run from another: where it stands, then who and how hard. */
 function runTitle(s: FolioSummary) {

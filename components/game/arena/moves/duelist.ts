@@ -174,6 +174,8 @@ export const duelist: Moves = {
     // with the body floating over them.
     gait: {
       like: 'glide',
+      // Both bent elbows keep the same hilt while the shoulders turn together.
+      elbow: 0,
       cadence: 2.15,
       stride: 0.6,
       crouch: 0.05,
@@ -384,6 +386,10 @@ export const duelist: Moves = {
     }
 
     // Both fists on the hilt: the arms turn together.
+    // Connected sleeves now have real elbow bones, held in the authored
+    // two-handed guard instead of inheriting independent walking bends.
+    c.want('foreL', 0);
+    c.want('foreR', 0);
     p.armL += arms;
     p.armR += arms;
     // The blade's own turns in the fists: tipping (x), and rolling about

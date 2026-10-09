@@ -1,0 +1,59 @@
+{
+  "accepted": true,
+  "reviewedBy": "root",
+  "observations": [
+    "Root reviewed the runtime gallery on 9 Oct (sheet-runtime-v3 and the full set).",
+    "29,029 triangles, skin one connected piece; lab coat, cobalt coveralls and gloves, belts, boots, goggles, zapper and coil pack match the source.",
+    "Face survives reduction with readable eyes and brows; the hair puffs read as rounded curly clumps, faceted only in close-up.",
+    "Both hands close round the zapper in the aim; the carry hand holds it at the side."
+  ],
+  "inspected": [
+    "runtime-v3/clay-aim.jpg",
+    "runtime-v3/clay-arm-forward.jpg",
+    "runtime-v3/clay-arm-side.jpg",
+    "runtime-v3/clay-carry.jpg",
+    "runtime-v3/clay-elbow-deep.jpg",
+    "runtime-v3/clay-face.jpg",
+    "runtime-v3/clay-follow-through.jpg",
+    "runtime-v3/clay-front.jpg",
+    "runtime-v3/clay-game.jpg",
+    "runtime-v3/clay-hand-l.jpg",
+    "runtime-v3/clay-hand-r.jpg",
+    "runtime-v3/clay-hit-reaction.jpg",
+    "runtime-v3/clay-idle-check.jpg",
+    "runtime-v3/clay-idle-look.jpg",
+    "runtime-v3/clay-impact.jpg",
+    "runtime-v3/clay-knee-deep.jpg",
+    "runtime-v3/clay-landing.jpg",
+    "runtime-v3/clay-load.jpg",
+    "runtime-v3/clay-rear.jpg",
+    "runtime-v3/clay-recovery.jpg",
+    "runtime-v3/clay-rest.jpg",
+    "runtime-v3/clay-side.jpg",
+    "runtime-v3/clay-three.jpg",
+    "runtime-v3/material-aim-hands.jpg",
+    "runtime-v3/material-aim.jpg",
+    "runtime-v3/material-face-unhelmeted.jpg",
+    "runtime-v3/material-face.jpg",
+    "runtime-v3/material-follow-through.jpg",
+    "runtime-v3/material-game.jpg",
+    "runtime-v3/material-impact.jpg",
+    "runtime-v3/material-phone-game.jpg",
+    "runtime-v3/material-rear.jpg",
+    "runtime-v3/material-small-game.jpg",
+    "runtime-v3/material-three.jpg"
+  ],
+  "renderIndexSHA256": "1438eb78d8c93fbd9a315973c53b90d8ed62ce9e1dc3fea95d80757868a26f9c",
+  "masterSHA256": "4601dc35c3dd42828f0e1cea55a4f8ace1a0ef8f290725e5846efb9ab105c2a9",
+  "dimensionExceptions": {
+    "depth": {
+      "acceptedDimension": 0.3161087930202484,
+      "reason": "The old Inventor held a long tool straight out (native depth 0.811); the rebuilt figure carries the zapper lowered. The person keeps her height and width."
+    }
+  },
+  "sourceFingerprint": "541c6c249227eb63933e604aa9cfb7d76e3f20d4753e3a49ff8c71695dc6e803",
+  "recipeFingerprint": "8b716f5344e860b2daba3c2f8335f2b7d896241d8c5fe708a3f5157e2f2db64b",
+  "movesSHA256": "c4a9f01f95e0cf6cb3f65d094ecc3787c70d0428031b7c1584b2264a67949aa8",
+  "reachSHA256": "0061cf6ae662d19218c71d32552e3c4c140e9e1c88a186f6436f82e9d7a15352",
+  "runtimeSHA256": "97be68bc24b9de84bbd321323939de8a79f59b9c984e671ff34b60c4c39d98c3"
+}

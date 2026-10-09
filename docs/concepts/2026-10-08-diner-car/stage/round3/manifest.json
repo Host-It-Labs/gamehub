@@ -1,0 +1,178 @@
+{
+  "recordedAt": "2026-10-09T06:23:43.988955+00:00",
+  "scope": [
+    "components/game/diner/diner-car.ts",
+    "components/game/diner/places.ts",
+    "components/game/diner/stage.ts",
+    "docs/concepts/2026-10-08-diner-car/stage/"
+  ],
+  "vehicleUnchanged": true,
+  "review": "Twelve real WebGL stage captures, one occupied shift, and preserved Claude round-3 baseline. Stage counts include one shadow pass; caller bloom passes are separate.",
+  "files": [
+    {
+      "path": "components/game/diner/diner-car.ts",
+      "bytes": 27844,
+      "sha256": "1ad41eb90841b6e53b0ae0f553b1b5565cac1e60e93d50a0f30f381678e8c56f"
+    },
+    {
+      "path": "components/game/diner/places.ts",
+      "bytes": 102743,
+      "sha256": "16d65e5477da5c1f703a1612a1e87cdae52bd502f29fc727d38deea6d2092aca"
+    },
+    {
+      "path": "components/game/diner/stage.ts",
+      "bytes": 24752,
+      "sha256": "32aab4e2b4d112fc8a84fe756dbd29db9ef4bbf8758fa9e8fc64c8dc13838726"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/notes.md",
+      "bytes": 25853,
+      "sha256": "b07dfbd63b3e7e4102a00069ce64a444cd700396b22d4d3e50787f85ddb24218"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/check-source.mjs",
+      "bytes": 10817,
+      "sha256": "f6b2e5456ae3a742c2d415bd51d556c2004bec8b65847ba3b1d7a326eca86ae1"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/render-source.mjs",
+      "bytes": 13901,
+      "sha256": "64f5804c02dbb337d9c3603763f196d3f300d58466bbea7cd2c7a506c81df0eb"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/asset-brief.md",
+      "bytes": 2154,
+      "sha256": "4203117aa50b67f46fcb6c014280debcebdb8ba4571904111d4c1296a5312d4a"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/check-feedback.mjs",
+      "bytes": 6262,
+      "sha256": "aaa66ef73276b1ee9dc04fd3670411530e3f28eb4adf40a175e11bc591b302e9"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/review-gallery.mjs",
+      "bytes": 3780,
+      "sha256": "0d58a851bcc3c90a21599187a8193e88008ded1f303676d5ad1aa464b7f9cf13"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/feedback-check.json",
+      "bytes": 2204,
+      "sha256": "0f4695a406c980c0ff881035571c0976f05419b0b83efc700f68e7ce57f3d637"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/index.html",
+      "bytes": 3393,
+      "sha256": "ac9c84609c8ef900039978101957be13c1e1c369a2820b20ea0c6d60431b3bab"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/renderer-budgets.json",
+      "bytes": 8408,
+      "sha256": "0d3cb1891d0379b963b955cdaac59cd0a705c88eacd7158c9c08ef3faa4d17a7"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/sheet-desktop.jpg",
+      "bytes": 280940,
+      "sha256": "88850eac07c9a2ddba2677431f6ea4616091d4844f8acda963e5433d49b12255"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/sheet-phone.jpg",
+      "bytes": 280883,
+      "sha256": "57264b0f7f341015958d95e0833aa34b5345222a61af94ba4e3a338897998059"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/source-budget.json",
+      "bytes": 15532,
+      "sha256": "512f7d4b9d61e8263e40e0d3f2c0974492cfbd11ca157ea77245e171803a4a4c"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-drivein-1280x720.jpg",
+      "bytes": 103960,
+      "sha256": "ca6d039f1e776727d382e9f021d81b621d8b2a70dc4fc7c116ce87cc9a3814cd"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-drivein-390x844.jpg",
+      "bytes": 42448,
+      "sha256": "c5dfcbb3b6acddf25e084ff82345437828f1a9eed48d3eb823a37d1a977e2acf"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-fairground-1280x720.jpg",
+      "bytes": 107947,
+      "sha256": "4aae19cae713c2a07529448f9bfc221d5801b3ccb6a3127e87e8099fc859cb1d"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-fairground-390x844.jpg",
+      "bytes": 43865,
+      "sha256": "c5a6692052faac40aea078ead437e5c946d9bbdc717a411246323c3677d9955e"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-harbour-1280x720.jpg",
+      "bytes": 100303,
+      "sha256": "0f054f435b08ca7403b628ae97ce253f1d395e1c54ba5695f5ba2965f0c3a168"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-harbour-390x844.jpg",
+      "bytes": 40355,
+      "sha256": "0d20fbbd431ed1e94de51b269fa86a2ee83ad7981efabb39a41790c644a0dd7c"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-moonmile-1280x720.jpg",
+      "bytes": 89575,
+      "sha256": "46dac3e8a51895608e6db92f92cf80bc39a60b90ac836b46675ea863794be596"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-moonmile-390x844.jpg",
+      "bytes": 41245,
+      "sha256": "c2f5729d44fee16ac787cb89e1ae72699fad74908b2751643d9077a443a5390c"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-occupied-drivein-1280x720.jpg",
+      "bytes": 114310,
+      "sha256": "489792626268dab0409f61635ab0b563b1680b857a5a5bb9e4c300793aac8ee7"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-oldtown-1280x720.jpg",
+      "bytes": 121853,
+      "sha256": "eee4b2074bc1aa213228ac7c9bf8a88df73589019c5d08c51dda1e31ca1526ee"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-oldtown-390x844.jpg",
+      "bytes": 54199,
+      "sha256": "214aabafa68cf1eedddd3bbce81b540c32a5eda01821e4b473616405493e15fc"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-truckstop-1280x720.jpg",
+      "bytes": 86244,
+      "sha256": "44fec6e808654006890e8da4cf8521af12a5be1d6899b75a685c7823453ff629"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/review/round3-fixes/webgl-truckstop-390x844.jpg",
+      "bytes": 35973,
+      "sha256": "72a2a6fa9f700309778496c44cf610dac1c5c6d6ca1224173eb78a91f8019fba"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/feedback-check.log",
+      "bytes": 177,
+      "sha256": "e9546cefe0b749a8e62067d4a73e15328f46d0dfd39606107f35d46d741faa61"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/source-check.log",
+      "bytes": 15619,
+      "sha256": "970f0e7eac9bb0ac48599a5996b2d0e72337af8444bbf98e592bcc29c96376f6"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/typecheck.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/concepts/2026-10-08-diner-car/stage/round3/visual-tests.log",
+      "bytes": 1460,
+      "sha256": "d1aafaf21aaa3ae8556835aed2e9c984543671ad003527e815c5952dc4f7f400"
+    }
+  ]
+}

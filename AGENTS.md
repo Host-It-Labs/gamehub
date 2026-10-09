@@ -1,3 +1,13 @@
+# Mandatory 3D quality skill
+
+The root agent and every delegated agent doing 3D modeling, scenes, materials,
+lighting, camera presentation, rigging, animation or optimization must read and
+follow [high-fidelity-3d](/Users/williamguinaudie/.codex/skills/high-fidelity-3d/SKILL.md)
+before starting that work. Include this skill path in every 3D delegation.
+Build a detailed, convincing high-quality source and review its anatomy,
+silhouette, materials and motion before optimizing for runtime. The root agent
+must inspect the visual evidence; passing tests alone does not establish quality.
+
 # Task size scale
 
 Classify every request before starting and scale the verification to it. When
@@ -17,14 +27,20 @@ The browser/touch/viewport checks required elsewhere in this file apply to
 medium and large tasks. For small tasks, say plainly that browser QA was
 skipped by size rather than implying it was done.
 
-# Local development audio
+# Render resolution follows the screen and the device
 
-All agents must mute every browser tab used to open the local website for
-development, previews or testing. Mute the tab before interacting with the
-site and keep it muted throughout the session, including after reloads and
-navigation. Apply this to each new tab as well. Use the browser's tab or site
-mute control; do not change the application's audio defaults or the system
-volume to satisfy this rule.
+Every game canvas, WebGL or 2D, sizes its drawing buffer through
+`components/game/render-quality.ts`; never write `Math.min(devicePixelRatio, 2)`
+or a fixed pixel budget again. The aim is the screen's native density (a 4K
+monitor gets all of its pixels, a 3× phone its full 3×). `devicePower()` sorts
+the device into high, mid or low from its graphics chip, cores and memory
+(`?power=low` on any page tries a class). Animated scenes start at
+`startLevel()` on the shared frame pacer (`components/game/render-pacer.ts`),
+which climbs to native when frames have room and steps down when they slip.
+Light scenes use `startRatio()` and still drawings `stillRatio()`, both
+recomputed on resize. A game keeps its own floor (`floorAt`), so no device
+draws below what it drew before. Rota keeps its tiers with a native step on
+top (`lib/games/rota/quality.ts`).
 
 # Docker image and release build time
 
@@ -54,7 +70,7 @@ releases have happened several times; keep the image job to a few minutes.
 Applies to every game, every game family, solo and online, practice and live play:
 
 - Top left contains only the back/return control and game name. For the table admin alone it holds only the Table button instead (`TableManager`, `components/game/table-manager.tsx`), in the back control's slot; the back control and name are hidden for the admin. It drops the table panel along the left side: the players (Make admin, a bot for an away seat), then Leave (the back control's own action), Back to lobby and Close table, the two ending actions asked once in place. Table settings never sit in the Menu, and nobody else sees them. Menu, Others, time/advance-time and fullscreen controls belong at the top right; on wide screens Others sits directly below Menu. On phones (≤600 px) every game uses one top bar, modelled on Mora: back on the left, the round pill in the centre, Others then Menu on the right, and the player badges in a row beneath (full names while they fit without sideways scrolling, the contracted badge otherwise, via `useBadgeFit`). Nox keeps its badges on the table seats. Arena is the exception by decision: its top bar holds only a back button (left) and the clock with the crown counts and a small pause button (right) that opens the shared menu; no name, badges or Menu label (see its DESIGN.md section). Nothing on the bar may clip a badge's corner marks (the placement die). The contract lives in `components/game/mobile-hud.css`; no game-specific reversal. Only show Others where there is something private to see (not Know Me or Quiz).
-- Phones are portrait only and play full screen where the browser allows it: `components/game/mobile-viewport.tsx` asks for fullscreen and a portrait lock on a tap while a game is open (or on a `data-starts-game` button), respects leaving fullscreen from the menu, and shows a rotate screen on landscape phones. Short landscape phone layouts are no longer a target.
+- Phones are portrait only and play full screen where the browser allows it: `components/game/mobile-viewport.tsx` asks for fullscreen and a portrait lock on a tap while a game is open (or on a `data-starts-game` button), respects leaving fullscreen from the menu, and shows a rotate screen on landscape phones. Short landscape phone layouts are no longer a target. Diner is the exception by decision (9 October 2026): it plays sideways on phones (stick left, buttons right), wraps its screens in `DinerLandscape` (`components/game/diner/diner-landscape.tsx`), locks landscape and shows a rotate screen on upright phones; see its DESIGN.md section.
 - Undo always has its own visible slot in the dock row directly above the hand; no menu, plate, extension or confirmation may cover it.
 - Treat the playing screen as one viewport. Strongly avoid whole-page scrolling to reach the board, choices, hand, confirmation or navigation. Reflow into columns or side rails, reduce decorative spacing and duplicate headings, and fit the active board before reducing readable text or touch targets. Never hide essential controls with overflow clipping to claim a fit.
 - Keep long rules, history, comparisons and optional inspections in explicit overlays with internal scrolling and restored focus. Extreme zoom/accessibility fallbacks may scroll locally; report them honestly rather than calling them viewport acceptance.
@@ -121,6 +137,7 @@ Required for every How to play, rule inspection and extension explanation, in ev
 - **Hard rule: never ship a flat, uninspired screen.** Give every game depth and energy (a considered palette, light, glow or material, and a centrepiece worth looking at) while staying sleek rather than busy. Wrap prompts with `text-wrap: balance` so lines never break awkwardly.
 - Know Me (`orin`, formerly Tribu) holds Top Five, Dial and Ten Coins as one game with an opening pick and an again/switch/end pick each round; see the Tribu and 29 September 2026 sections of [docs/DESIGN.md](docs/DESIGN.md). Every Know Me game runs the same way: everyone answers for themselves at once, then everyone guesses every other player at once (one tab per player, one lock), then the answers are revealed one player after another. Always everyone for themselves: no teams. Only Top Five prompts carry a flag, on each option.
 - Impostor (`impostor`) is a drawing party game for 3–8 humans: everyone draws the same secret word except the impostor, who unknowingly has a close neighbour, then writes one word, then accuses. Nobody is told who the impostor is. It keeps its look (an evidence wall at night) and stays human-only online; see the Impostor section of [docs/DESIGN.md](docs/DESIGN.md).
+- Puzzles (`folio`, formerly Folio, renamed 9 October 2026) is the co-op run of famous daily puzzles; its id, route (`/folio`), code names and saves stay `folio`, and every public text says Puzzles.
 - Lucky (`relic`, formerly Relic) is a shared scratch-ticket room: every book is a small puzzle with three levels, every ticket is bought (half of what a careful player wins) and held one at a time, it pays the moment it is over, and upgrades are a forty-node tree of big steps. See [docs/relic.md](docs/relic.md) and the Lucky section of [docs/DESIGN.md](docs/DESIGN.md).
 - Quiz (`miro`, formerly Sabi and Mundo) holds short trivia games the same way, Atlas, Sizes, Years and Order today, always everyone for themselves; see the Sabi section of [docs/DESIGN.md](docs/DESIGN.md). Every Quiz game uses the shared measuring-desk pieces in `components/game/sabi.css` and `sabi-steps.tsx`, and scores up to 100 per prompt. The Know Me and Quiz sets share `lib/games/party/tribu.ts` (the switch) and `components/game/reveal-motion.tsx` (quick reveal motion: count-ups and staggered drops and pops, under two seconds, off under reduced motion). New reveal and results screens use that kit. A reveal's Next names what it opens: the next player, place, event or set, or the end of the round (`NextStep` in `components/game/know-me-parts.tsx`).
 
@@ -142,6 +159,11 @@ Before creating or changing a game's illustrated board, responsive scene framing
 
 # Library cover artwork
 
+- The landing page shows real gameplay footage of every game, filmed wide
+  and tall with the interface hidden (see the 8 October 2026 library section
+  of [docs/DESIGN.md](docs/DESIGN.md)); re-film a game with
+  `node scripts/reels/record.mjs <id>` when its look changes. The square
+  cover is each card's face and stands in for a game without footage.
 - Use dedicated full-bleed square illustrations, equally sized across the library.
 - The setup lid uses each game's separate wide cover, cut to 3:1 (`wideCover`
   in `lib/games/box-covers.ts`); keep its title and subjects inside the middle

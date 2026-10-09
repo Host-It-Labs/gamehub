@@ -52,7 +52,9 @@ import { useGameMotion } from './game-motion';
 import { useGameSound } from './use-game-sound';
 import { useResultsFeedback, WinnerCelebration } from './results-feedback';
 import { SoundToggle } from './sound-settings';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { gameSound } from '@/lib/games/game-sound';
+import { boxCover } from '@/lib/games/box-covers';
 import { FolioPuzzleRules, FolioRunRules } from './folio-rules';
 import { useBoardLeave } from './use-board-leave';
 import {
@@ -177,13 +179,7 @@ function Run({ initial }: { initial: FolioView }) {
   const badges = useRef<HTMLSpanElement>(null);
   useBadgeFit(badges);
   useGameMotion(root, `${g.phase}:${g.at ?? 'practice'}:${p?.kind ?? ''}`);
-  const [volume, setVolume] = useState(() => {
-    try {
-      return localStorage.getItem('gamehub.folio.volume') === '0' ? 0 : 0.5;
-    } catch {
-      return 0.5;
-    }
-  });
+  const [volume, setVolume] = useState(() => readAudioLevel('gamehub.folio.volume'));
   useGameSound('folio', volume);
   const isMember =
     view.joined && view.members.some((member) => member.id === view.viewerId);
@@ -442,7 +438,7 @@ function Run({ initial }: { initial: FolioView }) {
     <main className="folio-world" data-phase={g.phase} ref={root}>
       <Backdrop />
       <GameNavigation
-        name="Folio"
+        name="Puzzles"
         round={g.practice || g.phase === 'lobby' ? undefined : progress}
         progress={g.practice ? progress : undefined}
         onBack={exit}
@@ -467,9 +463,7 @@ function Run({ initial }: { initial: FolioView }) {
               onChange={(on) => {
                 const next = on ? 0.5 : 0;
                 setVolume(next);
-                try {
-                  localStorage.setItem('gamehub.folio.volume', String(next));
-                } catch {}
+                saveAudioLevel(next, 'gamehub.folio.volume');
               }}
             />
           ),
@@ -493,7 +487,7 @@ function Run({ initial }: { initial: FolioView }) {
       <LeaveDialog
         state={leaving}
         title="Leave the trail?"
-        saved="Your run is saved. Pick it up from Folio."
+        saved="Your run is saved. Pick it up from Puzzles."
         theme="folio"
       />
       <div className="folio-hud" aria-label="Crew and shared supplies">
@@ -893,7 +887,7 @@ function Run({ initial }: { initial: FolioView }) {
                             ?.scrollIntoView({ behavior: 'smooth' })
                     }
                   >
-                    {g.practice ? 'Back to Folio' : 'See the run'}{' '}
+                    {g.practice ? 'Back to Puzzles' : 'See the run'}{' '}
                     <ArrowRight size={17} />
                   </button>
                 )}
@@ -925,7 +919,7 @@ function Run({ initial }: { initial: FolioView }) {
               <FolioMap g={g} open={[]} act={act} />
             </div>
             <button className="folio-primary" onClick={leave}>
-              Back to Folio <ArrowRight size={17} />
+              Back to Puzzles <ArrowRight size={17} />
             </button>
           </section>
         )}
@@ -1123,8 +1117,8 @@ function Hub({ invite }: { invite?: string }) {
       <div className="folio-hub-inner">
         <div className="folio-cover">
           <img
-            src="/art/optimized/box-folio-blind-v2-640.webp"
-            alt="Folio — a winding paper trail into the mountains"
+            src={boxCover('folio')?.replace('.webp', '-640.webp')}
+            alt="Puzzles"
           />
         </div>
         <section className="folio-card folio-welcome">
@@ -1143,7 +1137,7 @@ function Hub({ invite }: { invite?: string }) {
               {preview && (
                 <>
                   <p>
-                    A Folio run for {preview.game.seats}. Once every seat is
+                    A Puzzles run for {preview.game.seats}. Once every seat is
                     taken the table locks and the trail begins.
                   </p>
                   <Seats

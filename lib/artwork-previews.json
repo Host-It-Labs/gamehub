@@ -102,5 +102,45 @@
   "/art/optimized/box-diner-wide-v1.webp": {
     "preview": "data:image/webp;base64,UklGRtIAAABXRUJQVlA4IMYAAACwBACdASokAAwAPu1ip06ppaOiNUgBMB2JbACdIJVJtqUAMHl+teAmaSlIGaqIAP1wjtI+STY5Yo/JoJzce4WMSUHYoDFPjlgTCUnkdh+Qei2gyu0vLqARduWDWK3cNA7CB2GPCPzUnPWid2YKlzxE4Xnue255B079DFCcwnIRYQg3hHYyDxG63nSwcg8c5X9Fn+T3KL/WBB3lnDhDnQJ1BVfbn4ZalhVSfZkwT7sGRdebaZfN16yRlwTEx9Nkthmdv9HAAAA=",
     "srcSet": "/art/optimized/box-diner-wide-v1-768.webp 768w, /art/optimized/box-diner-wide-v1.webp 1536w"
+  },
+  "/art/optimized/box-trivia-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRhwBAABXRUJQVlA4IBABAABQBgCdASoYABgAPwFyrFGrJqQiqA1RYCAJbACdMoR+J3C8A9FUrwPeMHjFj7efjUCAG6i2Bq24ud4FAAD3Sq8lWj88gsZkFCFyeQT6FMvZLkajc/4sf1vsj9Ps9/tKZD/jyFTpHm9W9k1oztABhyZy88qMfVDStAFD8Yd4XAc84rVGRpNsDsWP/tcpbitGkHjkbCrlF+CO7Heb7ncPqYov6xytPMAxPykfUUdlo7rXxQNjFni8eC2ud4a8Xs8Eu4uxXHqL7h8086F3YcUQsM/qkypIBck1Y9vzZMO0DfwoazAw3jpGrxLaoR+wb2DugDN4y8YKxsq1bwe0QKETqzo+ZBQySsTfWfcXkRcfnYgAAA==",
+    "srcSet": "/art/optimized/box-trivia-blind-v1-320.webp 320w, /art/optimized/box-trivia-blind-v1-640.webp 640w, /art/optimized/box-trivia-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-trivia-wide-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRqoAAABXRUJQVlA4IJ4AAADwAwCdASokAAwAPu1kqE6ppaQiNUgBMB2JZgAAMOGIAMqF/+pdXlDAAP4Rhs7YvB4zX2ozSDoeywyabmO6ekM0AKDCZJgGS5XuTv0NfnZMOU3nAxIfwozf32HTk+Auxa0DjQahPEdiODilcZdb/sAHZ+KVmuF0VGfqsBw2oXrVpFIC0KwUQp8cvHWhSGyAoyI5bSSZzzmb/Jy4jAAAAA==",
+    "srcSet": "/art/optimized/box-trivia-wide-v1-768.webp 768w, /art/optimized/box-trivia-wide-v1.webp 1536w"
+  },
+  "/art/optimized/box-diner-blind-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRjQBAABXRUJQVlA4ICgBAACwBgCdASoYABgAPwFysFIrJqSiqAqpYCAJbACdMoR3EGAK7UDA4m6+kRO3GCC/QAjhYUXLofy+QaUXRfLcAAD8sJUVombqPGzw6pZp6bWWBHUEXgotmLwX4MztqneVC1SM52Lb+1gkuhnqp9CSeAmcO/Ge2UON4vTIPW5Rd8IygaetzQ7mXMpNrfRtijprQIo0g5aQJrYG2ZG88Lzvdt/62LehE3lIxwQ29iulYnoOhvdtGjw3BHpKTt4YqhD4U6vJ3ThDHnbGLMFHW1vncdULe0TbmZQgzlCelUe3KqWzui7kTfdnmhHMVS+VcAxtoMagNUX/p4mj/ZT11pmSi4F3JgS53OZblfcQ6f7dlLgmsVOYKbMghqNtGGvrSmX8FcRdLUcXWr6gAA==",
+    "srcSet": "/art/optimized/box-diner-blind-v2-320.webp 320w, /art/optimized/box-diner-blind-v2-640.webp 640w, /art/optimized/box-diner-blind-v2.webp 1024w"
+  },
+  "/art/optimized/box-diner-wide-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRsoAAABXRUJQVlA4IL4AAAAQBQCdASokAAwAPu1kqE6ppaQiNUgBMB2JbACdMt7Cv3+rk92AOjRTf83w+WlWD7kAAP7cmgE6jfIh05lr2+rA209P0jh+DEKKMs07RqB1zP0OLJZJlJ1rpkKbYqrrxewJa5EIloFXcsX+0VbXY2Q+8Q5nvHeYVVQ+ZSLRZ2i2QrWKpS7OWG+4NJbdtLmDwOgnUdoK/OPDyqATQjSJT/mnbPFON32Kobl4G/uHe1XTiRZBJT0S7G9H4uo4bAAA",
+    "srcSet": "/art/optimized/box-diner-wide-v2-768.webp 768w, /art/optimized/box-diner-wide-v2.webp 1536w"
+  },
+  "/art/optimized/box-diner-blind-v3.webp": {
+    "preview": "data:image/webp;base64,UklGRiABAABXRUJQVlA4IBQBAABwBgCdASoYABgAPwFwrFErJiQiqA1RYCAJbACdMoR6S8UW0VhUMsHYgaki+jzNOZw6hUJ+jvAdFY6lC0AA/qGoMCd+wrBUEuK4x26OSal20eHOFh6dLyRGC0fzj2TUsc9JiSujrM3/X4S8SKlgXK6rB1AnpLAHisgy4yQl3vkEMi4jlMZ+abZfFX0dYbd7bWpVrQ3pAYoZyapqHsLEe2gmRv2UOwHWADlB2Vfmi1+PYFGujfHK3r9b0DKag1gelY8Xchr21RWatzPi2RoJGE9JSjtDqQqm+0I0dAnWXFYpo4Uri+3hts5/l4hYzniB+zkgtleoGglHO1qgcLA83tEcccgLeJWa7tuhMVT6APPeRWMNQAA=",
+    "srcSet": "/art/optimized/box-diner-blind-v3-320.webp 320w, /art/optimized/box-diner-blind-v3-640.webp 640w, /art/optimized/box-diner-blind-v3.webp 1024w"
+  },
+  "/art/optimized/box-puzzles-blind-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRiYBAABXRUJQVlA4IBoBAADwBgCdASoYABgAPwF2slOrJqQiqAgBYCAJaACdMuu+bIAVQMsDS+szBlc7QZVc8MX+euuBF8B0w7eV3jpQpEQgAP5rNif5066v7EsW6I+ybk/rdKWIEFCYN9ehH1MSMTi8lCvEz4rLSbH/fGPwVeIb20pFaS2tLIZvgpWQDcFEsjr+6uxaHcfzoW1h1dUlIQeUxUV+y8TdjU9xUdVxcvZKQwTNvKmJrJ8Nc27me9UgA81hXESplhIrYrNuaeq9j+eY7AHqeD2BMCf1l2mbOu5ZVc6IK9GKouQbxKuY3sr2RQJFH4EHUX6O0K08mWayZt7PSgXdu8YJN7eE4xnPlpHOY9/HFup/9TYJlBFt1gDpLrApNnmm1gQAAAA=",
+    "srcSet": "/art/optimized/box-puzzles-blind-v1-320.webp 320w, /art/optimized/box-puzzles-blind-v1-640.webp 640w, /art/optimized/box-puzzles-blind-v1.webp 1024w"
+  },
+  "/art/optimized/box-puzzles-wide-v1.webp": {
+    "preview": "data:image/webp;base64,UklGRrIAAABXRUJQVlA4IKYAAABQBQCdASokAAwAPvlmqk6qpaOiNVgIAVAfCWYAsR7iKpvoAZI3oa7EAufCgHTogCO7TvQA/rIKQOtoltx1rppEs0M7sMRRQAwBe05o3xsjPV99v+uR9gt8jqjlrdLBvMxfwQnRvO44Mb4a14f7T1bxbAnXJbhe29FDAEG8revv/VF8vcNGV5NURRW3u08m09hJ6q4vnAExoZtsNy/0AGYoJL9t76AA",
+    "srcSet": "/art/optimized/box-puzzles-wide-v1-768.webp 768w, /art/optimized/box-puzzles-wide-v1.webp 1536w"
+  },
+  "/art/optimized/box-diner-wide-v3.webp": {
+    "preview": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4ILIAAAAwBQCdASokAAwAPvlqqk6qpiOiNVgIAVAfCWwAnTKDJbJ/wFOatR51AczNBwq9Nw1oqAD9m6asnFX8E6y6M2FbhnW9eWcB3jELGgfLIMeqri8A9gBa4azjDj0TVaZKpk+ze2o1ivjvqPVe01EorXYjrdziWMDnZ3y4bdRgi0HJj7PRgTRKzQTRaUwoMfCTjAF5eS9+1MhWJ4ySUEAzaJBgLhVw2BssvhjBDqtceWDvdQAA",
+    "srcSet": "/art/optimized/box-diner-wide-v3-768.webp 768w, /art/optimized/box-diner-wide-v3.webp 1536w"
+  },
+  "/art/optimized/box-rota-blind-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRs4AAABXRUJQVlA4IMIAAACwBQCdASoYABgAPwF2sVOrJyQiqAgBYCAJZACdMsdvQTPAOiNWXDCgd+hwRFoDgAR4cmIhdaAA/rGGHLqiZF0qS/IAVwqfZERlvBGrF0B7s0/Is3BmUZW/ml+i6ZAYGeoqNt53OMr4OI78hGv7jzzgqgmnCrJsXgeU1MlTJoqDiBYgKK6FDFMkOeUhEziq+CNiz0XomnJ0SY6MADYqSV71AYv4IJIJi9jXpcHnXu9KrETUyyT6MbpwTn5ekgYLIJzwAA==",
+    "srcSet": "/art/optimized/box-rota-blind-v2-320.webp 320w, /art/optimized/box-rota-blind-v2-640.webp 640w, /art/optimized/box-rota-blind-v2.webp 1024w"
+  },
+  "/art/optimized/box-rota-wide-v2.webp": {
+    "preview": "data:image/webp;base64,UklGRpQAAABXRUJQVlA4IIgAAABQBACdASokAAwAPu1epk6ppSOiNUgBMB2JYwC2yC3nS9dv2xIh5p4bnSwAAP6/TZdn382akz58ZziIuS0k9AJ9NCgr6hC0h9ltybJOVhGsxcwAvkb7gYAR4Ig8/ug8x39Mch50EVDFit74ImF3velI1Z4gG/yyUB3fEQ5h8ZAtsgdGI5iDyUAA",
+    "srcSet": "/art/optimized/box-rota-wide-v2-768.webp 768w, /art/optimized/box-rota-wide-v2.webp 1536w"
   }
 }

@@ -1,5 +1,5 @@
 import {
-  createMatch,
+  createConfiguredMatch,
   open,
   step,
   TICK,
@@ -7,7 +7,7 @@ import {
   type Input,
   type Match,
 } from '@/lib/games/diner/engine';
-import type { NightId } from '@/lib/games/diner/content';
+import { levelConfig } from '@/lib/games/diner/levels';
 
 /** What the controls hold between frames: the stick, and presses not yet used. */
 export type Controls = {
@@ -15,6 +15,7 @@ export type Controls = {
   mz: number;
   use: boolean;
   out: boolean;
+  dash?: boolean;
 };
 
 /**
@@ -32,7 +33,8 @@ export interface Session {
   readonly host: boolean;
   /** Changes when a new shift starts. */
   readonly round: number;
-  night: NightId;
+  /** The free-play level being played; null for a campaign stop. */
+  readonly level: number | null;
   /** The match to draw this frame. */
   readonly match: Match;
   /** Moves time on; returns how far between two steps to draw (0..1). */
@@ -41,7 +43,8 @@ export interface Session {
   drain(): DinerEvent[];
   /** Opens the doors (solo; online rooms open themselves). */
   start(): void;
-  again(night?: NightId): void;
+  /** The next shift: the same level again, or another one. */
+  again(level?: number): void;
   subscribe(listener: () => void): () => void;
   dispose(): void;
 }
@@ -61,17 +64,39 @@ export class SoloSession implements Session {
   private acc = 0;
   private events: DinerEvent[] = [];
   private listeners = new Set<() => void>();
-  constructor(public night: NightId) {
-    this.match = createMatch(seed(), night, this.names);
+  level: number | null;
+  /** A free-play level by number, or a saved match (a campaign stop). */
+  constructor(start: { level: number } | { match: Match }) {
+    if ('match' in start) {
+      this.match = start.match;
+      this.level =
+        start.match.config?.mode === 'level'
+          ? (start.match.config.level ?? null)
+          : null;
+    } else {
+      this.level = start.level;
+      this.match = createConfiguredMatch(
+        seed(),
+        levelConfig(start.level),
+        this.names,
+      );
+    }
   }
   advance(dt: number, paused: boolean, c: Controls) {
     if (paused) return 1;
     this.acc = Math.min(this.acc + dt, TICK * 6);
     while (this.acc >= TICK) {
       this.acc -= TICK;
-      const input: Input = { mx: c.mx, mz: c.mz, use: c.use, out: c.out };
+      const input: Input = {
+        mx: c.mx,
+        mz: c.mz,
+        use: c.use,
+        out: c.out,
+        dash: !!c.dash,
+      };
       c.use = false;
       c.out = false;
+      c.dash = false;
       step(this.match, [input]);
       if (this.match.events.length)
         this.events.push(...this.match.events.splice(0));
@@ -85,9 +110,10 @@ export class SoloSession implements Session {
     open(this.match);
     this.events.push(...this.match.events.splice(0));
   }
-  again(night: NightId = this.night) {
-    this.night = night;
-    this.match = createMatch(seed(), night, this.names);
+  again(level = this.level ?? undefined) {
+    if (level === undefined) return;
+    this.level = level;
+    this.match = createConfiguredMatch(seed(), levelConfig(level), this.names);
     this.round++;
     this.acc = 0;
     this.events = [];

@@ -27,6 +27,10 @@ facing +y, with jointed children "<id>.<part>"). Ids:
 ARENA_FIGURES=guard,ranger limits a build to those ids (a figure still
 being written elsewhere then never breaks the others).
 
+Viking, Gladiator and Medic normally export their reviewed runtime copies.
+ARENA_SOURCE_MASTER=1 selects their detailed editable source instead. Their
+runtime builders preserve the reviewed rest pose and pigment/AO recipe.
+
 One file per figure, `figure_<id>.py`, with a build() that returns the root.
 
   Blender -b --factory-startup --python assets/arena/blender/figures.py -- out.glb [preview.png] [only]
@@ -58,6 +62,9 @@ argv = sys.argv
 if "--" in argv and len(argv) > argv.index("--") + 3:
     only = argv[argv.index("--") + 3].split(",")
 roots = []
+finishers = []
+ao_roots = []
+reviewed_figures = {"viking", "gladiator", "medic"}
 for i, figure in enumerate(ORDER):
     # Import only what is built, so a figure being edited elsewhere never
     # breaks the others.
@@ -67,14 +74,20 @@ for i, figure in enumerate(ORDER):
                         f"figure_{figure}.py")
     if not os.path.exists(path):
         continue
-    r = importlib.import_module(f"figure_{figure}").build()
+    builder = importlib.import_module(f"figure_{figure}")
+    # Keep the independently reviewed detailed source accessible, and make
+    # ordinary asset builds use its separately reviewed game topology.
+    if figure in reviewed_figures and os.environ.get("ARENA_SOURCE_MASTER") != "1":
+        r = builder.build_runtime()
+    else:
+        r = builder.build()
     articulation.legs(r, figure)
     # Readability comes from larger features, not a craned-back neck.
     head = next((o for o in kit.descendants(r)
                  if o.name == f"{figure}.head"), None)
-    if head:
+    if head and figure not in reviewed_figures:
         head.rotation_euler.x += math.radians(
-            {"ogre": 0, "drake": 4, "imps": 4}.get(figure, 5))
+            {"ogre": 0, "sumo": 0, "drake": 4, "imps": 4}.get(figure, 5))
     if figure == "ogre":
         # An inner visual root survives the runtime's shared figure scaling.
         # Every limb/joint and the placement preview shrink together.
@@ -86,14 +99,27 @@ for i, figure in enumerate(ORDER):
         visual.scale = (0.78, 0.78, 0.78)
     r.location = (i * 2.4, 0, 0)
     roots.append(r)
+    if r.get("arenaReviewedAO"):
+        # These runtime builders carry the authored, reviewed AO/pigment
+        # recipe. A generic rebake would change their accepted materials.
+        continue
+    ao_roots.append(r)
+    finish = getattr(builder, "finish_ao", None)
+    if finish:
+        finishers.append((finish, r))
 
-meshes = [o for r in roots for o in kit.descendants(r) if o.type == "MESH" and len(o.data.polygons)]
+meshes = [o for r in ao_roots for o in kit.descendants(r) if o.type == "MESH" and len(o.data.polygons)]
 for r in roots:
     tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons)
                for o in kit.descendants(r) if o.type == "MESH")
     parts = sorted(o.name for o in kit.descendants(r) if o.type == "MESH")
     print(f"FIGURE {r.name}: {tris} triangles, parts {parts}")
-kit.bake_ao(meshes, samples=128, distance=0.22)
+if meshes:
+    kit.bake_ao(meshes, samples=128, distance=0.22)
+for finish, root in finishers:
+    # An authored pigment layer can combine with freshly baked AO without
+    # changing the source palette or the other figures' vertex data.
+    finish(root)
 out = kit.out_path()
 if len(argv) > argv.index("--") + 2 and argv[argv.index("--") + 2] != "-":
     preview = argv[argv.index("--") + 2]

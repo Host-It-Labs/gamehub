@@ -5,6 +5,7 @@ import { decisionKey } from '@/lib/games/standalone/registry';
 import { Users } from 'lucide-react';
 import { StandaloneTable } from '../game/standalone-table';
 import { SoundSettings, SoundToggle } from '../game/sound-settings';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import {
   readAmbienceLevel,
   saveAmbienceLevel,
@@ -21,7 +22,7 @@ export function AdventureMatch({
   dispatch: (a: TableCommand) => Promise<boolean>;
   onHome: () => void;
 }) {
-  const [volume, setVolume] = useState(0.5),
+  const [volume, setVolume] = useState(() => process.env.NODE_ENV === 'development' ? readAudioLevel() : 0.5),
     [ambient, setAmbient] = useState(readAmbienceLevel);
   const g = table.adventure!;
   const moveQueue = useRef<Promise<unknown>>(Promise.resolve());
@@ -54,7 +55,10 @@ export function AdventureMatch({
             <SoundSettings
               volume={volume}
               ambience={ambient}
-              onVolume={setVolume}
+              onVolume={(level) => {
+                setVolume(level);
+                if (process.env.NODE_ENV === 'development') saveAudioLevel(level);
+              }}
               onAmbience={(level) => {
                 setAmbient(level);
                 saveAmbienceLevel(level);

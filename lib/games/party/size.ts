@@ -205,6 +205,7 @@ export function createGame(
   n: number,
   seed: number,
   difficulty: Difficulty = 'medium',
+  used: readonly string[] = [],
 ): SizeGame {
   assertSeats(n, 'individual');
   const g: SizeGame = {
@@ -227,7 +228,7 @@ export function createGame(
     step: 0,
     guesses: [],
     scores: Array(n).fill(0),
-    used: [],
+    used: [...used],
     vote: null,
     gains: [],
   };
@@ -237,7 +238,6 @@ export function createGame(
 /** Joins a set match at `round`. */
 export function startAt(g: SizeGame, round: number) {
   g.round = round;
-  g.used = [];
   g.log = [];
   deal(g);
   return g;

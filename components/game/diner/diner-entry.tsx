@@ -1,14 +1,20 @@
 'use client';
-import { useState, type ReactNode } from 'react';
-import type { NightId } from '@/lib/games/diner/content';
-import DinerGame from './diner-game';
-import { rememberNight } from './diner-store';
-import { SoloSession } from './session';
+import type { ReactNode } from 'react';
+import { DinerCampaign } from './diner-campaign';
+import { DinerLevels } from './diner-levels';
 
-/** What Diner's box starts on this device. */
-export type DinerChoice = { night: NightId; learn: boolean };
+/**
+ * What Diner's box starts on this device: the campaign (a new run, or the
+ * one under way), or free play's levels (the grid, or one level straight
+ * away).
+ */
+export type DinerChoice = {
+  mode: 'campaign' | 'levels';
+  learn: boolean;
+  /** Levels: open this one at once. */
+  level?: number;
+};
 
-/** A solo shift: you and the diner, for one night at a time. */
 export default function DinerEntry({
   choice,
   volume,
@@ -22,16 +28,24 @@ export default function DinerEntry({
   sound: ReactNode;
   onExit: () => void;
 }) {
-  const [session] = useState(() => new SoloSession(choice.night));
+  if (choice.mode === 'campaign')
+    return (
+      <DinerCampaign
+        volume={volume}
+        music={music}
+        sound={sound}
+        onExit={onExit}
+        learn={choice.learn}
+      />
+    );
   return (
-    <DinerGame
-      session={session}
+    <DinerLevels
       volume={volume}
       music={music}
       sound={sound}
-      learn={choice.learn}
       onExit={onExit}
-      onNight={rememberNight}
+      learn={choice.learn}
+      start={choice.level}
     />
   );
 }

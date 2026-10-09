@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import type { ContentSet, GameId as TrioGameId } from '@/lib/games/trio/engine';
 type GameId =
   | TrioGameId
@@ -15,19 +16,10 @@ import { pauseAmbienceWhenHidden, startAmbience, stopAmbience } from '@/lib/game
 export const AMBIENCE_KEY = 'gamehub.ambience.v1';
 export const DEFAULT_AMBIENCE = 0.6;
 export function readAmbienceLevel() {
-  try {
-    const v = Number(localStorage.getItem(AMBIENCE_KEY) ?? String(DEFAULT_AMBIENCE));
-    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : DEFAULT_AMBIENCE;
-  } catch {
-    return DEFAULT_AMBIENCE;
-  }
+  return readAudioLevel(AMBIENCE_KEY, DEFAULT_AMBIENCE);
 }
 export function saveAmbienceLevel(level: number) {
-  try {
-    localStorage.setItem(AMBIENCE_KEY, String(level));
-  } catch {
-    /* Storage may be unavailable. */
-  }
+  saveAudioLevel(level, AMBIENCE_KEY);
 }
 
 /** Keeps the world's soundscape running while a table is open; silent when either level is zero. */

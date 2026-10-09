@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import type { Lot } from '@/lib/games/rota/growth';
 import type { Materials } from './materials';
+import type { QualityTier } from '@/lib/games/rota/quality';
+import { LanternPools } from './lanterns';
+import { Smoke } from './smoke';
 
 /**
  * The growing town, drawn: one InstancedMesh per model part for every
@@ -25,6 +28,10 @@ export class TownLayer {
   private up = new THREE.Vector3(0, 1, 0);
   private v = new THREE.Vector3();
   private s = new THREE.Vector3();
+  private lanterns: LanternPools | null = null;
+  private smoke: Smoke | null = null;
+  private smokeScale = 600;
+  private tier: QualityTier = 'high';
 
   constructor(
     private models: Map<string, THREE.Object3D>,
@@ -45,6 +52,16 @@ export class TownLayer {
   }
 
   private rebuild(now: number) {
+    if (this.lanterns) {
+      this.group.remove(this.lanterns.mesh);
+      this.lanterns.dispose();
+      this.lanterns = null;
+    }
+    if (this.smoke) {
+      this.group.remove(this.smoke.points);
+      this.smoke.dispose();
+      this.smoke = null;
+    }
     for (const list of this.slots.values())
       for (const s of list) {
         this.group.remove(s.mesh);
@@ -94,6 +111,21 @@ export class TownLayer {
       });
       for (const s of slots) s.mesh.instanceMatrix.needsUpdate = true;
     }
+    const lamps = this.lots.filter((l) => l.name === 'gas_lamp');
+    if (lamps.length) {
+      this.lanterns = new LanternPools(lamps, this.mats.dusk);
+      this.lanterns.setQuality(this.tier);
+      this.group.add(this.lanterns.mesh);
+    }
+    const stacks = this.lots
+      .filter((l) => l.name === 'chimney')
+      .map((l) => ({ x: l.x, y: 1, z: l.z }));
+    if (stacks.length) {
+      this.smoke = new Smoke(stacks);
+      this.smoke.setScale(this.smokeScale);
+      this.smoke.setQuality(this.tier);
+      this.group.add(this.smoke.points);
+    }
   }
 
   private write(slots: Slot[], i: number, lot: Lot, k: number) {
@@ -112,7 +144,7 @@ export class TownLayer {
 
   tick(now: number) {
     if (!this.rising.length) return;
-    const still: typeof this.rising = [];
+    let keep = 0;
     for (const r of this.rising) {
       const slots = this.slots.get(r.lot.name);
       if (!slots) continue;
@@ -120,9 +152,26 @@ export class TownLayer {
       const k = Math.min(1, Math.max(0, age / RISE));
       this.write(slots, r.index, r.lot, k);
       for (const s of slots) s.mesh.instanceMatrix.needsUpdate = true;
-      if (k < 1) still.push(r);
+      if (k < 1) this.rising[keep++] = r;
     }
-    this.rising = still;
+    this.rising.length = keep;
+  }
+
+  setSmokeScale(pixels: number) {
+    this.smokeScale = pixels;
+    this.smoke?.setScale(pixels);
+  }
+
+  atmosphere(time: number, dusk: number, fog: THREE.Fog) {
+    this.smoke?.tick(time);
+    this.smoke?.setDusk(dusk);
+    this.smoke?.setFog(fog);
+  }
+
+  setQuality(tier: QualityTier) {
+    this.tier = tier;
+    this.lanterns?.setQuality(tier);
+    this.smoke?.setQuality(tier);
   }
 
   /** Finish every rise at once (snapshots, reduced motion). */
@@ -132,12 +181,17 @@ export class TownLayer {
   }
 
   dispose() {
+    this.lanterns?.dispose();
+    this.smoke?.dispose();
+    this.lanterns = null;
+    this.smoke = null;
     for (const list of this.slots.values())
       for (const s of list) {
         this.group.remove(s.mesh);
         s.mesh.dispose();
       }
     this.slots.clear();
+    this.group.clear();
   }
 }
 

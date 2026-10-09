@@ -5,9 +5,11 @@ import { LeaveDialog, useLeaveDialog } from '../game/leave-dialog';
 import { TableManager } from '../game/table-manager';
 import { AdventureMatch } from './adventure-match';
 import { onlineCatalog } from '@/lib/online/catalog';
+import { triviaSetupConfiguration, triviaSetupLink } from '@/lib/online/trivia-setup';
+import { useTriviaSetupMode } from './use-trivia-setup';
 import { decisionKey } from '@/lib/games/trio/engine';
 import { gameByLibraryId } from '@/lib/games/library-fixtures';
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import {
   ArrowLeft,
   Crown,
@@ -93,19 +95,21 @@ export function SharedTable({ invite }: { invite: string }) {
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(false),
     [copied, setCopied] = useState(false);
+  const triviaMode = useTriviaSetupMode();
   const allowLeave = useBoardLeave(
     !!(table?.game || table?.adventure),
     requestLeave,
   );
   const pending = useRef<Command | null>(null),
     current = useRef<Table | null>(null),
-    sending = useRef(false);
-  function accept(t: Table) {
+    sending = useRef(false),
+    setupHandled = useRef<string | null>(null);
+  const accept = useCallback((t: Table) => {
     if (!current.current || t.revision >= current.current.revision) {
       current.current = t;
       setTable(t);
     }
-  }
+  }, []);
   useEffect(() => {
     let active = true;
     const stored = rememberedName();
@@ -171,7 +175,7 @@ export function SharedTable({ invite }: { invite: string }) {
     return () => {
       events.close();
     };
-  }, [invite, joined]);
+  }, [invite, joined, accept]);
   useEffect(() => {
     if (table?.status === 'closed') goHome();
   }, [table?.status]);
@@ -221,7 +225,7 @@ export function SharedTable({ invite }: { invite: string }) {
       setError((e as Error).message);
     }
   }
-  async function dispatch(action?: TableCommand): Promise<boolean> {
+  const dispatch = useCallback(async (action?: TableCommand): Promise<boolean> => {
     if (sending.current || !current.current || (!action && !pending.current))
       return false;
     sending.current = true;
@@ -265,7 +269,26 @@ export function SharedTable({ invite }: { invite: string }) {
       sending.current = false;
       setBusy(false);
     }
-  }
+  }, [invite, accept]);
+  useEffect(() => {
+    if (!table || table.token !== invite || setupHandled.current === invite || !triviaMode) return;
+    const action = triviaSetupConfiguration(table, triviaMode);
+    function clearRequest() {
+      if (window.location.pathname !== `/table/${invite}`) return;
+      const path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      history.replaceState(history.state, '', triviaSetupLink(path, null));
+    }
+    if (!action) {
+      setupHandled.current = invite;
+      clearRequest();
+      return;
+    }
+    if (!connected || busy || retry || fatal || sending.current) return;
+    setupHandled.current = invite;
+    // The command queue retains this exact pick for Retry; a later refresh must not reapply it.
+    clearRequest();
+    void dispatch(action);
+  }, [invite, table, triviaMode, connected, busy, retry, fatal, dispatch]);
   async function launch(choice: Launch) {
     setError('');
     try {
@@ -290,9 +313,13 @@ export function SharedTable({ invite }: { invite: string }) {
     }
   }
   const disabled = busy || retry || !connected || fatal;
-  const notice = error && (
+  const setupFitError = triviaMode && table?.isHost && table.status === 'lobby' && table.members.filter((member) => !member.bot).length > 6
+    ? 'Trivia needs 2–6 players. Remove players before setting it up.'
+    : '';
+  const message = error || setupFitError;
+  const notice = message && (
     <div className="online-notice" role="alert">
-      {error}
+      {message}
       {retry && (
         <button
           className="secondary"

@@ -2,6 +2,7 @@
 import { GameProgress } from '../game/game-progress';
 import { useGameMotion } from '../game/game-motion';
 import { useGameSound } from '../game/use-game-sound';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { useResultsFeedback, WinnerCelebration } from '../game/results-feedback';
 import { viewerWon, winningSeats } from '@/lib/games/results-feedback';
 import { CountUp, stagger } from '../game/reveal-motion';
@@ -82,14 +83,7 @@ export function OnlineMatch({
       null,
     ),
     [panelOpen, setPanelOpen] = useState(false),
-    [volume, setVolume] = useState(() => {
-      try {
-        const v = Number(localStorage.getItem('gamehub.volume.v3') ?? '.5');
-        return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.5;
-      } catch {
-        return 0.5;
-      }
-    });
+    [volume, setVolume] = useState(() => readAudioLevel());
   useGameSound(g.id, volume);
   const scope = preparationKey(g, viewer);
   const [preparationScope, setPreparationScope] = useState(scope);
@@ -327,9 +321,7 @@ export function OnlineMatch({
                   ambience={ambience}
                   onVolume={(next) => {
                     setVolume(next);
-                    try {
-                      localStorage.setItem('gamehub.volume.v3', String(next));
-                    } catch {}
+                    saveAudioLevel(next);
                   }}
                   onAmbience={(next) => {
                     setAmbience(next);

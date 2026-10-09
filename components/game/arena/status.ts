@@ -3,13 +3,12 @@ import type { Unit } from '@/lib/games/arena/engine';
 import type { UnitStats } from '@/lib/games/arena/cards';
 import { activeStatuses, type TroopStatus } from './status-state';
 
-type Symbol = TroopStatus | 'heal';
+type Symbol = Exclude<TroopStatus, 'shield'> | 'heal';
 const COLOURS: Record<Symbol, string> = {
   stun: '#ffe06a',
   slow: '#a1edff',
   taunt: '#ff7756',
   haste: '#c8ff77',
-  shield: '#80cfff',
   rage: '#ffab53',
   heal: '#8affb6',
 };
@@ -21,8 +20,7 @@ function polygon(points: [number, number][]) {
   return shape;
 }
 
-/** Chunky silhouettes remain recognisable on a phone, without text or a
- * texture download. Each symbol shares its instances and dark outline. */
+/** Clean silhouettes inset into small enamel badges. */
 function symbolGeometry(symbol: Symbol) {
   let shapes: THREE.Shape[];
   if (symbol === 'stun') {
@@ -89,25 +87,6 @@ function symbolGeometry(symbol: Symbol) {
         [0.32, -0.85],
       ]),
     ];
-  } else if (symbol === 'shield') {
-    const shield = polygon([
-      [-0.8, 0.72],
-      [0, 1],
-      [0.8, 0.72],
-      [0.7, -0.23],
-      [0, -1],
-      [-0.7, -0.23],
-    ]);
-    const hole = new THREE.Path();
-    hole.moveTo(-0.43, 0.43);
-    hole.lineTo(0, 0.58);
-    hole.lineTo(0.43, 0.43);
-    hole.lineTo(0.35, -0.1);
-    hole.lineTo(0, -0.48);
-    hole.lineTo(-0.35, -0.1);
-    hole.closePath();
-    shield.holes.push(hole);
-    shapes = [shield];
   } else if (symbol === 'rage') {
     shapes = [
       polygon([
@@ -144,7 +123,7 @@ function symbolGeometry(symbol: Symbol) {
 
 class Symbols {
   fill: THREE.InstancedMesh;
-  outline: THREE.InstancedMesh;
+  plate: THREE.InstancedMesh;
   private capacity = 64;
   private used = 0;
   private matrix = new THREE.Matrix4();
@@ -155,19 +134,53 @@ class Symbols {
     symbol: Symbol,
   ) {
     const geometry = symbolGeometry(symbol);
-    this.fill = this.make(geometry, COLOURS[symbol], 9);
-    this.outline = this.make(geometry, '#172834', 8);
+    this.fill = this.make(
+      geometry,
+      new THREE.MeshBasicMaterial({
+        color: COLOURS[symbol],
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+      9,
+    );
+    this.plate = this.make(
+      new THREE.CircleGeometry(1, 32),
+      new THREE.ShaderMaterial({
+        uniforms: { colour: { value: new THREE.Color(COLOURS[symbol]) } },
+        vertexShader: `
+          varying vec2 badge;
+          void main() {
+            badge = position.xy;
+            gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: `
+          uniform vec3 colour;
+          varying vec2 badge;
+          void main() {
+            float r = length(badge);
+            float light = clamp(0.5 + badge.y * 0.38 - badge.x * 0.18, 0.0, 1.0);
+            vec3 enamel = mix(vec3(0.025, 0.045, 0.075), colour * 0.2, light);
+            vec3 metal = mix(colour * 0.4, mix(colour, vec3(1.0), 0.58), light);
+            vec3 ink = mix(enamel, metal, smoothstep(0.78, 0.84, r));
+            ink *= 1.0 - smoothstep(0.94, 1.0, r) * 0.62;
+            gl_FragColor = vec4(ink, 1.0);
+          }`,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+      8,
+    );
     this.fill.name = `status-${symbol}`;
-    this.outline.name = `status-${symbol}-outline`;
+    this.plate.name = `status-${symbol}-plate`;
   }
 
-  private make(geometry: THREE.BufferGeometry, colour: string, order: number) {
-    const material = new THREE.MeshBasicMaterial({
-      color: colour,
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false,
-    });
+  private make(
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material,
+    order: number,
+  ) {
     const mesh = new THREE.InstancedMesh(geometry, material, this.capacity);
     mesh.count = 0;
     mesh.frustumCulled = false;
@@ -202,33 +215,33 @@ class Symbols {
         return next;
       };
       this.fill = grow(this.fill);
-      this.outline = grow(this.outline);
+      this.plate = grow(this.plate);
     }
-    this.matrix.compose(at, facing, this.scale.setScalar(size * 1.22));
-    this.outline.setMatrixAt(this.used, this.matrix);
     this.matrix.compose(at, facing, this.scale.setScalar(size));
+    this.plate.setMatrixAt(this.used, this.matrix);
+    this.matrix.compose(at, facing, this.scale.setScalar(size * 0.6));
     this.fill.setMatrixAt(this.used++, this.matrix);
   }
 
   end() {
-    for (const mesh of [this.fill, this.outline]) {
+    for (const mesh of [this.fill, this.plate]) {
       mesh.count = this.used;
       mesh.instanceMatrix.needsUpdate = true;
     }
   }
 
   dispose() {
-    this.fill.geometry.dispose();
-    for (const mesh of [this.fill, this.outline]) {
+    for (const mesh of [this.fill, this.plate]) {
       mesh.removeFromParent();
+      mesh.geometry.dispose();
       (mesh.material as THREE.Material).dispose();
       mesh.dispose();
     }
   }
 }
 
-/** Persistent effects belong to the recipient, including flyers. Stun
- * has a crown of stars; the others have distinct, outlined silhouettes.
+/** Persistent effects belong to the recipient, including flyers. Small
+ * enamel badges share one calm row above the health and shield tracks.
  * Reduced motion holds them still while preserving every status signal. */
 export class TroopStatuses {
   private pools: Record<Symbol, Symbols>;
@@ -238,7 +251,11 @@ export class TroopStatuses {
   private reduced = false;
   private at = new THREE.Vector3();
   private right = new THREE.Vector3();
+  private up = new THREE.Vector3();
+  private projected = new THREE.Vector3();
   private facing = new THREE.Quaternion();
+  private screenHeight = 0;
+  private trackHeight = 0;
   size = 1.75;
 
   constructor(
@@ -257,12 +274,19 @@ export class TroopStatuses {
     for (const id of ids) this.healing.set(id, 0.7);
   }
 
+  /** Match the CSS health tracks even at distant/fractional viewports. */
+  hud(height: number, trackHeight: number) {
+    this.screenHeight = height;
+    this.trackHeight = trackHeight;
+  }
+
   begin(dt: number, reduced = false) {
     this.time += dt;
     this.reduced = reduced;
     this.seen.clear();
     this.camera.getWorldQuaternion(this.facing);
     this.right.set(1, 0, 0).applyQuaternion(this.facing);
+    this.up.set(0, 1, 0).applyQuaternion(this.facing);
     for (const pool of Object.values(this.pools)) pool.begin();
     for (const [id, left] of this.healing) {
       if (left <= dt) this.healing.delete(id);
@@ -274,33 +298,48 @@ export class TroopStatuses {
     if (u.hp <= 0 || (u.state === 'deploying' && stats.burrow)) return;
     this.seen.add(u.id);
     const statuses = activeStatuses(u, stats);
-    const top = this.size * 0.24;
-    if (statuses.includes('stun')) {
-      const turn = this.reduced ? 0 : this.time * 2.6 + u.id;
-      for (let i = 0; i < 3; i++) {
-        const a = turn + (i * Math.PI * 2) / 3;
-        this.at
-          .copy(head)
-          .addScaledVector(this.right, Math.cos(a) * top * 1.65);
-        this.at.y += top * (1.2 + Math.sin(a) * 0.3);
-        this.pools.stun.add(this.at, top * 0.52, this.facing);
-      }
+    const size = this.size * 0.12;
+    let rise = this.size * 0.55;
+    if (this.screenHeight > 0) {
+      const y = this.projected.copy(head).project(this.camera).y;
+      const unit = this.projected
+        .copy(head)
+        .add(this.up)
+        .project(this.camera).y;
+      const pixels = (Math.abs(unit - y) * this.screenHeight) / 2;
+      const barY = this.projected.copy(head);
+      barY.y += this.size * 0.13;
+      const lift = ((barY.project(this.camera).y - y) * this.screenHeight) / 2;
+      const tracks = stats.shield ? this.trackHeight * 2 + 5 : this.trackHeight;
+      const icon = stats.shield
+        ? Math.max(0, 7 - (this.trackHeight + 2) / 2)
+        : 0;
+      rise = Math.max(
+        rise,
+        size + (lift + tracks + icon + 5) / Math.max(1e-5, pixels),
+      );
     }
-    const badges: Symbol[] = statuses.filter((s) => s !== 'stun');
+    // Shield has a permanent track and icon in the health HUD.
+    const badges: Symbol[] = statuses.filter(
+      (s): s is Exclude<TroopStatus, 'shield'> => s !== 'shield',
+    );
     if (this.healing.has(u.id)) badges.push('heal');
     badges.forEach((symbol, i) => {
       const drift =
         symbol === 'heal' && !this.reduced
-          ? (0.7 - this.healing.get(u.id)!) * this.size * 0.5
+          ? (0.7 - this.healing.get(u.id)!) * this.size * 0.13
           : 0;
+      const breathe = this.reduced
+        ? 0
+        : Math.sin(this.time * 2.4 + u.id) * size * 0.035;
       this.at
         .copy(head)
         .addScaledVector(
           this.right,
-          (i - (badges.length - 1) / 2) * top * 1.85,
-        );
-      this.at.y += top * (statuses.includes('stun') ? 3.4 : 1.4) + drift;
-      this.pools[symbol].add(this.at, top * 0.72, this.facing);
+          (i - (badges.length - 1) / 2) * size * 2.35,
+        )
+        .addScaledVector(this.up, rise + drift + breathe);
+      this.pools[symbol].add(this.at, size, this.facing);
     });
   }
 

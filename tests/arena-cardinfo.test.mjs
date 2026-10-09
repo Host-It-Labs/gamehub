@@ -4,6 +4,8 @@ import {
   allCards,
   cards,
   playable,
+  SHIELD_DELAY,
+  SHIELD_RECHARGE,
   troopCards,
 } from '../lib/games/arena/cards.ts';
 import {
@@ -161,7 +163,13 @@ await test('ability lines carry their numbers', () => {
   );
   has('viking', 'spin', u('viking').spin);
   has('viking', 'rage', u('viking').rage.boost);
-  has('gladiator', 'shield', u('gladiator').shield);
+  has(
+    'gladiator',
+    'shield',
+    u('gladiator').shield,
+    SHIELD_DELAY,
+    SHIELD_RECHARGE,
+  );
   has('medic', 'heal', u('medic').heal.radius, u('medic').heal.amount);
   has('miner', 'burrow', u('miner').burrow);
   has(

@@ -50,13 +50,13 @@ function roarShape(k: number) {
   return { breath, open };
 }
 
-/** The Dino: a rubber T-rex with big planted feet. A heavy stomp, the body
+/** The Dino: a matte T-rex with big planted feet. A heavy stomp, the body
  *  sinking onto each foot, the head and tail counterbalancing it (the
  *  head nods a beat after each step, the tail swings against the hips and
  *  follows through link by link), the little arms bouncing. Idle he
  *  breathes, sniffs, tilts his head, swishes his tail, twitches his claws
- *  and now and then roars. The bite rears back with the jaw wide, slams
- *  down and tugs; a hit makes him flinch and shake it off; he lands
+ *  and now and then roars. The bite draws back with the jaw wide, snaps
+ *  forward and tugs; a hit makes him flinch and shake it off; he lands
  *  with a stomp and a roar. */
 export const ogre: Moves = {
   style: {
@@ -290,40 +290,42 @@ export const ogre: Moves = {
       const tug =
         since < 0.75 ? Math.sin(since * 22) * Math.exp(-since * 4.5) * aim : 0;
       const wind = c.wind;
-      // Ready: head low and forward, jaw ajar, arms up, tail up behind.
-      headX += aim * 0.1;
+      // Ready: a level forward skull, jaw ajar and small arms braced.
+      headX += aim * 0.04;
       jaw += aim * 0.14;
       p.armL += aim * 0.35;
       p.armR += aim * 0.35;
-      p.torsoX += aim * 0.05;
+      p.torsoX += aim * 0.015;
       for (let k = 0; k < 3; k++) tail[k][0] -= aim * (0.03 + k * 0.01);
-      // Wind-up: rearing back, the jaw opening wide, the weight back on
-      // the heels, the tail dropping to balance the head.
-      p.torsoX -= wind * 0.24;
-      headX -= wind * 0.36;
+      // Draw the weight back over the hips as the jaw opens. The horizontal
+      // T-rex neck stays restrained rather than craning up for a peck.
+      p.torsoX -= wind * 0.09;
+      headX -= wind * 0.1;
       jaw += wind * 0.85;
-      p.lean -= wind * 0.08;
-      p.lunge -= wind * 0.08;
-      p.lift += wind * 0.03 * c.size;
+      p.lean -= wind * 0.025;
+      p.lunge -= wind * 0.06;
+      // Coil down onto the haunches, ready to spring.
+      p.lift -= wind * 0.03 * c.size;
       p.armL += wind * 0.3;
       p.armR += wind * 0.3;
       foreL += wind * 0.4;
       foreR += wind * 0.4;
       for (let k = 0; k < 3; k++) tail[k][0] += wind * (0.07 + k * 0.03);
-      // The bite: slammed down and forward, the jaw shut, a squash.
-      p.torsoX += bite * 0.32;
-      headX += bite * 0.46;
+      // Snap the jaw forward through the same impact beat. A small weight
+      // transfer and neck dip keep the snout above the ground.
+      p.torsoX += bite * 0.12;
+      headX += bite * 0.12;
       jaw -= bite * 0.14;
-      p.lean += bite * 0.14;
-      p.lunge += bite * 0.36;
-      p.squash *= 1 - bite * 0.05;
-      p.lift -= bite * 0.03 * c.size;
+      p.lean += bite * 0.035;
+      p.lunge += bite * 0.32;
+      p.squash *= 1 - bite * 0.03;
+      p.lift -= bite * 0.012 * c.size;
       // The tug: the head wrenches side to side, the shoulders with it,
       // the tail whipping up and round.
       const sideOf = c.hits % 2 === 0 ? 1 : -1;
-      headY += tug * 0.2 * sideOf;
+      headY += tug * 0.28 * sideOf;
       headZ += tug * 0.1 * sideOf;
-      p.torsoY += tug * 0.08 * sideOf;
+      p.torsoY += tug * 0.12 * sideOf;
       for (let k = 0; k < 3; k++) {
         tail[k][0] -= bite * (0.12 + k * 0.05);
         tail[k][1] -= tug * (0.06 + k * 0.05) * sideOf;
@@ -403,9 +405,20 @@ export const ogre: Moves = {
     p.headY = hy;
     // A jaw opens with a negative turn; it hangs open a little at rest.
     c.want('jaw', -Math.max(-0.12, Math.min(0.72, p.jaw + jaw)));
-    c.want('tail', tail[0][0], p.tailY + tail[0][1], 0);
-    c.want('tail2', tail[1][0], tail[1][1], 0);
-    c.want('tail3', tail[2][0], tail[2][1], 0);
+    // The long horizontal counterweight follows the hips with progressively
+    // smaller angular travel. Its mass bends gently through the connected skin.
+    const tailPitch = (v: number, limit: number) =>
+      Math.max(-limit, Math.min(limit, v * 0.55));
+    const tailYaw = (v: number, limit: number) =>
+      Math.max(-limit, Math.min(limit, v * 0.65));
+    c.want(
+      'tail',
+      tailPitch(tail[0][0], 0.07),
+      tailYaw(p.tailY + tail[0][1], 0.14),
+      0,
+    );
+    c.want('tail2', tailPitch(tail[1][0], 0.065), tailYaw(tail[1][1], 0.12), 0);
+    c.want('tail3', tailPitch(tail[2][0], 0.055), tailYaw(tail[2][1], 0.1), 0);
     c.want('foreL', foreL);
     c.want('foreR', foreR);
   },

@@ -45,6 +45,7 @@ export function QuizPick({
   viewer,
   disabled,
   hostName,
+  showHostWait = true,
   onVote,
 }: {
   vote: RoundVote;
@@ -53,6 +54,7 @@ export function QuizPick({
   viewer: number;
   disabled: boolean;
   hostName?: string;
+  showHostWait?: boolean;
   onVote: (choice: RoundChoice) => void;
 }) {
   const mine = vote.choices[viewer] ?? null,
@@ -65,7 +67,7 @@ export function QuizPick({
       aria-label={vote.opening ? 'The first game' : 'What next'}
     >
       <VoteClock endsAt={vote.endsAt} />
-      {vote.host && disabled && (
+      {showHostWait && vote.host && disabled && (
         <p className="party-host-wait">{hostName ?? 'The host'} picks</p>
       )}
       <div

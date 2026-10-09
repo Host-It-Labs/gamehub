@@ -1,7 +1,7 @@
-/* Library: a quiet shelf of the games that ship, grouped by kind. Each kind is
-   its own row, a carousel that pages sideways with the arrows on its right;
-   sealed boxes after the real ones leave room for games to come. Every box
-   shares one tile size so the shelf reads as one set. */
+/* Library: a showcase of games playing themselves on top, then three shelves:
+   Quick games, Stay a while and With friends. Each shelf is a carousel that
+   pages sideways with the arrows on its right; every card shares one size so
+   the shelf reads as one set. */
 /* Colours come from the menu theme (app/menu-theme.css). */
 .app:has(.night-library) {
   background:
@@ -27,6 +27,8 @@
   --lib-gap: 12px;
   --lib-pad: 16px;
   min-height: 100dvh;
+  /* The showcase's glow spills past the gutters; it never scrolls the page. */
+  overflow-x: clip;
   font-family:
     ui-rounded, 'SF Pro Rounded', 'Avenir Next', system-ui, sans-serif;
 }
@@ -253,7 +255,8 @@
   background: var(--lib-panel);
   border: 1px solid var(--lib-line);
   color: var(--lib-ink-2);
-  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--lib-shadow, #2f2a24) 35%, transparent);
+  box-shadow: 0 2px 6px -2px
+    color-mix(in srgb, var(--lib-shadow, #2f2a24) 35%, transparent);
   transition:
     background 0.15s ease,
     opacity 0.15s ease,
@@ -321,38 +324,36 @@
 .lib-grid.has-more {
   --fade-end: calc(var(--lib-pad) + 48px);
 }
+/* A mouse holding the row drags it; snapping waits until it lets go. */
+.lib-grid.is-dragging {
+  scroll-snap-type: none;
+  cursor: grabbing;
+}
+.lib-grid.is-dragging .lib-tile-button {
+  pointer-events: none;
+}
 .lib-tile {
   min-width: 0;
   scroll-snap-align: start;
 }
-/* Sealed boxes: they pose and lift like the rest, but open nothing. */
-.lib-tile.is-sealed .lib-tile-button {
-  cursor: default;
-}
-.lib-tile.is-sealed .stat {
-  width: 44px;
-  opacity: 0.5;
-}
-.lib-tile.is-sealed .stat + .stat {
-  width: 32px;
-}
 .lib-tile-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   width: 100%;
-  gap: 4px;
-  padding: 4px 0 6px;
+  padding: 8px 0 6px;
+  border-radius: 14px;
+  color: inherit;
+  text-align: left;
   container-type: inline-size;
-  align-items: center;
-  text-align: center;
 }
-.lib-tile-button .gbox {
-  /* The posed box's footprint is 1.0584 times its face width. */
-  --w: calc(100cqw / 1.0584);
-  --h: var(--w);
-  --d: calc(var(--w) * 0.24);
+.lib-tile-button:focus-visible {
+  outline: 3px solid var(--lib-brass);
+  outline-offset: 3px;
 }
-/* The same time and player chips as the setup lid, a size smaller. */
+/* The same time and kind chips as the setup lid, a size smaller. */
 .lib-tile-button .stat-strip {
-  justify-content: center;
   gap: 4px;
   max-width: 100%;
 }
@@ -366,14 +367,6 @@
 .lib-tile-button .stat svg {
   width: 12px;
   height: 12px;
-}
-/* A tile too narrow for both chips side by side stacks them, so every tile
-   on the shelf reads the same. */
-@container (max-width: 139px) {
-  .lib-tile-button .stat-strip {
-    flex-direction: column;
-    align-items: center;
-  }
 }
 .lib-empty {
   padding: 24px 0;
@@ -440,7 +433,7 @@
     padding-top: 22px;
   }
   .lib-sections {
-    --tile: clamp(148px, 12vw, 188px);
+    --tile: clamp(176px, 15vw, 232px);
     gap: 18px;
   }
   .lib-section-head {
@@ -513,10 +506,12 @@
 }
 .stat-strip {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  min-width: 0;
 }
 .stat {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -545,82 +540,441 @@
   width: 16px;
   height: 16px;
 }
-.weight {
-  display: inline-flex;
-  gap: 3px;
-  align-items: center;
-}
-.weight i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: 1.5px solid var(--lib-ink-3);
-}
-.weight i.on {
-  background: var(--lib-ink-2);
-  border-color: var(--lib-ink-2);
-}
-/* Shared shelf tiles: the online lobby's game picker reuses these. */
-.shelf-item {
-  width: 100%;
+/* What kind of game: a word or two, tinted with the brass, no icon. The
+   strip never wraps; in the narrowest spot the kind gives way first. */
+.stat.kind {
+  flex: 0 1 auto;
   min-width: 0;
+  background: color-mix(in srgb, var(--lib-brass) 13%, var(--lib-panel));
+  border-color: color-mix(in srgb, var(--lib-brass) 30%, var(--lib-line));
+  color: var(--lib-ink);
 }
-.shelf-box {
-  width: 100%;
-  gap: 10px;
-  align-items: center;
-  container-type: inline-size;
+.stat.kind > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.shelf-box .gbox {
-  --w: calc(94cqw / 1.0584);
-  --h: var(--w);
-  --d: calc(var(--w) * 0.24);
-  margin-inline: auto;
-}
-.shelf-item-details {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  width: 100%;
-  min-height: 45px;
-  padding-left: 6px;
-}
-.shelf-item-name {
-  display: none;
-}
-.shelf-item .stat-strip {
-  flex-wrap: wrap;
-  gap: 4px;
-}
-@media (max-width: 767px) {
-  .shelf-box {
+/* Phone shelves: two generous cards and a glimpse of the next one. */
+@media (max-width: 600px) {
+  /* A phone tile stacks the time over the kind, so a two-word kind never
+     gets cut; the time drops its clock. */
+  .lib-tile-button .stat-strip {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
-    padding: 10px 10px 12px;
-    border-radius: 16px;
-    background: var(--lib-panel);
-    border: 1px solid var(--lib-line);
   }
-  .shelf-box .gbox {
-    --tilt: -24deg;
-    align-self: center;
+  .lib-tile-button .stat {
+    padding: 0 6px;
+    max-width: 100%;
   }
-  .shelf-item-details {
+  .lib-tile-button .stat svg {
+    display: none;
+  }
+  .lib-sections {
+    --tile: calc((100cqw - 2 * var(--lib-gap)) / 2.15);
+  }
+  .lib-friends {
+    width: 40px;
     padding: 0;
+    justify-content: center;
   }
-  .shelf-item .stat {
-    height: 24px;
-    padding: 0 7px;
-    font-size: 11px;
+  .lib-friends svg {
+    width: 18px;
+    height: 18px;
+  }
+  .lib-friends span {
+    display: none;
   }
 }
 
-/* Phone shelves: two generous covers and a glimpse of the next box. */
-@media (max-width: 600px) {
-  .lib-sections { --tile: calc((100cqw - 2 * var(--lib-gap)) / 2.15); }
-  .lib-friends { width: 40px; padding: 0; justify-content: center; }
-  .lib-friends svg { width: 18px; height: 18px; }
-  .lib-friends span { display: none; }
+/* Showcase: a game playing itself on a lit screen, tinted by its palette,
+   with every game's cover in a rail on its left to pick from. The screen is
+   the Play button: a Play plate sits in its middle. The game's name, time
+   and kind sit beneath the footage, never over it (hands of cards live at
+   the foot of most games). Wide screens: the covers in a grid. Phones: a
+   column of covers beside the phone footage. */
+.lib-show {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'rail stage'
+    'info info';
+  gap: 12px 10px;
+  margin: 2px 0 14px;
+}
+.lib-show::before {
+  content: '';
+  position: absolute;
+  inset: -60px -12% 20%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 55% 60% at 62% 45%,
+    color-mix(in srgb, var(--show-light) 24%, transparent),
+    transparent 70%
+  );
+  transition: background 0.8s ease;
+}
+.show-stage {
+  grid-area: stage;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 9 / 16;
+  /* As tall as a phone allows, but always leaving the cover column 56px. */
+  height: min(60svh, 560px, calc((100vw - 2 * var(--lib-pad) - 66px) * 16 / 9));
+  display: block;
+  padding: 0;
+  border-radius: 20px;
+  cursor: pointer;
+  color: #fff;
+  background: radial-gradient(
+    120% 90% at 50% 30%,
+    var(--show-mid),
+    var(--show-deep) 72%
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--lib-ink) 14%, transparent),
+    0 26px 44px -28px color-mix(in srgb, var(--lib-shadow) 90%, transparent);
+  transition:
+    background 0.6s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.show-stage:focus-visible {
+  outline: 3px solid var(--lib-brass);
+  outline-offset: 3px;
+}
+/* The Play plate in the middle of the footage: glass at rest, brass and a
+   little larger when the screen is hovered or pressed. */
+.show-go {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 20px 7px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: color-mix(in srgb, #0c1018 52%, transparent);
+  box-shadow:
+    0 0 0 1px #ffffff38,
+    0 14px 30px -12px #000d;
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.show-go-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--lib-brass);
+  color: var(--lib-on-brass, #fff);
+  box-shadow: 0 6px 14px -6px #000a;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.show-go-icon svg {
+  width: 19px;
+  height: 19px;
+}
+.show-go-icon .lucide-play {
+  margin-left: 2px;
+  fill: currentColor;
+}
+.show-stage:hover .show-go,
+.show-stage:focus-visible .show-go {
+  transform: translate(-50%, -50%) scale(1.07);
+  background: var(--lib-brass);
+  color: var(--lib-on-brass, #fff);
+}
+.show-stage:hover .show-go-icon,
+.show-stage:focus-visible .show-go-icon {
+  background: #fff;
+  color: var(--lib-brass);
+}
+.show-stage:hover {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--lib-brass) 70%, transparent),
+    0 30px 50px -28px color-mix(in srgb, var(--lib-shadow) 95%, transparent);
+}
+.show-stage:active .show-go {
+  transform: translate(-50%, -50%) scale(0.97);
+}
+/* A thin glass rim over the footage. */
+.show-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 #ffffff30,
+    inset 0 0 0 1px #ffffff12;
+}
+.show-still,
+.show-reel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.show-still {
+  animation: show-in 0.45s ease both;
+}
+.show-reel {
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.show-stage.is-playing .show-reel {
+  opacity: 1;
+}
+/* A game without footage: its square cover stands in the middle. */
+.show-poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  animation: show-in 0.45s ease both;
+}
+.show-poster .artwork-frame {
+  width: min(78%, 62vh);
+  aspect-ratio: 1;
+  background: transparent;
+}
+.show-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  box-shadow: 0 22px 40px -18px #000c;
+}
+@keyframes show-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+.show-info {
+  grid-area: info;
+  display: grid;
+  grid-template-areas:
+    'name'
+    'chips';
+  justify-items: start;
+  align-items: center;
+  gap: 6px 14px;
+  min-width: 0;
+}
+.show-name {
+  grid-area: name;
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.05;
+  color: var(--lib-ink);
+  text-wrap: balance;
+}
+.show-info > .stat-strip {
+  grid-area: chips;
+}
+/* The covers: on phones a column left of the footage that scrolls, with a
+   button beneath it for the next page; on wide screens a grid that the
+   showcase sizes (--rail-w, --rail-cols) to fill the footage and caption's
+   height exactly, never scrolling. Either way the footage sets the height. */
+.show-side {
+  grid-area: rail;
+  contain: size;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.show-rail {
+  flex: 1;
+  min-height: 0;
+  min-inline-size: 0;
+  border: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  scroll-snap-type: y proximity;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 3px;
+  margin: -3px;
+}
+.show-rail::-webkit-scrollbar {
+  display: none;
+}
+.show-rail > .show-thumb {
+  scroll-snap-align: start;
+}
+.show-rail-next {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--lib-panel);
+  border: 1px solid var(--lib-line);
+  color: var(--lib-ink-2);
+}
+.show-rail-next svg {
+  width: 18px;
+  height: 18px;
+}
+.show-rail-next:focus-visible {
+  outline: 3px solid var(--lib-brass);
+  outline-offset: 2px;
+}
+.show-thumb {
+  position: relative;
+  flex: none;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  opacity: 0.62;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lib-ink) 12%, transparent);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.show-thumb .artwork-frame {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  background: transparent;
+}
+.show-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.show-thumb:hover {
+  opacity: 0.92;
+}
+/* A game that needs friends: a people badge in the corner. */
+.show-thumb-group {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #10141c 72%, transparent);
+  color: #fff;
+  box-shadow: 0 0 0 1px #ffffff2e;
+  backdrop-filter: blur(4px);
+}
+.show-thumb-group svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.4;
+}
+.show-thumb.is-on {
+  opacity: 1;
+  box-shadow: 0 0 0 2.5px var(--lib-brass);
+}
+/* How far the current clip has played. */
+.show-thumb-time {
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: color-mix(in srgb, #000 40%, transparent);
+}
+.show-thumb-time::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--lib-brass);
+  transform-origin: left;
+  transform: scaleX(var(--shown, 0));
+}
+.show-thumb:focus-visible {
+  outline: 3px solid var(--lib-brass);
+  outline-offset: 2px;
+}
+@media (min-width: 700px) {
+  .lib-show {
+    grid-template-columns: var(--rail-w, clamp(220px, 24vw, 340px)) minmax(
+        0,
+        1fr
+      );
+    grid-template-areas:
+      'rail stage'
+      'rail info';
+    gap: 14px 20px;
+    margin-bottom: 22px;
+  }
+  .show-stage {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    height: auto;
+    border-radius: 24px;
+  }
+  .show-name {
+    font-size: clamp(26px, 2.4vw, 34px);
+  }
+  .show-go {
+    gap: 12px;
+    padding: 8px 26px 8px 8px;
+    font-size: 19px;
+  }
+  .show-go-icon {
+    width: 50px;
+    height: 50px;
+  }
+  .show-go-icon svg {
+    width: 23px;
+    height: 23px;
+  }
+  .show-info {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'name chips';
+  }
+  .show-rail {
+    overflow: hidden;
+    scroll-snap-type: none;
+    display: grid;
+    grid-template-columns: repeat(var(--rail-cols, 3), minmax(0, 1fr));
+    align-content: start;
+    gap: 12px;
+  }
+  .show-rail-next {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .show-still,
+  .show-poster {
+    animation: none;
+  }
+  .show-reel,
+  .show-thumb,
+  .show-stage,
+  .show-go,
+  .show-go-icon,
+  .lib-show::before {
+    transition: none;
+  }
 }

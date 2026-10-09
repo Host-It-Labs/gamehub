@@ -1,0 +1,514 @@
+/* The factory editor: the floor fills the room; at the bottom a brass
+ * tray holds the tools and the machines (the dock), and just above it the
+ * bar names what is held or selected, beside the view controls. Every
+ * machine wears its own colour (--machine) on its tile. */
+.rf-dock-area {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: var(--stage-bottom);
+  z-index: 6;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.rf-dock-area > * {
+  pointer-events: auto;
+}
+.rf-context {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 10px;
+  width: 100%;
+  min-height: 58px;
+  pointer-events: none;
+}
+.rf-context > * {
+  pointer-events: auto;
+}
+.rf-context .rf-bar {
+  grid-column: 2;
+}
+.rf-context .rs-camera-tools {
+  grid-column: 3;
+  justify-self: end;
+}
+.rf-palette {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 0;
+  padding: 6px;
+  border: 1px solid #c9a45a8c;
+  border-radius: 20px;
+  background: linear-gradient(#ffffff0a, transparent 40%), var(--plate);
+  box-shadow:
+    var(--plate-shadow),
+    inset 0 0 0 3px #0e2c26,
+    inset 0 0 0 4px #c9a45a26;
+}
+.rf-rail {
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 4px;
+  padding: 2px 8px 2px 2px;
+  border-right: 1px solid var(--panel-line);
+}
+.rf-rail button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #ffffff08;
+}
+.rf-rail button:not(:disabled):hover {
+  background: #ffffff16;
+}
+.rf-rail button[aria-pressed='true'] {
+  background: linear-gradient(#fbf0d6, #ead7ac);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 #fff8,
+    0 2px 6px #0004;
+}
+.rf-parts {
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.rf-part {
+  --machine: #e7bd6f;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  flex: 0 0 auto;
+  width: 78px;
+  gap: 1px;
+  padding: 4px 3px 7px;
+  border: 1px solid var(--panel-line);
+  border-radius: 14px;
+  background: #0e2c26;
+  text-align: center;
+  overflow: hidden;
+}
+.rf-part::after {
+  /* The machine's colour, as a band along the bottom of its tile. */
+  content: '';
+  position: absolute;
+  inset: auto 10px 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--machine);
+  opacity: 0.7;
+}
+.rf-part:not(:disabled):hover .rf-part-art img {
+  transform: translateY(-2px) scale(1.06);
+}
+.rf-part[aria-pressed='true'] {
+  border-color: var(--cream);
+  background: color-mix(in srgb, var(--machine) 22%, #143a32);
+  box-shadow: 0 0 0 1px var(--cream);
+}
+.rf-part.is-locked {
+  border-style: dashed;
+  background: var(--panel);
+}
+.rf-part.is-locked::after {
+  opacity: 0.3;
+}
+.rf-part.is-previewed {
+  border-style: solid;
+  border-color: #e7bd6f99;
+}
+.rf-part-art,
+.rf-bar-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 auto;
+}
+.rf-part-art img,
+.rf-bar-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 4px #02110e80);
+  transition: transform 0.15s;
+}
+.rf-part.is-locked .rf-part-art img,
+.rf-bar.is-locked .rf-bar-art img {
+  filter: grayscale(0.85) brightness(0.55);
+}
+.rf-part-lock {
+  position: absolute;
+  color: var(--cream);
+}
+.rf-part b {
+  font-size: 11px;
+  line-height: 1.1;
+}
+.rf-part small {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.rf-part small.is-short,
+.rf-bar-price.is-short {
+  color: #e0907c;
+}
+/* Keyboard hints, only with a mouse and keyboard. */
+.rf-rail kbd,
+.rf-part kbd {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  min-width: 13px;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: #ffffff14;
+  color: var(--muted);
+  font:
+    700 9px/13px var(--font-sans),
+    sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+.rf-rail button[aria-pressed='true'] kbd {
+  background: #173a3322;
+  color: #173a33;
+}
+/* Space has a drawn mark, not a word. */
+.rf-rail kbd.rf-space-key {
+  display: grid;
+  place-items: center;
+  height: 13px;
+  padding: 0 3px;
+}
+/* Undo and redo name their keys while ⌘ (Ctrl) is held. */
+.rf-rail kbd.rf-command-key {
+  top: auto;
+  right: 50%;
+  bottom: -7px;
+  translate: 50% 0;
+  padding: 0 4px;
+  background: #fbf0d6;
+  color: var(--ink);
+  white-space: nowrap;
+  box-shadow: 0 1px 3px #0006;
+}
+
+.rs-floor3d.mode-select.on-machine {
+  cursor: grab;
+}
+.rs-floor3d.mode-select.on-handle,
+.rs-floor3d.mode-paste {
+  cursor: copy;
+}
+
+/* The bar above the dock: what is held or selected and what to do. */
+.rf-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 5px 7px 5px 7px;
+  border-radius: 16px;
+  background: var(--plate);
+  border: 1px solid var(--panel-line);
+  box-shadow: var(--plate-shadow);
+  animation: rf-bar-in 0.18s ease-out;
+}
+.rf-context .rf-bar:not(.is-idle) {
+  flex-wrap: wrap;
+  width: max-content;
+  max-width: min(1000px, 100vw - 400px);
+}
+.rf-bar.is-empty {
+  visibility: hidden;
+}
+.rf-bar.is-idle {
+  justify-self: center;
+  min-height: 0;
+  padding: 4px;
+}
+@keyframes rf-bar-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+.rf-bar-art {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--machine) 20%, #0e2c26);
+}
+.rf-bar-glyph {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #ffffff10;
+  color: var(--gold);
+  font:
+    700 20px/1 Georgia,
+    serif;
+}
+.rf-bar-glyph.is-danger {
+  color: #f0a08f;
+}
+.rf-bar-text {
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  max-width: 300px;
+  flex: 1 1 150px;
+}
+.rf-bar-text b {
+  font-size: 14px;
+}
+.rf-bar-text small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.rf-bar-kinds {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+.rf-bar-kinds img,
+.rf-bar-kinds .rs-icon-wait {
+  width: 34px;
+  height: 34px;
+  margin-right: -8px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px #02110e90);
+}
+.rf-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.rf-bar-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 14px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rf-bar-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+  font-size: 14px;
+}
+.rf-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  background: #ffffff0d;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.rf-action:not(:disabled):hover {
+  background: #ffffff1c;
+  border-color: #ffffff30;
+}
+.rf-action .rf-bar-price {
+  font-size: 12px;
+  margin-left: 2px;
+}
+.rf-action.is-danger {
+  color: #f6b4a4;
+}
+.rf-action.is-danger:not(:disabled):hover {
+  background: #c0473430;
+  border-color: #f0a08f60;
+}
+.rf-action.is-primary {
+  border: 0;
+  background: #e2c48a;
+  color: #3b2512;
+  box-shadow: 0 2px 0 #8c6a3a;
+}
+.rf-unlock {
+  min-height: 44px;
+}
+.rf-books {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rf-books button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 42px;
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+}
+.rf-books img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.rf-books button.is-some {
+  border-color: #e7bd6f55;
+}
+.rf-books button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: #e7bd6f22;
+}
+
+@media (max-width: 1100px) {
+  .rf-context .rf-bar:not(.is-idle) .rf-books {
+    order: 4;
+    flex: 1 0 100%;
+  }
+  .rf-part {
+    width: 70px;
+  }
+  .rf-part-art {
+    width: 44px;
+    height: 44px;
+  }
+  .rf-action span {
+    display: none;
+  }
+  .rf-action {
+    padding: 0 12px;
+  }
+}
+/* Phones and touch tablets: the dock sits on the tab bar, the bar and the
+ * view controls share the row above it. */
+@media (max-width: 760px) {
+  .rf-dock-area {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    gap: 6px;
+  }
+  .rf-context {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 52px;
+  }
+  .rf-context .rf-bar {
+    grid-column: 1;
+  }
+  .rf-context .rf-bar:not(.is-idle) {
+    width: auto;
+    max-width: none;
+  }
+  .rf-bar-text {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+  .rf-context .rs-camera-tools {
+    grid-column: 2;
+    flex-direction: column;
+  }
+  .rs-camera-tools button {
+    width: 38px;
+    height: 34px;
+  }
+  .rs-camera-tools button[aria-label='Pan factory'],
+  .rs-camera-tools button[aria-label='Zoom out'],
+  .rs-camera-tools button[aria-label='Zoom in'] {
+    display: none;
+  }
+  .rf-palette {
+    width: 100%;
+    box-sizing: border-box;
+    gap: 6px;
+    padding: 5px;
+    border-radius: 18px;
+  }
+  .rf-rail {
+    grid-template-columns: repeat(3, 36px);
+    gap: 3px;
+    padding: 0 6px 0 0;
+  }
+  .rf-rail button {
+    min-height: 30px;
+  }
+  .rf-parts {
+    flex: 1;
+  }
+  .rf-part {
+    width: 58px;
+    padding: 3px 2px 6px;
+  }
+  .rf-part b {
+    display: none;
+  }
+  .rf-part-art {
+    width: 40px;
+    height: 40px;
+  }
+  .rf-bar {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    min-height: 52px;
+  }
+  .rf-bar-art,
+  .rf-bar-glyph {
+    width: 40px;
+    height: 40px;
+  }
+  .rf-bar-text small {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 11px;
+  }
+  .rf-books {
+    order: 3;
+    flex: 1 0 100%;
+  }
+  .rf-action {
+    min-height: 42px;
+    padding: 0 10px;
+  }
+}

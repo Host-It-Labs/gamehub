@@ -9,8 +9,10 @@ by `part()`, which puts the origin on the joint without any rotation.
 """
 
 import math
+import os
 
 import bmesh
+import bpy
 import kit
 from mathutils import Matrix, Quaternion, Vector
 
@@ -21,6 +23,10 @@ TAU = math.tau
 UV_TILE = {"weave": 0.28, "cloth": 0.28, "hide": 0.3, "leather": 0.3,
            "wood": 0.45, "metal": 0.22, "resin": 0.5, "gilt": 0.3,
            "lacquer": 0.5}
+
+# The optional private reducer is used only by build_runtime(). Normal
+# source builds keep the full authored geometry and editable components.
+RUNTIME_REDUCER = None
 
 
 def V(*a):
@@ -487,9 +493,26 @@ def part(root_name, name, objs, pivot, par, angle=48):
         uvs = o.data.uv_layers
         while len(uvs):
             uvs.remove(uvs[0])
+    normal_source = RUNTIME_REDUCER.prepare(name, objs, angle) \
+        if RUNTIME_REDUCER is not None else None
+    if os.environ.get("VIKING_ARCHIVE"):
+        archive = bpy.data.collections.get("Viking editable source components")
+        if archive is None:
+            archive = bpy.data.collections.new("Viking editable source components")
+            bpy.context.scene.collection.children.link(archive)
+            archive.hide_render = True
+            archive.hide_viewport = True
+        for o in objs:
+            original = o.copy()
+            original.data = o.data.copy()
+            original.name = o.name + ".editable"
+            original["jointPart"] = name
+            archive.objects.link(original)
     obj = kit.join(objs, f"{root_name}.{name}")
     uv_box(obj)
     kit.shade(obj, angle)
+    if normal_source is not None:
+        RUNTIME_REDUCER.finish_part(obj, normal_source)
     kit.set_pivot(obj, pivot)
     kit.parent(obj, par)
     return obj

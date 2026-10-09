@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { ApiError, returnPath } from '@/lib/online/client';
 import { SoundSettings } from '../sound-settings';
+import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { readAmbienceLevel, saveAmbienceLevel } from '../use-ambience';
 import { useGameSound } from '../use-game-sound';
 import { joinRoom, type OnlineSession } from './online';
@@ -26,16 +27,6 @@ const QuestView = lazy(() =>
 const ArenaRules = lazy(() =>
   import('./arena-rules').then((m) => ({ default: m.ArenaRules })),
 );
-const VOLUME = 'gamehub.volume.v3';
-
-function readVolume() {
-  try {
-    const v = Number(localStorage.getItem(VOLUME) ?? '.5');
-    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5;
-  } catch {
-    return 0.5;
-  }
-}
 
 /**
  * An online Arena room at /arena/<token>: a table sends its players here.
@@ -44,7 +35,7 @@ function readVolume() {
 export default function ArenaRoom({ token }: { token: string }) {
   const [session, setSession] = useState<OnlineSession | null>(null);
   const [failed, setFailed] = useState('');
-  const [volume, setVolume] = useState(readVolume);
+  const [volume, setVolume] = useState(() => readAudioLevel());
   const [ambience, setAmbience] = useState(readAmbienceLevel);
   const [rules, setRules] = useState(false);
   useGameSound('arena', volume);
@@ -112,11 +103,7 @@ export default function ArenaRoom({ token }: { token: string }) {
       ambience={ambience}
       onVolume={(v) => {
         setVolume(v);
-        try {
-          localStorage.setItem(VOLUME, String(v));
-        } catch {
-          /* Preference is optional. */
-        }
+        saveAudioLevel(v);
       }}
       onAmbience={(v) => {
         setAmbience(v);

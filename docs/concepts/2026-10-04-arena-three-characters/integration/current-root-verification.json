@@ -1,0 +1,39 @@
+{
+  "checkedAt": "2026-10-04T22:12:56.672Z",
+  "currentManifest": {
+    "path": "/3d/arena/models/figures-88d2b5e6.glb",
+    "bytes": 22457240
+  },
+  "sha256": "88d2b5e6a6748aaffe868a365a23a8ba3b61255ec171c29cadedf7a5bfc71224",
+  "characters": {
+    "duelist": "139f5bb7e991bff8748f02584ad31a2aa64c7fad66fb10de75824a0be3641b9d",
+    "mage": "8b80f2e97911a674c6456a0d9d5c2b5f9f8a429dd476668ec16740dfcab4d041",
+    "ranger": "26616e241db27893254502ad9b5a0a2973846685fe6a4f19299d1b75c4b1ccbb"
+  },
+  "matchedAcceptedSource": true,
+  "otherRoots": [
+    "archers",
+    "balloon",
+    "bee",
+    "beekeeper",
+    "diver",
+    "drake",
+    "drummer",
+    "explorer",
+    "firefighter",
+    "gladiator",
+    "guard",
+    "gunner",
+    "imps",
+    "inventor",
+    "jetpack",
+    "linebacker",
+    "medic",
+    "miner",
+    "ogre",
+    "pirate",
+    "sumo",
+    "viking"
+  ],
+  "note": "Later concurrent integration changed the bundle and other characters; all three accepted roots remain exact. No manifest or production bytes were mutated by this verification."
+}

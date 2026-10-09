@@ -300,6 +300,59 @@
 .arena-peek .arena-cardinfo {
   animation: arena-peek-in 0.12s ease-out;
 }
+.arena-peek.compact {
+  overflow: visible;
+}
+.arena-peek.compact .arena-cardinfo {
+  gap: 7px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 120% at 20% 0%, #374957, #19232dee 75%), #19232d;
+  box-shadow:
+    0 5px 18px #0008,
+    inset 0 1px #fff2;
+}
+.arena-peek.compact .arena-cardinfo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+.arena-peek.compact .arena-cardinfo-head h3 {
+  font-size: 15px;
+}
+.arena-cardinfo-mini-cost {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ci-violet-hot);
+  font-size: 12px;
+  font-weight: 800;
+}
+.arena-cardinfo-mini-cost svg {
+  width: 12px;
+  height: 12px;
+}
+.arena-peek.compact .arena-cardinfo-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.arena-peek.compact .arena-cardinfo-stats > div {
+  padding: 5px 4px;
+}
+.arena-peek.compact .arena-cardinfo-stats dt {
+  gap: 3px;
+  font-size: 9px;
+}
+.arena-peek.compact .arena-cardinfo-stats dt svg {
+  width: 11px;
+  height: 11px;
+}
+.arena-peek.compact .arena-cardinfo-stats dd {
+  font-size: 14px;
+}
 /* Under the field, beside the hand: the portrait at the left, the name and
    stats beside it, abilities across the bottom. */
 .arena-peek.wide {

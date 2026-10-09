@@ -53,7 +53,8 @@ import { recordCompletedGame } from '../play-experience';
 import { SoloSession, type Session, type SoloSetup } from './session';
 import { DeckLayer } from './deck-layer';
 import type { OnlineSession } from './online';
-import { Pacer, ladder } from './pacer';
+import { Pacer, ladder } from '../render-pacer';
+import { startLevel } from '../render-quality';
 import { ArenaSound } from './sound';
 import './arena.css';
 
@@ -373,11 +374,20 @@ export default function ArenaGame({
     if (root.current) observer.observe(root.current);
     if (dock.current) observer.observe(dock.current);
     window.visualViewport?.addEventListener('resize', measure);
-    // Preserve native clarity even at the lowest rendering rung.
+    // Preserve native clarity even at the lowest rendering rung. A weaker
+    // device starts a few rungs down and climbs when frames have room.
+    const rungs = ladder(quality.shadowSize, resolutionFloor(quality.pixelRatio));
     const pacer = new Pacer(
-      ladder(quality.shadowSize, resolutionFloor(quality.pixelRatio)),
+      rungs,
       (rung) => v.setRung(rung),
+      startLevel(
+        rungs,
+        window.innerWidth,
+        window.innerHeight,
+        quality.pixelRatio,
+      ),
     );
+    if (pacer.level) v.setRung(pacer.rung);
     if (process.env.NODE_ENV === 'development')
       Object.assign(
         (window as unknown as { arenaDebug: object }).arenaDebug ?? {},
@@ -406,7 +416,7 @@ export default function ArenaGame({
           el.className = `arena-bar ${b.kind} team-${b.team}`;
           el.innerHTML =
             b.kind === 'troop'
-              ? '<i></i>'
+              ? '<span class="arena-shield-track"><i></i><svg viewBox="0 0 16 18"><path d="M8 1 14 3v5c0 4-3 7-6 9-3-2-6-5-6-9V3Z"/></svg></span><span class="arena-hp-track"><i></i></span>'
               : '<b></b><span class="arena-bar-track"><i></i></span>';
           layer.appendChild(el);
           bar = {
@@ -427,6 +437,9 @@ export default function ArenaGame({
         // Touch the page only where something changed. A tower's bar hangs
         // above its top, so on phones, where the far king reaches the top
         // edge, it is held on screen over the roof.
+        const shielded = String(b.shield !== undefined);
+        if (bar.el.dataset.shielded !== shielded)
+          bar.el.dataset.shielded = shielded;
         const edge = b.kind === 'troop' ? 0 : barFloor;
         const x = Math.round(b.x * 2) / 2;
         const y = Math.round(Math.max(b.y, edge) * 2) / 2;
@@ -500,7 +513,7 @@ export default function ArenaGame({
         return;
       }
       if (!pacer.frame(now)) return;
-      const dt = Math.min(0.1, (now - last) / 1000);
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       const alpha = session.advance(dt, paused.current || document.hidden);
       const m = session.match;
@@ -508,6 +521,8 @@ export default function ArenaGame({
       if (session.round !== shownRound) {
         shownRound = session.round;
         v.start(m);
+        for (const bar of bars.values()) bar.el.remove();
+        bars.clear();
         resultsAt = 0;
         setShowResults(false);
         setSelected(null);
@@ -677,7 +692,13 @@ export default function ArenaGame({
     slot: number,
     e: ReactPointerEvent<HTMLButtonElement>,
   ) => {
-    if (e.button !== 0) return;
+    if (
+      e.button !== 0 ||
+      !hud ||
+      hud.phase === 'over' ||
+      hud.sent.includes(slot)
+    )
+      return;
     drag.current = {
       slot,
       pointer: e.pointerId,
@@ -988,6 +1009,11 @@ export default function ArenaGame({
         view={view}
         session={session}
         hand={cardEls}
+        activeCard={
+          hud && (dragSlot ?? selected) !== null
+            ? hud.hand[(dragSlot ?? selected)!]
+            : null
+        }
         art={prepared?.cards}
         enabled={!!prepared && !warming && panel === null && !showResults}
       />

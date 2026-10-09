@@ -9,19 +9,17 @@ import { openVote, sets, type SetGame, type SetId } from './vote.ts';
 import type { PartyMode } from './groups.ts';
 import type { TribuState } from './tribu-state.ts';
 import type { Difficulty } from '../standalone/types.ts';
+import { createTriviaState, type TriviaMode } from './trivia.ts';
 
 /** A set is one party game made of several: a match opens with a pick
  * between them, and every round ends with a pick to play the same game again,
  * switch to another, or finish. Know Me (`orin`) holds Top Five, Dial and
- * Ten Coins, about how well a table knows each other; Quiz
+ * Ten Coins, about how well a table knows each other; Trivia
  * (`miro`) holds Atlas, Sizes, Years and Order, about the world. The saved
  * state is always one of the set's games; a switch replaces it with a fresh
  * game of the chosen kind that keeps the seats, the log, the round count and
  * everyone's points so far. */
-export type TribuPart =
-  | ranking.RankingGame
-  | dial.DialGame
-  | coins.CoinsGame;
+export type TribuPart = ranking.RankingGame | dial.DialGame | coins.CoinsGame;
 export type SabiPart =
   | geography.GeoGame
   | size.SizeGame
@@ -39,7 +37,7 @@ export const partNames: Record<SetGame, string> = {
 };
 export const setNames: Record<SetId, string> = {
   orin: 'Know Me',
-  miro: 'Quiz',
+  miro: 'Trivia',
 };
 
 function opening<T extends SetPart>(
@@ -81,18 +79,21 @@ export function createSabi(
   n: number,
   seed: number,
   difficulty: Difficulty,
-  mode: PartyMode = 'individual',
+  _mode: PartyMode = 'individual',
   seen?: ReadonlySet<string>,
-  teams?: number[],
+  _teams?: number[],
   now = Date.now(),
   votes = false,
+  triviaMode: TriviaMode = 'quick',
 ): geography.GeoGame {
-  return opening(
-    geography.createGame(n, seed, difficulty, mode, seen, teams),
+  const g = opening(
+    geography.createGame(n, seed, difficulty, 'individual', seen),
     'miro',
     now,
-    votes,
+    triviaMode === 'quick' && votes,
   );
+  g.tribu!.trivia = createTriviaState(n, triviaMode);
+  return g;
 }
 
 /** Points each seat has earned this match, including the game in progress.
@@ -113,10 +114,18 @@ const makers: Record<
   dial: (n, seed, d) => dial.createGame(n, seed, d),
   coins: (n, seed, d) => coins.createGame(n, seed, d),
   miro: (n, seed, d, t) =>
-    geography.createGame(n, seed, d, t.mode, undefined, t.teams),
-  size: (n, seed, d) => size.createGame(n, seed, d),
-  year: (n, seed, d) => year.createGame(n, seed, d),
-  order: (n, seed, d) => order.createGame(n, seed, d),
+    geography.createGame(
+      n,
+      seed,
+      d,
+      t.mode,
+      new Set(t.trivia?.content.miro.map(geography.placeHistoryKey)),
+      t.teams,
+    ),
+  size: (n, seed, d, t) => size.createGame(n, seed, d, t.trivia?.content.size),
+  year: (n, seed, d, t) => year.createGame(n, seed, d, t.trivia?.content.year),
+  order: (n, seed, d, t) =>
+    order.createGame(n, seed, d, t.trivia?.content.order),
 };
 /** Applies a switch the table chose; any other state passes through. */
 export function settle<T>(g: T): T | SetPart {
@@ -133,6 +142,7 @@ export function settle<T>(g: T): T | SetPart {
   next.seats = [...part.seats];
   next.revision = part.revision;
   next.tribu = { ...t, carry };
+  startAt(next, part.round);
   next.log = [
     ...part.log,
     {
@@ -140,7 +150,7 @@ export function settle<T>(g: T): T | SetPart {
       text: `Round ${part.round}: the table plays ${partNames[next.kind]}.`,
     },
   ];
-  return startAt(next, part.round);
+  return next;
 }
 /** A fresh game joins the match at its current round. Sizes deals by round,
  * and Atlas remembers where its places started, so both redeal for the

@@ -86,6 +86,7 @@ export function createGame(
   n: number,
   seed: number,
   difficulty: Difficulty = 'medium',
+  used: readonly number[] = [],
 ): OrderGame {
   assertSeats(n, 'individual');
   const g: OrderGame = {
@@ -109,7 +110,7 @@ export function createGame(
     step: 0,
     guesses: [],
     scores: Array(n).fill(0),
-    used: [],
+    used: [...used],
     vote: null,
     gains: [],
   };

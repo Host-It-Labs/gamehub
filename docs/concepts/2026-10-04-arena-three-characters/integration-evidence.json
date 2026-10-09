@@ -1,0 +1,105 @@
+{
+  "base": {
+    "path": "/3d/arena/models/figures-ac58b110.glb",
+    "bytes": 21744972
+  },
+  "figures": {
+    "path": "/3d/arena/models/figures-b97920cb.glb",
+    "bytes": 21440888,
+    "sha256": "b97920cba57788fc9af805ca966e42e8851bfec6b7daba6627c6c14859781cf4"
+  },
+  "replacements": {
+    "ranger": {
+      "source": "public/3d/arena/dev/three-ranger-runtime-v5.glb",
+      "sha256": "bbe973ddb53477ea43a875898196da5e516220b2f4bb5bb5cfed22e351640e40"
+    },
+    "duelist": {
+      "source": "public/3d/arena/dev/three-duelist-master-v7.glb",
+      "sha256": "a98709407886ef94e54bcbf64a95d8389def4ce9e1651ba6a9764ff95c196e3a"
+    },
+    "mage": {
+      "source": "public/3d/arena/dev/three-mage-master-v11.glb",
+      "sha256": "1711ddbc9f7235fea5307d42254726979b937ab9f5e28beddc0c1b559e6413ac"
+    }
+  },
+  "portraits": {
+    "ranger": {
+      "source": "assets/arena/cards/card-ranger-v10-b.png",
+      "sourceSha256": "a836893f209554231d4838fafbda7b99e716fa1b35ef9517802ed701c4e58fe4",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "opaque": true,
+      "path": "/3d/arena/cards/ranger-1fa6f0a9.webp",
+      "bytes": 44476,
+      "sha256": "1fa6f0a9eae4d9f102c0c4e1bff8cabcf76009f7481c40aa1da5bff906276cbc"
+    },
+    "duelist": {
+      "source": "assets/arena/cards/card-duelist-v10-a.png",
+      "sourceSha256": "a854ca3038e25801f134a875444d6ef377b5c7ee2dfb5ab397afefe9bb01643a",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "opaque": true,
+      "path": "/3d/arena/cards/duelist-60b66308.webp",
+      "bytes": 67114,
+      "sha256": "60b6630866734cdef945c9d63b1512aaaf675bbd0dc1593ae6a60eabf2a6094c"
+    },
+    "mage": {
+      "source": "assets/arena/cards/card-mage-v8-a.png",
+      "sourceSha256": "f8edd9df7b7a069553065ac599fbedc6093994cb48658e052d2ca20250641cfa",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "opaque": true,
+      "path": "/3d/arena/cards/mage-86234066.webp",
+      "bytes": 44378,
+      "sha256": "862340660f69c06a07fa5f1341534b38139de164d8c7fedd950da8d2f72553ae"
+    }
+  },
+  "unchangedRoots": {
+    "originalBytes": 21744972,
+    "mergedBytes": 21440888,
+    "sha256": "b97920cba57788fc9af805ca966e42e8851bfec6b7daba6627c6c14859781cf4",
+    "sources": {
+      "base": "/Users/williamguinaudie/Documents/code/gamehub/public/3d/arena/models/figures-ac58b110.glb",
+      "ranger": "/Users/williamguinaudie/Documents/code/gamehub/public/3d/arena/dev/three-ranger-runtime-v5.glb",
+      "duelist": "/Users/williamguinaudie/Documents/code/gamehub/public/3d/arena/dev/three-duelist-master-v7.glb",
+      "mage": "/Users/williamguinaudie/Documents/code/gamehub/public/3d/arena/dev/three-mage-master-v11.glb",
+      "out": "/Users/williamguinaudie/Documents/code/gamehub/work/arena/2026-10-04-three-characters/integration/figures.glb"
+    },
+    "unchanged": {
+      "archers": "749fa441c815a3817cbb20bf367a428bc6dd6a09b53b913e49b60725bdd435b0",
+      "balloon": "f950046905405f0cf3cb7c3b6665e6a58ac57f5d4091146eb52d181db2398d65",
+      "bee": "57290d6b84a029ff3640cbf6aac20afe07309aa518b63d0beab37b6b352a43fd",
+      "beekeeper": "442578f1de66f3aea4a0ba45fe51b072325d502447f6b87a573739e6cf88027e",
+      "diver": "f7cd548e78bf6bb5cefc9f8785475b50db3455a675846888720e46bfd8b5f0f3",
+      "drake": "f8d8272c97e2c91ff514ae04478c7b6b4ec4e4d53b26ab61d722e5b5d2c77c59",
+      "drummer": "1199342c512e324626021307aad89ee5326ae982d660198a93ac6bdbc40fbaa3",
+      "explorer": "7ec0b8afd94aafbfdb22d83104b7d3cf11c4f3054de809be0f90ff5b0b835ced",
+      "firefighter": "ef0d694bab4906c67d456a1f877e5aec8971b57f8e7539613dbf5f4deed3393b",
+      "gladiator": "ad3a7eeac5a416c153f383430bd76c70a983062833ebb73d4f3f628592f427a9",
+      "guard": "8af4c5ca330b570e9d2deae87d99e100136a8da80287341bf0251ebd97c18f86",
+      "gunner": "82688a444d8434e7240f09f61d39912911520d02a843095aae65d6df002c9f59",
+      "imps": "3b86d2f44357dd9e747a22e9a996279a7a7cd8f6fff6b6011634eea8609785a0",
+      "inventor": "6aa523e152ed5f663198a98c2ccaf50b53d1d67266ac85b28a6072878531f892",
+      "jetpack": "bd87c6fd5a92b7cced797834741eb01ac6009078a798dd9e2c3d52747cca01f4",
+      "linebacker": "6440b3bf49d37cbcb6ba009f1b251279dae9d3baee78685c3aaf6a6e0c126daf",
+      "medic": "d671fb4e285389ef3e947eb92281ee238ee96cee88f700dfa1873cd16a7a4ba2",
+      "miner": "1fdcb4ce0c697fcfd828428e7dbd9678251d49b3c98534be25503d3cc063c743",
+      "ogre": "49d5897c2e688c1677e8a0e97e2de57a6b9a6b79f1fd20ecb93d14699ef56683",
+      "pirate": "f55ccb2fd855d250946a12a95fd4aae6d50cbbff002993d12848c2143e599bc6",
+      "sumo": "d651399e94d5992d57daffb377792f18a2e04bea4aac9686d7bc500f2fad845d",
+      "viking": "67968c03196693afd5019e873d5b34432e3d51aeacb128823b4250b116a6e6ac"
+    },
+    "replaced": {
+      "duelist": "139f5bb7e991bff8748f02584ad31a2aa64c7fad66fb10de75824a0be3641b9d",
+      "mage": "8b80f2e97911a674c6456a0d9d5c2b5f9f8a429dd476668ec16740dfcab4d041",
+      "ranger": "26616e241db27893254502ad9b5a0a2973846685fe6a4f19299d1b75c4b1ccbb"
+    },
+    "validation": "Transforms, materials, accessor contracts, raw geometry/indices/colour data, skin weights, inverse binds and bone names are exact for every root."
+  }
+}

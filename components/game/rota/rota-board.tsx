@@ -8,17 +8,18 @@ import {
   type RefObject,
 } from 'react';
 import { Sheet, SheetCells, type SheetProps } from './sheet';
+import { RotaLoading } from './rota-loading';
 import type { RotaWorld } from './three/world';
 
 /**
- * Rota's board: the 3D model railway when WebGL is there, the drawn survey
- * sheet otherwise (and while the models load). The canvas fills the whole
+ * Rota's board: the 3D mill town when WebGL is there (the loading screen
+ * until its first frame), the drawn survey sheet otherwise. The canvas fills the whole
  * table behind the controls; the board is framed inside `stage`, and the
  * squares you tap stay real buttons laid over the drawn ground through a
  * perspective transform, so drag, keyboard and screen readers keep working.
  */
 /** Hand the board the sheet to draw. */
-function pushView(w: RotaWorld, s: SheetProps, livery: number) {
+function pushView(w: RotaWorld, s: SheetProps, livery: number, dusk: number) {
   w.setView({
     map: s.map,
     cells: s.cells,
@@ -31,6 +32,7 @@ function pushView(w: RotaWorld, s: SheetProps, livery: number) {
     ghost: s.ghost,
     livery,
     finished: s.round === undefined,
+    dusk,
   });
 }
 
@@ -55,9 +57,12 @@ export function RotaBoard({
   world,
   stage,
   livery,
+  dusk = 0,
   onWorld,
   ...sheet
 }: SheetProps & {
+  /** How far the afternoon has worn on: 0 first round, 1 match over. */
+  dusk?: number;
   /** The 3D world, once ready (for snapshots of other sheets). */
   onWorld?: (w: RotaWorld | null) => void;
   /** The table's root, which the canvas covers. */
@@ -70,11 +75,14 @@ export function RotaBoard({
   const engine = useRef<RotaWorld | null>(null);
   const [overlay, setOverlay] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  /** Download share, then building; `drawn` once the first frame is up. */
+  const [progress, setProgress] = useState(0);
+  const [drawn, setDrawn] = useState(false);
   const onWorldRef = useRef(onWorld);
-  const view = useRef({ sheet, livery });
+  const view = useRef({ sheet, livery, dusk });
   useLayoutEffect(() => {
     onWorldRef.current = onWorld;
-    view.current = { sheet, livery };
+    view.current = { sheet, livery, dusk };
   });
   const mapId = sheet.map.id;
 
@@ -84,14 +92,26 @@ export function RotaBoard({
     if (!el) return;
     let alive = true;
     let made: RotaWorld | null = null;
+    let unfollow = () => {};
     void (async () => {
       try {
-        const [{ RotaWorld }, { library, pickTier }] = await Promise.all([
+        const assets = await import('./three/assets');
+        if (!alive) return;
+        // The models are most of the wait; building the town is the rest.
+        const follow = (share: number) =>
+          alive && setProgress((p) => Math.max(p, share * 0.88));
+        follow(assets.loadedShare());
+        unfollow = assets.onProgress(follow);
+        const tier = assets.pickTier();
+        const [{ RotaWorld }, lib] = await Promise.all([
           import('./three/world'),
-          import('./three/assets'),
+          assets.library(tier),
         ]);
-        const tier = pickTier();
-        const lib = await library(tier);
+        unfollow();
+        if (!alive) return;
+        setProgress(0.92);
+        // Let the loader paint its last step before the town is built.
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
         if (!alive) return;
         made = new RotaWorld(el, view.current.sheet.map, lib, {
           lite: tier === 'lite',
@@ -99,8 +119,15 @@ export function RotaBoard({
           onOverlay: (m) => alive && setOverlay(m),
         });
         engine.current = made;
+        if (process.env.NODE_ENV !== 'production')
+          (window as unknown as { rotaWorld?: RotaWorld }).rotaWorld = made;
         onWorldRef.current?.(made);
-        pushView(made, view.current.sheet, view.current.livery);
+        pushView(
+          made,
+          view.current.sheet,
+          view.current.livery,
+          view.current.dusk,
+        );
         measureFrame(made, world.current, stage.current);
         // Dice and specials take the 3D pieces once the board is up.
         void import('./three/icons').then(({ renderIcons }) =>
@@ -108,14 +135,19 @@ export function RotaBoard({
         );
       } catch {
         if (alive) setFailed(true);
+      } finally {
+        unfollow();
       }
     })();
     return () => {
       alive = false;
+      unfollow();
       made?.dispose();
       engine.current = null;
       onWorldRef.current?.(null);
       setOverlay(null);
+      setDrawn(false);
+      setProgress(0);
     };
     // A new map makes a new world; everything else is pushed below.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -123,7 +155,12 @@ export function RotaBoard({
 
   useEffect(() => {
     if (engine.current)
-      pushView(engine.current, view.current.sheet, view.current.livery);
+      pushView(
+        engine.current,
+        view.current.sheet,
+        view.current.livery,
+        view.current.dusk,
+      );
   });
 
   useLayoutEffect(() => {
@@ -143,6 +180,19 @@ export function RotaBoard({
   }, []);
 
   const ready = !!overlay && !failed;
+  // The board is framed: two frames later the town has been drawn.
+  useEffect(() => {
+    if (!ready) return;
+    let b = 0;
+    const a = requestAnimationFrame(() => {
+      setProgress(1);
+      b = requestAnimationFrame(() => setDrawn(true));
+    });
+    return () => {
+      cancelAnimationFrame(a);
+      cancelAnimationFrame(b);
+    };
+  }, [ready]);
   const n = sheet.map.size;
   return (
     <>
@@ -174,8 +224,11 @@ export function RotaBoard({
             } as CSSProperties
           }
         />
-      ) : (
+      ) : failed ? (
         <FallbackSheet world={world} stage={stage} sheet={sheet} />
+      ) : null}
+      {failed ? null : (
+        <RotaLoading key={mapId} progress={progress} done={drawn} />
       )}
     </>
   );

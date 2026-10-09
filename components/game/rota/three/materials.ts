@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { surfaceFunction, surfaceGLSL, uvMetres } from './surfaces';
+import { lightLens, lightWindows, prepareWindows } from './window-lights';
+import { lateDusk } from '@/lib/games/rota/daylight';
 
 /**
  * Rota's materials: the mill town drawn in ink and textured colour (3 October
@@ -137,6 +139,9 @@ function softenAO(g: THREE.BufferGeometry) {
 export class Materials {
   private cache = new Map<string, THREE.Material>();
   readonly detail = { value: 1 };
+  readonly time = { value: 0 };
+  readonly dusk = { value: 0 };
+  readonly late = { value: 0 };
   // No image atlas: procedural surfaces retain detail at every screen density.
   constructor(readonly textures: Textures = {}) {}
 
@@ -148,6 +153,8 @@ export class Materials {
     if (!fn) return m;
     m.onBeforeCompile = (shader) => {
       shader.uniforms.uSurfaceDetail = this.detail;
+      shader.uniforms.uTownDusk = this.dusk;
+      shader.uniforms.uLateDusk = this.late;
       shader.vertexShader = shader.vertexShader
         .replace(
           'void main() {',
@@ -171,6 +178,7 @@ void main() {`,
           'void main() {',
           `varying vec2 vSurfaceUv;
 varying vec3 vSurfaceWorld, vSurfaceNormal;
+uniform float uTownDusk, uLateDusk;
 ${surfaceGLSL}
 void main() {`,
         )
@@ -185,7 +193,28 @@ void main() {`,
       : surfaceAxes.x > surfaceAxes.z ? vSurfaceWorld.zy : vSurfaceWorld.xy`
   };
   float surfaceValue = ${fn}(surfaceCoord);
-  diffuseColor.rgb *= surfaceValue;`,
+  diffuseColor.rgb *= surfaceValue;
+  ${
+    family === 'cobble'
+      ? 'diffuseColor.rgb *= mix(vec3(1.0), vec3(1.04, 1.03, 0.91), uLateDusk);'
+      : ''
+  }`,
+        )
+        .replace(
+          '#include <emissivemap_fragment>',
+          '#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * (uTownDusk * 0.12 + uLateDusk * 0.10);',
+        )
+        .replace(
+          '#include <opaque_fragment>',
+          `// Preserve the material hue under blue-hour fill, at the same
+  // luminance. Slate remains grey-blue and cobbles remain a warm grey.
+  float lightValue = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
+  float materialValue = max(0.001, dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)));
+  vec3 faithful = diffuseColor.rgb * (lightValue / materialValue);
+  outgoingLight = mix(outgoingLight, faithful, uLateDusk * ${
+    family === 'cobble' ? '0.85' : family === 'slate' ? '0.70' : '0.42'
+  });
+  #include <opaque_fragment>`,
         )
         .replace(
           '#include <normal_fragment_maps>',
@@ -195,7 +224,7 @@ void main() {`,
         );
     };
     m.customProgramCacheKey = () =>
-      `rota-surface-v1|${family}|${uvScale ?? 'world'}`;
+      `rota-surface-v2|${family}|${uvScale ?? 'world'}`;
     return m;
   }
 
@@ -233,7 +262,7 @@ void main() {`,
     const raw = tintHex(tint, livery, hex);
     if (family === 'glow') {
       const c = new THREE.Color(raw);
-      return new THREE.MeshBasicMaterial({ color: c.multiplyScalar(1.25) });
+      return lightLens(new THREE.MeshBasicMaterial({ color: c }), this.dusk);
     }
     if (family === 'glass')
       // Windows: dark glass with a little evening sky in it.
@@ -255,13 +284,30 @@ void main() {`,
 
   /** Swap every Blender material in a loaded model for the dressed one. */
   dress(object: THREE.Object3D, livery = 0, body?: string) {
+    // Vehicle glazing keeps its existing sky tint; curtains belong to houses.
+    const home = /^(terrace_|cottage|shop|corner_)/.test(object.name);
+    const building =
+      home ||
+      /^(mill_|warehouse_|works_shed|engine_shed|goods_|station_|town_hall|market_hall|chapel|bank|school)/.test(
+        object.name,
+      );
     object.traverse((node) => {
       const mesh = node as THREE.Mesh;
       if (!mesh.isMesh) return;
       const swap = (m: THREE.Material) => {
         const name = m.name || 'plain:grey';
         if (body && name.endsWith(':body')) return this.get(name, livery, body);
-        return this.get(name, livery, (m.userData as { hex?: string }).hex);
+        if (building && name.startsWith('glass:')) {
+          prepareWindows(mesh.geometry);
+          return this.windows(home, name);
+        }
+        const hex = (m.userData as { hex?: string }).hex;
+        if (
+          name.startsWith('glow:') &&
+          (building || object.name === 'gas_lamp')
+        )
+          return this.lamp(name, hex);
+        return this.get(name, livery, hex);
       };
       mesh.material = Array.isArray(mesh.material)
         ? mesh.material.map(swap)
@@ -271,6 +317,45 @@ void main() {`,
       mesh.receiveShadow = true;
     });
     return object;
+  }
+
+  /** Fixed lanterns may stagger their dusk threshold by world position. */
+  private lamp(name: string, hex?: string) {
+    const key = `stationary-lamp|${name}|${hex ?? ''}`;
+    const hit = this.cache.get(key);
+    if (hit) return hit;
+    const m = lightLens(
+      new THREE.MeshBasicMaterial({
+        color: tintHex(name.split(':')[1] ?? '', 0, hex),
+      }),
+      this.dusk,
+      true,
+    );
+    m.name = name;
+    this.cache.set(key, m);
+    return m;
+  }
+
+  /** Shared with the procedural terrace fronts. */
+  windows(home: boolean, name = 'glass:town-row') {
+    const key = `windows|${home}|${name}`;
+    const hit = this.cache.get(key);
+    if (hit) return hit as THREE.MeshToonMaterial;
+    const m = lightWindows(
+      toon('#5e7682', { vertexColors: true, emissive: '#34505e', glow: 0.12 }),
+      this.time,
+      this.dusk,
+      home,
+    );
+    m.name = name;
+    this.cache.set(key, m);
+    return m;
+  }
+
+  tick(time: number, dusk: number) {
+    this.time.value = time;
+    this.dusk.value = dusk;
+    this.late.value = lateDusk(dusk);
   }
 
   dispose() {

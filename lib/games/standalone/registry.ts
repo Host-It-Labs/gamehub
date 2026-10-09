@@ -22,6 +22,23 @@ import {
   partySeats,
   type PartyMode,
 } from '../party/groups.ts';
+import {
+  campReady,
+  finalTriviaCamp,
+  isTriviaCamp,
+  observeTrivia,
+  playTriviaMove,
+  prepareTriviaPick,
+  settleTrivia,
+  triviaModeOf,
+  triviaOf,
+  triviaStandings,
+  triviaWinners,
+  validTriviaMove,
+  validTriviaState,
+  type TriviaMode,
+  type TriviaMove,
+} from '../party/trivia.ts';
 export type AnyGame =
   | ranking.RankingGame
   | geography.GeoGame
@@ -39,7 +56,8 @@ export type AnyMove =
   | coins.CoinsMove
   | year.YearMove
   | order.OrderMove
-  | impostor.ImpostorMove;
+  | impostor.ImpostorMove
+  | TriviaMove;
 export type StandaloneEntry = {
   id: StandaloneId;
   name: string;
@@ -54,6 +72,8 @@ export type StandaloneEntry = {
     teams?: number[],
     /** The table votes between rounds; otherwise the host picks. */
     votes?: boolean,
+    /** Trivia's overarching match; absent on earlier saves and callers. */
+    triviaMode?: TriviaMode,
   ) => AnyGame;
   play: typeof play;
   botMove: typeof botMove;
@@ -85,12 +105,21 @@ const engines = {
 } as unknown as Record<StandaloneId, Engine>;
 const engine = (g: AnyGame) => engines[g.kind];
 export function observe(g: AnyGame, viewer: number): AnyGame {
-  return engine(g).observe(g as never, viewer);
+  return observeTrivia(engine(g).observe(g as never, viewer), viewer);
 }
 export function actingSeats(g: AnyGame) {
+  if (isTriviaCamp(g)) {
+    if (campReady(g)) return [];
+    return g.seats.flatMap((_, s) => (triviaOf(g)!.ready[s] ? [] : [s]));
+  }
   return engine(g).actingSeats(g as never);
 }
 export function validMove(g: AnyGame, m: unknown, s: number) {
+  const type =
+    m && typeof m === 'object' ? (m as { type?: unknown }).type : undefined;
+  if (type === 'trivia-plan' || type === 'trivia-unlock')
+    return validTriviaMove(g, m, s);
+  if (isTriviaCamp(g) && (type !== 'vote' || !campReady(g))) return false;
   return engine(g).validMove(g as never, m, s);
 }
 /** `now` only matters for server-owned deadlines; tests pin it. */
@@ -100,9 +129,16 @@ export function play(
   s: number,
   now = Date.now(),
 ): AnyGame {
-  return settle(engine(g).play(g as never, m as never, s, now)) as AnyGame;
+  if (!validMove(g, m, s)) return g;
+  if (m.type === 'trivia-plan' || m.type === 'trivia-unlock')
+    return playTriviaMove(g, m, s);
+  const ready = isTriviaCamp(g) ? prepareTriviaPick(g) : g;
+  return settleTrivia(
+    settle(engine(ready).play(ready as never, m as never, s, now)),
+  ) as AnyGame;
 }
 export function botMove(g: AnyGame, s: number): AnyMove | null {
+  if (isTriviaCamp(g) || (g.phase === 'vote' && g.vote?.host)) return null;
   const v = observe(g, s);
   return engine(v).botMove(v as never, s);
 }
@@ -114,18 +150,22 @@ export function decisionKey(g: AnyGame) {
       : 'step' in g
         ? g.step
         : g.target;
-  return `${g.kind}:${g.rules}:${g.round}:${g.phase}:${at}`;
+  const trivia = triviaOf(g);
+  return `${g.kind}:${g.rules}:${g.round}:${g.phase}:${at}${trivia ? `:trivia:${trivia.mode}:${trivia.stage}:${trivia.completed}` : ''}`;
 }
 /** When the table's next server-owned deadline falls, or null: Atlas team
  * discussions and every timed end-of-round vote. Private guesses remain untimed. */
 export function deadline(g: AnyGame): number | null {
   if (g.over || g.tutorial) return null;
+  if (isTriviaCamp(g)) return null;
   if (g.kind === 'impostor') return impostor.deadline(g);
   if (g.phase === 'vote') return g.vote?.endsAt ?? null;
   return g.kind === 'miro' && g.phase === 'discuss' ? g.discussionEndsAt : null;
 }
 export function tick(g: AnyGame): AnyGame {
-  return settle(engine(g).tick(g as never)) as AnyGame;
+  if (isTriviaCamp(g) || (triviaModeOf(g) !== 'quick' && g.phase === 'vote'))
+    return g;
+  return settleTrivia(settle(engine(g).tick(g as never))) as AnyGame;
 }
 function legalMoves(g: AnyGame, s: number): AnyMove[] {
   const moves: AnyMove[] = [
@@ -133,6 +173,18 @@ function legalMoves(g: AnyGame, s: number): AnyMove[] {
     { type: 'unlock' },
     { type: 'next' },
   ];
+  if (isTriviaCamp(g)) {
+    moves.push({ type: 'trivia-unlock' });
+    const routes = finalTriviaCamp(g)
+      ? [null]
+      : (['trail', 'river', 'summit'] as const);
+    for (const route of routes)
+      for (const purchase of [null, 'trophy', 'supplies'] as const)
+        moves.push({ type: 'trivia-plan', route, purchase });
+  }
+  if (g.phase === 'vote')
+    for (const choice of g.vote?.options ?? ['more', 'finish'])
+      moves.push({ type: 'vote', choice });
   if (g.kind === 'orin')
     moves.push(
       ...(g.offers[s] ?? []).map((target) => ({
@@ -145,6 +197,28 @@ function legalMoves(g: AnyGame, s: number): AnyMove[] {
   return moves.filter((m) => validMove(g, m, s));
 }
 function outcome(g: AnyGame): Outcome {
+  const trivia = triviaOf(g);
+  if (trivia && trivia.mode !== 'quick') {
+    const part = g as geography.GeoGame,
+      winners = triviaWinners(part),
+      standings = triviaStandings(part);
+    return {
+      title: `${winners.map((s) => g.seats[s]).join(' & ')} ${winners.length > 1 ? 'tie' : g.seats[winners[0]] === 'You' ? 'win' : 'wins'}`,
+      detail: `${trivia.completed} round${trivia.completed === 1 ? '' : 's'}`,
+      winners,
+      rows: standings.map((p) => ({
+        name: g.seats[p.seat],
+        value:
+          trivia.mode === 'tower'
+            ? `${p.floors} floors · ${p.victories} victories · ${p.rawPoints} points`
+            : trivia.rules === 2
+              ? `${p.distance} steps · ${p.trophies} checkpoints · ${p.rawPoints} points`
+              : `${p.trophies} trophies · ${p.distance} steps · ${p.coins} coins · ${p.rawPoints} points`,
+        seat: p.seat,
+        points: p.score,
+      })),
+    };
+  }
   // Impostor keeps its points on the seats, like a set's running totals.
   if (g.tribu || g.kind === 'impostor') {
     const totals = g.kind === 'impostor' ? g.scores : seatTotals(g),
@@ -260,6 +334,7 @@ function saved(id: StandaloneId, value: unknown): value is AnyGame {
         (g.handoff !== undefined && g.handoff !== null)
       )
         return false;
+      if (!validTriviaState(g)) return false;
     }
     if (g.kind === 'miro') {
       const size = g.mode === 'teams' ? 2 : g.seats.length,
@@ -305,6 +380,8 @@ export const standaloneIds = [
   'impostor',
 ] as StandaloneId[];
 function progressDetail(g: AnyGame) {
+  if (isTriviaCamp(g))
+    return finalTriviaCamp(g) ? 'The final camp' : 'Choose a route at camp';
   if (g.phase === 'vote')
     return g.vote?.opening ? 'Choose the first game' : 'What next?';
   if (g.phase === 'reveal') return 'The reveal';
@@ -351,30 +428,32 @@ export const standaloneGames = Object.fromEntries(
         seen?: ReadonlySet<string>,
         _teams?: number[],
         votes = false,
+        triviaMode: TriviaMode = 'quick',
       ) =>
         id === 'impostor'
           ? impostor.createGame(n, seed, d, seen, Date.now(), votes)
           : setOf(id) === 'miro'
-          ? createSabi(
-              n,
-              seed,
-              d,
-              'individual',
-              seen,
-              undefined,
-              Date.now(),
-              votes,
-            )
-          : createTribu(
-              n,
-              seed,
-              d,
-              'individual',
-              seen,
-              undefined,
-              Date.now(),
-              votes,
-            ),
+            ? createSabi(
+                n,
+                seed,
+                d,
+                'individual',
+                seen,
+                undefined,
+                Date.now(),
+                votes,
+                triviaMode,
+              )
+            : createTribu(
+                n,
+                seed,
+                d,
+                'individual',
+                seen,
+                undefined,
+                Date.now(),
+                votes,
+              ),
       play,
       botMove,
       actingSeats,
@@ -391,6 +470,10 @@ export const standaloneGames = Object.fromEntries(
 ) as Record<StandaloneId, StandaloneEntry>;
 /** The party games the library and the online catalog offer: the two sets
  * and Impostor. */
-export const publicStandaloneIds = ['orin', 'miro', 'impostor'] as StandaloneId[];
+export const publicStandaloneIds = [
+  'orin',
+  'miro',
+  'impostor',
+] as StandaloneId[];
 export const isStandaloneId = (id: string): id is StandaloneId =>
   standaloneIds.includes(id as StandaloneId);

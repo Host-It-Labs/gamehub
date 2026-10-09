@@ -1,15 +1,21 @@
-import {
-  dishes,
-  sameOutfit,
-  stationDish,
-  type DishId,
-  type Look,
-} from './content.ts';
+import { sameOutfit, stationDish, type DishId, type Look } from './content.ts';
 import {
   membersOf,
   outTarget,
   step,
   actionFor,
+  cookSeconds,
+  clock,
+  freeHands,
+  matchEffects,
+  matchSpec,
+  dishDemand,
+  PASS_SIZE,
+  type Group,
+  mayStart,
+  stationOpenSlot,
+  stationSlots,
+  stationStock,
   type Input,
   type Match,
   type UseKind,
@@ -18,6 +24,7 @@ import {
   boothRect,
   COUNTER_X,
   COUNTER_Z,
+  JUKEBOX,
   PLAYER_R,
   QUEUE,
   route,
@@ -56,6 +63,8 @@ type Job = {
   target?: number;
   /** The counter spot to use. */
   counter?: string;
+  group?: number;
+  puddle?: number;
 };
 
 const counterPoint = (id: keyof typeof COUNTER_X): [number, number] => [
@@ -108,70 +117,37 @@ function chooseJob(
   pi: number,
   claims: Claims,
   spot: boolean,
+  goal: string,
 ): Job | null {
   const p = m.players[pi];
-  const carry = p.carry;
-  const free = (key: string) => !claims.has(key);
-  // Throw out a mimic while its party waits in line.
-  if (spot && !carry)
-    for (const g of m.groups) {
-      if (
-        g.state !== 'queue' &&
-        g.state !== 'read' &&
-        g.state !== 'order' &&
-        g.state !== 'food'
-      )
-        continue;
-      const odd = oddOneOut(
-        membersOf(m, g).map((x) => ({ id: x.id, look: x.look })),
-      );
-      if (odd === null || !free(`out:${odd}`)) continue;
-      const x = m.guests.find((y) => y.id === odd)!;
-      // Face the guest from the front (a waiting row) or the booth's end.
-      const to: [number, number] = [
-        x.x,
-        x.z + (x.state === 'sit' ? 0.75 : 0.5),
-      ];
-      return { key: `out:${odd}`, to, kind: 'out', target: odd };
-    }
-  if (carry?.k === 'dish') {
-    if (carry.burnt)
-      return { key: 'bin', to: counterPoint('bin'), kind: 'bin' };
-    for (const t of m.tables) {
-      const g = m.groups.find((x) => x.id === t.group);
-      if (g?.state !== 'food') continue;
-      if (membersOf(m, g).some((x) => x.dish === carry.dish && !x.served))
-        return {
-          key: `serve:${t.slot}:${pi}`,
-          to: tablePoint(m, t.slot, p.x, p.z),
-          kind: 'serve',
-          target: t.slot,
-        };
-    }
-    // Nobody wants it yet: wait near the booths for an order.
-    if (
-      m.groups.some(
-        (g) =>
-          g.state === 'read' || g.state === 'order' || g.state === 'follow',
-      )
-    )
-      return { key: `hold:${pi}`, to: [5.6, 6.2], kind: 'serve' };
-    return { key: 'bin', to: counterPoint('bin'), kind: 'bin' };
-  }
-  if (carry?.k === 'dirty')
-    return { key: `sink:${pi}`, to: counterPoint('sink'), kind: 'wash' };
-  if (carry?.k === 'lead') {
-    const g = m.groups.find((x) => x.id === carry.group);
-    const size = g?.guests.length ?? 1;
+  const fx = matchEffects(m);
+  const hands = p.hands;
+  const free = freeHands(m, p);
+  const claim = (key: string) => !claims.has(key);
+  const distance = (to: [number, number]) =>
+    Math.hypot(to[0] - p.x, to[1] - p.z);
+  const counter = (id: keyof typeof COUNTER_X, kind: UseKind): Job => ({
+    key: `${kind}:${id}`,
+    to: counterPoint(id),
+    kind,
+    counter: id,
+  });
+  // Finish seating and washing rather than leaving these half done.
+  if (p.lead >= 0) {
+    const g = m.groups.find((x) => x.id === p.lead);
     const tables = m.tables
       .filter(
         (t) =>
-          t.group < 0 && !t.dirty && t.seats >= size && free(`seat:${t.slot}`),
+          t.group < 0 &&
+          !t.dirty &&
+          t.seats >= (g?.guests.length ?? 1) &&
+          claim(`seat:${t.slot}`),
       )
       .sort(
         (a, b) =>
           a.seats - b.seats ||
-          Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z),
+          distance(tablePoint(m, a.slot, p.x, p.z)) -
+            distance(tablePoint(m, b.slot, p.x, p.z)),
       );
     if (tables[0])
       return {
@@ -182,83 +158,270 @@ function chooseJob(
       };
     if (g && g.slot >= 0) {
       const q = QUEUE[g.slot];
-      return { key: `return:${g.id}`, to: [q.x + 0.9, q.z], kind: 'return' };
+      return {
+        key: `return:${g.id}`,
+        to: [q.x + 0.9, q.z],
+        kind: 'return',
+        group: g.id,
+      };
     }
     return null;
   }
-  // Empty hands.
-  const wanted = new Map<DishId, number>();
-  for (const g of m.groups)
-    if (g.state === 'food')
-      for (const x of membersOf(m, g))
-        if (x.dish && !x.served)
-          wanted.set(x.dish, (wanted.get(x.dish) ?? 0) + 1);
-  for (const q of m.players)
-    if (q.carry?.k === 'dish' && !q.carry.burnt)
-      wanted.set(q.carry.dish, (wanted.get(q.carry.dish) ?? 0) - 1);
-  for (const s of m.stations) {
-    const dish = stationDish[s.id];
-    if (
-      (s.state === 'ready' && (wanted.get(dish) ?? 0) > 0) ||
-      s.state === 'burnt'
-    )
-      if (free(`take:${s.id}`))
-        return {
-          key: `take:${s.id}`,
-          to: counterPoint(s.id),
-          kind: 'take',
-          counter: s.id,
-        };
-  }
+  if (hands.some((i) => i.k === 'dirty')) return counter('sink', 'wash');
+  if (hands.some((i) => i.k === 'dish' && i.burnt))
+    return counter('bin', 'bin');
+
+  // Patience bars, dish bubbles and outfits are public. Do not consult a
+  // guest's mimic flag, future arrivals, RNG, or an unrevealed order.
+  const waiting = m.groups.filter((g) =>
+    ['queue', 'order', 'food'].includes(g.state),
+  );
+  const secondsLeft = (g: Group) => {
+    const key =
+      g.state === 'queue' ? 'queue' : g.state === 'order' ? 'order' : 'food';
+    return (
+      g.patience *
+      matchSpec(m).patience[key] *
+      fx.patience[key] *
+      (g.demanding ? (m.config?.mechanics.demanding?.patience ?? 1) : 1)
+    );
+  };
+  const urgent = (g: Group) => Math.max(0, 24 - secondsLeft(g)) * 1.8;
+  const held = hands.filter(
+    (i): i is Extract<typeof i, { k: 'dish' }> => i.k === 'dish' && !i.burnt,
+  );
+  const pot = hands.find((i) => i.k === 'pot');
+  const wanted = (dish: DishId) =>
+    dishDemand(m, dish) -
+    m.players.reduce(
+      (n, q) =>
+        n +
+        q.hands.filter((i) => i.k === 'dish' && i.dish === dish && !i.burnt)
+          .length,
+      0,
+    );
+  const dishUrgency = (dish: DishId) =>
+    Math.max(
+      0,
+      ...waiting
+        .filter(
+          (g) =>
+            g.state === 'food' &&
+            membersOf(m, g).some(
+              (x) => x.dish === dish && !x.served && x.state !== 'goo',
+            ),
+        )
+        .map(urgent),
+    );
+  let best: Job | null = null;
+  let score = -Infinity;
+  const offer = (job: Job, priority: number) => {
+    if (!claim(job.key)) return;
+    // A small commitment bonus prevents a waiter changing direction every
+    // tick. An urgent party can still interrupt a long walk.
+    const s = priority - distance(job.to) * 5 + (goal === job.key ? 7 : 0);
+    if (s > score) {
+      score = s;
+      best = job;
+    }
+  };
+  if (spot)
+    for (const g of m.groups) {
+      if (!['queue', 'read', 'order', 'food'].includes(g.state)) continue;
+      const odd = oddOneOut(
+        membersOf(m, g).map((x) => ({ id: x.id, look: x.look })),
+      );
+      if (odd === null) continue;
+      const x = m.guests.find((y) => y.id === odd)!;
+      offer(
+        {
+          key: `out:${odd}`,
+          to: [x.x, x.z + (x.state === 'sit' ? 0.75 : 0.5)],
+          kind: 'out',
+          target: odd,
+        },
+        125,
+      );
+    }
+
   for (const t of m.tables) {
     const g = m.groups.find((x) => x.id === t.group);
-    if (g?.state === 'order' && free(`order:${t.slot}`))
-      return {
-        key: `order:${t.slot}`,
-        to: tablePoint(m, t.slot, p.x, p.z),
-        kind: 'order',
-        target: t.slot,
-      };
+    const to = tablePoint(m, t.slot, p.x, p.z);
+    if (
+      g?.state === 'food' &&
+      membersOf(m, g).some(
+        (x) =>
+          !x.served && x.state !== 'goo' && held.some((i) => i.dish === x.dish),
+      )
+    )
+      offer(
+        { key: `serve:${t.slot}`, to, kind: 'serve', target: t.slot },
+        96 + urgent(g),
+      );
+    if (g?.state === 'order')
+      offer(
+        { key: `order:${t.slot}`, to, kind: 'order', target: t.slot },
+        78 + urgent(g),
+      );
+    if (t.dirty && t.group < 0 && !hands.length) {
+      const needed = waiting.some(
+        (q) =>
+          q.state === 'queue' &&
+          q.guests.length <= t.seats &&
+          !m.tables.some(
+            (b) => !b.dirty && b.group < 0 && b.seats >= q.guests.length,
+          ),
+      );
+      offer(
+        { key: `clear:${t.slot}`, to, kind: 'clear', target: t.slot },
+        (clock(m) <= 22 && t.coins > 0 ? 125 : 62) + (needed ? 25 : 0),
+      );
+    }
   }
+
+  const low = waiting.filter((g) => g.patience < 0.65);
+  if (fx.jukebox && !m.juke.play && !m.juke.rest && low.length >= 2)
+    offer(
+      { key: 'juke', to: [JUKEBOX.x - 0.9, JUKEBOX.z], kind: 'juke' },
+      110 + Math.max(...low.map(urgent)),
+    );
+  if (pot) {
+    for (const g of low) {
+      // Serving is the first Use at a booth; do not wait for a pour when
+      // Use would give a held plate instead.
+      if (
+        g.state === 'food' &&
+        membersOf(m, g).some(
+          (x) => !x.served && held.some((i) => i.dish === x.dish),
+        )
+      )
+        continue;
+      const to: [number, number] =
+        g.state === 'queue'
+          ? [QUEUE[g.slot].x + 0.3, QUEUE[g.slot].z + 0.6]
+          : tablePoint(m, g.table, p.x, p.z);
+      offer(
+        { key: `pour:${g.id}`, to, kind: 'pour', group: g.id },
+        104 + urgent(g),
+      );
+    }
+    if (
+      pot.pours === 1 &&
+      low.length >= 2 &&
+      distance(counterPoint('coffee')) < 1.1
+    )
+      offer(counter('coffee', 'refill'), 92);
+  } else if (fx.coffee && free > 0 && low.length && clock(m) > 12) {
+    // Fetch only for an actual low bar, not simply because the urn exists.
+    offer(counter('coffee', 'pot'), 72 + Math.max(...low.map(urgent)));
+  }
+
   for (const s of m.stations) {
     const dish = stationDish[s.id];
-    const cooking = m.stations.filter(
-      (x) => x.id === s.id && (x.state === 'cook' || x.state === 'ready'),
-    ).length;
-    if (s.state !== 'idle' || (wanted.get(dish) ?? 0) - cooking <= 0) continue;
-    if (!free(`cook:${s.id}`)) continue;
-    return {
-      key: `cook:${s.id}`,
-      to: counterPoint(s.id),
-      kind: dishes[dish].cook === 0 ? 'take' : 'cook',
-      counter: s.id,
-    };
+    const need = wanted(dish);
+    const urgency = dishUrgency(dish);
+    if (s.jam) {
+      offer(counter(s.id, 'repair'), need > 0 ? 92 + urgency : 35);
+      continue;
+    }
+    const slots = stationSlots(s);
+    const ready = slots.some((lane) => lane.state === 'ready');
+    const instant = cookSeconds(m, s.id) === 0;
+    if (free > 0 && need > 0 && (ready || (instant && mayStart(m, dish)))) {
+      // Batch two or three useful plates at the counter while the table
+      // has time. Once out on the floor, finish delivery first.
+      const batch = held.length && p.z < 3 ? 17 : 0;
+      offer(counter(s.id, 'take'), 86 + urgency + batch);
+    } else if (
+      free > 0 &&
+      !ready &&
+      slots.some((lane) => lane.state === 'burnt')
+    )
+      offer(counter(s.id, 'take'), need > 0 ? 73 + urgency : 25);
+    if (
+      !instant &&
+      stationOpenSlot(s) !== null &&
+      mayStart(m, dish) &&
+      (!slots.some(
+        (lane) => lane.state === 'ready' || lane.state === 'burnt',
+      ) ||
+        free === 0)
+    )
+      offer(counter(s.id, 'cook'), need > stationStock(s) ? 82 + urgency : 18);
   }
-  const waiting = m.groups
-    .filter((g) => g.state === 'queue' && free(`lead:${g.id}`))
-    .sort((a, b) => a.patience - b.patience);
+  if (fx.pass && free > 0 && m.pass[0]?.k === 'dish') {
+    const first = m.pass[0];
+    if (!first.burnt && wanted(first.dish) > 0)
+      offer(
+        counter('pass', 'pick'),
+        91 + dishUrgency(first.dish) + (held.length && p.z < 3 ? 17 : 0),
+      );
+    else if (first.burnt) offer(counter('pass', 'pick'), 26);
+    // An unwanted plate at the front blocks a wanted one behind it: take it
+    // off the shelf (the spare logic below bins it when hands fill up).
+    else if (
+      m.pass
+        .slice(1)
+        .some((i) => i.k === 'dish' && !i.burnt && wanted(i.dish) > 0)
+    )
+      offer(counter('pass', 'pick'), 60);
+  }
+  const spare = held.find((i) => dishDemand(m, i.dish) === 0);
+  if (spare) {
+    const future =
+      clock(m) > 22 &&
+      m.groups.some((g) =>
+        ['queue', 'follow', 'read', 'order', 'arrive'].includes(g.state),
+      );
+    // The pass accepts the oldest plate, only with full hands; it is FIFO.
+    // Never put then immediately pick the same unwanted plate back up.
+    if (
+      fx.pass &&
+      free === 0 &&
+      m.pass.length < PASS_SIZE &&
+      held[0] === spare &&
+      future
+    )
+      offer(counter('pass', 'put'), 80);
+    else if (!future || free === 0) offer(counter('bin', 'bin'), 55);
+  }
   for (const g of waiting) {
-    const fits = m.tables.some(
-      (t) => t.group < 0 && !t.dirty && t.seats >= g.guests.length,
-    );
-    if (!fits) continue;
-    // Stand just in front of the row.
+    if (g.state !== 'queue') continue;
+    if (
+      !m.tables.some(
+        (t) => t.group < 0 && !t.dirty && t.seats >= g.guests.length,
+      )
+    )
+      continue;
     const q = QUEUE[g.slot];
-    const to: [number, number] = [q.x + 0.3, q.z + 0.6];
-    return { key: `lead:${g.id}`, to, kind: 'lead', target: g.id };
+    // Leading does not occupy a hand: do it while holding food as well.
+    // Coffee must be poured before a low party can be led.
+    if (pot && g.patience < 0.65) continue;
+    offer(
+      {
+        key: `lead:${g.id}`,
+        to: [q.x + 0.3, q.z + 0.6],
+        kind: 'lead',
+        group: g.id,
+      },
+      68 + urgent(g),
+    );
   }
-  for (const t of m.tables)
-    if (t.dirty && t.group < 0 && free(`clear:${t.slot}`))
-      return {
-        key: `clear:${t.slot}`,
-        to: tablePoint(m, t.slot, p.x, p.z),
-        kind: 'clear',
-        target: t.slot,
-      };
   for (const u of m.puddles)
-    if (free(`mop:${u.id}`))
-      return { key: `mop:${u.id}`, to: [u.x, u.z], kind: 'mop' };
-  return null;
+    offer(
+      { key: `mop:${u.id}`, to: [u.x, u.z], kind: 'mop', puddle: u.id },
+      fx.rubberBoots ? 1 : 12,
+    );
+  // Wait by a needed plate instead of walking away just before it finishes.
+  for (const s of m.stations)
+    if (
+      !s.jam &&
+      free > 0 &&
+      wanted(stationDish[s.id]) > 0 &&
+      stationSlots(s).some((lane) => lane.state === 'cook')
+    )
+      offer({ ...counter(s.id, 'take'), key: `hold:${s.id}` }, 22);
+  return best;
 }
 
 /**
@@ -275,19 +438,19 @@ export function botInput(
   pause = 3,
 ): Input {
   const p = m.players[pi];
-  const none: Input = { mx: 0, mz: 0, use: false, out: false };
+  const none: Input = { mx: 0, mz: 0, use: false, out: false, dash: false };
   if (m.phase !== 'open' || p.mop > 0) return none;
   if (mem.wait > 0) {
     mem.wait--;
     return none;
   }
-  const job = chooseJob(m, pi, claims, spot);
+  const job = chooseJob(m, pi, claims, spot, mem.goal);
   if (!job) {
     mem.goal = '';
     return none;
   }
   claims.add(job.key);
-  if (job.kind === 'out') {
+  if (job.kind === 'out' && p.dash === 0) {
     const target = outTarget(m, pi);
     if (target === job.target) {
       mem.wait = pause;
@@ -296,14 +459,24 @@ export function botInput(
   } else {
     const a = actionFor(m, pi);
     const id =
-      job.kind === 'lead' ? a?.group : job.counter ? a?.counter : a?.table;
+      job.group !== undefined
+        ? a?.group
+        : job.puddle !== undefined
+          ? a?.puddle
+          : job.counter
+            ? a?.counter
+            : a?.table;
     if (
       a &&
+      p.dash === 0 &&
       a.kind === job.kind &&
       !job.key.startsWith('hold') &&
-      (job.target === undefined && job.counter === undefined
+      (job.target === undefined &&
+      job.counter === undefined &&
+      job.group === undefined &&
+      job.puddle === undefined
         ? true
-        : id === (job.counter ?? job.target))
+        : id === (job.group ?? job.puddle ?? job.counter ?? job.target))
     ) {
       mem.wait = pause;
       return { ...none, use: true };
@@ -328,7 +501,8 @@ export function botInput(
   mem.replan--;
   while (
     mem.path.length &&
-    Math.hypot(mem.path[0][0] - p.x, mem.path[0][1] - p.z) < 0.12
+    Math.hypot(mem.path[0][0] - p.x, mem.path[0][1] - p.z) <
+      (p.dash > 0 ? 0.38 : 0.12)
   )
     mem.path.shift();
   const next = mem.path[0];
@@ -337,7 +511,9 @@ export function botInput(
     const target =
       job.kind === 'out'
         ? m.guests.find((x) => x.id === job.target)
-        : undefined;
+        : job.kind === 'juke'
+          ? JUKEBOX
+          : undefined;
     const fx = (target?.x ?? job.to[0]) - p.x;
     const fz = (target?.z ?? job.to[1] - 0.5) - p.z;
     const d = Math.hypot(fx, fz) || 1;
@@ -347,7 +523,14 @@ export function botInput(
     dz = next[1] - p.z;
   const d = Math.hypot(dx, dz) || 1;
   const slow = Math.min(1, d / 0.3 + 0.35);
-  return { ...none, mx: (dx / d) * slow, mz: (dz / d) * slow };
+  return {
+    ...none,
+    mx: (dx / d) * slow,
+    mz: (dz / d) * slow,
+    // A dash travels about 2.5 floor units. Start only on a long straight
+    // path segment, leaving room to stop before a corner or an action.
+    dash: matchEffects(m).dash && !p.dashCool && d > 2.9,
+  };
 }
 
 /** Plays a whole shift with a bot in every seat; returns the finished match. */

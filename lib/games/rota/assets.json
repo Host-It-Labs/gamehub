@@ -2,20 +2,20 @@
   "textures": {},
   "models": {
     "vehicles": {
-      "path": "/3d/rota/models/vehicles-2d787150.glb",
-      "bytes": 5563420
+      "path": "/3d/rota/models/vehicles-cc7dd9cc.glb",
+      "bytes": 2010608
     },
     "nature": {
-      "path": "/3d/rota/models/nature-8f7cb9f5.glb",
-      "bytes": 4858272
+      "path": "/3d/rota/models/nature-1de73f03.glb",
+      "bytes": 1668148
     },
     "town": {
-      "path": "/3d/rota/models/town-2a671705.glb",
-      "bytes": 2301960
+      "path": "/3d/rota/models/town-c01b9eeb.glb",
+      "bytes": 740284
     },
     "works": {
-      "path": "/3d/rota/models/works-511d616e.glb",
-      "bytes": 2942384
+      "path": "/3d/rota/models/works-7bec1931.glb",
+      "bytes": 1296472
     }
   }
 }

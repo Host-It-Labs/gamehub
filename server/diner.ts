@@ -1,13 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomInt } from 'node:crypto';
 import { check, token, type Identity } from './auth.ts';
+import { MAX_PLAYERS } from '../lib/games/diner/content.ts';
+import { isLevelId, levelConfig } from '../lib/games/diner/levels.ts';
 import {
-  isNight,
-  MAX_PLAYERS,
-  type NightId,
-} from '../lib/games/diner/content.ts';
-import {
-  createMatch,
+  createConfiguredMatch,
   idle,
   movePlayer,
   open,
@@ -69,7 +66,7 @@ export type DinerRoom = {
   token: string;
   table: string | null;
   owner: string;
-  night: NightId;
+  level: number;
   seats: Seat[];
   status: DinerRoomView['status'];
   round: number;
@@ -128,7 +125,7 @@ export class DinerRooms {
     members: { id: string; name: string }[],
     input: Record<string, unknown>,
   ) {
-    check(isNight(input.night), 400, 'Choose a night.');
+    check(isLevelId(input.level), 400, 'Choose a level.');
     check(
       members.length >= 1 && members.length <= MAX_PLAYERS,
       409,
@@ -146,12 +143,12 @@ export class DinerRooms {
       503,
       'Too many diners are open. Please try again soon.',
     );
-    const night = input.night as NightId;
+    const level = input.level as number;
     const room: DinerRoom = {
       token: token(),
       table,
       owner,
-      night,
+      level,
       seats: people.map((p) => ({
         id: p.id,
         name: p.name,
@@ -163,9 +160,9 @@ export class DinerRooms {
       })),
       status: 'waiting',
       round: 1,
-      match: createMatch(
+      match: createConfiguredMatch(
         randomInt(1, 2 ** 31),
-        night,
+        levelConfig(level),
         people.map((p) => p.name),
       ),
       n: 0,
@@ -289,7 +286,7 @@ export class DinerRooms {
   view(room: DinerRoom, id: string): DinerRoomView {
     return {
       token: room.token,
-      night: room.night,
+      level: room.level,
       seats: room.seats.map((s, i) => ({
         name: s.name,
         connected: this.connected(room, i),
@@ -425,7 +422,7 @@ export class DinerRooms {
     return { ok: true };
   }
 
-  /** The host starts the next shift (the same night, or another). */
+  /** The host starts the next shift (the same level, or another). */
   again(invite: string, who: Identity | null, body: Record<string, unknown>) {
     const room = this.find(invite);
     this.seatOf(room, who);
@@ -436,15 +433,15 @@ export class DinerRooms {
     );
     check(room.status === 'over', 409, 'The shift is still on.');
     check(
-      body.night === undefined || isNight(body.night),
+      body.level === undefined || isLevelId(body.level),
       400,
-      'Choose a night.',
+      'Choose a level.',
     );
-    if (isNight(body.night)) room.night = body.night;
+    if (isLevelId(body.level)) room.level = body.level;
     room.round++;
-    room.match = createMatch(
+    room.match = createConfiguredMatch(
       randomInt(1, 2 ** 31),
-      room.night,
+      levelConfig(room.level),
       room.seats.map((s) => s.name),
     );
     room.events = [];

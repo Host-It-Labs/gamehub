@@ -60,12 +60,12 @@ export class FolioRuns {
     const row = this.db
       .prepare('SELECT state FROM folio_runs WHERE token=?')
       .get(invite) as { state: string } | undefined;
-    check(row, 404, 'This Folio run could not be found.');
+    check(row, 404, 'This Puzzles run could not be found.');
     const g = JSON.parse(row.state) as FolioGame;
     check(
       g.version === 3,
       410,
-      'This run belongs to an earlier test edition of Folio. Start a new one.',
+      'This run belongs to an earlier test edition of Puzzles. Start a new one.',
     );
     return g;
   }

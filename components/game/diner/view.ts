@@ -1,35 +1,53 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
-  dishes,
   stationDish,
   type NightId,
   type StationId,
 } from '@/lib/games/diner/content';
-import type {
-  DinerEvent,
-  Group,
-  Guest,
-  Match,
-  UseAction,
+import type { PlaceId } from '@/lib/games/diner/road';
+import {
+  burnSeconds,
+  cookSeconds,
+  eatSeconds,
+  isRush,
+  powerOnline,
+  stationSlots,
+  type DinerEvent,
+  type Item,
+  type Group,
+  type Guest,
+  type Match,
+  type UseAction,
 } from '@/lib/games/diner/engine';
 import {
   boothHz,
   COUNTER_X,
   COUNTER_Z,
-  D,
   DOOR_GAP,
   DOOR_IN,
+  JUKEBOX,
   QUEUE,
   seatOffset,
-  W,
 } from '@/lib/games/diner/layout';
-import type { Rung } from '../arena/pacer';
+import type { Rung } from '../render-pacer';
+import { devicePower } from '../render-quality';
 import { Effects } from './fx';
+import { fitDinerCamera, type Frame } from './framing';
 import { Kit, makeMaterials, meshes, type Materials } from './kit';
+import { nightRig, type NightRig } from './lighting';
+import { buildCounter, type Counter } from './stations';
+import { buildStage } from './stage';
+import type { CarUpgrades, Stage } from './stage-contract';
+import { disposeSurfaceMaterials } from './materials';
+import { cached, releaseShared, shared } from './model-cache';
+import { expression } from './people';
+import { advanceStride, mopGripPoint, poseFigure } from './people-motion';
 import {
   basketMesh,
-  buildShell,
   C,
   disposeCache,
   gooFigure,
@@ -39,25 +57,33 @@ import {
   puddleMesh,
   SEAT_COLOURS,
   shakeCupMesh,
+  stationLaneX,
   waiterFigure,
   type Figure,
   type Prop,
-  type Shell,
 } from './models';
 
-/** Where the stage sits on the canvas, in CSS pixels. */
-export type Frame = {
-  width: number;
-  height: number;
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
+/** How a shift's room is set up. */
+export type ViewOptions = {
+  night: NightId;
+  place: PlaceId;
+  tables: number[];
+  stations: StationId[];
+  players: number;
+  pixelRatio: number;
+  upgrades: CarUpgrades;
+  grillLanes: number;
+  pass: boolean;
+  coffee: boolean;
+  /** Roller skates (Dash): the waiters wear them. */
+  skates: boolean;
 };
+
+/** Where the stage sits on the canvas, in CSS pixels. */
+export type { Frame } from './framing';
 
 /** Figures are drawn a little larger than life so outfits read on phones. */
 const GUEST_SCALE = 1.3;
-const ELEVATION = (52 * Math.PI) / 180;
 
 type Actor = {
   figure: Figure;
@@ -67,11 +93,39 @@ type Actor = {
   goo: boolean;
   hop: number;
   shake: number;
-  prop: Prop | null;
+  prop: string | null;
   propMesh: THREE.Object3D | null;
+  gesture: number;
 };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** A pink roller skate under a shoe: a sole plate and four yellow wheels. */
+function skate(mats: Materials) {
+  return shared(
+    cached('skate', (k) => {
+      k.rbox(
+        'gloss',
+        '#ff7aa6',
+        [0.085, 0.016, 0.21],
+        0.006,
+        [0, -0.094, 0.03],
+      );
+      k.rbox('chrome', C.chrome, [0.06, 0.01, 0.17], 0.004, [0, -0.106, 0.03]);
+      for (const z of [-0.035, 0.1])
+        for (const x of [-0.034, 0.034])
+          k.cyl('gloss', '#ffd23f', 0.022, 0.022, 0.02, [x, -0.122, z], {
+            axis: 'x',
+            seg: 14,
+          });
+      k.cyl('paint', '#e8457a', 0.018, 0.018, 0.02, [0, -0.09, 0.15], {
+        axis: 'z',
+        seg: 12,
+      });
+    }),
+    mats,
+  );
+}
 const angleTo = (from: number, to: number, k: number) => {
   let d = to - from;
   while (d > Math.PI) d -= Math.PI * 2;
@@ -90,11 +144,14 @@ export class DinerView {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
   private mats: Materials;
-  private shell: Shell;
+  private stage: Stage;
+  private counter: Counter;
+  private rig: NightRig;
+  private composer: EffectComposer;
+  private bloom: UnrealBloomPass;
+  private output: OutputPass;
   private fx = new Effects();
-  private sun: THREE.DirectionalLight;
-  private neonLight: THREE.PointLight;
-  private jukeLight: THREE.PointLight;
+  private lanes: number;
   private waiters: Actor[] = [];
   private guests = new Map<number, Actor>();
   private puddles = new Map<number, THREE.Object3D>();
@@ -104,7 +161,7 @@ export class DinerView {
       cook: THREE.Object3D | null;
       ready: THREE.Object3D | null;
       burnt: THREE.Object3D | null;
-    }
+    }[]
   >();
   private tableProps = new Map<number, THREE.Group>();
   private tableKey = new Map<number, string>();
@@ -112,13 +169,21 @@ export class DinerView {
   private outRing: THREE.Mesh;
   private markers: THREE.Mesh[] = [];
   private mop: THREE.Group;
-  private env: THREE.Texture;
+  private mopLower = new THREE.Vector3();
+  private mopUpper = new THREE.Vector3();
+  private mopAxis = new THREE.Vector3();
+  private mopUp = new THREE.Vector3(0, 1, 0);
   private ringGeo = new THREE.RingGeometry(0.42, 0.52, 40);
   private discGeo = new THREE.CircleGeometry(0.42, 32);
   private extra: { dispose: () => void }[] = [];
   private doorOpen = 0;
   private binOpen = 0;
-  private flicker = 0;
+  private washing = 0;
+  private passProps: THREE.Object3D[] = [];
+  private passKey = '';
+  /** Wheel height under skating waiters. */
+  private lift = 0;
+  private reduced = false;
   private shadowEvery: 1 | 2 = 1;
   private frames = 0;
   private basePixelRatio: number;
@@ -126,14 +191,12 @@ export class DinerView {
   private time = 0;
   you = 0;
 
-  constructor(
-    canvas: HTMLCanvasElement,
-    readonly night: NightId,
-    tables: number[],
-    stations: StationId[],
-    players: number,
-    pixelRatio: number,
-  ) {
+  readonly night: NightId;
+
+  constructor(canvas: HTMLCanvasElement, o: ViewOptions) {
+    const { pixelRatio, stations, tables, players } = o;
+    this.night = o.night;
+    this.lanes = o.grillLanes;
     this.basePixelRatio = pixelRatio;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -143,50 +206,48 @@ export class DinerView {
     });
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.92;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.scene.background = new THREE.Color(
-      night === 1 ? '#1a1630' : night === 2 ? '#0c1226' : '#080a1a',
-    );
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    pmrem.dispose();
-    this.scene.environment = this.env;
-    this.scene.environmentIntensity = 0.32;
     this.mats = makeMaterials();
-
-    // Light: a warm key from above the front left, the night's cool fill,
-    // and the neon and jukebox colouring their corners.
-    const hemi = new THREE.HemisphereLight('#aeb9ff', '#5a2a3a', 0.55);
-    this.scene.add(hemi);
-    this.sun = new THREE.DirectionalLight('#ffd9a8', 2.1);
-    this.sun.position.set(W / 2 - 4, 11, D / 2 + 5);
-    this.sun.target.position.set(W / 2, 0, D / 2);
-    this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
-    const sc = this.sun.shadow.camera;
-    sc.left = -8.5;
-    sc.right = 8.5;
-    sc.top = 8.5;
-    sc.bottom = -8.5;
-    sc.near = 1;
-    sc.far = 30;
-    this.sun.shadow.bias = -0.0006;
-    this.sun.shadow.normalBias = 0.02;
-    this.sun.shadow.radius = 3;
-    this.scene.add(this.sun, this.sun.target);
-    this.neonLight = new THREE.PointLight(C.pink, 4, 4.5, 1.6);
-    this.neonLight.position.set(5.4, 1.75, 0.6);
-    this.jukeLight = new THREE.PointLight('#ffb15c', 3, 4, 1.6);
-    this.jukeLight.position.set(10.0, 1.2, 9.7);
-    this.scene.add(this.neonLight, this.jukeLight);
-
-    this.shell = buildShell(this.mats, night, stations, tables);
-    this.scene.add(this.shell.group);
+    // Night on the patio: a warm pool on the deck, the place in moonlight.
+    this.rig = nightRig(this.scene, this.renderer, o.place);
+    // Strong phones get the full models; weaker ones the lighter cut.
+    const phone = Math.min(window.innerWidth, window.innerHeight) < 600;
+    const power = devicePower();
+    this.stage = buildStage(this.mats, {
+      place: o.place,
+      tables,
+      upgrades: o.upgrades,
+      quality: power === 'low' || (phone && power === 'mid') ? 'low' : 'high',
+    });
+    this.scene.add(this.stage.group);
+    this.counter = buildCounter(this.mats, {
+      stations,
+      grillLanes: o.grillLanes,
+      pass: o.pass,
+      coffee: o.coffee,
+    });
+    this.scene.add(this.counter.group);
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    // Bloom only lifts the neon and bulbs; it never washes the deck.
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.2, 0.35, 0.96);
+    this.composer.addPass(this.bloom);
+    this.output = new OutputPass();
+    this.composer.addPass(this.output);
+    this.lift = o.skates ? 0.05 : 0;
     for (const id of stations)
-      this.stationProps.set(id, { cook: null, ready: null, burnt: null });
+      this.stationProps.set(
+        id,
+        Array.from(
+          { length: id === 'pie' ? 1 : id === 'grill' ? o.grillLanes : 2 },
+          () => ({
+            cook: null,
+            ready: null,
+            burnt: null,
+          }),
+        ),
+      );
     this.scene.add(this.fx.group);
 
     const ringMat = new THREE.MeshBasicMaterial({
@@ -216,6 +277,9 @@ export class DinerView {
 
     for (let i = 0; i < players; i++) {
       const figure = waiterFigure(this.mats, i);
+      if (o.skates)
+        for (const ankle of figure.joints?.ankles ?? [])
+          ankle.add(skate(this.mats));
       this.scene.add(figure.root);
       this.waiters.push({
         figure,
@@ -227,6 +291,7 @@ export class DinerView {
         shake: 0,
         prop: null,
         propMesh: null,
+        gesture: 0,
       });
       const mat = new THREE.MeshBasicMaterial({
         color: SEAT_COLOURS[i],
@@ -243,8 +308,18 @@ export class DinerView {
       this.extra.push(mat);
     }
     const mk = new Kit();
-    mk.cyl('paint', C.wood, 0.025, 0.025, 1.1, [0, 0.55, 0]);
-    mk.cyl('paint', C.gold, 0.16, 0.2, 0.14, [0, 0.03, 0]);
+    mk.cyl('wood', C.wood, 0.025, 0.025, 1.1, [0, 0.55, 0]);
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      mk.capsule(
+        'cloth',
+        '#ded8c8',
+        0.014,
+        0.11,
+        [Math.cos(a) * 0.09, 0.054, Math.sin(a) * 0.09],
+        { rot: [Math.sin(a) * 0.31, 0, Math.cos(a) * 0.31] },
+      );
+    }
     this.mop = meshes(mk.build(), this.mats);
     this.mop.visible = false;
     this.scene.add(this.mop);
@@ -255,72 +330,36 @@ export class DinerView {
     const width = Math.max(1, f.width);
     const height = Math.max(1, f.height);
     this.renderer.setSize(width, height, false);
-    const target = new THREE.Vector3(W / 2, 0, D / 2);
-    const cam = this.camera;
-    cam.position.set(
-      target.x,
-      target.y + Math.sin(ELEVATION) * 30,
-      target.z + Math.cos(ELEVATION) * 30,
-    );
-    cam.up.set(0, 1, 0);
-    cam.lookAt(target);
-    cam.updateMatrixWorld(true);
-    const inv = cam.matrixWorldInverse;
-    const pts: [number, number, number][] = [
-      [-0.25, -0.12, -0.25],
-      [W + 0.25, -0.12, -0.25],
-      [-0.25, 2.55, -0.25],
-      [W + 0.25, 2.55, -0.25],
-      [-0.35, -0.12, D + 0.3],
-      [W + 0.35, -0.12, D + 0.3],
-      [-0.3, 0.4, D + 0.2],
-      [W + 0.3, 0.4, D + 0.2],
-    ];
-    let x0 = Infinity,
-      x1 = -Infinity,
-      y0 = Infinity,
-      y1 = -Infinity;
-    const v = new THREE.Vector3();
-    for (const p of pts) {
-      v.set(...p).applyMatrix4(inv);
-      x0 = Math.min(x0, v.x);
-      x1 = Math.max(x1, v.x);
-      y0 = Math.min(y0, v.y);
-      y1 = Math.max(y1, v.y);
-    }
-    const availW = Math.max(40, width - f.left - f.right);
-    const availH = Math.max(40, height - f.top - f.bottom);
-    const s = Math.max((x1 - x0) / availW, (y1 - y0) / availH) * 1.02;
-    const rcx = f.left + availW / 2;
-    const rcy = f.top + availH / 2;
-    const bcx = (x0 + x1) / 2;
-    const bcy = (y0 + y1) / 2;
-    cam.left = bcx - rcx * s;
-    cam.right = cam.left + width * s;
-    cam.top = bcy + rcy * s;
-    cam.bottom = cam.top - height * s;
-    cam.near = 1;
-    cam.far = 70;
-    cam.updateProjectionMatrix();
-    this.pixelsPerUnit = 1 / s;
+    this.composer.setSize(width, height);
+    this.pixelsPerUnit = fitDinerCamera(
+      this.camera,
+      f,
+      this.stage.landmarks,
+    ).pixelsPerUnit;
     this.fx.setScale(this.pixelsPerUnit * this.renderer.getPixelRatio());
   }
 
   setRung(r: Rung) {
     this.renderer.setPixelRatio(this.basePixelRatio * r.resolution);
+    this.composer.setPixelRatio(this.basePixelRatio * r.resolution);
+    // Bloom is the first thing a struggling device gives up, measured
+    // against the 2× the diner drew at before native density.
+    this.bloom.enabled =
+      this.basePixelRatio * r.resolution >=
+      0.85 * Math.min(this.basePixelRatio, 2);
     this.shadowEvery = r.shadowEvery;
-    if (this.sun.shadow.mapSize.x !== r.shadowSize) {
+    const key = this.rig.key;
+    if (key.shadow.mapSize.x !== r.shadowSize) {
       const size = Math.min(2048, r.shadowSize);
-      this.sun.shadow.mapSize.set(size, size);
-      this.sun.shadow.map?.dispose();
-      this.sun.shadow.map = null;
+      key.shadow.mapSize.set(size, size);
+      key.shadow.map?.dispose();
+      key.shadow.map = null;
     }
-    const size = new THREE.Vector2();
-    this.renderer.getSize(size);
     this.fx.setScale(this.pixelsPerUnit * this.renderer.getPixelRatio());
   }
 
   set calm(on: boolean) {
+    this.reduced = on;
     this.fx.calm = on;
   }
 
@@ -336,9 +375,20 @@ export class DinerView {
 
   handle(m: Match, events: DinerEvent[]) {
     for (const e of events) {
+      if (
+        'player' in e &&
+        ['cook', 'order', 'serve', 'clear', 'wash', 'repair'].includes(e.type)
+      ) {
+        const waiter = this.waiters[e.player];
+        if (waiter) waiter.gesture = 0.7;
+      }
+      if ('station' in e) {
+        const rig = this.counter.machines.get(e.station);
+        if (rig && ['cook', 'take', 'repair'].includes(e.type)) rig.pulse = 1;
+      }
       switch (e.type) {
         case 'cook': {
-          const x = COUNTER_X[e.station];
+          const x = stationLaneX(e.station, e.slot, this.laneCount(e.station));
           this.fx.emit(
             e.station === 'shake' ? 'bubble' : 'steam',
             x,
@@ -349,7 +399,7 @@ export class DinerView {
           break;
         }
         case 'ready': {
-          const x = COUNTER_X[e.station];
+          const x = stationLaneX(e.station, e.slot, this.laneCount(e.station));
           this.fx.emit('spark', x, 1.1, 1.15, {
             count: 10,
             speed: 0.6,
@@ -359,7 +409,7 @@ export class DinerView {
           break;
         }
         case 'burnt': {
-          const x = COUNTER_X[e.station];
+          const x = stationLaneX(e.station, e.slot, this.laneCount(e.station));
           this.fx.emit('smoke', x, 1.1, 0.9, {
             count: 14,
             spread: 0.3,
@@ -368,7 +418,7 @@ export class DinerView {
           break;
         }
         case 'take': {
-          const x = COUNTER_X[e.station];
+          const x = stationLaneX(e.station, e.slot, this.laneCount(e.station));
           this.fx.emit('dust', x, 1.0, 1.2, { count: 5, size: 0.14 });
           const w = this.waiters[e.player];
           if (w) w.hop = 1;
@@ -421,6 +471,7 @@ export class DinerView {
           break;
         }
         case 'wash':
+          this.washing = 1.05;
           this.fx.emit('bubble', COUNTER_X.sink, 1.05, 0.7, {
             count: 18,
             spread: 0.3,
@@ -494,6 +545,80 @@ export class DinerView {
         case 'open':
           this.doorOpen = 1;
           break;
+        case 'jam':
+          this.fx.emit('smoke', COUNTER_X[e.station], 1.25, 0.8, {
+            count: 4,
+            size: 0.17,
+            colour: '#ceaa62',
+          });
+          break;
+        case 'dash': {
+          const p = m.players[e.player];
+          if (p)
+            this.fx.emit('dust', p.x - p.fx * 0.3, 0.1, p.z - p.fz * 0.3, {
+              count: 8,
+              spread: 0.25,
+              size: 0.2,
+            });
+          break;
+        }
+        case 'pour': {
+          const g = m.groups.find((x) => x.id === e.group);
+          const x = g ? m.guests.find((y) => y.id === g.guests[0]) : undefined;
+          if (x) {
+            this.fx.emit('steam', x.x, 1.3, x.z, {
+              count: 8,
+              spread: 0.3,
+              size: 0.2,
+            });
+            this.fx.emit('spark', x.x, 1.5, x.z, {
+              count: 8,
+              size: 0.16,
+              colour: '#ffe2b0',
+            });
+          }
+          const w = this.waiters[e.player];
+          if (w) w.gesture = 0.7;
+          break;
+        }
+        case 'juke':
+          this.fx.emit('spark', JUKEBOX.x, 1.6, JUKEBOX.z, {
+            count: 24,
+            spread: 0.6,
+            size: 0.22,
+            colour: '#ff8fd0',
+            speed: 0.9,
+          });
+          this.fx.emit('bubble', JUKEBOX.x, 1.2, JUKEBOX.z, {
+            count: 10,
+            spread: 0.5,
+            size: 0.12,
+          });
+          break;
+        case 'put':
+        case 'pick':
+          this.fx.emit('spark', COUNTER_X.pass, 1.3, 0.95, {
+            count: 6,
+            size: 0.12,
+            colour: '#ffcf8a',
+          });
+          break;
+        case 'pot':
+          this.fx.emit('steam', COUNTER_X.coffee, 1.7, 0.7, {
+            count: 5,
+            spread: 0.15,
+            size: 0.16,
+          });
+          break;
+        case 'repair':
+          this.fx.emit(
+            e.left ? 'dust' : 'spark',
+            COUNTER_X[e.station],
+            1.22,
+            1,
+            { count: e.left ? 3 : 8, size: 0.13 },
+          );
+          break;
       }
     }
   }
@@ -509,13 +634,14 @@ export class DinerView {
       a = {
         figure,
         yaw: Math.atan2(x.fx, x.fz),
-        phase: Math.random() * 6,
+        phase: x.id * 0.717,
         seat: -1,
         goo: false,
         hop: 0,
         shake: 0,
         prop: null,
         propMesh: null,
+        gesture: 0,
       };
       this.guests.set(x.id, a);
     }
@@ -523,6 +649,7 @@ export class DinerView {
       // Pop back into goo.
       const at = a.figure.root.position.clone();
       this.scene.remove(a.figure.root);
+      releaseShared(a.figure.root);
       a.figure = gooFigure(this.mats);
       a.figure.root.scale.setScalar(GUEST_SCALE);
       a.figure.root.position.copy(at);
@@ -533,15 +660,35 @@ export class DinerView {
     return a;
   }
 
-  private setProp(a: Actor, p: Prop | null) {
+  private laneCount(id: StationId) {
+    return id === 'grill' ? this.lanes : 2;
+  }
+
+  /** What a waiter holds, as a stack in the carrying hands. */
+  private setProp(a: Actor, items: Prop[]) {
+    const p = items.join(',') || null;
     if (a.prop === p) return;
-    if (a.propMesh) a.figure.hold?.remove(a.propMesh);
+    if (a.propMesh) {
+      a.figure.hold?.remove(a.propMesh);
+      releaseShared(a.propMesh);
+    }
     a.prop = p;
     a.propMesh = null;
-    if (p && a.figure.hold) {
-      a.propMesh = propMesh(this.mats, p);
-      a.propMesh.scale.setScalar(1.25);
-      a.figure.hold.add(a.propMesh);
+    if (items.length && a.figure.hold) {
+      // Plates side by side across both hands, the way a waiter carries
+      // them, so none hides the face; a third rides on top in the middle.
+      const stack = new THREE.Group();
+      const spread = items.length > 1 ? 0.13 : 0;
+      items.forEach((item, i) => {
+        const mesh = propMesh(this.mats, item);
+        if (i < 2) mesh.position.set((i === 0 ? -1 : 1) * spread, 0, 0.02);
+        else mesh.position.set(0, 0.07, 0.07);
+        mesh.rotation.y = i * 0.5;
+        stack.add(mesh);
+      });
+      stack.scale.setScalar(1.25);
+      a.propMesh = stack;
+      a.figure.hold.add(stack);
     }
   }
 
@@ -553,7 +700,6 @@ export class DinerView {
   ) {
     this.time += dt;
     const t = this.time;
-    const k = 1 - Math.pow(0.0001, dt);
     // Waiters.
     m.players.forEach((p, i) => {
       const a = this.waiters[i];
@@ -562,44 +708,67 @@ export class DinerView {
       const z = lerp(p.pz, p.z, alpha);
       const root = a.figure.root;
       const moved = Math.hypot(x - root.position.x, z - root.position.z);
-      root.position.set(x, 0, z);
+      root.position.set(x, this.lift, z);
       a.yaw = angleTo(a.yaw, Math.atan2(p.fx, p.fz), Math.min(1, dt * 14));
       root.rotation.y = a.yaw;
-      this.animateWalk(a, moved, dt, p.moving ? 1 : 0);
-      const carry = p.carry;
-      const prop: Prop | null =
-        carry?.k === 'dish'
-          ? carry.burnt
+      a.phase = advanceStride(a.figure, a.phase, moved);
+      const held: Prop[] = p.hands.map((i: Item) =>
+        i.k === 'dish'
+          ? i.burnt
             ? 'burnt'
-            : carry.dish
-          : carry?.k === 'dirty'
+            : i.dish
+          : i.k === 'dirty'
             ? 'dirty'
-            : carry?.k === 'lead'
-              ? 'menu'
-              : null;
-      this.setProp(a, prop);
-      const [l, r] = a.figure.arms!;
-      const raise = prop ? -1.25 : 0;
-      l.rotation.x = lerp(l.rotation.x, raise, k * 0.9);
-      r.rotation.x = lerp(r.rotation.x, raise, k * 0.9);
-      if (!prop) {
-        const swing = Math.sin(a.phase) * 0.5 * (p.moving ? 1 : 0);
-        l.rotation.x = lerp(l.rotation.x, swing, k);
-        r.rotation.x = lerp(r.rotation.x, -swing, k);
-      }
-      if (a.propMesh)
-        a.propMesh.position.y =
-          Math.sin(t * 9 + i) * 0.012 * (p.moving ? 1 : 0.2);
-      // Mopping: a mop in hand and a happy wiggle.
+            : 'pot',
+      );
+      // Leading a party with empty hands: the menus show it.
+      if (!held.length && p.lead >= 0) held.push('menu');
+      this.setProp(a, held);
+      const prop = held.length > 0;
+      poseFigure(a.figure, {
+        time: t,
+        phase: a.phase,
+        moving: p.moving ? 1 : 0,
+        seed: i,
+        carry: !!prop,
+        gesture: a.gesture / 0.7,
+        mopping: p.mop > 0,
+        reduced: this.reduced,
+        dt,
+      });
+      a.gesture = Math.max(0, a.gesture - dt);
+      a.hop = Math.max(0, a.hop - dt * 3.5);
+      a.shake = Math.max(0, a.shake - dt * 3);
+      if (!this.reduced && a.shake > 0)
+        a.figure.body.rotation.y = Math.sin(a.shake * 40) * 0.15 * a.shake;
+      expression(
+        a.figure,
+        a.gesture > 0 ? 'smile' : 'rest',
+        t,
+        i,
+        this.reduced,
+      );
+      // The shaft passes through both palms and meets the floor. Its motion
+      // comes from the posed hands, including their yaw and reduced motion.
       if (p.mop > 0 && i === this.you) {
         this.mop.visible = true;
-        this.mop.position.set(x + p.fx * 0.35, 0, z + p.fz * 0.35);
-        this.mop.rotation.z = Math.sin(t * 14) * 0.35;
+        const low = mopGripPoint(a.figure, 1, this.mopLower);
+        const high = mopGripPoint(a.figure, 0, this.mopUpper);
+        this.mop.visible = !!low && !!high;
+        if (low && high) {
+          this.mopAxis.subVectors(high, low).normalize();
+          this.mop.position
+            .copy(low)
+            .addScaledVector(this.mopAxis, -low.y / this.mopAxis.y);
+          this.mop.quaternion.setFromUnitVectors(this.mopUp, this.mopAxis);
+        }
       } else if (i === this.you) this.mop.visible = false;
-      if (p.mop > 0) a.figure.body.rotation.z = Math.sin(t * 14) * 0.12;
       const marker = this.markers[i];
       marker.position.set(x, 0.012, z);
-      const pulse = i === this.you ? 0.55 + Math.sin(t * 4) * 0.12 : 0.35;
+      const pulse =
+        i === this.you
+          ? 0.55 + (this.reduced ? 0 : Math.sin(t * 3) * 0.05)
+          : 0.35;
       (marker.material as THREE.MeshBasicMaterial).opacity = pulse;
       marker.scale.setScalar(i === this.you ? 1.05 : 0.9);
     });
@@ -625,10 +794,10 @@ export class DinerView {
       const walking = moved > 0.002;
       if (a.goo) {
         // Goo bounds along, squashing and stretching.
-        const s = Math.sin(t * 16 + x.id);
+        const s = this.reduced ? 0 : Math.sin(t * 12 + x.id);
         a.figure.body.scale.set(1 + s * 0.12, 1 - s * 0.14, 1 + s * 0.12);
-        root.position.y = Math.max(0, Math.sin(t * 16 + x.id) * 0.08);
-        if (walking && Math.random() < 0.35)
+        root.position.y = Math.max(0, s * 0.06);
+        if (walking && !this.reduced && Math.random() < dt * 8)
           this.fx.emit('goo', px, 0.1, pz, {
             count: 1,
             size: 0.12,
@@ -636,45 +805,57 @@ export class DinerView {
           });
       } else {
         root.position.y = sitting ? 0.16 : 0;
-        const [l, r] = a.figure.legs;
-        if (sitting) {
-          l.rotation.x = lerp(l.rotation.x, -1.45, k);
-          r.rotation.x = lerp(r.rotation.x, -1.45, k);
-        } else
-          this.animateWalk(a, moved, dt, walking ? 1 : 0, g?.angry ? 1.6 : 1);
+        if (!sitting) a.phase = advanceStride(a.figure, a.phase, moved);
         const eating = g?.state === 'eat';
-        const following = g?.state === 'follow';
         const low =
           !!g &&
           g.patience < 0.3 &&
           g.state !== 'leave' &&
           g.state !== 'eat' &&
           g.state !== 'follow';
-        let bob = 0;
-        if (eating) bob = Math.abs(Math.sin(t * 7 + x.id)) * 0.05;
-        if (following && walking)
-          bob += Math.abs(Math.sin(t * 12 + x.id)) * 0.06;
-        if (!walking && !sitting && !low) bob += Math.sin(t * 2 + x.id) * 0.012;
-        a.figure.body.position.y =
-          bob + a.hop * 0.12 * Math.sin((1 - a.hop) * Math.PI);
-        a.figure.body.rotation.z = low
-          ? Math.sin(t * 30 + x.id) * 0.06
-          : lerp(a.figure.body.rotation.z, 0, k);
-        if (low && Math.random() < dt * 1.2)
+        poseFigure(a.figure, {
+          time: t,
+          phase: a.phase,
+          moving: walking && !sitting ? 1 : 0,
+          seed: x.id,
+          sitting,
+          eating,
+          impatient: !!g?.angry || low,
+          reduced: this.reduced,
+          dt,
+        });
+        expression(
+          a.figure,
+          g?.angry || low
+            ? 'frown'
+            : eating
+              ? 'eat'
+              : a.hop > 0.2
+                ? 'smile'
+                : 'rest',
+          t,
+          x.id,
+          this.reduced,
+        );
+        if (low && !this.reduced && Math.random() < dt * 0.8)
           this.fx.emit('anger', px, 1.45, pz, { count: 1, size: 0.18 });
-        if (g?.angry && Math.random() < dt * 6)
+        if (g?.angry && !this.reduced && Math.random() < dt * 3)
           this.fx.emit('anger', px, 1.45, pz, { count: 1, size: 0.22 });
       }
       a.hop = Math.max(0, a.hop - dt * 3.5);
-      if (a.shake > 0) {
+      if (a.shake > 0 && !this.reduced) {
         a.shake = Math.max(0, a.shake - dt * 2.5);
-        const s = 1 + Math.sin(a.shake * 30) * 0.18 * a.shake;
-        a.figure.body.scale.set(s, 2 - s, s);
+        if (a.goo) {
+          const s = 1 + Math.sin(a.shake * 30) * 0.18 * a.shake;
+          a.figure.body.scale.set(s, 2 - s, s);
+        } else
+          a.figure.body.rotation.y += Math.sin(a.shake * 30) * 0.08 * a.shake;
       }
     }
     for (const [id, a] of this.guests)
       if (!seen.has(id)) {
         this.scene.remove(a.figure.root);
+        releaseShared(a.figure.root);
         this.guests.delete(id);
       }
 
@@ -683,7 +864,7 @@ export class DinerView {
     this.updatePuddles(m, t);
     this.updateHints(m, hints, t);
 
-    // The door swings for anyone passing; the bin's lid falls shut.
+    // The gate swings for anyone passing; the bin's lid falls shut.
     const near = m.guests.some(
       (x) =>
         x.x < DOOR_IN.x + 0.15 &&
@@ -695,140 +876,225 @@ export class DinerView {
       near ? 1 : 0,
       Math.min(1, dt * (near ? 8 : 3)),
     );
-    this.shell.door.rotation.y = -this.doorOpen * 1.2;
     this.binOpen = Math.max(0, this.binOpen - dt * 2.2);
-    this.shell.binLid.rotation.x =
+    this.counter.binLid.rotation.x =
       -Math.sin(Math.min(1, this.binOpen) * Math.PI) * 1.1;
-    // Neon hum and the odd flicker; the jukebox cycles its colours.
-    this.flicker = Math.max(0, this.flicker - dt);
-    if (Math.random() < dt * 0.15) this.flicker = 0.25;
-    const on =
-      this.flicker > 0 ? (Math.sin(this.flicker * 80) > 0 ? 1 : 0.35) : 1;
-    (this.shell.neon.material as THREE.MeshBasicMaterial).color
-      .set(C.pink)
-      .multiplyScalar(0.75 + on * 0.6);
-    (this.shell.neonStar.material as THREE.MeshBasicMaterial).color
-      .set(C.teal)
-      .multiplyScalar(0.9 + Math.sin(t * 3) * 0.25);
-    this.neonLight.intensity = 3.6 * on;
-    const hue = (t * 0.06) % 1;
-    const jc = (this.shell.jukebox.material as THREE.MeshBasicMaterial).color;
-    jc.setHSL(hue, 0.95, 0.6).multiplyScalar(1.4);
-    this.jukeLight.color.setHSL(hue, 0.9, 0.6);
+    const powered = powerOnline(m);
+    this.rig.update(powered, t);
+    this.scene.environmentIntensity = powered ? 0.24 : 0.14;
+    this.stage.update({
+      time: t,
+      dt,
+      reduced: this.reduced,
+      power: powered,
+      rush: isRush(m),
+      gate: this.doorOpen,
+      jukebox: m.juke.play > 0 || !this.reduced,
+    });
+    this.washing = Math.max(0, this.washing - dt);
+    this.counter.water.visible = this.washing > 0;
+    this.updatePass(m);
 
     this.fx.update(dt);
     this.frames++;
     this.renderer.shadowMap.autoUpdate =
       this.shadowEvery === 1 || this.frames % 2 === 0;
-    this.renderer.render(this.scene, this.camera);
+    this.composer.render();
   }
 
-  private animateWalk(
-    a: Actor,
-    moved: number,
-    dt: number,
-    moving: number,
-    pace = 1,
-  ) {
-    a.phase += moved * 9 * pace;
-    const [l, r] = a.figure.legs;
-    const swing = Math.sin(a.phase) * 0.7 * moving;
-    l.rotation.x = lerp(l.rotation.x, swing, Math.min(1, dt * 18));
-    r.rotation.x = lerp(r.rotation.x, -swing, Math.min(1, dt * 18));
-    a.figure.body.position.y =
-      Math.abs(Math.cos(a.phase)) * 0.05 * moving +
-      a.hop * 0.15 * Math.sin((1 - a.hop) * Math.PI);
-    a.figure.body.rotation.z = Math.sin(a.phase) * 0.06 * moving;
-    a.hop = Math.max(0, a.hop - dt * 3.5);
-    if (a.shake > 0) {
-      a.shake = Math.max(0, a.shake - dt * 3);
-      a.figure.body.rotation.y = Math.sin(a.shake * 40) * 0.25 * a.shake;
-    } else a.figure.body.rotation.y = 0;
+  /** Plates under the heat lamps. */
+  private updatePass(m: Match) {
+    const key = m.pass
+      .map((i) => (i.k === 'dish' ? `${i.dish}${i.burnt ? '!' : ''}` : i.k))
+      .join(',');
+    if (key === this.passKey) return;
+    this.passKey = key;
+    for (const p of this.passProps) {
+      this.scene.remove(p);
+      releaseShared(p);
+    }
+    this.passProps = m.pass.map((item, i) => {
+      const prop: Prop =
+        item.k === 'dish' ? (item.burnt ? 'burnt' : item.dish) : 'dirty';
+      const mesh = propMesh(this.mats, prop);
+      const spot = this.counter.passSpots[i];
+      if (spot) mesh.position.copy(spot);
+      mesh.scale.setScalar(1.2);
+      this.scene.add(mesh);
+      return mesh;
+    });
   }
 
   private updateStations(m: Match, t: number, dt: number) {
+    const powered = powerOnline(m);
     for (const s of m.stations) {
-      const slots = this.stationProps.get(s.id);
-      if (!slots) continue;
-      const x = COUNTER_X[s.id];
+      const props = this.stationProps.get(s.id);
+      if (!props) continue;
+      const lanes = stationSlots(s);
       const dish = stationDish[s.id];
-      const cooking = s.state === 'cook';
-      const ready = s.state === 'ready';
-      const burnt = s.state === 'burnt';
-      // What sits on the station itself.
-      if (s.id === 'grill') {
-        const want = cooking ? 'patty' : null;
-        if (want && !slots.cook) {
-          slots.cook = pattyMesh(this.mats, false);
-          slots.cook.position.set(x, 1.095, 0.72);
-          this.scene.add(slots.cook);
-        } else if (!want && slots.cook) {
-          this.scene.remove(slots.cook);
-          slots.cook = null;
-        }
-        if (cooking && Math.random() < dt * 9)
-          this.fx.emit('steam', x + (Math.random() - 0.5) * 0.3, 1.15, 0.72, {
-            count: 1,
-            size: 0.16,
-          });
-      } else if (s.id === 'fryer') {
-        if (!slots.cook) {
-          slots.cook = basketMesh(this.mats);
-          this.scene.add(slots.cook);
-        }
-        const down = cooking ? 1.12 : 1.32;
-        slots.cook.position.set(
-          x,
-          lerp(slots.cook.position.y || 1.32, down, Math.min(1, dt * 6)),
-          0.6,
+      const cook = Math.max(0.01, cookSeconds(m, s.id));
+      const burning = burnSeconds(m, s.id);
+      const working = !s.jam && lanes.some((lane) => lane.state === 'cook');
+      const rig = this.counter.machines.get(s.id);
+      if (rig) {
+        rig.pulse = Math.max(0, rig.pulse - dt * 1.8);
+        const indicators = rig.indicators ?? [rig.indicator];
+        indicators.forEach((indicator, i) => {
+          const lane = lanes[i];
+          indicator.material.color.set(
+            s.jam
+              ? '#ffb43b'
+              : !powered
+                ? '#676f7b'
+                : lane?.state === 'burnt'
+                  ? '#ed553d'
+                  : lane?.state === 'ready'
+                    ? '#b4ffe0'
+                    : lane?.state === 'cook'
+                      ? '#ffd58a'
+                      : '#65bfa8',
+          );
+          if (s.jam && !this.reduced)
+            indicator.material.color.multiplyScalar(
+              0.87 + Math.sin(t * 3) * 0.13,
+            );
+        });
+        const progress = Math.max(
+          ...lanes.map((lane) =>
+            lane.state === 'cook'
+              ? Math.min(1, Math.max(0, 1 - lane.t / (cook * 30)))
+              : lane.state === 'ready'
+                ? 1
+                : 0,
+          ),
         );
-        if (cooking && Math.random() < dt * 12)
-          this.fx.emit('bubble', x + (Math.random() - 0.5) * 0.4, 1.3, 0.66, {
-            count: 1,
-            size: 0.08,
-            colour: '#ffe08a',
-          });
-      } else if (s.id === 'shake') {
-        if (!slots.cook) {
-          slots.cook = shakeCupMesh(this.mats);
-          this.scene.add(slots.cook);
+        rig.needle.rotation.z = (0.5 - progress) * Math.PI * 0.75;
+        if (rig.heat)
+          rig.heat.material.opacity =
+            working && powered
+              ? 0.58 + (this.reduced ? 0 : Math.sin(t * 5) * 0.06)
+              : working
+                ? 0.24
+                : 0.07;
+        if (!this.reduced) {
+          if (s.id === 'shake')
+            (rig.rotors ?? (rig.rotor ? [rig.rotor] : [])).forEach(
+              (rotor, i) => {
+                if (lanes[i]?.state === 'cook' && !s.jam)
+                  rotor.rotation.y += dt * (powered ? 24 : 4);
+              },
+            );
+          else if (rig.rotor && s.id === 'pie' && powered && !s.jam)
+            rig.rotor.rotation.y += dt * 0.12;
         }
-        const buzz = cooking ? Math.sin(t * 70) * 0.012 : 0;
-        slots.cook.position.set(x + buzz, cooking ? 1.03 : 1.03, 0.88);
-        slots.cook.rotation.y = cooking ? t * 25 : 0;
-        slots.cook.visible = cooking || s.state === 'idle';
+        if (rig.cover)
+          rig.cover.rotation.x = -Math.sin(rig.pulse * Math.PI) * 0.69;
       }
-      // The plate waiting on the pass.
-      const want: Prop | null = ready ? dish : burnt ? 'burnt' : null;
-      const key = slots.ready?.userData.prop as Prop | undefined;
-      if (key !== want) {
-        if (slots.ready) this.scene.remove(slots.ready);
-        slots.ready = null;
-        if (want) {
-          slots.ready = propMesh(this.mats, want);
-          slots.ready.userData.prop = want;
-          slots.ready.position.set(x, 0.955, 1.13);
-          slots.ready.scale.setScalar(1.5);
-          this.scene.add(slots.ready);
+      const anchor = this.counter.anchors.get(s.id);
+      lanes.forEach((lane, i) => {
+        const slot = props[i];
+        if (!slot || !anchor) return;
+        const x = stationLaneX(s.id, i, this.laneCount(s.id));
+        const cooking = lane.state === 'cook';
+        const ready = lane.state === 'ready';
+        const burnt = lane.state === 'burnt';
+        const running = cooking && !s.jam && powered;
+        if (s.id === 'grill') {
+          if (cooking && !slot.cook) {
+            slot.cook = pattyMesh(this.mats, false);
+            slot.cook.position.set(x, anchor.cookY, anchor.cookZ);
+            this.scene.add(slot.cook);
+          } else if (!cooking && slot.cook) {
+            this.scene.remove(slot.cook);
+            releaseShared(slot.cook);
+            slot.cook = null;
+          }
+          if (running && !this.reduced && Math.random() < dt * 4)
+            this.fx.emit(
+              'steam',
+              x + (Math.random() - 0.5) * 0.18,
+              1.15,
+              0.72,
+              { count: 1, size: 0.12 },
+            );
+        } else if (s.id === 'fryer') {
+          if (!slot.cook) {
+            slot.cook = basketMesh(this.mats);
+            slot.cook.scale.set(0.59, 1, 0.85);
+            this.scene.add(slot.cook);
+          }
+          const down = cooking ? (anchor.downY ?? anchor.cookY) : anchor.cookY;
+          slot.cook.position.set(
+            x,
+            lerp(
+              slot.cook.position.y || anchor.cookY,
+              down,
+              Math.min(1, dt * 6),
+            ),
+            anchor.cookZ,
+          );
+          if (running && !this.reduced && Math.random() < dt * 5)
+            this.fx.emit(
+              'bubble',
+              x + (Math.random() - 0.5) * 0.2,
+              anchor.cookY - 0.15,
+              anchor.cookZ,
+              {
+                count: 1,
+                size: 0.065,
+                colour: '#ffe08a',
+              },
+            );
+        } else if (s.id === 'shake') {
+          if (!slot.cook) {
+            slot.cook = shakeCupMesh(this.mats);
+            this.scene.add(slot.cook);
+          }
+          const buzz = running && !this.reduced ? Math.sin(t * 44) * 0.005 : 0;
+          slot.cook.position.set(x + buzz, anchor.cookY, anchor.cookZ);
+          slot.cook.rotation.y = 0;
+          slot.cook.visible = cooking || lane.state === 'idle';
+          if (running && !this.reduced && Math.random() < dt * 3)
+            this.fx.emit('bubble', x, anchor.cookY + 0.32, anchor.cookZ, {
+              count: 1,
+              size: 0.055,
+              colour: '#ffe1ef',
+              spread: 0.04,
+            });
         }
-      }
-      if (slots.ready) {
-        // Settles in with a little bounce.
-        const sc = slots.ready.scale.x;
-        if (sc > 1.3) slots.ready.scale.setScalar(Math.max(1.3, sc - dt * 1.5));
-      }
-      const burn = dishes[dish].burn;
-      if (ready && Math.random() < dt * 3)
-        this.fx.emit('steam', x, 1.15, 1.13, { count: 1, size: 0.16 });
-      if (
-        ready &&
-        burn !== null &&
-        s.t > burn * 30 * 0.5 &&
-        Math.random() < dt * 8
-      )
-        this.fx.emit('smoke', x, 1.15, 1.1, { count: 1, size: 0.22 });
-      if (burnt && Math.random() < dt * 6)
-        this.fx.emit('smoke', x, 1.1, 1.1, { count: 1, size: 0.3 });
+        const want: Prop | null = ready ? dish : burnt ? 'burnt' : null;
+        if (slot.ready?.userData.prop !== want) {
+          if (slot.ready) {
+            this.scene.remove(slot.ready);
+            releaseShared(slot.ready);
+          }
+          slot.ready = null;
+          if (want) {
+            slot.ready = propMesh(this.mats, want);
+            slot.ready.userData.prop = want;
+            slot.ready.position.set(x, anchor.readyY, anchor.readyZ);
+            slot.ready.scale.setScalar(this.reduced ? 1.22 : 1.35);
+            this.scene.add(slot.ready);
+          }
+        }
+        if (slot.ready && slot.ready.scale.x > 1.22)
+          slot.ready.scale.setScalar(
+            Math.max(1.22, slot.ready.scale.x - dt * 1.5),
+          );
+        if (ready && !this.reduced && Math.random() < dt)
+          this.fx.emit('steam', x, 1.15, 1.14, { count: 1, size: 0.13 });
+        if (
+          ready &&
+          !s.jam &&
+          !this.reduced &&
+          burning !== null &&
+          lane.t > burning * 15 &&
+          Math.random() < dt * 5
+        )
+          this.fx.emit('smoke', x, 1.15, 1.1, { count: 1, size: 0.18 });
+        if (burnt && !this.reduced && Math.random() < dt * 3)
+          this.fx.emit('smoke', x, 1.1, 1.1, { count: 1, size: 0.23 });
+      });
     }
   }
 
@@ -852,7 +1118,10 @@ export class DinerView {
       let group = this.tableProps.get(t.slot);
       if (this.tableKey.get(t.slot) !== key) {
         this.tableKey.set(t.slot, key);
-        if (group) this.scene.remove(group);
+        if (group) {
+          this.scene.remove(group);
+          releaseShared(group);
+        }
         group = new THREE.Group();
         group.position.set(t.x, 0.755, t.z);
         for (const part of parts) {
@@ -882,7 +1151,7 @@ export class DinerView {
       // Eating: the plates shrink as they go.
       if (group && g?.state === 'eat')
         for (const c of group.children) {
-          const left = 1 - Math.min(1, g.t / (6 * 30)) * 0.6;
+          const left = 1 - Math.min(1, g.t / (eatSeconds(m) * 30)) * 0.6;
           c.scale.setScalar(left);
         }
     }
@@ -905,11 +1174,16 @@ export class DinerView {
       const mopping = m.players.some((p) => p.mop > 0 && p.mopping === u.id);
       const s =
         mesh.scale.x + (target * (mopping ? 0.7 : 1) - mesh.scale.x) * 0.12;
-      mesh.scale.set(s * (1 + Math.sin(t * 3 + u.id) * 0.02), 1, s);
+      mesh.scale.set(
+        s * (1 + (this.reduced ? 0 : Math.sin(t * 3 + u.id) * 0.02)),
+        1,
+        s,
+      );
     }
     for (const [id, mesh] of this.puddles)
       if (!seen.has(id)) {
         this.scene.remove(mesh);
+        releaseShared(mesh);
         this.puddles.delete(id);
       }
   }
@@ -936,6 +1210,8 @@ export class DinerView {
           const cz = members.reduce((s, x) => s + x.z, 0) / members.length;
           at = [cx, 0.85, cz];
         }
+      } else if (a.kind === 'juke') {
+        at = [JUKEBOX.x, JUKEBOX.r * 2.2, JUKEBOX.z];
       } else if (a.puddle !== undefined) {
         const u = m.puddles.find((x) => x.id === a.puddle);
         if (u) at = [u.x, u.r * 1.6, u.z];
@@ -944,7 +1220,7 @@ export class DinerView {
     this.useRing.visible = !!at;
     if (at) {
       this.useRing.position.set(at[0], 0.02, at[2]);
-      const s = at[1] * (1 + Math.sin(t * 5) * 0.04);
+      const s = at[1] * (1 + (this.reduced ? 0 : Math.sin(t * 3) * 0.025));
       this.useRing.scale.set(s, s, 1);
       if (a?.counter) this.useRing.scale.set(1.25, 0.65, 1);
     }
@@ -953,22 +1229,36 @@ export class DinerView {
     if (guest) {
       const p = guest.figure.root.position;
       this.outRing.position.set(p.x, 0.025, p.z);
-      const s = 0.6 + Math.sin(t * 8) * 0.06;
+      const s = 0.6 + (this.reduced ? 0 : Math.sin(t * 3) * 0.035);
       this.outRing.scale.set(s, s, 1);
     }
   }
 
   dispose() {
-    this.shell.dispose();
+    // Removing a skinned figure releases its private bone textures; releasing
+    // the shared reference also keeps room remounts from retaining actor meshes.
+    for (const actor of [...this.waiters, ...this.guests.values()]) {
+      this.scene.remove(actor.figure.root);
+      releaseShared(actor.figure.root);
+    }
+    this.waiters.length = 0;
+    this.guests.clear();
+    for (const p of this.passProps) releaseShared(p);
+    this.stage.dispose();
+    this.counter.dispose();
     this.fx.dispose();
-    for (const m of Object.values(this.mats)) m.dispose();
+    disposeSurfaceMaterials(this.mats);
     for (const e of this.extra) e.dispose();
     this.ringGeo.dispose();
     this.discGeo.dispose();
     this.mop.traverse((o) => {
       if (o instanceof THREE.Mesh) o.geometry.dispose();
     });
-    this.env.dispose();
+    this.rig.dispose();
+    // The composer does not free its passes.
+    this.bloom.dispose();
+    this.output.dispose();
+    this.composer.dispose();
     disposeCache();
     this.renderer.dispose();
   }
