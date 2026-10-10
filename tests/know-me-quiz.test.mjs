@@ -224,19 +224,24 @@ await test('Ten Coins: split ten coins your way, then read everyone’s split', 
 await test('Years and Order score out of 100 per prompt and reveal one at a time', () => {
   assert.deepEqual(
     [0, 2, 5, 10, 120, 500].map((d) => year.points(1900 + d, 1900)),
-    [100, 80, 66, 51, 0, 0],
+    [100, 94, 87, 76, 0, 0],
   );
-  assert.equal(year.points(1896, 1900), 70);
+  assert.equal(year.points(1896, 1900), 89);
   // Older events give more room: 25 years off before 1800 scores like 5
   // years off since 1950.
   assert.equal(year.points(1240, 1215), year.points(1974, 1969));
-  assert.equal(year.points(1215 + 150, 1215), 0);
-  assert.equal(year.points(1969 + 30, 1969), 0);
-  // Order: 100, then 50 for one pair the wrong way round, 20 for two.
+  // Nothing only at fifty counted years: 250 years before 1800, 50 since
+  // 1950; a guess well inside that still scores (10 October 2026).
+  assert.equal(year.points(1215 + 250, 1215), 0);
+  assert.equal(year.points(1969 + 50, 1969), 0);
+  assert.equal(year.points(1215 + 150, 1215), 24);
+  // Order: every pair the wrong way round costs 25.
   assert.equal(order.orderPoints([0, 1, 2, 3, 4]), 100);
-  assert.equal(order.orderPoints([1, 0, 2, 3, 4]), 50);
-  assert.equal(order.orderPoints([1, 0, 3, 2, 4]), 20);
-  assert.equal(order.orderPoints([0, 2, 3, 1, 4]), 20);
+  assert.equal(order.orderPoints([1, 0, 2, 3, 4]), 75);
+  assert.equal(order.orderPoints([1, 0, 3, 2, 4]), 50);
+  assert.equal(order.orderPoints([0, 2, 3, 1, 4]), 50);
+  assert.equal(order.orderPoints([2, 1, 0, 3, 4]), 25);
+  assert.equal(order.orderPoints([3, 2, 1, 0, 4]), 0);
   assert.equal(order.orderPoints([4, 3, 2, 1, 0]), 0);
   for (const set of orderSets)
     assert.equal(set.items.length, order.itemsPerSet, set.title);

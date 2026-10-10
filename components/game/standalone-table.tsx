@@ -30,6 +30,8 @@ import { QuizIntro } from './quiz-intro';
 import { seatTotals } from '@/lib/games/party/tribu';
 import {
   campReady,
+  currentDraft,
+  draftPicker,
   triviaModeOf,
   triviaGameRoundLimit,
   triviaOf,
@@ -88,6 +90,8 @@ type Props = {
   hostName?: string;
   /** The seat that picks what comes next when the table does not vote. */
   hostSeat?: number | null;
+  /** Seats whose player is away; the host may pick a draft find for them. */
+  awaySeats?: number[];
   /** The table's admin, who picks the next game when the table does not vote. */
   canPickNext?: boolean;
   /** Online, after a party match: the pick (or the vote) for the next game. */
@@ -101,6 +105,9 @@ const seed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 function awaitingAction(g: AnyGame, seat: number, hostSeat: number | null) {
   if (g.over) return false;
   const trivia = triviaOf(g);
+  // Rules 3 Expedition waits on whoever's turn it is to pick, then the host.
+  if (trivia?.rules === 3 && trivia.stage === 'camp')
+    return campReady(g) ? seat === hostSeat : draftPicker(g) === seat;
   if (
     trivia?.stage === 'camp' &&
     trivia.mode === 'expedition' &&
@@ -149,7 +156,9 @@ function awaitingAction(g: AnyGame, seat: number, hostSeat: number | null) {
  * enter this signature, and unchanged polling snapshots stay silent. */
 function choiceKey(g: AnyGame, seat: number) {
   if (triviaOf(g)?.stage === 'camp')
-    return JSON.stringify(triviaOf(g)?.plans[seat]);
+    return triviaOf(g)?.rules === 3
+      ? JSON.stringify(currentDraft(g)?.picks)
+      : JSON.stringify(triviaOf(g)?.plans[seat]);
   if (g.phase === 'vote') return JSON.stringify(g.vote?.choices);
   if (g.kind === 'orin')
     return JSON.stringify([g.ballots[seat]?.topic, g.offers[seat]]);
@@ -208,6 +217,7 @@ export function StandaloneTable({
   canAdvance = true,
   hostName,
   hostSeat: providedHostSeat = null,
+  awaySeats = [],
   canPickNext = true,
   nextVote,
   viewerId,
@@ -501,6 +511,7 @@ export function StandaloneTable({
             disabled={disabled || providedViewerSeat === null}
             canAdvance={canAdvance}
             hostName={hostName}
+            awaySeats={awaySeats}
             commit={commit}
           />
         ) : view.kind === 'impostor' ? (
@@ -587,7 +598,8 @@ export function StandaloneTable({
             <PartyRules
               kind={g.kind}
               triviaMode={mode}
-              legacyTrivia={trivia?.rules !== 2}
+              triviaRules={trivia?.rules ?? 1}
+              triviaLength={trivia?.length}
             />
           )}
           {panel === 'progress' && (

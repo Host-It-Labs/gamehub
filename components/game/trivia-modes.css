@@ -978,3 +978,35 @@
     font-size: 12px;
   }
 }
+.trivia-ledger-gain {
+  margin-left: 3px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--trivia-seat);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  animation: trivia-gain 0.6s 0.4s backwards cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+@keyframes trivia-gain {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trivia-ledger-gain {
+    animation: none;
+  }
+}
+/* After a fixed match the next-game pick needs the whole row on phones. */
+@media (max-width: 600px) {
+  .trivia-finish .finale-actions:has(.next-game-vote) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* After the last round, 4 more and End share the row. */
+.party-table .trivia-camp .quiz-pick-row:has(.qc-tone-more) .quiz-card.is-end,
+.party-table .trivia-draft-dock .quiz-pick-row:has(.qc-tone-more) .quiz-card.is-end {
+  grid-column: auto;
+}

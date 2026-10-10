@@ -305,100 +305,100 @@
   },
   "cards": {
     "archers": {
-      "path": "/3d/arena/cards/archers-25490b90.webp",
-      "bytes": 66420
+      "path": "/3d/arena/cards/archers-7a8620a3.webp",
+      "bytes": 56582
     },
     "ogre": {
-      "path": "/3d/arena/cards/ogre-46082549.webp",
-      "bytes": 75368
+      "path": "/3d/arena/cards/ogre-85ee8e9c.webp",
+      "bytes": 54910
     },
     "imps": {
-      "path": "/3d/arena/cards/imps-1d45e70b.webp",
-      "bytes": 68148
+      "path": "/3d/arena/cards/imps-f5c54568.webp",
+      "bytes": 54884
     },
     "duelist": {
-      "path": "/3d/arena/cards/duelist-60b66308.webp",
-      "bytes": 67114
+      "path": "/3d/arena/cards/duelist-ec0cdfdf.webp",
+      "bytes": 64356
     },
     "ranger": {
       "path": "/3d/arena/cards/ranger-1fa6f0a9.webp",
       "bytes": 44476
     },
     "drake": {
-      "path": "/3d/arena/cards/drake-e20da8af.webp",
-      "bytes": 55842
+      "path": "/3d/arena/cards/drake-a8ce85ed.webp",
+      "bytes": 48404
     },
     "mage": {
-      "path": "/3d/arena/cards/mage-f882282d.webp",
-      "bytes": 59332
+      "path": "/3d/arena/cards/mage-1bb439f8.webp",
+      "bytes": 44938
     },
     "meteor": {
-      "path": "/3d/arena/cards/meteor-96c138b7.webp",
-      "bytes": 50884
+      "path": "/3d/arena/cards/meteor-705b6dcb.webp",
+      "bytes": 40554
     },
     "pirate": {
-      "path": "/3d/arena/cards/pirate-61160686.webp",
-      "bytes": 61896
+      "path": "/3d/arena/cards/pirate-0be27d29.webp",
+      "bytes": 53048
     },
     "viking": {
-      "path": "/3d/arena/cards/viking-26c67c72.webp",
-      "bytes": 77092
+      "path": "/3d/arena/cards/viking-c63e6e9f.webp",
+      "bytes": 56274
     },
     "gladiator": {
-      "path": "/3d/arena/cards/gladiator-46b8d968.webp",
-      "bytes": 69758
+      "path": "/3d/arena/cards/gladiator-36c7b53a.webp",
+      "bytes": 53476
     },
     "medic": {
-      "path": "/3d/arena/cards/medic-f340917f.webp",
-      "bytes": 57572
+      "path": "/3d/arena/cards/medic-45acd228.webp",
+      "bytes": 49584
     },
     "miner": {
-      "path": "/3d/arena/cards/miner-97b5c748.webp",
-      "bytes": 75724
+      "path": "/3d/arena/cards/miner-d892c491.webp",
+      "bytes": 54150
     },
     "balloon": {
-      "path": "/3d/arena/cards/balloon-753d1365.webp",
-      "bytes": 67288
+      "path": "/3d/arena/cards/balloon-3be0dfaa.webp",
+      "bytes": 54608
     },
     "inventor": {
-      "path": "/3d/arena/cards/inventor-1927d8db.webp",
-      "bytes": 58286
+      "path": "/3d/arena/cards/inventor-9b42021f.webp",
+      "bytes": 49624
     },
     "gunner": {
-      "path": "/3d/arena/cards/gunner-3032e486.webp",
-      "bytes": 64186
+      "path": "/3d/arena/cards/gunner-2b606bba.webp",
+      "bytes": 52756
     },
     "diver": {
-      "path": "/3d/arena/cards/diver-ba84e11b.webp",
-      "bytes": 75678
+      "path": "/3d/arena/cards/diver-3cb18c25.webp",
+      "bytes": 61802
     },
     "sumo": {
-      "path": "/3d/arena/cards/sumo-dd45c90d.webp",
-      "bytes": 48304
+      "path": "/3d/arena/cards/sumo-9e316d72.webp",
+      "bytes": 43092
     },
     "linebacker": {
-      "path": "/3d/arena/cards/linebacker-de5bfa36.webp",
-      "bytes": 63846
+      "path": "/3d/arena/cards/linebacker-b6047d18.webp",
+      "bytes": 56034
     },
     "beekeeper": {
-      "path": "/3d/arena/cards/beekeeper-b27bc3da.webp",
-      "bytes": 78848
+      "path": "/3d/arena/cards/beekeeper-834a10f0.webp",
+      "bytes": 67448
     },
     "drummer": {
-      "path": "/3d/arena/cards/drummer-2ef08f9e.webp",
-      "bytes": 61408
+      "path": "/3d/arena/cards/drummer-f22bdf3c.webp",
+      "bytes": 54868
     },
     "firefighter": {
-      "path": "/3d/arena/cards/firefighter-9e41be1e.webp",
-      "bytes": 64988
+      "path": "/3d/arena/cards/firefighter-a53187e0.webp",
+      "bytes": 55172
     },
     "jetpack": {
-      "path": "/3d/arena/cards/jetpack-0af0cc6f.webp",
-      "bytes": 59176
+      "path": "/3d/arena/cards/jetpack-6a65a9c9.webp",
+      "bytes": 48296
     },
     "explorer": {
-      "path": "/3d/arena/cards/explorer-7216048e.webp",
-      "bytes": 71782
+      "path": "/3d/arena/cards/explorer-ce7ce796.webp",
+      "bytes": 59440
     }
   }
 }

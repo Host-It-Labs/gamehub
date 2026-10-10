@@ -22,7 +22,7 @@ import {
 } from '../lib/games/alto/content.ts';
 import { ambiences } from '../lib/games/ambience.ts';
 import { reelAssets } from '../lib/games/library-reels.ts';
-import { isGameAvailable } from '../lib/games/availability.ts';
+import { dinerArtAssets } from '../lib/games/diner/art.ts';
 import { labAmbiences } from '../lib/games/lab-ambiences.ts';
 import {
   audioAssets,
@@ -58,7 +58,7 @@ for (const id of [
   'alto',
   'impostor',
   'diner',
-].filter((id) => isGameAvailable(id))) {
+]) {
   const cover = boxCover(id);
   add(cover);
   add(cover.replace('.webp', '-spine.webp'));
@@ -144,6 +144,8 @@ const places = JSON.parse(
   await readFile('lib/games/party/geo-places.json', 'utf8'),
 );
 for (const place of places) add(place.photo);
+// Diner's sticker icons and place postcards, named in code.
+for (const path of dinerArtAssets()) add(path);
 // The library's gameplay footage and its first-frame stills.
 for (const path of reelAssets()) add(path);
 // Literal URLs in source and CSS complement the dynamic catalogs above.

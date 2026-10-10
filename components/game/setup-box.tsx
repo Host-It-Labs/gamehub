@@ -37,6 +37,7 @@ import {
   TrainFront,
   Trophy,
   Flag,
+  Repeat,
   Trash2,
   Users,
   Vote,
@@ -68,8 +69,12 @@ import { playerRange, type LibraryGame } from '@/lib/games/library-fixtures';
 import { standaloneGames, type AnyGame } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
 import { TriviaModeChoices } from './trivia-modes';
-import type { TriviaMode } from '@/lib/games/party/trivia';
-import { triviaSetupLink } from '@/lib/online/trivia-setup';
+import {
+  triviaLengths,
+  type TriviaLength,
+  type TriviaMode,
+} from '@/lib/games/party/trivia';
+import { triviaSetupLink, triviaSetupPick } from '@/lib/online/trivia-setup';
 import './setup-box.css';
 
 const motifs: Record<string, LucideIcon> = {
@@ -642,6 +647,8 @@ export function StandaloneSetupBox({
   onVotes,
   triviaMode = 'quick',
   onTriviaMode,
+  triviaRounds = 4,
+  onTriviaRounds,
   onDifficulty,
   onPlay,
   onLearn,
@@ -664,6 +671,9 @@ export function StandaloneSetupBox({
   onVotes?: (on: boolean) => void;
   triviaMode?: TriviaMode;
   onTriviaMode?: (mode: TriviaMode) => void;
+  /** Tower and Expedition: 4 or 8 rounds. */
+  triviaRounds?: TriviaLength;
+  onTriviaRounds?: (rounds: TriviaLength) => void;
   onDifficulty: (d: Difficulty) => void;
   onPlay: () => void;
   onLearn: () => void;
@@ -713,6 +723,20 @@ export function StandaloneSetupBox({
             disabled={disabled}
           />
         )}
+        {game.standaloneId === 'miro' && triviaMode !== 'quick' && (
+          <SetupRow label="Rounds" Icon={Repeat}>
+            <Segmented
+              label="How many rounds"
+              value={triviaRounds}
+              options={triviaLengths.map((n) => ({
+                value: n,
+                label: `${n} rounds`,
+              }))}
+              onChange={(n) => onTriviaRounds?.(n)}
+              disabled={disabled || !onTriviaRounds}
+            />
+          </SetupRow>
+        )}
         {onVotes && (game.standaloneId !== 'miro' || triviaMode === 'quick') && (
           <SetupRow label="Next round" Icon={Vote}>
             <Segmented
@@ -733,7 +757,7 @@ export function StandaloneSetupBox({
           <a
             className="play-plate"
             data-starts-game
-            href={game.standaloneId === 'miro' ? triviaSetupLink('/tables', triviaMode) : '/tables'}
+            href={game.standaloneId === 'miro' ? triviaSetupLink('/tables', triviaSetupPick(triviaMode, triviaRounds)) : '/tables'}
             aria-label="Play with friends at an online table"
           >
             <Play aria-hidden="true" />

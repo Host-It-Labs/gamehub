@@ -10,7 +10,7 @@ import {
   totalCoins,
 } from '@/lib/games/party/coins';
 import { eraFactor, yearCurve } from '@/lib/games/party/year';
-import { pairPoints } from '@/lib/games/party/order';
+import { pairCost, pairPoints } from '@/lib/games/party/order';
 import { roundVoteMs } from '@/lib/games/party/vote';
 import {
   clueLimit,
@@ -20,11 +20,15 @@ import {
 } from '@/lib/games/party/impostor';
 import { RuleList, RuleSection, Rules } from './rules';
 import type { TriviaMode } from '@/lib/games/party/trivia';
-import { TriviaGoal, TriviaRoundRules } from './trivia-rules';
+import {
+  TriviaGoal,
+  TriviaRoundRules,
+  type TriviaVersion,
+} from './trivia-rules';
 
 const percent = (e: number) => `${Math.round(e * 100)}%`;
-/** Sizes' curve at a glance: full marks, a step down, and nothing. */
-const marks = [0, 2, curve.length - 1];
+/** Sizes' curve at a glance: full marks, two steps down, and nothing. */
+const marks = [0, 2, 3, curve.length - 1];
 /** A factor off as words: 1.4 → "1.4 times too big or small". */
 const times = (f: number) =>
   f === 2 ? 'Twice or half the size' : `${f} times too big or small`;
@@ -153,14 +157,16 @@ function DialRules() {
 
 function AtlasRules({
   mode,
-  legacy = false,
+  version = 3,
+  length,
 }: {
   mode: TriviaMode;
-  legacy?: boolean;
+  version?: TriviaVersion;
+  length?: number;
 }) {
   return (
     <Rules>
-      <TriviaGoal mode={mode} legacy={legacy} />
+      <TriviaGoal mode={mode} version={version} length={length} />
       <RuleSection title="Two places and a final">
         <p>
           Each round has <b>3 places</b>: a named town or city, a harder one,
@@ -198,21 +204,23 @@ function AtlasRules({
           }))}
         />
       </RuleSection>
-      <TriviaRoundRules mode={mode} legacy={legacy} />
+      <TriviaRoundRules mode={mode} version={version} length={length} />
     </Rules>
   );
 }
 
 function SizesRules({
   mode,
-  legacy = false,
+  version = 3,
+  length,
 }: {
   mode: TriviaMode;
-  legacy?: boolean;
+  version?: TriviaVersion;
+  length?: number;
 }) {
   return (
     <Rules>
-      <TriviaGoal mode={mode} legacy={legacy} />
+      <TriviaGoal mode={mode} version={version} length={length} />
       <RuleSection title="Size it up">
         <p>
           The cream piece stands at its <b>true size</b>. Make the{' '}
@@ -252,7 +260,7 @@ function SizesRules({
           }))}
         />
       </RuleSection>
-      <TriviaRoundRules mode={mode} legacy={legacy} />
+      <TriviaRoundRules mode={mode} version={version} length={length} />
     </Rules>
   );
 }
@@ -303,15 +311,17 @@ function CoinsRules() {
 
 function YearsRules({
   mode,
-  legacy = false,
+  version = 3,
+  length,
 }: {
   mode: TriviaMode;
-  legacy?: boolean;
+  version?: TriviaVersion;
+  length?: number;
 }) {
   const last = yearCurve[yearCurve.length - 1][0];
   return (
     <Rules>
-      <TriviaGoal mode={mode} legacy={legacy} />
+      <TriviaGoal mode={mode} version={version} length={length} />
       <RuleSection title="Three events">
         <p>
           Each round has <b>3 events</b>: one from before 1800, one from 1800 to
@@ -349,21 +359,23 @@ function YearsRules({
           }))}
         />
       </RuleSection>
-      <TriviaRoundRules mode={mode} legacy={legacy} />
+      <TriviaRoundRules mode={mode} version={version} length={length} />
     </Rules>
   );
 }
 
 function OrderRules({
   mode,
-  legacy = false,
+  version = 3,
+  length,
 }: {
   mode: TriviaMode;
-  legacy?: boolean;
+  version?: TriviaVersion;
+  length?: number;
 }) {
   return (
     <Rules>
-      <TriviaGoal mode={mode} legacy={legacy} />
+      <TriviaGoal mode={mode} version={version} length={length} />
       <RuleSection title="Put them in order">
         <p>
           Each round has <b>3 sets</b> of five things, such as buildings to put{' '}
@@ -382,12 +394,11 @@ function OrderRules({
       <RuleSection title="Closer scores more">
         <p>
           The host reveals the three one at a time. A perfect order scores{' '}
-          <b>{pairPoints[0]}</b>. One pair of things the wrong way round scores{' '}
-          <b>{pairPoints[1]}</b>, two pairs <b>{pairPoints[2]}</b>, more scores
-          nothing.
+          <b>{pairPoints[0]}</b>. Every pair of things the wrong way round
+          costs <b>{pairCost}</b>, down to nothing.
         </p>
       </RuleSection>
-      <TriviaRoundRules mode={mode} legacy={legacy} />
+      <TriviaRoundRules mode={mode} version={version} length={length} />
     </Rules>
   );
 }
@@ -451,11 +462,14 @@ function ImpostorRules() {
 export function PartyRules({
   kind,
   triviaMode = 'quick',
-  legacyTrivia = false,
+  triviaRules = 3,
+  triviaLength,
 }: {
   kind: StandaloneId;
   triviaMode?: TriviaMode;
-  legacyTrivia?: boolean;
+  /** The match's Trivia rules: 1 for the old shop saves, 2, or 3. */
+  triviaRules?: TriviaVersion;
+  triviaLength?: number;
 }) {
   switch (kind) {
     case 'dial':
@@ -463,13 +477,13 @@ export function PartyRules({
     case 'coins':
       return <CoinsRules />;
     case 'miro':
-      return <AtlasRules mode={triviaMode} legacy={legacyTrivia} />;
+      return <AtlasRules mode={triviaMode} version={triviaRules} length={triviaLength} />;
     case 'size':
-      return <SizesRules mode={triviaMode} legacy={legacyTrivia} />;
+      return <SizesRules mode={triviaMode} version={triviaRules} length={triviaLength} />;
     case 'year':
-      return <YearsRules mode={triviaMode} legacy={legacyTrivia} />;
+      return <YearsRules mode={triviaMode} version={triviaRules} length={triviaLength} />;
     case 'order':
-      return <OrderRules mode={triviaMode} legacy={legacyTrivia} />;
+      return <OrderRules mode={triviaMode} version={triviaRules} length={triviaLength} />;
     case 'impostor':
       return <ImpostorRules />;
     default:

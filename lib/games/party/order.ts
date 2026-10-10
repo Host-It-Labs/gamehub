@@ -59,10 +59,11 @@ export type OrderGame = StandaloneBase & {
 export const setsPerRound = 3;
 export const itemsPerSet = 5;
 /** Points by how many pairs are the wrong way round: a perfect order
- * scores 100 like every Quiz prompt, one wrong pair 50, two 20, more
- * nothing (2 October 2026; sorting five things is easier than the other
- * Quiz games, so mistakes cost more). */
-export const pairPoints = [100, 50, 20] as const;
+ * scores 100 like every Quiz prompt, and every wrong pair costs the same
+ * 25, so 100, 75, 50, 25, then nothing (10 October 2026; it was 100, 50,
+ * 20, a cliff after the first mistake). */
+export const pairCost = 25;
+export const pairPoints = [100, 75, 50, 25] as const;
 /** Pairs of things the wrong way round. */
 export function wrongPairs(order: number[]) {
   let wrong = 0;

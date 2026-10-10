@@ -934,10 +934,15 @@ function createPennant(seatColor: THREE.Color) {
   return { flag, wave, geometry, material };
 }
 
+/** Rules 3 builds a block per place: up to six a round for twelve rounds. */
+export const maxTowerFloors = 72;
 export function createTriviaTower(color: string, maxFloors = 20): TriviaTower {
   const count = Math.max(
     0,
-    Math.min(25, Math.floor(Number.isFinite(maxFloors) ? maxFloors : 20)),
+    Math.min(
+      maxTowerFloors,
+      Math.floor(Number.isFinite(maxFloors) ? maxFloors : 20),
+    ),
   );
   const seatColor = new THREE.Color(color);
   const mats = materials();

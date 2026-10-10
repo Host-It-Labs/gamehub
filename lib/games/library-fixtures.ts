@@ -1,5 +1,4 @@
 import { printedBoxArt } from './box-covers.ts';
-import { isGameAvailable } from './availability.ts';
 import { isHumanOnlyGame } from './player-policy.ts';
 import type { GameId } from './trio/engine';
 import { standaloneGames } from './standalone/registry.ts';
@@ -152,7 +151,7 @@ const partyBoxes = {
   }),
   miro: own('miro', {
     world:
-      'Quick Play, a tower to build, or an expedition for trophies: four trivia mini-games',
+      'Quick Play, a tower to build, or an expedition to draft finds: four trivia mini-games',
     duration: '5–60 min+',
     durationSpoken: '5 to 60 minutes or more',
     players: [2, 6],
@@ -190,7 +189,7 @@ export const standaloneLibraryGames: Record<StandaloneId, LibraryGame> = {
   order: partyBoxes.miro,
 };
 
-const allLibraryGames: LibraryGame[] = [
+export const libraryGames: LibraryGame[] = [
   {
     id: 'folio',
     name: 'Puzzles',
@@ -309,9 +308,6 @@ const allLibraryGames: LibraryGame[] = [
   standaloneLibraryGames.miro,
   standaloneLibraryGames.impostor,
 ];
-export const libraryGames = allLibraryGames.filter((game) =>
-  isGameAvailable(game.id),
-);
 export const playableGame = (id: string) =>
   libraryGames.find(
     (g) => g.id === id && (g.gameId || g.standaloneId || g.href),

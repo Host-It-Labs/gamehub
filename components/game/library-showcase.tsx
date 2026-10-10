@@ -20,12 +20,13 @@ const TALL_QUERY = '(max-width: 699px) and (orientation: portrait)';
  * cover in a rail on its left. On wide screens the covers grow to fill the
  * height of the footage and its caption exactly, never scrolling (a wheel
  * over them moves the page); on phones they stand in a column that scrolls a
- * page at a time from a button beneath it. Games you can play alone come
- * first; the ones that need friends follow, marked with a people badge. Each
+ * page at a time from a button beneath it. The games arrive ordered (played
+ * last first, `byRecent`, then the documented order, which ends with the
+ * With friends games, marked with a people badge). Each
  * clip plays once, then the next game takes the stage; hovering or focusing
  * the showcase keeps the current game looping. The footage itself is the
- * Play button, with a Play plate in its middle; the name, time and kind sit
- * under it.
+ * Play button, with a Play plate in its bottom-right corner; the name,
+ * time and kind sit under it.
  * Footage that fails to load falls back to the still on a timer; reduced
  * motion shows only the still and never turns.
  */
@@ -55,11 +56,7 @@ export function Showcase({
   const bar = useRef<HTMLElement | null>(null);
   const rail = useRef<HTMLFieldSetElement>(null);
   const info = useRef<HTMLDivElement>(null);
-  const ordered = [
-    ...all.filter((entry) => !isHumanOnlyGame(entry.id)),
-    ...all.filter((entry) => isHumanOnlyGame(entry.id)),
-  ];
-  const games = ordered;
+  const games = all;
   const game = games[index] ?? games[0];
   const gameId = game?.id;
   const reel = game ? reelFor(game.id) : undefined;
@@ -300,7 +297,9 @@ export function Showcase({
         )}
         <span className="show-go" aria-hidden="true">
           <span className="show-go-icon">{friends ? <Users /> : <Play />}</span>
-          <span>{friends ? 'Play with friends' : 'Play'}</span>
+          <span className="show-go-label">
+            {friends ? 'Play with friends' : 'Play'}
+          </span>
         </span>
       </button>
       <div ref={info} className="show-info">

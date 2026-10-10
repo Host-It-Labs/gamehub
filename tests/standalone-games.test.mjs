@@ -255,7 +255,7 @@ await test('every box shows its match length on the time badge', () => {
     arena: '5 min',
     rota: '10–20 min',
     alto: '10–20 min',
-    ...(process.env.NODE_ENV === 'development' ? { diner: '3 min' } : {}),
+    diner: '2–3 min / shift',
     impostor: '10–40 min',
   });
   for (const game of libraryGames) {

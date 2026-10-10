@@ -11,7 +11,7 @@ await test('production staging copies selected assets, drops candidates and clea
     await mkdir(join(root, 'public/art'), { recursive: true });
     await writeFile(join(root, 'public/art/selected.webp'), 'selected');
     await writeFile(join(root, 'public/art/source.png'), 'source candidate');
-    await writeFile(join(root, 'public/art/box-diner-blind-v1.webp'), 'development cover');
+    await writeFile(join(root, 'public/art/box-diner-blind-v1.webp'), 'unlisted cover');
     await writeFile(join(root, 'public/.DS_Store'), 'metadata');
     await writeFile(join(root, '.dockerignore'), 'public/**\n!public/\npublic/*\n!public/art/\npublic/art/*\n!public/art/selected.webp\n');
     const target = await prepareProductionPublic(root);
@@ -26,8 +26,14 @@ await test('production staging copies selected assets, drops candidates and clea
   }
 });
 
-await test('release allowlist excludes source assets and development-only Diner covers', async () => {
+// Diner is public since 10 October 2026: its covers, stickers, postcards and
+// footage ship with every other game's.
+await test('release allowlist excludes source assets and ships Diner', async () => {
   const rules = await readFile(new URL('../.dockerignore', import.meta.url), 'utf8');
   assert.match(rules, /^assets$/m);
-  assert.doesNotMatch(rules, /^!public\/.*box-diner-/m);
+  assert.match(rules, /^!public\/art\/optimized\/box-diner-blind-v\d+\.webp$/m);
+  assert.match(rules, /^!public\/art\/optimized\/box-diner-wide-v\d+\.webp$/m);
+  assert.match(rules, /^!public\/art\/diner\/icons\/burger\.webp$/m);
+  assert.match(rules, /^!public\/art\/diner\/places\/truckstop\.webp$/m);
+  assert.match(rules, /^!public\/reels\/diner-wide\.mp4$/m);
 });

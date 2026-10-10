@@ -34,6 +34,11 @@ import {
   type Friend,
   type LibraryGame,
 } from '@/lib/games/library-fixtures';
+import {
+  byRecent,
+  readLastPlayed,
+  recordLastPlayed,
+} from '@/lib/games/library-recent';
 import './library.css';
 
 export function Avatar({
@@ -252,8 +257,13 @@ export function Library({
   const [query, setQuery] = useState('');
   const needle = query.trim().toLowerCase();
   const searchable = libraryGames.length >= SEARCH_FROM;
+  // The games played last lead every list. Read once as the library mounts
+  // (the page renders only in the browser), so nothing reshuffles under the
+  // pointer; a game opened now moves up the next time the library shows.
+  const [played] = useState(readLastPlayed);
 
   function open(game: LibraryGame) {
+    recordLastPlayed(game.id);
     if (game.gameId) onSetup(game.gameId);
     else if (game.standaloneId) onStandalone(game.standaloneId);
     else onOpenPlaceholder(game);
@@ -265,12 +275,12 @@ export function Library({
   const sections = librarySections
     .map((section) => ({
       ...section,
-      entries: section.games
+      entries: byRecent(section.games, played)
         .map((id) => gameByLibraryId(id))
         .filter((g): g is LibraryGame => !!g && matches(g)),
     }))
     .filter((section) => section.entries.length);
-  const featured = showcaseGames
+  const featured = byRecent(showcaseGames, played)
     .map((id) => gameByLibraryId(id))
     .filter((g): g is LibraryGame => !!g);
 

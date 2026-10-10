@@ -64,15 +64,16 @@ export const eraFactor: Record<YearEra, number> = {
   recent: 1,
 };
 /** Counted years off → points out of 100, straight lines between the
- * marks. */
+ * marks. No cliff at the top: a year off costs a little, and nothing comes
+ * only at fifty counted years (10 October 2026). */
 export const yearCurve = [
   [0, 100],
-  [1, 80],
-  [2, 70],
-  [4, 55],
-  [8, 40],
-  [15, 20],
-  [30, 0],
+  [1, 94],
+  [3, 84],
+  [6, 72],
+  [12, 55],
+  [25, 30],
+  [50, 0],
 ] as const;
 /** The era a year falls in, for scoring. */
 export function eraOf(year: number): YearEra {

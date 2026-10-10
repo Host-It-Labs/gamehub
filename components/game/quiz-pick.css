@@ -30,6 +30,12 @@
   --qc-light: #2d7a63;
   --qc-grid: #e8f3cf;
 }
+.qc-tone-more {
+  --qc: #2d7a63;
+  --qc-deep: #1f5a4a;
+  --qc-light: #3f9577;
+  --qc-grid: #fff8e6;
+}
 .qc-tone-end {
   --qc: #d8c49b;
   --qc-deep: #bfa678;

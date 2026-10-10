@@ -1,5 +1,3 @@
-import { isGameAvailable } from './availability.ts';
-
 /**
  * Gameplay footage for the library: a short silent loop of each game playing
  * itself with its interface hidden, recorded by `scripts/reels/record.mjs`.
@@ -91,11 +89,8 @@ const reel = (id: string): Reel => ({
 });
 
 export const reelFor = (id: string): Reel | undefined =>
-  filmed.includes(id) && isGameAvailable(id) ? reel(id) : undefined;
+  filmed.includes(id) ? reel(id) : undefined;
 
-/** Every served footage file, for the production asset allowlist; a
- * development-only game's footage stays out of a release. */
+/** Every served footage file, for the production asset allowlist. */
 export const reelAssets = () =>
-  filmed
-    .filter((id) => isGameAvailable(id))
-    .flatMap((id) => [...Object.values(reel(id)), ...cuts(reel(id))]);
+  filmed.flatMap((id) => [...Object.values(reel(id)), ...cuts(reel(id))]);

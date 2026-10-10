@@ -10,6 +10,7 @@ import {
   triviaSetupConfiguration,
   triviaSetupLink,
   triviaSetupMode,
+  triviaSetupPick,
 } from '../lib/online/trivia-setup.ts';
 
 const search = (path) => new URL(path, 'https://gamehub.test').search;
@@ -62,8 +63,22 @@ await test('a bounded Trivia pick travels through tables, login, and a table wit
   );
 });
 
+await test('an eight-round pick travels as the mode with its length', () => {
+  assert.equal(triviaSetupPick('tower', 8), 'tower-8');
+  assert.equal(triviaSetupPick('expedition', 4), 'expedition');
+  assert.equal(triviaSetupPick('quick', 8), 'quick');
+  const library = triviaSetupLink('/tables', triviaSetupPick('tower', 8));
+  assert.equal(library, '/tables?trivia=tower-8');
+  assert.equal(triviaSetupMode(search(library)), 'tower-8');
+});
+
 await test('unknown, malformed, and duplicate mode requests are ignored', () => {
   for (const query of [
+    '?trivia=quick-8',
+    '?trivia=tower-6',
+    '?trivia=tower-4',
+    '?trivia=tower-08',
+    '?trivia=tower-8-8',
     '',
     '?mode=expedition',
     '?trivia=',
@@ -100,16 +115,20 @@ await test('a picked mode opens a new or existing owned lobby without starting a
     );
     const tables = new Tables(db, () => true);
     let t = tables.create(host);
-    for (const mode of ['tower', 'expedition']) {
+    for (const [pick, mode, rounds] of [
+      ['tower', 'tower', 4],
+      ['expedition-8', 'expedition', 8],
+    ]) {
       const view = tables.view(t, host);
       const request = triviaSetupConfiguration(
         view,
-        triviaSetupMode(search(triviaSetupLink(`/table/${t.token}`, mode))),
+        triviaSetupMode(search(triviaSetupLink(`/table/${t.token}`, pick))),
       );
       assert.deepEqual(request, {
         type: 'configure',
         gameId: 'miro',
         triviaMode: mode,
+        triviaRounds: rounds,
         capacity: t.capacity,
         difficulty: t.difficulty,
         openSetup: true,
@@ -123,6 +142,7 @@ await test('a picked mode opens a new or existing owned lobby without starting a
       assert.equal(t.status, 'lobby');
       assert.equal(t.gameId, 'miro');
       assert.equal(t.triviaMode, mode);
+      assert.equal(t.triviaRounds, rounds);
       assert.equal(t.setupOpen, true);
       assert.equal(t.matchId, null);
       assert.equal(t.game, null);

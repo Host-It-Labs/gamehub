@@ -39,13 +39,15 @@ await test('Sizes scores how many times too big or too small, out of 100', () =>
   assert.equal(size.points(100, 100), 100);
   assert.equal(size.points(106, 100), 100);
   assert.equal(size.points(91, 100), 100);
-  assert.equal(size.points(88, 100), 92);
-  assert.equal(size.points(120, 100), 78);
-  assert.equal(size.points(150, 100), 35);
-  // Double and half cost the same.
+  assert.equal(size.points(88, 100), 96);
+  assert.equal(size.points(120, 100), 89);
+  assert.equal(size.points(150, 100), 62);
+  // Double and half cost the same, and still score (10 October 2026).
   assert.equal(size.points(140, 100), size.points(100, 140));
-  assert.equal(size.points(200, 100), 0);
-  assert.equal(size.points(50, 100), 0);
+  assert.equal(size.points(200, 100), 34);
+  assert.equal(size.points(50, 100), 34);
+  assert.equal(size.points(300, 100), 0);
+  assert.equal(size.points(30, 100), 0);
   assert.equal(size.points(0, 100), 0);
   assert.ok(size.points(60, 100) > size.points(55, 100));
   assert.equal(size.offBy(50, 100), 1);

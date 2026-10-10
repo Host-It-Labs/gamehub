@@ -123,15 +123,17 @@ export const challengeLabels: Record<GeoChallenge, string> = {
   final: 'Final',
 };
 /** Every pin scores by its own distance: kilometres off → points out of
- * 100, straight lines between the marks, like Sizes' curve. */
+ * 100, straight lines between the marks, like Sizes' curve. Each doubling
+ * of the distance costs about the same, and nothing comes only past
+ * 4,500 km, where a pin shows no real knowledge (10 October 2026). */
 export const pinCurve = [
   [50, 100],
-  [150, 88],
-  [300, 72],
-  [600, 52],
-  [1200, 30],
-  [2500, 10],
-  [4000, 0],
+  [150, 90],
+  [300, 78],
+  [600, 62],
+  [1200, 44],
+  [2500, 22],
+  [4500, 0],
 ] as const;
 export const maxPinPoints = pinCurve[0][1];
 export function pinPoints(km: number) {

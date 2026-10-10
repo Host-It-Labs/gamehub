@@ -244,6 +244,7 @@ await test('Tower geometry is finite and each earned floor stays one grounded ar
   const tower = createTriviaTower('#cf593e', 25);
   const current = createTriviaTower('#48a4a7');
   const clamped = createTriviaTower('#485baf', 99);
+  const tallest = createTriviaTower('#9c6bc4', 72);
   try {
     assert.equal(
       current.floors.length,
@@ -256,8 +257,13 @@ await test('Tower geometry is finite and each earned floor stays one grounded ar
       'legacy five-round saves can show all twenty-five tiers',
     );
     assert.equal(
+      tallest.floors.length,
+      72,
+      'six players over twelve placement rounds can reach 72 tiers',
+    );
+    assert.equal(
       clamped.floors.length,
-      25,
+      72,
       'invalid larger requests stay bounded',
     );
     assertGeometry(tower.root);
@@ -290,6 +296,7 @@ await test('Tower geometry is finite and each earned floor stays one grounded ar
     tower.dispose();
     current.dispose();
     clamped.dispose();
+    tallest.dispose();
   }
 });
 

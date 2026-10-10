@@ -29,35 +29,37 @@ const MODELS = ['towers', 'troops', 'props', 'figures', 'cartoon_towers'];
  *  Cowboy, Samurai and Wizard use fresh portraits matching the three-character
  *  rebuild (concepts/2026-10-04-arena-three-characters). Viking, Gladiator and
  *  Medic use fresh v8 portraits (concepts/2026-10-04-arena-viking-gladiator-medic).
- *  Every card but the Samurai and Cowboy now uses its v13 portrait (9 October
- *  2026): the same painted semi-realistic look, generated from text alone
- *  (concepts/2026-10-09-arena-portraits/v13). */
+ *  v13 (9 October 2026) gave every card but the Samurai and Cowboy a painted
+ *  semi-realistic look (concepts/2026-10-09-arena-portraits/v13). v14
+ *  (10 October 2026) replaces every card but the Cowboy with one cartoon set
+ *  matching the 3D figures, from text alone
+ *  (concepts/2026-10-10-arena-portraits). */
 const CARD_ART = {
-  archers: 'v13-a',
-  ogre: 'v13-a',
-  imps: 'v13-a',
-  duelist: 'v10-a',
+  archers: 'v14-a',
+  ogre: 'v14-b',
+  imps: 'v14-b',
+  duelist: 'v14-a',
   ranger: 'v10-b',
-  drake: 'v13-b',
-  mage: 'v13-b',
-  meteor: 'v13-a',
-  pirate: 'v13-b',
-  viking: 'v13-a',
-  gladiator: 'v13-a',
-  medic: 'v13-b',
-  miner: 'v13-a',
-  balloon: 'v13-b',
-  inventor: 'v13-a',
-  gunner: 'v13-a',
+  drake: 'v14-b',
+  mage: 'v14-b',
+  meteor: 'v14-b',
+  pirate: 'v14-a',
+  viking: 'v14-a',
+  gladiator: 'v14-b',
+  medic: 'v14-b',
+  miner: 'v14-a',
+  balloon: 'v14-b',
+  inventor: 'v14-b',
+  gunner: 'v14-a',
   // The eight troops of 1 October 2026 (docs/concepts/2026-10-01-arena-draft).
-  diver: 'v13-a',
-  sumo: 'v13-a',
-  linebacker: 'v13-b',
-  beekeeper: 'v13-a',
-  drummer: 'v13-a',
-  firefighter: 'v13-b',
-  jetpack: 'v13-a',
-  explorer: 'v13-a',
+  diver: 'v14-a',
+  sumo: 'v14-b',
+  linebacker: 'v14-a',
+  beekeeper: 'v14-b',
+  drummer: 'v14-b',
+  firefighter: 'v14-b',
+  jetpack: 'v14-b',
+  explorer: 'v14-b',
 };
 const CARDS = Object.keys(CARD_ART);
 const MANIFEST = 'lib/games/arena/assets.json';
@@ -137,9 +139,9 @@ if (want('cards')) {
 if (want('covers')) {
   const previewsPath = 'lib/artwork-previews.json';
   const previews = JSON.parse(await readFile(previewsPath, 'utf8'));
-  // Cartoon covers in the loading screen's style (v5, 1 October 2026), served as v2.
-  const square = 'assets/arena/concepts/box-arena-square-v5-a.png';
-  const cover = '/art/optimized/box-arena-blind-v2.webp';
+  // Cartoon covers matching the v14 card set (v6, 10 October 2026), served as v3.
+  const square = 'assets/arena/concepts/box-arena-square-v6-a.png';
+  const cover = '/art/optimized/box-arena-blind-v3.webp';
   await sharp(square)
     .resize(1024, 1024, { kernel: 'lanczos3' })
     .webp({ quality: 88 })
@@ -166,8 +168,8 @@ if (want('covers')) {
     preview: `data:image/webp;base64,${tiny.toString('base64')}`,
     srcSet: variants.join(', '),
   };
-  const wideSrc = 'assets/arena/concepts/box-arena-wide-v5-a.png';
-  const wide = '/art/optimized/box-arena-wide-v2.webp';
+  const wideSrc = 'assets/arena/concepts/box-arena-wide-v6-b.png';
+  const wide = '/art/optimized/box-arena-wide-v3.webp';
   const { width, height } = await sharp(wideSrc).metadata();
   const band = Math.round(width / 3);
   const cut = () =>

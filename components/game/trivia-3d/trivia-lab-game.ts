@@ -6,11 +6,12 @@ import {
   type AnyMove,
 } from '../../../lib/games/standalone/registry.ts';
 import {
-  campReady,
+  currentDraft,
+  draftPicker,
+  findGain,
   remainingTriviaGames,
   triviaComplete,
   triviaOf,
-  type TriviaRoute,
 } from '../../../lib/games/party/trivia.ts';
 import {
   pinCurve,
@@ -37,6 +38,7 @@ export function createTriviaLabGame(
   mode: LabMode,
   seats: number,
   seed = 731,
+  rounds: 4 | 8 = 4,
 ): AnyGame {
   if (mode !== 'tower' && mode !== 'expedition')
     throw new Error('Choose Tower or Expedition for the Trivia lab.');
@@ -49,16 +51,17 @@ export function createTriviaLabGame(
     undefined,
     false,
     mode,
+    rounds,
   );
   g.seats = names.slice(0, seats);
   return g;
 }
 
-function validate(g: AnyGame, scores: readonly LabScore[], route: TriviaRoute) {
+function validate(g: AnyGame, scores: readonly LabScore[]) {
   const t = triviaOf(g);
   if (
     !t ||
-    t.rules !== 2 ||
+    t.rules !== 3 ||
     (t.mode !== 'tower' && t.mode !== 'expedition') ||
     !standaloneGames.miro.isSavedGame(g)
   )
@@ -71,8 +74,27 @@ function validate(g: AnyGame, scores: readonly LabScore[], route: TriviaRoute) {
     !scores.every((score) => score === 0 || score === 150 || score === 300)
   )
     throw new Error('Choose 0, 150 or 300 points for each lab player.');
-  if (route !== 'trail' && route !== 'river' && route !== 'summit')
-    throw new Error('Choose Trail, River or Summit for the Trivia lab.');
+}
+
+/** Every remaining picker takes the find that adds most to their own
+ * collection, the first such find on the mat. */
+export function draftTriviaLab(value: AnyGame): AnyGame {
+  let g = value as SabiPart;
+  for (let picker = draftPicker(g); picker !== null; picker = draftPicker(g)) {
+    const d = currentDraft(g)!,
+      finds = triviaOf(g)!.players[picker].finds ?? [];
+    let best = -1;
+    d.offer.forEach((find, i) => {
+      if (d.picks.includes(i)) return;
+      if (
+        best < 0 ||
+        findGain(finds, find) > findGain(finds, d.offer[best])
+      )
+        best = i;
+    });
+    g = move(g, { type: 'trivia-pick', find: best }, picker);
+  }
+  return g;
 }
 
 function move(g: SabiPart, m: AnyMove, seat = 0): SabiPart {
@@ -185,7 +207,7 @@ function answer(g: SabiPart, seat: number, score: LabScore): SabiPart {
       points === 100
         ? [0, 1, 2, 3, 4]
         : points === 50
-          ? [1, 0, 2, 3, 4]
+          ? [1, 0, 3, 2, 4]
           : [4, 3, 2, 1, 0];
     for (let step = 0; step < 3; step++)
       g = move(g, { type: 'arrange', step, order }, seat);
@@ -194,29 +216,22 @@ function answer(g: SabiPart, seat: number, score: LabScore): SabiPart {
   throw new Error('The Trivia lab only simulates Trivia mini-games.');
 }
 
-/** Complete the current round, or start the first remaining game at camp.
- * Locked answers and fully committed routes keep their real results. A
- * final 4/4 camp advances with the host's Finish, without extra player locks. */
+/** Complete the current round, or start the first remaining game. An open
+ * Expedition draft is finished first, each picker taking their best find,
+ * and a completed round leaves its own draft open.
+ * Locked answers and picks already made keep their real results. After the
+ * last round the host's End finishes the match. */
 export function simulateTriviaLabRound(
   value: AnyGame,
   scores: readonly LabScore[],
-  route: TriviaRoute,
 ): AnyGame {
-  validate(value, scores, route);
+  validate(value, scores);
   let g = structuredClone(value) as SabiPart;
   if (g.over) return g;
+  g = draftTriviaLab(g) as SabiPart;
   if (triviaComplete(g)) return move(g, { type: 'vote', choice: 'finish' });
-  if (g.phase === 'vote') {
-    const t = triviaOf(g)!;
-    if (t.mode === 'expedition' && !campReady(g)) {
-      for (let seat = 0; seat < g.seats.length; seat++)
-        if (triviaOf(g)!.ready[seat])
-          g = move(g, { type: 'trivia-unlock' }, seat);
-      for (let seat = 0; seat < g.seats.length; seat++)
-        g = move(g, { type: 'trivia-plan', route, purchase: null }, seat);
-    }
+  if (g.phase === 'vote')
     g = move(g, { type: 'vote', choice: remainingTriviaGames(g)[0] });
-  }
   if (g.phase === 'guess') {
     for (let seat = 0; seat < g.seats.length; seat++)
       if (!g.guesses[seat].locked) g = answer(g, seat, scores[seat]);
@@ -225,6 +240,7 @@ export function simulateTriviaLabRound(
     g = move(g, { type: 'next' });
   if (g.phase !== 'vote')
     throw new Error('The Trivia lab could not complete the current round.');
+  // An Expedition round ends on its open draft, to be seen and played.
   return g;
 }
 
@@ -233,13 +249,11 @@ export function simulateTriviaLabRound(
 export function finishTriviaLabGame(
   value: AnyGame,
   scores: readonly LabScore[],
-  route: TriviaRoute,
 ): AnyGame {
-  validate(value, scores, route);
+  validate(value, scores);
   let g = structuredClone(value);
-  for (let round = 0; round < 5 && !g.over; round++)
-    g = simulateTriviaLabRound(g, scores, route);
-  if (!g.over)
-    throw new Error('The Trivia lab could not finish the four-round match.');
+  for (let round = 0; round <= 12 && !g.over; round++)
+    g = simulateTriviaLabRound(g, scores);
+  if (!g.over) throw new Error('The Trivia lab could not finish the match.');
   return g;
 }

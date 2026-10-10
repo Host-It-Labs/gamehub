@@ -4,7 +4,6 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { isGameAvailable } from '../lib/games/availability.ts';
 import { makeServer } from '../server/index.ts';
 
 const originalEnvironment = process.env.NODE_ENV;
@@ -13,34 +12,40 @@ function setEnvironment(value) {
   else process.env.NODE_ENV = value;
 }
 
-await test('Diner appears on both shelves and resolves only in development', async () => {
+// Diner is public since 10 October 2026: it shows and plays in every
+// environment, like every other game.
+await test('Diner appears in the library, on its shelf and in the showcase in every environment', async () => {
   try {
     for (const mode of ['development', 'production', 'test', undefined]) {
       setEnvironment(mode);
-      const available = mode === 'development';
-      assert.equal(isGameAvailable('diner'), available);
-      assert.equal(isGameAvailable('arena'), true);
       const library = await import(
         `../lib/games/library-fixtures.ts?mode=${mode}`
       );
-      assert.equal(
-        library.libraryGames.some((game) => game.id === 'diner'),
-        available,
-      );
-      assert.equal(!!library.gameByLibraryId('diner'), available);
-      assert.equal(!!library.playableGame('diner'), available);
+      assert.ok(library.libraryGames.some((game) => game.id === 'diner'));
+      assert.ok(library.gameByLibraryId('diner'));
+      assert.ok(library.playableGame('diner'));
       for (const sections of [library.librarySections, library.tableSections])
-        assert.equal(
+        assert.ok(
           sections.some((section) => section.games.includes('diner')),
-          available,
         );
+      assert.deepEqual(library.showcaseGames.slice(0, 5), [
+        'arena',
+        'rota',
+        'wildgrove',
+        'diner',
+        'alto',
+      ]);
+      assert.ok(library.longGames.includes('diner'));
+      const reels = await import(`../lib/games/library-reels.ts?mode=${mode}`);
+      assert.ok(reels.reelFor('diner'));
+      assert.ok(reels.reelAssets().includes('/reels/diner-wide.mp4'));
     }
   } finally {
     setEnvironment(originalEnvironment);
   }
 });
 
-await test('Diner routes, room launch and lobby votes enforce the development gate', async () => {
+await test('Diner routes, room launch and lobby votes work in every environment', async () => {
   const staticDir = mkdtempSync(join(tmpdir(), 'gamehub-diner-gate-'));
   writeFileSync(
     join(staticDir, 'index.html'),
@@ -50,7 +55,6 @@ await test('Diner routes, room launch and lobby votes enforce the development ga
   try {
     for (const mode of ['development', 'production', 'test', undefined]) {
       setEnvironment(mode);
-      const available = mode === 'development';
       const app = await makeServer({
         database: ':memory:',
         staticDir,
@@ -80,28 +84,13 @@ await test('Diner routes, room launch and lobby votes enforce the development ga
           return response;
         }
         for (const path of ['/diner', `/diner/${'a'.repeat(32)}`]) {
-          assert.equal(
-            (await request(path)).status,
-            available ? 200 : 404,
-            `${mode}: ${path}`,
-          );
+          assert.equal((await request(path)).status, 200, `${mode}: ${path}`);
           assert.equal(
             (await request(`${path}?dev=1&dev_session=fake`)).status,
-            available ? 200 : 404,
+            200,
           );
-          if (!available)
-            assert.equal(
-              (await fetch(base + path, { method: 'HEAD' })).status,
-              404,
-            );
         }
         assert.equal((await request('/arena')).status, 200);
-        if (!available)
-          for (const action of ['', '/events', '/input', '/again']) {
-            const endpoint = `/api/diner/${'a'.repeat(32)}${action}?dev=1`;
-            assert.equal((await request(endpoint)).status, 404);
-            assert.equal((await request(endpoint, {})).status, 404);
-          }
 
         assert.equal(
           (
@@ -122,27 +111,18 @@ await test('Diner routes, room launch and lobby votes enforce the development ga
           requestId: randomUUID(),
           action: { type: 'vote', gameId: 'diner' },
         });
-        assert.equal(
-          voted.status,
-          available ? 200 : 400,
-          `${mode}: lobby vote`,
-        );
+        assert.equal(voted.status, 200, `${mode}: lobby vote`);
         const launch = await request(`${path}/launch?dev=1`, {
           kind: 'diner',
           level: 1,
         });
-        assert.equal(launch.status, available ? 200 : 404, `${mode}: launch`);
-        if (available) {
-          const { url } = await launch.json();
-          assert.match(url, /^\/diner\/[A-Za-z0-9_-]{32}$/);
-          assert.equal(
-            (await request(url.replace('/diner/', '/api/diner/'))).status,
-            200,
-          );
-        } else {
-          assert.equal(app.diner.rooms.size, 0);
-          assert.equal((await (await request(path)).json()).handoff, null);
-        }
+        assert.equal(launch.status, 200, `${mode}: launch`);
+        const { url } = await launch.json();
+        assert.match(url, /^\/diner\/[A-Za-z0-9_-]{32}$/);
+        assert.equal(
+          (await request(url.replace('/diner/', '/api/diner/'))).status,
+          200,
+        );
       } finally {
         await app.close();
       }

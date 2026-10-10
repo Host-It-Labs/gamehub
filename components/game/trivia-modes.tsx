@@ -7,11 +7,20 @@ import {
   useState,
   type CSSProperties,
 } from 'react';
-import { Check, Coins, Footprints, Info, Package, Trophy } from 'lucide-react';
+import {
+  Check,
+  Coins,
+  Footprints,
+  Gem,
+  Info,
+  Package,
+  Trophy,
+} from 'lucide-react';
 import type { AnyGame, AnyMove } from '@/lib/games/standalone/registry';
 import type { SetGame } from '@/lib/games/party/vote';
 import {
   campReady,
+  collectionScore,
   finalTriviaCamp,
   legacyTriviaRoutes,
   triviaCosts,
@@ -28,6 +37,7 @@ import { Piece } from './interactions';
 import { QuizPick } from './quiz-pick';
 import { CountUp } from './reveal-motion';
 import { TriviaRules } from './trivia-rules';
+import { Collections, DraftCamp } from './trivia-draft';
 import './trivia-modes.css';
 
 const TriviaScene = lazy(() => import('./trivia-3d/trivia-scene'));
@@ -133,7 +143,7 @@ export function TriviaModeChoices({
           >
             <Piece
               className="trivia-mode-toggle"
-              label={`${mode.name}, ${mode.rounds ? `${mode.rounds} rounds` : 'play as long as you like'}. Hold or press I for rules.`}
+              label={`${mode.name}, ${mode.rounds ? '4 or 8 rounds' : 'play as long as you like'}. Hold or press I for rules.`}
               selected={value === mode.id}
               unavailable={disabled || !onChange}
               onTap={() => onChange?.(mode.id)}
@@ -147,9 +157,7 @@ export function TriviaModeChoices({
             >
               <TriviaModeMark mode={mode.id} />
               <strong>{mode.name}</strong>
-              <small>
-                {mode.rounds ? `${mode.rounds} rounds` : 'Free play'}
-              </small>
+              <small>{mode.rounds ? '4 or 8 rounds' : 'Free play'}</small>
               {value === mode.id && (
                 <Check
                   className="trivia-mode-check"
@@ -195,6 +203,18 @@ export function TriviaScore({ g, seat }: { g: AnyGame; seat: number }) {
   const t = triviaOf(g),
     p = t?.players[seat];
   if (!p || !t || t.mode === 'quick') return null;
+  if (t.mode === 'expedition' && t.rules === 3) {
+    const score = collectionScore(p.finds);
+    return (
+      <span
+        className="trivia-badge-score"
+        aria-label={`${score} points from ${p.finds?.length ?? 0} finds`}
+      >
+        <Gem size={11} />
+        {score}
+      </span>
+    );
+  }
   return t.mode === 'tower' ? (
     <span
       className="trivia-badge-score"
@@ -245,6 +265,21 @@ export function TriviaFinalScore({
   const t = triviaOf(g),
     p = triviaStandings(g).find((p) => p.seat === seat);
   if (!t || !p) return null;
+  if (t.mode === 'expedition' && t.rules === 3)
+    return (
+      <span
+        className="trivia-final-score"
+        aria-label={`${p.score} from ${p.finds?.length ?? 0} finds, ${p.rawPoints} points`}
+      >
+        <span>
+          <Gem size={18} />
+          <CountUp value={p.score} delay={delay} duration={650} />
+        </span>
+        <small>
+          <span>{p.rawPoints} pts</span>
+        </small>
+      </span>
+    );
   return (
     <span
       className="trivia-final-score"
@@ -312,8 +347,10 @@ export function TriviaBoard({
     const last = t.rounds.at(-1);
     return t.players.map((p, seat) => {
       const addedFloors = last
-        ? Math.floor(last.scores[seat] / triviaTower.pointsPerFloor) +
-          (last.winners.includes(seat) ? triviaTower.victoryFloors : 0)
+        ? last.blocks
+          ? last.blocks[seat]
+          : Math.floor(last.scores[seat] / triviaTower.pointsPerFloor) +
+            (last.winners.includes(seat) ? triviaTower.victoryFloors : 0)
         : 0;
       const r = triviaRoutes.find((r) => r.id === last?.routes[seat]);
       const addedSteps =
@@ -332,6 +369,15 @@ export function TriviaBoard({
     });
   }, [t]);
   if (!t || t.mode === 'quick') return null;
+  if (t.mode === 'expedition' && t.rules === 3)
+    return (
+      <figure
+        className={`trivia-world world-draft ${ledger ? '' : 'is-final-world'}`}
+      >
+        <Collections g={g} viewer={null} large={!ledger} />
+      </figure>
+    );
+  const blocks = t.rules === 3 ? t.rounds.at(-1)?.blocks : undefined;
   return (
     <figure
       className={`trivia-world world-${t.mode} ${ledger ? '' : 'is-final-world'}`}
@@ -387,6 +433,15 @@ export function TriviaBoard({
                   <Footprints size={14} />
                 )}
                 <CountUp value={t.mode === 'tower' ? p.floors : p.distance} />
+                {blocks && (
+                  <small
+                    className="trivia-ledger-gain"
+                    key={t.completed}
+                    aria-label={`${blocks[seat]} new`}
+                  >
+                    +{blocks[seat]}
+                  </small>
+                )}
               </span>
               <span
                 aria-label={`${t.mode === 'tower' ? p.victories : p.trophies} ${t.mode === 'tower' ? 'victories' : 'trophies'}`}
@@ -408,9 +463,33 @@ export function TriviaCamp(props: {
   disabled: boolean;
   canAdvance: boolean;
   hostName?: string;
+  awaySeats?: number[];
   commit: (move: AnyMove) => void;
 }) {
-  return triviaOf(props.g)?.rules === 2 ? (
+  const t = triviaOf(props.g);
+  if (t?.rules === 3 && t.mode === 'expedition')
+    return (
+      <DraftCamp
+        g={props.g}
+        viewer={props.viewer}
+        disabled={props.disabled}
+        canAdvance={props.canAdvance}
+        awaySeats={props.awaySeats}
+        commit={props.commit}
+      >
+        {props.g.vote && (
+          <QuizPick
+            vote={props.g.vote}
+            current={null}
+            viewer={props.viewer ?? -1}
+            disabled={props.disabled || !props.canAdvance}
+            showHostWait={false}
+            onVote={(choice) => props.commit({ type: 'vote', choice })}
+          />
+        )}
+      </DraftCamp>
+    );
+  return t?.rules === 2 || t?.rules === 3 ? (
     <RouteCamp {...props} />
   ) : (
     <LegacyTriviaCamp {...props} />

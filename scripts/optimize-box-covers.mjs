@@ -21,7 +21,9 @@ const triviaSources = 'assets/art/trivia/2026-10-04/sources';
 // Puzzles (folio) and Diner covers of 9 October 2026 keep their chosen
 // sources beside their exact prompts.
 const freshSources = 'docs/concepts/2026-10-09-puzzles-rota-diner-covers/sources';
-const roots = { miro: triviaSources, folio: freshSources, diner: freshSources };
+// Diner's cover of 10 October 2026 (a subtler cook).
+const dinerSources = 'docs/concepts/2026-10-10-diner-cook/sources';
+const roots = { miro: triviaSources, folio: freshSources, diner: dinerSources };
 // Optional ids on the command line limit the run to those covers.
 const only = process.argv.slice(2);
 const manifestPath = 'lib/artwork-previews.json';

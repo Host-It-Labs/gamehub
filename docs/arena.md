@@ -498,10 +498,15 @@ board).
   (`portraits.md`). The earlier sets are kept beside them: v5/v6 (the same
   cartoon look, posed), v4 (the game's clean 3D look) and v3 (detailed
   miniatures on bases).
-  Library covers (1 October 2026): cartoon key art in the loading screen's
-  style, `assets/arena/concepts/box-arena-square-v5-a.png` and
-  `box-arena-wide-v5-a.png`, served as `box-arena-blind-v2` and
-  `box-arena-wide-v2` (prompts in concepts/2026-10-01-arena-covers).
+  Since 10 October 2026 every card but the Cowboy (v10-b) uses its v14
+  portrait, one cartoon set matching the 3D figures, generated from text
+  alone (`card-<id>-v14-{a,b}.png`, prompts and picks in
+  docs/concepts/2026-10-10-arena-portraits).
+  Library covers (10 October 2026): cartoon key art in the same look,
+  `assets/arena/concepts/box-arena-square-v6-a.png` and
+  `box-arena-wide-v6-b.png`, served as `box-arena-blind-v3` and
+  `box-arena-wide-v3` (prompts in concepts/2026-10-10-arena-portraits; the
+  v5 covers of 1 October are in concepts/2026-10-01-arena-covers).
 - Every troop is a `figure_<id>.py` file (each with a private `_kit.py`),
   animated by `components/game/arena/moves/<id>.ts` (contract in
   `moves/types.ts`: the shared walk runs first, then the troop's `pose`,

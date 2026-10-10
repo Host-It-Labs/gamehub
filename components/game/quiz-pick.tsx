@@ -13,6 +13,7 @@ import {
   AtlasMark,
   OrderMark,
   QuizEndMark,
+  QuizMoreMark,
   SizesMark,
   YearsMark,
 } from './sabi-marks';
@@ -24,13 +25,13 @@ export const quizMarks: Partial<Record<RoundChoice, ComponentType>> = {
   size: SizesMark,
   year: YearsMark,
   order: OrderMark,
-  more: QuizEndMark,
+  more: QuizMoreMark,
   finish: QuizEndMark,
 };
 
-/** The colour family of a card: a Quiz game, or End. */
+/** The colour family of a card: a Quiz game, Trivia's 4 more, or End. */
 export function quizTone(choice: RoundChoice) {
-  return choice === 'more' || choice === 'finish' ? 'end' : choice;
+  return choice === 'finish' ? 'end' : choice;
 }
 
 /** Quiz's table pick: the opening pick between its games and the
@@ -77,8 +78,9 @@ export function QuizPick({
       >
         {options.map((choice, i) => {
           const again = choice === current,
-            end = choice === 'more' || choice === 'finish',
-            name = end ? 'End' : partNames[choice],
+            end = choice === 'finish',
+            // Only Trivia's fixed matches offer more: four more rounds.
+            name = end ? 'End' : choice === 'more' ? '4 more' : partNames[choice],
             Mark = quizMarks[choice];
           return (
             <button

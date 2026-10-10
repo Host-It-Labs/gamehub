@@ -458,6 +458,24 @@
     padding-inline: max(56px, calc((100vw - 1500px) / 2 + 56px));
   }
 }
+/* Landscape screens: every shelf shows all its games at once (Quick games
+   has six), no paging. The tiles shrink a little to fit six across, and all
+   shelves share that size. Narrow tiles stack the time over the kind, as
+   phones do, so a kind is never cut. */
+@media (min-width: 700px) and (orientation: landscape) {
+  .lib-main > .lib-sections {
+    --tile: min(232px, calc((100cqw - 5 * var(--lib-gap)) / 6));
+  }
+  .lib-main > .lib-sections .lib-arrows {
+    display: none;
+  }
+  @container (max-width: 200px) {
+    .lib-main > .lib-sections .lib-tile-button .stat-strip {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+}
 
 /* Avatars and stat chips */
 .avatar {
@@ -645,17 +663,19 @@
   outline: 3px solid var(--lib-brass);
   outline-offset: 3px;
 }
-/* The Play plate in the middle of the footage: glass at rest, brass and a
-   little larger when the screen is hovered or pressed. */
+/* The Play plate in the footage's bottom-right corner, so the game playing
+   is never covered: glass at rest, brass and a little larger when the screen
+   is hovered or pressed. Phones show only its round brass button in a glass
+   ring; the screen itself carries the name ("Play Nox"). */
 .show-go {
   position: absolute;
-  left: 50%;
-  top: 50%;
+  right: 10px;
+  bottom: 10px;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 20px 7px 7px;
+  padding: 4px;
   border-radius: 999px;
   white-space: nowrap;
   font-size: 16px;
@@ -668,17 +688,20 @@
     0 14px 30px -12px #000d;
   backdrop-filter: blur(10px) saturate(1.2);
   -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  transform: translate(-50%, -50%);
+  transform-origin: 100% 100%;
   transition:
     transform 0.2s ease,
     background 0.2s ease,
     color 0.2s ease;
 }
+.show-go-label {
+  display: none;
+}
 .show-go-icon {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--lib-brass);
   color: var(--lib-on-brass, #fff);
@@ -688,8 +711,8 @@
     color 0.2s ease;
 }
 .show-go-icon svg {
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
 }
 .show-go-icon .lucide-play {
   margin-left: 2px;
@@ -697,7 +720,7 @@
 }
 .show-stage:hover .show-go,
 .show-stage:focus-visible .show-go {
-  transform: translate(-50%, -50%) scale(1.07);
+  transform: scale(1.07);
   background: var(--lib-brass);
   color: var(--lib-on-brass, #fff);
 }
@@ -712,7 +735,7 @@
     0 30px 50px -28px color-mix(in srgb, var(--lib-shadow) 95%, transparent);
 }
 .show-stage:active .show-go {
-  transform: translate(-50%, -50%) scale(0.97);
+  transform: scale(0.97);
 }
 /* A thin glass rim over the footage. */
 .show-stage::after {
@@ -936,17 +959,17 @@
     font-size: clamp(26px, 2.4vw, 34px);
   }
   .show-go {
-    gap: 12px;
-    padding: 8px 26px 8px 8px;
-    font-size: 19px;
+    right: clamp(14px, 1.5vw, 24px);
+    bottom: clamp(14px, 1.5vw, 24px);
+    padding: 6px 20px 6px 6px;
+    font-size: 16px;
+  }
+  .show-go-label {
+    display: inline;
   }
   .show-go-icon {
-    width: 50px;
-    height: 50px;
-  }
-  .show-go-icon svg {
-    width: 23px;
-    height: 23px;
+    width: 40px;
+    height: 40px;
   }
   .show-info {
     grid-template-columns: auto minmax(0, 1fr);

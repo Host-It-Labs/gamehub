@@ -10,7 +10,7 @@ import { maxPinPoints, pinCurve } from '../party/geography.ts';
 import { curve } from '../party/size.ts';
 import { coinCost, perfectRead, totalCoins } from '../party/coins.ts';
 import { eraFactor, yearCurve } from '../party/year.ts';
-import { pairPoints } from '../party/order.ts';
+import { pairCost, pairPoints } from '../party/order.ts';
 import { roundVoteMs } from '../party/vote.ts';
 import {
   drawMs,
@@ -145,7 +145,7 @@ export const adventureLessons: Record<
     },
     {
       title: 'Closer scores more',
-      text: `A perfect order scores ${pairPoints[0]}. One pair the wrong way round scores ${pairPoints[1]}, two pairs ${pairPoints[2]}, more scores nothing. The host reveals the three one at a time.`,
+      text: `A perfect order scores ${pairPoints[0]}. Every pair of things the wrong way round costs ${pairCost}, down to nothing. The host reveals the three one at a time.`,
     },
     {
       title: 'What next?',

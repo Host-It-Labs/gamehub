@@ -1,9 +1,8 @@
 import { requiresHumanPlayers } from '../lib/games/player-policy.ts';
-import { isGameAvailable } from '../lib/games/availability.ts';
 
 import { placeHistoryKey } from '../lib/games/party/geography.ts';
 import { pairKey } from '../lib/games/party/impostor.ts';
-import { isTriviaMode, triviaModeOf, type TriviaMode } from '../lib/games/party/trivia.ts';
+import { draftPicker, isTriviaLength, isTriviaMode, triviaModeOf, type TriviaLength, type TriviaMode } from '../lib/games/party/trivia.ts';
 import type { StandaloneId } from '../lib/games/standalone/types.ts';
 import { standaloneGames, isStandaloneId, observe as observeAdventure, botMove as adventureBot, decisionKey as adventureKey, tick as tickAdventure, type AnyGame } from '../lib/games/standalone/registry.ts';
 import { practice, adventureLessons } from '../lib/games/adventures/lessons.ts';
@@ -64,6 +63,8 @@ export type StoredTable = {
   partyVotes?: boolean;
   /** Retained when the table plays another game, so Trivia keeps its setup. */
   triviaMode?: TriviaMode;
+  /** Tower and Expedition: 4 or 8 rounds, kept like the mode. */
+  triviaRounds?: TriviaLength;
   capacity: number;
   revision: number;
   status: Table['status'];
@@ -212,6 +213,10 @@ export class Tables {
       let changed = false;
       if (!isTriviaMode(table.triviaMode)) {
         table.triviaMode = 'quick';
+        changed = true;
+      }
+      if (table.triviaRounds !== undefined && !isTriviaLength(table.triviaRounds)) {
+        table.triviaRounds = 4;
         changed = true;
       }
       // Dial is played inside Tribu and Sizes inside Sabi; their tables open
@@ -468,6 +473,7 @@ export class Tables {
       fastMode: t.fastMode ?? false,
       partyVotes: t.partyVotes ?? false,
       triviaMode: t.triviaMode ?? 'quick',
+      triviaRounds: t.triviaRounds ?? 4,
       ambienceEnabled: t.ambienceEnabled === true,
       capacity: t.capacity,
       revision: t.revision,
@@ -572,6 +578,9 @@ export class Tables {
           check(standaloneGames[game.kind].validMove(game,a.move,seat),409,'That action is unavailable.');
           // Players only lock in their own choices; moving the table on belongs to the host.
           check(a.move.type!=='next'||mayAdvance(t,who.id,id=>this.connected(t.token,id)),403,'The host moves the table on.');
+          // A draft never stalls: the host (or anyone seated while the host is
+          // away) may pick for a picker who is away, and only then.
+          if(a.move.type==='trivia-pick-for'){const picker=draftPicker(game);check(mayAdvance(t,who.id,id=>this.connected(t.token,id))&&picker!==null&&!!t.seats[picker]&&!this.connected(t.token,t.seats[picker].id),403,'Only the host can pick for a player who is away.');}
           // Unless the table votes, what comes next is the host's pick alone.
           check(a.move.type!=='vote'||!('vote' in game&&game.vote?.host)||mayAdvance(t,who.id,id=>this.connected(t.token,id)),403,'The host picks what comes next.');
           // Development: the host's pick in a party game's opening vote is final, so every other seat takes it.
@@ -597,7 +606,7 @@ export class Tables {
               a.gameId === 'arena' ||
               a.gameId === 'rota' ||
               a.gameId === 'alto' ||
-              (a.gameId === 'diner' && isGameAvailable('diner')) ||
+              a.gameId === 'diner' ||
               (typeof a.gameId === 'string' && isStandaloneId(a.gameId))),
             400,
             'Unknown game.',
@@ -673,6 +682,13 @@ export class Tables {
             'Trivia mode belongs to Trivia.',
           );
           t.triviaMode = a.triviaMode ?? t.triviaMode ?? 'quick';
+          check(
+            a.triviaRounds === undefined ||
+              (isTriviaLength(a.triviaRounds) && a.gameId === 'miro'),
+            400,
+            'Invalid Trivia length.',
+          );
+          t.triviaRounds = a.triviaRounds ?? t.triviaRounds ?? 4;
           check(
             a.contentSet === undefined ||
               contentSetsFor(a.gameId).includes(a.contentSet),
@@ -793,6 +809,7 @@ export class Tables {
                     undefined,
                     t.partyVotes ?? false,
                     t.gameId === 'miro' ? (t.triviaMode ?? 'quick') : undefined,
+                    t.gameId === 'miro' ? (t.triviaRounds ?? 4) : undefined,
                   );
             t.adventure.seats = t.seats.map((s) => s.name);
             t.matchId = token();
@@ -1004,6 +1021,7 @@ export class Tables {
       undefined,
       t.partyVotes ?? false,
       id === 'miro' ? (t.triviaMode ?? 'quick') : undefined,
+      id === 'miro' ? (t.triviaRounds ?? 4) : undefined,
     );
     t.adventure.seats = t.seats.map((s) => s.name);
     t.game = null;

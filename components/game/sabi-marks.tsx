@@ -175,3 +175,43 @@ export function QuizEndMark() {
     </svg>
   );
 }
+
+/** Trivia's 4 more: four index cards fanned out, one per game, a tomato
+ * enamel plus on the front card. */
+export function QuizMoreMark() {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      className="tribu-mark sabi-mark mark-more"
+      aria-hidden="true"
+    >
+      <ellipse cx="32" cy="58" rx="22" ry="2.6" className="mark-shadow" />
+      {(
+        [
+          ['#3569ff', -21, 0],
+          ['#ff5a3c', -7, 1],
+          ['#ffd23f', 7, 2],
+          ['#1f5a4a', 21, 3],
+        ] as const
+      ).map(([band, angle, i]) => (
+        <g key={i} transform={`rotate(${angle} 32 56)`} className="mark-more-card">
+          <rect
+            x="20"
+            y="14"
+            width="24"
+            height="34"
+            rx="3"
+            fill="#fff8e6"
+            stroke="#1b2a24"
+            strokeWidth="1.4"
+          />
+          <rect x="20" y="14" width="24" height="9" rx="3" fill={band} />
+          <path d="M24 30h16M24 35h16M24 40h10" stroke="#1b2a2433" strokeWidth="1.4" />
+        </g>
+      ))}
+      <circle cx="46" cy="16" r="10" fill="#ff5a3c" stroke="#c93a20" strokeWidth="1.6" />
+      <path d="M46 10.5v11M40.5 16h11" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+      <ellipse cx="42.5" cy="12" rx="3" ry="1.6" fill="#fff" opacity=".5" />
+    </svg>
+  );
+}

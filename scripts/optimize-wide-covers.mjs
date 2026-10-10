@@ -23,7 +23,8 @@ const sources = {
   folio: 'puzzles-wide-a.png',
   // docs/concepts/2026-10-03-impostor-diner-covers
   impostor: 'box-impostor-wide-v1-b.png',
-  diner: 'diner-wide-a2.png',
+  // Diner, 10 October 2026 (a subtler cook): docs/concepts/2026-10-10-diner-cook
+  diner: 'diner-wide-b2.png',
   // Lucky (relic) cuts its own lid in scripts/optimize-lucky-art.mjs.
 };
 const manifestPath = 'lib/artwork-previews.json';
@@ -36,9 +37,11 @@ for (const [id, file] of Object.entries(sources)) {
   const sourceRoot =
     id === 'miro'
       ? 'assets/art/trivia/2026-10-04/sources'
-      : id === 'folio' || id === 'diner'
+      : id === 'folio'
         ? 'docs/concepts/2026-10-09-puzzles-rota-diner-covers/sources'
-        : archive;
+        : id === 'diner'
+          ? 'docs/concepts/2026-10-10-diner-cook/sources'
+          : archive;
   const source = `${sourceRoot}/${file}`;
   // Without the archive the committed delivery files stay as they are.
   if (!existsSync(source)) continue;

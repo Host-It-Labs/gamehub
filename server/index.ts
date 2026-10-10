@@ -29,7 +29,6 @@ import { ArenaRooms, ArenaRefusal, type ArenaOptions } from './arena.ts';
 import { RotaRooms, type RotaOptions } from './rota.ts';
 import { AltoRooms, type AltoRoomOptions } from './alto.ts';
 import { DinerRooms, type DinerOptions } from './diner.ts';
-import { isGameAvailable } from '../lib/games/availability.ts';
 import { flagContent, flaggedTitle } from './content-flags.ts';
 import {
   observe,
@@ -321,8 +320,6 @@ export async function makeServer(
     try {
       const url = new URL(req.url ?? '/', origin),
         path = url.pathname;
-      if (path === '/diner' || path.startsWith('/diner/') || path === '/api/diner' || path.startsWith('/api/diner/'))
-        check(isGameAvailable('diner'), 404, 'Not found.');
       if (!path.startsWith('/api/')) {
         serveStatic(path, req, res);
         return;
@@ -340,8 +337,11 @@ export async function makeServer(
           'Request origin is not allowed.',
         );
       const ip = req.socket.remoteAddress ?? 'unknown';
+      // Eight waiters at 20 inputs/second use 9,600/minute; allow 25% headroom.
+      if (req.method === 'POST' && /^\/api\/diner\/[A-Za-z0-9_-]{32}\/input$/.test(path))
+        limit(`diner-input:${ip}`, 12_000);
       // Lucky's live pointer and view updates have their own budget.
-      if (/^\/api\/expeditions\/[A-Za-z0-9_-]{32}\/presence$/.test(path)) limit(`presence:${ip}`, 3000);
+      else if (/^\/api\/expeditions\/[A-Za-z0-9_-]{32}\/presence$/.test(path)) limit(`presence:${ip}`, 3000);
       else limit(`${path.startsWith('/api/expeditions') ? 'expedition' : 'request'}:${ip}`, path.startsWith('/api/expeditions') ? 3600 : 600);
       // Development: a test-player tab sends its own guest session, since
       // every localhost tab shares the one cookie.
@@ -698,7 +698,6 @@ export async function makeServer(
           // Arena seats two in a duel and four in a team battle; bots fill the rest.
           url = `/arena/${arena.launch(invite, t.owner, t.members, input)}`;
         } else if (input.kind === 'diner') {
-          check(isGameAvailable('diner'), 404, 'Not found.');
           // Diner seats everyone at the table as waiters, one to four.
           url = `/diner/${diner.launch(invite, t.owner, t.members, input)}`;
         } else if (input.kind === 'alto') {

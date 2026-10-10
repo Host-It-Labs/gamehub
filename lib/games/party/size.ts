@@ -79,14 +79,16 @@ export const questionsPerRound = 3;
 /** A guess is a real size in the target's unit; anything sane is allowed. */
 export const guessRange = [1e-4, 1e6] as const;
 /** How many times too big or too small → points out of 100, straight lines
- * between the marks, so doubling and halving cost the same (2 October
- * 2026, balanced against the other Quiz games). */
+ * between the marks, so doubling and halving cost the same. Points fall
+ * evenly with the factor and reach nothing only at three times (10 October
+ * 2026; it was nothing at twice, which left most guesses with nothing). */
 export const curve = [
   [1.1, 100],
-  [1.2, 78],
-  [1.4, 48],
-  [1.6, 22],
-  [2, 0],
+  [1.25, 84],
+  [1.5, 62],
+  [2, 34],
+  [2.5, 14],
+  [3, 0],
 ] as const;
 /** The factor a guess is off by: 1 when exact, 2 at double or half. */
 export function factorOff(guess: number, answer: number) {

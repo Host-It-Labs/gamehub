@@ -4,7 +4,11 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { startRatio } from '../render-quality';
-import { batchSettledTowerFloors, createTriviaTower } from './tower-model';
+import {
+  batchSettledTowerFloors,
+  createTriviaTower,
+  maxTowerFloors,
+} from './tower-model';
 import {
   createTriviaExpedition,
   createTriviaTraveller,
@@ -194,8 +198,14 @@ export default function TriviaScene({
 
     const towers =
       mode === 'tower'
-        ? latest.current.players.map((_, seat) =>
-            createTriviaTower(triviaSeatColours[seat], 25),
+        ? latest.current.players.map((_, seat, all) =>
+            // Enough tiers for a twelve-round placement match at this
+            // table (a block per player a round), never fewer than the
+            // twenty-five older saves can reach.
+            createTriviaTower(
+              triviaSeatColours[seat],
+              Math.min(maxTowerFloors, Math.max(25, all.length * 12)),
+            ),
           )
         : [];
     const batches = source ? [] : towers.map(batchSettledTowerFloors);

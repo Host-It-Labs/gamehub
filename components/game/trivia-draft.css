@@ -1,0 +1,860 @@
+/* Expedition's camp (rules 3): the offer of finds on the lamp-lit cutting
+ * mat, the pick order above it, every player's specimen case beside it. */
+.trivia-draft {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+  gap: clamp(12px, 2vw, 26px);
+}
+.trivia-draft-mat {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 4vh, 40px);
+  padding: clamp(16px, 3vh, 32px) clamp(12px, 2vw, 30px);
+  border-radius: 24px;
+  container-type: size;
+  color: var(--s-cream);
+  background:
+    radial-gradient(60% 55% at 50% 58%, #fff5d21f, transparent 70%),
+    repeating-linear-gradient(90deg, #e8f3cf55 0 1px, transparent 1px 12px) 0 0
+      / 100% 7px no-repeat,
+    repeating-linear-gradient(0deg, #e8f3cf55 0 1px, transparent 1px 12px) 0 0 /
+      7px 100% no-repeat,
+    linear-gradient(90deg, #e8f3cf26 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(0deg, #e8f3cf26 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(90deg, #e8f3cf12 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(0deg, #e8f3cf12 1px, transparent 1px) 0 0 / 24px 24px,
+    radial-gradient(90% 80% at 12% 0%, #3f9577 0%, transparent 60%),
+    linear-gradient(
+      160deg,
+      var(--s-mat-light),
+      var(--s-mat) 45%,
+      var(--s-mat-deep)
+    );
+  box-shadow:
+    0 0 0 1px #0d2a22,
+    0 2px 0 #ffffff26 inset,
+    0 -18px 40px #0000002e inset,
+    0 18px 40px #3b2a0f33,
+    0 4px 0 #0d2a22;
+}
+
+/* The pick order: places, faces, the round's points, and what each took. */
+.trivia-draft-order {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  gap: clamp(6px, 1.2vw, 14px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trivia-draft-order li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 52px;
+  padding: 6px 6px 7px;
+  border-radius: 14px;
+  background: #0b2a2155;
+  box-shadow: inset 0 0 0 1px #e8f3cf22;
+  transition:
+    transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1),
+    background 0.3s;
+  animation: draft-deal 0.45s backwards cubic-bezier(0.2, 1.2, 0.4, 1);
+  animation-delay: calc(var(--i) * 70ms);
+}
+.trivia-draft-order .party-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+  box-shadow:
+    inset 0 1px 0 #fff6,
+    0 2px 0 #0003;
+}
+.trivia-draft-order .draft-place {
+  position: absolute;
+  top: -7px;
+  left: -5px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--s-cream);
+  color: var(--s-ink);
+  font: 800 11px/1 var(--s-display);
+  box-shadow: 0 2px 0 #0d2a22;
+}
+.trivia-draft-order li:first-child .draft-place {
+  background: var(--s-sun);
+}
+.trivia-draft-order small {
+  font: 800 11px/1 var(--s-display);
+  color: #e8f3cfcc;
+  font-variant-numeric: tabular-nums;
+}
+.trivia-draft-order li.is-now {
+  background: var(--s-cream);
+  transform: translateY(-4px) scale(1.06);
+  box-shadow:
+    0 0 0 2px var(--s-sun),
+    0 0 26px #ffd23f88,
+    0 6px 0 #0d2a22;
+}
+.trivia-draft-order li.is-now small {
+  color: var(--s-ink);
+}
+.trivia-draft-order li.is-now .party-avatar {
+  animation: draft-turn 1.4s ease-in-out infinite;
+}
+.trivia-draft-order li.is-done {
+  opacity: 0.86;
+}
+.draft-took {
+  position: absolute;
+  right: -8px;
+  bottom: 12px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffdf5, #eadcb8);
+  box-shadow:
+    0 0 0 1.5px #0d2a22,
+    0 2px 4px #0006;
+  animation: draft-land 0.5s backwards cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.draft-took.is-big {
+  box-shadow:
+    0 0 0 2px var(--s-sun),
+    0 2px 4px #0006;
+}
+.draft-took .find-mark {
+  width: 20px;
+  height: 20px;
+}
+
+/* The offer: specimens on cream trays, the big one larger with a halo. */
+.trivia-draft-offer {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(10px, 2vw, 26px);
+  max-width: 100%;
+  /* One row while the mat is wide enough, wrapping only below 64px. */
+  --tray: clamp(
+    64px,
+    min(30cqh, (100cqi - 30px) / (var(--n) + 0.9) - 16px),
+    150px
+  );
+}
+.party-table .trivia-draft-offer .draft-find {
+  position: relative;
+  width: var(--tray);
+  height: var(--tray);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+  cursor: default;
+  animation: draft-deal 0.55s backwards cubic-bezier(0.2, 1.3, 0.4, 1);
+  animation-delay: calc(180ms + var(--i) * 90ms);
+  transition:
+    transform 0.25s cubic-bezier(0.2, 1.5, 0.4, 1),
+    opacity 0.3s,
+    filter 0.3s;
+}
+.trivia-draft-offer.is-preview .draft-find {
+  display: block;
+  animation:
+    draft-deal 0.55s backwards cubic-bezier(0.2, 1.3, 0.4, 1),
+    draft-bob 4.8s ease-in-out infinite;
+  animation-delay:
+    calc(180ms + var(--i) * 90ms),
+    calc(var(--i) * -1.2s);
+}
+/* Everyone sees the offer at full strength; only the picker's is live. */
+.party-table .trivia-draft-offer .draft-find:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.party-table .trivia-draft-offer .draft-find.is-big {
+  width: calc(var(--tray) * 1.24);
+  height: calc(var(--tray) * 1.24);
+}
+.draft-tray {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, #fffef8 0%, #fbf3dd 38%, #e6d6ae 100%);
+  box-shadow:
+    inset 0 -6px 12px #b69a5c55,
+    inset 0 3px 0 #fff,
+    0 0 0 3px var(--kind),
+    0 0 0 5px #0d2a22aa,
+    0 14px 18px -6px #04150f99,
+    0 4px 0 #0d2a22;
+}
+.draft-find.is-big .draft-tray {
+  box-shadow:
+    inset 0 -6px 12px #b69a5c55,
+    inset 0 3px 0 #fff,
+    0 0 0 3px var(--s-sun),
+    0 0 0 6px #8f6208,
+    0 0 34px 6px #ffd23f66,
+    0 16px 20px -6px #04150f99,
+    0 4px 0 #0d2a22;
+}
+.draft-tray .find-mark {
+  width: 74%;
+  height: 74%;
+  filter: drop-shadow(0 4px 3px #5b441f55);
+}
+.draft-big {
+  position: absolute;
+  top: 2%;
+  right: 2%;
+  width: 26%;
+  height: 26%;
+  min-width: 22px;
+  min-height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3a6, #ffd23f 55%, #c48e10);
+  box-shadow:
+    0 0 0 2px #7a5306,
+    0 3px 0 #0d2a22;
+  color: #4b3304;
+  font: 900 clamp(11px, 1.6vw, 16px) / 1 var(--s-display);
+  font-style: normal;
+}
+.kind-crystal {
+  --kind: #3569ff;
+}
+.kind-fossil {
+  --kind: #ff5a3c;
+}
+.kind-gold {
+  --kind: #ffd23f;
+}
+.kind-fern {
+  --kind: #12a870;
+}
+.draft-gain {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  translate: -50% 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--s-tomato);
+  color: #fff;
+  font: 800 13px/1 var(--s-display);
+  box-shadow: 0 2px 0 var(--s-tomato-deep);
+  pointer-events: none;
+}
+.draft-taker {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 30%;
+  height: 30%;
+  min-width: 24px;
+  min-height: 24px;
+  font-size: 12px;
+  box-shadow:
+    0 0 0 2px var(--s-cream),
+    0 3px 0 #0d2a22;
+}
+.trivia-draft.is-live .draft-find:not(:disabled) {
+  cursor: pointer;
+}
+.trivia-draft.is-live .draft-find:not(:disabled) .draft-tray::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  border: 2px dashed #ffd23fcc;
+  animation: draft-spin 9s linear infinite;
+}
+@media (hover: hover) {
+  .trivia-draft.is-live .draft-find:not(:disabled):hover {
+    transform: translateY(-8px) rotate(-3deg) scale(1.05);
+  }
+}
+.trivia-draft.is-live .draft-find:not(:disabled):active {
+  transform: scale(0.96);
+}
+.party-table .trivia-draft-offer .draft-find:focus-visible {
+  outline: 3px solid var(--s-sun);
+  outline-offset: 8px;
+}
+/* A taken find leaves its hollow in the mat. */
+.draft-find.is-taken .draft-tray,
+.draft-find.is-lost .draft-tray {
+  background: radial-gradient(circle at 50% 38%, #071d17aa, #0d2f2666 70%);
+  box-shadow:
+    inset 0 5px 12px #000a,
+    inset 0 -2px 0 #ffffff14,
+    0 0 0 2px color-mix(in srgb, var(--kind) 35%, transparent);
+}
+.draft-find.is-taken .draft-big {
+  display: none;
+}
+.draft-find.is-lost .draft-big {
+  opacity: 0.3;
+}
+.draft-find.is-taken .find-mark {
+  opacity: 0;
+  transform: translateY(-60%) scale(0.4);
+}
+.draft-find.is-just-taken .find-mark {
+  animation: draft-lift 0.65s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.draft-find.is-lost .find-mark {
+  opacity: 0.32;
+  filter: grayscale(0.8);
+}
+.draft-find .find-mark {
+  transition:
+    opacity 0.4s,
+    transform 0.45s;
+}
+.trivia-draft:not(.is-live) .draft-find:not(.is-taken):not(.is-lost) {
+  filter: saturate(0.92);
+}
+
+/* The dock: every specimen case, then the host's pick. */
+.trivia-draft-dock {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(12px, 2.4vh, 22px);
+}
+.trivia-draft-dock .quiz-pick {
+  width: 100%;
+  margin: 0;
+  gap: 8px;
+}
+.trivia-draft-dock .quiz-pick-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  gap: 10px;
+}
+.trivia-draft-dock .quiz-pick-row:has(.quiz-card:only-child) {
+  grid-template-columns: 1fr;
+}
+.party-table .trivia-draft-dock .quiz-pick .quiz-card {
+  min-height: 104px;
+  padding: 6px 6px 0;
+  border-radius: 14px;
+}
+.trivia-draft-dock .quiz-pick .sabi-mark {
+  width: 60px;
+  max-height: 58px;
+}
+.trivia-draft-dock .qc-name {
+  padding: 5px;
+  font-size: 15px;
+}
+
+.trivia-cases {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trivia-case {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'face name score'
+    'face slots score';
+  align-items: center;
+  gap: 2px 8px;
+  padding: 7px 10px 7px 7px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, #ffffffa6, transparent 40%), var(--s-card);
+  box-shadow:
+    0 0 0 1px var(--s-card-edge),
+    0 3px 0 var(--s-card-edge),
+    0 10px 20px -10px #5b441f55;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+}
+.trivia-case.is-you {
+  box-shadow:
+    0 0 0 2px var(--s-mat),
+    0 3px 0 #c0d0b8,
+    0 10px 20px -10px #5b441f55;
+}
+.trivia-case.is-picking {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 2px var(--s-sun),
+    0 0 18px #ffd23f77,
+    0 3px 0 var(--s-card-edge);
+}
+.trivia-case > .party-avatar {
+  grid-area: face;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+}
+.trivia-case-name {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 800;
+}
+.trivia-case-slots {
+  grid-area: slots;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.trivia-case-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 26px;
+  border-radius: 8px;
+  background: #e9dfc6aa;
+  box-shadow: inset 0 2px 3px #9b845455;
+  font: 800 13px/1 var(--s-display);
+  font-variant-numeric: tabular-nums;
+}
+.trivia-case-slot .find-mark {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.trivia-case-slot.is-empty {
+  opacity: 0.38;
+}
+.trivia-case-slot.is-empty .find-mark {
+  filter: grayscale(1);
+}
+.trivia-case-score {
+  grid-area: score;
+  min-width: 46px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: var(--s-mat);
+  color: var(--s-sun);
+  text-align: center;
+  font: 900 20px/1 var(--s-display);
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    inset 0 1px 0 #fff3,
+    0 2px 0 var(--s-mat-deep);
+}
+/* The final display (results and the menu's progress): every collection
+ * laid out on the lamp-lit mat, each kind a fanned pile of its finds. */
+.trivia-world.world-draft {
+  justify-content: center;
+  padding: clamp(12px, 3vh, 30px) clamp(10px, 2vw, 26px);
+  border-radius: 24px;
+  background:
+    radial-gradient(60% 55% at 50% 50%, #fff5d21f, transparent 70%),
+    linear-gradient(90deg, #e8f3cf26 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(0deg, #e8f3cf26 1px, transparent 1px) 0 0 / 120px 120px,
+    linear-gradient(90deg, #e8f3cf12 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(0deg, #e8f3cf12 1px, transparent 1px) 0 0 / 24px 24px,
+    radial-gradient(90% 80% at 12% 0%, #3f9577 0%, transparent 60%),
+    linear-gradient(
+      160deg,
+      var(--s-mat-light),
+      var(--s-mat) 45%,
+      var(--s-mat-deep)
+    );
+  box-shadow:
+    0 0 0 1px #0d2a22,
+    0 2px 0 #ffffff26 inset,
+    0 -18px 40px #0000002e inset,
+    0 18px 40px #3b2a0f33,
+    0 4px 0 #0d2a22;
+}
+.trivia-cases.is-large {
+  gap: clamp(8px, 1.6vh, 14px);
+  width: min(720px, 100%);
+  margin: auto;
+  grid-template-columns: minmax(0, 1fr);
+}
+.trivia-cases.is-large .trivia-case {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  padding: 9px 12px 9px 9px;
+  animation: draft-deal 0.5s backwards cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+.trivia-cases.is-large .trivia-case:nth-child(2) {
+  animation-delay: 90ms;
+}
+.trivia-cases.is-large .trivia-case:nth-child(3) {
+  animation-delay: 180ms;
+}
+.trivia-cases.is-large .trivia-case:nth-child(4) {
+  animation-delay: 270ms;
+}
+.trivia-cases.is-large .trivia-case:nth-child(5) {
+  animation-delay: 360ms;
+}
+.trivia-cases.is-large .trivia-case:nth-child(6) {
+  animation-delay: 450ms;
+}
+.trivia-cases.is-large .trivia-case > .party-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+}
+.trivia-cases.is-large .trivia-case-name {
+  font-size: 14px;
+}
+.trivia-cases.is-large .trivia-case-slot {
+  height: clamp(38px, 6vh, 50px);
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 8px 0 4px;
+}
+.trivia-case-pile {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.trivia-case-pile .pile-mark {
+  flex: none;
+  width: clamp(24px, 4.4vh, 34px);
+  height: clamp(24px, 4.4vh, 34px);
+  /* Each extra find tucks in behind the one before. */
+  margin-right: calc(-1 * clamp(24px, 4.4vh, 34px) + min(12px, 60% / var(--count)));
+  filter: drop-shadow(0 2px 2px #5b441f55);
+}
+.trivia-case-pile .pile-mark:last-child {
+  margin-right: 0;
+}
+.trivia-cases.is-large .trivia-case-slot > b {
+  font-size: 16px;
+}
+.trivia-cases.is-large .trivia-case-score {
+  min-width: 58px;
+  font-size: 26px;
+  padding: 8px 10px;
+}
+
+@keyframes draft-deal {
+  from {
+    opacity: 0;
+    transform: translateY(-26px) rotate(-8deg) scale(0.7);
+  }
+}
+@keyframes draft-land {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.3);
+  }
+}
+@keyframes draft-lift {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-30%) scale(1.15) rotate(8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120%) scale(0.35);
+  }
+}
+@keyframes draft-turn {
+  50% {
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 1px 0 #fff6,
+      0 5px 8px #0004;
+  }
+}
+@keyframes draft-bob {
+  50% {
+    transform: translateY(-7px) rotate(2deg);
+  }
+}
+@keyframes draft-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1000px) and (orientation: portrait) {
+  .trivia-draft {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .trivia-draft-mat {
+    gap: clamp(10px, 2.4vh, 24px);
+    padding: 14px 10px 18px;
+  }
+  .trivia-draft-offer {
+    --tray: clamp(
+      58px,
+      min(30cqh, (100cqi - 20px) / (var(--n) + 0.9) - 12px),
+      110px
+    );
+    gap: 12px 14px;
+  }
+  .trivia-draft-dock {
+    gap: 8px;
+  }
+  .trivia-cases:not(.is-large) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .trivia-draft-dock .quiz-pick-row {
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 8px;
+  }
+  .party-table .trivia-draft-dock .quiz-pick .quiz-card {
+    min-height: 84px;
+  }
+}
+@media (max-width: 600px) {
+  .trivia-draft-order {
+    gap: 5px;
+  }
+  .trivia-draft-order li {
+    min-width: 40px;
+    padding: 4px 4px 5px;
+    border-radius: 11px;
+  }
+  .trivia-draft-order .party-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  .trivia-draft-order small {
+    font-size: 10px;
+  }
+  .draft-took {
+    width: 20px;
+    height: 20px;
+    right: -6px;
+  }
+  .draft-took .find-mark {
+    width: 15px;
+    height: 15px;
+  }
+  .trivia-case {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 2px 5px;
+    padding: 5px 6px 5px 5px;
+    border-radius: 11px;
+  }
+  .trivia-case > .party-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+  .trivia-case-name {
+    font-size: 11px;
+  }
+  .trivia-case-slots {
+    gap: 2px;
+  }
+  .trivia-case-slot {
+    height: 20px;
+    gap: 0;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+  .trivia-case-slot .find-mark {
+    width: 14px;
+    height: 14px;
+  }
+  .trivia-case-score {
+    min-width: 32px;
+    padding: 5px 5px;
+    font-size: 15px;
+    border-radius: 9px;
+  }
+  .draft-gain {
+    font-size: 11px;
+    padding: 2px 7px;
+    bottom: -10px;
+  }
+  .trivia-draft-dock .quiz-pick-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .party-table .trivia-draft-dock .quiz-pick .quiz-card {
+    min-height: 54px;
+    padding: 4px;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    border-radius: 10px;
+  }
+  .trivia-draft-dock .quiz-card .qc-mat {
+    width: 38px;
+    height: 38px;
+    flex: none;
+    border-radius: 7px;
+  }
+  .trivia-draft-dock .quiz-pick .sabi-mark {
+    width: 32px;
+    max-height: 32px;
+  }
+  .trivia-draft-dock .quiz-card .qc-name {
+    min-width: 0;
+    margin: 0;
+    padding: 3px;
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+  }
+}
+@media (max-height: 650px) and (min-width: 601px) {
+  .trivia-case-slot {
+    height: 22px;
+  }
+  .trivia-cases {
+    gap: 5px;
+  }
+  .trivia-case {
+    padding-block: 5px;
+  }
+}
+/* A tall mat lays the offer out in two rows of bigger trays. */
+@container (aspect-ratio < 1.2) {
+  .trivia-draft-offer {
+    --tray: clamp(
+      64px,
+      min(23cqh, (100cqi - 30px) / (var(--half) + 0.5) - 20px),
+      168px
+    );
+    --gap-x: clamp(14px, 4cqi, 34px);
+    gap: clamp(14px, 3cqh, 30px) var(--gap-x);
+    /* Room for half the finds a row, the big one included. */
+    max-width: calc(
+      var(--half) * var(--tray) + var(--tray) * 0.3 + (var(--half) - 1) *
+        var(--gap-x) + 4px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trivia-draft *,
+  .trivia-cases * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* The desk's button hover shadow would square off the round trays. */
+.party-table.is-sabi .trivia-draft-offer .draft-find:not(:disabled):hover {
+  box-shadow: none;
+}
+@media (max-width: 600px) {
+  .trivia-cases.is-large .trivia-case {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    padding: 6px 7px 6px 6px;
+  }
+  .trivia-cases.is-large .trivia-case > .party-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  .trivia-cases.is-large .trivia-case-name {
+    font-size: 12px;
+  }
+  .trivia-cases.is-large .trivia-case-slot {
+    height: 30px;
+    padding: 0 4px 0 2px;
+  }
+  .trivia-case-pile .pile-mark {
+    width: 20px;
+    height: 20px;
+    margin-right: calc(-20px + min(6px, 50% / var(--count)));
+  }
+  .trivia-cases.is-large .trivia-case-slot > b {
+    font-size: 12px;
+  }
+  .trivia-cases.is-large .trivia-case-score {
+    min-width: 38px;
+    font-size: 18px;
+    padding: 6px;
+  }
+}
+/* The menu's progress dialog sits outside the table; give it the seats. */
+.trivia-progress-dialog .seat-0 {
+  --seat: #ff5a3c;
+}
+.trivia-progress-dialog .seat-1 {
+  --seat: #3569ff;
+}
+.trivia-progress-dialog .seat-2 {
+  --seat: #12a870;
+}
+.trivia-progress-dialog .seat-3 {
+  --seat: #9c52f2;
+}
+.trivia-progress-dialog .seat-4 {
+  --seat: #f28c28;
+}
+.trivia-progress-dialog .seat-5 {
+  --seat: #f26aae;
+}
+.trivia-progress-dialog .trivia-case .party-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--seat);
+  color: #fff;
+  font-family: var(--s-display);
+  font-weight: 800;
+}
+.trivia-progress-dialog .trivia-world.world-draft {
+  height: auto;
+  min-height: 0;
+}
+/* The host's one action when the picker is away. */
+.party-table .trivia-draft-mat .draft-pick-for {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  animation: draft-deal 0.4s backwards;
+}

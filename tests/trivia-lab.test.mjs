@@ -12,6 +12,10 @@ import {
 } from '../lib/games/standalone/registry.ts';
 import {
   campReady,
+  collectionScore,
+  currentDraft,
+  draftPicker,
+  findGain,
   triviaOf,
   triviaWinners,
 } from '../lib/games/party/trivia.ts';
@@ -31,17 +35,17 @@ function apply(g, m, seat = 0) {
   assert.ok(saved(next));
   return next;
 }
-function simulate(g, scores, route) {
+function simulate(g, scores) {
   const before = structuredClone(g);
-  const next = simulateTriviaLabRound(g, scores, route);
+  const next = simulateTriviaLabRound(g, scores);
   assert.deepEqual(g, before, 'simulation leaves its input intact');
   assert.notEqual(next, g);
   assert.ok(saved(next), `${next.kind}/${next.phase} is a replayable save`);
   return next;
 }
-function finish(g, scores, route) {
+function finish(g, scores) {
   const before = structuredClone(g);
-  const next = finishTriviaLabGame(g, scores, route);
+  const next = finishTriviaLabGame(g, scores);
   assert.deepEqual(g, before, 'finishing leaves its input intact');
   assert.notEqual(next, g);
   assert.ok(saved(next));
@@ -122,7 +126,7 @@ for (const mode of ['tower', 'expedition']) {
     let g = createTriviaLabGame(mode, 3);
     const scores = [0, 150, 300];
     for (let round = 0; round < sets.miro.length; round++) {
-      g = simulate(g, scores, 'summit');
+      g = simulate(g, scores);
       const t = triviaOf(g);
       assert.equal(g.kind, sets.miro[round]);
       assert.equal(t.completed, round + 1);
@@ -145,37 +149,38 @@ for (const mode of ['tower', 'expedition']) {
     assert.deepEqual(seatTotals(g), [0, 600, 1200]);
     assert.deepEqual(triviaWinners(g), [2]);
     if (mode === 'tower') {
+      // Placement, not points: third, second and first every round.
       assert.deepEqual(
         triviaOf(g).players.map((p) => p.floors),
-        [0, 4, 20],
+        [4, 8, 12],
       );
       assert.deepEqual(
         triviaOf(g).players.map((p) => p.victories),
         [0, 0, 4],
       );
     } else {
-      assert.ok(campReady(g));
-      assert.deepEqual(triviaOf(g).ready, [false, false, false]);
+      // The last round's draft is open, best score first.
+      assert.equal(campReady(g), false);
+      assert.deepEqual(currentDraft(g).order, [2, 1, 0]);
+      assert.deepEqual(currentDraft(g).picks, []);
       assert.deepEqual(
-        triviaOf(g).players.map((p) => p.distance),
-        [0, 0, 12],
-      );
-      assert.deepEqual(
-        triviaOf(g).players.map((p) => p.trophies),
-        [0, 0, 4],
-      );
-      assert.ok(
-        triviaOf(g).players.every((p) => p.coins === 0 && p.supplies === 0),
+        triviaOf(g).players.map((p) => p.finds.length),
+        [3, 3, 3],
       );
     }
-    g = simulate(g, scores, 'summit');
+    g = simulate(g, scores);
     assert.equal(g.over, true);
+    if (mode === 'expedition')
+      assert.deepEqual(
+        triviaOf(g).players.map((p) => p.finds.length),
+        [4, 4, 4],
+      );
     assert.deepEqual(
-      simulate(g, scores, 'trail'),
+      simulate(g, scores),
       g,
       'finished matches remain unchanged',
     );
-    assert.deepEqual(finish(g, scores, 'river'), g);
+    assert.deepEqual(finish(g, scores), g);
   });
 }
 
@@ -183,7 +188,7 @@ await test('Years lab guesses score exactly 0, 150 and 300 with legal integer ye
   for (let seed = 0; seed < 32; seed++) {
     let g = createTriviaLabGame('tower', 3, seed);
     g = apply(g, { type: 'vote', choice: 'year' });
-    g = simulate(g, [0, 150, 300], 'trail');
+    g = simulate(g, [0, 150, 300]);
     assert.deepEqual(triviaOf(g).roundScores, [0, 150, 300], `seed ${seed}`);
     assert.equal(g.gains.length, 3);
     for (let seat = 0; seat < 3; seat++) {
@@ -209,7 +214,7 @@ await test('the lab preserves every mini-game answer already locked instead of o
     g = apply(g, { type: 'vote', choice: kind });
     g = lockPerfect(g, 0);
     const locked = structuredClone(g.guesses[0]);
-    g = simulate(g, [0, 150, 300], 'trail');
+    g = simulate(g, [0, 150, 300]);
     assert.deepEqual(
       g.guesses[0],
       locked,
@@ -229,58 +234,48 @@ await test('a lab round already partway through its reveal keeps the locked answ
   assert.deepEqual(g.scores, [200, 200, 200]);
   const guesses = structuredClone(g.guesses);
   const earlierGains = structuredClone(g.gains);
-  g = simulate(g, [0, 0, 0], 'trail');
+  g = simulate(g, [0, 0, 0]);
   assert.deepEqual(g.guesses, guesses);
   assert.deepEqual(g.gains.slice(0, 2), earlierGains);
   assert.deepEqual(triviaOf(g).roundScores, [300, 300, 300]);
   assert.equal(triviaOf(g).completed, 1);
 });
 
-await test('partial Expedition camp locks are legally unlocked before applying the selected route to everyone', () => {
+await test('an open lab draft keeps picks already made and gives each remaining picker their best find', () => {
   let g = createTriviaLabGame('expedition', 3);
-  g = apply(g, { type: 'trivia-plan', route: 'summit', purchase: null }, 0);
-  g = apply(g, { type: 'trivia-plan', route: 'river', purchase: null }, 1);
-  assert.equal(campReady(g), false);
-  g = simulate(g, [0, 150, 300], 'trail');
-  assert.deepEqual(triviaOf(g).rounds[0].routes, ['trail', 'trail', 'trail']);
-  assert.deepEqual(
-    triviaOf(g).players.map((p) => p.distance),
-    [1, 1, 1],
-  );
-});
-
-await test('fully locked Expedition camp routes stay committed when the lab selects another route', () => {
-  let g = createTriviaLabGame('expedition', 3);
-  const routes = ['trail', 'river', 'summit'];
-  for (let seat = 0; seat < 3; seat++)
-    g = apply(
-      g,
-      { type: 'trivia-plan', route: routes[seat], purchase: null },
-      seat,
-    );
-  assert.ok(campReady(g));
-  assert.equal(validMove(g, { type: 'trivia-unlock' }, 0), false);
-  g = simulate(g, [0, 150, 300], 'trail');
-  assert.deepEqual(triviaOf(g).rounds[0].routes, routes);
-  assert.deepEqual(
-    triviaOf(g).players.map((p) => p.distance),
-    [1, 2, 3],
-  );
-  assert.deepEqual(
-    triviaOf(g).players.map((p) => p.trophies),
-    [0, 0, 1],
-  );
+  g = simulate(g, [0, 150, 300]);
+  const d = currentDraft(g);
+  assert.deepEqual(d.order, [2, 1, 0]);
+  assert.equal(draftPicker(g), 2);
+  const last = d.offer.length - 1;
+  g = apply(g, { type: 'trivia-pick', find: last }, 2);
+  assert.equal(draftPicker(g), 1);
+  g = simulate(g, [0, 150, 300]);
+  const done = triviaOf(g).rounds[0].draft;
+  assert.equal(done.picks[0], last, 'the real pick survives');
+  assert.equal(done.picks.length, 3);
+  // The others each took a find worth the most to them at their turn.
+  const finds = [[], [], []];
+  finds[2].push(done.offer[last]);
+  for (let k = 1; k < 3; k++) {
+    const seat = done.order[k];
+    const left = done.offer.filter((_, i) => !done.picks.slice(0, k).includes(i));
+    const best = Math.max(...left.map((f) => findGain(finds[seat], f)));
+    assert.equal(findGain(finds[seat], done.offer[done.picks[k]]), best);
+    finds[seat].push(done.offer[done.picks[k]]);
+  }
+  assert.equal(triviaOf(g).completed, 2);
 });
 
 await test('finishing a lab match preserves prior rounds, a chosen game order and current progress', () => {
   let g = createTriviaLabGame('tower', 3);
-  g = simulate(g, [300, 150, 0], 'trail');
+  g = simulate(g, [300, 150, 0]);
   const first = structuredClone(triviaOf(g).rounds[0]);
   g = apply(g, { type: 'vote', choice: 'order' });
-  g = simulate(g, [0, 300, 150], 'trail');
+  g = simulate(g, [0, 300, 150]);
   const prefix = structuredClone(triviaOf(g).rounds);
   const totals = seatTotals(g);
-  g = finish(g, [150, 0, 300], 'trail');
+  g = finish(g, [150, 0, 300]);
   assert.equal(g.over, true);
   assert.equal(triviaOf(g).completed, 4);
   assert.deepEqual(triviaOf(g).rounds.slice(0, 2), prefix);
@@ -299,21 +294,32 @@ await test('lab Finish reaches tied maximum states for 2–6 humans and restart 
   for (const mode of ['tower', 'expedition'])
     for (let seats = 2; seats <= 6; seats++) {
       const opening = createTriviaLabGame(mode, seats);
-      const g = finish(opening, Array(seats).fill(300), 'summit');
+      const g = finish(opening, Array(seats).fill(300));
       const t = triviaOf(g);
       assert.equal(g.over, true);
       assert.equal(t.completed, 4);
-      assert.deepEqual(
-        triviaWinners(g),
-        Array.from({ length: seats }, (_, seat) => seat),
-      );
-      assert.ok(
-        t.players.every((p) =>
-          mode === 'tower'
-            ? p.floors === 20 && p.victories === 4
-            : p.distance === 12 && p.trophies === 4,
-        ),
-      );
+      if (mode === 'tower') {
+        assert.deepEqual(
+          triviaWinners(g),
+          Array.from({ length: seats }, (_, seat) => seat),
+        );
+        assert.ok(
+          t.players.every((p) => p.floors === 4 * seats && p.victories === 4),
+          'a tie for first gives everyone the most blocks',
+        );
+      } else {
+        assert.ok(t.players.every((p) => p.finds.length === 4));
+        const best = Math.max(
+          ...t.players.map((p) => collectionScore(p.finds)),
+        );
+        assert.deepEqual(
+          triviaWinners(g),
+          t.players.flatMap((p, seat) =>
+            collectionScore(p.finds) === best ? [seat] : [],
+          ),
+          'equal points leave the best collection to win',
+        );
+      }
       assert.deepEqual(
         createTriviaLabGame(mode, seats),
         opening,
@@ -322,36 +328,26 @@ await test('lab Finish reaches tied maximum states for 2–6 humans and restart 
     }
 });
 
-await test('lab routes and raw-score ties use the real Expedition reward and winner rules', () => {
-  for (const [route, distances, trophies] of [
-    ['trail', [4, 4, 4], [1, 1, 1]],
-    ['river', [4, 8, 8], [1, 2, 2]],
-    ['summit', [0, 0, 12], [0, 0, 4]],
-  ]) {
-    const g = finish(
-      createTriviaLabGame('expedition', 3),
-      [0, 150, 300],
-      route,
-    );
+await test('an eight-round lab match plays each game twice, once in every block of four', () => {
+  for (const mode of ['tower', 'expedition']) {
+    const g = finish(createTriviaLabGame(mode, 3, 731, 8), [0, 150, 300]);
+    const t = triviaOf(g);
+    assert.equal(t.length, 8);
+    assert.equal(t.completed, 8);
     assert.deepEqual(
-      triviaOf(g).players.map((p) => p.distance),
-      distances,
+      t.rounds.map((r) => r.kind),
+      [...sets.miro, ...sets.miro],
     );
-    assert.deepEqual(
-      triviaOf(g).players.map((p) => p.trophies),
-      trophies,
-    );
-    assert.deepEqual(triviaWinners(g), [2]);
+    if (mode === 'tower')
+      assert.deepEqual(
+        t.players.map((p) => p.floors),
+        [8, 16, 24],
+      );
+    else assert.ok(t.players.every((p) => p.finds.length === 8));
   }
-  const none = finish(createTriviaLabGame('expedition', 2), [0, 0], 'summit');
-  assert.deepEqual(
-    triviaOf(none).players.map((p) => p.distance),
-    [0, 0],
-  );
-  assert.deepEqual(triviaWinners(none), [0, 1]);
 });
 
-await test('invalid lab state, score choices and routes are refused without mutating the supplied game', () => {
+await test('invalid lab state and score choices are refused without mutating the supplied game', () => {
   for (const mode of ['quick', 'other', null])
     assert.throws(() => createTriviaLabGame(mode, 3));
   for (const seats of [1, 7, 2.5])
@@ -360,23 +356,18 @@ await test('invalid lab state, score choices and routes are refused without muta
   const before = structuredClone(g);
   for (const scores of [[], [300, 150], [0, 100, 300], [0, NaN, 300]])
     for (const helper of [simulateTriviaLabRound, finishTriviaLabGame])
-      assert.throws(() => helper(g, scores, 'trail'), /points/);
-  for (const helper of [simulateTriviaLabRound, finishTriviaLabGame]) {
-    assert.throws(() => helper(g, [0, 150, 300], 'ocean'), /Trail/);
+      assert.throws(() => helper(g, scores), /points/);
+  for (const helper of [simulateTriviaLabRound, finishTriviaLabGame])
     assert.throws(
       () =>
-        helper(
-          standaloneGames.miro.create(3, 731, 'medium'),
-          [0, 150, 300],
-          'trail',
-        ),
+        helper(standaloneGames.miro.create(3, 731, 'medium'), [0, 150, 300]),
       /current Tower or Expedition/,
     );
-  }
-  const legacy = structuredClone(g);
-  delete legacy.tribu.trivia.rules;
+  const older = structuredClone(g);
+  older.tribu.trivia.rules = 2;
+  delete older.tribu.trivia.length;
   assert.throws(
-    () => simulateTriviaLabRound(legacy, [0, 150, 300], 'trail'),
+    () => simulateTriviaLabRound(older, [0, 150, 300]),
     /current Tower or Expedition/,
   );
   assert.deepEqual(g, before);

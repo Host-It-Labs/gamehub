@@ -162,8 +162,11 @@ Before creating or changing a game's illustrated board, responsive scene framing
 - The landing page shows real gameplay footage of every game, filmed wide
   and tall with the interface hidden (see the 8 October 2026 library section
   of [docs/DESIGN.md](docs/DESIGN.md)); re-film a game with
-  `node scripts/reels/record.mjs <id>` when its look changes. The square
-  cover is each card's face and stands in for a game without footage.
+  `node scripts/reels/record.mjs <id>` when its look changes. Wide screens
+  show the cover grid beside the footage and shelves that never page on
+  landscape; games played last come first (the 9 and 10 October 2026
+  library sections). The square cover is each card's face and stands in for
+  a game without footage.
 - Use dedicated full-bleed square illustrations, equally sized across the library.
 - The setup lid uses each game's separate wide cover, cut to 3:1 (`wideCover`
   in `lib/games/box-covers.ts`); keep its title and subjects inside the middle

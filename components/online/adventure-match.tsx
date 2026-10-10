@@ -80,6 +80,9 @@ export function AdventureMatch({
         canAdvance={table.canAdvance}
         hostName={table.members.find((m) => m.host)?.name}
         hostSeat={table.members.find((m) => m.host)?.seat ?? null}
+        awaySeats={table.members.flatMap((m) =>
+          m.seat !== null && !m.connected ? [m.seat] : [],
+        )}
         canPickNext={table.isHost}
         nextVote={table.status === 'finished' ? table.nextVote : null}
         viewerId={table.viewerId}

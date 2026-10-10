@@ -36,8 +36,21 @@ const entry = standaloneGames.miro;
 const create = (mode, n = 3, seed = 41, votes = false) =>
   entry.create(n, seed, 'medium', undefined, undefined, undefined, votes, mode);
 const saved = (g) => entry.isSavedGame(JSON.parse(JSON.stringify(g)));
+/** A save made under rules 2 (4 October 2026): one round of each game, a
+ * floor per 100 points and route Expedition. New matches use rules 3; these
+ * saves must keep loading and playing to their end. */
+const createRules2 = (...args) => {
+  const g = create(...args),
+    t = g.tribu.trivia;
+  t.rules = 2;
+  delete t.length;
+  for (const p of t.players) delete p.finds;
+  if (t.mode === 'expedition') t.stage = 'camp';
+  assert.ok(saved(g));
+  return g;
+};
 const createLegacy = (...args) => {
-  const g = create(...args);
+  const g = createRules2(...args);
   delete g.tribu.trivia.rules;
   assert.ok(saved(g));
   return g;
@@ -59,7 +72,7 @@ const orderFor = (points) =>
   points === 100
     ? [0, 1, 2, 3, 4]
     : points === 50
-      ? [1, 0, 2, 3, 4]
+      ? [1, 0, 3, 2, 4]
       : [4, 3, 2, 1, 0];
 /** Scores real questions through their regular moves, with no state edits. */
 function round(g, scores = g.seats.map(() => 300)) {
@@ -96,7 +109,7 @@ function round(g, scores = g.seats.map(() => 300)) {
           ? g.events.map((id) =>
               scores[s] === 300 ? yearEvents[id].year : timeline[0],
             )
-          : g.questions.map((q) => q.answer * (scores[s] === 300 ? 1 : 2));
+          : g.questions.map((q) => q.answer * (scores[s] === 300 ? 1 : 3));
       g = apply(g, { type: 'lock', values }, s);
     }
   }
@@ -130,7 +143,7 @@ await test('Trivia keeps legacy Quick saves and rejects unknown mode values', ()
     assert.equal(isTriviaMode(bad), false);
     assert.throws(() => create(bad));
   }
-  let g = create('quick');
+  let g = createRules2('quick');
   const retiredTeams = createSabi(
     4,
     1,
@@ -165,7 +178,7 @@ await test('Trivia keeps legacy Quick saves and rejects unknown mode values', ()
   assert.deepEqual(entry.outcome(g).winners, [0, 1, 2]);
 });
 
-await test('fixed modes play each full mini-game once for 2–6 humans, while Quick permits repeats', () => {
+await test('rules 2 saves play each full mini-game once for 2–6 humans, while Quick permits repeats', () => {
   const choices = [
     'miro',
     'size',
@@ -178,7 +191,7 @@ await test('fixed modes play each full mini-game once for 2–6 humans, while Qu
   ];
   for (const mode of ['quick', 'tower', 'expedition']) {
     for (let n = 2; n <= 6; n++) {
-      let g = create(mode, n, n * 13);
+      let g = createRules2(mode, n, n * 13);
       const length = mode === 'quick' ? 8 : sets.miro.length;
       assert.equal(triviaOf(g).rules, 2);
       assert.equal(
@@ -466,7 +479,7 @@ await test('legacy Expedition retains eight rounds, the atomic shop, supplies ca
 });
 
 await test('Expedition awards each third step automatically and finishes without a shop or final locks', () => {
-  let g = create('expedition', 2);
+  let g = createRules2('expedition', 2);
   const choices = ['order', 'year', 'size', 'miro'];
   for (let r = 0; r < choices.length; r++) {
     const before = structuredClone(triviaOf(g).players);
@@ -525,7 +538,7 @@ await test('Expedition awards each third step automatically and finishes without
 });
 
 await test('Expedition applies route risk to a whole round and furthest distance wins before points', () => {
-  let g = create('expedition', 3);
+  let g = createRules2('expedition', 3);
   const choices = ['order', 'year', 'size', 'miro'];
   const routes = ['summit', 'river', 'trail'];
   const distances = [
@@ -559,7 +572,7 @@ await test('Expedition applies route risk to a whole round and furthest distance
 
 await test('fixed Trivia rejects repeated ledger kinds, spoofed choices and premature Finish saves', () => {
   for (const mode of ['tower', 'expedition']) {
-    let g = create(mode, 2);
+    let g = createRules2(mode, 2);
     if (mode === 'expedition') g = plans(g);
     g = apply(g, { type: 'vote', choice: 'year' });
     g = round(g);
@@ -598,7 +611,7 @@ await test('fixed Trivia rejects repeated ledger kinds, spoofed choices and prem
 });
 
 await test('Expedition camps keep plans private through the last lock, and support editing before it', () => {
-  let g = create('expedition', 3);
+  let g = createRules2('expedition', 3);
   const key = decisionKey(g);
   g = apply(g, { type: 'trivia-plan', route: 'river', purchase: null }, 0);
   assert.deepEqual(actingSeats(g), [1, 2]);
@@ -666,7 +679,7 @@ await test('Expedition camps keep plans private through the last lock, and suppo
 });
 
 await test('Trivia validates exact purchase, route and state shapes without changing rejected moves', () => {
-  let g = create('expedition', 2);
+  let g = createRules2('expedition', 2);
   for (const move of [
     { type: 'trivia-plan', route: null, purchase: null },
     { type: 'trivia-plan', route: 'ocean', purchase: null },
@@ -862,6 +875,8 @@ await test('legacy Expedition retains trophy, distance, coin and point tie-break
 
 await test('Expedition ranks distance, then raw points, and shares exact ties', () => {
   const state = createTriviaState(4, 'expedition');
+  state.rules = 2;
+  delete state.length;
   for (let s = 0; s < 4; s++) {
     state.players[s].distance = s === 0 ? 6 : 7;
     state.players[s].trophies = 2;
@@ -889,7 +904,7 @@ await test('Expedition ranks distance, then raw points, and shares exact ties', 
 });
 
 await test('observed challenges keep future decks and opponents guesses out of Trivia metadata', () => {
-  let g = create('expedition', 2);
+  let g = createRules2('expedition', 2);
   for (const kind of ['year', 'order', 'size', 'miro']) {
     g = plans(g, ['trail', 'summit']);
     g = apply(g, { type: 'vote', choice: kind });

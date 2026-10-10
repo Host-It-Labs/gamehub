@@ -11,7 +11,12 @@ import {
   decisionKey,
   standaloneGames,
 } from '../lib/games/standalone/registry.ts';
-import { campReady, remainingTriviaGames } from '../lib/games/party/trivia.ts';
+import {
+  campReady,
+  currentDraft,
+  draftPicker,
+  remainingTriviaGames,
+} from '../lib/games/party/trivia.ts';
 import { sets } from '../lib/games/party/vote.ts';
 
 const actor = (id, user = false) => ({
@@ -209,99 +214,184 @@ await test('old or invalid stored Trivia preferences migrate to Quick', () => {
   }
 });
 
-await test('Expedition camp plans stay private, accept simultaneous commands, and wait for the host', () => {
+/** Plays the current mini-game round through to its last reveal. */
+function playRound(tables, t, actors) {
+  while (t.adventure.phase !== 'vote') {
+    const g = t.adventure;
+    if (g.phase === 'reveal') t = move(tables, t, { type: 'next' });
+    else {
+      const seat = standaloneGames[g.kind].actingSeats(g)[0];
+      t = move(tables, t, botMove(g, seat), actors[seat]);
+    }
+  }
+  return t;
+}
+
+await test('Expedition picks go to each placed player in turn, refuse everyone else, and the host moves on after the last find', () => {
   const { db, tables, table } = setup();
   try {
     let t = command(tables, table, { ...settings, triviaMode: 'expedition' });
     t = command(tables, t, { type: 'start' });
     t = tables.join(t.token, spectator);
-    assert.equal(tables.view(t, spectator).viewerSeat, null);
-    assert.equal(stateOf(t, host, tables).stage, 'camp');
+    assert.equal(stateOf(t, host, tables).stage, 'challenge');
+    t = move(tables, t, { type: 'vote', choice: 'year' });
+    t = playRound(tables, t, [host, guest]);
+    const draft = currentDraft(t.adventure);
+    assert.ok(draft, 'the camp lays out its offer');
+    assert.equal(draft.offer.length, 3);
+    for (const who of [host, guest, spectator])
+      assert.deepEqual(
+        tables.view(t, who).adventure.tribu.trivia.rounds.at(-1).draft,
+        draft,
+        'the offer and the order are public',
+      );
+    const actors = [host, guest];
+    const first = draft.order[0],
+      second = draft.order[1];
     assert.throws(
-      () => move(tables, t, { type: 'vote', choice: 'year' }),
+      () => move(tables, t, { type: 'vote', choice: 'order' }),
       { status: 409 },
-      'the host waits until every player locks a plan',
+      'the host waits for the draft',
     );
-    for (const value of [
-      { type: 'trivia-plan', route: 'trail', purchase: null },
-      { type: 'vote', choice: 'year' },
-      { type: 'trivia-unlock' },
-    ])
-      assert.throws(() => move(tables, t, value, spectator), { status: 403 });
-    const initialRevision = t.revision;
-    const initialKey = decisionKey(t.adventure);
-    const privatePlan = {
-      type: 'trivia-plan',
-      route: 'summit',
-      purchase: null,
-    };
-    t = move(tables, t, privatePlan, guest);
-    assert.deepEqual(stateOf(t, guest, tables).plans[1], {
-      route: 'summit',
-      purchase: null,
-    });
-    assert.equal(stateOf(t, host, tables).plans[1], null);
-    assert.equal(stateOf(t, spectator, tables).plans[1], null);
-    assert.equal(stateOf(t, guest, tables).ready[1], true);
     assert.throws(
-      () =>
-        move(
-          tables,
-          t,
-          { type: 'trivia-plan', route: 'river', purchase: null },
-          guest,
-        ),
+      () => move(tables, t, { type: 'trivia-pick', find: 0 }, actors[second]),
       { status: 409 },
-    );
-    t = move(tables, t, { type: 'trivia-unlock' }, guest);
-    assert.equal(stateOf(t, guest, tables).ready[1], false);
-    t = move(tables, t, privatePlan, guest);
-    const snapshot = structuredClone(t.adventure);
-    const restored = new Tables(db, () => true).get(t.token);
-    assert.equal(restored.status, 'playing');
-    assert.deepEqual(restored.adventure, snapshot);
-    assert.equal(stateOf(restored, host, tables).plans[1], null);
-    t = move(
-      tables,
-      restored,
-      { type: 'trivia-plan', route: 'trail', purchase: null },
-      host,
-      initialRevision,
-    );
-    assert.equal(
-      decisionKey(t.adventure),
-      initialKey,
-      'other players locking does not discard simultaneous plans',
-    );
-    assert.deepEqual(t.adventure.tribu.trivia.ready, [true, true]);
-    assert.equal(stateOf(t, host, tables).plans[1], null);
-    assert.equal(stateOf(t, guest, tables).plans[0], null);
-    assert.deepEqual(stateOf(t, spectator, tables).plans, [null, null]);
-    tables.adventureTick(t.token, initialKey);
-    assert.deepEqual(
-      tables.get(t.token),
-      t,
-      'all plans locked still waits for the host',
+      'only the player whose turn it is may pick',
     );
     assert.throws(
-      () => move(tables, t, { type: 'vote', choice: 'year' }, guest),
+      () => move(tables, t, { type: 'trivia-pick', find: 0 }, spectator),
       { status: 403 },
     );
-    t = move(tables, t, { type: 'vote', choice: 'year' });
-    assert.equal(t.adventure.kind, 'year');
-    assert.equal(t.adventure.tribu.trivia.stage, 'challenge');
+    const key = decisionKey(t.adventure);
+    t = move(tables, t, { type: 'trivia-pick', find: 0 }, actors[first]);
+    assert.notEqual(decisionKey(t.adventure), key, 'each pick is its own step');
     assert.throws(
       () =>
         command(
           tables,
           t,
-          { type: 'adventure-move', move: privatePlan, key: initialKey },
-          guest,
-          initialRevision,
+          {
+            type: 'adventure-move',
+            move: { type: 'trivia-pick', find: 1 },
+            key,
+          },
+          actors[second],
         ),
       { status: 409 },
-      'the old camp decision cannot apply after the challenge begins',
+      'a pick aimed at an earlier step is refused',
     );
+    assert.throws(
+      () => move(tables, t, { type: 'trivia-pick', find: 0 }, actors[second]),
+      { status: 409 },
+      'a taken find is gone for everyone after',
+    );
+    assert.equal(draftPicker(t.adventure), second);
+    tables.adventureTick(t.token, decisionKey(t.adventure));
+    t = move(tables, t, { type: 'trivia-pick', find: 2 }, actors[second]);
+    assert.ok(campReady(t.adventure));
+    assert.deepEqual(
+      t.adventure.tribu.trivia.players.map((p) => p.finds.length),
+      [1, 1],
+    );
+    const restored = new Tables(db, () => true).get(t.token);
+    assert.deepEqual(restored.adventure, t.adventure);
+    assert.throws(
+      () => move(tables, t, { type: 'vote', choice: 'order' }, guest),
+      { status: 403 },
+    );
+    t = move(tables, t, { type: 'vote', choice: 'order' });
+    assert.equal(t.adventure.kind, 'order');
+    assert.equal(t.adventure.tribu.trivia.stage, 'challenge');
+  } finally {
+    db.close();
+  }
+});
+
+await test('the host can pick for an away picker, and only while that player is away', () => {
+  const { db, tables, table, online } = setup();
+  try {
+    let t = command(tables, table, { ...settings, triviaMode: 'expedition' });
+    t = command(tables, t, { type: 'start' });
+    t = move(tables, t, { type: 'vote', choice: 'year' });
+    t = playRound(tables, t, [host, guest]);
+    // Make sure the guest picks second, then let the host pick first.
+    if (draftPicker(t.adventure) === 0)
+      t = move(tables, t, { type: 'trivia-pick', find: 0 }, host);
+    assert.equal(draftPicker(t.adventure), 1);
+    assert.throws(
+      () => move(tables, t, { type: 'trivia-pick-for' }),
+      { status: 403 },
+      'a connected picker picks for themselves',
+    );
+    online.delete(guest.id);
+    assert.throws(
+      () => move(tables, t, { type: 'trivia-pick-for' }, spectator),
+      { status: 403 },
+    );
+    const picks = currentDraft(t.adventure).picks.length;
+    t = move(tables, t, { type: 'trivia-pick-for' });
+    assert.equal(currentDraft(t.adventure).picks.length, picks + 1);
+    assert.equal(t.adventure.tribu.trivia.players[1].finds.length, 1);
+  } finally {
+    db.close();
+  }
+});
+
+await test('the length is a host setting, and only the host can carry a finished match on for 4 more', () => {
+  const { db, tables, table } = setup();
+  try {
+    for (const triviaRounds of [0, 6, 12, '8', null])
+      assert.throws(
+        () =>
+          command(tables, table, {
+            ...settings,
+            triviaMode: 'tower',
+            triviaRounds,
+          }),
+        /Invalid Trivia length/,
+      );
+    assert.throws(
+      () =>
+        command(tables, table, {
+          ...settings,
+          gameId: 'orin',
+          triviaRounds: 8,
+        }),
+      /Invalid Trivia length/,
+    );
+    let t = command(tables, table, {
+      ...settings,
+      triviaMode: 'tower',
+      triviaRounds: 8,
+    });
+    assert.equal(tables.view(t, guest).triviaRounds, 8);
+    t = command(tables, t, { ...settings, triviaMode: 'tower' });
+    assert.equal(t.triviaRounds, 8, 'other changes keep the length');
+    t = command(tables, t, { type: 'start' });
+    assert.equal(t.adventure.tribu.trivia.length, 8);
+    const actors = [host, guest];
+    for (let r = 0; r < 8; r++) {
+      t = move(tables, t, {
+        type: 'vote',
+        choice: remainingTriviaGames(t.adventure)[0],
+      });
+      t = playRound(tables, t, actors);
+    }
+    assert.deepEqual(t.adventure.vote.options, ['more', 'finish']);
+    assert.throws(
+      () => move(tables, t, { type: 'vote', choice: 'more' }, guest),
+      { status: 403 },
+    );
+    const floors = t.adventure.tribu.trivia.players.map((p) => p.floors);
+    t = move(tables, t, { type: 'vote', choice: 'more' });
+    assert.equal(t.status, 'playing');
+    assert.equal(t.adventure.tribu.trivia.length, 12);
+    assert.deepEqual(
+      t.adventure.tribu.trivia.players.map((p) => p.floors),
+      floors,
+      'the same towers carry on',
+    );
+    assert.deepEqual(t.adventure.vote.options, sets.miro);
   } finally {
     db.close();
   }
@@ -420,9 +510,9 @@ for (const triviaMode of ['tower', 'expedition']) {
         const g = t.adventure;
         const trivia = g.tribu.trivia;
         if (trivia.stage === 'camp' && !campReady(g)) {
-          const seat = trivia.ready.findIndex((ready) => !ready);
+          const seat = draftPicker(g);
           const before = JSON.stringify(tables.get(t.token));
-          for (const purchase of ['trophy', 'supplies'])
+          for (const purchase of ['trophy', 'supplies', null])
             assert.throws(
               () =>
                 move(
@@ -432,20 +522,22 @@ for (const triviaMode of ['tower', 'expedition']) {
                   actors[seat],
                 ),
               { status: 409 },
-              'the simplified Expedition refuses purchase commands',
+              'the drafting Expedition refuses older route commands',
             );
           assert.equal(
             JSON.stringify(tables.get(t.token)),
             before,
-            'rejected purchases are atomic',
+            'rejected commands are atomic',
           );
+          const taken = currentDraft(g).picks;
           t = move(
             tables,
             t,
             {
-              type: 'trivia-plan',
-              route: 'trail',
-              purchase: null,
+              type: 'trivia-pick',
+              find: currentDraft(g).offer.findIndex(
+                (_, i) => !taken.includes(i),
+              ),
             },
             actors[seat],
           );
@@ -469,14 +561,9 @@ for (const triviaMode of ['tower', 'expedition']) {
               'rejected picks do not advance the match',
             );
           } else {
-            if (triviaMode === 'expedition') {
-              assert.deepEqual(trivia.plans, [null, null]);
-              assert.deepEqual(
-                trivia.ready,
-                [false, false],
-                'final Finish needs no extra player locks',
-              );
-            }
+            assert.deepEqual(g.vote.options, ['more', 'finish']);
+            if (triviaMode === 'expedition')
+              assert.ok(campReady(g), 'the last draft is done');
             assert.throws(
               () => move(tables, t, { type: 'vote', choice: 'finish' }, guest),
               { status: 403 },

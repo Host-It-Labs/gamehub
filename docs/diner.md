@@ -13,6 +13,14 @@ people play a level together online. The diner is **a cab-over truck towing
 a chrome kitchen trailer**: at every stop it opens its long side as a
 serving hatch onto a wooden patio, and the place around the patio changes.
 
+Diner is public since 10 October 2026: it shows and plays in production
+like every other game (fourth in the library, on the Stay a while shelf),
+and `tests/diner-availability.test.mjs` checks that its library entry, routes,
+room launch and lobby vote work in every environment. Its covers
+(`box-diner-blind-v4`, `box-diner-wide-v4`) show the server on roller skates
+as a young man with only a light, gentle softness
+([concepts/2026-10-10-diner-cook](concepts/2026-10-10-diner-cook/README.md)).
+
 ## Levels (free play)
 
 Forty levels in eight chapters of five, one place each (Truck stop,
@@ -298,8 +306,10 @@ vignette. The palette is enamel rather than neon (cherry #b3363b, sage
 **Pictures**: order bubbles, the Use button, equipment and Workshop cards use
 illustrated stickers, and the map signs, lot cards and level chapters use
 painted postcards of each place (`scripts/diner/slice-stickers.mjs`; sources
-and prompts in `docs/concepts/2026-10-08-diner-car/art`). Diner is
-development-only, so these are not in the production asset allowlist yet.
+and prompts in `docs/concepts/2026-10-08-diner-car/art`). Since Diner went
+public (10 October 2026) they are in the production asset allowlist
+(`dinerArtAssets` in `lib/games/diner/art.ts`, read by
+`scripts/production-assets.mjs`).
 
 Mimics in their true form are glossy purple goo with one big eye.
 

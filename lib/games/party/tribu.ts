@@ -9,7 +9,11 @@ import { openVote, sets, type SetGame, type SetId } from './vote.ts';
 import type { PartyMode } from './groups.ts';
 import type { TribuState } from './tribu-state.ts';
 import type { Difficulty } from '../standalone/types.ts';
-import { createTriviaState, type TriviaMode } from './trivia.ts';
+import {
+  createTriviaState,
+  type TriviaLength,
+  type TriviaMode,
+} from './trivia.ts';
 
 /** A set is one party game made of several: a match opens with a pick
  * between them, and every round ends with a pick to play the same game again,
@@ -85,6 +89,7 @@ export function createSabi(
   now = Date.now(),
   votes = false,
   triviaMode: TriviaMode = 'quick',
+  triviaRounds: TriviaLength = 4,
 ): geography.GeoGame {
   const g = opening(
     geography.createGame(n, seed, difficulty, 'individual', seen),
@@ -92,7 +97,7 @@ export function createSabi(
     now,
     triviaMode === 'quick' && votes,
   );
-  g.tribu!.trivia = createTriviaState(n, triviaMode);
+  g.tribu!.trivia = createTriviaState(n, triviaMode, triviaRounds);
   return g;
 }
 

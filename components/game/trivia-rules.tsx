@@ -1,7 +1,11 @@
 import {
   legacyTriviaRoutes,
+  triangle,
+  triviaBlock,
   triviaCosts,
   triviaExpedition,
+  triviaLengths,
+  triviaMaxLength,
   triviaMaxRoundPoints,
   triviaRoutes,
   triviaRoundLimit,
@@ -10,13 +14,40 @@ import {
 } from '@/lib/games/party/trivia';
 import { RuleList, RuleSection, Rules } from './rules';
 
-export function TriviaGoal({
-  mode,
-  legacy = false,
-}: {
+/** Which rules a match plays: 1 for the old shop saves, 2 for the route and
+ * floor saves of 4 October 2026, 3 since 10 October 2026. */
+export type TriviaVersion = 1 | 2 | 3;
+type TriviaRulesProps = {
   mode: TriviaMode;
-  legacy?: boolean;
-}) {
+  version?: TriviaVersion;
+  /** A match's planned rounds; setup leaves it out and offers 4 or 8. */
+  length?: number;
+};
+const rounds = (length?: number) =>
+  length ? `${length} rounds` : `${triviaLengths.join(' or ')} rounds`;
+
+export function TriviaGoal({ mode, version = 3, length }: TriviaRulesProps) {
+  if (version === 3 && mode === 'tower')
+    return (
+      <RuleSection title="Build the tallest">
+        <p>
+          Build your <b>tower</b> over <b>{rounds(length)}</b>. The tallest
+          wins; points break a tie.
+        </p>
+      </RuleSection>
+    );
+  if (version === 3 && mode === 'expedition')
+    return (
+      <RuleSection title="Collect the best finds">
+        <p>
+          Finish higher to <b>pick first</b>, and collect finds: the more of{' '}
+          <b>one kind</b> you hold, the more each is worth. Over{' '}
+          <b>{rounds(length)}</b>, the best collection wins; points break a
+          tie.
+        </p>
+      </RuleSection>
+    );
+  const legacy = version === 1;
   return (
     <RuleSection
       title={
@@ -62,13 +93,78 @@ export function TriviaGoal({
   );
 }
 
+/** Rules 3: four rounds at a time, then the host's 4 more or End. */
+function MoreRounds({ what }: { what: string }) {
+  return (
+    <RuleSection
+      title="Four more rounds"
+      note={`A match stops after ${triviaMaxLength} rounds.`}
+    >
+      <p>
+        Every {triviaBlock} rounds play each mini-game once, in the{' '}
+        <b>host’s order</b>. After the last round, the host picks{' '}
+        <b>4 more</b> with the same {what}, or <b>End</b>.
+      </p>
+    </RuleSection>
+  );
+}
+
 export function TriviaRoundRules({
   mode,
-  legacy = false,
-}: {
-  mode: TriviaMode;
-  legacy?: boolean;
-}) {
+  version = 3,
+}: TriviaRulesProps) {
+  if (version === 3 && mode === 'tower')
+    return (
+      <>
+        <RuleSection
+          title="Place to build"
+          note="Tied players share the higher place, and the places below carry on counting: two tied first of four get 4 each, the next 2."
+        >
+          <p>
+            Your points only decide your <b>place</b> in the round. First
+            place earns <b>one block per player</b>, each place below one
+            fewer: with four players <b>4, 3, 2 and 1</b>, with six{' '}
+            <b>6 down to 1</b>.
+          </p>
+        </RuleSection>
+        <MoreRounds what="towers" />
+      </>
+    );
+  if (version === 3 && mode === 'expedition')
+    return (
+      <>
+        <RuleSection
+          title="Pick in turn"
+          note="A tie picks in order of who is behind on the expedition, then fewer points. Nobody presses Next between picks."
+        >
+          <p>
+            After each round the camp lays out{' '}
+            <b>one find more than there are players</b>. Pick one each, in the
+            order you finished: the <b>winner first</b>, last place from the{' '}
+            <b>last two</b>. The find left over is lost.
+          </p>
+        </RuleSection>
+        <RuleSection
+          title="Build your kinds"
+          note="Every collection is on show, so taking the find someone else needs is fair play."
+        >
+          <p>
+            Finds come in four kinds: crystal, fossil, gold and fern. Each find
+            of a kind is worth <b>one more</b> than the one before, and the{' '}
+            <b>big find</b> counts as two.
+          </p>
+          <RuleList
+            items={[1, 2, 3, 4, 5].map((n) => ({
+              key: `${n}`,
+              name: `${n} of a kind`,
+              text: `${triangle(n)} point${triangle(n) === 1 ? '' : 's'}`,
+            }))}
+          />
+        </RuleSection>
+        <MoreRounds what="finds" />
+      </>
+    );
+  const legacy = version === 1;
   if (legacy && mode !== 'quick') return <LegacyTriviaRoundRules mode={mode} />;
   if (mode === 'tower')
     return (
@@ -197,16 +293,10 @@ function LegacyTriviaRoundRules({ mode }: { mode: TriviaMode }) {
   );
 }
 
-export function TriviaRules({
-  mode,
-  legacy = false,
-}: {
-  mode: TriviaMode;
-  legacy?: boolean;
-}) {
+export function TriviaRules(props: TriviaRulesProps) {
   return (
     <Rules>
-      <TriviaGoal mode={mode} legacy={legacy} />
+      <TriviaGoal {...props} />
       <RuleSection
         title="Four mini-games"
         note="Everyone plays for themselves, with the same prompts. Each round has three prompts, worth up to 100 points each."
@@ -226,7 +316,7 @@ export function TriviaRules({
           <b>one at a time</b>. Your answers stay private before the reveal.
         </p>
       </RuleSection>
-      <TriviaRoundRules mode={mode} legacy={legacy} />
+      <TriviaRoundRules {...props} />
     </Rules>
   );
 }

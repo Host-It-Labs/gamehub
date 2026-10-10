@@ -63,9 +63,7 @@ const RotaSolo = lazy(() => import('./rota/rota-solo'));
 // Alto's table loads only when a match opens.
 const AltoSolo = lazy(() => import('./alto/alto-game'));
 // Diner's 3D room loads only when a shift opens.
-const DinerSolo = process.env.NODE_ENV === 'development'
-  ? lazy(() => import('./diner/diner-entry'))
-  : null;
+const DinerSolo = lazy(() => import('./diner/diner-entry'));
 
 const isBotSeat = (seat: number) => seat > 0;
 import { ArrowLeft, Volume2, VolumeX, RotateCcw, List, Trophy } from 'lucide-react';
@@ -160,6 +158,7 @@ export default function SoloGame() {
     [ownSetup, setOwnSetup] = useState<StandaloneId | null>(null),
     [ownSeats, setOwnSeats] = useState(3),
     [triviaMode, setTriviaMode] = useState<'quick' | 'tower' | 'expedition'>('quick'),
+    [triviaRounds, setTriviaRounds] = useState<4 | 8>(4),
     [arena, setArena] = useState<
       (import('./arena/arena-entry').ArenaChoice & { key: number }) | null
     >(null),
@@ -678,7 +677,7 @@ export default function SoloGame() {
         </Suspense>
       </div>
     );
-  if (diner && DinerSolo)
+  if (diner)
     return (
       <div className="app at-table diner">
         <Suspense
@@ -982,6 +981,8 @@ export default function SoloGame() {
               onSeats={setOwnSeats}
               triviaMode={triviaMode}
               onTriviaMode={setTriviaMode}
+              triviaRounds={triviaRounds}
+              onTriviaRounds={setTriviaRounds}
               onDifficulty={setDifficulty}
               onPlay={() => startOwn(ownSetup)}
               onLearn={() => startOwn(ownSetup,true)}
@@ -1032,7 +1033,7 @@ export default function SoloGame() {
                 setArena({ ...choice, key: Date.now() });
               }}
             />
-          ) : process.env.NODE_ENV === 'development' && preview?.id === 'diner' ? (
+          ) : preview?.id === 'diner' ? (
             <DinerSetupBox
               game={preview}
               onPlay={(choice) => {

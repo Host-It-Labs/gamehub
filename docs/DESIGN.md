@@ -1,5 +1,186 @@
 # Gamehub design direction
 
+## Arena: cartoon card portraits (10 October 2026)
+
+William's review of v13: the painted portraits looked like real people, with
+realistic colouring; the Cowboy was the best because it is more stylised and
+a little cartoony. Every card except the Cowboy (the Samurai too) and both
+library covers are regenerated (v14) in one cartoon look, a notch more
+cartoony than the Cowboy and in the same world as the 3D figures: sturdy,
+chunky shapes, adult heads only slightly larger than life, simplified
+expressive faces (ivory eyes, dark pupils, bold brows, clear mouth shapes),
+matte surfaces and saturated but never garish stylised colour, never
+photographic skin or lighting. Still text only, two variants each, the pick
+recorded with every prompt in
+[concepts/2026-10-10-arena-portraits](concepts/2026-10-10-arena-portraits/README.md).
+The card framing is unchanged (top-left fifth free for the cost badge), so
+`CARD_ART` in `scripts/arena-assets.mjs` only points at the new files. The
+covers are served as `box-arena-blind-v3` and `box-arena-wide-v3`. The Cowboy
+(v10-b) is now the most realistic card of the set; it still sits with the
+others at hand size.
+
+## Library: shelves without paging, played last first (10 October 2026)
+
+William tried a full-screen footage with one row of nine covers under it
+the same day and preferred the 9 October layout, so on wide screens the
+cover grid stays beside the footage (covers left, footage right) by his
+choice. This supersedes the shelf paging, the order and the Play plate's
+place in the 9 October section below.
+
+- **The Play plate sits in the footage's bottom-right corner**, not its
+  middle, so the game playing is never covered. Same plate (glass at rest,
+  brass and a little larger on hover or focus, **Play with friends** with a
+  people icon), smaller: a 40px button and the word on wide screens, inset
+  14–24px; on phones only the 38px brass button in its glass ring, 10px in
+  from the corner (clear of the rounded edge; on Nox it sits in the empty
+  end of the hand tray). The whole footage still opens the game.
+
+- **Shelves show every game at once** on landscape screens: tiles shrink so
+  six fit across (Quick games has six) and every shelf shares that size, at
+  most 232px, with no arrows (dragging stays). A tile narrower than 200px
+  stacks the time over the kind, as phones do, so no kind is cut. Portrait
+  tablets and phones keep the paging shelf. Measured tiles: 180px at
+  1280×800, 205 at 1440×900, 215 at 1920×1080.
+- **Played last comes first.** The showcase's covers and every shelf put the
+  games this browser opened from the library most recently first, then the
+  never-played ones in the documented order (`lib/games/library-recent.ts`,
+  `gamehub.last-played.v1` in local storage; blocked storage reads as
+  nothing played). The footage starts on the first of them. The order is
+  read once as the library mounts, which is before its first paint (the
+  page renders only in the browser), so nothing reshuffles in view; a game
+  opened now moves up the next time the library shows.
+
+## Diner: a subtler cook, and public (10 October 2026)
+
+- **A subtler cook.** William found the 9 October Diner covers' server too
+  feminine. He keeps some softness but reads clearly as a young man at first
+  glance: a plainly masculine face (jaw, chin, straight brows, no eyeliner or
+  long lashes), a warm boyish smile and neat styling, a light skater's pose
+  instead of a dancer's. Fresh text-only square and wide covers from the
+  accepted prompts with only his description changed (`box-diner-blind-v4`,
+  `box-diner-wide-v4`); prompts, variants and the pick in
+  [concepts/2026-10-10-diner-cook](concepts/2026-10-10-diner-cook/README.md).
+  The in-game waiters never had that treatment and are unchanged.
+- **Diner is public.** The development-only gate (`isGameAvailable`,
+  `lib/games/availability.ts`) is gone, with every check behind it: the
+  library entry, shelves and showcase, footage, the `/diner` and
+  `/api/diner` routes, the table's room launch and lobby vote, the solo,
+  room and table setup boxes, and the production asset allowlist, which now
+  ships Diner's covers, stickers, postcards and footage. Diner sits fourth in
+  the library (Arena, Rota, Mora, Diner, …) and on the Stay a while shelf.
+  `/diner/lab` stays development-only.
+
+## Rota: covers about roads and trains (10 October 2026)
+
+William found the 9 October mill-town covers generic and too zoomed out, and
+the "ROTA" lettering generic. Both covers (square `box-rota-blind-v5`, wide
+lid `box-rota-wide-v5`) now show what you do in Rota, framed close: a
+top-and-tail goods train mid-route on a curve, points into a siding, a level
+crossing, a station, a brick road bridge over the cutting, and a new street
+square floating down onto its glowing plot with dashed chalk lines where the
+routes go next. The title is **Rota** (capital R, lowercase o-t-a) in cream
+enamel letters with a crimson outline and a railway line down every stroke,
+the t's crossbar a level crossing, the a turning into a cobbled street, and a
+small train riding the word.
+
+- **Drawn as the game's own pieces.** The prompts describe, in words, the
+  board and models from the code: the site's sage grass and cinder with
+  chalk survey lines and glowing legal squares, setts between kerbs with
+  flagstone pavements, single track on cinder ballast, the brick overpass
+  with sandstone coping, the white-and-red crossing gates, the red-brick
+  station hall with its canopy on maroon brackets, 2-6-2 tank engines and
+  planked vans in the seat liveries, red-brick terraces under slate.
+- **Palette: the middle ground.** v3 was a brown, grey dusk; v4 a vivid
+  bright day with lime grass. v5 is soft late-morning daylight under a pale
+  blue sky, sage and olive greens, warm brick and slate, crimson, navy and
+  bottle-green liveries: moderately saturated, like a model-railway diorama.
+
+Prompts, the code mapping and every pick:
+[concepts/2026-10-10-rota-covers/README.md](concepts/2026-10-10-rota-covers/README.md).
+
+## Quiz: Tower by placement, a drafting Expedition (10 October 2026)
+
+William's request: Tower should be about placement, not points. Points felt
+unfair, the best answer taking most and everyone else barely anything. Tower
+and Expedition should last 4 or 8 rounds, and the host should be able to play
+4 more at the end. He did not understand Expedition at all: replace it with a
+simple draft. Supersedes Tower's floors and Expedition's routes in the
+4 October Trivia section, and the scoring numbers in the 2 October Quiz
+section.
+
+- **Length.** Setup's **Rounds** row offers **4** or **8** for Tower and
+  Expedition (it takes the place of Next round, which only Quick Play has, so
+  the setup keeps its height). Every four rounds play each of the four games
+  once, in the host's order. After the last round the host's pick is
+  **4 more** or **End**: 4 more carries on with the same towers or
+  collections for another four rounds, up to **12 rounds** in a match (the
+  party round limit, which also keeps the prompts fresh). The round pill
+  reads round / planned rounds and grows with 4 more.
+- **Tower by placement.** A round's points only decide where you finish in
+  it. First place earns as many blocks as there are players and each place
+  below one fewer: 4/3/2/1 with four players, 6/5/4/3/2/1 with six (the
+  most Quiz seats), 2/1 with two. Tied players share the higher place and
+  the places below carry on counting: two tied first of four get 4 each and
+  the next gets 2. Last place always earns at least one block. Each block
+  is a floor; the tallest tower wins, total points break a tie, and an
+  exact tie is shared. The badge counts floors and round wins.
+- **Expedition is a draft.** In one sentence: *finish higher to pick first,
+  and collect finds; the more of one kind you hold, the more each is
+  worth.* After each round the camp lays out **one find more than there are
+  players**. Everyone picks one, in the order they finished the round: the
+  winner first, last place from the last two, and the find nobody takes is
+  lost. Tied players pick in order of who is behind on the expedition, then
+  fewer total points, then seat order turning each round. Four kinds:
+  **Crystal** (cobalt), **Fossil** (tomato), **Gold** (sun), **Fern**
+  (green). One find in every offer is **big** and counts as two of its kind.
+  A kind with n finds scores 1 + 2 + … + n (1, 3, 6, 10, 15, 21), so
+  building one kind pays, and collections are public, so taking the find
+  the leader needs is a real choice. The best collection wins, then total
+  points, then the tie is shared.
+- **Pacing.** A pick is that player's own decision: the table waits for
+  whoever's turn it is and nobody presses Next between picks. The host's
+  pick of the next game opens once the last find is taken and works as
+  before. Each pick is one atomic move keyed to the draft step.
+- **Look.** Expedition is a field camp on the measuring desk: the offer lies
+  on the green cutting mat as glossy enamel specimens under the lamp (a
+  faceted crystal, a spiral fossil, a gold nugget, a pressed fern), the big
+  find larger with a halo. The pick order is a row of avatars with their
+  place; the picker's is lifted and glowing, and only their offer is live.
+  Every player has a specimen case with four compartments that fill as they
+  pick, with the collection score on it. A taken find drops into its case.
+  Tower keeps its 3D arcades, which now stack up to 72 floors (six players,
+  twelve rounds), and its ledger shows each round's new blocks. The
+  trail-and-travellers 3D world remains only for older saves.
+- **Scoring is proportional.** Every Quiz game still scores up to 100 a
+  prompt, now with no cliffs: each step closer is worth about the same, and
+  nothing only comes where a guess shows no real knowledge.
+  - **Atlas**: 100 within 50 km, 78 at 300 km, 62 at 600 km, 44 at
+    1,200 km, 22 at 2,500 km, nothing at 4,500 km (was 72, 52, 30, 10 and
+    nothing at 4,000 km).
+  - **Sizes**: 100 within 10%, 84 at ×1.25, 62 at ×1.5, 34 at twice or
+    half, 14 at ×2.5, nothing at three times (was 48 at ×1.4 and nothing
+    at twice).
+  - **Years**: counted years off (a fifth before 1800, half from 1800 to
+    1949) score 100 exact, 94 at one, 84 at three, 72 at six, 55 at twelve,
+    30 at twenty-five, nothing at fifty: nothing at 250 years off before
+    1800, 100 from 1800 to 1949, 50 since 1950 (was 80 at one year and
+    nothing at thirty).
+  - **Order**: every pair the wrong way round costs 25: 100, 75, 50, 25,
+    then nothing (was 100, 50, 20, then nothing).
+  The 2 October model (weak / average / strong player, points a prompt)
+  moves from Atlas 31 / 50 / 71, Sizes 42 / 55 / 73, Years 25 / 43 / 63,
+  Order 43 / 62 / 83 to Atlas 40 / 59 / 77, Sizes 60 / 71 / 84, Years
+  46 / 65 / 82, Order 63 / 78 / 91; a weak player's zero scores fall from
+  15–25% of prompts to 6–12%, and a blind guess still earns 2–27. Know Me
+  already scores closeness in even steps (Top Five 2/1, Ten Coins two a
+  coin, Dial's 4/3/2 bands) and is unchanged.
+- **Older saves.** New matches carry Trivia rules **3**. Rules 2 Tower
+  (a floor per 100 points, two more for the round's best) and route
+  Expedition saves, and the older shop saves, keep loading and finish under
+  their own rules, with their own help and 3D. The four games keep their
+  rules markers; a round in progress scores its remaining prompts on the new
+  curves.
+
 ## Library: covers on the left, the footage is Play; Folio becomes Puzzles (9 October 2026)
 
 William's review of the library (supersedes the parts of the 8 October
@@ -31,6 +212,9 @@ section it names):
   stays sharp on large screens.
 
 ## Arena: one painted card set, a bigger Dino, shots you can see (9 October 2026)
+
+*Card portraits superseded on 10 October 2026 by the cartoon set (v14) above;
+the rest of this section stands.*
 
 William's review: the card portraits were two sets, the semi-realistic painted
 look of the Samurai and Cowboy beside flatter cartoon v7 art. He prefers the
@@ -340,6 +524,9 @@ play. See [diner.md](diner.md) and the
   [artwork record](concepts/2026-10-04-diner-overhaul/artwork/README.md).
 
 ## Trivia: three ways to play the mini-games (4 October 2026)
+
+Tower's floors, Expedition's routes and the four-round length are superseded
+by the 10 October Quiz section above; this describes rules 2 saves.
 
 William renamed Quiz to **Trivia** and asked for three match formats: a simple
 one, one where points and victories build something, and a longer journey with

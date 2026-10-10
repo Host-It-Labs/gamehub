@@ -24,8 +24,14 @@ import {
 } from '../party/groups.ts';
 import {
   campReady,
+  collectionScore,
+  currentDraft,
+  extendTrivia,
   finalTriviaCamp,
   isTriviaCamp,
+  isTriviaExtension,
+  triviaCampSeats,
+  type TriviaLength,
   observeTrivia,
   playTriviaMove,
   prepareTriviaPick,
@@ -74,6 +80,8 @@ export type StandaloneEntry = {
     votes?: boolean,
     /** Trivia's overarching match; absent on earlier saves and callers. */
     triviaMode?: TriviaMode,
+    /** Tower and Expedition: 4 or 8 rounds. */
+    triviaRounds?: TriviaLength,
   ) => AnyGame;
   play: typeof play;
   botMove: typeof botMove;
@@ -108,16 +116,18 @@ export function observe(g: AnyGame, viewer: number): AnyGame {
   return observeTrivia(engine(g).observe(g as never, viewer), viewer);
 }
 export function actingSeats(g: AnyGame) {
-  if (isTriviaCamp(g)) {
-    if (campReady(g)) return [];
-    return g.seats.flatMap((_, s) => (triviaOf(g)!.ready[s] ? [] : [s]));
-  }
+  if (isTriviaCamp(g)) return triviaCampSeats(g);
   return engine(g).actingSeats(g as never);
 }
 export function validMove(g: AnyGame, m: unknown, s: number) {
   const type =
     m && typeof m === 'object' ? (m as { type?: unknown }).type : undefined;
-  if (type === 'trivia-plan' || type === 'trivia-unlock')
+  if (
+    type === 'trivia-plan' ||
+    type === 'trivia-unlock' ||
+    type === 'trivia-pick' ||
+    type === 'trivia-pick-for'
+  )
     return validTriviaMove(g, m, s);
   if (isTriviaCamp(g) && (type !== 'vote' || !campReady(g))) return false;
   return engine(g).validMove(g as never, m, s);
@@ -130,8 +140,15 @@ export function play(
   now = Date.now(),
 ): AnyGame {
   if (!validMove(g, m, s)) return g;
-  if (m.type === 'trivia-plan' || m.type === 'trivia-unlock')
+  if (
+    m.type === 'trivia-plan' ||
+    m.type === 'trivia-unlock' ||
+    m.type === 'trivia-pick' ||
+    m.type === 'trivia-pick-for'
+  )
     return playTriviaMove(g, m, s);
+  // The host's 4 more carries the same towers or finds on.
+  if (isTriviaExtension(g, m)) return extendTrivia(g);
   const ready = isTriviaCamp(g) ? prepareTriviaPick(g) : g;
   return settleTrivia(
     settle(engine(ready).play(ready as never, m as never, s, now)),
@@ -151,7 +168,7 @@ export function decisionKey(g: AnyGame) {
         ? g.step
         : g.target;
   const trivia = triviaOf(g);
-  return `${g.kind}:${g.rules}:${g.round}:${g.phase}:${at}${trivia ? `:trivia:${trivia.mode}:${trivia.stage}:${trivia.completed}` : ''}`;
+  return `${g.kind}:${g.rules}:${g.round}:${g.phase}:${at}${trivia ? `:trivia:${trivia.mode}:${trivia.stage}:${trivia.completed}${trivia.rules === 3 ? `:${trivia.length}:${currentDraft(g)?.picks.length ?? '-'}` : ''}` : ''}`;
 }
 /** When the table's next server-owned deadline falls, or null: Atlas team
  * discussions and every timed end-of-round vote. Private guesses remain untimed. */
@@ -173,7 +190,10 @@ function legalMoves(g: AnyGame, s: number): AnyMove[] {
     { type: 'unlock' },
     { type: 'next' },
   ];
-  if (isTriviaCamp(g)) {
+  const draft = currentDraft(g);
+  if (draft)
+    draft.offer.forEach((_, find) => moves.push({ type: 'trivia-pick', find }));
+  else if (isTriviaCamp(g)) {
     moves.push({ type: 'trivia-unlock' });
     const routes = finalTriviaCamp(g)
       ? [null]
@@ -211,7 +231,9 @@ function outcome(g: AnyGame): Outcome {
         value:
           trivia.mode === 'tower'
             ? `${p.floors} floors · ${p.victories} victories · ${p.rawPoints} points`
-            : trivia.rules === 2
+            : trivia.rules === 3
+              ? `${collectionScore(p.finds)} from ${p.finds?.length ?? 0} finds · ${p.rawPoints} points`
+              : trivia.rules === 2
               ? `${p.distance} steps · ${p.trophies} checkpoints · ${p.rawPoints} points`
               : `${p.trophies} trophies · ${p.distance} steps · ${p.coins} coins · ${p.rawPoints} points`,
         seat: p.seat,
@@ -381,7 +403,11 @@ export const standaloneIds = [
 ] as StandaloneId[];
 function progressDetail(g: AnyGame) {
   if (isTriviaCamp(g))
-    return finalTriviaCamp(g) ? 'The final camp' : 'Choose a route at camp';
+    return triviaOf(g)?.rules === 3
+      ? 'Pick a find'
+      : finalTriviaCamp(g)
+        ? 'The final camp'
+        : 'Choose a route at camp';
   if (g.phase === 'vote')
     return g.vote?.opening ? 'Choose the first game' : 'What next?';
   if (g.phase === 'reveal') return 'The reveal';
@@ -429,6 +455,7 @@ export const standaloneGames = Object.fromEntries(
         _teams?: number[],
         votes = false,
         triviaMode: TriviaMode = 'quick',
+        triviaRounds: TriviaLength = 4,
       ) =>
         id === 'impostor'
           ? impostor.createGame(n, seed, d, seen, Date.now(), votes)
@@ -443,6 +470,7 @@ export const standaloneGames = Object.fromEntries(
                 Date.now(),
                 votes,
                 triviaMode,
+                triviaRounds,
               )
             : createTribu(
                 n,

@@ -15,7 +15,12 @@ import {
 } from '@/lib/games/standalone/registry';
 import { places } from '@/lib/games/party/geography';
 import { yearEvents, timeline } from '@/lib/games/party/year-events';
-import { triviaOf, type TriviaMode } from '@/lib/games/party/trivia';
+import {
+  draftPicker,
+  triviaOf,
+  type TriviaMode,
+} from '@/lib/games/party/trivia';
+import { draftTriviaLab } from './trivia-lab-game.ts';
 
 /** The review bench uses real engine moves, including all three prompts.
  * Its route is development-only; it is never a playable production match. */
@@ -55,14 +60,9 @@ function fixture(
       );
     g = play(g, m, seat, 1000);
   };
-  const routes = ['summit', 'river', 'trail'] as const;
   for (let round = 0; round < count; round++) {
-    if (mode === 'expedition')
-      for (let seat = 0; seat < seats; seat++)
-        move(
-          { type: 'trivia-plan', route: routes[seat % 3], purchase: null },
-          seat,
-        );
+    // Earlier camps are drafted; the latest one stays open to review.
+    g = draftTriviaLab(g);
     move({
       type: 'vote',
       choice: (['miro', 'size', 'year', 'order'] as const)[round],
@@ -116,13 +116,10 @@ function fixture(
     for (let step = 0; step < 4 && g.phase === 'reveal'; step++)
       move({ type: 'next' });
   }
-  if (final && count === 4) move({ type: 'vote', choice: 'finish' });
-  else if (mode === 'expedition' && count < 4)
-    for (let seat = 1; seat < seats; seat++)
-      move(
-        { type: 'trivia-plan', route: routes[seat % 3], purchase: null },
-        seat,
-      );
+  if (final && count === 4) {
+    g = draftTriviaLab(g);
+    move({ type: 'vote', choice: 'finish' });
+  }
   return g;
 }
 
@@ -141,7 +138,7 @@ export default function TriviaLab() {
   );
   if (q?.has('source')) {
     const view = q.get('view');
-    const floors = Math.max(0, Math.min(25, Number(q.get('floors') ?? 5)));
+    const floors = Math.max(0, Math.min(72, Number(q.get('floors') ?? 5)));
     return (
       <div style={{ position: 'fixed', inset: 0, background: '#e9e3d4' }}>
         <TriviaScene
@@ -181,7 +178,17 @@ export default function TriviaLab() {
         onDebug={() => setDebug(true)}
         animateTriviaResults
         onHome={() => window.location.assign('/')}
-        onMove={(move) => setGame((g) => play(g, move, 0, 1000))}
+        onMove={(move) =>
+          // The bench is a hot seat: a draft pick is played by its picker.
+          setGame((g) =>
+            play(
+              g,
+              move,
+              move.type === 'trivia-pick' ? (draftPicker(g) ?? 0) : 0,
+              1000,
+            ),
+          )
+        }
         onNew={() =>
           setGame(
             createTriviaLabGame(

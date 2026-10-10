@@ -1,5 +1,9 @@
 # Arena card portraits v13: text only (9 October 2026)
 
+*Superseded on 10 October 2026 by the cartoon set v14
+([2026-10-10-arena-portraits](../../2026-10-10-arena-portraits/README.md)):
+William found these too realistic, real-looking people with realistic colour.*
+
 William rejected the v11/v12 restyles: they were made from the v7 cards as base
 images, and every pass through a base image turns the colours yellow and the
 picture worse. v13 regenerates every card except the Samurai (duelist v10-a)

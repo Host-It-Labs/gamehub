@@ -19,10 +19,13 @@ const coverSlugs: Record<string, string> = {
 /** Cover versions other than 1, shared by the square and the wide cover. */
 const coverVersions: Record<string, number> = {
   undertow: 2,
-  arena: 2,
+  // Arena v3 (10 October 2026): cartoon covers matching the v14 card set.
+  arena: 3,
   alto: 2,
-  rota: 2,
-  diner: 3,
+  // Rota v5 (10 October 2026): laying streets and rails, drawn as the game's
+  // own pieces in soft daylight, the title made of them (v3 dusk, v4 vivid).
+  rota: 5,
+  diner: 4,
 };
 
 export function boxCover(id: string) {
@@ -37,7 +40,8 @@ export function boxCover(id: string) {
   // Arena to cartoon covers matching its loading screen on 1 October 2026;
   // Alto to its space covers on 2 October 2026.
   // Puzzles, Rota (its mill town) and Diner (the diner car and its server)
-  // got fresh covers on 9 October 2026.
+  // got fresh covers on 9 October 2026; Diner again on 10 October 2026, its
+  // server a young man with only a light softness.
   return slug ? `/art/optimized/box-${slug}-blind-v${coverVersions[id] ?? 1}.webp` : undefined;
 }
 

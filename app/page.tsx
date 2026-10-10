@@ -25,9 +25,7 @@ const RotaRoom = lazy(() => import('@/components/game/rota/rota-room'));
 // An online Alto match loads its table only when opened.
 const AltoRoom = lazy(() => import('@/components/game/alto/alto-room'));
 // An online Diner shift loads three.js with the diner only when opened.
-const DinerRoom = process.env.NODE_ENV === 'development'
-  ? lazy(() => import('@/components/game/diner/diner-room'))
-  : null;
+const DinerRoom = lazy(() => import('@/components/game/diner/diner-room'));
 const subscribe = () => () => {};
 export default function Gamehub() {
   const path = useSyncExternalStore(
@@ -77,7 +75,7 @@ export default function Gamehub() {
   const expedition = /^\/expedition\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (expedition) return <Relic invite={expedition[1]} />;
   const shift = /^\/diner\/([A-Za-z0-9_-]{32})$/.exec(path);
-  if (shift && DinerRoom)
+  if (shift)
     return (
       <Suspense
         fallback={

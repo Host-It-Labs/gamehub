@@ -217,6 +217,8 @@ export function LobbyGames({
                 onVotes={(partyVotes) => configure({ partyVotes })}
                 triviaMode={table.triviaMode ?? 'quick'}
                 onTriviaMode={(triviaMode) => configure({ triviaMode })}
+                triviaRounds={table.triviaRounds ?? 4}
+                onTriviaRounds={(triviaRounds) => configure({ triviaRounds })}
                 onSeats={(capacity) => configure({ capacity })}
                 onDifficulty={(difficulty) => configure({ difficulty })}
                 onPlay={() => start()}
@@ -296,7 +298,7 @@ function LaunchDialog({
         {box?.id === 'relic' && <RelicSetupBox game={box} table={options} />}
         {box?.id === 'rota' && <RotaSetupBox game={box} table={options} />}
         {box?.id === 'alto' && <AltoSetupEntry game={box} table={options} />}
-        {process.env.NODE_ENV === 'development' && box?.id === 'diner' && <DinerSetupBox game={box} table={options} />}
+        {box?.id === 'diner' && <DinerSetupBox game={box} table={options} />}
         {box?.id === 'arena' && (
           <ArenaSetupBox
             game={box}

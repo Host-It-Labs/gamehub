@@ -183,7 +183,7 @@ await test('scoring rewards closeness, allows shared closest points, and breaks 
   // Every pin scores by its own distance, not only the closest one.
   assert.deepEqual(
     [0, 25, 60, 100, 500, 750, 4000, 9000].map(geo.pinPoints),
-    [100, 100, 99, 94, 59, 47, 0, 0],
+    [100, 100, 99, 95, 67, 58, 6, 0],
   );
   let h = geo.createGame(3, 12);
   const [target] = h.cityIds.map((i) => places[i]);

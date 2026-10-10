@@ -1,6 +1,6 @@
 import type { StandaloneId } from '../games/standalone/types.ts';
 import type { AnyGame, AnyMove } from '../games/standalone/registry.ts';
-import type { TriviaMode } from '../games/party/trivia.ts';
+import type { TriviaLength, TriviaMode } from '../games/party/trivia.ts';
 export type OnlineGameId = GameId | StandaloneId;
 /** Everything the table shelf offers: its own games plus Folio and Relic, which run in their own rooms. */
 export type ShelfGameId = OnlineGameId | 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner';
@@ -39,6 +39,8 @@ export type Table = GameOptions & {
   partyVotes?: boolean;
   /** Trivia's match format; its minigames share this mode for the whole match. */
   triviaMode?: TriviaMode;
+  /** Tower and Expedition: 4 or 8 rounds. */
+  triviaRounds?: TriviaLength;
   capacity: number;
   revision: number;
   status: 'lobby' | 'playing' | 'finished' | 'closed';
@@ -86,6 +88,7 @@ export type TableCommand =
       fastMode?: boolean;
       partyVotes?: boolean;
       triviaMode?: TriviaMode;
+      triviaRounds?: TriviaLength;
       capacity: number;
     }
   | { type: 'adventure-move'; move: AnyMove; key: string }
