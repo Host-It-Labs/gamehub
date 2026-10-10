@@ -7,6 +7,11 @@
  * lib/games/library-reels.ts), so phones, game cards and weak devices skip
  * the full file. Masters may be tagged full range (yuvj420p); every cut is
  * written as standard limited-range BT.709 so all clips show the same colour.
+ * Cuts keep the master's 60 frames a second. A game whose driver compresses
+ * its master harder (`crf` in scripts/reels/games/<game>.mjs, for busy art)
+ * has its cuts compressed as hard: a cut's crf is its own or the master's
+ * plus its `step`, whichever is higher, so a phone's 720p cut stays well
+ * under the master's size.
  *
  *   node scripts/reels/tiers.mjs [game ...] [--dir public/reels]
  *
@@ -18,12 +23,19 @@ import { readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 export const TIERS = [
-  { suffix: '720', long: 1280, short: 720, crf: '24' },
-  { suffix: '360', long: 640, short: 360, crf: '26' },
+  { suffix: '720', long: 1280, short: 720, crf: 24, step: 0 },
+  { suffix: '360', long: 640, short: 360, crf: 26, step: 2 },
 ];
 
-/** Writes both cuts of one master (`<dir>/<game>-<shape>.mp4`). */
-export function cutTiers(dir, game, shape) {
+/** The master's x264 crf for a game and shape: its driver's, or 23. */
+export async function masterCrf(game, shape) {
+  const driver = await import(`./games/${game}.mjs`).catch(() => ({}));
+  return driver.crf?.[shape] ?? 23;
+}
+
+/** Writes both cuts of one master (`<dir>/<game>-<shape>.mp4`), filmed at
+ * `crf`. */
+export function cutTiers(dir, game, shape, crf = 23) {
   const master = join(dir, `${game}-${shape}.mp4`);
   for (const tier of TIERS) {
     const [w, h] =
@@ -44,11 +56,11 @@ export function cutTiers(dir, game, shape) {
       '-profile:v',
       'high',
       '-crf',
-      tier.crf,
+      String(Math.max(tier.crf, crf + tier.step)),
       '-preset',
       'slow',
       '-g',
-      '60',
+      '120',
       '-color_range',
       'tv',
       '-colorspace',
@@ -76,6 +88,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const name of readdirSync(dir).sort()) {
     const m = name.match(/^(.+)-(wide|tall)\.mp4$/);
     if (!m || (games.length && !games.includes(m[1]))) continue;
-    cutTiers(dir, m[1], m[2]);
+    cutTiers(dir, m[1], m[2], await masterCrf(m[1], m[2]));
   }
 }

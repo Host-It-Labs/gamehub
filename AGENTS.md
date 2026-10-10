@@ -162,7 +162,11 @@ Before creating or changing a game's illustrated board, responsive scene framing
 - The landing page shows real gameplay footage of every game, filmed wide
   and tall with the interface hidden (see the 8 October 2026 library section
   of [docs/DESIGN.md](docs/DESIGN.md)); re-film a game with
-  `node scripts/reels/record.mjs <id>` when its look changes. Wide screens
+  `node scripts/reels/record.mjs <id>` when its look changes. Clips are
+  60 fps with 60 different frames a second at the game's real speed (10
+  October 2026 library section): film 3D games with `slow` 8 and `minFps`
+  55, check the take's "unique" figure in the log, and film one heavy job
+  at a time — a busy Mac starves the screencast. Wide screens
   show the cover grid beside the footage and shelves that never page on
   landscape; games played last come first (the 9 and 10 October 2026
   library sections). The square cover is each card's face and stands in for

@@ -4,33 +4,50 @@
  * hidden, filmed once on a desktop screen (wide) and once on a phone (tall).
  *
  *   node scripts/reels/record.mjs <game> [wide|tall|both] [--base http://localhost:3017]
- *       [--seconds 10] [--slow 3] [--out public/reels] [--keep]
+ *       [--seconds 10] [--slow 8] [--out public/reels] [--keep]
+ *
+ * Every clip is 60 fps, and each of its 60 frames a second is a different
+ * picture of the game playing at its own speed.
  *
  * Each game is a driver in scripts/reels/games/<game>.mjs exporting
  *   css      – extra selectors to hide (the shared chrome is hidden already)
  *   prepare  – async (page) => gets into a running game
  *   drive    – async (page, running) => keeps it moving while running() is true
- *   warmup   – ms to let it settle before filming (default 2500)
+ *   warmup   – ms of game time to let it settle before filming (default 2500)
  *   seconds  – clip length (default 10)
  *   crf      – { wide, tall } x264 quality for a game whose art compresses
- *              poorly (default 23 both; higher is smaller)
- *   minFps   – films a scene again (up to three takes) when fewer frames
- *              than this arrive a second, for games that never stop moving
+ *              poorly (default 23 both; higher is smaller; the 720p and 360p
+ *              cuts follow it, see tiers.mjs)
+ *   minFps   – for games that never stop moving: films a scene again (up to
+ *              three takes, each slower) when fewer than this many different
+ *              frames make up each second of the clip. 55 for a 3D game.
  *   slow     – films the game this many times slower than real time and
- *              speeds the footage back up (default 1; `--slow` overrides).
- *              WebGL games use it: Chrome only screencasts 5–15 full-HD
- *              frames a second of a busy canvas on a loaded Mac, so slowing
- *              the page's clock threefold still gives smooth 30 fps footage.
+ *              closes the frame times back up, so the clip plays at the
+ *              game's own speed (default 1, at most 24; `--slow` overrides).
+ *              Chrome screencasts only 5–25 full-HD frames a real second of a
+ *              busy WebGL canvas, so a 3D game needs about 8× for 60 different
+ *              frames a game second (Arena: ~150 sent, 59–60 kept). The page's
+ *              clocks (performance.now, Date.now, frame times, timers) and its
+ *              CSS and Web Animations all run k× slower from before the
+ *              warmup (STRETCH_TIME), so the game itself never notices.
+ * The log line of each take gives the different frames a second of the clip
+ * ("unique"), the longest a picture holds (in 60ths), the frames Chrome sent
+ * per game second and the frames the page drew.
  * or, for a game that holds several games or boards, `scenes`: an array of
  * { css, wideCss, tallCss, prepare, drive, warmup, seconds }, each filmed in
  * a fresh browser and joined with a short crossfade (shared exports above
  * apply to every scene unless it sets its own; `--seconds` is per scene).
+ * `cut: true` joins the scenes with hard cuts instead, for a reel of quick
+ * shots (Diner).
  * Wide is the desktop layout (a 1280×720 CSS screen at 1.5×) and tall the phone
  * layout (390×693 CSS at 1080/390×), so both are filmed at full 1080p: 1920×1080
  * and 1080×1920. Chrome runs with that scale forced (the screencast otherwise
- * sends CSS-size frames) and sends quality-95 JPEG frames at full size;
+ * sends CSS-size frames) and sends quality-95 JPEG frames at full size,
+ * written to disk as they come. Each of the clip's 60 slots a second takes
+ * the newest frame by then, read by ffmpeg as an exact 60 fps sequence;
  * ffmpeg only resamples (lanczos) when a frame comes back a pixel off, then
- * encodes H.264 (high, limited-range yuv420p, preset slow, +faststart).
+ * encodes H.264 (high, limited-range yuv420p, preset slow, keyframe every
+ * 2 s, +faststart).
  * Needs the dev server (npm run dev), Chrome and ffmpeg. Writes
  * <out>/<game>-<shape>.mp4, a full-size first-frame .jpg still, and the
  * lighter 720p and 360p cuts (tiers.mjs).
@@ -42,6 +59,7 @@ import {
   rmSync,
   writeFileSync,
   statSync,
+  linkSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -64,9 +82,12 @@ if (seconds !== undefined && !(seconds > 0 && seconds <= 60)) {
   console.error('--seconds must be between 0 and 60');
   process.exit(1);
 }
+/** The clip's frame rate, and the most a take may slow the page down. */
+const FPS = 60;
+const MAX_SLOW = 24;
 const slowFlag = flag('slow') === undefined ? undefined : Number(flag('slow'));
-if (slowFlag !== undefined && !(slowFlag >= 1 && slowFlag <= 8)) {
-  console.error('--slow must be between 1 and 8');
+if (slowFlag !== undefined && !(slowFlag >= 1 && slowFlag <= MAX_SLOW)) {
+  console.error(`--slow must be between 1 and ${MAX_SLOW}`);
   process.exit(1);
 }
 /** How long any one DevTools command may take before the take gives up. */
@@ -109,8 +130,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * Installed at document start when a scene films slowed down: the page's
  * clocks (performance.now, Date.now, animation-frame times) and timers run
  * through one rate that `window.__reelSlow(k)` changes without a jump, so
- * the game plays k times slower once filming begins. CSS and Web Animations
- * are slowed over DevTools (Animation.setPlaybackRate).
+ * the game plays k times slower from then on (warmup and filming). CSS and
+ * Web Animations are slowed to the same rate in the page (see below).
  */
 const STRETCH_TIME = `(() => {
   const realNow = performance.now.bind(performance);
@@ -123,6 +144,23 @@ const STRETCH_TIME = `(() => {
   performance.now = () => toPage(realNow());
   Date.now = () => Math.round(dateOffset + toPage(realNow()));
   window.requestAnimationFrame = (cb) => realRaf((t) => cb(toPage(t)));
+  // CSS and Web Animations run on Chrome's own animation clock: every
+  // animation is slowed by the same rate once per frame. (DevTools'
+  // Animation.setPlaybackRate would slow them too, but it also slows the
+  // frame times handed to requestAnimationFrame, and a game slowed twice
+  // runs k² times slower.)
+  const applied = new WeakMap();
+  const sweep = () => {
+    if (document.getAnimations)
+      for (const a of document.getAnimations()) {
+        const was = applied.get(a) ?? 1;
+        if (was === rate) continue;
+        a.playbackRate = (a.playbackRate / was) * rate;
+        applied.set(a, rate);
+      }
+    realRaf(sweep);
+  };
+  realRaf(sweep);
   window.setTimeout = (fn, ms = 0, ...rest) =>
     realTimeout(fn, Math.max(0, Number(ms) || 0) / rate, ...rest);
   const intervals = new Map();
@@ -144,6 +182,8 @@ const STRETCH_TIME = `(() => {
       intervals.delete(id);
     } else realClear(id);
   };
+  // The real clock, for drivers that check the game kept its own speed.
+  window.__reelReal = realNow;
   window.__reelSlow = (k) => {
     const now = realNow();
     pageAt = toPage(now);
@@ -206,7 +246,7 @@ async function launch(shape) {
 }
 
 /** A thin CDP page with the few helpers drivers need. */
-async function openPage(target, shape, scene) {
+async function openPage(target, shape, scene, slow) {
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((done, fail) => {
     ws.addEventListener('open', done);
@@ -376,7 +416,7 @@ async function openPage(target, shape, scene) {
   const css = `${SHARED_CSS}\n${scene.css ?? ''}\n${scene[`${shape}Css`] ?? ''}`;
   await send('Page.addScriptToEvaluateOnNewDocument', {
     source: `
-      ${(slowFlag ?? scene.slow ?? 1) > 1 ? STRETCH_TIME : ''}
+      ${slow > 1 ? STRETCH_TIME : ''}
       Element.prototype.requestFullscreen = undefined;
       try { sessionStorage.setItem('gamehub.reel', '1'); } catch {}
       const addReelStyle = () => {
@@ -392,21 +432,27 @@ async function openPage(target, shape, scene) {
   return page;
 }
 
-/** Films `seconds` of game time; with `slow` above 1 the page's clock already
+/**
+ * Films `seconds` of game time. With `slow` above 1 the page's clock already
  * runs that many times slower, so it films that much longer in real time and
- * squeezes the frame times back. */
+ * closes the frame times back up: the clip plays at the game's own speed.
+ * Frames go to disk as they arrive. Each of the clip's FPS frames a second
+ * shows the newest frame Chrome had sent by then; `unique` is how many
+ * different frames that makes a second (a slot no new frame reached repeats
+ * the one before, which is what looks choppy).
+ */
 async function film(page, seconds, file, slow = 1) {
+  const dir = mkdtempSync(join(tmpdir(), 'gamehub-frames-'));
   const frames = [];
   const onFrame = (m) => {
     if (m.method !== 'Page.screencastFrame') return;
-    frames.push({
-      t: m.params.metadata.timestamp,
-      at: Date.now() / 1000,
-      data: m.params.data,
-    });
+    // Chrome sends the next frame only once this one is acknowledged.
     page
       .send('Page.screencastFrameAck', { sessionId: m.params.sessionId })
       .catch(() => {});
+    const name = join(dir, `${String(frames.length).padStart(5, '0')}.jpg`);
+    writeFileSync(name, Buffer.from(m.params.data, 'base64'));
+    frames.push({ t: m.params.metadata.timestamp, at: Date.now() / 1000, name });
   };
   page.on(onFrame);
   const [outW, outH] = SIZES[page.shape].encode;
@@ -437,22 +483,32 @@ async function film(page, seconds, file, slow = 1) {
   // Back to game time: the first frame keeps its time, the rest close up.
   const origin = frames[0]?.t ?? started;
   for (const frame of frames) frame.t = origin + (frame.t - origin) / slow;
-  const stopped = origin + (realStop - origin) / slow;
-  const dir = mkdtempSync(join(tmpdir(), 'gamehub-frames-'));
-  let list = '';
-  frames.forEach((frame, i) => {
-    const name = join(dir, `${String(i).padStart(5, '0')}.jpg`);
-    writeFileSync(name, Buffer.from(frame.data, 'base64'));
-    const next = frames[i + 1]?.t ?? Math.max(stopped, frame.t + 1 / 30);
-    list += `file '${name}'\nduration ${Math.max(0.001, next - frame.t).toFixed(4)}\n`;
-  });
-  // The concat reader ignores the last entry's duration unless the file is
-  // listed once more, so the final hold would vanish.
-  if (frames.length)
-    list += `file '${join(dir, `${String(frames.length - 1).padStart(5, '0')}.jpg`)}'\n`;
-  writeFileSync(join(dir, 'list.txt'), list);
   const span = frames.length > 1 ? frames.at(-1).t - frames[0].t : 0;
   const fps = span ? frames.length / span : 0;
+  // The clip's frames: each of its FPS slots a second shows the newest frame
+  // by the slot's middle (the last one holds to the end), linked in order so
+  // ffmpeg reads them at exactly FPS. (Read as a concat list with
+  // durations instead, every image's time is rounded to 1/25 s and no clip
+  // could show more than 25 different frames a second.)
+  const slots = Math.round(seconds * FPS);
+  mkdirSync(join(dir, 'slots'));
+  const shown = new Set();
+  let at = 0;
+  let hold = 0;
+  let run = 0;
+  for (let n = 0; n < slots && frames.length; n++) {
+    const time = origin + (n + 0.5) / FPS;
+    let moved = false;
+    while (at + 1 < frames.length && frames[at + 1].t <= time) {
+      at++;
+      moved = true;
+    }
+    run = moved || n === 0 ? 1 : run + 1;
+    hold = Math.max(hold, run);
+    shown.add(at);
+    linkSync(frames[at].name, join(dir, 'slots', `${String(n).padStart(5, '0')}.jpg`));
+  }
+  const unique = shown.size / seconds;
   // The size Chrome actually sent, for the log.
   const [frameW, frameH] = frames.length
     ? execFileSync('ffprobe', [
@@ -464,7 +520,7 @@ async function film(page, seconds, file, slow = 1) {
         'stream=width,height',
         '-of',
         'csv=p=0',
-        join(dir, '00000.jpg'),
+        frames[0].name,
       ])
         .toString()
         .trim()
@@ -480,33 +536,64 @@ async function film(page, seconds, file, slow = 1) {
     '-y',
     '-loglevel',
     'error',
-    '-f',
-    'concat',
-    '-safe',
-    '0',
+    '-framerate',
+    String(FPS),
     '-i',
-    join(dir, 'list.txt'),
-    '-t',
-    String(seconds),
+    join(dir, 'slots', '%05d.jpg'),
     '-vf',
-    `fps=30,${scale}format=yuv420p`,
-    '-c:v',
-    'libx264',
-    '-threads',
-    '4',
-    '-profile:v',
-    'high',
-    '-crf',
-    crfFor(page.shape),
-    '-preset',
-    'slow',
-    '-g',
-    '60',
-    '-movflags',
-    '+faststart',
-    '-an',
+    `${scale}format=yuv420p`,
+    ...x264(crfFor(page.shape)),
     `${file}.mp4`,
   ]);
+  still(file);
+  if (!keep) rmSync(dir, { recursive: true, force: true });
+  else {
+    writeFileSync(
+      join(dir, 'times.json'),
+      JSON.stringify({
+        started,
+        realStop,
+        slow,
+        frames: frames.map(({ t, at }) => ({ t, at })),
+      }),
+    );
+    console.log(`  frames kept in ${dir}`);
+  }
+  return {
+    frames: frames.length,
+    fps,
+    unique,
+    hold,
+    bytes: statSync(`${file}.mp4`).size,
+    frame: `${frameW}×${frameH}`,
+    pageFps: paints / seconds,
+  };
+}
+
+/** x264 settings every clip shares: high profile, a keyframe every two
+ * seconds, ready to stream (+faststart), silent. */
+const x264 = (crf) => [
+  '-c:v',
+  'libx264',
+  '-threads',
+  '4',
+  '-profile:v',
+  'high',
+  '-crf',
+  crf,
+  '-preset',
+  'slow',
+  '-g',
+  String(FPS * 2),
+  '-pix_fmt',
+  'yuv420p',
+  '-movflags',
+  '+faststart',
+  '-an',
+];
+
+/** Writes a clip's full-size first-frame still beside it. */
+function still(file) {
   execFileSync('ffmpeg', [
     '-y',
     '-loglevel',
@@ -519,29 +606,39 @@ async function film(page, seconds, file, slow = 1) {
     STILL_Q,
     `${file}.jpg`,
   ]);
-  if (!keep) rmSync(dir, { recursive: true, force: true });
-  else {
-    writeFileSync(
-      join(dir, 'times.json'),
-      JSON.stringify({ started, realStop, slow, frames: frames.map(({ t, at }) => ({ t, at })) }),
-    );
-    console.log(`  frames kept in ${dir}`);
-  }
-  return {
-    frames: frames.length,
-    fps,
-    bytes: statSync(`${file}.mp4`).size,
-    frame: `${frameW}×${frameH}`,
-    pageFps: paints / (seconds * slow),
-  };
 }
 
 /** Seconds each scene fades into the next. */
 const FADE = 0.5;
 
-/** Joins scene clips with crossfades into one clip and its first-frame still. */
+/** Joins scene clips with crossfades (or, with the driver's `cut`, hard
+ * cuts) into one clip and its first-frame still. */
 function joinScenes(parts, file, shape) {
   if (parts.length === 1) return;
+  const chain = driver.cut
+    ? `${parts.map((_, i) => `[${i}:v]`).join('')}concat=n=${parts.length}:v=1:a=0[out];`
+    : crossfades(parts);
+  execFileSync('ffmpeg', [
+    '-y',
+    '-loglevel',
+    'error',
+    ...parts.flatMap((part) => ['-i', part]),
+    '-filter_complex',
+    chain.slice(0, -1),
+    '-map',
+    '[out]',
+    ...x264(crfFor(shape)),
+    `${file}.mp4`,
+  ]);
+  still(file);
+  for (const part of parts) {
+    rmSync(part, { force: true });
+    rmSync(part.replace(/\.mp4$/, '.jpg'), { force: true });
+  }
+}
+
+/** The filter chain that fades each scene clip into the next. */
+function crossfades(parts) {
   const lengths = parts.map((part) =>
     Number(
       execFileSync('ffprobe', [
@@ -564,50 +661,7 @@ function joinScenes(parts, file, shape) {
     chain += `[${last}][${i}:v]xfade=transition=fade:duration=${FADE}:offset=${offset.toFixed(3)}[${label}];`;
     last = label;
   }
-  execFileSync('ffmpeg', [
-    '-y',
-    '-loglevel',
-    'error',
-    ...parts.flatMap((part) => ['-i', part]),
-    '-filter_complex',
-    chain.slice(0, -1),
-    '-map',
-    '[out]',
-    '-c:v',
-    'libx264',
-    '-threads',
-    '4',
-    '-profile:v',
-    'high',
-    '-crf',
-    crfFor(shape),
-    '-preset',
-    'slow',
-    '-g',
-    '60',
-    '-pix_fmt',
-    'yuv420p',
-    '-movflags',
-    '+faststart',
-    '-an',
-    `${file}.mp4`,
-  ]);
-  execFileSync('ffmpeg', [
-    '-y',
-    '-loglevel',
-    'error',
-    '-i',
-    `${file}.mp4`,
-    '-frames:v',
-    '1',
-    '-q:v',
-    STILL_Q,
-    `${file}.jpg`,
-  ]);
-  for (const part of parts) {
-    rmSync(part, { force: true });
-    rmSync(part.replace(/\.mp4$/, '.jpg'), { force: true });
-  }
+  return chain;
 }
 
 const scenes = driver.scenes?.length
@@ -616,12 +670,12 @@ const scenes = driver.scenes?.length
 
 mkdirSync(out, { recursive: true });
 /** Films one scene in a fresh Chrome; resolves with the take's numbers. */
-async function take(shape, scene, index, part) {
+async function take(shape, scene, index, part, slow) {
   const label = `${game}-${shape}${scenes.length > 1 ? ` scene ${index + 1}/${scenes.length}` : ''}`;
   const { chrome, profile, target } = await launch(shape);
   let running = true;
   try {
-    const page = await openPage(target, shape, scene);
+    const page = await openPage(target, shape, scene, slow);
     try {
       await scene.prepare(page);
     } catch (error) {
@@ -643,12 +697,9 @@ async function take(shape, scene, index, part) {
       .catch((error) => {
         console.error(`  drive stopped: ${error.message}`);
       });
-    const slow = slowFlag ?? scene.slow ?? 1;
     if (slow > 1) {
       await page.eval(`window.__reelSlow(${slow})`);
       page.slow = slow;
-      await page.send('Animation.enable');
-      await page.send('Animation.setPlaybackRate', { playbackRate: 1 / slow });
     }
     await sleep((scene.warmup ?? 2500) * slow);
     const result = await film(page, seconds ?? scene.seconds ?? 10, part, slow);
@@ -656,7 +707,7 @@ async function take(shape, scene, index, part) {
     await driving;
     page.close();
     console.log(
-      `${label}: ${result.frames} frames, ${result.fps.toFixed(1)} fps${slow > 1 ? ` (filmed ${slow}× slow)` : ''} (page ${result.pageFps.toFixed(0)}), ${result.frame} frames, ${(result.bytes / 1024).toFixed(0)} KB`,
+      `${label}: ${result.unique.toFixed(1)} of ${FPS} fps unique (longest hold ${result.hold} frames), ${result.frames} frames sent, ${result.fps.toFixed(0)} a game second${slow > 1 ? `, filmed ${slow}× slow` : ''} (page drew ${result.pageFps.toFixed(0)}), ${result.frame}, ${(result.bytes / 1024).toFixed(0)} KB`,
     );
     return result;
   } finally {
@@ -670,23 +721,40 @@ async function take(shape, scene, index, part) {
 /** Takes per scene when one films below its driver's `minFps`. */
 const ATTEMPTS = 3;
 
+/** The slowdown for the next take after one showed `unique` different
+ * frames a second against a `minFps` floor: enough to clear it with room,
+ * at most twice the last, never above MAX_SLOW. */
+const slower = (slow, unique, minFps) =>
+  Math.min(
+    MAX_SLOW,
+    Math.max(
+      slow + 1,
+      Math.min(slow * 2, Math.ceil((slow * (minFps + 8)) / Math.max(1, unique))),
+    ),
+  );
+
 for (const shape of shapes) {
   const file = join(out, `${game}-${shape}`);
   const parts = [];
   for (const [index, scene] of scenes.entries()) {
     const part = scenes.length > 1 ? `${file}-scene${index}` : file;
+    let slow = slowFlag ?? scene.slow ?? 1;
     for (let attempt = 1; ; attempt++) {
-      const result = await take(shape, scene, index, part);
+      const result = await take(shape, scene, index, part, slow);
       // A continuously moving game filmed this choppily was starved by a
-      // busy machine: film it again rather than keep a stuttering clip.
-      if (!(result.fps < (scene.minFps ?? 0))) break;
-      if (attempt === ATTEMPTS) {
+      // busy machine: film it again, slower, rather than keep a stuttering
+      // clip.
+      if (!(result.unique < (scene.minFps ?? 0))) break;
+      if (attempt === ATTEMPTS || slow >= MAX_SLOW) {
         console.error(
-          `  still below ${scene.minFps} fps after ${ATTEMPTS} takes; keeping the last`,
+          `  still below ${scene.minFps} unique fps after ${attempt} takes; keeping the last`,
         );
         break;
       }
-      console.log(`  below ${scene.minFps} fps; filming again`);
+      slow = slower(slow, result.unique, scene.minFps);
+      console.log(
+        `  below ${scene.minFps} unique fps; filming again ${slow}× slow`,
+      );
     }
     parts.push(`${part}.mp4`);
   }
@@ -696,6 +764,6 @@ for (const shape of shapes) {
       `${game}-${shape}: ${parts.length} scenes, ${(statSync(`${file}.mp4`).size / 1024).toFixed(0)} KB`,
     );
   // The 720p and 360p cuts smaller screens and game cards play.
-  cutTiers(out, game, shape);
+  cutTiers(out, game, shape, Number(crfFor(shape)));
 }
 process.exit(0);

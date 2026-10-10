@@ -107,7 +107,10 @@ Every map balances road and rail exits (six and six, eight and eight).
   WebGL), piece art, rules, setup box, solo and online controllers,
   `rota.css`; `rota-board.tsx` mounts the 3D board and lays the squares over
   it; `rota-lab.tsx` is the dev bench at `/rota/lab`
-  (`?map=harbour&rounds=4&ext=rivers,towns&seats=3`).
+  (`?map=harbour&rounds=4&ext=rivers,towns&seats=3`); in development
+  `window.rotaLab` plays your round (`auto`), plans it (`plan`) or plays
+  one move (`play`), which the library footage driver
+  (`scripts/reels/games/rota.mjs`) uses to place pieces on camera.
 - `components/game/rota/three/`: the 3D board. `world.ts` (scene, camera
   framing inside the stage, the DOM overlay's matrix3d, lights, per-square
   rebuilds, traffic and town updates once dropped pieces land, snapshots

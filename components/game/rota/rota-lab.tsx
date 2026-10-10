@@ -6,6 +6,7 @@ import {
   play,
   type Extension,
   type RotaGame,
+  type RotaMove,
 } from '@/lib/games/rota/engine';
 import { botRound } from '@/lib/games/rota/bot';
 import { MAP_IDS, type MapId } from '@/lib/games/rota/maps';
@@ -64,6 +65,11 @@ function Bench() {
           for (const m of botRound(observe(cur, 0), 0)) next = play(next, m, 0);
           return next;
         }),
+      /** The moves a bot would make for your round, without playing them. */
+      plan: () => botRound(observe(g, 0), 0),
+      /** Play one move on your sheet, as a tap would (the footage driver
+       *  places pieces one at a time this way). */
+      play: (m: RotaMove) => setG((cur) => play(cur, m, 0)),
     };
   }, [g]);
   // Bots build their rounds as in a solo match.

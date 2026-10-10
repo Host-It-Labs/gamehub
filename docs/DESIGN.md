@@ -19,6 +19,77 @@ covers are served as `box-arena-blind-v3` and `box-arena-wide-v3`. The Cowboy
 (v10-b) is now the most realistic card of the set; it still sits with the
 others at hand size.
 
+## Library: footage at a true 60 fps, a staged Arena battle (10 October 2026)
+
+William found the footage choppy, about 5 frames a second. Measured, the old
+clips were 30 fps with only 16 different pictures a second (Arena wide: 164
+of 300 frames), and the 3D games played at a third of their speed. Two bugs
+in `scripts/reels/record.mjs`: frames were read through a concat list whose
+times ffmpeg rounds to 1/25 s, so no clip could hold more than 25 different
+frames a second; and DevTools' `Animation.setPlaybackRate`, used to slow CSS,
+also slows the frame times games read, so a game filmed `slow` 3× ran 9×
+slower and the sped-up clip was still in slow motion. Every clip is now:
+
+- **60 fps with 60 different frames a second.** Each of the clip's 60 slots a
+  second takes the newest screencast frame by then, fed to ffmpeg as an exact
+  60 fps sequence. A take logs how many different frames a second it kept;
+  `minFps` 55 re-films a moving 3D game, slower each time (`slow` up to 24).
+  3D games film at `slow` 8 (Arena: ~150 frames sent a game second, 59–60
+  kept). A keyframe every two seconds.
+- **At the game's own speed.** The page's clocks, timers and CSS/Web
+  Animations are slowed together in the page; the Arena take checks its
+  match ran 30 ticks a game second (10.00 game s in 80 real s at 8×).
+- **Cuts follow the master's compression**: a driver's `crf` now applies to
+  its 720p cut too, and the 360p cut two steps above it (`scripts/reels/tiers.mjs`),
+  so a phone's 720p clip of a busy 3D game stays well under the master.
+  Arena at crf 30: 4.3/4.0 MB wide/tall masters, 1.8 MB 720p, 0.4 MB 360p
+  (were 5.9/5.1, 3.6, 0.7 MB).
+
+**Arena's clip is staged** (`scripts/reels/games/arena.mjs`): the bots are
+off and a fixed schedule of real card plays (and two Meteors) runs on match
+ticks, so every take shows the same ten seconds on the game's own camera.
+It opens calm with a red Samurai and two Cadets already marching down one
+lane; blue answers with Robots half a second in, the other lane wakes at
+1.6 s, and both sides keep dropping troops until battles rage at both
+bridges, a Meteor crashing into each (about 6.8 and 8.4 s), ending with some
+nearly 30 troops on the field. Troops have 1.6× hit points on both sides so the
+fights build instead of trading one for one.
+
+**Diner's clip is six quick cuts** (`scripts/reels/games/diner.mjs`, joined
+with hard cuts by the driver's `cut`): 1⅔ s each of a busy patio on the
+game's own camera, played by the game's bot from fixed seeds and ticks found
+in Node: seating a conga line (truck stop), taking a shake and fries at the
+hatch (drive-in), serving pie (fairground), clearing, a skate dash and the
+sink (harbour), Out! on a mimic that pops into goo (drive-in at night), and a
+brownout and the jukebox (Moon Mile). The tall clip is the sideways phone's
+own framing turned a quarter clockwise, since upright the game shows a thin
+strip of deck. 60 unique frames a second; crf 26: 2.4/2.3 MB, 1.2 MB 720p,
+0.4 MB 360p.
+
+**Lucky's clip is seven quick cuts** (`scripts/reels/games/relic.mjs`, 14.6
+s, hard cuts) on fresh development workshop desks: five tickets won on the
+perfect line, each scratched most of the way through the real commands and
+finished on camera with real strokes, ending in a jackpot paying out (a miss
+pointing at the last 7, two Twins pairs, a Garden path in one stroke, a Gold
+Mine dig that opens a patch of ground, a Sea Chart ship sunk); then the
+factory on its own 3D camera, close on a working line and pulling back to
+the whole floor; then the upgrade tree, a little over half bought (staged
+over the workshop's ranks), the camera gliding across the paths to the Sun &
+Moon prize, bought, which opens Almanac, bought too. Ticket and tree shots
+move the page as a camera, all on the page clock. 59–60 unique frames a
+second; crf 26: 6.5/6.3 MB, 3.4 MB 720p, 1.1 MB 360p.
+
+**Puzzles' clip is a run in seven cuts** (`scripts/reels/games/folio.mjs`,
+15.4 s, hard cuts), each staged from a prepared save (a seeded run or
+practice puzzle from the engine, written over a fresh one in the dev
+database) and finished with real inputs: the route, the camera gliding up
+the red trail to the open stops as the host picks Word guess; the word
+landing and circled in red; a Nonogram sailboat's hull drawn and printed; the
+last Connections band; a Sudoku row filled; a Minesweeper dig clearing the
+field; then the trail rising to the boss, picked, and pulling back to the
+act. A page camera on the page clock, filmed 4× slow (6× for the map); 60
+unique frames a second; crf 26: 4.7/4.1 MB, 2.6/2.3 MB 720p, 0.8/0.7 MB 360p.
+
 ## Library: shelves without paging, played last first (10 October 2026)
 
 William tried a full-screen footage with one row of nine covers under it
@@ -300,7 +371,8 @@ dioramas; he dropped them the same day for **real footage of each game**
   look changes. Clips stay under 8 MB (most 10 s clips are 1–6 MB at crf
   23; a driver may set its own `crf`). On a loaded machine a driver's `slow`
   runs the page's clock slower so 3D games still film smoothly, and `minFps`
-  re-takes a scene that captured too few frames. A game
+  re-takes a scene that captured too few frames (60 fps since 10 October
+  2026, see that section). A game
   that holds several games or boards films them as `scenes` joined by short
   crossfades (9 October 2026): Know Me shows Top Five, Dial and Ten Coins,
   Quiz all four of its games, Folio four puzzle kinds and Mora each board,
