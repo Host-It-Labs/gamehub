@@ -1,10 +1,13 @@
-"""Remaster the retained ElevenLabs sources without changing their originals."""
+"""Remaster the retained ElevenLabs ambience beds without changing their originals.
+
+Sound effects are synthesised in the browser (lib/games/sound); the effect
+candidates this once mastered live in the art archive."""
 import json, re, subprocess
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 folder = root / 'assets/audio/elevenlabs/2026-09-28'
-records = json.loads((folder / 'generation.json').read_text())['completed']
+records = [r for r in json.loads((folder / 'generation.json').read_text())['completed'] if r.get('kind') == 'bed']
 report = []
 for record in records:
     source = folder / f"{record['id']}.mp3"
@@ -24,4 +27,4 @@ for record in records:
     master_peak = float(re.search(r'max_volume: ([\d.-]+)', mastered)[1])
     report.append({'id': record['id'], 'duration': round(duration, 3), 'source_mean_db': mean, 'source_peak_db': peak, 'gain_db': round(change, 2), 'master_mean_db': master_mean, 'master_peak_db': master_peak, 'limiter_ceiling_db': -8})
 (folder / 'mastering.json').write_text(json.dumps(report, indent=2) + '\n')
-print(f'Mastered {len(report)} candidates; effect RMS target -24 dBFS, environmental beds -20 dBFS, peak ceiling -8 dBFS.')
+print(f'Mastered {len(report)} beds; RMS target -20 dBFS, peak ceiling -8 dBFS.')

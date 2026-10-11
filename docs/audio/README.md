@@ -1,5 +1,36 @@
 # Gamehub sound library
 
+## Synthesised effects (11 October 2026)
+
+Every game's sound effects are synthesised in the browser, the way Diner's
+always were: `lib/games/sound/synth.ts` holds the building blocks
+(oscillators, filtered noise, FM, struck bells, Karplus–Strong plucks, a
+small room), `lib/games/sound/books/*.ts` one book of cues per game, and
+`lib/games/game-sound.ts` plays them (`gameSound(id, kind, volume)`, the
+same call the tables always made). Only Your turn is shared
+(`books/shared.ts`); it also fires the on-screen glow
+(`lib/games/turn-signal.ts`, `components/game/turn-signal.tsx`), with sound
+off too. Arena's troops and music, and the ambience beds below, stay
+recorded; Diner keeps `components/game/diner/sound.ts`.
+
+Each cue's book gives a loudness target (dBFS over its loudest 50 ms at full
+volume), matched to the levels the old clips played at (board and party
+actions about -33, reveals and Your turn about -30, Arena's battle cues
+-17 to -30). `node scripts/sound-levels.mjs` renders every cue offline in
+headless Chrome against the running dev server and writes the gains into
+`lib/games/sound/levels.json`; `--check` reports any cue more than 2.5 dB off.
+Each gain is stored with a fingerprint of the code it was measured from
+(`lib/games/sound/fingerprint.ts`: the synthesiser, the instruments, the
+output code and the cue's book), so the tests fail until the script is run
+again after any of them changes. `tests/audio-feedback.test.mjs` also draws
+every cue through a mock that refuses what a browser would reject, and checks
+each game reaches its own cues. Each game, the lab and Arena ring into their
+own output, room included, so stopping or muting one silences its tails.
+
+The ElevenLabs effect clips and candidates described below, and their
+sources, moved to the art archive (`gamehub-art-archive/public/audio` and
+`assets/audio`); the history is kept here for reference.
+
 ## Shared cues and audition options
 
 Gameplay uses four shared ElevenLabs cues from `lib/games/global-audio-assets.json`: pickup, placement, your turn and final scores. Listening feedback selected **pickup B (Bright wood tick)**, **place F (Gentle settle)**, **your turn C (Rising chimes)** and the earlier **final scores B (Marimba flourish, 1.28 s)**. All four now supply the live cues. Longer final-score candidates remain previews.

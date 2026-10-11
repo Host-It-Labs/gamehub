@@ -1,0 +1,43 @@
+/* Your turn, in every game: warm light breathes in round the screen's edge,
+   brightest along the bottom where the hand and the dock sit, then fades.
+   Above everything, yet it never takes a tap. */
+.turn-signal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  opacity: 0;
+  /* Amber rich enough to read on parchment and on night skies alike. */
+  box-shadow:
+    inset 0 0 0 2px rgb(255 186 56 / 0.9),
+    inset 0 0 20px 4px rgb(255 166 36 / 0.6),
+    inset 0 0 72px 16px rgb(255 148 28 / 0.28);
+  background: radial-gradient(
+    110% 30% at 50% 108%,
+    rgb(255 176 56 / 0.26),
+    transparent 72%
+  );
+  animation: turn-signal 1600ms cubic-bezier(0.3, 0.55, 0.25, 1) both;
+}
+
+@keyframes turn-signal {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  42% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-signal {
+    animation-duration: 1100ms;
+    animation-timing-function: ease-out;
+  }
+}

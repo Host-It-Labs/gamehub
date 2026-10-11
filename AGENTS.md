@@ -123,6 +123,17 @@ Required for every How to play, rule inspection and extension explanation, in ev
 - Keep extension controls compact and graphical; on-board overlays must not cover placement slots or add board height. Content sets and extensions are independent, so rules and art must resolve through the current content set.
 - Check overview and individual inspections, narrow-screen readability, and keyboard/long-press access when changing this UI. Report separately whether browser and touch behavior were actually checked.
 
+# Sound effects are synthesised
+
+Every game's sound effects are synthesised in the browser
+(`lib/games/sound`, one book of cues per game; Diner keeps its own). Do not
+bring back downloaded effect clips. Each game sounds like its own world; only
+Your turn is shared, with its screen-edge glow. Arena's troop sounds (and
+its music) stay ElevenLabs recordings by William's choice, and Lucky's cues
+are tones only, never noise. After adding or changing a cue, run
+`node scripts/sound-levels.mjs` with the dev server up. See the 11 October
+2026 sound section of [docs/DESIGN.md](docs/DESIGN.md).
+
 # Gamehub creative direction
 
 - Read [docs/DESIGN.md](docs/DESIGN.md) before visual, interaction, naming or extension work. Current implemented names are Blackwake, Elsewild and Nightshift; new names are under exploration and internal IDs remain stable.

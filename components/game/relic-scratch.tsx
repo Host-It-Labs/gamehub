@@ -34,7 +34,7 @@ import {
 } from '@/lib/games/relic/scratch';
 import type { ExpeditionView } from '@/lib/games/relic/types';
 import { devSession, requestId } from '@/lib/online/client';
-import { ScratchAudio } from './relic-scratch-audio';
+import { ScratchAudio, type LuckyCue } from './relic-scratch-audio';
 import { ScratchDesk } from './relic-scratch-desk';
 import {
   MachineIcon,
@@ -520,7 +520,7 @@ export function RelicScratch({
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, [overlay, audio]);
-  async function act(action: RelicAction, cue?: 'paper' | 'upgrade') {
+  async function act(action: RelicAction, cue?: LuckyCue) {
     await audio.unlock();
     const result = await onAct(action);
     if (result && cue) audio.cue(cue);
@@ -536,7 +536,7 @@ export function RelicScratch({
   });
   const onBuy = useCallback(
     (pack: PackId, level: number) =>
-      actRef.current({ type: 'scratch-open', pack, level }, 'paper'),
+      actRef.current({ type: 'scratch-open', pack, level }, 'buy'),
     [],
   );
   const onBuyBook = useCallback((id: PackId) => {
@@ -555,7 +555,7 @@ export function RelicScratch({
     (action: RelicAction) =>
       actRef.current(
         action,
-        action.type === 'factory-blueprint' ? 'upgrade' : 'paper',
+        action.type === 'factory-blueprint' ? 'upgrade' : 'build',
       ),
     [],
   );

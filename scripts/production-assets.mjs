@@ -24,15 +24,7 @@ import { ambiences } from '../lib/games/ambience.ts';
 import { reelAssets } from '../lib/games/library-reels.ts';
 import { dinerArtAssets } from '../lib/games/diner/art.ts';
 import { labAmbiences } from '../lib/games/lab-ambiences.ts';
-import {
-  audioAssets,
-  sharedAudioAssets,
-  soundCandidates,
-} from '../lib/games/audio-catalog.ts';
-import {
-  audioOptions,
-  earlierAudioOptions,
-} from '../lib/games/audio-options.ts';
+import { audioAssets } from '../lib/games/audio-catalog.ts';
 
 const assets = new Set([
   '/favicon.svg',
@@ -91,14 +83,8 @@ for (const tall of [false, true]) {
     for (const key of ['image', 'overviewImage'])
       add(tableWorldFor('midnight', tall, undefined, phone, 'plaza')[key]);
 }
-for (const asset of [
-  ...audioAssets,
-  ...sharedAudioAssets,
-  ...audioOptions,
-  ...earlierAudioOptions,
-  ...soundCandidates,
-])
-  add(asset.src);
+// Recorded ambience only; every sound effect is synthesised.
+for (const asset of audioAssets) add(asset.src);
 for (const ambience of [...ambiences, ...labAmbiences])
   for (const sound of [...ambience.beds, ...ambience.events]) add(sound.src);
 // Arena's 3D art: every tile, model and card portrait its loader lists.
@@ -117,7 +103,7 @@ for (const set of Object.values(rota.textures))
   for (const file of [set.albedo.hq, set.albedo.lite, set.normal, set.orm])
     add(file.path);
 for (const file of Object.values(rota.models)) add(file.path);
-// Arena's music and effects.
+// Arena's music (its effects are synthesised).
 const arenaAudio = JSON.parse(
   await readFile('lib/games/arena/audio.json', 'utf8'),
 );

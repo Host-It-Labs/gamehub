@@ -1,36 +1,96 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, Headphones, Play, RotateCcw, Square, Volume2 } from 'lucide-react';
-import { audioAssets, sharedAudioAssets, soundCandidates, soundGames, type SoundGame } from '@/lib/games/audio-catalog';
+import { audioAssets } from '@/lib/games/audio-catalog';
 import type { Ambience } from '@/lib/games/ambience';
 import { labAmbiences as ambiences } from '@/lib/games/lab-ambiences';
 import { defaultMix, mixedAmbience, readAmbienceMix, saveAmbienceMix, type AmbienceMix } from '@/lib/games/ambience-mix';
 import { pauseAmbienceWhenHidden, previewAmbience, stopAmbience } from '@/lib/games/ambience-player';
 import { audioContext } from '@/lib/games/audio-context';
 import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
-import { effectLevel } from '@/lib/games/game-sound';
-import { audioOptions, earlierAudioOptions, sharedSoundActions } from '@/lib/games/audio-options';
+import { auditionCue, setAuditionVolume, stopGameSounds } from '@/lib/games/game-sound';
+import { soundBooks } from '@/lib/games/sound';
+import type { SoundBook } from '@/lib/games/sound/cues';
+import { signalTurn } from '@/lib/games/turn-signal';
 import { boxCover } from '@/lib/games/box-covers';
+import { troopCards } from '@/lib/games/arena/cards';
 import arenaAudio from '@/lib/games/arena/audio.json';
 import { arenaMusicOptions } from '@/lib/games/arena/music';
+import { DinerSound } from './diner/sound';
 import './sound-lab.css';
 
 const humanName = (src: string) => src.split('/').at(-1)!.replace(/\.(m4a|mp3)$/, '').replaceAll('-', ' ');
 
+/** The library id behind each book: its cover and, for three, its world. */
+const gameIds: Record<string, string> = {
+  nox: 'undertow', mora: 'wildgrove', yata: 'midnight', 'know-me': 'orin', quiz: 'miro', impostor: 'impostor',
+  puzzles: 'folio', lucky: 'relic', rota: 'rota', alto: 'alto', arena: 'arena', diner: 'diner',
+};
+const moments: Record<string, string> = {
+  pickup: 'Lifting', place: 'Playing', drop: 'Reordering', shuffle: 'A new match', scores: 'Final scores',
+  select: 'Choosing', move: 'Locking in', reveal: 'The reveal', submit: 'Submitting', reward: 'Solved',
+  invalid: 'Missed', star: 'A rare symbol', prize: 'A win', paper: 'A loss', upgrade: 'An upgrade',
+};
+type Group = { title?: string; cues: { name: string; label: string; moment?: string }[] };
+
+/** Diner synthesises its own sound (components/game/diner/sound.ts). */
+const DINER = {
+  id: 'diner', name: 'Diner', material: 'Counter bell, grill & jukebox',
+  cues: [
+    ['bell', 'Counter bell'], ['ready', 'Order up'], ['sizzle', 'Grill sizzle'], ['blend', 'Blender'], ['pour', 'Pour coffee'],
+    ['take', 'Take a plate'], ['serve', 'Serve'], ['seat', 'Seat a guest'], ['door', 'Door chime'], ['pop', 'An order'],
+    ['coin', 'A tip'], ['coins', 'Clear a table'], ['wash', 'Wash up'], ['bin', 'Bin it'], ['clink', 'Cups and pots'],
+    ['deny', 'Not now'], ['goo', 'A mimic caught'], ['burst', 'A mimic bursts'], ['storm', 'A storm'], ['star', 'A star'],
+    ['mop', 'Mop'], ['dash', 'Dash'], ['jam', 'A machine jams'], ['repair', 'Repair'], ['rush', 'Rush hour'],
+    ['power', 'Power cut'], ['juke', 'Jukebox'], ['tick', 'Last ten seconds'], ['open', 'Opening'], ['end', 'Closing time'],
+  ] as const,
+};
+
+function groupsOf(book: SoundBook): Group[] {
+  const all = Object.entries(book.cues).map(([name, c]) => ({ name, label: c.label, moment: moments[name] }));
+  if (book.id !== 'arena') return [{ cues: all }];
+  const quest = all.filter((c) => c.name.startsWith('quest-'));
+  return [{ title: 'Battle', cues: all.filter((c) => !quest.includes(c)) }, { title: 'Quest', cues: quest }];
+}
+
+/** Arena's troops keep their recordings: each troop's own clips, and the
+ *  shots and blasts that are theirs. The newer troops borrow from these. */
+const TROOP_EXTRAS: Record<string, string> = {
+  'medic-heal': 'medic', 'shield-break': 'gladiator', 'miner-dig': 'miner', 'miner-emerge': 'miner', 'pirate-leap': 'pirate',
+  'viking-rage': 'viking', 'bomb-blast': 'drake', 'fire-blast': 'mage', 'zap-chain': 'inventor', stun: 'inventor',
+  'shell-shot': 'gunner', 'shell-blast': 'gunner', 'drop-blast': 'balloon', 'balloon-crash': 'balloon',
+};
+const ACTIONS: Record<string, string> = { deploy: 'Arrives', attack: 'Attacks', death: 'Falls' };
+const recordings = Object.entries(arenaAudio as Record<string, { srcs: string[]; gain: number }>).filter(([id]) => !id.startsWith('music-'));
+const troopRecordings = [
+  ...Object.values(troopCards).map((t) => ({
+    title: t.name,
+    clips: recordings.filter(([id]) => id.startsWith(`${t.id}-`) || TROOP_EXTRAS[id] === t.id)
+      .map(([id, entry]) => ({ id, src: entry.srcs[0], gain: entry.gain * 0.35, label: ACTIONS[id.slice(t.id.length + 1)] ?? humanName(id) })),
+  })),
+  { title: 'Every blow', clips: recordings.filter(([id]) => id === 'hit-melee').map(([id, entry]) => ({ id, src: entry.srcs[0], gain: entry.gain * 0.35, label: 'A blow lands' })) },
+].filter((g) => g.clips.length);
+
+const books = soundBooks.filter((b) => b.id !== 'shared');
+const turnBook = soundBooks.find((b) => b.id === 'shared')!;
+
 export default function SoundLab() {
-  const [game, setGame] = useState<SoundGame>('undertow');
+  const [game, setGame] = useState('nox');
   const [world, setWorld] = useState('ship');
-  const ambience = ambiences.find((a) => a.id === game && a.world === world) ?? ambiences.find((a) => a.id === game);
+  const gameId = gameIds[game];
+  const book = books.find((b) => b.id === game);
+  const entry = book ?? DINER;
+  const ambience = ambiences.find((a) => a.id === gameId && a.world === world) ?? ambiences.find((a) => a.id === gameId);
   const [mix, setMix] = useState<AmbienceMix>(() => readAmbienceMix(ambiences.find((a) => a.world === 'ship')!));
   const [volume, setVolume] = useState(() => process.env.NODE_ENV === 'development' ? readAudioLevel('gamehub.sound-lab.volume', 0.45) : 0.45);
   const [playing, setPlaying] = useState(false);
   const [clip, setClip] = useState<string | null>(null);
+  const [jukebox, setJukebox] = useState<1 | 2 | 3 | null>(null);
   const [status, setStatus] = useState('');
-  const live = useRef<{ player: HTMLAudioElement | null; request: number; gain: number }>({ player: null, request: 0, gain: 0.45 });
-  const entry = soundGames.find((g) => g.id === game)!;
-  const effects = audioAssets.filter((a) => a.game === game && a.kind === 'effect');
-  const alternatives = audioAssets.filter((a) => a.game === game && a.kind === 'bed' && (ambience?.world === 'coast' ? a.id.includes('coast') : !a.id.includes('coast')));
-  const candidates = soundCandidates.filter((a) => a.game === (game === 'orin' || game === 'miro' || game === 'folio' ? 'party' : game));
+  const live = useRef<{ player: HTMLAudioElement | null; request: number; gain: number; timer: number }>({ player: null, request: 0, gain: 0.45, timer: 0 });
+  // Builds nothing until it first plays.
+  const [diner] = useState(() => new DinerSound());
+  const alternatives = audioAssets.filter((a) => a.game === gameId && a.kind === 'bed' && (ambience?.world === 'coast' ? a.id.includes('coast') : !a.id.includes('coast')));
   const selectedBed = alternatives.find((a) => a.src === mix.bed) ?? alternatives.find((a) => a.category === 'base');
   const beds = selectedBed ? [{ src: selectedBed.src, label: selectedBed.label, gain: 0.85 }] : ambience?.beds ?? [];
 
@@ -38,13 +98,17 @@ export default function SoundLab() {
     live.current.request++;
     live.current.player?.pause();
     live.current.player = null;
+    window.clearTimeout(live.current.timer);
+    stopGameSounds('lab');
     setClip(null);
   }
+  function stopJukebox() {
+    diner.stopMusic();
+    setJukebox(null);
+  }
   function stop() {
-    live.current.request++;
-    live.current.player?.pause();
-    live.current.player = null;
-    setClip(null);
+    stopClip();
+    stopJukebox();
     setPlaying(false);
     stopAmbience();
   }
@@ -52,17 +116,20 @@ export default function SoundLab() {
     const media = live.current;
     const release = pauseAmbienceWhenHidden(false);
     const hidden = () => {
-      if (document.hidden) { media.player?.pause(); setClip(null); setPlaying(false); }
+      if (document.hidden) { media.player?.pause(); stopGameSounds('lab'); diner.stopMusic(); setJukebox(null); setClip(null); setPlaying(false); }
     };
     document.addEventListener('visibilitychange', hidden);
     return () => {
       media.request++;
       media.player?.pause();
+      window.clearTimeout(media.timer);
+      stopGameSounds('lab');
+      diner.dispose();
       release();
       stopAmbience();
       document.removeEventListener('visibilitychange', hidden);
     };
-  }, []);
+  }, [diner]);
   useEffect(() => {
     if (!playing || !ambience) return;
     let cancelled = false;
@@ -75,18 +142,46 @@ export default function SoundLab() {
   }, [playing, ambience, mix, volume]);
   useEffect(() => {
     if (live.current.player) live.current.player.volume = volume * live.current.gain;
-  }, [volume]);
+    setAuditionVolume(volume);
+    diner.levels(volume, jukebox ? volume : 0);
+  }, [volume, jukebox, diner]);
 
-  function choose(id: SoundGame, nextWorld?: string) {
+  function choose(id: string, nextWorld?: string) {
     stop();
-    const next = ambiences.find((a) => a.id === id && (!nextWorld || a.world === nextWorld));
+    const next = ambiences.find((a) => a.id === gameIds[id] && (!nextWorld || a.world === nextWorld));
     setGame(id);
     setWorld(next?.world ?? '');
     setMix(next ? readAmbienceMix(next) : defaultMix());
     setStatus('');
   }
 
-  async function audition(src: string, gain = effectLevel(1, 0.5)) {
+  /** Play a synthesised cue; its button stays lit while it rings. */
+  function cue(key: string, play: () => number) {
+    if (clip === key) { stopClip(); return; }
+    stopClip();
+    // Unlock in the click itself, including browsers with strict gesture requirements.
+    try { audioContext(); } catch { setStatus('Audio is unavailable in this browser.'); return; }
+    const seconds = play();
+    if (!seconds) return;
+    setClip(key);
+    setStatus('');
+    live.current.timer = window.setTimeout(() => setClip((c) => (c === key ? null : c)), seconds * 1000);
+  }
+  function dinerSound() {
+    diner.levels(volume, jukebox ? volume : 0);
+    return diner;
+  }
+  function toggleJukebox(night: 1 | 2 | 3) {
+    if (jukebox === night) { stopJukebox(); return; }
+    const d = dinerSound();
+    d.stopMusic();
+    setJukebox(night);
+    d.levels(volume, volume);
+    d.startMusic(night);
+  }
+
+  /** Play a recording (an ambience layer or Arena's music). */
+  async function audition(src: string, gain: number) {
     if (clip === src) { stopClip(); return; }
     stopClip();
     const version = live.current.request;
@@ -125,12 +220,18 @@ export default function SoundLab() {
   }
   function toggleMix() {
     if (playing) { stop(); return; }
-    // Unlock in the click itself, including browsers with strict gesture requirements.
     try { audioContext(); } catch { setStatus('Audio is unavailable in this browser.'); return; }
     stop();
     setStatus('');
     setPlaying(true);
   }
+  const button = (key: string, label: string, play: () => number, moment?: string) => (
+    <button type="button" key={key} aria-pressed={clip === key} onClick={() => cue(key, play)}>
+      {clip === key ? <Square size={18} /> : <Play size={18} />}
+      <span>{label}</span>
+      {moment && <small>{moment}</small>}
+    </button>
+  );
   return (
     <main className="sound-lab">
       <header className="sound-lab-header">
@@ -142,91 +243,84 @@ export default function SoundLab() {
           if (process.env.NODE_ENV === 'development') saveAudioLevel(level, 'gamehub.sound-lab.volume');
         }} /><output>{Math.round(volume * 100)}%</output></label>
       </header>
-      <section className="sound-lab-panel" aria-labelledby="arena-music-heading">
-        <h2 id="arena-music-heading">Arena music</h2>
-        <p className="sound-lab-note">Two alternate original takes. Each final minute keeps the same music with fuller bass and a gentle 8% tempo lift. Previewing leaves the selected game music unchanged.</p>
-        {arenaMusicOptions.map((option) => (
-          <section className="sound-lab-comparison" key={option.id} aria-labelledby={`arena-music-${option.id}`}>
-            <h3 id={`arena-music-${option.id}`}>{option.label}</h3>
-            <div className="sound-lab-effects sound-lab-candidates">
-              {([['Battle', option.battle], ['Final minute', option.final]] as const).map(([label, id]) => {
-                const recording = arenaAudio[id];
-                return <button type="button" key={id} aria-label={`${option.label}: ${label}`} aria-pressed={clip === recording.srcs[0]} onClick={() => { stopAmbience(); setPlaying(false); void audition(recording.srcs[0], recording.gain); }}>
-                  {clip === recording.srcs[0] ? <Square size={18} /> : <Play size={18} />}
-                  <span>{label}</span><small>{recording.duration.toFixed(1)} s</small>
-                </button>;
-              })}
-            </div>
-          </section>
-        ))}
-      </section>
-      <section className="sound-lab-panel sound-lab-shared" aria-labelledby="shared-effects-heading">
-        <h2 id="shared-effects-heading">Universal game sounds</h2>
-        <p className="sound-lab-note">Your turn stays universal. Rising chimes remains selected; compare five new alternatives. Final scores keeps Marimba flourish.</p>
-        {sharedSoundActions.filter((a) => a.category === 'turn' || a.category === 'scores').map(({ category, label }) => (
-          <section className="sound-lab-comparison" aria-labelledby={`action-${category}`} key={category}>
-            <h3 id={`action-${category}`}>{label}</h3>
-            <div className="sound-lab-effects sound-lab-candidates">
-              {(category === 'turn' ? [...sharedAudioAssets.filter((a) => a.category === 'turn').map((a) => ({ ...a, option: 'c', preferred: true })), ...soundCandidates.filter((a) => a.category === 'turn').map((a) => ({ ...a, preferred: false }))] : [...sharedAudioAssets.filter((a) => a.category === 'scores').map((a) => ({ ...a, option: 'b', preferred: true })), ...audioOptions.filter((a) => a.category === category)]).map((a) => (
-                <button type="button" key={a.id} data-preferred={a.preferred || undefined} aria-label={`${label}: ${a.option.toUpperCase()} · ${a.label}${a.preferred ? ' · Your pick' : ''}`} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>
-                  {clip === a.src ? <Square size={18} /> : <Play size={18} />}
-                  <span>{a.option.toUpperCase()} · {a.label}</span>
-                  <small>{a.preferred && 'Your pick · '}{a.duration.toFixed(1)} s</small>
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
-        <details className="sound-lab-archive sound-lab-current">
-          <summary>Earlier options</summary>
-          {sharedSoundActions.map(({ category, label }) => (
-            <section className="sound-lab-comparison" aria-label={`Earlier ${label.toLowerCase()} options`} key={category}>
-              <h3>{label}</h3>
-              <div className="sound-lab-effects sound-lab-candidates">{earlierAudioOptions.filter((a) => a.category === category).map((a) => <button type="button" key={a.id} aria-label={`Earlier ${label}: ${a.option.toUpperCase()} · ${a.label}`} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{a.option.toUpperCase()} · {a.label}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
-            </section>
-          ))}
-        </details>
-        <details className="sound-lab-archive sound-lab-current">
-          <summary>Earlier shared actions</summary>
-          <div className="sound-lab-effects">{sharedAudioAssets.filter((a) => a.category === 'pickup' || a.category === 'place').map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{sharedSoundActions.find((action) => action.category === a.category)?.label}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
-        </details>
+      <section className="sound-lab-panel sound-lab-shared" aria-labelledby="turn-heading">
+        <div className="sound-lab-turn">
+          <div>
+            <h2 id="turn-heading">Your turn</h2>
+            <p className="sound-lab-note">The one sound every game shares, with a soft glow round the screen. The glow shows with sound off too.</p>
+          </div>
+          {button('shared:turn', 'Your turn', () => { signalTurn(); return auditionCue(turnBook, 'turn', volume) || 1.6; })}
+        </div>
       </section>
       <nav className="sound-lab-games" aria-label="Choose a game">
-        {soundGames.map((g) => <button key={g.id} type="button" aria-pressed={game === g.id} onClick={() => choose(g.id)}>{g.name}</button>)}
+        {[...books, DINER].map((g) => <button key={g.id} type="button" aria-pressed={game === g.id} onClick={() => choose(g.id)}>{g.name}</button>)}
       </nav>
       <div className="sound-lab-workspace">
         <aside className="sound-lab-cover">
-          <img src={boxCover(game)} alt={`${entry.name} cover`} />
+          <img src={boxCover(gameId)} alt={`${entry.name} cover`} />
           <p>{entry.material}</p>
-          <span>Original ElevenLabs sound</span>
+          <span>Synthesised in your browser</span>
         </aside>
         <div className="sound-lab-desk">
-          {candidates.length > 0 && <section className="sound-lab-panel" aria-label={`${entry.name} action candidates`}>
-            <h2>{game === 'orin' || game === 'miro' ? 'Know Me & Trivia' : entry.name} actions</h2>
-            <p className="sound-lab-note">Three options per action. A is the starting choice in play. Keep the world mix playing to compare the quieter effects against it.</p>
-            {(game === 'folio' ? ['place'] : ['pickup', 'place']).map((category) => <section className="sound-lab-comparison" key={category}>
-              <h3>{category === 'pickup' ? 'Pick up' : game === 'folio' ? 'Submit / reveal' : 'Place'}</h3>
-              <div className="sound-lab-effects sound-lab-candidates">{candidates.filter((a) => a.category === category).map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{a.option.toUpperCase()} · {a.label}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
-            </section>)}
+          <section className="sound-lab-panel" aria-labelledby="effects-heading">
+            <h2 id="effects-heading">{entry.name} sounds</h2>
+            {book ? groupsOf(book).map((g, i) => (
+              <section className="sound-lab-group" key={g.title ?? i} aria-label={g.title}>
+                {g.title && <h3>{g.title}</h3>}
+                <div className="sound-lab-effects">{g.cues.map((c) => button(`${book.id}:${c.name}`, c.label, () => auditionCue(book, c.name, volume), c.moment))}</div>
+              </section>
+            )) : <>
+              <div className="sound-lab-effects">{DINER.cues.map(([name, label]) => button(`diner:${name}`, label, () => { dinerSound().play(name); return 0.8; }))}</div>
+              <section className="sound-lab-group" aria-labelledby="jukebox-heading">
+                <h3 id="jukebox-heading">Jukebox</h3>
+                <div className="sound-lab-options">{([1, 2, 3] as const).map((night) => <button type="button" key={night} aria-pressed={jukebox === night} onClick={() => toggleJukebox(night)}>Night {night}</button>)}</div>
+              </section>
+            </>}
+          </section>
+          {game === 'arena' && <section className="sound-lab-panel" aria-labelledby="arena-troops-heading">
+            <h2 id="arena-troops-heading">Troops</h2>
+            <p className="sound-lab-note">Recorded. The newer troops borrow the nearest of these.</p>
+            {troopRecordings.map((g) => (
+              <section className="sound-lab-group" key={g.title} aria-label={g.title}>
+                <h3>{g.title}</h3>
+                <div className="sound-lab-effects">{g.clips.map((c) => (
+                  <button type="button" key={c.id} aria-label={`${g.title}: ${c.label}`} aria-pressed={clip === c.src} onClick={() => { stopAmbience(); setPlaying(false); void audition(c.src, c.gain); }}>
+                    {clip === c.src ? <Square size={18} /> : <Play size={18} />}
+                    <span>{c.label}</span>
+                  </button>
+                ))}</div>
+              </section>
+            ))}
           </section>}
-          {game === 'relic' && <section className="sound-lab-panel" aria-label="Lucky music"><h2>Lucky music</h2><p className="sound-lab-note">Three 3-minute looping tracks are planned: Sunny pockets, Easy afternoon and Cloud lounge. Generation is blocked by insufficient ElevenLabs funds.</p></section>}
-          {game === 'folio' && <p className="sound-lab-note">Puzzles keeps submit and reveal sounds. Typing, cell edits and selection are silent.</p>}
+          {game === 'arena' && <section className="sound-lab-panel" aria-labelledby="arena-music-heading">
+            <h2 id="arena-music-heading">Arena music</h2>
+            <p className="sound-lab-note">Two alternate original takes. Each final minute keeps the same music with fuller bass and a gentle 8% tempo lift. Previewing leaves the selected game music unchanged.</p>
+            {arenaMusicOptions.map((option) => (
+              <section className="sound-lab-comparison" key={option.id} aria-labelledby={`arena-music-${option.id}`}>
+                <h3 id={`arena-music-${option.id}`}>{option.label}</h3>
+                <div className="sound-lab-effects sound-lab-candidates">
+                  {([['Battle', option.battle], ['Final minute', option.final]] as const).map(([label, id]) => {
+                    const recording = arenaAudio[id];
+                    return <button type="button" key={id} aria-label={`${option.label}: ${label}`} aria-pressed={clip === recording.srcs[0]} onClick={() => { stopAmbience(); setPlaying(false); void audition(recording.srcs[0], recording.gain); }}>
+                      {clip === recording.srcs[0] ? <Square size={18} /> : <Play size={18} />}
+                      <span>{label}</span><small>{recording.duration.toFixed(1)} s</small>
+                    </button>;
+                  })}
+                </div>
+              </section>
+            ))}
+          </section>}
           {ambience && <section className="sound-lab-panel" aria-labelledby="ambience-heading">
             <div className="sound-lab-section-heading"><h2 id="ambience-heading">The world around you</h2>
               <button type="button" className="sound-lab-primary" onClick={toggleMix} aria-pressed={playing}>{playing ? <Square size={17} /> : <Play size={17} />}{playing ? 'Stop mix' : 'Play mix'}</button>
             </div>
-            {game === 'wildgrove' && <div className="sound-lab-options" aria-label="Mora world">{[['forest', 'Observatory'], ['coast', 'Floodline']].map(([id, label]) => <button type="button" key={id} aria-pressed={ambience.world === id} onClick={() => choose(game, id)}>{label}</button>)}</div>}
+            {game === 'mora' && <div className="sound-lab-options" aria-label="Mora world">{[['forest', 'Observatory'], ['coast', 'Floodline']].map(([id, label]) => <button type="button" key={id} aria-pressed={ambience.world === id} onClick={() => choose(game, id)}>{label}</button>)}</div>}
             {alternatives.length > 0 && <div className="sound-lab-options" aria-label="Background recording">{alternatives.map((a) => <button type="button" key={a.id} aria-pressed={selectedBed?.id === a.id} onClick={() => { setMix((m) => ({ ...m, bed: a.src })); setStatus(''); }}>{a.label}</button>)}</div>}
             <p className="sound-lab-note">Choose a background, then blend the details. Use each play button to hear a layer on its own. These previews do not change game ambience.</p>
             <ul className="sound-lab-layers">{[...beds, ...ambience.events].map(layer)}</ul>
             <label className="sound-lab-spacing">Time between details <input type="range" min="0.75" max="2.5" step="0.25" value={mix.spacing} onChange={(e) => { setMix((m) => ({ ...m, spacing: Number(e.target.value) })); setStatus(''); }} /><output>{Math.round(ambience.gap[0] * mix.spacing)}–{Math.round(ambience.gap[1] * mix.spacing)} s</output></label>
             <footer className="sound-lab-save"><button type="button" onClick={() => save(ambience)}><Check size={17} /> Save preview</button><button type="button" onClick={() => { setMix(defaultMix()); setStatus('Default mix restored. Choose Save preview to save.'); }}><RotateCcw size={16} /> Reset</button></footer>
           </section>}
-          <details className="sound-lab-panel sound-lab-archive">
-            <summary>Earlier {entry.name} sounds</summary>
-            <p className="sound-lab-note">Previous recordings, kept here for comparison.</p>
-            <div className="sound-lab-effects">{effects.map((a) => <button type="button" key={a.id} aria-pressed={clip === a.src} onClick={() => void audition(a.src, effectLevel(1, a.gain))}>{clip === a.src ? <Square size={18} /> : <Play size={18} />}<span>{a.category === 'select' ? 'Pick up' : a.category === 'move' ? 'Place & lock' : a.category === 'reveal' ? 'Reveal' : 'Reward'}</span><small>{a.duration.toFixed(1)} s</small></button>)}</div>
-          </details>
           <output className="sound-lab-status">{status}</output>
         </div>
       </div>

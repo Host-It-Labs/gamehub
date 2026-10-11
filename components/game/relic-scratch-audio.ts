@@ -1,7 +1,10 @@
 import { audioContext } from '@/lib/games/audio-context';
 import { gameSound, preloadGameSounds, stopGameSounds } from '@/lib/games/game-sound';
 
-/** Continuous scratching follows the gesture; discrete cues use shared quiet foley. */
+export type LuckyCue = 'reveal' | 'prize' | 'paper' | 'upgrade' | 'buy' | 'build';
+
+/** Continuous scratching follows the gesture; each moment has Lucky's own
+ *  synthesised cue (`lib/games/sound/books/lucky.ts`). */
 export class ScratchAudio {
   private context: AudioContext | null = null;
   private noise: AudioBufferSourceNode | null = null;
@@ -68,10 +71,10 @@ export class ScratchAudio {
       this.volume.gain.setTargetAtTime(0, this.context.currentTime, 0.015);
     }
   }
-  cue(_kind: 'reveal' | 'prize' | 'paper' | 'upgrade', _rare = false) {
+  cue(kind: LuckyCue, rare = false) {
     const c = this.context;
     if (this.muted || !c || c.state !== 'running') return;
-    gameSound('relic', 'place', 0.5);
+    gameSound('relic', kind === 'reveal' && rare ? 'star' : kind, 0.5);
   }
   dispose() {
     this.stop();

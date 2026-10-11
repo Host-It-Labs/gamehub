@@ -417,9 +417,13 @@ frame, so it visibly refills on every browser.
 
 ## Sound
 
-`components/game/arena/sound.ts` plays Arena's own clips, generated with
-ElevenLabs (list and levels in `lib/games/arena/audio.json`, prompts in
-`assets/arena/audio/README.md`): a whoosh and thump as any card lands (as
+`components/game/arena/sound.ts` plays Arena's own sounds. The troops and
+everything they do (arrivals, attacks, falls, abilities, shots and blasts)
+and the music are ElevenLabs recordings (list and levels in
+`lib/games/arena/audio.json`, prompts in `assets/arena/audio/README.md`);
+since 11 October 2026 the cards, towers, clock, Meteor, end stings and Quest
+cues are synthesised (`lib/games/sound/books/arena.ts`). Together: a whoosh
+and thump as any card lands (as
 it is sent, online), each troop's cue as it arrives, its attack on each
 swing or shot, its fall, the towers' arrows and cannon, stone hits, a tower
 collapsing (and a crown chime when it was theirs), the king waking, the

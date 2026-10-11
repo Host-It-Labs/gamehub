@@ -1,0 +1,314 @@
+{
+  "alto:move": {
+    "gain": 0.357,
+    "hash": "8iuwt2"
+  },
+  "alto:place": {
+    "gain": 0.247,
+    "hash": "e8uqoe"
+  },
+  "alto:scores": {
+    "gain": 0.383,
+    "hash": "113ditc"
+  },
+  "alto:select": {
+    "gain": 0.587,
+    "hash": "5cyyq7"
+  },
+  "arena:arrow-shot": {
+    "gain": 0.751,
+    "hash": "1r4n4su"
+  },
+  "arena:battle-start": {
+    "gain": 0.38,
+    "hash": "1d9o91h"
+  },
+  "arena:cannon-shot": {
+    "gain": 0.29,
+    "hash": "1bn0m2y"
+  },
+  "arena:card-drop": {
+    "gain": 0.527,
+    "hash": "oeyczq"
+  },
+  "arena:card-pick": {
+    "gain": 2.57,
+    "hash": "9223n6"
+  },
+  "arena:countdown-tick": {
+    "gain": 1.622,
+    "hash": "14f50e9"
+  },
+  "arena:crown": {
+    "gain": 0.578,
+    "hash": "1u2sy05"
+  },
+  "arena:king-wake": {
+    "gain": 0.619,
+    "hash": "t1w00"
+  },
+  "arena:meteor-crash": {
+    "gain": 0.426,
+    "hash": "dc8py8"
+  },
+  "arena:meteor-fall": {
+    "gain": 0.612,
+    "hash": "iwm6h4"
+  },
+  "arena:no-elixir": {
+    "gain": 1.139,
+    "hash": "i192iv"
+  },
+  "arena:overtime": {
+    "gain": 0.759,
+    "hash": "olcce1"
+  },
+  "arena:quest-coin": {
+    "gain": 0.791,
+    "hash": "1wzbd3q"
+  },
+  "arena:quest-heart-lost": {
+    "gain": 0.31,
+    "hash": "irthma"
+  },
+  "arena:quest-reward": {
+    "gain": 0.571,
+    "hash": "1fbltis"
+  },
+  "arena:quest-step": {
+    "gain": 2.205,
+    "hash": "1plyvdt"
+  },
+  "arena:quest-upgrade": {
+    "gain": 0.648,
+    "hash": "11k9u3d"
+  },
+  "arena:quest-victory": {
+    "gain": 0.535,
+    "hash": "7c0dp3"
+  },
+  "arena:sting-draw": {
+    "gain": 0.864,
+    "hash": "12sx13g"
+  },
+  "arena:sting-lose": {
+    "gain": 1.451,
+    "hash": "16na6kz"
+  },
+  "arena:sting-win": {
+    "gain": 0.279,
+    "hash": "gb8644"
+  },
+  "arena:tower-fall": {
+    "gain": 0.653,
+    "hash": "rryawb"
+  },
+  "arena:tower-hit": {
+    "gain": 0.867,
+    "hash": "stb873"
+  },
+  "impostor:move": {
+    "gain": 1.036,
+    "hash": "ivfh6w"
+  },
+  "impostor:reveal": {
+    "gain": 0.251,
+    "hash": "izr8ms"
+  },
+  "impostor:scores": {
+    "gain": 0.22,
+    "hash": "6jf3a"
+  },
+  "impostor:select": {
+    "gain": 2.395,
+    "hash": "84732p"
+  },
+  "know-me:coins:move": {
+    "gain": 0.358,
+    "hash": "18jw145"
+  },
+  "know-me:coins:select": {
+    "gain": 0.397,
+    "hash": "1q1vswg"
+  },
+  "know-me:dial:move": {
+    "gain": 0.331,
+    "hash": "1nshz71"
+  },
+  "know-me:dial:select": {
+    "gain": 0.797,
+    "hash": "1qjkcjs"
+  },
+  "know-me:move": {
+    "gain": 0.27,
+    "hash": "1nq1hxh"
+  },
+  "know-me:reveal": {
+    "gain": 0.324,
+    "hash": "18zufkt"
+  },
+  "know-me:scores": {
+    "gain": 0.278,
+    "hash": "1ihjisb"
+  },
+  "know-me:select": {
+    "gain": 0.37,
+    "hash": "ne8x9s"
+  },
+  "lucky:build": {
+    "gain": 0.29,
+    "hash": "t81yr3"
+  },
+  "lucky:buy": {
+    "gain": 0.231,
+    "hash": "c20c1j"
+  },
+  "lucky:paper": {
+    "gain": 0.227,
+    "hash": "kyxxd1"
+  },
+  "lucky:prize": {
+    "gain": 0.235,
+    "hash": "j4w9yz"
+  },
+  "lucky:reveal": {
+    "gain": 0.404,
+    "hash": "1du5ld8"
+  },
+  "lucky:star": {
+    "gain": 0.382,
+    "hash": "22yyf9"
+  },
+  "lucky:upgrade": {
+    "gain": 0.398,
+    "hash": "81ttt7"
+  },
+  "mora:drop": {
+    "gain": 2.061,
+    "hash": "qlskna"
+  },
+  "mora:pickup": {
+    "gain": 1.117,
+    "hash": "zerfn3"
+  },
+  "mora:place": {
+    "gain": 0.709,
+    "hash": "13uueha"
+  },
+  "mora:scores": {
+    "gain": 0.202,
+    "hash": "1wtzx6o"
+  },
+  "mora:shuffle": {
+    "gain": 1.114,
+    "hash": "10d2te8"
+  },
+  "nox:drop": {
+    "gain": 1.558,
+    "hash": "lizb8f"
+  },
+  "nox:pickup": {
+    "gain": 0.957,
+    "hash": "15emhem"
+  },
+  "nox:place": {
+    "gain": 0.276,
+    "hash": "1fcc405"
+  },
+  "nox:scores": {
+    "gain": 0.22,
+    "hash": "1mw673d"
+  },
+  "nox:shuffle": {
+    "gain": 0.301,
+    "hash": "udyidv"
+  },
+  "puzzles:invalid": {
+    "gain": 0.28,
+    "hash": "1tx6sst"
+  },
+  "puzzles:reward": {
+    "gain": 0.236,
+    "hash": "12zalcx"
+  },
+  "puzzles:scores": {
+    "gain": 0.211,
+    "hash": "6bzqj1"
+  },
+  "puzzles:submit": {
+    "gain": 1.673,
+    "hash": "1usumlq"
+  },
+  "quiz:miro:select": {
+    "gain": 1.714,
+    "hash": "d1h4wz"
+  },
+  "quiz:move": {
+    "gain": 0.406,
+    "hash": "19rqnez"
+  },
+  "quiz:order:select": {
+    "gain": 0.448,
+    "hash": "1xti4os"
+  },
+  "quiz:reveal": {
+    "gain": 0.179,
+    "hash": "fq1083"
+  },
+  "quiz:scores": {
+    "gain": 0.188,
+    "hash": "xdh231"
+  },
+  "quiz:select": {
+    "gain": 1.49,
+    "hash": "s4us3q"
+  },
+  "quiz:size:select": {
+    "gain": 1.015,
+    "hash": "gj9167"
+  },
+  "quiz:year:select": {
+    "gain": 0.761,
+    "hash": "zx4qi3"
+  },
+  "rota:invalid": {
+    "gain": 0.443,
+    "hash": "8qgpwz"
+  },
+  "rota:place": {
+    "gain": 0.226,
+    "hash": "10ln2tn"
+  },
+  "rota:scores": {
+    "gain": 0.229,
+    "hash": "1qqb9tn"
+  },
+  "rota:select": {
+    "gain": 0.537,
+    "hash": "vmygpc"
+  },
+  "shared:turn": {
+    "gain": 0.21,
+    "hash": "iamcd2"
+  },
+  "yata:drop": {
+    "gain": 0.822,
+    "hash": "quaz9u"
+  },
+  "yata:pickup": {
+    "gain": 0.816,
+    "hash": "1w33x8z"
+  },
+  "yata:place": {
+    "gain": 0.349,
+    "hash": "1orey3m"
+  },
+  "yata:scores": {
+    "gain": 0.204,
+    "hash": "j61n18"
+  },
+  "yata:shuffle": {
+    "gain": 0.636,
+    "hash": "1a4krpo"
+  }
+}

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { arena as book } from '../lib/games/sound/books/arena.ts';
+import { troopCards } from '../lib/games/arena/cards.ts';
 
 const manifest = JSON.parse(
   readFileSync(new URL('../lib/games/arena/audio.json', import.meta.url)),
@@ -28,6 +30,7 @@ function fixture() {
   const requests = new Map(),
     sources = [],
     gains = [],
+    cues = [],
     timers = new Map();
   const parameter = () => ({
     value: 0,
@@ -35,6 +38,7 @@ function fixture() {
     setTargetAtTime(value) {
       this.target = value;
     },
+    cancelScheduledValues() {},
   });
   const node = () => ({
     connect(to) {
@@ -124,6 +128,20 @@ function fixture() {
     window,
     require(id) {
       if (id.endsWith('audio.json')) return manifest;
+      if (id.endsWith('sound/books/arena')) return { arena: book };
+      // The synthesis itself is tested in audio-feedback; here each drawn
+      // cue is recorded with its own output.
+      if (id.endsWith('sound/cues'))
+        return {
+          prepareRoom() {},
+          renderCue(ctx, _book, cue, o) {
+            const out = ctx.createGain();
+            gains.pop();
+            out.gain.value = o.volume;
+            cues.push({ id: cue, ...o, out });
+            return { out, dry: ctx.currentTime + 1, end: ctx.currentTime + 1.5 };
+          },
+        };
       if (id.endsWith('audio-context'))
         return {
           audioContext: () => context,
@@ -149,6 +167,7 @@ function fixture() {
     context,
     sources,
     gains,
+    cues,
     document,
     window,
     timers,
@@ -194,17 +213,24 @@ await test('switching or leaving during a pending decode never starts stale musi
 
 await test('mute, pause and backgrounding cancel pending effects and silence music independently', async () => {
   const f = fixture();
+  f.sound.play('archers-attack');
   f.sound.play('card-pick');
   f.sound.levels(0, 0.6);
-  await f.load('card-pick');
+  await f.load('archers-attack');
   assert.equal(f.sources.length, 0);
+  assert.equal(f.cues.length, 1);
+  assert.equal(f.cues[0].out.gain.target, 0, 'muting fades a synthesised cue');
   f.sound.levels(0.5, 0.6);
+  f.context.currentTime += 1;
+  f.sound.play('archers-attack');
   f.sound.play('card-pick');
   await settle();
   const effect = f.sources.at(-1);
   assert.ok(effect.started);
+  assert.equal(f.cues.at(-1).volume, 0.5);
   f.sound.pause(true);
   assert.ok(effect.stopped);
+  assert.equal(f.cues.at(-1).out.gain.target, 0);
   assert.equal(f.gains[1].gain.target, 0);
   f.sound.pause(false);
   assert.ok(f.gains[1].gain.target > 0);
@@ -220,28 +246,25 @@ await test('mute, pause and backgrounding cancel pending effects and silence mus
 
 await test('major effects duck music and leave room for cues during a crowded battle', async () => {
   const f = fixture();
-  await f.load('tower-fall');
   const normal = f.gains[1].gain.target;
   f.sound.play('tower-fall');
-  await settle();
   assert.ok(f.gains[1].gain.target < normal * 0.5);
   f.context.currentTime += 3;
   f.sound.frame({ phase: 'battle' }, 90, false);
   assert.equal(f.gains[1].gain.target, normal);
-  const ids = ['card-drop', 'arrow-shot', 'hit-melee', 'tower-hit'];
-  for (const id of ids) await f.load(id);
+  const ids = ['card-drop', 'arrow-shot', 'hit-melee', 'tower-hit', 'ogre-attack'];
+  for (const id of ids) if (manifest[id]) await f.load(id);
   for (let i = 0; i < 4; i++) {
     f.context.currentTime += 0.1;
     for (const id of ids) f.sound.play(id);
     await settle();
   }
-  assert.ok(
-    f.sources.filter((s) => s.started && !s.stopped && !s.loop).length <= 11,
-  );
-  await f.load('overtime');
+  // The tower's fall has rung out by now; the crowd shares eleven voices.
+  const crowd = f.sources.filter((s) => s.started && !s.loop).length + f.cues.length - 1;
+  assert.ok(crowd > ids.length, 'repeats play');
+  assert.ok(crowd <= 11, 'a crowd is capped');
   f.sound.play('overtime');
-  await settle();
-  assert.equal(f.sources.at(-1).buffer.src, manifest.overtime.srcs[0]);
+  assert.equal(f.cues.at(-1).id, 'overtime', 'a major cue gets through a busy field');
   f.sound.dispose();
 });
 
@@ -260,15 +283,16 @@ await test('leaving cancels delayed troop and crown cues and releases all music 
   f.sound.dispose();
   assert.equal(f.timers.size, 0);
   assert.ok(f.sources.every((s) => s.disconnected));
+  assert.ok(f.cues.every((c) => c.out.disconnected));
 });
 
 await test('opening waits for battle and plays one cue at a stable pitch', async () => {
   const f = fixture();
   await f.load('music-battle');
-  await f.load('battle-start');
   f.sound.frame({ phase: 'ready' }, 180, false);
   await settle();
   assert.equal(f.sources.filter((s) => s.started).length, 0);
+  assert.equal(f.cues.length, 0);
   f.sound.events(
     { towers: [], phase: 'battle' },
     [{ type: 'phase', phase: 'battle' }],
@@ -277,10 +301,10 @@ await test('opening waits for battle and plays one cue at a stable pitch', async
   );
   f.sound.frame({ phase: 'battle' }, 180, false);
   await settle();
-  const effects = f.sources.filter((s) => s.started && !s.loop);
-  assert.equal(effects.length, 1);
-  assert.equal(effects[0].buffer.src, manifest['battle-start'].srcs[0]);
-  assert.equal(effects[0].playbackRate.value, 1);
+  assert.deepEqual(
+    f.cues.map((c) => [c.id, c.pitch]),
+    [['battle-start', 1]],
+  );
   assert.equal(f.sources.filter((s) => s.started && s.loop).length, 1);
   f.sound.dispose();
 });
@@ -321,11 +345,36 @@ await test('a match does not fetch or decode Sound Lab music alternatives', () =
   f.sound.dispose();
 });
 
-await test('Quest troops play their ability clips and Quest cues stay out of battle preloads', async () => {
+await test('the troops keep their recordings; cards, towers, the clock, the Meteor and Quest are synthesised', async () => {
+  const troops = Object.keys(troopCards);
+  for (const id of Object.keys(book.cues)) {
+    assert.equal(manifest[id], undefined, `${id} is synthesised only`);
+    assert.ok(!troops.some((t) => id.startsWith(`${t}-`)), `${id} is not a troop's`);
+  }
+  for (const id of Object.keys(manifest)) {
+    if (id.startsWith('music-')) continue;
+    assert.ok(readFileSync(new URL(`../public${manifest[id].srcs[0]}`, import.meta.url)).length > 2000, id);
+  }
   const f = fixture();
-  for (const id of Object.keys(manifest))
-    if (id.startsWith('quest-'))
-      assert.equal(f.requests.has(manifest[id].srcs[0]), false);
+  for (const id of Object.keys(manifest)) if (!id.startsWith('music-option-')) await f.load(id);
+  for (const troop of troops) {
+    for (const action of ['deploy', 'death']) {
+      if ((troop === 'bee' && action === 'deploy') || (troop === 'balloon' && action === 'death')) continue;
+      f.context.currentTime += 1;
+      const before = f.sources.filter((s) => s.started).length;
+      f.sound.play(`${troop}-${action}`);
+      await settle();
+      assert.equal(f.sources.filter((s) => s.started).length, before + 1, `${troop}-${action} plays a recording`);
+      f.sound.pause(true);
+      f.sound.pause(false);
+    }
+  }
+  assert.equal(f.cues.length, 0, 'no troop sound is synthesised');
+  f.sound.dispose();
+});
+
+await test('troop abilities play their recordings', async () => {
+  const f = fixture();
   const ids = [
     'medic-heal',
     'pirate-leap',
@@ -379,16 +428,15 @@ await test('Quest troops play their ability clips and Quest cues stay out of bat
   f.sound.dispose();
 });
 
-await test('Quest cues play once at the given volume and stay silent when muted', async () => {
+await test('Quest cues play once at the given volume and stay silent when muted', () => {
   const f = fixture();
   const { playQuestSound } = f.module;
   playQuestSound('quest-coin', 0);
-  assert.equal(f.requests.has(manifest['quest-coin'].srcs[0]), false);
+  assert.equal(f.cues.length, 0);
   playQuestSound('quest-coin', 0.5);
-  await f.load('quest-coin');
-  const cue = f.sources.at(-1);
-  assert.ok(cue.started);
-  assert.equal(cue.buffer.src, manifest['quest-coin'].srcs[0]);
-  assert.ok(f.gains.at(-1).gain.value > 0);
+  assert.deepEqual(
+    f.cues.map((c) => [c.id, c.volume]),
+    [['quest-coin', 0.5]],
+  );
   f.sound.dispose();
 });

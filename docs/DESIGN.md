@@ -1,5 +1,43 @@
 # Gamehub design direction
 
+## Sound: every game synthesised, one shared Your turn (11 October 2026)
+
+William liked how Diner's sound is made, so every game's sound effects are now
+synthesised in the browser the same way (`lib/games/sound`): oscillators,
+filtered noise, FM bells, plucked strings and a small room, nothing
+downloaded. Each game has its own sounds in its own material: Nox cards on
+ship's timber, a brass bell and a concertina; Mora paper, moss, a wooden
+flute and birds; Yata bamboo, porcelain, a koto and a wind chime; Know Me a
+retro studio (console buttons, electric piano, brass), with a dial for Dial
+and coins for Ten Coins; Quiz a measuring desk (ruler ticks, enamel stamps,
+a tape measure, xylophone), with its own select sound for Atlas, Sizes,
+Years and Order; Impostor pencil, cork pins and late-night vibraphone and
+bass; Puzzles a pencil, a rubber stamp and a celesta; Lucky glass, coins and
+a marimba; Rota sleepers, rails and a steam whistle; Alto console blips,
+docking clamps, a sonar ping and a synth pad. Diner keeps its own.
+
+- **Your turn is the only shared sound**: three rising glass chimes, and a
+  soft amber glow that breathes in round the edge of the screen
+  (`components/game/turn-signal.tsx`, mounted once in the root layout). The
+  glow shows with sound off, never takes a tap and has no words.
+- **Arena's troops keep their recordings.** William heard the synthesised
+  troops and asked for the originals back: every troop's arrival, attack,
+  fall, abilities, shots and blasts are the ElevenLabs clips again, with the
+  newer troops borrowing as before. Arena's cards, towers, clock, Meteor,
+  end stings and Quest cues are synthesised, and its music stays recorded.
+- **Lucky never hisses.** Buying a ticket (a coin in the slot), moving or
+  placing a machine (two soft marimba notes) and a losing ticket (a gentle
+  two-note fall) are tones only; the crumple of noise is gone. The foil
+  scratching still follows the finger.
+- Every cue is loudness-matched to the old clips' levels:
+  `node scripts/sound-levels.mjs` renders each one offline and writes
+  `lib/games/sound/levels.json`; run it after changing a cue (`--check`
+  reports drift). The recorded ambience beds are unchanged.
+- **Sound → Sound Lab** plays every game's sounds, Your turn with its glow,
+  Arena's troop recordings and music, and Diner's cues and jukebox. The old
+  ElevenLabs effect clips and their sources are in the art archive
+  (`gamehub-art-archive/public/audio`, `assets/audio`, `assets/arena/audio`).
+
 ## Arena: cartoon card portraits (10 October 2026)
 
 William's review of v13: the painted portraits looked like real people, with
@@ -2320,7 +2358,8 @@ The shared party reveal kit remains in use. Reduced motion cancels the added
 motion immediately.
 
 Sound effects share four gentle ElevenLabs cues across games: picking up,
-placing or locking, the local player's next turn, and final scores. Short,
+placing or locking, the local player's next turn, and final scores (since
+11 October 2026 every game synthesises its own; see that section). Short,
 soft attacks and conservative levels keep repeated actions unobtrusive.
 The shared player limits concurrent sounds and rapid repeats, abandons stale
 downloads, and stops pending and active effects on mute, exit or backgrounding.

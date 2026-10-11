@@ -1,7 +1,12 @@
 # Arena audio
 
 Sound effects for Arena, generated with ElevenLabs text-to-sound (MCP
-`text_to_sound_effects`, 27 September 2026). Raw downloads live in `raw/`
+`text_to_sound_effects`, 27 September 2026). Since 11 October 2026 only the
+troops' clips (arrivals, attacks, falls, abilities, shots and blasts) and the
+music are still used; the cards, towers, clock, Meteor, stings and Quest cues
+are synthesised in the browser (`lib/games/sound/books/arena.ts`), and their
+clips, raw takes and `quest-v1/` moved to the art archive
+(`gamehub-art-archive/assets/arena/audio`). Raw downloads live in `raw/`
 (`<id>[-<n>].mp3`, mp3 44.1 kHz 128 kbps); first takes that were replaced are
 in `raw/rejected/`. Processed files are in `public/audio/arena/` and listed in
 `lib/games/arena/audio.json`.

@@ -2,15 +2,21 @@ import manifest from '@/lib/games/arena/audio.json';
 import type { TroopId } from '@/lib/games/arena/cards';
 import type { ArenaEvent, Match, Side } from '@/lib/games/arena/engine';
 import { audioBuffer, audioContext } from '@/lib/games/audio-context';
+import { arena as book } from '@/lib/games/sound/books/arena';
+import { prepareRoom, renderCue } from '@/lib/games/sound/cues';
 
 /**
  * Arena's own sound: a looping battle theme (more urgent in the last minute
  * and in overtime), a whoosh and thump when a card lands, a cue as each
  * troop arrives, its attack, its fall, its abilities (heals, leaps, shields,
  * rage, lightning, the Miner digging), the towers' shots and collapse, the
- * Meteor, and a sting at the end. Quest screens use `playQuestSound`. Generated with ElevenLabs; the list and
- * levels are in lib/games/arena/audio.json (prompts in
- * assets/arena/audio/README.md).
+ * Meteor, and a sting at the end. Quest screens use `playQuestSound`.
+ *
+ * The troops and everything they do, and the music, are ElevenLabs
+ * recordings listed with their levels in lib/games/arena/audio.json (prompts
+ * in assets/arena/audio/README.md). The cards, towers, clock, Meteor, stings
+ * and Quest cues are synthesised in the browser
+ * (lib/games/sound/books/arena.ts).
  *
  * Effects are panned by where they happen across the screen and vary a
  * little in pitch so a crowd never sounds like one clip on repeat; each
@@ -19,6 +25,8 @@ import { audioBuffer, audioContext } from '@/lib/games/audio-context';
  */
 type Entry = { srcs: string[]; duration: number; gain: number; loop?: boolean };
 const sounds = manifest as Record<string, Entry>;
+/** A troop's recording, as opposed to a music loop. */
+const recorded = (id: string) => !!sounds[id] && !id.startsWith('music-');
 
 /** The engine's newer events (Quest troops), read by their `type` string so
  *  this file keeps compiling while the engine gains them. */
@@ -32,7 +40,8 @@ type AbilityEvent =
 type SoundEvent = ArenaEvent | AbilityEvent;
 
 /** The 1 October troops (and the bees) have no clips of their own yet (the
- *  ElevenLabs credits ran out): each borrows the nearest fitting one. */
+ *  ElevenLabs credits ran out): each borrows the nearest fitting one. The
+ *  Miner digs in rather than arriving, so a card sent online digs too. */
 const BORROWED: Record<string, string> = {
   'diver-deploy': 'gladiator-deploy',
   'diver-attack': 'imps-attack',
@@ -57,6 +66,7 @@ const BORROWED: Record<string, string> = {
   'explorer-attack': 'ranger-attack',
   'explorer-death': 'ranger-death',
   'bee-death': 'mage-death',
+  'miner-deploy': 'miner-dig',
 };
 /** Swings that are not blows landing (the water jet, a bee's sting). */
 const SOFT_SWING = new Set(['firefighter', 'bee']);
@@ -105,15 +115,22 @@ type Music = {
   gain: GainNode;
   started: boolean;
 };
+/** A synthesised cue still ringing: `dry` is when its voices stop, `end`
+ *  when its room tail has too and its output can be let go. */
+type Voice = { id: string; out: GainNode; dry: number; end: number };
 
 export class ArenaSound {
   private context: AudioContext | null = null;
+  /** The troops' recordings, at the effects volume. */
   private effects: GainNode | null = null;
+  /** Synthesised cues carry the volume themselves; this only gates them. */
+  private synth: GainNode | null = null;
   private musicGain: GainNode | null = null;
   private output: DynamicsCompressorNode | null = null;
   private music: Music | null = null;
   private loops = new Set<Music>();
   private active = new Set<AudioBufferSourceNode>();
+  private voices = new Set<Voice>();
   private timers = new Set<number>();
   private paused = false;
   private epoch = 0;
@@ -142,8 +159,13 @@ export class ArenaSound {
       this.effects.connect(this.output);
       this.musicGain = this.context.createGain();
       this.musicGain.connect(this.output);
+      this.synth = this.context.createGain();
+      this.synth.connect(this.output);
+      // The synthesised cues' room rings into the gate too, so muting,
+      // pausing or leaving silences the tails.
+      prepareRoom(this.context, book.space, this.synth);
       for (const [id, entry] of Object.entries(sounds)) {
-        if (id.startsWith('music-option-') || id.startsWith('quest-')) continue;
+        if (id.startsWith('music-option-')) continue;
         for (const src of entry.srcs)
           void audioBuffer(this.context, src).catch(() => {});
       }
@@ -177,7 +199,40 @@ export class ArenaSound {
     for (const timer of this.timers) window.clearTimeout(timer);
     this.timers.clear();
     for (const source of this.active) source.stop();
+    const c = this.context;
+    if (c)
+      for (const voice of this.voices) {
+        voice.out.gain.cancelScheduledValues(c.currentTime);
+        voice.out.gain.setTargetAtTime(0, c.currentTime, 0.012);
+        voice.dry = Math.min(voice.dry, c.currentTime);
+        voice.end = Math.min(voice.end, c.currentTime + 0.1);
+      }
+    this.renewGate();
     this.last.clear();
+  }
+
+  /** Swap the synthesised cues' gate (and so its room) for a fresh one, so
+   *  a tail still in the old room cannot come back on unpausing. */
+  private renewGate() {
+    const c = this.context;
+    const old = this.synth;
+    if (!c || !old || !this.output || this.disposed) return;
+    old.gain.cancelScheduledValues(c.currentTime);
+    old.gain.setTargetAtTime(0, c.currentTime, 0.012);
+    window.setTimeout(() => old.disconnect(), 150);
+    this.synth = c.createGain();
+    this.synth.gain.value = 0;
+    this.synth.connect(this.output);
+    prepareRoom(c, book.space, this.synth);
+  }
+
+  /** Let go of synthesised cues that have rung out. */
+  private prune(now: number) {
+    for (const voice of this.voices)
+      if (voice.end <= now) {
+        this.voices.delete(voice);
+        voice.out.disconnect();
+      }
   }
 
   private later(action: () => void, ms: number) {
@@ -198,11 +253,16 @@ export class ArenaSound {
       : 0;
     if (!this.volume) this.silence();
     const c = this.context;
-    if (!c || !this.effects || !this.musicGain) return;
+    if (!c || !this.effects || !this.musicGain || !this.synth) return;
     const quiet = document.hidden || this.paused;
     // About 10 dB below the original effects mix; music keeps its own level.
     this.effects.gain.setTargetAtTime(
       quiet ? 0 : this.volume * 0.35,
+      c.currentTime,
+      0.015,
+    );
+    this.synth.gain.setTargetAtTime(
+      quiet || !this.volume ? 0 : 1,
       c.currentTime,
       0.015,
     );
@@ -224,19 +284,49 @@ export class ArenaSound {
     );
   }
 
+  private duck(until: number) {
+    this.duckUntil = Math.max(this.duckUntil, until);
+    this.mixMusic();
+  }
+
   /** Play a sound; `pan` runs -1 (left) to 1 (right). */
   play(id: string, pan = 0, level = 1) {
-    if (!sounds[id] && BORROWED[id]) id = BORROWED[id];
-    const entry = sounds[id];
+    if (!recorded(id) && !book.cues[id] && BORROWED[id]) id = BORROWED[id];
     const c = this.context;
-    if (!entry || !c || !this.effects || this.disposed || this.volume <= 0)
-      return;
+    if (!c || !this.effects || this.disposed || this.volume <= 0) return;
     if (document.hidden || this.paused) return;
     const now = c.currentTime;
     if (now - (this.last.get(id) ?? -1) < GAP) return;
-    const voices = this.playing.get(id) ?? 0;
+    this.prune(now);
+    let ringing = this.live;
+    let same = this.playing.get(id) ?? 0;
+    for (const voice of this.voices)
+      if (voice.dry > now) {
+        ringing++;
+        if (voice.id === id) same++;
+      }
     const priority = FOREGROUND.has(id);
-    if (voices >= VOICES || this.live >= (priority ? TOTAL : TOTAL - 3)) return;
+    if (same >= VOICES || ringing >= (priority ? TOTAL : TOTAL - 3)) return;
+    if (recorded(id)) this.clip(id, pan, level, priority);
+    else if (book.cues[id] && c.state === 'running') {
+      this.last.set(id, now);
+      const render = renderCue(c, book, id, {
+        volume: this.volume * level,
+        pan: Math.max(-1, Math.min(1, pan)) * 0.6,
+        pitch: id === 'battle-start' ? 1 : 0.94 + Math.random() * 0.12,
+        dest: this.synth!,
+      });
+      if (!render) return;
+      this.voices.add({ id, ...render });
+      if (priority) this.duck(now + Math.min(render.dry - now, 2));
+    }
+  }
+
+  /** A troop's recording, decoded once and dropped if it arrives late. */
+  private clip(id: string, pan: number, level: number, priority: boolean) {
+    const c = this.context!;
+    const entry = sounds[id];
+    const now = c.currentTime;
     this.last.set(id, now);
     const epoch = this.epoch;
     const src = entry.srcs[Math.floor(Math.random() * entry.srcs.length)];
@@ -251,17 +341,20 @@ export class ArenaSound {
           this.paused
         )
           return;
+        // Recount with the synthesised cues started while this decoded.
+        let ringing = this.live;
+        for (const voice of this.voices)
+          if (voice.dry > c.currentTime) ringing++;
         if (
           (this.playing.get(id) ?? 0) >= VOICES ||
-          this.live >= (priority ? TOTAL : TOTAL - 3)
+          ringing >= (priority ? TOTAL : TOTAL - 3)
         )
           return;
         // Late decodes (the first play) are dropped rather than heard late.
         if (c.currentTime - now > 0.25) return;
         const source = c.createBufferSource();
         source.buffer = buffer;
-        source.playbackRate.value =
-          id === 'battle-start' ? 1 : 0.94 + Math.random() * 0.12;
+        source.playbackRate.value = 0.94 + Math.random() * 0.12;
         const gain = c.createGain();
         gain.gain.value = entry.gain * level;
         const panner = c.createStereoPanner();
@@ -279,13 +372,7 @@ export class ArenaSound {
           panner.disconnect();
         };
         source.start();
-        if (priority) {
-          this.duckUntil = Math.max(
-            this.duckUntil,
-            c.currentTime + Math.min(buffer.duration, 2),
-          );
-          this.mixMusic();
-        }
+        if (priority) this.duck(c.currentTime + Math.min(buffer.duration, 2));
       })
       .catch(() => {});
   }
@@ -497,6 +584,8 @@ export class ArenaSound {
   dispose() {
     this.disposed = true;
     this.silence();
+    for (const voice of this.voices) voice.out.disconnect();
+    this.voices.clear();
     document.removeEventListener('visibilitychange', this.visibility);
     window.removeEventListener('pointerdown', this.unlock);
     window.removeEventListener('keydown', this.unlock);
@@ -508,52 +597,36 @@ export class ArenaSound {
     this.loops.clear();
     this.music = null;
     this.effects?.disconnect();
+    this.synth?.disconnect();
     this.musicGain?.disconnect();
     this.output?.disconnect();
   }
 }
 
 /** A Quest screen's cue (map, rewards, upgrades), played once outside a
- *  battle at the given effects volume (0 mutes). Shares the clip cache. */
+ *  battle at the given effects volume (0 mutes). */
 export function playQuestSound(id: QuestSoundId, volume: number) {
-  const entry = sounds[id];
   const level = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0;
-  if (!entry || level <= 0 || document.hidden) return;
+  if (level <= 0 || document.hidden) return;
   let c: AudioContext;
   try {
     c = audioContext();
   } catch {
     return;
   }
-  const asked = c.currentTime;
-  const src = entry.srcs[Math.floor(Math.random() * entry.srcs.length)];
-  void audioBuffer(c, src)
-    .then((buffer) => {
-      // A first decode that comes back late is dropped, not heard late.
-      if (c.state === 'closed' || document.hidden) return;
-      if (c.currentTime - asked > 0.6) return;
-      const source = c.createBufferSource();
-      source.buffer = buffer;
-      const gain = c.createGain();
-      // The same level as the battle's effects bus.
-      gain.gain.value = entry.gain * level * 0.35;
-      source.connect(gain).connect(c.destination);
-      source.onended = () => {
-        source.disconnect();
-        gain.disconnect();
-      };
-      source.start();
-    })
-    .catch(() => {});
+  if (c.state !== 'running') return;
+  const render = renderCue(c, book, id, { volume: level });
+  if (render)
+    window.setTimeout(
+      () => render.out.disconnect(),
+      (render.end - c.currentTime) * 1000 + 100,
+    );
 }
 
-/** Fetch and decode the Quest cues ahead of the map screen. */
+/** Build the room ahead of the map screen's first cue. */
 export function preloadQuestSounds() {
   try {
-    const c = audioContext();
-    for (const [id, entry] of Object.entries(sounds))
-      if (id.startsWith('quest-'))
-        for (const src of entry.srcs) void audioBuffer(c, src).catch(() => {});
+    prepareRoom(audioContext(), book.space);
   } catch {
     /* Sound is optional. */
   }

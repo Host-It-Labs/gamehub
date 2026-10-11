@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { makeServer } from '../server/index.ts';
 
-await test('generated and retained sound files have playable audio content types', async () => {
+await test('recorded ambience and Arena sound files have playable audio content types', async () => {
   const app = await makeServer({ database: ':memory:', staticDir: 'public', bots: false });
   try {
     await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${app.server.address().port}`;
     for (const [path, type] of [
-      ['/audio/elevenlabs/nox-select-v1.mp3', 'audio/mpeg'],
+      ['/audio/elevenlabs/nox-bed-hull-v1.mp3', 'audio/mpeg'],
+      ['/audio/arena/ogre-deploy-945e3439.mp3', 'audio/mpeg'],
       ['/audio/ambience/ship/creak-1.m4a', 'audio/mp4'],
     ]) {
       const response = await fetch(base + path, { method: 'HEAD' });
