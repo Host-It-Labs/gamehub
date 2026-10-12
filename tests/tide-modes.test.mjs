@@ -34,7 +34,7 @@ await test('both Tide modes deal equal hands and complete at every seat count wi
         );
         const total = fast ? 30 : 60;
         assert.equal(tideRanks(g), fast ? 5 : 10);
-        assert.equal(passCount(g), fast ? 2 : [4, 4, 3, 3][seats - 3]);
+        assert.equal(passCount(g), fast ? 3 : 5);
         assert.equal(g.reserve.length, total % seats);
         assert.ok(
           g.players.every((p) => p.hand.length === Math.floor(total / seats)),
@@ -102,7 +102,7 @@ await test('Tide AI uses Fast mode card bounds, exchange size, and hazard value'
     const g = createGame('undertow', difficulty, 77, false, 3, false, true);
     const move = chooseMove(observe(g), difficulty);
     assert.equal(move.type, 'pass');
-    assert.equal(move.cards.length, 2);
+    assert.equal(move.cards.length, 3);
     assert.ok(validMove(g, move));
 
     const playState = play(g, move);

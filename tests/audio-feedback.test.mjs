@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdir, stat } from 'node:fs/promises';
-import { audioAssets } from '../lib/games/audio-catalog.ts';
+import { readdir } from 'node:fs/promises';
 import { audioContext } from '../lib/games/audio-context.ts';
 import { auditionCue, gameSound, setAuditionVolume, stopGameSounds } from '../lib/games/game-sound.ts';
 import { cue, eventCue } from '../lib/games/trio/sound.ts';
@@ -13,8 +12,7 @@ import levels from '../lib/games/sound/levels.json' with { type: 'json' };
 import arenaAudio from '../lib/games/arena/audio.json' with { type: 'json' };
 import { TURN_EVENT } from '../lib/games/turn-signal.ts';
 import { pauseAmbienceWhenHidden, previewAmbience, setAmbienceVolume, stopAmbience } from '../lib/games/ambience-player.ts';
-import { cleanMix, mixedAmbience, readAmbienceMix, saveAmbienceMix } from '../lib/games/ambience-mix.ts';
-import { labAmbiences } from '../lib/games/lab-ambiences.ts';
+import { ambiences } from '../lib/games/ambience.ts';
 
 const settle = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 /** The game output a cue rings into: stopping a game fades it, tails too. */
@@ -473,53 +471,6 @@ await test('audio feedback respects cancellation, background state and bounded s
       assert.equal(audio.sources.length, stoppedAt);
     } finally { release(); stopAmbience(); }
   });
-
-  await t.test('mix preferences reject stale paths and non-finite levels while clamping valid numbers', () => {
-    const ambience = labAmbiences.find((a) => a.id === 'undertow');
-    const bed = ambience.beds[0].src, detail = ambience.events[0].src;
-    const clean = cleanMix(ambience, {
-      bed: '/old/recording.mp3',
-      spacing: NaN,
-      levels: { [bed]: Infinity, [detail]: -1, '/foreign/recording.mp3': .8 },
-    });
-    assert.deepEqual(clean, { levels: { [detail]: 0 }, spacing: 1 });
-    const bounded = cleanMix(ambience, { bed, spacing: 99, levels: { [bed]: 6 } });
-    assert.deepEqual(bounded, { bed, levels: { [bed]: 1 }, spacing: 2.5 });
-  });
-
-  await t.test('saving a mix is device-local and preserves settings for the other world', () => {
-    const ship = labAmbiences.find((a) => a.id === 'undertow'), forest = labAmbiences.find((a) => a.id === 'wildgrove');
-    const localKey = 'gamehub.ambience-mixes.v1';
-    const before = audio.requests.size;
-    audio.storage.set(localKey, JSON.stringify({ [forest.world]: { spacing: 2, levels: {} } }));
-    assert.equal(saveAmbienceMix(ship, { spacing: 1.5, levels: { [ship.events[0].src]: .25 } }), true);
-    assert.equal(readAmbienceMix(ship).spacing, 1.5);
-    assert.equal(readAmbienceMix(forest).spacing, 2);
-    assert.equal(audio.requests.size, before, 'preferences never send a host/table/network update');
-    audio.storage.set(localKey, '{broken');
-    assert.deepEqual(readAmbienceMix(ship), { spacing: 1, levels: {} });
-    assert.equal(saveAmbienceMix(ship, { spacing: 1, levels: {} }), true);
-    assert.equal(readAmbienceMix(ship).spacing, 1);
-  });
-
-  await t.test('disabled detail layers are neither fetched nor scheduled, including a fully silent mix', async () => {
-    const original = scene('disabled', ['disabled-detail']);
-    const mix = mixedAmbience(original, { levels: { [original.events[0].src]: 0 }, spacing: 1 });
-    assert.equal(mix.events.length, 0);
-    const pending = previewAmbience(mix, .5);
-    audio.resolve(mix.beds[0].src, 60);
-    assert.equal(await pending, true);
-    const start = audio.sources.length;
-    audio.tick(30_000);
-    assert.equal(audio.sources.length, start);
-    assert.equal(audio.requests.has(original.events[0].src), false);
-    stopAmbience();
-    const silent = mixedAmbience(original, { levels: { [original.beds[0].src]: 0, [original.events[0].src]: 0 }, spacing: 1 });
-    assert.equal(await previewAmbience(silent, .5), true, 'a deliberately silent mix is valid');
-    audio.tick(30_000);
-    assert.equal(audio.sources.length, start);
-    stopAmbience();
-  });
 });
 
 await test('every game has its own synthesised sounds and only Your turn is shared', () => {
@@ -580,23 +531,11 @@ await test('every cue draws valid Web Audio, rings out within three seconds and 
   assert.deepEqual(Object.keys(levels).filter((key) => !cues.has(key)), [], 'no stale levels');
 });
 
-await test('only the recorded ambience and Arena’s music and troops remain as audio files', async () => {
-  assert.equal(new Set(audioAssets.map((a) => a.src)).size, audioAssets.length);
-  for (const id of ['undertow', 'wildgrove', 'midnight']) {
-    const beds = audioAssets.filter((a) => a.game === id && a.kind === 'bed');
-    assert.equal(beds.length, id === 'wildgrove' ? 3 : 2);
-  }
-  let bytes = 0;
-  for (const asset of audioAssets) {
-    assert.ok(asset.kind === 'bed' || asset.kind === 'detail');
-    assert.match(asset.src, /^\/audio\/elevenlabs\/[a-z0-9-]+\.mp3$/);
-    const info = await stat(`public${asset.src}`);
-    assert.ok(info.size > 2000);
-    bytes += info.size;
-  }
-  assert.ok(bytes < 5_000_000, 'the ambience library stays below five MB');
-  const recorded = new Set(audioAssets.map((a) => a.src.split('/').at(-1)));
-  assert.deepEqual((await readdir('public/audio/elevenlabs')).filter((file) => !recorded.has(file)), []);
+await test('only the ambience recordings and Arena’s music and troops remain as audio files', async () => {
+  // Generated and assembled soundscapes were retired: one real recording per world.
+  assert.deepEqual((await readdir('public/audio')).sort(), ['ambience', 'arena']);
+  const recordings = new Set(ambiences.flatMap((a) => [...a.beds, ...a.events]).map((s) => s.src.split('/').at(-1)));
+  assert.deepEqual((await readdir('public/audio/ambience')).filter((file) => file !== 'CREDITS.md' && !recordings.has(file)), []);
   const arena = new Set(Object.values(arenaAudio).flatMap((entry) => entry.srcs.map((src) => src.split('/').at(-1))));
   assert.deepEqual((await readdir('public/audio/arena')).filter((file) => !arena.has(file)), []);
 });

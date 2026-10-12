@@ -11,6 +11,7 @@ import { recordCompletedGame } from '../play-experience';
 import { RotaTable } from './rota-table';
 
 import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
+import { GameStartup } from '../game-curtain';
 
 const VOLUME = 'gamehub.rota.volume';
 
@@ -130,10 +131,10 @@ export default function RotaRoom({ token }: { token: string }) {
   );
 
   if (!view)
-    return (
-      <main className="startup-loading" aria-busy={!error}>
-        {error || 'Rota'}
-      </main>
+    return error ? (
+      <main className="startup-loading">{error}</main>
+    ) : (
+      <GameStartup game="rota" name="Rota" />
     );
   const seat = view.viewerSeat ?? 0;
   return (

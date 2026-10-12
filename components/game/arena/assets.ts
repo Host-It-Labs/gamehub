@@ -75,8 +75,15 @@ async function fetchWithProgress(
 
 export type Progress = { loaded: number; total: number; cached: boolean };
 
-/** Downloads in progress, shared by the background prefetch and the game. */
-const inflight = new Map<string, Promise<Blob>>();
+/** A download in progress, shared by the background prefetch and the
+ *  game: whoever joins it late still follows its bytes as they arrive, so
+ *  the loading bar never waits on a file and then leaps. */
+type Download = {
+  job: Promise<Blob>;
+  received: number;
+  followers: Set<(n: number) => void>;
+};
+const inflight = new Map<string, Download>();
 
 function getFile(
   cache: Cache | null,
@@ -84,30 +91,71 @@ function getFile(
   onBytes: (n: number, fromCache: boolean) => void,
   signal?: AbortSignal,
 ) {
+  // Never more than the listed size for one file, never less in the end.
+  let counted = 0;
+  const count = (n: number, hit = false) => {
+    const add = Math.max(0, Math.min(n, file.bytes - counted));
+    counted += add;
+    if (add || hit) onBytes(add, hit);
+  };
   const running = inflight.get(file.path);
-  if (running)
-    return running.then((blob) => {
-      onBytes(file.bytes, false);
-      return blob;
+  if (running) {
+    // A follower that aborts lets go at once and hears nothing more, but
+    // never stops the download: whoever started it still wants the file.
+    return new Promise<Blob>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(signal.reason);
+        return;
+      }
+      const follow = (n: number) => count(n);
+      const leave = () => {
+        running.followers.delete(follow);
+        signal?.removeEventListener('abort', abort);
+      };
+      const abort = () => {
+        leave();
+        reject(signal?.reason);
+      };
+      count(running.received);
+      running.followers.add(follow);
+      signal?.addEventListener('abort', abort, { once: true });
+      running.job.then(
+        (blob) => {
+          if (signal?.aborted) return;
+          leave();
+          count(file.bytes);
+          resolve(blob);
+        },
+        (e) => {
+          leave();
+          reject(e);
+        },
+      );
     });
-  const job = (async () => {
+  }
+  const download: Download = {
+    job: Promise.resolve(new Blob()),
+    received: 0,
+    followers: new Set(),
+  };
+  download.job = (async () => {
     const hit = cache ? await cache.match(file.path).catch(() => null) : null;
     if (hit) {
       const blob = await hit.blob();
-      onBytes(file.bytes, true);
+      count(file.bytes, true);
       return blob;
     }
-    let counted = 0;
     const { blob, type } = await fetchWithProgress(
       file.path,
       (n) => {
-        counted += n;
-        onBytes(n, false);
+        download.received += n;
+        count(n);
+        for (const follow of download.followers) follow(n);
       },
       signal,
     );
     // Files may be compressed in transit; settle on the listed size.
-    onBytes(file.bytes - counted, false);
+    count(file.bytes);
     if (cache)
       await cache
         .put(
@@ -119,12 +167,12 @@ function getFile(
         .catch(() => {});
     return blob;
   })();
-  inflight.set(file.path, job);
-  job.then(
+  inflight.set(file.path, download);
+  download.job.then(
     () => inflight.delete(file.path),
     () => inflight.delete(file.path),
   );
-  return job;
+  return download.job;
 }
 
 /** Load every file, reporting bytes as they arrive. Returns blobs by path. */
@@ -147,6 +195,8 @@ export async function loadFiles(
         cache,
         file,
         (n, hit) => {
+          // Once aborted, whoever asked has gone: nothing more to report.
+          if (signal?.aborted) return;
           loaded += n;
           if (hit) fromCache++;
           onProgress({ loaded, total, cached: fromCache === files.length });

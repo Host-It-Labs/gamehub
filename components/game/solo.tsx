@@ -110,6 +110,7 @@ import { fallbackMove } from '@/lib/games/trio/bot';
 import { practice } from '@/lib/games/adventures/lessons';
 import { useBotTurns } from './bot-turns';
 import { recordCompletedGame } from './play-experience';
+import { GameStartup } from './game-curtain';
 const SAVE = 'gamehub.tables.v3';
 /** Games outside the trio engine save separately, so one save shape per engine. */
 const OWN_SAVE = 'gamehub.standalone.v1';
@@ -645,13 +646,7 @@ export default function SoloGame() {
   if (arena)
     return (
       <div className="app at-table arena">
-        <Suspense
-          fallback={
-            <main className="startup-loading" aria-busy="true">
-              Arena
-            </main>
-          }
-        >
+        <Suspense fallback={<GameStartup game="arena" name="Arena" />}>
           <ArenaGame
             key={arena.key}
             choice={arena}
@@ -666,13 +661,7 @@ export default function SoloGame() {
   if (rota)
     return (
       <div className="app at-table rota">
-        <Suspense
-          fallback={
-            <main className="startup-loading" aria-busy="true">
-              Rota
-            </main>
-          }
-        >
+        <Suspense fallback={<GameStartup game="rota" name="Rota" />}>
           <RotaSolo key={rota.key} choice={rota} onExit={() => setRota(null)} />
         </Suspense>
       </div>
@@ -680,13 +669,7 @@ export default function SoloGame() {
   if (diner)
     return (
       <div className="app at-table diner">
-        <Suspense
-          fallback={
-            <main className="startup-loading" aria-busy="true">
-              Diner
-            </main>
-          }
-        >
+        <Suspense fallback={<GameStartup game="diner" name="Diner" />}>
           <DinerSolo
             key={diner.key}
             choice={diner}
@@ -700,13 +683,7 @@ export default function SoloGame() {
     );
   if (alto)
     return (
-      <Suspense
-        fallback={
-          <main className="startup-loading" aria-busy="true">
-            Alto
-          </main>
-        }
-      >
+      <Suspense fallback={<GameStartup game="alto" name="Alto" />}>
         <AltoSolo
           key={alto.key}
           initial={alto.game}

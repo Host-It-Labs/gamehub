@@ -352,21 +352,34 @@
   outline: 3px solid var(--lib-brass);
   outline-offset: 3px;
 }
-/* The same time and kind chips as the setup lid, a size smaller. */
+/* The same time and kind chips as the setup lid, smaller, and always side
+   by side on one line. The type follows the tile's width, from 11.5px on
+   wide tiles down to 9.5px on the narrowest, and the time drops its clock,
+   so the longest pair (Diner's) fits any tile from 146px wide: a 375px
+   phone, six across a landscape screen from about 1060px. A kind is never
+   cut: on a narrower tile, a pair too long for it puts the kind beneath. */
 .lib-tile-button .stat-strip {
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 3px;
   max-width: 100%;
 }
 .lib-tile-button .stat {
-  height: 22px;
-  padding: 0 6px;
-  gap: 3px;
+  height: calc(1em + 12px);
+  padding: 0 0.45em;
+  gap: 0;
   border-radius: 7px;
-  font-size: 11px;
+  font-size: clamp(9.5px, 6.7cqi - 0.6px, 11.5px);
 }
 .lib-tile-button .stat svg {
-  width: 12px;
-  height: 12px;
+  display: none;
+}
+.lib-tile-button .stat.kind,
+.show-info .stat.kind {
+  flex: none;
+}
+.lib-tile-button .stat.kind > span,
+.show-info .stat.kind > span {
+  overflow: visible;
 }
 .lib-empty {
   padding: 24px 0;
@@ -447,10 +460,6 @@
     width: 38px;
     height: 38px;
   }
-  .lib-tile-button .stat {
-    height: 24px;
-    font-size: 11.5px;
-  }
 }
 @media (min-width: 1500px) {
   .lib-main,
@@ -460,20 +469,14 @@
 }
 /* Landscape screens: every shelf shows all its games at once (Quick games
    has six), no paging. The tiles shrink a little to fit six across, and all
-   shelves share that size. Narrow tiles stack the time over the kind, as
-   phones do, so a kind is never cut. */
+   shelves share that size; their time and kind chips shrink with them and
+   stay on one line. */
 @media (min-width: 700px) and (orientation: landscape) {
   .lib-main > .lib-sections {
     --tile: min(232px, calc((100cqw - 5 * var(--lib-gap)) / 6));
   }
   .lib-main > .lib-sections .lib-arrows {
     display: none;
-  }
-  @container (max-width: 200px) {
-    .lib-main > .lib-sections .lib-tile-button .stat-strip {
-      flex-direction: column;
-      align-items: flex-start;
-    }
   }
 }
 
@@ -558,8 +561,9 @@
   width: 16px;
   height: 16px;
 }
-/* What kind of game: a word or two, tinted with the brass, no icon. The
-   strip never wraps; in the narrowest spot the kind gives way first. */
+/* What kind of game: a word or two, tinted with the brass, no icon. On the
+   setup lid the strip never wraps, and in the narrowest spot the kind gives
+   way first; the library's tiles and showcase never cut it (above). */
 .stat.kind {
   flex: 0 1 auto;
   min-width: 0;
@@ -572,21 +576,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Phone shelves: two generous cards and a glimpse of the next one. */
+/* Phone shelves: two generous cards and a glimpse of the next one. Their
+   time and kind chips sit side by side like everywhere else. */
 @media (max-width: 600px) {
-  /* A phone tile stacks the time over the kind, so a two-word kind never
-     gets cut; the time drops its clock. */
-  .lib-tile-button .stat-strip {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .lib-tile-button .stat {
-    padding: 0 6px;
-    max-width: 100%;
-  }
-  .lib-tile-button .stat svg {
-    display: none;
-  }
   .lib-sections {
     --tile: calc((100cqw - 2 * var(--lib-gap)) / 2.15);
   }
@@ -749,6 +741,52 @@
     inset 0 1px 0 #ffffff30,
     inset 0 0 0 1px #ffffff12;
 }
+/* Loading: nothing on the stage is ever half drawn. Until a game's still is
+   fully decoded the screen is its palette lit from above, with a slow band
+   of its light crossing it (is-waiting); then the game's footage (a slide)
+   fades in. Switching games, the last footage holds, stopped, until the
+   next is ready and fades in over it; if the next is slow, the last fades
+   to the next game's lit palette after a moment (HOLD_MS). */
+.show-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    color-mix(in srgb, var(--show-light) 24%, transparent) 50%,
+    transparent 68%
+  );
+  transform: translateX(-100%);
+  opacity: 0;
+  /* media-shimmer lives in game-card.css, beside the covers' own. */
+  animation: media-shimmer 3.2s ease-in-out infinite paused;
+  transition: opacity 0.5s ease;
+}
+.show-stage.is-waiting::before {
+  opacity: 1;
+  animation-play-state: running;
+}
+.show-slide {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  transform: scale(1.015);
+  transition:
+    opacity 0.5s ease,
+    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.show-slide.is-in {
+  opacity: 1;
+  transform: none;
+}
+.show-slide.is-out {
+  opacity: 0;
+  transform: none;
+}
 .show-still,
 .show-reel {
   position: absolute;
@@ -757,15 +795,12 @@
   height: 100%;
   object-fit: cover;
 }
-.show-still {
-  animation: show-in 0.45s ease both;
-}
+/* The clip shows over its still once it is actually playing. */
 .show-reel {
-  z-index: 1;
   opacity: 0;
   transition: opacity 0.35s ease;
 }
-.show-stage.is-playing .show-reel {
+.show-slide.is-playing .show-reel {
   opacity: 1;
 }
 /* A game without footage: its square cover stands in the middle. */
@@ -774,25 +809,14 @@
   inset: 0;
   display: grid;
   place-items: center;
-  animation: show-in 0.45s ease both;
 }
-.show-poster .artwork-frame {
+.show-poster .cover-art {
+  position: relative;
+  inset: auto;
   width: min(78%, 62vh);
   aspect-ratio: 1;
-  background: transparent;
-}
-.show-poster img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
   border-radius: 16px;
   box-shadow: 0 22px 40px -18px #000c;
-}
-@keyframes show-in {
-  from {
-    opacity: 0;
-    transform: scale(1.02);
-  }
 }
 .show-info {
   grid-area: info;
@@ -815,6 +839,7 @@
 }
 .show-info > .stat-strip {
   grid-area: chips;
+  flex-wrap: wrap;
 }
 /* The covers: on phones a column left of the footage that scrolls, with a
    button beneath it for the next page; on wide screens a grid that the
@@ -879,16 +904,13 @@
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
-.show-thumb .artwork-frame {
-  position: absolute;
-  inset: 0;
-  aspect-ratio: auto;
-  background: transparent;
-}
-.show-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* A cover's slot is its game's palette, lit, until the cover is decoded. */
+.show-thumb {
+  background: radial-gradient(
+    120% 100% at 50% 18%,
+    var(--gc-mid),
+    var(--gc-deep) 72%
+  );
 }
 .show-thumb:hover {
   opacity: 0.92;
@@ -987,10 +1009,16 @@
     display: none;
   }
 }
+/* Reduced motion: the lit palettes wait still, and footage swaps by a
+   plain fade, without the settling scale. */
 @media (prefers-reduced-motion: reduce) {
-  .show-still,
-  .show-poster {
+  .show-stage.is-waiting::before {
     animation: none;
+    opacity: 0;
+  }
+  .show-slide {
+    transform: none;
+    transition: opacity 0.4s ease;
   }
   .show-reel,
   .show-thumb,

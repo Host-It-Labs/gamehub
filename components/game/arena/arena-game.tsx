@@ -43,6 +43,7 @@ import {
 import * as THREE from 'three';
 import { toWorld } from '@/lib/games/arena/layout';
 import { arenaManifest, totalBytes, filesFor, type Progress } from './assets';
+import { ArenaLoading } from './arena-loading';
 import { pickQuality, prepare, type Prepared } from './load';
 import { ArenaView, type Bar } from './view';
 import { TROOP_SCALE } from './troops';
@@ -209,6 +210,8 @@ export default function ArenaGame({
   const [prepared, setPrepared] = useState<Prepared | null>(null);
   // The art is in but the shaders are still being built.
   const [warming, setWarming] = useState(true);
+  // The loading painting: up, fading into the field, gone.
+  const [veil, setVeil] = useState<'on' | 'lifting' | 'off'>('on');
   const [hud, setHud] = useState<Hud | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [dragSlot, setDragSlot] = useState<number | null>(null);
@@ -256,16 +259,38 @@ export default function ArenaGame({
     audioRef.current?.pause(paused.current);
   }, [panel, session]);
 
-  // Download or read the art, then decode it.
+  // Download or read the art, then decode it. Bytes arrive many times a
+  // frame; the screen takes the latest once a frame.
   useEffect(() => {
     const abort = new AbortController();
-    prepare(quality.tier, setProgress, abort.signal)
-      .then(setPrepared)
+    let frame = 0;
+    let latest: Progress | null = null;
+    // Once the screen has gone, late bytes and a late finish change nothing.
+    const report = (p: Progress) => {
+      if (abort.signal.aborted) return;
+      latest = p;
+      frame ||= requestAnimationFrame(() => {
+        frame = 0;
+        if (latest) setProgress(latest);
+      });
+    };
+    prepare(quality.tier, report, abort.signal)
+      .then((p) => {
+        if (abort.signal.aborted) {
+          for (const url of Object.values(p.cards)) URL.revokeObjectURL(url);
+          return;
+        }
+        if (latest) setProgress(latest);
+        setPrepared(p);
+      })
       .catch((e) => {
         if (!abort.signal.aborted)
           setError(e instanceof Error ? e.message : 'Could not load Arena.');
       });
-    return () => abort.abort();
+    return () => {
+      abort.abort();
+      cancelAnimationFrame(frame);
+    };
   }, [quality.tier, attempt]);
 
   useEffect(
@@ -770,13 +795,22 @@ export default function ArenaGame({
   const loading = (!prepared || warming) && !error;
   // Downloading is most of the bar; decoding and building the shaders
   // fill the rest, so it never sits full while the battle is not ready.
+  // Each stage tells the bar how far it may creep on its own.
+  const downloaded = progress.total
+    ? Math.min(1, progress.loaded / progress.total)
+    : 0;
   const pct = prepared
     ? warming
       ? 0.94
       : 1
-    : progress.total
-      ? Math.min(1, progress.loaded / progress.total) * 0.86
-      : 0;
+    : downloaded * 0.86;
+  const goal = prepared
+    ? warming
+      ? { value: 0.94, ceiling: 0.99 }
+      : { value: 1, done: true }
+    : downloaded >= 1
+      ? { value: 0.86, ceiling: 0.93 }
+      : { value: pct, ceiling: 0.86 };
   const room = online?.room;
   const waiting = !!room && room.status === 'waiting' && !loading;
   void roomKey;
@@ -1031,62 +1065,20 @@ export default function ArenaGame({
           aria-hidden="true"
         />
       )}
-      {loading && (
-        <div className="arena-loading" aria-busy="true">
-          <picture className="arena-loading-art">
-            <source
-              media="(max-aspect-ratio: 4/5)"
-              srcSet="/art/optimized/arena-loading-tall.webp"
-            />
-            <img
-              src="/art/optimized/arena-loading-wide.webp"
-              alt=""
-              onError={(e) => {
-                e.currentTarget.style.visibility = 'hidden';
-              }}
-            />
-          </picture>
-          <div className="arena-loading-foot">
-            <ul className="arena-loading-cards" aria-hidden="true">
-              {(session.match.players[session.you]?.deck ?? deck)
-                .slice(0, 8)
-                .map((id, i, list) => (
-                  <li
-                    key={id}
-                    style={{ '--i': i } as CSSProperties}
-                    data-in={pct >= (i + 1) / (list.length + 1)}
-                  >
-                    {arenaManifest.cards[id] && (
-                      <img
-                        src={arenaManifest.cards[id].path}
-                        alt=""
-                        draggable={false}
-                      />
-                    )}
-                  </li>
-                ))}
-            </ul>
-            <progress
-              className="sr-only"
-              max={100}
-              value={Math.round(pct * 100)}
-              aria-label="Loading"
-            />
-            <div
-              className="arena-loading-bar"
-              aria-hidden="true"
-              style={{ '--p': pct } as CSSProperties}
-            >
-              <i />
-              <b>{Math.round(pct * 100)}%</b>
-            </div>
-          </div>
-        </div>
+      {veil !== 'off' && !error && (
+        <ArenaLoading
+          goal={goal}
+          deck={session.match.players[session.you]?.deck ?? deck}
+          percent={pct}
+          onLifting={() => setVeil('lifting')}
+          onGone={() => setVeil('off')}
+        />
       )}
       {!error && (
         <DeckLayer
           session={session}
           loading={loading}
+          painted={veil === 'on'}
           art={(id) => cardUrl(id) ?? arenaManifest.cards[id]?.path}
         />
       )}
@@ -1099,6 +1091,7 @@ export default function ArenaGame({
               className="arena-button"
               onClick={() => {
                 setError('');
+                setVeil('on');
                 setAttempt((n) => n + 1);
               }}
             >

@@ -1,14 +1,90 @@
 'use client';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArtworkImage } from './artwork';
 import { usePreviews, useReelTier } from './use-media';
 import { boxCover } from '@/lib/games/box-covers';
 import type { LibraryGame } from '@/lib/games/library-fixtures';
 import { reelFor, reelSource } from '@/lib/games/library-reels';
+import previews from '@/lib/artwork-previews.json';
 import './game-card.css';
 
 /** A sweep across a shelf shouldn't start every clip it passes over. */
 const HOVER_DELAY_MS = 140;
+
+/** A game's palette as the custom properties its lit placeholder reads. */
+export const paletteVars = (game: LibraryGame) =>
+  ({
+    '--gc-deep': game.palette[0],
+    '--gc-mid': game.palette[1],
+    '--gc-light': game.palette[2],
+  }) as CSSProperties;
+
+/**
+ * A square cover that never shows half drawn: it stays hidden until the
+ * browser has fully decoded it, then fades in over its slot, which shows the
+ * game's palette lit from above with a slow band of light crossing it while
+ * the cover loads (`data-state`, game-card.css). A cover that fails to load
+ * leaves the lit palette, still.
+ */
+export function CoverImage({
+  src,
+  sizes,
+  className = '',
+  onReady,
+}: {
+  src: string;
+  sizes: string;
+  className?: string;
+  /** The cover is decoded (or failed): its slot may show. */
+  onReady?: () => void;
+}) {
+  const [state, setState] = useState<{ src: string; ok: boolean } | null>(null);
+  /** False once the cover has unmounted: a decode that finishes after that
+   *  must not report a slot that is gone (or mounted afresh) ready. */
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const art = previews[src as keyof typeof previews];
+  const settled = state?.src === src ? state : null;
+  return (
+    <span
+      className={`cover-art ${className}`}
+      data-state={settled ? (settled.ok ? 'ready' : 'failed') : 'loading'}
+    >
+      <img
+        src={src}
+        srcSet={art?.srcSet}
+        sizes={sizes}
+        width={1024}
+        height={1024}
+        alt=""
+        draggable={false}
+        decoding="async"
+        onLoad={(event) => {
+          const image = event.currentTarget;
+          // A loaded image that can't be decoded ahead can still be shown.
+          // Unmounted, or on another picture by now, it reports nothing.
+          void image
+            .decode()
+            .catch(() => {})
+            .then(() => {
+              if (!mounted.current || image.getAttribute('src') !== src) return;
+              setState({ src, ok: true });
+              onReady?.();
+            });
+        }}
+        onError={() => {
+          if (!mounted.current) return;
+          setState({ src, ok: false });
+          onReady?.();
+        }}
+      />
+    </span>
+  );
+}
 
 /**
  * A game's square cover. On a desktop, hovering it (`previewing`) plays the
@@ -37,7 +113,6 @@ export function GameCard({
   // Cards are small: usually the 360p cut, 720p on big dense ones.
   const tier = useReelTier(frame, 'wide');
   const cover = game.cover ?? boxCover(game.id);
-  const [deep, mid] = game.palette;
 
   useEffect(() => {
     if (!showing) {
@@ -54,20 +129,16 @@ export function GameCard({
   return (
     <span
       className={`gcard ${playing && showing ? 'is-playing' : ''} ${className}`}
-      style={{ '--gc-deep': deep, '--gc-mid': mid } as CSSProperties}
+      style={paletteVars(game)}
       aria-hidden="true"
       data-game={game.id}
     >
       <span ref={frame} className="gcard-window">
         {cover && (
-          <ArtworkImage
+          <CoverImage
             className="gcard-cover"
             src={cover}
-            width={1024}
-            height={1024}
             sizes={sizes ?? '200px'}
-            alt=""
-            draggable={false}
           />
         )}
         {reel && wanted && allowed && tier && (

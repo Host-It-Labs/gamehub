@@ -84,6 +84,7 @@ import {
   tuneAtMotel,
   workshopOpen,
 } from './diner-store';
+import { GameCurtain } from '../game-curtain';
 import './diner-campaign.css';
 
 type Save = ReturnType<typeof readCampaign>;
@@ -316,10 +317,13 @@ export function DinerCampaign({
   const lotNode = lot ? (choices.find((n) => n.id === lot) ?? null) : null;
 
   // The world: built once per visit to the map, fed the run as it changes.
+  // Building stalls the page for a moment, so it waits two frames for the
+  // curtain to reach the screen; the curtain lifts on the first frame.
   const mapKey = map ? `${run!.seed}:${run!.legs}` : '';
-  useEffect(() => {
-    const el = canvas.current;
-    if (!el || session || !mapKey) return;
+  const [mapDrawn, setMapDrawn] = useState(false);
+  // The run as the world last heard it, for a world built after it changed.
+  const synced = useRef<Parameters<Overworld['setState']>[0] | null>(null);
+  function buildMap(el: HTMLCanvasElement): (() => void) | undefined {
     let w: Overworld;
     try {
       const phone = Math.min(window.innerWidth, window.innerHeight) < 600;
@@ -353,6 +357,7 @@ export function DinerCampaign({
     };
     const resize = () => w.resize();
     resize();
+    if (synced.current) w.setState(synced.current);
     const ro = new ResizeObserver(resize);
     ro.observe(el);
     const rungs = ladder(2048, floorAt(1.2));
@@ -364,6 +369,7 @@ export function DinerCampaign({
     if (pacer.level) w.setRung(pacer.rung);
     let raf = 0;
     let last = performance.now();
+    let shown = false;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       if (document.hidden) {
@@ -386,6 +392,10 @@ export function DinerCampaign({
       }
       w.stick = blockedRef.current ? { x: 0, z: 0 } : { x, z };
       w.frame(dt);
+      if (!shown) {
+        shown = true;
+        setMapDrawn(true);
+      }
     };
     raf = requestAnimationFrame(loop);
     if (process.env.NODE_ENV === 'development')
@@ -396,17 +406,37 @@ export function DinerCampaign({
       w.dispose();
       world.current = null;
     };
+  }
+  useEffect(() => {
+    const el = canvas.current;
+    if (!el || session || !mapKey) return;
+    setMapDrawn(false);
+    let alive = true;
+    let stop: (() => void) | undefined;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        if (alive) stop = buildMap(el);
+      });
+    });
+    return () => {
+      alive = false;
+      cancelAnimationFrame(frame);
+      stop?.();
+    };
+    // `buildMap` uses only refs and state setters besides these.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [session, mapKey]);
 
   // Keep the world in step with the run.
   useEffect(() => {
     if (!map || !run || session) return;
-    world.current?.setState({
+    synced.current = {
       map,
       visited: run.visited,
       at: run.at,
       choices: choices.map((n) => n.id),
-    });
+    };
+    world.current?.setState(synced.current);
   }, [map, run, choices, session]);
   // A new stretch of road: say where you are, once.
   const legStart =
@@ -564,7 +594,8 @@ export function DinerCampaign({
           className="diner-map-canvas"
           aria-label="The road map. Drive to one of the two stops ahead."
         />
-        <div className="diner-map-signs">
+        <GameCurtain game="diner" lifted={mapDrawn} />
+        <div className="diner-map-signs" data-ready={mapDrawn || undefined}>
           {status === 'route' &&
             choices.map((n) => (
               <MapSign

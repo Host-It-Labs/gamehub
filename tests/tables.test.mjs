@@ -262,7 +262,8 @@ await test('host extension choice reaches the shared game, and Nox seats three o
       type: 'move',
       move: {
         type: 'pass',
-        cards: t.game.players[0].hand.slice(0, 4).map((c) => c.id),
+        // Nox passes five cards at every seat count.
+        cards: t.game.players[0].hand.slice(0, 5).map((c) => c.id),
       },
     });
     assert.notEqual(t.game.active, 0);

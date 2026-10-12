@@ -16,6 +16,7 @@ import { recordCompletedGame } from '../play-experience';
 import { SoundToggle } from '../sound-settings';
 import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { AltoTable } from './alto-table';
+import { GameStartup } from '../game-curtain';
 
 const VOLUME = 'gamehub.alto.volume';
 
@@ -146,10 +147,10 @@ export default function AltoRoom({ token }: { token: string }) {
   );
 
   if (!view)
-    return (
-      <main className="startup-loading" aria-busy={!error}>
-        {error || 'Alto'}
-      </main>
+    return error ? (
+      <main className="startup-loading">{error}</main>
+    ) : (
+      <GameStartup game="alto" name="Alto" />
     );
   const again = view.isOwner
     ? () =>

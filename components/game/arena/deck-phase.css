@@ -17,7 +17,7 @@
     calc(max(14px, env(safe-area-inset-bottom)) + var(--foot))
     max(16px, env(safe-area-inset-left));
   overflow: hidden;
-  background: radial-gradient(130% 90% at 50% 38%, #141a2ed9, #06080ff2);
+  isolation: isolate;
   color: var(--ink);
   font-family: var(--hud-font);
   user-select: none;
@@ -25,24 +25,55 @@
   -webkit-touch-callout: none;
   animation: arena-fade 0.3s ease-out;
 }
-/* Over the painting the plate is lighter, and leaves the loading bar. */
-.arena-deckphase[data-loading='true'] {
+/* Two plates that crossfade as the loading painting fades into the field:
+   a dark one over the field, a lighter one over the painting that leaves
+   the loading bar. */
+.arena-deckphase::before,
+.arena-deckphase::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+.arena-deckphase::before {
+  background: radial-gradient(130% 90% at 50% 38%, #141a2ed9, #06080ff2);
+}
+.arena-deckphase::after {
+  opacity: 0;
   background:
     radial-gradient(90% 60% at 50% 45%, #0b1a2c80, transparent 75%) top / 100%
       calc(100% - var(--foot) - 30px) no-repeat,
     linear-gradient(180deg, #0b1a2c66 0%, #0b1a2cb0 60%, #0b1a2c00 100%) top /
       100% calc(100% - var(--foot) - 30px) no-repeat;
 }
+.arena-deckphase[data-loading='true']::before {
+  opacity: 0;
+}
+.arena-deckphase[data-loading='true']::after {
+  opacity: 1;
+}
 .arena-deckphase[data-wait='true'] {
   align-items: flex-end;
   padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 130px);
-  background: none;
   pointer-events: none;
+}
+.arena-deckphase[data-wait='true']::after {
+  display: none;
+}
+.arena-deckphase[data-wait='true']::before {
+  background: #06080f8c;
 }
 .arena-deckphase[data-wait='true'][data-loading='false'] {
   align-items: center;
   padding-bottom: 0;
-  background: #06080f8c;
+}
+@media (prefers-reduced-motion: reduce) {
+  .arena-deckphase::before,
+  .arena-deckphase::after {
+    transition: none;
+  }
 }
 .arena-deckphase button {
   font: inherit;

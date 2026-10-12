@@ -1739,6 +1739,13 @@
   position: absolute;
   inset: 0;
   background: #000a07e0;
+  /* Only with the floor's first frame: until it is fitted to the floor it
+     would darken the whole desk. */
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.rf-ground-shadow[data-drawn] {
+  opacity: 1;
 }
 .rs-camera-tools {
   display: flex;
@@ -1809,6 +1816,12 @@
   width: 100%;
   height: 100%;
   display: block;
+  /* Empty until its first frame, then it fades in, never pops. */
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.rs-floor-canvas[data-drawn] {
+  opacity: 1;
 }
 .rs-floor-fx {
   position: absolute;

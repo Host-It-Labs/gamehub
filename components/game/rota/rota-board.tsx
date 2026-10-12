@@ -78,6 +78,9 @@ export function RotaBoard({
   /** Download share, then building; `drawn` once the first frame is up. */
   const [progress, setProgress] = useState(0);
   const [drawn, setDrawn] = useState(false);
+  // A town has been drawn here before: a new map's loader fades in over it.
+  const [hadTown, setHadTown] = useState(false);
+  if (drawn && !hadTown) setHadTown(true);
   const onWorldRef = useRef(onWorld);
   const view = useRef({ sheet, livery, dusk });
   useLayoutEffect(() => {
@@ -228,7 +231,12 @@ export function RotaBoard({
         <FallbackSheet world={world} stage={stage} sheet={sheet} />
       ) : null}
       {failed ? null : (
-        <RotaLoading key={mapId} progress={progress} done={drawn} />
+        <RotaLoading
+          key={mapId}
+          progress={progress}
+          done={drawn}
+          fadeIn={hadTown}
+        />
       )}
     </>
   );

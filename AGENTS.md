@@ -133,6 +133,11 @@ its music) stay ElevenLabs recordings by William's choice, and Lucky's cues
 are tones only, never noise. After adding or changing a cue, run
 `node scripts/sound-levels.mjs` with the dev server up. See the 11 October
 2026 sound section of [docs/DESIGN.md](docs/DESIGN.md).
+Background ambience is the exception: each world plays one real field
+recording from the internet (CC0 or similarly free licence, credited in
+`public/audio/ambience/CREDITS.md`), quiet and free of sudden loud sounds.
+Never generated (ElevenLabs) or assembled soundscapes: William rejected both
+on 12 October 2026.
 
 # Gamehub creative direction
 

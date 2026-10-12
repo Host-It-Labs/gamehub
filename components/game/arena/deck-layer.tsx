@@ -23,11 +23,15 @@ import type { Session } from './session';
 export function DeckLayer({
   session,
   loading,
+  painted = loading,
   art,
 }: {
   session: Session;
   /** The battle's art is still loading on this device. */
   loading: boolean;
+  /** The loading painting is still up (it stays a moment after loading,
+   *  then fades): the plate stays light over it until then. */
+  painted?: boolean;
   art: ArtOf;
 }) {
   const subscribe = useCallback(
@@ -87,7 +91,7 @@ export function DeckLayer({
 
   if (phase.kind === 'draft')
     return (
-      <div className="arena-deckphase" data-loading={loading}>
+      <div className="arena-deckphase" data-loading={painted}>
         <DraftBoard
           view={phase.view}
           at={phase.at}
@@ -99,7 +103,7 @@ export function DeckLayer({
     );
   if (confirmed)
     return (
-      <div className="arena-deckphase" data-loading={loading} data-wait="true">
+      <div className="arena-deckphase" data-loading={painted} data-wait="true">
         <DeckWait seats={seats ?? []} clock={online ? clock : undefined}>
           <ol className="arena-pick-deck" aria-label="Your deck">
             {deck.map((id, i) => (
@@ -112,7 +116,7 @@ export function DeckLayer({
       </div>
     );
   return (
-    <div className="arena-deckphase" data-loading={loading}>
+    <div className="arena-deckphase" data-loading={painted}>
       <DeckPicker
         deck={deck}
         onChange={setDeck}

@@ -1,5 +1,20 @@
 # Gamehub design direction
 
+## Real ambience recordings; Nox passes five (12 October 2026)
+
+William tried a soundscape layered from six generated 30-second ElevenLabs
+loops for Nox and found it, and every older soundscape, poor. All of them are
+gone: the Freesound snippets cut by `build-ambience.mjs`, the ElevenLabs beds
+and details, the new layers, the Sound Lab's mixer and the scripts behind
+them (in the art archive, `retired-soundscapes-2026-10-12`). Each world now
+plays **one real field recording** found online, quietly, with nothing
+layered on top; the player crossfades random windows of it so it never loops
+audibly. Sources and licences are in `public/audio/ambience/CREDITS.md`. The
+Sound Lab plays a world's recording with one Play button.
+
+Nox passes **five cards, three on the Fast deck**, at every seat count, as
+Papayoo does.
+
 ## Sound: every game synthesised, one shared Your turn (11 October 2026)
 
 William liked how Diner's sound is made, so every game's sound effects are now
@@ -1719,7 +1734,7 @@ Fast deck to be exactly half of the normal one.
   20: 60 cards, as in Papayoo. The **Fast deck is the normal deck halved in
   every way**: plain suits 1 to 5, Storm 1 to 10 (30 cards), the marked 4
   worth 20 against the 8's 40, Gold 10 against 20, Dawn 10 against 20, and
-  half the cards to pass (2 against 4). `stormRanks`, `tideDeck` and the
+  half the cards to pass, rounded up (3 against 5). `stormRanks`, `tideDeck` and the
   value helpers in the engine hold this; a test checks every value is half.
 - **Seats.** Nox needs **three players**; the duel deck and two-player Nox
   are gone. The Fast deck plays **three or four**: its 30 cards deal 10 or 7
@@ -1727,7 +1742,8 @@ Fast deck to be exactly half of the normal one.
   setup (two never shows, five and six grey out under Fast), the online
   configure command (a seat count it no longer allows moves to the nearest
   one) and save validation (two-player saves and Fast saves above four no
-  longer resume). Passing: 4 cards at three or four players, 3 at five or six.
+  longer resume). Passing: 5 cards, 3 on the Fast deck, at every seat count
+  (12 October 2026; it used to shrink from 4 to 3 with more players).
 - **Mutiny is retired**, replaced by **Anchor** (`anchor`): the **Storm 1**
   doubles every card in the trick that holds it, Gold included; Dawn's extra
   points are added after. Nothing new to press: the lowest Storm card is the

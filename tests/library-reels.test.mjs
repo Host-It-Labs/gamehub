@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
 import {
+  playRefused,
   reelAssets,
   reelFor,
   reelSource,
@@ -70,4 +71,19 @@ await test('each screen gets the lightest cut that covers it', () => {
     reelSource(reelFor('arena'), 'tall', '360'),
     '/reels/arena-tall-360.mp4',
   );
+});
+
+await test('a blocked or unplayable clip falls back to its still; an interrupted play does not', () => {
+  // Autoplay blocked: play() is refused with no media event at all.
+  assert.equal(
+    playRefused(new DOMException('blocked', 'NotAllowedError')),
+    true,
+  );
+  assert.equal(
+    playRefused(new DOMException('codec', 'NotSupportedError')),
+    true,
+  );
+  assert.equal(playRefused(new Error('anything else')), true);
+  // A pause or a released source interrupts a pending play(): no failure.
+  assert.equal(playRefused(new DOMException('paused', 'AbortError')), false);
 });

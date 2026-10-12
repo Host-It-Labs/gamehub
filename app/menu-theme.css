@@ -91,8 +91,9 @@
   color: #f0b7a4;
 }
 
-/* The page before the app starts shares the library's look. */
-:root[data-theme='dark'] .startup-loading {
+/* The page before the app starts shares the library's look; a 3D game's
+   page keeps its own backdrop (globals.css). */
+:root[data-theme='dark'] .startup-loading:not([data-game]) {
   background: var(--lib-bg);
   color: var(--lib-ink-2);
 }

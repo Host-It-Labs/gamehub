@@ -67,6 +67,7 @@ import type { Controls, Session } from './session';
 import { DinerSound } from './sound';
 import { DinerView } from './view';
 import { NIGHT_PLACE, type CarUpgrades } from './stage-contract';
+import { GameCurtain } from '../game-curtain';
 import './diner.css';
 import './diner-hud.css';
 
@@ -524,6 +525,8 @@ export default function DinerGame({
   const [resultsRound, setResultsRound] = useState<number | null>(null);
   const results = resultsRound === round;
   const [error, setError] = useState('');
+  // The diner's first frame is on screen: the curtain over the stage lifts.
+  const [drawn, setDrawn] = useState(false);
   const [touch, setTouch] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -784,10 +787,11 @@ export default function DinerGame({
     );
   }, []);
 
-  // Build the view and run the loop.
-  useEffect(() => {
-    const el = canvas.current;
-    if (!el) return;
+  // Build the view and run the loop. Building stalls the page for a
+  // moment, so it waits two frames for the curtain to reach the screen
+  // first: the stall then holds the diner's own backdrop, not the page
+  // before, and the curtain lifts once the first frame is drawn.
+  function build(el: HTMLCanvasElement): (() => void) | undefined {
     const m0 = session.match;
     let v: DinerView;
     try {
@@ -871,6 +875,7 @@ export default function DinerGame({
     let recorded = false;
     let savedTick = 0;
     let shownRound = session.round;
+    let shown = false;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       if (document.hidden) {
@@ -922,6 +927,10 @@ export default function DinerGame({
       const use = actionFor(m, session.you);
       const out = outTarget(m, session.you);
       v.frame(m, alpha, paused.current ? 0 : dt, { use, out });
+      if (!shown) {
+        shown = true;
+        setDrawn(true);
+      }
       // HUD, Use button and bubbles only re-render on change.
       const h = readHud(m);
       h.held = heldIcons(m, session.you)
@@ -1024,7 +1033,26 @@ export default function DinerGame({
       if (process.env.NODE_ENV === 'development')
         delete (window as unknown as { dinerDebug?: unknown }).dinerDebug;
     };
-    // The view is rebuilt for a new night (its room differs).
+  }
+  useEffect(() => {
+    const el = canvas.current;
+    if (!el) return;
+    setDrawn(false);
+    let alive = true;
+    let stop: (() => void) | undefined;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        if (alive) stop = build(el);
+      });
+    });
+    return () => {
+      alive = false;
+      cancelAnimationFrame(frame);
+      stop?.();
+    };
+    // `build` reads these same values; the view is rebuilt when they
+    // change, as for a new night (its room differs).
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [
     session,
     round,
@@ -1153,6 +1181,7 @@ export default function DinerGame({
             className="diner-canvas"
             aria-label={`The diner: ${kicker ? `${kicker}, ` : ''}${title}`}
           />
+          <GameCurtain game="diner" lifted={drawn} />
           <div className="diner-vignette" aria-hidden="true" />
           <div className="diner-bubbles" aria-hidden="true">
             {items.map((b) => (

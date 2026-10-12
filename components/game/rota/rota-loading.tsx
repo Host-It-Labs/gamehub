@@ -6,15 +6,17 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
+import { useLoadingBar } from '../loading-bar';
 
 /**
  * Rota's loading screen: a goods train, an engine at each end, on its way
  * into town across a brick viaduct while the 3D board downloads and builds.
  * The train cruises at a steady speed while the town slides past in
- * layers; a light along the parapet fills as the models arrive. The moment
- * the board is drawn the train pulls away out of the picture and the
- * screen fades into the board; nothing waits for the animation. Nothing
- * shows at all when everything is already in the cache.
+ * layers; a light along the parapet fills at a steady pace as the models
+ * arrive and the town is built (`loading-bar.ts`). The moment the board is
+ * drawn the train pulls away out of the picture and the screen fades into
+ * the board; nothing waits for the animation. When everything is already
+ * in the cache only the evening sky shows, and fades straight into town.
  */
 
 /** Width of one skyline tile in its own units; layers repeat it. */
@@ -87,8 +89,10 @@ const CRUISE = 360;
  *  while the screen fades into the board (milliseconds). */
 const DASH = 760;
 const GONE = 820;
-/** A load quicker than this never shows the loader at all. */
+/** A load quicker than this never shows the scene, only the sky, which
+ *  fades into the board this fast (milliseconds; rota.css). */
 const QUICK = 450;
+const QUICK_GONE = 340;
 
 /**
  * Rota's loading screen. The scenery's drift and the train's dash at the
@@ -100,16 +104,42 @@ const QUICK = 450;
 export function RotaLoading({
   progress,
   done,
+  fadeIn = false,
 }: {
   progress: number;
   done: boolean;
+  /** Fade in over a town already drawn (a new map); otherwise the sky is
+   *  there from the first frame, as the page before it. */
+  fadeIn?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
-  const born = useRef(0);
+  const gauge = useRef<HTMLDivElement>(null);
+  // Decided once, as the screen comes in.
+  const [enter] = useState(fadeIn);
   const [gone, setGone] = useState(false);
+  // The scene has had time to appear; a load done before then was quick.
+  const [shown, setShown] = useState(false);
+  const quick = done && !shown;
+  useEffect(() => {
+    if (done) return;
+    const t = setTimeout(() => setShown(true), QUICK);
+    return () => clearTimeout(t);
+  }, [done]);
+  // Downloads fill the gauge to 0.88, reading the models to 0.92 and
+  // building the town the rest; each stage may creep up to the next.
+  // The screen starts fading the moment the town is drawn, so the light
+  // runs straight to the end.
+  useLoadingBar(
+    gauge,
+    {
+      value: progress,
+      ceiling: progress >= 0.92 ? 0.99 : progress >= 0.88 ? 0.92 : 0.88,
+      done,
+    },
+    { finishHold: 0 },
+  );
 
   useEffect(() => {
-    born.current = performance.now();
     const el = root.current;
     if (!el) return;
     const q = <T extends Element>(s: string) => el.querySelector<T>(s)!;
@@ -136,11 +166,11 @@ export function RotaLoading({
   }, []);
 
   // The board is drawn: the train pulls away and the town fades in at
-  // once; a quick load (from the cache) was never shown, so it just goes.
+  // once; a quick load (from the cache) only ever showed the sky, which
+  // fades straight into the town.
   useEffect(() => {
     if (!done) return;
     const el = root.current;
-    const quick = performance.now() - born.current < QUICK;
     if (el && !quick) {
       // Only the wheels and puffs quicken (one change each, from where
       // they are): the scenery keeps its pace while the train pulls ahead.
@@ -152,9 +182,9 @@ export function RotaLoading({
         )
           a.updatePlaybackRate(2.6);
     }
-    const t = setTimeout(() => setGone(true), quick ? 0 : GONE);
+    const t = setTimeout(() => setGone(true), quick ? QUICK_GONE : GONE);
     return () => clearTimeout(t);
-  }, [done]);
+  }, [done, quick]);
 
   // Unmounting the scene ends its animations and observer.
   if (gone) return null;
@@ -163,6 +193,8 @@ export function RotaLoading({
       ref={root}
       className="rota-loading"
       data-done={done || undefined}
+      data-quick={quick || undefined}
+      data-fade-in={enter || undefined}
       style={{ '--dash': `${DASH}ms` } as CSSProperties}
     >
       <progress
@@ -171,106 +203,105 @@ export function RotaLoading({
         max={100}
         value={Math.round(Math.max(0, Math.min(1, progress)) * 100)}
       />
-      <div className="rota-loading-sun" />
-      <svg
-        className="rota-loading-birds"
-        viewBox="0 0 200 60"
-        aria-hidden="true"
-      >
-        <path d="M20 30q6-6 12 0q6-6 12 0" />
-        <path d="M58 18q4-4 8 0q4-4 8 0" />
-        <path d="M84 36q5-5 10 0q5-5 10 0" />
-      </svg>
-      <Layer className="rota-loading-moor">
-        <path d={MOOR} />
-      </Layer>
-      <Layer className="rota-loading-far">
-        <path d={FAR.roof} />
-        {FAR.stacks.map((c, i) => (
-          <rect key={i} x={c.x} y={c.top} width={c.w} height={330 - c.top} />
-        ))}
-        <g className="rota-loading-farwin">
-          {FAR.windows.map((w, i) => (
-            <rect key={i} x={w.x} y={w.y} width="7" height="9" />
+      <div className="rota-loading-scene">
+        <div className="rota-loading-sun" />
+        <svg
+          className="rota-loading-birds"
+          viewBox="0 0 200 60"
+          aria-hidden="true"
+        >
+          <path d="M20 30q6-6 12 0q6-6 12 0" />
+          <path d="M58 18q4-4 8 0q4-4 8 0" />
+          <path d="M84 36q5-5 10 0q5-5 10 0" />
+        </svg>
+        <Layer className="rota-loading-moor">
+          <path d={MOOR} />
+        </Layer>
+        <Layer className="rota-loading-far">
+          <path d={FAR.roof} />
+          {FAR.stacks.map((c, i) => (
+            <rect key={i} x={c.x} y={c.top} width={c.w} height={330 - c.top} />
           ))}
-        </g>
-        {FAR.stacks.map((c, i) => (
-          <g
-            key={i}
-            className="rota-loading-smoke"
-            style={{ '--d': `${i * 1.3}s` } as CSSProperties}
-          >
-            <circle cx={c.x + c.w / 2} cy={c.top - 8} r="9" />
-            <circle cx={c.x + c.w / 2} cy={c.top - 8} r="9" />
+          <g className="rota-loading-farwin">
+            {FAR.windows.map((w, i) => (
+              <rect key={i} x={w.x} y={w.y} width="7" height="9" />
+            ))}
           </g>
-        ))}
-      </Layer>
-      <Layer className="rota-loading-near">
-        <path d={NEAR.roof} />
-        {NEAR.stacks.map((c, i) => (
-          <rect
-            key={i}
-            x={c.x}
-            y={c.top + 40}
-            width={c.w}
-            height={360 - c.top}
-          />
-        ))}
-        <g className="rota-loading-windows">
-          {NEAR.windows.map((w, i) => (
+          {FAR.stacks.map((c, i) => (
+            <g
+              key={i}
+              className="rota-loading-smoke"
+              style={{ '--d': `${i * 1.3}s` } as CSSProperties}
+            >
+              <circle cx={c.x + c.w / 2} cy={c.top - 8} r="9" />
+              <circle cx={c.x + c.w / 2} cy={c.top - 8} r="9" />
+            </g>
+          ))}
+        </Layer>
+        <Layer className="rota-loading-near">
+          <path d={NEAR.roof} />
+          {NEAR.stacks.map((c, i) => (
             <rect
               key={i}
-              x={w.x}
-              y={w.y}
-              width="8"
-              height="10"
-              style={{ '--d': `${w.d}s` } as CSSProperties}
+              x={c.x}
+              y={c.top + 40}
+              width={c.w}
+              height={360 - c.top}
             />
           ))}
-        </g>
-      </Layer>
-      <div className="rota-loading-viaduct" aria-hidden="true">
-        <svg width="100%" height="100%">
-          <defs>
-            <pattern
-              id="rota-arches"
-              width="120"
-              height="600"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                fillRule="evenodd"
-                d="M0 0H120V600H0ZM22 600V58A38 38 0 0 1 98 58V600Z"
+          <g className="rota-loading-windows">
+            {NEAR.windows.map((w, i) => (
+              <rect
+                key={i}
+                x={w.x}
+                y={w.y}
+                width="8"
+                height="10"
+                style={{ '--d': `${w.d}s` } as CSSProperties}
               />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#rota-arches)" />
-          <rect className="rota-loading-coping" width="100%" height="7" />
-        </svg>
-        <div
-          className="rota-loading-gauge"
-          style={{ '--p': Math.max(0, Math.min(1, progress)) } as CSSProperties}
-        />
-      </div>
-      <div className="rota-loading-line" aria-hidden="true">
-        <div className="rota-loading-rails" />
-        <div className="rota-loading-run">
-          <svg className="rota-loading-train" viewBox="0 0 220 64">
-            <g className="rota-loading-puffs">
-              <circle cx="198" cy="14" r="6" />
-              <circle cx="198" cy="14" r="6" />
-              <circle cx="198" cy="14" r="6" />
-            </g>
-            {/* Tail engine, facing back. */}
-            <g transform="translate(64 0) scale(-1 1)">
-              <Engine flip />
-            </g>
-            <Wagon x={68} tone="#7c2f2b" />
-            <Wagon x={114} tone="#5a6c78" />
-            <g transform="translate(156 0)">
-              <Engine />
-            </g>
+            ))}
+          </g>
+        </Layer>
+        <div className="rota-loading-viaduct" aria-hidden="true">
+          <svg width="100%" height="100%">
+            <defs>
+              <pattern
+                id="rota-arches"
+                width="120"
+                height="600"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M0 0H120V600H0ZM22 600V58A38 38 0 0 1 98 58V600Z"
+                />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#rota-arches)" />
+            <rect className="rota-loading-coping" width="100%" height="7" />
           </svg>
+          <div ref={gauge} className="rota-loading-gauge" />
+        </div>
+        <div className="rota-loading-line" aria-hidden="true">
+          <div className="rota-loading-rails" />
+          <div className="rota-loading-run">
+            <svg className="rota-loading-train" viewBox="0 0 220 64">
+              <g className="rota-loading-puffs">
+                <circle cx="198" cy="14" r="6" />
+                <circle cx="198" cy="14" r="6" />
+                <circle cx="198" cy="14" r="6" />
+              </g>
+              {/* Tail engine, facing back. */}
+              <g transform="translate(64 0) scale(-1 1)">
+                <Engine flip />
+              </g>
+              <Wagon x={68} tone="#7c2f2b" />
+              <Wagon x={114} tone="#5a6c78" />
+              <g transform="translate(156 0)">
+                <Engine />
+              </g>
+            </svg>
+          </div>
         </div>
       </div>
     </div>

@@ -19,6 +19,7 @@ import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { readAmbienceLevel, saveAmbienceLevel } from '../use-ambience';
 import { useGameSound } from '../use-game-sound';
 import { joinRoom, type OnlineSession } from './online';
+import { GameStartup } from '../game-curtain';
 
 const ArenaGame = lazy(() => import('./arena-game'));
 const QuestView = lazy(() =>
@@ -91,12 +92,7 @@ export default function ArenaRoom({ token }: { token: string }) {
         </div>
       </main>
     );
-  if (!session)
-    return (
-      <main className="startup-loading" aria-busy="true">
-        Arena
-      </main>
-    );
+  if (!session) return <GameStartup game="arena" name="Arena" />;
   const sound = (
     <SoundSettings
       volume={volume}
@@ -116,13 +112,7 @@ export default function ArenaRoom({ token }: { token: string }) {
   if (quest && room.status === 'map')
     return (
       <div className="app at-table arena">
-        <Suspense
-          fallback={
-            <main className="startup-loading" aria-busy="true">
-              Arena
-            </main>
-          }
-        >
+        <Suspense fallback={<GameStartup game="arena" name="Arena" />}>
           <QuestView
             q={quest}
             act={(a) => session.quest(a)}
@@ -156,13 +146,7 @@ export default function ArenaRoom({ token }: { token: string }) {
     );
   return (
     <div className="app at-table arena">
-      <Suspense
-        fallback={
-          <main className="startup-loading" aria-busy="true">
-            Arena
-          </main>
-        }
-      >
+      <Suspense fallback={<GameStartup game="arena" name="Arena" />}>
         <ArenaGame
           key={quest ? `quest-${room.round}` : 'versus'}
           online={session}

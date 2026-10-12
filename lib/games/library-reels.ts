@@ -17,7 +17,11 @@ export type Reel = {
 export type ReelTier = 'full' | '720' | '360';
 
 /** Pixels along each cut's long edge. */
-const LONG_EDGE: Record<ReelTier, number> = { full: 1920, '720': 1280, '360': 640 };
+const LONG_EDGE: Record<ReelTier, number> = {
+  full: 1920,
+  '720': 1280,
+  '360': 640,
+};
 
 /**
  * The lightest cut that still covers a box `width`×`height` CSS pixels on a
@@ -94,3 +98,11 @@ export const reelFor = (id: string): Reel | undefined =>
 /** Every served footage file, for the production asset allowlist. */
 export const reelAssets = () =>
   filmed.flatMap((id) => [...Object.values(reel(id)), ...cuts(reel(id))]);
+
+/**
+ * Whether a refused `play()` means the footage won't play here: the browser
+ * blocks autoplay, or can't play the file. A request that a pause or a new
+ * source interrupted (an AbortError) says nothing about the footage.
+ */
+export const playRefused = (error: unknown) =>
+  (error as { name?: unknown } | null)?.name !== 'AbortError';

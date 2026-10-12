@@ -92,6 +92,8 @@ import {
   seatStyle,
 } from './alto-parts';
 import { AltoSpace, type ShipTargets, type Year } from './alto-scene';
+import { useLoadingBar } from '../loading-bar';
+import type { PathGoal } from '../loading-path';
 import './alto.css';
 
 export type AltoPractice = {
@@ -456,7 +458,9 @@ function useReveal(last: Report | null) {
 }
 
 /** The loading screen: everything (pictures, planets, bases, ships, the
- *  shop's objects and their shaders) is ready before the table shows. */
+ *  shop's objects and their shaders) is ready before the table shows. The
+ *  pictures are the first share of the bar, building the scene most of it
+ *  and compiling the shaders the rest; each stage may creep to the next. */
 function useLoading(root: React.RefObject<HTMLElement | null>) {
   const [art, setArt] = useState(false);
   const [three, setThree] = useState<'loading' | 'ready' | 'none'>('loading');
@@ -481,22 +485,57 @@ function useLoading(root: React.RefObject<HTMLElement | null>) {
     };
   }, [root]);
   const ready = art && three !== 'loading';
+  const value = Math.min(1, progress * 0.92 + (art ? 0.08 : 0));
+  const goal: PathGoal = ready
+    ? { value: 1, done: true }
+    : progress >= 0.9
+      ? { value, ceiling: 0.99 }
+      : { value, ceiling: 0.9 * 0.92 + 0.08 };
   return {
     ready,
-    progress: Math.min(1, progress * 0.92 + (art ? 0.08 : 0)),
+    progress: value,
+    goal,
     onProgress: setProgress,
     onReady: (ok: boolean) => setThree(ok ? 'ready' : 'none'),
   };
 }
 
-function Loader({ progress }: { progress: number }) {
+/** How long the loading screen takes to fade into the table (ms; alto.css). */
+const LOADER_FADE = 450;
+
+function Loader({
+  progress,
+  goal,
+  onGone,
+}: {
+  progress: number;
+  goal: PathGoal;
+  onGone: () => void;
+}) {
+  const fill = useRef<HTMLElement>(null);
+  const [lifting, setLifting] = useState(false);
+  const [cover, setCover] = useState(false);
+  // The bar eases into 100% once everything is drawn, then the screen
+  // fades into the table.
+  useLoadingBar(fill, goal, {
+    onFull: () => {
+      setLifting(true);
+      setTimeout(onGone, LOADER_FADE);
+    },
+  });
   return (
-    <div className="alto-loading" aria-busy="true">
+    <div
+      className="alto-loading"
+      aria-busy={!lifting}
+      data-lifting={lifting || undefined}
+    >
       <img
         className="alto-loading-cover"
         src="/art/optimized/box-alto-wide-v2.webp"
         alt=""
         draggable={false}
+        data-in={cover || undefined}
+        onLoad={() => setCover(true)}
       />
       <div className="alto-loading-orbit" aria-hidden="true">
         <span className="alto-loading-planet" />
@@ -510,12 +549,8 @@ function Loader({ progress }: { progress: number }) {
         value={Math.round(progress * 100)}
         aria-label="Loading"
       />
-      <div
-        className="alto-loading-bar"
-        aria-hidden="true"
-        style={{ '--p': progress } as CSSProperties}
-      >
-        <i />
+      <div className="alto-loading-bar" aria-hidden="true">
+        <i ref={fill} />
       </div>
     </div>
   );
@@ -557,6 +592,8 @@ export function AltoTable({
   useStageRoom(root);
   const spots = useStageLayout(stage, g.islands.length, others.length);
   const loading = useLoading(root);
+  // The loading screen stays until its bar is full and it has faded.
+  const [loader, setLoader] = useState(true);
   useGameMotion(root, `alto:${decision}:${g.over}`);
   useGameSound('alto', volume);
   const reveal = useReveal(g.last);
@@ -1191,7 +1228,13 @@ export function AltoTable({
         </AltoFinale>
       )}
 
-      {!loading.ready && <Loader progress={loading.progress} />}
+      {loader && (
+        <Loader
+          progress={loading.progress}
+          goal={loading.goal}
+          onGone={() => setLoader(false)}
+        />
+      )}
 
       <Dialog
         open={panel !== null}

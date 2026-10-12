@@ -38,6 +38,8 @@ export async function prepare(
   signal?: AbortSignal,
 ): Promise<Prepared> {
   const blobs = await loadFiles(filesFor(tier), onProgress, signal);
+  // Left while the last files landed: decode nothing for a screen that's gone.
+  signal?.throwIfAborted();
   const get = (path: string) => {
     const b = blobs.get(path);
     if (!b) throw new Error(`Missing ${path}`);
@@ -54,6 +56,7 @@ export async function prepare(
       textures[name] = { map, normalMap, ormMap };
     }),
   );
+  signal?.throwIfAborted();
   const loader = new GLTFLoader();
   const models: Record<
     string,

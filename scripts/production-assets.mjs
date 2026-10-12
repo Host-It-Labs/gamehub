@@ -23,8 +23,6 @@ import {
 import { ambiences } from '../lib/games/ambience.ts';
 import { reelAssets } from '../lib/games/library-reels.ts';
 import { dinerArtAssets } from '../lib/games/diner/art.ts';
-import { labAmbiences } from '../lib/games/lab-ambiences.ts';
-import { audioAssets } from '../lib/games/audio-catalog.ts';
 
 const assets = new Set([
   '/favicon.svg',
@@ -83,9 +81,8 @@ for (const tall of [false, true]) {
     for (const key of ['image', 'overviewImage'])
       add(tableWorldFor('midnight', tall, undefined, phone, 'plaza')[key]);
 }
-// Recorded ambience only; every sound effect is synthesised.
-for (const asset of audioAssets) add(asset.src);
-for (const ambience of [...ambiences, ...labAmbiences])
+// Each world's ambience recording; every sound effect is synthesised.
+for (const ambience of ambiences)
   for (const sound of [...ambience.beds, ...ambience.events]) add(sound.src);
 // Arena's 3D art: every tile, model and card portrait its loader lists.
 const arena = JSON.parse(await readFile('lib/games/arena/assets.json', 'utf8'));

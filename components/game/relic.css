@@ -1,6 +1,8 @@
 /* A Lucky desk link: the desk itself while it loads, with a small card for
  * an invited player's name. There is no menu page of its own. */
+/* The door comes in softly over the page before it. */
 .relic-door {
+  animation: relic-door-in 260ms ease-out backwards;
   position: relative;
   isolation: isolate;
   display: grid;
@@ -42,6 +44,29 @@
   border-radius: 12px;
   background: #173a33e8;
   color: inherit;
+}
+/* The ticket only comes in once the desk is clearly taking a while, so a
+   quick open never flashes it. */
+.relic-door-wait {
+  animation: relic-door-in 300ms 450ms ease-out backwards;
+}
+@keyframes relic-door-in {
+  from {
+    opacity: 0;
+  }
+}
+/* The desk is in: the door fades into it (the same desk art underneath). */
+.relic-door[data-leaving] {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  animation: relic-door-out 380ms ease forwards;
+}
+@keyframes relic-door-out {
+  to {
+    opacity: 0;
+  }
 }
 .relic-door-wait img {
   width: 76px;
@@ -122,7 +147,9 @@
   outline-offset: 3px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .relic-door-wait img {
+  .relic-door:not([data-leaving]),
+  .relic-door-wait img,
+  .relic-door-wait {
     animation: none;
   }
 }

@@ -5,6 +5,7 @@ import { Account, MyTables } from '@/components/online/account';
 import { SharedTable } from '@/components/online/table';
 import Relic from '@/components/game/relic';
 import Folio from '@/components/game/folio';
+import { GameStartup } from '@/components/game/game-curtain';
 // Dev-only bench; the import is dead code in production so no chunk ships.
 const FolioLab =
   process.env.NODE_ENV === 'development'
@@ -77,52 +78,28 @@ export default function Gamehub() {
   const shift = /^\/diner\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (shift)
     return (
-      <Suspense
-        fallback={
-          <main className="startup-loading" aria-busy="true">
-            Diner
-          </main>
-        }
-      >
+      <Suspense fallback={<GameStartup game="diner" name="Diner" />}>
         <DinerRoom token={shift[1]} />
       </Suspense>
     );
   const voyage = /^\/alto\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (voyage)
     return (
-      <Suspense
-        fallback={
-          <main className="startup-loading" aria-busy="true">
-            Alto
-          </main>
-        }
-      >
+      <Suspense fallback={<GameStartup game="alto" name="Alto" />}>
         <AltoRoom token={voyage[1]} />
       </Suspense>
     );
   const survey = /^\/rota\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (survey)
     return (
-      <Suspense
-        fallback={
-          <main className="startup-loading" aria-busy="true">
-            Rota
-          </main>
-        }
-      >
+      <Suspense fallback={<GameStartup game="rota" name="Rota" />}>
         <RotaRoom token={survey[1]} />
       </Suspense>
     );
   const battle = /^\/arena\/([A-Za-z0-9_-]{32})$/.exec(path);
   if (battle)
     return (
-      <Suspense
-        fallback={
-          <main className="startup-loading" aria-busy="true">
-            Arena
-          </main>
-        }
-      >
+      <Suspense fallback={<GameStartup game="arena" name="Arena" />}>
         <ArenaRoom token={battle[1]} />
       </Suspense>
     );

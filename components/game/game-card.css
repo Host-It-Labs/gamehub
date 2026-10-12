@@ -25,18 +25,74 @@
     transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 0.35s ease;
 }
-.gcard-window > .artwork-frame {
+/* A cover never shows half drawn (CoverImage, game-card.tsx): it stays
+   hidden until fully decoded, then fades in. Until then its slot is the
+   game's palette lit from above (the window's gradient, or the rail
+   thumb's), and a slow band of the palette's light crosses it. The library
+   showcase and its rail use the same pieces. */
+.cover-art {
   position: absolute;
   inset: 0;
-  aspect-ratio: auto;
-  background-color: transparent;
+  display: block;
+  overflow: hidden;
 }
-.gcard-window > .artwork-frame > img {
+.cover-art > img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.cover-art[data-state='ready'] > img {
+  opacity: 1;
+}
+.cover-art[data-state='failed'] > img {
+  visibility: hidden;
+}
+.cover-art::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    color-mix(in srgb, var(--gc-light, #fff) 30%, transparent) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: media-shimmer 2.8s ease-in-out var(--shimmer-delay, 0s) infinite;
+  transition: opacity 0.4s ease;
+}
+.cover-art:not([data-state='loading'])::before {
+  opacity: 0;
+  animation-play-state: paused;
+}
+/* Shelves: the light runs along the row, one card after the next. */
+.lib-tile:nth-child(2) .cover-art {
+  --shimmer-delay: 0.14s;
+}
+.lib-tile:nth-child(3) .cover-art {
+  --shimmer-delay: 0.28s;
+}
+.lib-tile:nth-child(4) .cover-art {
+  --shimmer-delay: 0.42s;
+}
+.lib-tile:nth-child(5) .cover-art {
+  --shimmer-delay: 0.56s;
+}
+.lib-tile:nth-child(n + 6) .cover-art {
+  --shimmer-delay: 0.7s;
+}
+@keyframes media-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
 }
 /* The footage fills the square from the middle of the desktop frame. */
 .gcard-reel {
@@ -82,6 +138,10 @@
   .gcard-window,
   .gcard-reel {
     transition: none;
+  }
+  /* The lit palette waits still; the cover still fades in, without motion. */
+  .cover-art::before {
+    display: none;
   }
   :is(button, a):is(:hover, :focus-visible) > .gcard .gcard-window {
     transform: none;

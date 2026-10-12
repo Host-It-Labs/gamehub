@@ -326,6 +326,12 @@ export function ScratchFactory({
           onTurn: setTurned,
           onZoom: setZoom,
           onCamera: () => groundShadow(el, shadow.current, world.current),
+          // Drawn: the floor and its shadow fade in rather than pop over
+          // the desk (the shadow covers everything until it is fitted).
+          onDrawn: () => {
+            cv.dataset.drawn = '';
+            if (shadow.current) shadow.current.dataset.drawn = '';
+          },
         });
         world.current = w;
         if (process.env.NODE_ENV === 'development')

@@ -1284,7 +1284,7 @@ export function legalMoves(g: PublicGame): Move[] {
     }
   return moves;
 }
-/** Normal exchanges use about a fifth of the hand; Fast passes half as many. */
+/** Every exchange passes five cards, three on the Fast deck, at any seat count. */
 export function passCount(
   g: Pick<PublicGame, 'players' | 'passCards' | 'fastMode'> & {
     passes?: number[][];
@@ -1294,11 +1294,7 @@ export function passCount(
   const started = g.passes?.find((cards) => cards.length)?.length;
   if (g.passCards !== undefined) return g.passCards;
   if (started) return started;
-  const normal = Math.max(
-    3,
-    Math.min(4, Math.ceil(Math.floor(60 / g.players.length) / 4)),
-  );
-  return g.fastMode ? Math.ceil(normal / 2) : normal;
+  return g.fastMode ? 3 : 5;
 }
 export function validMove(state: PublicGame, m: Move, actor = state.active) {
   if (

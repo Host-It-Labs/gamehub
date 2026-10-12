@@ -1,10 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, Headphones, Play, RotateCcw, Square, Volume2 } from 'lucide-react';
-import { audioAssets } from '@/lib/games/audio-catalog';
-import type { Ambience } from '@/lib/games/ambience';
-import { labAmbiences as ambiences } from '@/lib/games/lab-ambiences';
-import { defaultMix, mixedAmbience, readAmbienceMix, saveAmbienceMix, type AmbienceMix } from '@/lib/games/ambience-mix';
+import { ArrowLeft, Headphones, Play, Square, Volume2 } from 'lucide-react';
+import { ambienceFor } from '@/lib/games/ambience';
 import { pauseAmbienceWhenHidden, previewAmbience, stopAmbience } from '@/lib/games/ambience-player';
 import { audioContext } from '@/lib/games/audio-context';
 import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
@@ -76,12 +73,10 @@ const turnBook = soundBooks.find((b) => b.id === 'shared')!;
 
 export default function SoundLab() {
   const [game, setGame] = useState('nox');
-  const [world, setWorld] = useState('ship');
   const gameId = gameIds[game];
   const book = books.find((b) => b.id === game);
   const entry = book ?? DINER;
-  const ambience = ambiences.find((a) => a.id === gameId && a.world === world) ?? ambiences.find((a) => a.id === gameId);
-  const [mix, setMix] = useState<AmbienceMix>(() => readAmbienceMix(ambiences.find((a) => a.world === 'ship')!));
+  const ambience = ambienceFor(gameId as Parameters<typeof ambienceFor>[0]);
   const [volume, setVolume] = useState(() => process.env.NODE_ENV === 'development' ? readAudioLevel('gamehub.sound-lab.volume', 0.45) : 0.45);
   const [playing, setPlaying] = useState(false);
   const [clip, setClip] = useState<string | null>(null);
@@ -90,9 +85,6 @@ export default function SoundLab() {
   const live = useRef<{ player: HTMLAudioElement | null; request: number; gain: number; timer: number }>({ player: null, request: 0, gain: 0.45, timer: 0 });
   // Builds nothing until it first plays.
   const [diner] = useState(() => new DinerSound());
-  const alternatives = audioAssets.filter((a) => a.game === gameId && a.kind === 'bed' && (ambience?.world === 'coast' ? a.id.includes('coast') : !a.id.includes('coast')));
-  const selectedBed = alternatives.find((a) => a.src === mix.bed) ?? alternatives.find((a) => a.category === 'base');
-  const beds = selectedBed ? [{ src: selectedBed.src, label: selectedBed.label, gain: 0.85 }] : ambience?.beds ?? [];
 
   function stopClip() {
     live.current.request++;
@@ -134,24 +126,21 @@ export default function SoundLab() {
     if (!playing || !ambience) return;
     let cancelled = false;
     const timer = setTimeout(() => {
-      void previewAmbience(mixedAmbience(ambience, mix), volume).then((loaded) => {
-        if (!cancelled && !loaded) { setPlaying(false); setStatus('This mix could not load. Try again.'); }
+      void previewAmbience(ambience, volume).then((loaded) => {
+        if (!cancelled && !loaded) { setPlaying(false); setStatus(volume > 0 ? 'This recording could not load. Try again.' : 'Turn up the preview volume to hear it.'); }
       });
     }, 120);
     return () => { cancelled = true; clearTimeout(timer); stopAmbience(); };
-  }, [playing, ambience, mix, volume]);
+  }, [playing, ambience, volume]);
   useEffect(() => {
     if (live.current.player) live.current.player.volume = volume * live.current.gain;
     setAuditionVolume(volume);
     diner.levels(volume, jukebox ? volume : 0);
   }, [volume, jukebox, diner]);
 
-  function choose(id: string, nextWorld?: string) {
+  function choose(id: string) {
     stop();
-    const next = ambiences.find((a) => a.id === gameIds[id] && (!nextWorld || a.world === nextWorld));
     setGame(id);
-    setWorld(next?.world ?? '');
-    setMix(next ? readAmbienceMix(next) : defaultMix());
     setStatus('');
   }
 
@@ -180,7 +169,7 @@ export default function SoundLab() {
     d.startMusic(night);
   }
 
-  /** Play a recording (an ambience layer or Arena's music). */
+  /** Play a recording (Arena's troops or music). */
   async function audition(src: string, gain: number) {
     if (clip === src) { stopClip(); return; }
     stopClip();
@@ -199,26 +188,7 @@ export default function SoundLab() {
       if (live.current.request === version) { setClip(null); setStatus('This sound could not load. Try again.'); }
     }
   }
-  function level(src: string, value: number) {
-    setMix((previous) => ({ ...previous, levels: { ...previous.levels, [src]: value } }));
-    setStatus('');
-  }
-  function layer(a: { src: string; label?: string; gain: number }, i: number) {
-    const label = a.label ?? humanName(a.src);
-    return (
-      <li className="sound-lab-layer" key={a.src}>
-        <button type="button" className="sound-lab-play" aria-label={`${clip === a.src ? 'Stop' : 'Preview'} ${label}`} aria-pressed={clip === a.src} onClick={() => void audition(a.src, 0.52 * (ambience?.level ?? 0.55) * a.gain * (mix.levels[a.src] ?? 1))}>
-          {clip === a.src ? <Square size={16} /> : <Play size={16} />}
-        </button>
-        <label htmlFor={`layer-${i}`}><span>{label}</span><small>{Math.round((mix.levels[a.src] ?? 1) * 100)}%</small></label>
-        <input id={`layer-${i}`} aria-label={`${label} level`} type="range" min="0" max="1" step="0.05" value={mix.levels[a.src] ?? 1} onChange={(e) => level(a.src, Number(e.target.value))} />
-      </li>
-    );
-  }
-  function save(a: Ambience) {
-    setStatus(saveAmbienceMix(a, mix) ? 'Preview saved on this device. Game ambience is unchanged.' : 'Storage is unavailable; you can still preview this mix.');
-  }
-  function toggleMix() {
+  function toggleWorld() {
     if (playing) { stop(); return; }
     try { audioContext(); } catch { setStatus('Audio is unavailable in this browser.'); return; }
     stop();
@@ -312,14 +282,9 @@ export default function SoundLab() {
           </section>}
           {ambience && <section className="sound-lab-panel" aria-labelledby="ambience-heading">
             <div className="sound-lab-section-heading"><h2 id="ambience-heading">The world around you</h2>
-              <button type="button" className="sound-lab-primary" onClick={toggleMix} aria-pressed={playing}>{playing ? <Square size={17} /> : <Play size={17} />}{playing ? 'Stop mix' : 'Play mix'}</button>
+              <button type="button" className="sound-lab-primary" onClick={toggleWorld} aria-pressed={playing}>{playing ? <Square size={17} /> : <Play size={17} />}{playing ? 'Stop' : 'Play'}</button>
             </div>
-            {game === 'mora' && <div className="sound-lab-options" aria-label="Mora world">{[['forest', 'Observatory'], ['coast', 'Floodline']].map(([id, label]) => <button type="button" key={id} aria-pressed={ambience.world === id} onClick={() => choose(game, id)}>{label}</button>)}</div>}
-            {alternatives.length > 0 && <div className="sound-lab-options" aria-label="Background recording">{alternatives.map((a) => <button type="button" key={a.id} aria-pressed={selectedBed?.id === a.id} onClick={() => { setMix((m) => ({ ...m, bed: a.src })); setStatus(''); }}>{a.label}</button>)}</div>}
-            <p className="sound-lab-note">Choose a background, then blend the details. Use each play button to hear a layer on its own. These previews do not change game ambience.</p>
-            <ul className="sound-lab-layers">{[...beds, ...ambience.events].map(layer)}</ul>
-            <label className="sound-lab-spacing">Time between details <input type="range" min="0.75" max="2.5" step="0.25" value={mix.spacing} onChange={(e) => { setMix((m) => ({ ...m, spacing: Number(e.target.value) })); setStatus(''); }} /><output>{Math.round(ambience.gap[0] * mix.spacing)}–{Math.round(ambience.gap[1] * mix.spacing)} s</output></label>
-            <footer className="sound-lab-save"><button type="button" onClick={() => save(ambience)}><Check size={17} /> Save preview</button><button type="button" onClick={() => { setMix(defaultMix()); setStatus('Default mix restored. Choose Save preview to save.'); }}><RotateCcw size={16} /> Reset</button></footer>
+            <p className="sound-lab-note">{ambience.beds.map((b) => b.label).filter(Boolean).join(', ')}. A real recording, played quietly behind the table.</p>
           </section>}
           <output className="sound-lab-status">{status}</output>
         </div>

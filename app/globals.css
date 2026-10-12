@@ -6382,6 +6382,60 @@ svg {
     transform: translateY(-8px) rotate(3deg);
   }
 }
+
+/* The 3D games' backdrops, shared by the page shown while a game's code
+   downloads (`GameStartup`), the game's own loading screen and the curtain
+   over its stage until the first frame is drawn (`GameCurtain`), so the
+   hand-over from one to the next never flashes another colour. */
+:root {
+  --arena-backdrop:
+    radial-gradient(120% 70% at 50% 110%, #3f8f4a 0%, transparent 60%),
+    linear-gradient(180deg, #5aa7e8 0%, #9ed3f2 55%, #7cc16a 100%);
+  --rota-backdrop:
+    radial-gradient(120% 70% at 50% 100%, #f6e3bd00 40%, #e9d5b2 100%),
+    linear-gradient(180deg, #e9d3ab 0%, #f0dcb6 38%, #e4d6bd 70%, #d9c6a6 100%);
+  --alto-backdrop:
+    radial-gradient(ellipse 60% 50% at 50% 45%, #2a2f7acc, transparent 75%),
+    linear-gradient(180deg, #0b1030f2, #070a20fa);
+  --diner-backdrop: radial-gradient(
+    120% 90% at 50% 30%,
+    #1b2348 0%,
+    #0b0f22 70%
+  );
+}
+.startup-loading[data-game] {
+  padding: 0;
+  background: var(--game-backdrop);
+}
+:is(.startup-loading, .game-curtain)[data-game='arena'] {
+  /* With the loading screen's shade along the foot (arena.css). */
+  --game-backdrop:
+    linear-gradient(180deg, transparent, #0b1a2ccc 78%, #0b1a2cee) bottom /
+      100% 38% no-repeat,
+    var(--arena-backdrop), #7cc16a;
+}
+:is(.startup-loading, .game-curtain)[data-game='rota'] {
+  --game-backdrop: var(--rota-backdrop), #e4d6bd;
+}
+:is(.startup-loading, .game-curtain)[data-game='alto'] {
+  --game-backdrop: var(--alto-backdrop), #070a20;
+}
+:is(.startup-loading, .game-curtain)[data-game='diner'] {
+  --game-backdrop: var(--diner-backdrop), #0b0f22;
+}
+/* No z-index: it sits right after the stage's canvas and paints in page
+   order, over the canvas and under everything that follows it. */
+.game-curtain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--game-backdrop);
+  /* Opacity only: it lifts on the compositor while the scene starts. */
+  transition: opacity 450ms ease;
+}
+.game-curtain[data-lifted] {
+  opacity: 0;
+}
 @media (prefers-reduced-motion: reduce) {
   .startup-tiles i {
     animation: none;

@@ -39,7 +39,7 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 30%, #1b2348 0%, #0b0f22 70%);
+  background: var(--diner-backdrop);
   color: var(--d-cream);
   font-family: var(--d-font);
   touch-action: none;

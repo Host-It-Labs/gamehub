@@ -315,6 +315,8 @@ export type WorldOpts = {
   onZoom?: (zoom: number) => void;
   /** The view moved: refit, zoom or pan. */
   onCamera?: () => void;
+  /** The floor's first frame is drawn (the page fades it in). */
+  onDrawn?: () => void;
 };
 
 export class FactoryWorld {
@@ -346,6 +348,8 @@ export class FactoryWorld {
   private lastFrame = 0;
   private raf = 0;
   private disposed = false;
+  /** The first frame has been drawn. */
+  private drawn = false;
   private paused = false;
   private pacer: Pacer | null = null;
   private shadowEvery = 1;
@@ -1838,6 +1842,10 @@ export class FactoryWorld {
       this.shadowDirty = false;
     }
     this.renderer.render(this.scene, this.camera);
+    if (!this.drawn) {
+      this.drawn = true;
+      this.opts.onDrawn?.();
+    }
   };
 
   private animateMachines(dt: number) {

@@ -9,9 +9,8 @@ await test('recorded ambience and Arena sound files have playable audio content 
     await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${app.server.address().port}`;
     for (const [path, type] of [
-      ['/audio/elevenlabs/nox-bed-hull-v1.mp3', 'audio/mpeg'],
       ['/audio/arena/ogre-deploy-945e3439.mp3', 'audio/mpeg'],
-      ['/audio/ambience/ship/creak-1.m4a', 'audio/mp4'],
+      ['/audio/ambience/nox-ship.m4a', 'audio/mp4'],
     ]) {
       const response = await fetch(base + path, { method: 'HEAD' });
       assert.equal(response.status, 200);

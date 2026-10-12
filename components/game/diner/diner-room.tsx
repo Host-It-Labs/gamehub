@@ -13,6 +13,7 @@ import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { readAmbienceLevel, saveAmbienceLevel } from '../use-ambience';
 import { joinDiner, type OnlineSession } from './online';
 import type { RoomInfo } from './diner-game';
+import { GameStartup } from '../game-curtain';
 
 const DinerGame = lazy(() => import('./diner-game'));
 
@@ -76,12 +77,7 @@ export default function DinerRoom({ token }: { token: string }) {
         </div>
       </main>
     );
-  if (!session)
-    return (
-      <main className="startup-loading" aria-busy="true">
-        Diner
-      </main>
-    );
+  if (!session) return <GameStartup game="diner" name="Diner" />;
   void key;
   const room: RoomInfo = {
     status: session.room.status,
@@ -90,13 +86,7 @@ export default function DinerRoom({ token }: { token: string }) {
   };
   return (
     <div className="app at-table diner">
-      <Suspense
-        fallback={
-          <main className="startup-loading" aria-busy="true">
-            Diner
-          </main>
-        }
-      >
+      <Suspense fallback={<GameStartup game="diner" name="Diner" />}>
         <DinerGame
           session={session}
           volume={volume}

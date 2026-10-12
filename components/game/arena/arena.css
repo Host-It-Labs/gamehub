@@ -745,10 +745,15 @@
   display: grid;
   place-items: end center;
   overflow: hidden;
-  /* Behind the art while it arrives: the valley's sky and meadow. */
-  background:
-    radial-gradient(120% 70% at 50% 110%, #3f8f4a 0%, transparent 60%),
-    linear-gradient(180deg, #5aa7e8 0%, #9ed3f2 55%, #7cc16a 100%);
+  /* Behind the art while it arrives: the valley's sky and meadow, the
+     same backdrop the page shows while Arena itself loads (globals.css). */
+  background: var(--arena-backdrop);
+  /* Once the battle is drawn the painting fades into the field. */
+  transition: opacity 0.45s ease;
+}
+.arena-loading[data-lifting] {
+  opacity: 0;
+  pointer-events: none;
 }
 .arena-loading-art {
   position: absolute;
@@ -758,7 +763,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.6s ease;
   animation: arena-loading-drift 18s ease-in-out infinite alternate;
+}
+/* The painting fades in once it has arrived, never pops. */
+.arena-loading-art[data-in] img {
+  opacity: 1;
 }
 /* A soft floor of shade so the cards and bar sit on the picture. */
 .arena-loading::after {
@@ -845,9 +856,11 @@
     inset 0 2px 0 #ffffff66,
     inset 0 -3px 5px #2a0c6a88,
     0 0 16px #b98bff99;
-  transform: scaleX(var(--p, 0));
+  /* Filled by loading-bar.ts on the compositor: a steady pace whatever
+     the downloads and shader builds do. */
+  transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.35s ease-out;
+  will-change: transform;
 }
 /* A glint that runs along the filled part. */
 .arena-loading-bar i::after {

@@ -90,9 +90,15 @@
   justify-items: center;
   gap: 26px;
   padding: 24px;
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 45%, #2a2f7acc, transparent 75%),
-    linear-gradient(180deg, #0b1030f2, #070a20fa);
+  /* The same night the page shows while Alto itself loads (globals.css),
+     opaque so the table never shows through before the fade. */
+  background: var(--alto-backdrop), #070a20;
+  /* Once the table is drawn the screen fades into it. */
+  transition: opacity 0.45s ease;
+}
+.alto-loading[data-lifting] {
+  opacity: 0;
+  pointer-events: none;
 }
 .alto-loading-cover {
   width: min(720px, calc(100vw - 32px));
@@ -102,6 +108,12 @@
   box-shadow:
     0 0 0 2px #f0a04066,
     0 30px 80px #000a;
+  /* The cover fades in once it has arrived, never pops. */
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.alto-loading-cover[data-in] {
+  opacity: 1;
 }
 .alto-loading-orbit {
   position: relative;
@@ -143,9 +155,10 @@
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(90deg, #f0a040, #ffe08a);
+  /* Filled by loading-bar.ts on the compositor, at a steady pace. */
+  transform: scaleX(0);
   transform-origin: left;
-  scale: var(--p, 0) 1;
-  transition: scale 0.25s ease-out;
+  will-change: transform;
 }
 /* Under the loading screen the table is laid out (so it can be measured)
    but never shown. */

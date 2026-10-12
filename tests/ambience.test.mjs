@@ -14,42 +14,17 @@ const sequence = (values) => {
   return () => values[i++ % values.length];
 };
 
-await test('every game with a world has a soundscape with beds and a varied pool of one-shots', () => {
-  assert.deepEqual([...new Set(ambiences.map((a) => a.id))].sort(), [
-    'midnight',
-    'undertow',
-    'wildgrove',
-  ]);
+await test('every world plays one real recording, quietly, with no one-shots', async () => {
+  assert.deepEqual(ambiences.map((a) => a.id).sort(), ['midnight', 'undertow', 'wildgrove']);
+  assert.equal(ambienceFor('wildgrove', 'intermediate'), ambienceFor('wildgrove'), 'every Mora board shares the forest');
   for (const a of ambiences) {
-    assert.ok(a.beds.length >= 1, `${a.world} has a bed`);
-    assert.ok(
-      a.events.length >= (['coast', 'street'].includes(a.world) ? 5 : 8),
-      `${a.world} has enough one-shots to avoid repetition`,
-    );
+    assert.equal(a.beds.length, 1, `${a.world} is one recording`);
+    assert.equal(a.events.length, 0, `${a.world} adds nothing on top`);
     assert.ok(a.level > 0 && a.level <= 1);
-    assert.ok(
-      a.gap[0] >= 3 && a.gap[1] > a.gap[0],
-      `${a.world} leaves room between one-shots`,
-    );
-    for (const e of a.events)
-      assert.ok(e.gain <= 0.6, `${e.src} stays under the cue sounds`);
+    const { size } = await stat(`public${a.beds[0].src}`);
+    assert.ok(size > 100_000 && size < 4_000_000, `${a.beds[0].src} is a real recording and stays light`);
   }
   assert.equal(ambienceFor('nothing'), undefined);
-});
-
-await test('the shipped files exist and the whole soundscape stays light', async () => {
-  for (const a of ambiences) {
-    let total = 0;
-    for (const { src } of [...a.beds, ...a.events]) {
-      const { size } = await stat(`public${src}`);
-      assert.ok(size > 2000, `${src} is not empty`);
-      total += size;
-    }
-    assert.ok(
-      total < 2_500_000,
-      `${a.world} is ${(total / 1024).toFixed(0)} KB; keep each world under 2.5 MB`,
-    );
-  }
 });
 
 await test('one-shots are weighted and never repeat back to back', () => {
@@ -81,10 +56,6 @@ await test('bed passes cover random windows with a crossfade that fits the recor
   assert.equal(short.fade, 2);
 });
 
-await test('Floodline uses the coast while Observatory keeps the forest', () => {
-  assert.equal(ambienceFor('wildgrove', 'beginner').world, 'forest');
-  assert.equal(ambienceFor('wildgrove', 'intermediate').world, 'coast');
-});
 await test('recent events are excluded, with a safe fallback for small pools', () => {
   const events = Array.from({ length: 8 }, (_, n) => ({ weight: 1, n }));
   for (let i = 0; i < 100; i++)

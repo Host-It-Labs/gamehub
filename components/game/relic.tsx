@@ -15,6 +15,21 @@ type Session = {
   user: { name: string } | null;
   guest: { name: string } | null;
 };
+/** How long the door takes to fade into the desk (ms; relic.css). */
+const DOOR_FADE = 400;
+
+function DoorArt() {
+  return (
+    <picture className="relic-door-art">
+      <source
+        media="(orientation: portrait)"
+        srcSet="/art/relic/scratch-desk-portrait-v1.webp"
+      />
+      <img src="/art/relic/scratch-desk-landscape-v1.webp" alt="" />
+    </picture>
+  );
+}
+
 function message(error: unknown) {
   return error instanceof Error
     ? error.message
@@ -32,6 +47,13 @@ export default function Relic({ invite }: { invite?: string }) {
   const [invited, setInvited] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Once the desk is in, the door stays a moment over it and fades.
+  const [doorGone, setDoorGone] = useState(false);
+  useEffect(() => {
+    if (!view) return;
+    const t = setTimeout(() => setDoorGone(true), DOOR_FADE);
+    return () => clearTimeout(t);
+  }, [view]);
   useEffect(() => {
     // The old hub address leads to the library, where Lucky's box lives.
     if (!invite) {
@@ -75,17 +97,21 @@ export default function Relic({ invite }: { invite?: string }) {
       setBusy(false);
     }
   }
-  if (view) return <RelicScratchSession initial={view} />;
+  if (view)
+    return (
+      <>
+        <RelicScratchSession initial={view} />
+        {!doorGone && (
+          <main className="relic-door" data-leaving aria-hidden="true">
+            <DoorArt />
+          </main>
+        )}
+      </>
+    );
   const known = !!(session?.user || session?.guest);
   return (
     <main className="relic-door" aria-busy={!invited && !error}>
-      <picture className="relic-door-art">
-        <source
-          media="(orientation: portrait)"
-          srcSet="/art/relic/scratch-desk-portrait-v1.webp"
-        />
-        <img src="/art/relic/scratch-desk-landscape-v1.webp" alt="" />
-      </picture>
+      <DoorArt />
       <a className="relic-door-back" href="/" aria-label="Game library">
         <ArrowLeft size={18} />
       </a>

@@ -584,6 +584,12 @@
   inset: 0;
   z-index: 3;
   pointer-events: none;
+  /* The signs come in with the map, once it has placed them. */
+  opacity: 0;
+  transition: opacity 0.3s 0.15s ease;
+}
+.diner-map-signs[data-ready] {
+  opacity: 1;
 }
 .diner-map-sign {
   position: absolute;

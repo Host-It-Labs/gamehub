@@ -1956,18 +1956,32 @@ img.rota-piece-picture {
   inset: 0;
   z-index: 9;
   overflow: hidden;
-  background:
-    radial-gradient(120% 70% at 50% 100%, #f6e3bd00 40%, #e9d5b2 100%),
-    linear-gradient(180deg, #e9d3ab 0%, #f0dcb6 38%, #e4d6bd 70%, #d9c6a6 100%);
-  /* Backwards only: a fill that held the end of the fade-in would keep
-     the screen opaque over the exit transition. */
-  animation: rota-loading-in 360ms 140ms backwards ease-out;
+  /* The evening sky is there from the first frame: the page before the
+     table shows the same one (globals.css), so nothing flashes between. */
+  background: var(--rota-backdrop);
   /* Opacity only: it fades on the compositor while the board starts. */
   transition: opacity 540ms 220ms ease-in-out;
+}
+/* Over a town already drawn (a new map) the whole screen fades in.
+   Backwards only: a fill that held the end of the fade-in would keep the
+   screen opaque over the exit transition. */
+.rota-loading[data-fade-in] {
+  animation: rota-loading-in 360ms backwards ease-out;
 }
 .rota-loading[data-done] {
   opacity: 0;
   pointer-events: none;
+}
+/* Done before the scene appeared: the sky fades straight into the town. */
+.rota-loading[data-done][data-quick] {
+  transition-duration: 320ms;
+  transition-delay: 0ms;
+}
+/* The scene comes in only once a load is clearly not quick. */
+.rota-loading-scene {
+  position: absolute;
+  inset: 0;
+  animation: rota-loading-in 360ms 450ms backwards ease-out;
 }
 @keyframes rota-loading-in {
   from {
@@ -2113,9 +2127,10 @@ img.rota-piece-picture {
   height: 3px;
   background: linear-gradient(90deg, #ffd27a00, #ffe1a0 18%, #fff0cf);
   box-shadow: 0 0 8px #ffd27a99;
-  transform: scaleX(var(--p, 0));
+  /* Filled by loading-bar.ts on the compositor, at a steady pace. */
+  transform: scaleX(0);
   transform-origin: 0 50%;
-  transition: transform 1.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
 }
 .rota-loading-coping {
   fill: #6e4636;
@@ -2240,6 +2255,7 @@ img.rota-piece-picture {
     transition: none;
   }
   .rota-loading,
+  .rota-loading-scene,
   .rota-loading-smoke circle,
   .rota-loading-birds,
   .rota-loading-layer,
