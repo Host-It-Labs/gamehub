@@ -1,6 +1,41 @@
-# Gamehub
+<h1 align="center">Gamehub</h1>
 
-Three tabletop games for friends: **Nox**, **Mora**, and **Yata**. Play solo against bots or host an online table for 2–6 players. Guests follow your link, enter a name once, and return to their seat from the same browser.
+<p align="center">
+  Board, card and party games for the browser. Play solo against bots, or host a table and send friends a link.
+</p>
+
+<p align="center">
+  <a href="https://games.coprin.ovh"><b>Play at games.coprin.ovh →</b></a>
+</p>
+
+<p align="center">
+  <img src="docs/readme/hero.jpg" alt="The Gamehub library on desktop with Arena's live preview, next to the phone library on Rota and an Arena battle on a phone">
+</p>
+
+## The games
+
+| Game | What it is | Players |
+| --- | --- | --- |
+| **Arena** | Real-time tower battle: send troops over the bridges and knock the towers down. 5-minute battles or a longer Quest. | 1–4 |
+| **Rota** | Roll and draw: everyone rolls the same dice and draws roads and rails on their own map. | 1–6 |
+| **Alto** | Engine builder: fly between planets, share their cargo, build up your ship and home base. | 2–6 |
+| **Diner** | Co-op serving rush: tow a diner car through a night of forks, bosses and upgrades. | 1–4 |
+| **Nox** | Trick taking on a ship at sea. | 3–6 |
+| **Mora** | Draft and place in an overgrown forest. | 2–6 |
+| **Yata** | Set collection on a night-market street. | 2–6 |
+| **Puzzles** | Ten well-known daily puzzles on one branching trail, played together. | 1–3 |
+| **Lucky** | Scratch tickets that are little puzzles, and a factory that prints more. | 1–3 |
+| **Trivia**, **Impostor**, **Know Me** | Party games for a group of friends. | 2–6 |
+
+Every game runs in the browser on desktop and phone, with its own 3D or illustrated world, sound and rules help. In the board and card games, bots fill empty seats.
+
+<p align="center">
+  <img src="docs/readme/play.jpg" alt="An Arena battle on desktop, Rota's setup and Arena's deck builder on phones">
+</p>
+
+<p align="center">
+  <img src="docs/readme/gallery.jpg" alt="Rota's setup screen, Arena's deck builder and the library in dark mode">
+</p>
 
 See [the design guide](docs/DESIGN.md) for the shared art direction, worlds, extension rules, and interaction standards.
 
@@ -46,7 +81,7 @@ Solo matches and tutorials remain device-local and require no account. Online ma
 The public image supports Linux AMD64 and ARM64:
 
 ```sh
-docker pull ghcr.io/host-it-labs/gamehub:0.1.3
+docker pull ghcr.io/host-it-labs/gamehub:0.32.0
 cp .env.example .env
 # Edit PUBLIC_ORIGIN to your public HTTPS URL.
 docker compose up -d
@@ -87,7 +122,7 @@ To restore, stop the service, retain the current volume as recovery data, and po
 
 ### Password recovery
 
-There is no email verification or emailed password reset in v0.1.3. The server owner can reset a password through standard input without placing it in command arguments:
+There is no email verification or emailed password reset. The server owner can reset a password through standard input without placing it in command arguments:
 
 ```sh
 read -rs NEW_PASSWORD

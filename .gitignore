@@ -55,3 +55,6 @@ __pycache__/
 
 # Stray git merge temp files
 .merge_file_*
+
+# Scratch folder for one-off inputs; keep it out of Git like /work/
+/tmp/
