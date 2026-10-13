@@ -140,4 +140,6 @@ Automated coverage includes complete seeded games, all player counts and viewer 
 
 ## License and assets
 
+`public` contains only the assets used by the production build. `npm run check:assets` checks every required file and rejects unused files; update the allowlist with `node scripts/production-assets.mjs --write` when adding production artwork. Source candidates and old renders belong outside the checkout. Compact prompts, provenance, canonical model inputs and regression fixtures remain with the build tools; removed historical artwork can be recovered from Git history.
+
 [PolyForm Noncommercial 1.0.0](LICENSE), matching Pomi. This is publicly available source with noncommercial terms. Third-party dependencies retain their licenses. See [asset provenance and originality](docs/ORIGINALITY.md).

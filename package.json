@@ -10,7 +10,7 @@
     "mirror": "node scripts/mirror.mjs",
     "prebuild": "npm run check:assets",
     "build": "vinext build",
-    "check:assets": "node scripts/production-assets.mjs --check",
+    "check:assets": "node scripts/production-assets.mjs --check --strict",
     "start": "node --experimental-strip-types server/index.ts",
     "lint": "oxlint app components/game components/online lib server scripts tests next.config.ts vite.config.ts",
     "format": "oxfmt",

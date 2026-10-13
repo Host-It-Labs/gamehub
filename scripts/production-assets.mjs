@@ -1,6 +1,6 @@
 /** Keep Docker's public payload in sync with the assets used by shipped games.
  * --write refreshes the allowlist; --check fails if assets or rules have drifted.
- * Original art and unused candidates remain available in the working repository.
+ * public contains only the production payload; --strict rejects unused files.
  */
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';

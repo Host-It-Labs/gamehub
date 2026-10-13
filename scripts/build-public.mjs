@@ -2,9 +2,8 @@ import { copyFile, mkdir, readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Use the same asset payload for local builds and Docker. Keep source images
- * and unused candidates in public for development without copying them into
- * every production build. The generated allowlist is checked by prebuild. */
+/** Use the same asset payload for local builds and Docker. The generated
+ * allowlist and production-only public directory are checked by prebuild. */
 export async function prepareProductionPublic(
   root = fileURLToPath(new URL('../', import.meta.url)),
 ) {
