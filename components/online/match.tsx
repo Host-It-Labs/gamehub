@@ -17,6 +17,7 @@ import { ArrowLeft, List, Trophy } from 'lucide-react';
 import { TableHeading, gameName, worldTheme } from '../game/table-heading';
 import { useAutoRoll, MoveConfirmation, UndoChoice } from '../game/confirmation';
 import { GameMenu } from '../game/game-menu';
+import { RatedResultCard } from './rated-result';
 import { SoundSettings } from '../game/sound-settings';
 import { ArtworkLoading } from '../game/artwork';
 import { ScrollArea } from '../game/scroll-area';
@@ -58,6 +59,7 @@ export function OnlineMatch({
   turnSound = true,
   send,
   onHome,
+  rated,
 }: {
   g: GameView;
   viewer: number;
@@ -67,6 +69,8 @@ export function OnlineMatch({
   turnSound?: boolean;
   send: (move: Move) => Promise<boolean>;
   onHome: () => void;
+  /** A rated solo game: its result card, and Play again instead of the lobby. */
+  rated?: { url: string; busy: boolean; onAgain: () => void };
 }) {
   const [submitted, setSubmitted] = useState<{ key: string; move: Move } | null>(null);
   const localMove = submitted?.key === decisionKey(g) ? submitted.move : undefined;
@@ -290,7 +294,7 @@ export function OnlineMatch({
         contentSet={g.contentSet}
       />
       <div className="table-toolbar">
-        <button className="table-back" onClick={onHome} aria-label="Back to my tables">
+        <button className="table-back" onClick={onHome} aria-label={rated ? "Back to games" : "Back to my tables"}>
           <ArrowLeft size={17} />
           <span>{world ? gameName(g) : 'My tables'}</span>
         </button>
@@ -456,7 +460,21 @@ export function OnlineMatch({
                   {g.id === 'undertow' ? 'penalty points' : 'points'}
                 </p>
               ))}
-              <p>The host can return to the lobby for another game.</p>
+              {rated ? (
+                <>
+                  <RatedResultCard url={rated.url} finished />
+                  <div className="rated-actions">
+                    <button className="primary" disabled={rated.busy} onClick={rated.onAgain}>
+                      Play again
+                    </button>
+                    <button className="secondary" onClick={onHome}>
+                      Games
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p>The host can return to the lobby for another game.</p>
+              )}
             </div>
           )}
         </section>

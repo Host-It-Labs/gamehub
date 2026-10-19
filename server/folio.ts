@@ -21,6 +21,7 @@ import {
   type FolioView,
   type Kind,
 } from '../lib/games/folio/types.ts';
+import { Leaderboards } from './leaderboards.ts';
 /** A member counts as here while their page has polled within this time. */
 const AWAY_AFTER = 15000;
 /** A host away this long hands the run to the next member still here. */
@@ -70,6 +71,7 @@ export class FolioRuns {
     return g;
   }
   private save(invite: string, g: FolioGame) {
+    new Leaderboards(this.db).observeFolio(invite, g, this.members(invite).map((m) => m.actor));
     this.db
       .prepare('UPDATE folio_runs SET state=? WHERE token=?')
       .run(JSON.stringify(g), invite);
@@ -216,6 +218,7 @@ export class FolioRuns {
   remove(invite: string, who: Identity) {
     return this.transaction(() => {
       check(this.isMember(invite, who), 404, 'This run is not in your list.');
+      new Leaderboards(this.db).forfeit(`folio:${invite}`);
       this.db
         .prepare('DELETE FROM folio_members WHERE run=? AND actor=?')
         .run(invite, who.id);
@@ -275,6 +278,8 @@ export class FolioRuns {
         .prepare('INSERT INTO folio_runs VALUES (?,?)')
         .run(invite, JSON.stringify(g));
       this.seat(invite, who, input.name, now);
+      // Every new solo run counts, a guest's too; joining keeps it.
+      new Leaderboards(this.db).startFolio(invite, g, who.id);
       return this.view(invite, who, g, now);
     });
   }
@@ -415,6 +420,7 @@ export class FolioRuns {
         403,
         'Auto-win is only available in development.',
       );
+      if (action.type === 'dev-win') new Leaderboards(this.db).forfeit(`folio:${invite}`);
       try {
         if (action.type === 'start') startFolio(g, this.count(invite), now);
         else if (action.type === 'vote')

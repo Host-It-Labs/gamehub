@@ -68,6 +68,7 @@ import {
 import { playerRange, type LibraryGame } from '@/lib/games/library-fixtures';
 import { standaloneGames, type AnyGame } from '@/lib/games/standalone/registry';
 import type { StandaloneId } from '@/lib/games/standalone/types';
+import type { ActiveRatedGame } from '@/lib/games/leaderboards';
 import { TriviaModeChoices } from './trivia-modes';
 import {
   triviaLengths,
@@ -164,15 +165,18 @@ export function SetupIntro({ game }: { game: LibraryGame }) {
 
 const levels = ['easy', 'medium', 'hard'] as const;
 
-/** Bot strength as one to three bars, so the three read as a scale. */
+/** Bot strength as one to three bars, so the three read as a scale. Where
+ *  games count for the leaderboard, Hard wears a small trophy. */
 export function BotLevels({
   value,
   onChange,
   disabled,
+  rated = false,
 }: {
   value: Difficulty;
   onChange: (d: Difficulty) => void;
   disabled: boolean;
+  rated?: boolean;
 }) {
   return (
     <Segmented
@@ -191,10 +195,69 @@ export function BotLevels({
               ))}
             </span>
             <b>{level[0].toUpperCase() + level.slice(1)}</b>
+            {rated && level === 'hard' && (
+              <Trophy className="level-rated" aria-hidden="true" />
+            )}
           </>
         ),
+        name: rated && level === 'hard' ? 'Hard, counts for the leaderboard' : undefined,
       }))}
     />
+  );
+}
+
+/** What setup needs to start, continue or replace a rated game. Rated
+ *  games are the Hard ones: nobody picks a mode. */
+export type RatedSetup = {
+  /** This game's unfinished rated game, if there is one. */
+  active?: ActiveRatedGame;
+  busy: boolean;
+  error: string;
+  /** Starts a rated game on the server with the current setup. */
+  onPlay: () => void;
+  onDismissError: () => void;
+};
+
+/** Asks once, above the actions: replacing an unfinished rated game, or
+ *  playing on without a rating when the server cannot be reached. */
+export function RatedBar({
+  rated,
+  confirming,
+  onCancel,
+  onUnrated,
+}: {
+  rated: RatedSetup;
+  confirming: boolean;
+  onCancel: () => void;
+  onUnrated: () => void;
+}) {
+  if (rated.error)
+    return (
+      <div className="rated-bar is-error" role="alert">
+        <span>{rated.error}</span>
+        <button type="button" disabled={rated.busy} onClick={onUnrated}>
+          Play unrated
+        </button>
+        <button type="button" className="is-main" disabled={rated.busy} onClick={rated.onPlay}>
+          Try again
+        </button>
+      </div>
+    );
+  if (!confirming || !rated.active) return null;
+  return (
+    <fieldset className="rated-bar" aria-label="Unfinished rated game">
+      <span>
+        {rated.active.kind === 'score'
+          ? 'Your unfinished town alone is dropped.'
+          : 'Your unfinished rated game ends as a loss.'}
+      </span>
+      <button type="button" disabled={rated.busy} onClick={rated.onPlay}>
+        Start new
+      </button>
+      <a className="is-main" href={rated.active.url} data-starts-game onClick={onCancel}>
+        Continue it
+      </a>
+    </fieldset>
   );
 }
 
@@ -277,6 +340,7 @@ export function StartGameButton({
   saved,
   detail,
   disabled,
+  rated = false,
   onPlay,
   onLearn,
   onResume,
@@ -285,6 +349,8 @@ export function StartGameButton({
   saved: boolean;
   detail?: string;
   disabled?: boolean;
+  /** This game counts for the leaderboard; Play says so. */
+  rated?: boolean;
   onPlay: () => void;
   onLearn: () => void;
   onResume: () => void;
@@ -292,7 +358,20 @@ export function StartGameButton({
   return (
     <>
       <LearnButton disabled={disabled} onClick={onLearn} />
-      <PlayButton disabled={disabled} data-starts-game onClick={onPlay} />
+      <PlayButton
+        disabled={disabled}
+        data-starts-game
+        onClick={onPlay}
+        aria-label={rated ? 'Play, rated' : undefined}
+      >
+        Play
+        {rated && (
+          <span className="play-rated" aria-hidden="true">
+            <Trophy />
+            Rated
+          </span>
+        )}
+      </PlayButton>
       {saved && (
         <button
           type="button"
@@ -801,6 +880,7 @@ export function SetupBox({
   onLearn,
   onPlay,
   onResume,
+  rated,
 }: {
   game: LibraryGame;
   minPlayers?: number;
@@ -821,9 +901,17 @@ export function SetupBox({
   onLearn: () => void;
   onPlay: () => void;
   onResume: (game: Game) => void;
+  /** Solo setup only: Hard games are rated and run on the server. */
+  rated?: RatedSetup;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  const isRated = !!rated && difficulty === 'hard';
+  const busy = !!rated?.busy;
   const id = game.gameId!;
   const resumable = save && save.phase !== 'over';
+  // One Continue: the rated game while Hard is chosen (or when there is no
+  // local save), this device's save otherwise.
+  const ratedRun = rated?.active && (isRated || !resumable) ? rated.active : undefined;
   // Nox starts at three; its Fast deck greys out five and six.
   const fewest = seatRange(id)[0];
   const most = seatRange(id, fastMode)[1];
@@ -839,18 +927,23 @@ export function SetupBox({
             minPlayers={minPlayers}
             maxPlayers={most}
             onChange={onPlayers}
-            disabled={disabled}
+            disabled={disabled || busy}
           />
         </SetupRow>
         <SetupRow label="Bots" Icon={Bot}>
           <BotLevels
             value={difficulty}
-            onChange={onDifficulty}
-            disabled={disabled}
+            onChange={(d) => {
+              setConfirming(false);
+              rated?.onDismissError();
+              onDifficulty(d);
+            }}
+            disabled={disabled || busy}
+            rated={!!rated}
           />
         </SetupRow>
         <ContentChoice
-          disabled={disabled}
+          disabled={disabled || busy}
           id={id}
           options={options}
           fastMode={fastMode}
@@ -859,7 +952,7 @@ export function SetupBox({
           onFastMode={onFastMode}
         />
         <GameExtensionChoices
-          disabled={disabled}
+          disabled={disabled || busy}
           id={id}
           options={options}
           customerOrders={customerOrders}
@@ -868,20 +961,39 @@ export function SetupBox({
           onChange={onExtensions}
         />
       </SetupOptions>
+      {rated && (
+        <RatedBar
+          rated={rated}
+          confirming={confirming}
+          onCancel={() => setConfirming(false)}
+          onUnrated={() => {
+            rated.onDismissError();
+            onPlay();
+          }}
+        />
+      )}
       <div className="setup-actions">
         <StartGameButton
           name={game.name}
-          saved={!!resumable}
+          saved={!!ratedRun || !!resumable}
           detail={
-            resumable
-              ? `Round ${save.round} of ${totalRounds(save)}`
-              : undefined
+            ratedRun
+              ? `Rated · round ${ratedRun.round} of ${ratedRun.rounds}`
+              : resumable
+                ? `Round ${save.round} of ${totalRounds(save)}`
+                : undefined
           }
-          disabled={disabled || startDisabled}
-          onPlay={onPlay}
+          rated={isRated}
+          disabled={disabled || startDisabled || busy}
+          onPlay={() => {
+            if (!isRated || !rated) return onPlay();
+            if (rated.active && !confirming) return setConfirming(true);
+            rated.onPlay();
+          }}
           onLearn={onLearn}
           onResume={() => {
-            if (save) onResume(save);
+            if (ratedRun) window.location.assign(ratedRun.url);
+            else if (save) onResume(save);
           }}
         />
       </div>

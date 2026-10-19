@@ -1,0 +1,219 @@
+/* Account forms: the join sheet, the account page and the leaderboard share
+   these pieces. They sit on library paper (the --lib-* tokens), in or out of
+   a game. */
+.acct-access {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.acct-form,
+.acct-form fieldset {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.acct-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.acct-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.acct-field label {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--lib-ink-2);
+}
+.acct-field input,
+.acct-recovery input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid var(--lib-line);
+  border-radius: 12px;
+  background: var(--lib-field);
+  color: var(--lib-ink);
+  font: inherit;
+  font-size: 16px;
+  box-shadow: inset 0 1px 2px #00000010;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.acct-field input::placeholder {
+  color: var(--lib-ink-3);
+}
+.acct-field input:focus {
+  outline: none;
+  border-color: var(--lib-brass);
+  box-shadow:
+    inset 0 1px 2px #00000010,
+    0 0 0 3px color-mix(in srgb, var(--lib-brass) 28%, transparent);
+}
+.acct-password {
+  position: relative;
+}
+.acct-password input {
+  padding-right: 48px;
+}
+.acct-reveal {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: calc(100% - 2px);
+  border-radius: 11px;
+  color: var(--lib-ink-3);
+  background: none;
+  border: 0;
+}
+.acct-reveal svg {
+  width: 18px;
+  height: 18px;
+}
+.acct-primary,
+.acct-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.12s,
+    filter 0.15s,
+    background 0.15s;
+}
+.acct-primary {
+  border: 0;
+  color: #fff6e4;
+  background: linear-gradient(
+    180deg,
+    var(--lib-walnut-2),
+    var(--lib-walnut)
+  );
+  box-shadow:
+    inset 0 1px 0 #ffffff26,
+    0 8px 18px -10px var(--lib-shadow);
+}
+.acct-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.acct-primary:active:not(:disabled),
+.acct-ghost:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.acct-primary:disabled,
+.acct-ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.acct-ghost {
+  border: 1px solid var(--lib-line);
+  color: var(--lib-ink);
+  background: var(--lib-card);
+}
+.acct-ghost:hover:not(:disabled) {
+  background: var(--lib-hover);
+}
+.acct-primary svg,
+.acct-ghost svg {
+  width: 17px;
+  height: 17px;
+}
+.acct-submit {
+  width: 100%;
+  margin-top: 2px;
+}
+.acct-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--lib-danger);
+  background: color-mix(in srgb, var(--lib-danger) 10%, transparent);
+  font-size: 14px;
+}
+.acct-switch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+}
+.acct-switch button {
+  min-height: 36px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--lib-ink-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--lib-ink-2) 35%, transparent);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.acct-switch button:hover {
+  color: var(--lib-ink);
+}
+.acct-recovery {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px dashed color-mix(in srgb, var(--lib-brass) 60%, var(--lib-line));
+  background: color-mix(in srgb, var(--lib-brass) 8%, var(--lib-panel));
+}
+.acct-recovery h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+}
+.acct-recovery h3 svg {
+  width: 18px;
+  height: 18px;
+  color: var(--lib-brass);
+}
+.acct-recovery p {
+  margin: 0;
+  color: var(--lib-ink-2);
+  font-size: 14px;
+}
+.acct-recovery input {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  user-select: all;
+  -webkit-user-select: all;
+}
+.acct-recovery-actions {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 8px;
+}
+@media (max-width: 380px) {
+  .acct-recovery-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .acct-recovery-actions .acct-primary {
+    grid-column: 1 / -1;
+  }
+}
+:is(.acct-access, .acct-recovery) :is(a, button, input):focus-visible {
+  outline: 3px solid var(--lib-brass);
+  outline-offset: 2px;
+}

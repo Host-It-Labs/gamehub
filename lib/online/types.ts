@@ -35,6 +35,8 @@ export type Table = GameOptions & {
   sanctuaryGoalsEnabled?: boolean;
   ambienceEnabled?: boolean;
   fastMode?: boolean;
+  /** Private, account-owned solo match; return to its standings and saved games. */
+  rankedSolo?: boolean;
   /** Party games: the table votes between rounds; otherwise the host picks. */
   partyVotes?: boolean;
   /** Trivia's match format; its minigames share this mode for the whole match. */

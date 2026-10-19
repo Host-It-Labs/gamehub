@@ -16,6 +16,7 @@ import {
 import { botRound } from '../lib/games/rota/bot.ts';
 import { MAP_IDS, type MapId } from '../lib/games/rota/maps.ts';
 import type { RotaView } from '../lib/games/rota/room.ts';
+import { Leaderboards } from './leaderboards.ts';
 
 /**
  * Online Rota rooms. A table launches a room with everyone seated and bots
@@ -30,6 +31,8 @@ export type RotaMember = { id: string; name: string };
 export type RotaRoomState = {
   version: 1;
   token: string;
+  matchId?: string;
+  rankedSolo?: boolean;
   table: string | null;
   owner: string;
   /** The person in each seat, or null for a bot. */
@@ -85,11 +88,20 @@ export class RotaRooms {
   }
   private save(r: RotaRoomState) {
     r.updatedAt = Date.now();
-    this.db
+    this.db.exec('SAVEPOINT rota_save');
+    try {
+      const previous = this.db.prepare('SELECT state FROM rota_rooms WHERE token=?').get(r.token) as { state: string } | undefined;
+      new Leaderboards(this.db).observeRota(r, previous ? JSON.parse(previous.state) as RotaRoomState : undefined);
+      this.db
       .prepare(
         'INSERT INTO rota_rooms VALUES (?,?,?) ON CONFLICT(token) DO UPDATE SET state=excluded.state, updated_at=excluded.updated_at',
       )
       .run(r.token, JSON.stringify(r), r.updatedAt);
+      this.db.exec('RELEASE rota_save');
+    } catch (error) {
+      this.db.exec('ROLLBACK TO rota_save; RELEASE rota_save');
+      throw error;
+    }
   }
   private touch(room: string, who: string, now: number) {
     let m = this.seen.get(room);
@@ -102,7 +114,7 @@ export class RotaRooms {
 
   /** Opens a room for a table's members; bots fill the seats nobody takes. */
   launch(
-    table: string,
+    table: string | null,
     owner: string,
     members: RotaMember[],
     input: Record<string, unknown>,
@@ -149,6 +161,8 @@ export class RotaRooms {
     const r: RotaRoomState = {
       version: 1,
       token: token(),
+      matchId: token(),
+      rankedSolo: input.rankedSolo === true,
       table,
       owner,
       seats: names.map((_, i) => people[i]?.id ?? null),
@@ -168,6 +182,7 @@ export class RotaRooms {
     const seat = who ? r.seats.indexOf(who.id) : -1;
     return {
       token: r.token,
+      rankedSolo: r.rankedSolo === true,
       game: observe(r.game, seat),
       viewerId: who?.id ?? '',
       viewerSeat: seat >= 0 ? seat : null,
@@ -223,12 +238,36 @@ export class RotaRooms {
     return this.view(r, who, now);
   }
 
+  /** Explicit abandonment removes the solo room and settles its streak once. */
+  removeRanked(room: string, who: Identity) {
+    const row = this.db.prepare('SELECT state FROM rota_rooms WHERE token=?').get(room) as { state: string } | undefined;
+    if (!row) return;
+    const r = JSON.parse(row.state) as RotaRoomState;
+    check(r.rankedSolo && r.owner === who.id, 403, 'This rated game is not yours.');
+    check(!r.game.over, 409, 'This rated game is already over.');
+    this.db.exec('SAVEPOINT rota_abandon');
+    try {
+      if (r.matchId) new Leaderboards(this.db).forfeit(`rota:${r.matchId}`);
+      this.db.prepare('DELETE FROM rota_rooms WHERE token=?').run(room);
+      this.db.exec('RELEASE rota_abandon');
+    } catch (error) {
+      this.db.exec('ROLLBACK TO rota_abandon; RELEASE rota_abandon');
+      throw error;
+    }
+    this.seen.delete(room);
+    this.done.delete(room);
+    // Already-running workers discard their reply when the removed room cannot load.
+    for (const key of this.thinking) if (key.startsWith(`${room}:`)) this.thinking.delete(key);
+  }
+
   /** The admin starts a new match with the same setup and seats. */
   again(room: string, who: Identity | null, now = Date.now()) {
     check(who, 401, 'Enter your name to join.');
     const r = this.load(room);
     check(who.id === r.owner, 403, 'Only the table admin can start another match.');
     check(r.game.over, 409, 'The match is still on.');
+    r.matchId = token();
+    this.done.delete(room);
     r.game = createRota(r.setup.seats, Math.floor(Math.random() * 4294967295) + 1, {
       map: r.setup.map,
       ext: r.setup.ext,
@@ -260,6 +299,8 @@ export class RotaRooms {
       if (s.locked) return [];
       const id = r.seats[i];
       if (!id) return [i];
+      // A ranked solo player may leave and resume; AI must never play for them.
+      if (r.rankedSolo) return [];
       return now - this.lastSeen(r.token, id) >= this.awayMs ? [i] : [];
     });
   }
@@ -271,7 +312,7 @@ export class RotaRooms {
   /** Lets the bots build every covered seat's round. */
   private think(r: RotaRoomState, now = Date.now()) {
     for (const seat of this.covered(r, now)) {
-      const job = `${r.token}:${r.game.round}:${seat}`;
+      const job = `${r.token}:${r.matchId ?? 'legacy'}:${r.game.round}:${seat}`;
       if (this.thinking.has(job)) continue;
       this.thinking.add(job);
       const seen = observe(r.game, seat);
@@ -284,7 +325,7 @@ export class RotaRooms {
         } catch {
           return;
         }
-        if (cur.game.over || cur.game.round !== seen.round || cur.game.seats[seat].locked) return;
+        if (cur.matchId !== r.matchId || cur.game.over || cur.game.round !== seen.round || cur.game.seats[seat].locked) return;
         for (const m of moves) {
           if (!validMove(cur.game, m, seat)) break;
           cur.game = play(cur.game, m, seat);

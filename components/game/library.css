@@ -130,6 +130,9 @@
   gap: 6px;
   padding: 0;
 }
+.lib-menu-link { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border-radius: 11px; color: var(--lib-ink); text-decoration: none; }
+.lib-menu-link:hover { background: var(--lib-hover); }
+.lib-menu-link svg { width: 18px; height: 18px; }
 .lib-menu .sound-toggle {
   min-height: 50px;
   padding: 0 14px;

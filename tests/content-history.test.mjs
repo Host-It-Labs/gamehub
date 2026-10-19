@@ -65,11 +65,11 @@ await test('version 2 databases migrate and retain history across disk reopen', 
   let db;
   try {
     db = openDatabase(path);
-    db.exec('DROP TABLE content_flags; DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; DROP TABLE user_content_history; DROP TABLE expedition_commands; DROP TABLE expedition_members; DROP TABLE expeditions; PRAGMA user_version=2');
+    db.exec('DROP TABLE leaderboard_launches; DROP TABLE leaderboard_standings; DROP TABLE leaderboard_runs; DROP TABLE account_recovery; DROP TABLE content_flags; DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; DROP TABLE user_content_history; DROP TABLE expedition_commands; DROP TABLE expedition_members; DROP TABLE expeditions; PRAGMA user_version=2');
     db.prepare('INSERT INTO users VALUES (?,?,?,?)').run('host', 'host@test.invalid', 'Host', 'unused');
     db.close();
     db = openDatabase(path);
-    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 6);
+    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 8);
     db.prepare('INSERT INTO user_content_history VALUES (?,?,?)').run('host', 'miro', 'place:example');
     db.close();
     db = openDatabase(path);

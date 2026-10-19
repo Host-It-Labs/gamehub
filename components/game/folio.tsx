@@ -51,6 +51,7 @@ import { GameNavigation } from './game-navigation';
 import { useGameMotion } from './game-motion';
 import { useGameSound } from './use-game-sound';
 import { useResultsFeedback, WinnerCelebration } from './results-feedback';
+import { RatedResultCard } from '@/components/online/rated-result';
 import { SoundToggle } from './sound-settings';
 import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { gameSound } from '@/lib/games/game-sound';
@@ -918,6 +919,7 @@ function Run({ initial }: { initial: FolioView }) {
             <div className="folio-summary-map">
               <FolioMap g={g} open={[]} act={act} />
             </div>
+            {g.seats === 1 && <RatedResultCard url={`/folio/${view.token}`} finished />}
             <button className="folio-primary" onClick={leave}>
               Back to Puzzles <ArrowRight size={17} />
             </button>

@@ -211,12 +211,19 @@ export function SetupOptions({
   useEffect(() => {
     const el = grid.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
+    let frame = 0;
     const measure = () => {
+      frame = 0;
       const next = paginate(el);
       showPage(el, next, Math.min(shown.current, next.length - 1));
       setStarts((was) => (was.join() === next.join() ? was : next));
     };
-    const sizes = new ResizeObserver(measure);
+    // Pagination hides rows, changing the sizes this observer watches. Apply
+    // it on the next frame so that those changes cannot re-enter delivery.
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    const sizes = new ResizeObserver(schedule);
     const watchAll = () => {
       sizes.disconnect();
       sizes.observe(el);
@@ -224,11 +231,12 @@ export function SetupOptions({
     };
     const rows = new MutationObserver(() => {
       watchAll();
-      measure();
+      schedule();
     });
     watchAll();
     rows.observe(el, { childList: true });
     return () => {
+      cancelAnimationFrame(frame);
       sizes.disconnect();
       rows.disconnect();
     };

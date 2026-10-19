@@ -12,7 +12,7 @@ export function openDatabase(path: string) {
   const version = (
     db.prepare('PRAGMA user_version').get() as { user_version: number }
   ).user_version;
-  if (version > 6)
+  if (version > 8)
     throw new Error(
       'Database is newer than this application; restore a compatible backup before downgrading.',
     );
@@ -99,5 +99,100 @@ export function openDatabase(path: string) {
       PRAGMA user_version=6;
       COMMIT;
     `);
+  if (version < 7)
+    db.exec(`
+      BEGIN IMMEDIATE;
+      CREATE TABLE account_recovery (
+        user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        hash TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      PRAGMA user_version=7;
+      COMMIT;
+    `);
+  if (version < 8) {
+    // Rankings that just happen (19 October 2026). Guests own private rated
+    // tables, so a table's owner is any player id, not only an account; the
+    // table is rebuilt without that foreign key. Rankings are keyed by player
+    // id too, and are public once that id has an account. The leaderboard
+    // tables of the unreleased first layout are replaced.
+    db.exec('PRAGMA foreign_keys=OFF');
+    try {
+      db.exec(`
+        BEGIN IMMEDIATE;
+        DROP TABLE IF EXISTS leaderboard_records;
+        DROP TABLE IF EXISTS leaderboard_runs;
+        DROP TABLE IF EXISTS leaderboard_boards;
+        CREATE TABLE tables_v8 (token TEXT PRIMARY KEY, owner TEXT NOT NULL, state TEXT NOT NULL);
+        INSERT INTO tables_v8 (token, owner, state) SELECT token, owner, state FROM tables;
+        DROP TABLE tables;
+        ALTER TABLE tables_v8 RENAME TO tables;
+        CREATE INDEX tables_owner ON tables(owner);
+        DELETE FROM commands WHERE table_token NOT IN (SELECT token FROM tables);
+        CREATE TABLE leaderboard_runs (
+          id TEXT PRIMARY KEY,
+          actor_id TEXT NOT NULL,
+          game_id TEXT NOT NULL,
+          board_key TEXT NOT NULL,
+          kind TEXT NOT NULL CHECK(kind IN ('rating','score','puzzles','progress')),
+          room TEXT NOT NULL,
+          label TEXT NOT NULL,
+          opponents INTEGER NOT NULL DEFAULT 0,
+          status TEXT NOT NULL CHECK(status IN ('active','finished','forfeit','abandoned','disqualified')),
+          value INTEGER,
+          won INTEGER NOT NULL DEFAULT 0,
+          outcome TEXT,
+          rating_before INTEGER,
+          rating_after INTEGER,
+          started_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          finished_at INTEGER
+        );
+        CREATE UNIQUE INDEX leaderboard_runs_one_active_game
+          ON leaderboard_runs(actor_id, game_id)
+          WHERE status = 'active' AND kind IN ('rating','score');
+        CREATE INDEX leaderboard_runs_history ON leaderboard_runs(actor_id, game_id, finished_at);
+        CREATE INDEX leaderboard_runs_room ON leaderboard_runs(room, actor_id);
+        CREATE TABLE leaderboard_standings (
+          board_key TEXT NOT NULL,
+          actor_id TEXT NOT NULL,
+          value INTEGER NOT NULL,
+          games INTEGER NOT NULL,
+          wins INTEGER NOT NULL,
+          streak INTEGER NOT NULL,
+          best_streak INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY(board_key, actor_id)
+        );
+        CREATE INDEX leaderboard_standings_rank ON leaderboard_standings(board_key, value DESC, updated_at);
+        CREATE TABLE leaderboard_launches (
+          actor_id TEXT NOT NULL,
+          request_id TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          url TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY(actor_id, request_id)
+        );
+        CREATE INDEX leaderboard_launches_age ON leaderboard_launches(created_at);
+        PRAGMA user_version=8;
+        COMMIT;
+      `);
+    } catch (error) {
+      if (db.isTransaction) db.exec('ROLLBACK');
+      throw error;
+    } finally {
+      db.exec('PRAGMA foreign_keys=ON');
+    }
+  } else if (version === 8) {
+    // Development databases opened by an earlier draft of v8 limited one
+    // unfinished run per kind; it is one per game now.
+    try {
+      db.exec(`DROP INDEX IF EXISTS leaderboard_runs_one_active;
+        CREATE UNIQUE INDEX IF NOT EXISTS leaderboard_runs_one_active_game
+          ON leaderboard_runs(actor_id, game_id) WHERE status = 'active' AND kind IN ('rating','score');`);
+    } catch {
+      /* Two unfinished runs of one game: the next start settles them. */
+    }
+  }
   return db;
 }

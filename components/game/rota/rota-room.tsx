@@ -9,6 +9,7 @@ import { LeaveDialog, useLeaveDialog } from '../leave-dialog';
 import { useBoardLeave } from '../use-board-leave';
 import { recordCompletedGame } from '../play-experience';
 import { RotaTable } from './rota-table';
+import { RatedResultCard } from '@/components/online/rated-result';
 
 import { readAudioLevel, saveAudioLevel } from '@/lib/games/audio-preferences';
 import { GameStartup } from '../game-curtain';
@@ -35,7 +36,11 @@ export default function RotaRoom({ token }: { token: string }) {
         wait();
       }),
   );
-  const home = useCallback(() => window.location.assign(returnPath()), []);
+  const rankedSolo = view?.rankedSolo === true;
+  const home = useCallback(
+    () => window.location.assign(rankedSolo ? '/' : returnPath()),
+    [rankedSolo],
+  );
   const room = useRoomTable((path) => window.location.assign(path));
 
   const accept = useCallback((v: RotaView) => {
@@ -161,7 +166,8 @@ export default function RotaRoom({ token }: { token: string }) {
                 }, (e) => setError(e instanceof Error ? e.message : 'Could not start again.'))
             : undefined
         }
-        againLabel="Another match"
+        againLabel={rankedSolo ? 'Play again' : 'Another match'}
+        resultSlot={rankedSolo ? <RatedResultCard url={`/rota/${token}`} finished={over} /> : undefined}
         volume={volume}
         onVolume={(v) => {
           setVolume(v);
@@ -169,7 +175,7 @@ export default function RotaRoom({ token }: { token: string }) {
         }}
         notice={error || room.error || undefined}
         tableSlot={
-          room.table && (
+          room.table && !rankedSolo && (
             <TableManager
               table={room.table}
               connected={!room.error}
@@ -184,7 +190,7 @@ export default function RotaRoom({ token }: { token: string }) {
       <LeaveDialog
         state={leaving}
         title="Leave the match?"
-        saved="Your seat is kept. A bot builds your rounds while you are away."
+        saved={rankedSolo ? 'The match is saved and your seat stays yours.' : 'Your seat is kept. A bot builds your rounds while you are away.'}
         theme="rota"
         leavesPage
       />

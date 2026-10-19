@@ -4,6 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { randomBytes } from 'node:crypto';
 import { check, HttpError, token, type Identity } from './auth.ts';
 import type { DeskPresence } from './desk-presence.ts';
+import { Leaderboards } from './leaderboards.ts';
 import {
   actRelic,
   advanceRelic,
@@ -53,6 +54,8 @@ export class Expeditions {
     return game;
   }
   private save(invite: string, game: RelicGame) {
+    const members = this.db.prepare('SELECT actor FROM expedition_members WHERE expedition=?').all(invite) as { actor: string }[];
+    new Leaderboards(this.db).observeLucky(invite, game, members.map((m) => m.actor));
     this.db
       .prepare('UPDATE expeditions SET state=? WHERE token=?')
       .run(JSON.stringify(game), invite);
@@ -131,6 +134,7 @@ export class Expeditions {
   remove(invite: string, who: Identity) {
     return this.transaction(() => {
       this.member(invite, who);
+      new Leaderboards(this.db).finishLucky(invite);
       this.db
         .prepare(
           'DELETE FROM expedition_members WHERE expedition=? AND actor=?',
@@ -183,6 +187,9 @@ export class Expeditions {
       this.db
         .prepare('INSERT INTO expedition_members VALUES (?,?,?,?,?)')
         .run(invite, who.id, who.name, now, now);
+      // Every new solo desk counts, a guest's too; joining keeps it.
+      if (input.devPreset === undefined)
+        new Leaderboards(this.db).startLucky(invite, game, who.id);
       return this.view(invite, who, game, now);
     });
   }
@@ -247,6 +254,7 @@ export class Expeditions {
         this.db
           .prepare('INSERT INTO expedition_members VALUES (?,?,?,?,?)')
           .run(invite, player.id, player.name, now, now);
+      if (newcomers.length) new Leaderboards(this.db).disqualify(`relic:${invite}`, now);
       return this.view(invite, who, this.load(invite), now);
     });
   }
@@ -340,6 +348,8 @@ export class Expeditions {
         403,
         'Unlimited coins are only available in development.',
       );
+      if ((input.action as RelicAction).type === 'dev-unlimited')
+        new Leaderboards(this.db).disqualify(`relic:${invite}`, now);
       let result;
       try {
         result = actRelic(

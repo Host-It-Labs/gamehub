@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
         async rewrites() {
           return [
             { source: '/auth', destination: '/' },
+            { source: '/account', destination: '/' },
+            { source: '/leaderboards', destination: '/' },
             { source: '/tables', destination: '/' },
             { source: '/relic', destination: '/' },
             { source: '/folio', destination: '/' },

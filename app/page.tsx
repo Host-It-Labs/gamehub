@@ -20,6 +20,7 @@ const AltoLab =
     ? lazy(() => import('@/components/game/alto/alto-lab'))
     : null;
 const SoundLab = lazy(() => import('@/components/game/sound-lab'));
+const LeaderboardsPage = lazy(() => import('@/components/online/leaderboards'));
 // An online battle loads three.js with the rest of Arena, only when opened.
 const ArenaRoom = lazy(() => import('@/components/game/arena/arena-room'));
 const RotaRoom = lazy(() => import('@/components/game/rota/rota-room'));
@@ -49,7 +50,8 @@ export default function Gamehub() {
       </main>
     );
   if (path === '/sound-lab') return <Suspense fallback={<main className="startup-loading" aria-busy="true">Sound Lab</main>}><SoundLab /></Suspense>;
-  if (path === '/auth') return <Account />;
+  if (path === '/auth' || path === '/account') return <Account />;
+  if (path === '/leaderboards') return <Suspense fallback={<main className="startup-loading" aria-busy="true">Leaderboards</main>}><LeaderboardsPage /></Suspense>;
   if (path === '/tables') return <MyTables />;
   if (path === '/relic') return <Relic />;
   if (path === '/folio') return <Folio />;

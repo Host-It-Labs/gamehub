@@ -1,0 +1,32 @@
+/* Player initials: boards, the account button, result cards. */
+.player-mark {
+  --mark-size: 36px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--mark-size);
+  height: var(--mark-size);
+  border-radius: 50%;
+  color: #fff;
+  font:
+    700 calc(var(--mark-size) * 0.44) / 1 Georgia,
+    serif;
+  background:
+    radial-gradient(circle at 32% 26%, #ffffff55, transparent 46%),
+    linear-gradient(
+      160deg,
+      hsl(var(--mark-hue) 52% 58%),
+      hsl(var(--mark-hue) 46% 38%)
+    );
+  text-shadow: 0 1px 1px #0000004d;
+  box-shadow: inset 0 -2px 4px #00000026;
+}
+
+.lib-account {
+  padding: 0;
+}
+.lib-account .player-mark {
+  box-shadow:
+    0 0 0 2px var(--lib-panel),
+    0 0 0 3.5px var(--lib-brass);
+}

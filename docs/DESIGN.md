@@ -1,5 +1,60 @@
 # Gamehub design direction
 
+## Rankings that just happen (19 October 2026)
+
+Supersedes the 17 October Casual / Ranked design. William found the mode
+toggle, the account-only ranking and the dozens of per-setup boards clumsy:
+ranking should simply happen, and the moment to join is right after a game.
+
+- **No mode to pick.** A solo Nox, Mora, Yata or Rota game against **Hard**
+  bots is rated, and so is every Rota game played alone. Setup shows it
+  without asking: Hard wears a small brass trophy and Play gains a **Rated**
+  badge. Easy and Medium stay on the device as practice. Rated games run on
+  a private server table (the server deals, plays the bots and scores; local
+  saves and client numbers never count). Offline, setup offers **Play
+  unrated** instead of failing.
+- **Everyone counts from the first game.** Guests are recorded too, under a
+  silent guest identity named after the remembered name (or Guest), created
+  in its own step just before the first rated launch so a retried launch is
+  always the same player. Their
+  results are private: they see their rating and the place it would take.
+  Joining (name, email, password) keeps everything already earned and makes
+  it public at once; logging in from a guest merges the guest's history into
+  the account in play order.
+- **One rating per game.** Nox, Mora, Yata and Rota-with-bots each have one
+  rating, whatever the deck, map, player count or extensions. Everyone starts
+  at 1,000; each bot counts as a 1,000 opponent and the result is read from
+  the final placing against every bot (beat it 1, tie ½, behind it 0), so more
+  bots means more to win or lose. K is 32 from the first game. Wins, current
+  and best streaks are kept as stats beside the rating.
+- **Best results elsewhere.** Rota alone: best score per map, without the
+  extensions' direct bonus points. Puzzles: puzzles solved in a finished solo
+  run, per starting level. Lucky: book levels gained on the best solo desk.
+  Practice, shared and developer-assisted runs never count.
+- **One unfinished rated game per game.** It shows as **Continue** in setup
+  and on the leaderboard. Starting a new one asks once and ends the old one as
+  a loss (last place); a Rota town alone shares Rota's limit and is simply
+  dropped. Puzzles runs and Lucky desks have no limit. Leaving a rated game
+  keeps it saved. A rated table's bot gets a longer think and a second try;
+  only if that fails too does a fallback move void the game, without penalty.
+- **The moment to join.** Every rated ending shows a walnut-and-brass rating
+  plaque under the scores: the number counting to its new value, the change,
+  the place (and how far it climbed) and the streak. A guest's plaque reads
+  "#9 when you join" with one button, **Put my name on the board**, that opens
+  the join sheet over the results. Nothing else in play ever asks.
+- **Pages.** Leaderboards: the six square covers as the game picker, the
+  game's wide cover over a podium of medals for the top three, then places 4–50,
+  and your own line pinned beneath when it is lower down (dashed while
+  private). Your card sits beside the board (above it on phones): rating,
+  place, streak, games, Continue, Play. How rankings work uses the shared
+  rules pieces. Account: guests see what is waiting for their name beside the
+  join card; members see their name (edit in place), their boards and the
+  settings (password, recovery code, delete). The recovery code stays, shown
+  once after joining, because there is no email delivery.
+
+Only names and results are public; emails, password and recovery hashes and
+sessions never reach a board.
+
 ## Real ambience recordings; Nox passes five (12 October 2026)
 
 William tried a soundscape layered from six generated 30-second ElevenLabs

@@ -466,6 +466,7 @@ export function RotaTable({
   volume,
   onVolume,
   tableSlot,
+  resultSlot,
   notice,
   waitingOn,
 }: {
@@ -480,6 +481,8 @@ export function RotaTable({
   onVolume: (v: number) => void;
   /** The table admin's Table button, when played at a table. */
   tableSlot?: ReactNode;
+  /** Under the final standings: a rated game's rating card. */
+  resultSlot?: ReactNode;
   notice?: string;
   /** Seats the round waits for, when a server knows better than `locked`. */
   waitingOn?: number[];
@@ -828,6 +831,7 @@ export function RotaTable({
               </li>
             ))}
           </ol>
+          {resultSlot}
           <div className="rota-results-actions">
             {onAgain && (
               <button

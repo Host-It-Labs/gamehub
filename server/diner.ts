@@ -470,6 +470,44 @@ export class DinerRooms {
       for (const s of room.streams) if (s.session === session) s.res.end();
   }
 
+  /** Revoke every live stream after a password change, including new sessions. */
+  revokeUser(userId: string) {
+    for (const room of this.rooms.values())
+      for (const stream of room.streams)
+        if (stream.id === userId) {
+          this.write(stream, 'event: revoked\ndata: {}\n\n');
+          stream.res.end();
+        }
+  }
+
+  /** Keep the remaining crew's shift, removing the deleted player's identity. */
+  forgetUser(userId: string, removedTables: readonly string[] = []) {
+    for (const room of this.rooms.values()) {
+      const index = room.seats.findIndex((s) => s.id === userId);
+      if (index < 0) continue;
+      const next = room.seats.find((s) => s.id && s.id !== userId);
+      if (!next) { this.remove(room); continue; }
+      for (const stream of room.streams) {
+        if (stream.id !== userId) continue;
+        room.streams.delete(stream);
+        this.write(stream, 'event: revoked\ndata: {}\n\n');
+        stream.res.end();
+      }
+      const seat = room.seats[index];
+      seat.id = ''; // No identity can claim a deleted seat.
+      seat.name = 'Deleted player';
+      seat.queue = [];
+      seat.last = idle;
+      seat.late = HOLD + 1;
+      room.match.players[index].name = 'Deleted player';
+      if (room.owner === userId) room.owner = next.id;
+      if (room.table && removedTables.includes(room.table)) room.table = null;
+      if (!room.streams.size) room.emptySince = Date.now();
+      this.broadcastRoom(room);
+      this.broadcastSnap(room);
+    }
+  }
+
   private remove(room: DinerRoom) {
     if (room.joinTimer) clearTimeout(room.joinTimer);
     this.rooms.delete(room.token);

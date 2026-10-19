@@ -645,7 +645,7 @@ await test('version four migration preserves existing expedition and account rec
       'Keep this guest',
     );
     db.exec(
-      'DROP TABLE content_flags; DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; PRAGMA user_version=4',
+      'DROP TABLE leaderboard_launches; DROP TABLE leaderboard_standings; DROP TABLE leaderboard_runs; DROP TABLE account_recovery; DROP TABLE content_flags; DROP TABLE folio_commands; DROP TABLE folio_members; DROP TABLE folio_runs; PRAGMA user_version=4',
     );
     db.close();
     db = undefined;

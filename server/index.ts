@@ -9,6 +9,9 @@ import { resolve, extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import { openDatabase } from './database.ts';
+import { Accounts } from './accounts.ts';
+import { Leaderboards } from './leaderboards.ts';
+import { leaderboardGames } from '../lib/games/leaderboards.ts';
 import {
   check,
   HttpError,
@@ -36,6 +39,7 @@ import {
   preparationKey,
   revealingTrick,
   trickRevealMs,
+  totalRounds,
   type Move,
 } from '../lib/games/trio/engine.ts';
 import type { Command } from '../lib/online/types.ts';
@@ -74,6 +78,8 @@ export async function makeServer(
     options.database ?? process.env.DATABASE_PATH ?? '.data/gamehub.sqlite',
   );
   const deskPresence = new DeskPresence();
+  const accounts = new Accounts(db);
+  const leaderboards = new Leaderboards(db);
   const expeditions = new Expeditions(db, deskPresence);
   const folio = new FolioRuns(db);
   const rota = new RotaRooms(db, options.rota);
@@ -200,6 +206,14 @@ export async function makeServer(
     }, options.handOverMs ?? handOverMs);
     timer.unref?.();
   }
+  /** A guest's sessions are about to go (they joined or logged in): their
+   *  live streams close too, so an old tab stops hearing the rooms. */
+  function revokeGuest(guest: string) {
+    const hashes = (db.prepare('SELECT hash FROM sessions WHERE guest_id=?').all(guest) as { hash: string }[]).map((s) => s.hash);
+    for (const c of clients) if (c.who.id === guest) c.res.end();
+    for (const hash of hashes) { arena.revoke(hash); diner.revoke(hash); }
+    deskPresence.revokeMember(guest);
+  }
   /** Deletes a table and forgets its timers; its link then leads nowhere. */
   function drop(invite: string) {
     for (const job of jobs.get(invite)?.values() ?? []) {
@@ -218,8 +232,14 @@ export async function makeServer(
     for (const { token: invite, state } of db
       .prepare('SELECT token, state FROM tables')
       .all() as { token: string; state: string }[]) {
-      if ((JSON.parse(state) as { status: string }).status === 'closed') {
+      const stored = JSON.parse(state) as StoredTable;
+      if (stored.status === 'closed') {
         drop(invite);
+        continue;
+      }
+      // Ranked runs are durable saves; an absent player is not an abandoned run.
+      if (stored.rankedSolo && stored.status === 'playing' && db.prepare("SELECT 1 FROM leaderboard_runs WHERE id=? AND status='active'").get(`table:${stored.matchId}`)) {
+        emptySince.delete(invite);
         continue;
       }
       if ([...clients].some((c) => c.invite === invite)) {
@@ -281,32 +301,47 @@ export async function makeServer(
         clearTimeout(job.timer);
         void job.worker?.terminate();
         if (jobs.get(invite)?.get(seat) === job) jobs.get(invite)!.delete(seat);
-        if (stopping) return;
+        if (stopping || !tables.exists(invite)) return;
         tables.botMove(invite, decision, move, seat);
         publish(invite);
       };
+      // A fallback move voids a rated game, so a rated table's bot gets a
+      // longer think and a second try before it settles for one.
+      const rated = t.rankedSolo === true;
+      const think = (attempt: number) => {
+        let settled = false;
+        const retry = () => {
+          if (done || settled) return;
+          settled = true;
+          clearTimeout(job.timer);
+          void job.worker?.terminate();
+          // A cancelled job (the table moved on or was removed) never retries.
+          if (rated && attempt === 0 && !stopping && jobs.get(invite)?.get(seat) === job && tables.exists(invite)) think(1);
+          else finish(null);
+        };
+        try {
+          const worker = new Worker(
+            new URL('./bot-worker.ts', import.meta.url),
+            {
+              workerData: { ...observe(game, seat), active: seat },
+              execArgv: ['--experimental-strip-types'],
+            },
+          );
+          job.worker = worker;
+          worker.once('message', (move: Move) => finish(move));
+          worker.once('error', retry);
+          worker.once('exit', () => {
+            if (job.worker === worker) retry();
+          });
+          job.timer = setTimeout(retry, rated ? 20000 : 10000);
+        } catch {
+          retry();
+        }
+      };
       const job: BotJob = {
         decision,
-        timer: setTimeout(() => {
-          try {
-            job.worker = new Worker(
-              new URL('./bot-worker.ts', import.meta.url),
-              {
-                workerData: { ...observe(game, seat), active: seat },
-                execArgv: ['--experimental-strip-types'],
-              },
-            );
-            job.worker.once('message', (move: Move) => finish(move));
-            job.worker.once('error', () => finish(null));
-            job.worker.once('exit', () => {
-              if (!done) finish(null);
-            });
-            job.timer = setTimeout(() => finish(null), 10000);
-          } catch {
-            finish(null);
-          }
-          // Let clients finish showing a completed Nox trick before a bot plays into the next one.
-        }, revealingTrick(game) ? trickRevealMs + 120 : 120),
+        // Let clients finish showing a completed Nox trick before a bot plays into the next one.
+        timer: setTimeout(() => think(0), revealingTrick(game) ? trickRevealMs + 120 : 120),
       };
       seats.set(seat, job);
     });
@@ -353,6 +388,151 @@ export async function makeServer(
       if (typeof devSession === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(devSession))
         req.headers.cookie = `gamehub_session=${devSession}`;
       let who = identity(db, req);
+      if (path === '/api/leaderboards' && req.method === 'GET') {
+        const game = url.searchParams.get('game');
+        send(res, 200, game ? leaderboards.board(game, url.searchParams.get('view'), who?.id) : leaderboardGames);
+        return;
+      }
+      if (path === '/api/leaderboards/me' && req.method === 'GET') {
+        send(res, 200, leaderboards.me(who?.id));
+        return;
+      }
+      if (path === '/api/leaderboards/result' && req.method === 'GET') {
+        const room = url.searchParams.get('url') ?? '';
+        check(/^\/(table|rota|folio|expedition)\/[A-Za-z0-9_-]{8,80}$/.test(room), 400, 'Choose a game.');
+        send(res, 200, leaderboards.result(room, who?.id));
+        return;
+      }
+      if (path === '/api/guest' && req.method === 'POST') {
+        // Rated games need no account: a first-time guest is known from here
+        // on, under the name this device remembers (or Guest). Anyone already
+        // known keeps their session.
+        const input = await body(req);
+        who = identity(db, req);
+        if (!who) {
+          limit(`guest:${ip}`, 30, 15 * 60000);
+          const id = token(),
+            name = input.name === undefined || input.name === '' ? 'Guest' : displayName(input.name);
+          db.prepare('INSERT INTO guests VALUES (?,?)').run(id, name);
+          res.setHeader('Set-Cookie', newSession(db, id, false, secure));
+          send(res, 200, { name, guest: true });
+          return;
+        }
+        send(res, 200, { name: who.name, guest: !who.userId });
+        return;
+      }
+      if (path === '/api/solo/ranked/abandon') {
+        check(req.method === 'POST', 405, 'Method not allowed.');
+        const input = await body(req);
+        who = identity(db, req);
+        check(who, 401, 'This rated game is not yours.');
+        limit(`ranked-abandon:${who.id}`, 60, 60_000);
+        check(typeof input.url === 'string', 400, 'Choose a rated game.');
+        const target = /^\/(table|rota)\/([A-Za-z0-9_-]{32})$/.exec(input.url);
+        check(target, 400, 'Choose a rated game.');
+        const [, kind, invite] = target;
+        if (kind === 'rota') rota.removeRanked(invite, who);
+        else {
+          const row = db.prepare('SELECT state FROM tables WHERE token=?').get(invite) as { state: string } | undefined;
+          // Deletion is idempotent so retrying a lost response never records another loss.
+          if (row) {
+            const table = JSON.parse(row.state) as StoredTable;
+            check(table.rankedSolo && table.owner === who.id, 403, 'This rated game is not yours.');
+            check(table.status === 'playing', 409, 'This rated game is already over.');
+            db.exec('SAVEPOINT ranked_abandon');
+            try {
+              if (table.matchId) leaderboards.forfeit(`table:${table.matchId}`);
+              drop(invite);
+              db.exec('RELEASE ranked_abandon');
+            } catch (error) {
+              db.exec('ROLLBACK TO ranked_abandon; RELEASE ranked_abandon');
+              throw error;
+            }
+            publish(invite);
+          }
+        }
+        send(res, 200, { abandoned: true });
+        return;
+      }
+      if (path === '/api/solo/ranked') {
+        if (req.method === 'GET') {
+          // Unfinished rated games, with where they stand, for Continue.
+          const active: { gameId: string; kind: string; url: string; label: string; round: number; rounds: number; startedAt: number }[] = [];
+          for (const run of leaderboards.active(who?.id)) {
+            const [, kind, invite] = run.room.split('/');
+            if (kind === 'table') {
+              if (!tables.exists(invite)) continue;
+              const t = tables.get(invite);
+              if (!t.game || t.status !== 'playing') continue;
+              active.push({ gameId: run.gameId, kind: run.kind, url: run.room, label: run.label, round: t.game.round, rounds: totalRounds(t.game), startedAt: run.startedAt });
+            } else if (kind === 'rota') {
+              const row = db.prepare('SELECT state FROM rota_rooms WHERE token=?').get(invite) as { state: string } | undefined;
+              if (!row) continue;
+              const r = JSON.parse(row.state) as { game: { round: number; rounds: number; over: boolean } };
+              if (r.game.over) continue;
+              active.push({ gameId: run.gameId, kind: run.kind, url: run.room, label: run.label, round: r.game.round, rounds: r.game.rounds, startedAt: run.startedAt });
+            }
+          }
+          send(res, 200, active);
+          return;
+        }
+        check(req.method === 'POST', 405, 'Method not allowed.');
+        const input = await body(req);
+        who = identity(db, req);
+        // The client makes sure of a session first (POST /api/guest), so a
+        // retried launch always comes from the same player.
+        check(who, 401, 'Your session ended. Try again.');
+        const player = who;
+        const launchId = input.requestId;
+        check(typeof launchId === 'string' && /^[A-Za-z0-9_-]{16,80}$/.test(launchId), 400, 'Invalid rated launch request.');
+        const normalized = (value: unknown): unknown => Array.isArray(value)
+          ? value.map(normalized)
+          : value && typeof value === 'object'
+            ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, normalized(item)]))
+            : value;
+        const payload = JSON.stringify(normalized(Object.fromEntries(Object.entries(input).filter(([key]) => key !== 'requestId' && key !== 'name'))));
+        const previous = leaderboards.launch(player.id, launchId);
+        if (previous) {
+          check(previous.payload === payload, 409, 'This launch request was already used for another setup.');
+          const [, kind, invite] = previous.url.split('/');
+          const owner = kind === 'table'
+            ? tables.exists(invite) ? tables.get(invite).owner : null
+            : (() => {
+                const row = db.prepare('SELECT state FROM rota_rooms WHERE token=?').get(invite) as { state: string } | undefined;
+                return row ? (JSON.parse(row.state) as { owner: string }).owner : null;
+              })();
+          check(owner === player.id, 410, 'This rated game is no longer available. Choose a new setup to start again.');
+          send(res, 200, { url: previous.url });
+          return;
+        }
+        limit(`ranked:${player.id}`, 12, 60_000);
+        const launched = (url: string) => {
+          leaderboards.recordLaunch(player.id, launchId, payload, url);
+          send(res, 201, { url });
+        };
+        check(['undertow', 'wildgrove', 'midnight', 'rota'].includes(String(input.gameId)), 400, 'Choose a rated game.');
+        // Alone in Rota there are no bots; every other rated game is against Hard.
+        const alone = input.gameId === 'rota' && input.seats === 1;
+        check(alone || input.difficulty === 'hard', 400, 'Rated games use Hard bots.');
+        if (input.gameId === 'rota') {
+          const room = rota.launch(null, player.id, [{ id: player.id, name: player.name }], { ...input, rankedSolo: true });
+          launched(`/rota/${room}`);
+          return;
+        }
+        const t = tables.createSolo(player);
+        try {
+          const keys = ['contentSet', 'roamEnabled', 'gold', 'marketSeasons', 'census', 'anchor', 'dawn', 'specialtyStalls', 'fastMode', 'customerOrders', 'sanctuaryGoalsEnabled'] as const;
+          const settings = Object.fromEntries(keys.filter((key) => input[key] !== undefined).map((key) => [key, input[key]]));
+          const configured = tables.command(t.token, player, {
+            requestId: token(), revision: t.revision, matchId: null,
+            action: { ...settings, type: 'configure', gameId: input.gameId, difficulty: 'hard', capacity: input.seats },
+          } as Command);
+          tables.command(t.token, player, { requestId: token(), revision: configured.revision, matchId: null, action: { type: 'start' } });
+          publish(t.token);
+          launched(`/table/${t.token}`);
+        } catch (error) { tables.remove(t.token); throw error; }
+        return;
+      }
       if (path === '/api/folio' || path.startsWith('/api/folio/')) {
         const match = /^\/api\/folio\/([A-Za-z0-9_-]{32})(?:\/(join|commands|delete))?$/.exec(path);
         check(path === '/api/folio' || match, 404, 'Puzzles route not found.');
@@ -514,6 +694,51 @@ export async function makeServer(
         });
         return;
       }
+      if (path === '/api/auth/recover' && req.method === 'POST') {
+        limit(`auth:${ip}`, 20, 15 * 60000);
+        const input = await body(req);
+        const email = emailAddress(input.email);
+        limit(`email:${email}`, 10, 15 * 60000);
+        const oldSessions = db.prepare('SELECT s.hash FROM sessions s JOIN users u ON u.id=s.user_id WHERE u.email=?').all(email) as { hash: string }[];
+        const recovered = await accounts.recover(input);
+        for (const c of clients) if (c.who.userId === recovered.id) c.res.end();
+        arena.revokeUser(recovered.id);
+        diner.revokeUser(recovered.id);
+        for (const session of oldSessions) { arena.revoke(session.hash); diner.revoke(session.hash); }
+        res.setHeader('Set-Cookie', newSession(db, recovered.id, true, secure));
+        send(res, 200, { ok: true, recoveryCode: recovered.recoveryCode });
+        return;
+      }
+      if (path.startsWith('/api/account/')) {
+        check(req.method === 'POST', 405, 'Method not allowed.');
+        check(who?.userId, 401, 'Log in to manage your account.');
+        limit(`account:${who.userId}`, 20, 15 * 60000);
+        const input = await body(req);
+        who = identity(db, req);
+        check(who?.userId, 401, 'Log in to manage your account.');
+        if (path === '/api/account/profile') { send(res, 200, accounts.profile(who, input)); return; }
+        if (path === '/api/account/recovery-code') { send(res, 200, await accounts.generateRecovery(who, input)); return; }
+        if (path === '/api/account/password' || path === '/api/account/delete') {
+          const sessions = db.prepare('SELECT hash FROM sessions WHERE user_id=?').all(who.userId) as { hash: string }[];
+          if (path.endsWith('/password')) {
+            const id = await accounts.password(who, input);
+            res.setHeader('Set-Cookie', newSession(db, id, true, secure));
+          } else {
+            const deleted = await accounts.delete(who, input);
+            arena.forgetUser(deleted.userId, deleted.removedTables);
+            diner.forgetUser(deleted.userId, deleted.removedTables);
+            for (const invite of deleted.removedTables) { drop(invite); publish(invite); }
+            res.setHeader('Set-Cookie', `gamehub_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? '; Secure' : ''}`);
+          }
+          for (const c of clients) if (c.who.userId === who.userId) c.res.end();
+          arena.revokeUser(who.userId);
+          diner.revokeUser(who.userId);
+          for (const session of sessions) { arena.revoke(session.hash); diner.revoke(session.hash); }
+          send(res, 200, { ok: true });
+          return;
+        }
+        throw new HttpError(404, 'Account route not found.');
+      }
       if (
         (path === '/api/auth/signup' || path === '/api/auth/login') &&
         req.method === 'POST'
@@ -522,7 +747,7 @@ export async function makeServer(
         const input = await body(req),
           email = emailAddress(input.email);
         limit(`email:${email}`, 10, 15 * 60000);
-        let id: string;
+        let id: string, recoveryCode: string | undefined;
         if (path.endsWith('signup')) {
           const name = displayName(input.name),
             password = await hashPassword(input.password);
@@ -531,13 +756,21 @@ export async function makeServer(
             409,
             'An account already exists. Log in instead.',
           );
-          id = token();
+          // A guest upgrading keeps their existing saved games, table seats
+          // and results, which go public with the account.
+          id = who && !who.userId ? who.id : token();
           db.prepare('INSERT INTO users VALUES (?,?,?,?)').run(
             id,
             email,
             name,
             password,
           );
+          // Other cookies of that guest must not keep acting as the account.
+          if (who && !who.userId) {
+            revokeGuest(id);
+            db.prepare('DELETE FROM sessions WHERE guest_id=?').run(id);
+          }
+          recoveryCode = accounts.recoveryCode(id);
         } else {
           const user = db
             .prepare('SELECT id,password FROM users WHERE email=?')
@@ -547,12 +780,21 @@ export async function makeServer(
             user?.password ?? dummyPassword,
           );
           check(user && valid, 401, 'Email or password is incorrect.');
+          check(db.prepare('SELECT 1 FROM users WHERE id=? AND password=?').get(user.id, user.password), 401, 'Email or password is incorrect.');
           id = user.id;
+          // A guest logging in brings their results and solo rooms along, if
+          // that guest session is still valid after the password check.
+          const still = who && !who.userId ? identity(db, req) : null;
+          if (still && !still.userId && still.id === who!.id && still.id !== id) {
+            revokeGuest(still.id);
+            const removed = accounts.adoptGuest(still.id, id);
+            for (const invite of removed) { drop(invite); publish(invite); }
+          }
         }
         if (who)
           db.prepare('DELETE FROM sessions WHERE hash=?').run(who.sessionHash);
         res.setHeader('Set-Cookie', newSession(db, id, true, secure));
-        send(res, 200, { ok: true });
+        send(res, 200, { ok: true, ...(recoveryCode ? { recoveryCode } : {}) });
         return;
       }
       if (
@@ -812,6 +1054,8 @@ export async function makeServer(
     if (
       path === '/' ||
       path === '/auth' ||
+      path === '/account' ||
+      path === '/leaderboards' ||
       path === '/tables' ||
       path === '/relic' ||
       path === '/folio' ||

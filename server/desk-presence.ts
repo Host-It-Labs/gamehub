@@ -98,6 +98,11 @@ export class DeskPresence {
       this.send(invite, 'leave', { session, member: who.id });
     });
   }
+  /** Closes every live stream of a player whose sessions were revoked. */
+  revokeMember(member: string) {
+    for (const set of this.listeners.values())
+      for (const l of set) if (l.member === member) l.res.end();
+  }
   /** A player's latest view, passed straight on to the others. */
   post(invite: string, who: Identity, input: Record<string, unknown>, now = Date.now()) {
     check(typeof input.session === 'string' && SESSION.test(input.session), 400, 'Invalid play session.');

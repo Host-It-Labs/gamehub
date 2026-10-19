@@ -322,6 +322,107 @@
   opacity: 1;
 }
 
+/* Hard counts for the leaderboard: a small brass trophy on its segment. */
+.level-rated {
+  width: 13px;
+  height: 13px;
+  margin-left: -2px;
+  color: #c8952f;
+  fill: #f0cf7a;
+  flex: none;
+}
+.seg-option:has([data-checked]) .level-rated {
+  color: #fbe7ae;
+  fill: #f0cf7a;
+  filter: drop-shadow(0 1px 1px #00000040);
+}
+/* Play says when the game is rated. */
+.play-rated {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding: 4px 9px 4px 7px;
+  border-radius: 999px;
+  color: #3e2816;
+  background: linear-gradient(180deg, #f6dc92, #d9a943);
+  box-shadow:
+    inset 0 1px 0 #ffffff80,
+    0 1px 2px #00000040;
+  font:
+    800 12px/1 ui-rounded,
+    'SF Pro Rounded',
+    system-ui,
+    sans-serif;
+  letter-spacing: 0.02em;
+}
+.modal.setup-modal .play-plate .play-rated svg {
+  width: 13px;
+  height: 13px;
+  fill: #f6dc92;
+}
+/* One question above the actions: replace an unfinished rated game, or
+   play on without a rating when the server cannot be reached. */
+.rated-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 10px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 13.5px;
+  animation: rated-bar-in 0.2s ease-out both;
+}
+@keyframes rated-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rated-bar.is-error {
+  border-color: color-mix(in srgb, #b4442c 45%, var(--line));
+  background: color-mix(in srgb, #b4442c 9%, var(--card));
+}
+.rated-bar > span {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-weight: 650;
+  text-wrap: balance;
+}
+.rated-bar > :is(button, a) {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  border: 1px solid var(--line-2);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+}
+.rated-bar > .is-main {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.rated-bar > :is(button, a):disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rated-bar {
+    animation: none;
+  }
+}
+
 /* Board, menu or deck: two picture cards. */
 .modal.setup-modal .set-cards {
   display: grid;
@@ -1505,4 +1606,8 @@
   .modal.setup-modal .pager-step {
     transition: none;
   }
+}
+fieldset.rated-bar {
+  min-width: 0;
+  margin: 0 0 10px;
 }

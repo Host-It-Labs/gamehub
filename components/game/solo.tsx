@@ -55,7 +55,7 @@ import {
   standaloneLibraryGames,
   type LibraryGame,
 } from '@/lib/games/library-fixtures';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
 // The 3D battle and three.js load only when Arena opens.
 const ArenaGame = lazy(() => import('./arena/arena-entry'));
 // Rota's table, engine and bots load only when a match opens.
@@ -111,6 +111,7 @@ import { practice } from '@/lib/games/adventures/lessons';
 import { useBotTurns } from './bot-turns';
 import { recordCompletedGame } from './play-experience';
 import { GameStartup } from './game-curtain';
+import { useRatedSolo } from '@/lib/online/use-rated-solo';
 const SAVE = 'gamehub.tables.v3';
 /** Games outside the trio engine save separately, so one save shape per engine. */
 const OWN_SAVE = 'gamehub.standalone.v1';
@@ -118,6 +119,7 @@ function seed() {
   return crypto.getRandomValues(new Uint32Array(1))[0];
 }
 export default function SoloGame() {
+  const rated = useRatedSolo();
   const [ownPractice,setOwnPractice]=useState<AnyGame|null>(null);
   const [g, setG] = useState<Game | null>(null),
     [saves, setSaves] = useState<Partial<Record<GameId, Game>>>({}),
@@ -393,6 +395,7 @@ export default function SoloGame() {
     options,
   ]);
   function openSetup(id: GameId) {
+    rated.clearError();
     const saved = readSetup(id);
     const [fewest, most] = seatRange(id, saved.fastMode);
     setPlayers(Math.min(most, Math.max(fewest, saved.players)));
@@ -403,6 +406,17 @@ export default function SoloGame() {
     setOptions(saved.options);
     setSetup(id);
   }
+  // /?play=<game> (the leaderboard's Play) opens that game's setup, once,
+  // as the library mounts.
+  const openFromLink = useEffectEvent((id: GameId) => openSetup(id));
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('play');
+    if (!id) return;
+    history.replaceState(null, '', '/');
+    if (!(id in realGames)) return;
+    const t = setTimeout(() => openFromLink(id as GameId));
+    return () => clearTimeout(t);
+  }, []);
   function start(id: GameId, tutorial = false) {
     const fast =
       setup === id ? fastMode : g?.id === id ? (g.fastMode ?? false) : false;
@@ -941,14 +955,14 @@ export default function SoloGame() {
       <Dialog
         open={!!setup || !!preview || !!ownSetup}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && !rated.busy) {
             setSetup(null);
             setPreview(null);
             setOwnSetup(null);
           }
         }}
       >
-        <DialogContent className="modal setup-modal">
+        <DialogContent className="modal setup-modal" showCloseButton={!rated.busy} aria-busy={rated.busy}>
           {ownSetup ? (
             <StandaloneSetupBox
               game={standaloneLibraryGames[ownSetup]}
@@ -971,6 +985,7 @@ export default function SoloGame() {
             />
           ) : setup ? (
             <SetupBox
+              key={setup}
               game={realGames[setup]}
               save={saves[setup]}
               players={players}
@@ -997,6 +1012,21 @@ export default function SoloGame() {
               onLearn={() => start(setup, true)}
               onPlay={() => start(setup)}
               onResume={resume}
+              rated={{
+                active: rated.activeFor(setup),
+                busy: rated.busy,
+                error: rated.error,
+                onDismissError: rated.clearError,
+                onPlay: () => void rated.start({
+                  ...options,
+                  gameId: setup,
+                  seats: players,
+                  difficulty: 'hard',
+                  fastMode,
+                  customerOrders,
+                  sanctuaryGoalsEnabled,
+                }),
+              }}
             />
           ) : preview?.id === 'folio' ? (
             <FolioSetupBox game={preview} />
@@ -1029,6 +1059,19 @@ export default function SoloGame() {
           ) : preview?.id === 'rota' ? (
             <RotaSetupBox
               game={preview}
+              rated={{
+                active: rated.activeFor('rota'),
+                busy: rated.busy,
+                error: rated.error,
+                onDismissError: rated.clearError,
+                onPlay: (choice) => void rated.start({
+                  gameId: 'rota',
+                  seats: choice.seats,
+                  map: choice.map,
+                  ext: choice.ext,
+                  difficulty: choice.difficulty,
+                }),
+              }}
               onPlay={(choice) => {
                 setPreview(null);
                 setRota({ ...choice, key: Date.now() });

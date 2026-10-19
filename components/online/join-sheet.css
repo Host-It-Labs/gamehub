@@ -1,0 +1,82 @@
+.modal.join-sheet,
+.join-sheet[data-slot='dialog-content'] {
+  width: min(420px, calc(100vw - 32px));
+  max-width: min(420px, calc(100vw - 32px)) !important;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  gap: 14px;
+  padding: 26px 24px 20px;
+  border-radius: 24px;
+  color: var(--lib-ink);
+  background:
+    radial-gradient(
+      120% 60% at 50% -10%,
+      color-mix(in srgb, var(--lib-brass) 22%, transparent),
+      transparent 60%
+    ),
+    var(--lib-panel);
+  border: 1px solid var(--lib-line);
+  box-shadow:
+    0 30px 80px -30px #000000a0,
+    inset 0 1px 0 #ffffff14;
+  font-family:
+    ui-rounded, 'SF Pro Rounded', 'Avenir Next', system-ui, sans-serif;
+  text-align: left;
+}
+.join-medal {
+  display: grid;
+  place-items: center;
+  margin: -2px auto 2px;
+}
+.join-medal span {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  color: #5a3d14;
+  background:
+    radial-gradient(circle at 35% 28%, #fff1c4, transparent 42%),
+    conic-gradient(from 210deg, #e9c46a, #b8862e, #f3d78a, #a8771f, #e9c46a);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--lib-brass) 22%, transparent),
+    0 14px 28px -12px #8a5a10,
+    inset 0 -3px 6px #7a520f66;
+}
+.join-medal svg {
+  width: 30px;
+  height: 30px;
+  filter: drop-shadow(0 1px 0 #fff3c780);
+}
+.join-title {
+  margin: 0;
+  text-align: center;
+  font:
+    700 24px/1.15 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.join-context {
+  margin: -6px 0 4px;
+  text-align: center;
+  color: var(--lib-ink-2);
+  font-size: 15px;
+  text-wrap: balance;
+}
+.join-context b {
+  color: var(--lib-ink);
+}
+.join-fine {
+  margin: 0;
+  text-align: center;
+  color: var(--lib-ink-3);
+  font-size: 12px;
+  text-wrap: balance;
+}
+.join-sheet [data-slot='dialog-close'] {
+  top: 12px;
+  right: 12px;
+  color: var(--lib-ink-2);
+}

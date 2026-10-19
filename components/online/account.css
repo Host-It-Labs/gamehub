@@ -1,0 +1,509 @@
+/* Account page: library paper, one lit medal, your boards as cover cards. */
+.acct-page {
+  background:
+    radial-gradient(
+      80% 45% at 30% -10%,
+      color-mix(in srgb, var(--lib-brass) 16%, transparent),
+      transparent 70%
+    ),
+    var(--lib-bg);
+  color: var(--lib-ink);
+}
+.acct-bar h1 {
+  margin: 0;
+  font:
+    700 19px/1 Georgia,
+    'Times New Roman',
+    serif;
+  letter-spacing: -0.02em;
+}
+.acct-bar h1:focus {
+  outline: none;
+}
+.acct-bar .lib-actions {
+  margin-left: auto;
+}
+.acct-main {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 32px var(--lib-pad) 60px;
+}
+.acct-card {
+  border-radius: 24px;
+  border: 1px solid var(--lib-line);
+  background: var(--lib-card);
+  box-shadow:
+    0 22px 46px -32px var(--lib-shadow),
+    inset 0 1px 0 #ffffff14;
+}
+.acct-loading {
+  height: 320px;
+  max-width: 440px;
+  margin: 0 auto;
+  background: linear-gradient(90deg, var(--lib-panel-2), var(--lib-hover), var(--lib-panel-2));
+  background-size: 200% 100%;
+  animation: acct-shimmer 1.3s linear infinite;
+}
+@keyframes acct-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Signed out: why on the left, the form on the right. */
+.acct-join {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: center;
+}
+.acct-hero {
+  display: grid;
+  gap: 14px;
+  align-content: center;
+}
+.acct-hero-medal span {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  color: #5a3d14;
+  background:
+    radial-gradient(circle at 35% 28%, #fff1c4, transparent 42%),
+    conic-gradient(from 210deg, #e9c46a, #b8862e, #f3d78a, #a8771f, #e9c46a);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--lib-brass) 18%, transparent),
+    0 0 60px 10px color-mix(in srgb, var(--lib-brass) 22%, transparent),
+    0 18px 30px -14px #8a5a10,
+    inset 0 -4px 8px #7a520f66;
+}
+.acct-hero-medal svg {
+  width: 40px;
+  height: 40px;
+}
+.acct-hero h2 {
+  margin: 8px 0 0;
+  font-size: clamp(30px, 4.6vw, 44px);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.acct-hero > p {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--lib-ink-2);
+  font-size: 17px;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+.acct-waiting {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  max-width: 420px;
+}
+.acct-waiting-label {
+  color: var(--lib-brass);
+  font-size: 13px;
+  font-weight: 700;
+}
+.acct-access-card {
+  display: grid;
+  gap: 14px;
+  padding: 26px 24px 20px;
+}
+.acct-fine {
+  margin: 0;
+  text-align: center;
+  color: var(--lib-ink-3);
+  font-size: 12px;
+  text-wrap: balance;
+}
+.acct-guest {
+  justify-self: center;
+  color: var(--lib-ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 6px;
+}
+.acct-guest:hover {
+  color: var(--lib-ink);
+}
+
+/* Signed in */
+.acct-signed-in {
+  display: grid;
+  gap: 22px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.acct-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background:
+    radial-gradient(
+      100% 120% at 0% 0%,
+      color-mix(in srgb, var(--lib-brass) 14%, transparent),
+      transparent 60%
+    ),
+    var(--lib-card);
+}
+.acct-profile .player-mark {
+  box-shadow:
+    0 0 0 3px var(--lib-card),
+    0 0 0 5px var(--lib-brass),
+    0 10px 20px -10px var(--lib-shadow);
+}
+.acct-profile-text {
+  min-width: 0;
+}
+.acct-profile h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 26px;
+  overflow-wrap: anywhere;
+}
+.acct-profile-text > p {
+  margin: 3px 0 0;
+  color: var(--lib-ink-2);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.acct-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--lib-ink-3);
+  cursor: pointer;
+}
+.acct-icon:hover {
+  color: var(--lib-ink);
+  background: var(--lib-hover);
+}
+.acct-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.acct-name-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.acct-name-form input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--lib-brass);
+  border-radius: 12px;
+  background: var(--lib-field);
+  color: var(--lib-ink);
+  font:
+    700 20px/1 Georgia,
+    serif;
+}
+.acct-name-form input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lib-brass) 28%, transparent);
+}
+.acct-name-form .acct-primary {
+  min-height: 44px;
+  padding: 0 16px;
+}
+.acct-logout {
+  min-height: 42px;
+  padding: 0 14px;
+}
+.acct-notice,
+.acct-profile .acct-error {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+}
+.acct-notice {
+  color: var(--lib-live);
+}
+.acct-notice svg {
+  width: 16px;
+  height: 16px;
+}
+.acct-section {
+  display: grid;
+  gap: 12px;
+}
+.acct-section h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.acct-boards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.acct-board {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 10px;
+  border-radius: 18px;
+  border: 1px solid var(--lib-line);
+  background: var(--lib-card);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 10px 20px -18px var(--lib-shadow);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.acct-board:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 26px -18px var(--lib-shadow);
+}
+.acct-waiting .acct-board {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--lib-brass) 55%, var(--lib-line));
+}
+.acct-board-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--lib-panel-2);
+}
+.acct-board-cover .artwork-frame,
+.acct-board-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.acct-board-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.acct-board-name {
+  color: var(--lib-ink-2);
+  font-size: 13px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-board-text b {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font:
+    700 26px/1 Georgia,
+    serif;
+  font-variant-numeric: tabular-nums;
+}
+.acct-board-text b small {
+  color: var(--lib-ink-3);
+  font:
+    600 12px/1 ui-rounded,
+    system-ui,
+    sans-serif;
+}
+.acct-board-place {
+  display: grid;
+  justify-items: end;
+  color: var(--lib-brass);
+  font:
+    700 20px/1 Georgia,
+    serif;
+  font-variant-numeric: tabular-nums;
+}
+.acct-board-place small {
+  margin-top: 3px;
+  color: var(--lib-ink-3);
+  font:
+    600 11px/1 ui-rounded,
+    system-ui,
+    sans-serif;
+}
+.acct-board-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  color: #e0782f;
+  font:
+    700 12px/1 ui-rounded,
+    system-ui,
+    sans-serif;
+}
+.acct-board-streak svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+.acct-boards-loading {
+  height: 78px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, var(--lib-panel-2), var(--lib-hover), var(--lib-panel-2));
+  background-size: 200% 100%;
+  animation: acct-shimmer 1.3s linear infinite;
+}
+.acct-boards-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px dashed var(--lib-line);
+  background: var(--lib-panel);
+}
+.acct-boards-empty p {
+  margin: 0;
+  color: var(--lib-ink-2);
+}
+.acct-settings {
+  display: grid;
+  border-radius: 20px;
+  border: 1px solid var(--lib-line);
+  background: var(--lib-panel);
+  overflow: hidden;
+}
+.acct-setting + .acct-setting {
+  border-top: 1px solid var(--lib-line);
+}
+.acct-setting summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 18px;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+.acct-setting summary::-webkit-details-marker {
+  display: none;
+}
+.acct-setting summary::after {
+  content: '';
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--lib-ink-3);
+  border-bottom: 2px solid var(--lib-ink-3);
+  transform: rotate(45deg);
+  transition: transform 0.15s;
+}
+.acct-setting[open] summary::after {
+  transform: rotate(225deg);
+}
+.acct-setting summary svg {
+  width: 18px;
+  height: 18px;
+  color: var(--lib-ink-2);
+}
+.acct-setting.is-danger summary {
+  color: var(--lib-danger);
+}
+.acct-setting.is-danger summary svg {
+  color: var(--lib-danger);
+}
+.acct-setting-body {
+  display: grid;
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+.acct-setting-body > p {
+  margin: 0;
+  color: var(--lib-ink-2);
+  font-size: 14px;
+}
+.acct-setting-body .acct-ghost {
+  justify-self: start;
+}
+.acct-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.acct-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--lib-danger);
+}
+.acct-danger {
+  color: var(--lib-danger) !important;
+  border-color: color-mix(in srgb, var(--lib-danger) 40%, var(--lib-line)) !important;
+}
+.acct-page :is(a, button, summary, input):focus-visible {
+  outline: 3px solid var(--lib-brass);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .acct-join {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .acct-hero {
+    justify-items: center;
+    text-align: center;
+  }
+  .acct-hero-medal span {
+    width: 64px;
+    height: 64px;
+  }
+  .acct-hero-medal svg {
+    width: 30px;
+    height: 30px;
+  }
+  .acct-hero h2 {
+    margin-top: 2px;
+  }
+  .acct-waiting {
+    width: 100%;
+    text-align: left;
+  }
+  .acct-main {
+    padding-top: 22px;
+  }
+}
+@media (max-width: 520px) {
+  .acct-profile {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .acct-logout {
+    grid-column: 1 / -1;
+  }
+  .acct-access-card {
+    padding: 20px 16px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .acct-loading,
+  .acct-boards-loading {
+    animation: none;
+  }
+  .acct-board {
+    transition: none;
+  }
+}

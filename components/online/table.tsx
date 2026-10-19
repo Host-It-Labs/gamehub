@@ -7,7 +7,7 @@ import { AdventureMatch } from './adventure-match';
 import { onlineCatalog } from '@/lib/online/catalog';
 import { triviaSetupConfiguration, triviaSetupLink } from '@/lib/online/trivia-setup';
 import { useTriviaSetupMode } from './use-trivia-setup';
-import { decisionKey } from '@/lib/games/trio/engine';
+import { decisionKey, type GameId } from '@/lib/games/trio/engine';
 import { gameByLibraryId } from '@/lib/games/library-fixtures';
 import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import {
@@ -48,10 +48,32 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { useRatedSolo } from '@/lib/online/use-rated-solo';
+import type { RankedSoloLaunch } from '@/lib/online/ranked-solo';
 import '../game/library.css';
 import './table-lobby.css';
 
-/** A removed or closed table leads back to the home page. */
+/** The same setup again, as a fresh rated game. */
+function ratedRematch(table: Table): RankedSoloLaunch {
+  const gameId = table.gameId as GameId;
+  return {
+    gameId,
+    seats: table.capacity,
+    difficulty: 'hard',
+    contentSet: table.contentSet,
+    roamEnabled: table.roamEnabled,
+    gold: table.gold,
+    anchor: table.anchor,
+    dawn: table.dawn,
+    census: table.census,
+    marketSeasons: table.marketSeasons,
+    specialtyStalls: table.specialtyStalls,
+    fastMode: table.fastMode ?? false,
+    customerOrders: table.customerOrders ?? false,
+    sanctuaryGoalsEnabled: table.sanctuaryGoalsEnabled ?? false,
+  };
+}
+/** A removed or closed table, rated solo games included, leads back home. */
 function goHome() {
   window.location.replace('/');
 }
@@ -81,6 +103,7 @@ function menuTheme(gameId: string) {
 
 export function SharedTable({ invite }: { invite: string }) {
   const leaving = useLeaveDialog();
+  const ratedAgain = useRatedSolo({ list: false });
   // Back always leaves, for the admin too; managing the table has its own
   // Table button at the top left.
   function requestLeave() {
@@ -96,8 +119,10 @@ export function SharedTable({ invite }: { invite: string }) {
     [retry, setRetry] = useState(false),
     [copied, setCopied] = useState(false);
   const triviaMode = useTriviaSetupMode();
+  // A finished rated solo game has nobody waiting: its links simply leave.
+  const soloOver = !!table?.rankedSolo && table.game?.phase === 'over';
   const allowLeave = useBoardLeave(
-    !!(table?.game || table?.adventure),
+    !!(table?.game || table?.adventure) && !soloOver,
     requestLeave,
   );
   const pending = useRef<Command | null>(null),
@@ -373,7 +398,8 @@ export function SharedTable({ invite }: { invite: string }) {
   const owner = table.members.find((m) => m.owner);
   const title = owner ? `${owner.name}’s table` : 'Table';
   const me = table.members.find((m) => m.id === table.viewerId && !m.bot);
-  const home = table.isHost ? '/tables' : '/';
+  // A rated solo game came from a game's setup in the library.
+  const home = table.rankedSolo ? '/' : table.isHost ? '/tables' : '/';
   const menu = (
     <RoomMenu
       table={table}
@@ -428,13 +454,16 @@ export function SharedTable({ invite }: { invite: string }) {
       ) : (
         <>
           {notice}
-          <TableManager
-            table={table}
-            connected={connected}
-            disabled={disabled}
-            theme={menuTheme(table.gameId)}
-            dispatch={dispatch}
-          />
+          {/* A rated solo game has no table to manage: its back control stays. */}
+          {!table.rankedSolo && (
+            <TableManager
+              table={table}
+              connected={connected}
+              disabled={disabled}
+              theme={menuTheme(table.gameId)}
+              dispatch={dispatch}
+            />
+          )}
           {table.botError && (
             <p className="online-notice" role="alert">
               A bot paused.
@@ -467,7 +496,8 @@ export function SharedTable({ invite }: { invite: string }) {
           )}
           {table.game && table.viewerSeat !== null ? (
             <OnlineMatch
-              onHome={requestLeave}
+              // Nothing is left to save once a rated solo game is over.
+              onHome={soloOver ? () => window.location.assign('/') : requestLeave}
               key={table.matchId}
               connectionStatus={
                 fatal
@@ -485,6 +515,15 @@ export function SharedTable({ invite }: { invite: string }) {
               g={table.game}
               viewer={table.viewerSeat}
               disabled={disabled}
+              rated={
+                table.rankedSolo
+                  ? {
+                      url: `/table/${invite}`,
+                      busy: ratedAgain.busy,
+                      onAgain: () => void ratedAgain.start(ratedRematch(table)),
+                    }
+                  : undefined
+              }
               send={(move) =>
                 dispatch({
                   type: 'move',

@@ -11,6 +11,8 @@ import {
   ChevronRight,
   Menu,
   Search,
+  Trophy,
+  UserRound,
   Users,
   Volume2,
   VolumeX,
@@ -39,6 +41,8 @@ import {
   readLastPlayed,
   recordLastPlayed,
 } from '@/lib/games/library-recent';
+import { useSession } from '@/lib/online/use-session';
+import { PlayerMark } from '../online/player-mark';
 import './library.css';
 
 export function Avatar({
@@ -261,6 +265,7 @@ export function Library({
   // (the page renders only in the browser), so nothing reshuffles under the
   // pointer; a game opened now moves up the next time the library shows.
   const [played] = useState(readLastPlayed);
+  const session = useSession();
 
   function open(game: LibraryGame) {
     recordLastPlayed(game.id);
@@ -306,6 +311,19 @@ export function Library({
           </label>
         )}
         <div className="lib-actions">
+          <a className="lib-sound lib-wide-only" href="/leaderboards" aria-label="Leaderboards" title="Leaderboards"><Trophy aria-hidden="true" /></a>
+          <a
+            className={`lib-sound lib-wide-only ${session.user ? 'lib-account' : ''}`}
+            href="/account"
+            aria-label={session.user ? `Your account, ${session.user.name}` : 'Account'}
+            title={session.user?.name ?? 'Account'}
+          >
+            {session.user ? (
+              <PlayerMark id={session.user.id} name={session.user.name} size={30} />
+            ) : (
+              <UserRound aria-hidden="true" />
+            )}
+          </a>
           <ThemeButton className="lib-sound lib-wide-only" />
           <button
             type="button"
@@ -335,6 +353,8 @@ export function Library({
               <Menu aria-hidden="true" />
             </PopoverTrigger>
             <PopoverContent className="lib-menu" align="end" sideOffset={8}>
+              <a className="lib-menu-link" href="/leaderboards"><Trophy aria-hidden="true" />Leaderboards</a>
+              <a className="lib-menu-link" href="/account"><UserRound aria-hidden="true" />Account</a>
               <SoundSettings
                 volume={volume}
                 ambience={ambience}

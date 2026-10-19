@@ -954,6 +954,45 @@ export class ArenaRooms {
       for (const s of room.streams) if (s.session === session) s.res.end();
   }
 
+  /** Password changes also revoke sessions opened while hashing was in flight. */
+  revokeUser(userId: string) {
+    for (const room of this.rooms.values())
+      for (const stream of room.streams)
+        if (stream.id === userId) {
+          this.write(stream, 'event: revoked\ndata: {}\n\n');
+          stream.res.end();
+        }
+  }
+
+  /** Account deletion leaves shared battles playable without keeping the name. */
+  forgetUser(userId: string, removedTables: readonly string[] = []) {
+    for (const room of this.rooms.values()) {
+      const seat = room.seats.findIndex((s) => s.id === userId);
+      if (seat < 0) continue;
+      const next = room.seats.find((s) => s.id && s.id !== userId);
+      if (!next) { this.remove(room); continue; }
+      for (const stream of room.streams) {
+        if (stream.id !== userId) continue;
+        room.streams.delete(stream);
+        this.write(stream, 'event: revoked\ndata: {}\n\n');
+        stream.res.end();
+      }
+      room.seats[seat] = { id: null, name: 'Deleted player' };
+      room.away[seat] = Date.now() - this.awayMs;
+      room.queue = room.queue.filter((queued) => queued.player !== seat);
+      room.suggestions.delete(seat);
+      room.ready[seat] = true;
+      room.loaded[seat] = true;
+      if (room.draft) room.draft.bots[seat] = true;
+      if (room.owner === userId) room.owner = next.id!;
+      if (room.table && removedTables.includes(room.table)) room.table = null;
+      if (!room.streams.size) room.emptySince = Date.now();
+      if (room.status === 'waiting' && this.startable(room)) this.begin(room);
+      else if ((room.status === 'deck' || room.status === 'draft') && this.ready(room)) this.armPhase(room);
+      this.broadcastRoom(room);
+    }
+  }
+
   private remove(room: ArenaRoom) {
     if (room.startTimer) clearTimeout(room.startTimer);
     if (room.phaseTimer) clearTimeout(room.phaseTimer);

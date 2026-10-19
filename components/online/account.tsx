@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState, type SyntheticEvent } from 'react';
-import { api, rememberName } from '@/lib/online/client';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/online/client';
 import type { User } from '@/lib/online/types';
 import { triviaSetupLink } from '@/lib/online/trivia-setup';
 import { useTriviaSetupMode } from './use-trivia-setup';
@@ -11,93 +11,8 @@ import { ThemeButton } from '../game/theme-control';
 import '../game/library.css';
 import './table-lobby.css';
 
-export function Account() {
-  const [signup, setSignup] = useState(false),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState('');
-  const triviaMode = useTriviaSetupMode();
-  async function submit(event: SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    setBusy(true);
-    setError('');
-    const data = new FormData(event.currentTarget);
-    try {
-      await api(
-        `/api/auth/${signup ? 'signup' : 'login'}`,
-        Object.fromEntries(data),
-      );
-      if (signup) rememberName(data.get('name') as string);
-      window.location.assign(triviaSetupLink('/tables', triviaMode));
-    } catch (e) {
-      setError((e as Error).message);
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="app">
-      <div className="night-library friends-page">
-        <header className="lib-bar">
-          <a className="room-back" href={triviaSetupLink('/tables', triviaMode)} aria-label="Back">
-            <ArrowLeft aria-hidden="true" />
-          </a>
-          <h1 className="room-title">{signup ? 'Sign up' : 'Log in'}</h1>
-        </header>
-        <main className="room-join">
-          <form onSubmit={submit} className="friends-auth">
-            {signup && (
-              <input
-                name="name"
-                aria-label="Your name"
-                placeholder="Your name"
-                autoComplete="name"
-                required
-                maxLength={30}
-              />
-            )}
-            <input
-              name="email"
-              type="email"
-              aria-label="Email"
-              placeholder="Email"
-              autoComplete="email"
-              required
-              maxLength={254}
-            />
-            <input
-              name="password"
-              type="password"
-              aria-label="Password"
-              placeholder={signup ? 'Password · 10+ characters' : 'Password'}
-              autoComplete={signup ? 'new-password' : 'current-password'}
-              minLength={signup ? 10 : undefined}
-              maxLength={128}
-              required
-            />
-            {error && (
-              <p role="alert" className="form-error">
-                {error}
-              </p>
-            )}
-            <button className="lib-friends" disabled={busy}>
-              {busy ? '…' : signup ? 'Sign up' : 'Log in'}
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => {
-                setSignup(!signup);
-                setError('');
-              }}
-            >
-              {signup ? 'Log in instead' : 'Create an account'}
-            </button>
-          </form>
-        </main>
-      </div>
-    </div>
-  );
-}
+export { Account } from './account-screen';
+
 type Summary = {
   token: string;
   gameId: string;
@@ -168,13 +83,14 @@ export function MyTables() {
             <ThemeButton className="lib-sound" />
             {user && (
               <>
-                <span
+                <a
                   className="friends-me"
+                  href="/account"
                   title={user.name}
-                  aria-hidden="true"
+                  aria-label={`Account for ${user.name}`}
                 >
                   {user.name.trim().charAt(0).toUpperCase()}
-                </span>
+                </a>
                 <button
                   className="lib-sound"
                   onClick={logout}
@@ -212,7 +128,10 @@ export function MyTables() {
                   <li key={t.token}>
                     <a
                       className="friends-table"
-                      href={triviaSetupLink(`/table/${t.token}`, t.status === 'lobby' ? triviaMode : null)}
+                      href={triviaSetupLink(
+                        `/table/${t.token}`,
+                        t.status === 'lobby' ? triviaMode : null,
+                      )}
                       aria-label={`Table with ${t.count} ${t.count === 1 ? 'player' : 'players'}${box ? `, playing ${box.name}` : ''}`}
                     >
                       {box ? (
@@ -241,7 +160,10 @@ export function MyTables() {
             <section className="friends-signin">
               <Users aria-hidden="true" />
               <p>Host with an account. Friends only need the link.</p>
-              <a className="lib-friends" href={triviaSetupLink('/auth', triviaMode)}>
+              <a
+                className="lib-friends"
+                href={triviaSetupLink('/auth', triviaMode)}
+              >
                 Log in
               </a>
             </section>

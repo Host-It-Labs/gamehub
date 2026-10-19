@@ -25,6 +25,8 @@ import { ExtensionChoice } from '../expansions';
 import {
   BotLevels,
   PlayButton,
+  RatedBar,
+  type RatedSetup,
   SetupIntro,
   SetupShell,
   StartGameButton,
@@ -116,9 +118,13 @@ export function RotaSetupBox({
   game,
   onPlay,
   table,
+  rated,
 }: {
   game: LibraryGame;
   onPlay?: (choice: RotaChoice) => void;
+  /** Solo setup only: Hard games, and every game alone, are rated and run
+   *  on the server. */
+  rated?: Omit<RatedSetup, 'onPlay'> & { onPlay: (choice: RotaChoice) => void };
   table?: {
     players: string[];
     disabled: boolean;
@@ -127,6 +133,7 @@ export function RotaSetupBox({
 }) {
   const [choice, setChoice] = useState<Stored>(remembered);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   // Fetch the town's models while the box is open: the board then opens
   // with them already in hand.
   useEffect(() => {
@@ -161,6 +168,15 @@ export function RotaSetupBox({
     }
   };
   const solo = { ...choice, seats };
+  const ratedOn = !table && !!rated;
+  // Alone there are no bots: every solo town is a best score.
+  const isRated = ratedOn && (seats === 1 || choice.difficulty === 'hard');
+  const ratedBusy = !!rated?.busy;
+  const ratedRun = rated?.active && (isRated || !saved) ? rated.active : undefined;
+  const ratedSetup: RatedSetup | undefined = rated && {
+    ...rated,
+    onPlay: () => rated.onPlay({ ...solo, difficulty: seats === 1 ? choice.difficulty : 'hard' }),
+  };
   return (
     <SetupShell game={game} className="rota-box">
       <SetupIntro game={game} />
@@ -170,7 +186,11 @@ export function RotaSetupBox({
             label="Players"
             className="seg-count"
             value={seats}
-            onChange={(n) => update({ seats: n })}
+            disabled={ratedBusy}
+            onChange={(n) => {
+              setConfirming(false);
+              update({ seats: n });
+            }}
             options={[1, 2, 3, 4, 5, 6].map((n) => ({
               value: n,
               label: <b>{n}</b>,
@@ -181,14 +201,20 @@ export function RotaSetupBox({
         <SetupRow label="Bots" Icon={Bot}>
           <BotLevels
             value={choice.difficulty}
-            onChange={(d) => update({ difficulty: d })}
-            disabled={seats <= people}
+            onChange={(d) => {
+              setConfirming(false);
+              rated?.onDismissError();
+              update({ difficulty: d });
+            }}
+            disabled={seats <= people || ratedBusy}
+            rated={ratedOn}
           />
         </SetupRow>
         <SetChoiceRow
           label="Map"
           className="rota-maps"
           value={choice.map}
+          disabled={ratedBusy}
           onChange={(v) => update({ map: v as MapId })}
           cards={MAP_IDS.map((id) => ({
             value: id,
@@ -224,7 +250,7 @@ export function RotaSetupBox({
                 title={extensionNames[e]}
                 Icon={extensionIcons[e]}
                 enabled={choice.ext[e]}
-                disabled={false}
+                disabled={ratedBusy}
                 onChange={() =>
                   update({ ext: { ...choice.ext, [e]: !choice.ext[e] } })
                 }
@@ -235,6 +261,17 @@ export function RotaSetupBox({
           }))}
         />
       </SetupOptions>
+      {ratedSetup && (
+        <RatedBar
+          rated={ratedSetup}
+          confirming={confirming}
+          onCancel={() => setConfirming(false)}
+          onUnrated={() => {
+            ratedSetup.onDismissError();
+            onPlay?.(solo);
+          }}
+        />
+      )}
       <div className="setup-actions">
         {table ? (
           <PlayButton
@@ -245,15 +282,25 @@ export function RotaSetupBox({
         ) : (
           <StartGameButton
             name={game.name}
-            saved={!!saved}
+            saved={!!ratedRun || !!saved}
+            disabled={ratedBusy}
+            rated={isRated}
             detail={
-              saved
-                ? `${maps[saved.map].name}, round ${saved.round} of ${saved.rounds}`
-                : undefined
+              ratedRun
+                ? `Rated · round ${ratedRun.round} of ${ratedRun.rounds}`
+                : saved
+                  ? `${maps[saved.map].name}, round ${saved.round} of ${saved.rounds}`
+                  : undefined
             }
             onLearn={() => onPlay?.({ ...solo, learn: true })}
-            onPlay={() => onPlay?.(solo)}
-            onResume={() => onPlay?.({ ...solo, resume: true })}
+            onPlay={() => {
+              if (!isRated || !ratedSetup) return onPlay?.(solo);
+              if (ratedSetup.active && !confirming) return setConfirming(true);
+              ratedSetup.onPlay();
+            }}
+            onResume={() =>
+              ratedRun ? window.location.assign(ratedRun.url) : onPlay?.({ ...solo, resume: true })
+            }
           />
         )}
       </div>

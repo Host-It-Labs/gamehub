@@ -35,11 +35,14 @@ import {
 import type { Command, GameView, Table } from '../lib/online/types.ts';
 import { check, displayName, token, type Identity } from './auth.ts';
 import { fallbackMove } from '../lib/games/trio/bot.ts';
+import { Leaderboards } from './leaderboards.ts';
 
 type Participant = { id: string; name: string };
 type Seat = Participant & { bot: boolean };
 export type StoredTable = {
   token: string;
+  /** Private, server-backed solo attempt. Never appears in friend tables. */
+  rankedSolo?: boolean;
   /** The table's admin: configures, starts, closes. The creator until they
    *  leave or stay away, then the earliest joiner still here. */
   owner: string;
@@ -316,6 +319,8 @@ export class Tables {
     // Savepoints also work inside command's transaction and cover bot/timer saves.
     this.db.exec('SAVEPOINT table_content');
     try {
+      const previous = this.db.prepare('SELECT state FROM tables WHERE token=?').get(t.token) as { state: string } | undefined;
+      new Leaderboards(this.db).observeTable(t, previous ? JSON.parse(previous.state) as StoredTable : undefined);
       const game = t.adventure;
       if (game && !game.tutorial && (game.kind === 'miro' || game.kind === 'impostor')) {
         const keys = game.kind === 'impostor' ? [pairKey(game.pair)] : game.cityIds.map(placeHistoryKey);
@@ -410,6 +415,29 @@ export class Tables {
       .run(t.token, t.owner, JSON.stringify(t));
     return t;
   }
+  /** A private rated solo table, which a guest may own as well as an
+   *  account. It never appears among a host's tables. */
+  createSolo(who: Identity) {
+    const t: StoredTable = {
+      token: token(),
+      owner: who.id,
+      rankedSolo: true,
+      gameId: 'undertow',
+      ambienceEnabled: false,
+      triviaMode: 'quick',
+      difficulty: 'hard',
+      capacity: 4,
+      revision: 0,
+      status: 'lobby',
+      members: [{ id: who.id, name: who.name }],
+      seats: [],
+      matchId: null,
+      game: null,
+      botError: false,
+    };
+    this.db.prepare('INSERT INTO tables VALUES (?,?,?)').run(t.token, t.owner, JSON.stringify(t));
+    return t;
+  }
   list(who: Identity) {
     if (!who.userId) return [];
     return (
@@ -418,7 +446,7 @@ export class Tables {
         .all(who.userId) as { state: string }[]
     )
       .map((r) => JSON.parse(r.state) as StoredTable)
-      .filter((t) => t.status !== 'closed')
+      .filter((t) => t.status !== 'closed' && !t.rankedSolo)
       .map((t) => ({
         token: t.token,
         gameId: t.gameId,
@@ -428,6 +456,7 @@ export class Tables {
   }
   join(invite: string, who: Identity) {
     const t = this.get(invite);
+    check(!t.rankedSolo || who.id === t.owner, 403, 'This is a solo match.');
     check(t.status !== 'closed', 410, 'This table has closed.');
     if (!t.members.some((m) => m.id === who.id)) {
       check(
@@ -471,6 +500,7 @@ export class Tables {
       specialtyStalls: t.specialtyStalls,
       marketSeasons: t.marketSeasons ?? false,
       fastMode: t.fastMode ?? false,
+      rankedSolo: t.rankedSolo === true,
       partyVotes: t.partyVotes ?? false,
       triviaMode: t.triviaMode ?? 'quick',
       triviaRounds: t.triviaRounds ?? 4,
@@ -647,6 +677,7 @@ export class Tables {
           t.setupOpen = a.open;
           break;
         case 'configure':
+          check(!t.rankedSolo || (catalog.some((c) => c.id === a.gameId) && a.difficulty === 'hard'), 400, 'Ranked matches use hard AI.');
           check(a.openSetup === undefined || typeof a.openSetup === 'boolean', 400, 'Invalid setup state.');
           if (a.openSetup !== undefined) t.setupOpen = a.openSetup;
           check(t.status === 'lobby', 409, 'Return to the lobby first.');
@@ -1048,6 +1079,8 @@ export class Tables {
       return;
     const safeMove =
       move && validMove(t.game, move, seat) ? move : fallbackMove(t.game, seat);
+    if (t.rankedSolo && safeMove !== move && t.matchId)
+      new Leaderboards(this.db).disqualify(`table:${t.matchId}`);
     t.game = play(t.game, safeMove, seat);
     t.botError = false;
     if (t.game.phase === 'over') {
