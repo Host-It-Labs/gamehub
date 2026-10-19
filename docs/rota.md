@@ -31,14 +31,21 @@ languages). It sits in the library's Strategy section.
 
 ## Maps (content sets)
 
-| Map | Level | Size | Rounds | Twist |
-| --- | --- | --- | --- | --- |
-| Meadow | Beginner | 7×7 | 7 | Twelve exits, a 3×3 centre. |
-| Harbour | Intermediate | 7×7 | 7 | Sea takes the lower-right corner (six squares); two piers are exits into it. |
-| Ridge | Intermediate | 7×7 | 7 | Four peaks take only a straight road or rail: a tunnel, 2 points. |
-| Capital | Advanced | 8×8 | 8 | Sixteen exits, a twelve-square centre. |
+| Map     | Level        | Size  | Rounds | Twist                                                                                                       |
+| ------- | ------------ | ----- | ------ | ----------------------------------------------------------------------------------------------------------- |
+| Meadow  | Beginner     | 7×7   | 7      | Twelve exits, a 3×3 centre.                                                                                 |
+| Harbour | Intermediate | 9×9   | 10     | Twelve sea squares form a deep eastern dock basin. Four wharves and eight land exits surround a 3×3 centre. |
+| Ridge   | Advanced     | 10×10 | 14     | Two broken rock bands hold ten tunnel sites. Sixteen exits surround a twelve-square centre.                 |
 
 Every map balances road and rail exits (six and six, eight and eight).
+Only straight road or rail pieces fit an outcrop; each built tunnel scores 2.
+The board grows with the match so the extra rounds have room to build a town.
+
+These are the three new-game choices from 17 October 2026. New matches store
+`mapVersion: 2`. Earlier saves and online rooms have no map version and keep
+their original geometry and length: 7×7 / 7 rounds for Meadow, Harbour and
+Ridge, 8×8 / 8 rounds for Capital. Capital is available only when continuing
+one of those matches. Cell indices are never reinterpreted on a larger board.
 
 ## Extensions (each one mechanic, any combination)
 
@@ -51,7 +58,7 @@ Every map balances road and rail exits (six and six, eight and eight).
   Tidy). Complete one by the end of a round and score its first value (7–10)
   if nobody finished it in an earlier round, its later value (3–5) otherwise.
   Everyone who finishes in that same first round scores the first value.
-- **Mills** (id `towns`): three mill sites (four on Capital), the same on
+- **Mills** (id `towns`): three mill sites on Meadow, four on Harbour and Ridge, the same on
   every sheet, never on the edge, the centre or terrain, never touching. A
   mill site takes only a junction piece (an overpass, a station or a special
   station). Each mill scores a point per exit its network links, up to 5.
@@ -81,7 +88,8 @@ Every map balances road and rail exits (six and six, eight and eight).
 ## Code
 
 - `lib/games/rota/pieces.ts`: pieces, orientations, dice faces, specials.
-- `lib/games/rota/maps.ts`: the four maps, town and rockfall sites.
+- `lib/games/rota/maps.ts`: the three current maps, original saved-map geometry,
+  mill and rockfall sites. `mapOf` in the engine resolves a match's geometry.
 - `lib/games/rota/board.ts`: placement legality, loose ends, networks,
   longest paths (exact, step-bounded) and the bots' quick estimate.
 - `lib/games/rota/score.ts`: scoring, the twelve plans, and `scoreParts`,
@@ -151,22 +159,25 @@ Every map balances road and rail exits (six and six, eight and eight).
 
 ## Balance (bot simulations, not proof of human balance)
 
-Hard bots, four seats, eight matches each, 30 September 2026. Averages:
+Historical results for the original maps: hard bots, four seats, eight
+matches each, 30 September 2026. These averages do not describe the larger
+Harbour and Ridge introduced on 17 October 2026.
 
-| Setup | Total | Exits | Road | Rail | Centre | Loose | Extension |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Meadow | 41.1 | 23.8 | 7.7 | 10.4 | 7.9 | −8.7 | – |
-| Harbour | 42.2 | 26.5 | 7.2 | 10.1 | 7.7 | −9.3 | – |
-| Ridge | 42.3 | 21.9 | 7.3 | 10.8 | 7.3 | −9.6 | tunnels 4.6 |
-| Capital | 46.2 | 27.8 | 7.9 | 11.4 | 9.7 | −10.5 | – |
-| Meadow + Rivers | 48.0 | | | | | | river 9.5 |
-| Meadow + Plans | 49.9 | | | | | | plans 12.0 |
-| Meadow + Towns | 46.2 | | | | | | towns 9.4 |
-| Meadow + Rockfall | 38.7 | | | | | | −2.4 overall |
-| Meadow + all four | 62.8 | | | | | | river 7.7, towns 8.1, plans 11.4 |
+| Setup             | Total | Exits | Road | Rail | Centre | Loose | Extension                        |
+| ----------------- | ----- | ----- | ---- | ---- | ------ | ----- | -------------------------------- |
+| Meadow            | 41.1  | 23.8  | 7.7  | 10.4 | 7.9    | −8.7  | –                                |
+| Harbour           | 42.2  | 26.5  | 7.2  | 10.1 | 7.7    | −9.3  | –                                |
+| Ridge             | 42.3  | 21.9  | 7.3  | 10.8 | 7.3    | −9.6  | tunnels 4.6                      |
+| Capital           | 46.2  | 27.8  | 7.9  | 11.4 | 9.7    | −10.5 | –                                |
+| Meadow + Rivers   | 48.0  |       |      |      |        |       | river 9.5                        |
+| Meadow + Plans    | 49.9  |       |      |      |        |       | plans 12.0                       |
+| Meadow + Towns    | 46.2  |       |      |      |        |       | towns 9.4                        |
+| Meadow + Rockfall | 38.7  |       |      |      |        |       | −2.4 overall                     |
+| Meadow + all four | 62.8  |       |      |      |        |       | river 7.7, towns 8.1, plans 11.4 |
 
-Bot levels on Meadow: easy 24, medium 37, hard 41. The four maps land within
-five points of each other; Capital is a little higher as the bigger board.
+Bot levels on original Meadow: easy 24, medium 37, hard 41. The four original
+maps landed within five points of each other; Capital was a little higher
+as the bigger board.
 
 Tuning decisions made from these runs:
 

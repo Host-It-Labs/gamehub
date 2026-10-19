@@ -21,11 +21,16 @@ export const altoLessons: { target: string; title: string; text: string }[] = [
   {
     target: 'hand',
     title: 'Ship or base',
-    text: 'Blue ship parts bolt onto your ship and load more cargo. Gold base modules build up your home base and score points; trophies pay most to the first builder.',
+    text: 'Spend the first year fitting out your ship. Parts carry more, reward a new route or bring a second cargo home. Base modules arrive later, to turn your ship’s strengths into points.',
+  },
+  {
+    target: 'season',
+    title: 'Refit your ship',
+    text: 'Keep building earlier parts in later years. Year 2 opens level II refits, and Year 3 opens level III. A refit replaces the part’s old effect with the stronger one shown; it uses your build for that flight.',
   },
   {
     target: 'season',
     title: 'Three years',
-    text: `Each year the shop holds its own upgrades; they leave when it ends. At the end, every ${leftoverPer} cargo left score 1, and the most points wins.`,
+    text: `Six more upgrades arrive each year, and earlier ones stay available. Use Ship and Base to browse. At the end, every ${leftoverPer} cargo left score 1, and the most points wins.`,
   },
 ];

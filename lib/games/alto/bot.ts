@@ -2,22 +2,26 @@ import {
   flagPoints,
   leftoverPer,
   orderById,
-  planById,
   type Effect,
   type Goods,
   type Plan,
 } from './content.ts';
 import {
-  aloneBonus,
   buildable,
   currentPlans,
   discount,
   fillable,
   hold,
   raceValue,
-  shareBonus,
   familyCount,
-  yieldBonus,
+  planFor,
+  ownedPlan,
+  nextPlan,
+  planAtLevel,
+  planLevel,
+  flightCargo,
+  shipLevels,
+  effectsOf,
   totalTurns,
   turnNumber,
   turnsPerSeason,
@@ -44,14 +48,26 @@ function weights(g: AltoGame, seat: number): Weights {
   const total = totalTurns(g);
   const left = total - now; // turns after this one
   // Late goods only count as leftovers; early goods can become plans.
-  const worth = left >= 2 ? 1.35 : left === 1 ? 0.9 : 1 / leftoverPer;
+  const thrift = effectsOf(p).find((e) => e.type === 'thrift');
+  const unitLeftover =
+    1 / (thrift?.type === 'thrift' ? thrift.per : leftoverPer);
+  const worth =
+    left >= 2 ? 1.35 : left === 1 ? Math.max(0.9, unitLeftover) : unitLeftover;
   const demand: Goods = [0, 0, 0, 0];
-  for (let s = g.season; s <= 3; s++)
-    for (const id of g.plans[s - 1]) {
-      if (p.built.includes(id)) continue;
-      const w = s === g.season ? 1 : s === g.season + 1 ? 0.7 : 0.45;
-      planById[id].cost.forEach((c, k) => (demand[k] += c * w));
-    }
+  for (const id of g.plans.flat()) {
+    const base = planFor(g, id);
+    const level = planLevel(p, id);
+    if (
+      g.rules === 2
+        ? level > 0 || base.season < g.season
+        : level >= (base.refits ? 3 : 1)
+    )
+      continue;
+    const plan = planAtLevel(g, id, level + 1);
+    const w =
+      base.season <= g.season ? 1 : base.season === g.season + 1 ? 0.7 : 0.45;
+    plan.cost.forEach((c, k) => (demand[k] += c * w));
+  }
   const supply = p.stock;
   const short = demand.map((d, k) => Math.max(0, d - supply[k]));
   const totalShort = short.reduce((a, b) => a + b, 0) || 1;
@@ -60,6 +76,20 @@ function weights(g: AltoGame, seat: number): Weights {
   ) as Goods;
   // Glass is scarce and most big plans want it.
   goods[3] *= 1.15;
+  // Cargo Hub is a deliberate balanced-stock route, not an accidental bonus.
+  const setPoints = effectsOf(p).reduce(
+    (n, e) => n + (e.type === 'sets' ? e.points : 0),
+    0,
+  );
+  if (setPoints) {
+    const target = Math.max(
+      1,
+      Math.ceil(p.stock.reduce((a, n) => a + n, 0) / 4),
+    );
+    goods.forEach((_, k) => {
+      goods[k] += (setPoints * Math.max(0, target - p.stock[k])) / (target + 1);
+    });
+  }
   const totalDemand = demand.reduce((a, b) => a + b, 0) || 1;
   const want = demand.map((d) => d / totalDemand) as Goods;
   return { goods, worth, want };
@@ -78,23 +108,39 @@ export function planWorth(
   w = weights(g, seat),
 ) {
   const p = g.players[seat];
-  const plan = planById[id];
+  const plan = nextPlan(g, p, id);
+  if (!plan) return -Infinity;
   const now = turnNumber(g);
   const total = total_(g);
   const flightsLeft = total - now + 1; // this turn's flight counts: builds come first
   const makesLeft = total - now + 1;
   const avg = (w.goods[0] + w.goods[1] + w.goods[2] + w.goods[3]) / 4;
   let v = 0;
-  for (const e of plan.effects)
-    v += effectWorth(g, p, plan, e, { flightsLeft, makesLeft, avg, w });
+  const context = { flightsLeft, makesLeft, avg, w };
+  for (const e of plan.effects) v += effectWorth(g, p, plan, e, context);
+  const refit = planLevel(p, id) > 0;
+  if (refit)
+    for (const e of ownedPlan(p, id).effects)
+      v -= effectWorth(g, p, plan, e, context);
   // End scorers already standing gain from this plan's family, or its hold.
   for (const own of p.built) {
-    for (const e of planById[own].effects) {
-      if (e.type === 'per' && (!e.family || e.family === plan.family))
+    for (const e of ownedPlan(p, own).effects) {
+      if (!refit && e.type === 'per' && (!e.family || e.family === plan.family))
         v += e.points;
-      if (e.type === 'perHold')
-        for (const f of plan.effects)
-          if (f.type === 'hold') v += e.points * f.amount;
+      if (e.type === 'perLevel' && plan.family === 'ship') v += e.points;
+      if (e.type === 'perHold') {
+        const before = refit
+          ? ownedPlan(p, id).effects.reduce(
+              (n, f) => n + (f.type === 'hold' ? f.amount : 0),
+              0,
+            )
+          : 0;
+        const after = plan.effects.reduce(
+          (n, f) => n + (f.type === 'hold' ? f.amount : 0),
+          0,
+        );
+        v += e.points * (after - before);
+      }
     }
   }
   return v;
@@ -129,6 +175,14 @@ function effectWorth(
           .length / g.islands.length;
       return e.amount * late(c.flightsLeft) * (0.25 + 0.75 * binds) * c.avg;
     }
+    case 'route':
+      return e.amount * late(c.flightsLeft) * 0.68 * c.avg;
+    case 'byproduct': {
+      const often = Math.min(0.6, Math.max(0.24, c.w.want[e.good] + 0.08));
+      return e.amount * late(c.flightsLeft) * often * c.w.goods[e.cargo] * 1.2;
+    }
+    case 'perLevel':
+      return e.points * (shipLevels(p) + Math.min(3, c.makesLeft / 3));
     case 'alone':
       return e.amount * late(c.flightsLeft) * aloneChance(g) * c.avg;
     case 'share':
@@ -137,14 +191,20 @@ function effectWorth(
       // About half the upgrades still to come get built; a discount that
       // takes off a missing cargo saves the two that would stand in for it.
       let buildsLeft = 0;
-      for (let s = g.season; s <= 3; s++)
-        for (const id of g.plans[s - 1])
-          if (
-            id !== plan.id &&
-            !p.built.includes(id) &&
-            (!e.family || planById[id].family === e.family)
-          )
-            buildsLeft += s === g.season ? 0.3 : 0.55;
+      for (const id of g.plans.flat()) {
+        const candidate = planFor(g, id);
+        const level = planLevel(p, id);
+        if (id === plan.id || (e.family && candidate.family !== e.family))
+          continue;
+        if (g.rules === 2 && candidate.season < g.season) continue;
+        const available = candidate.refits
+          ? Math.max(0, 3 - level)
+          : level
+            ? 0
+            : 1;
+        buildsLeft += available * (candidate.season <= g.season ? 0.35 : 0.55);
+      }
+      buildsLeft = Math.min(buildsLeft, c.makesLeft * 0.65);
       return e.amount * buildsLeft * c.avg * 1.3;
     }
     case 'per': {
@@ -162,9 +222,23 @@ function effectWorth(
     case 'perHold':
       return e.points * hold(p);
     case 'thrift':
-      return 7 * (1 / e.per - 1 / leftoverPer);
+      return (
+        (g.rules === 2
+          ? 7
+          : Math.max(
+              8,
+              p.stock.reduce((a, n) => a + n, 0) -
+                plan.cost.reduce((a, n) => a + n, 0) +
+                Math.min(20, c.flightsLeft * 1.25),
+            )) *
+        (1 / e.per - 1 / leftoverPer)
+      );
     case 'sets':
-      return e.points * Math.max(0, Math.min(...p.stock) - 0.5);
+      return (
+        e.points *
+        (Math.max(0, Math.min(...p.stock) - 0.5) +
+          (g.rules === 3 ? Math.min(3, c.flightsLeft / 3) : 0))
+      );
   }
 }
 
@@ -180,10 +254,13 @@ function forecast(
     const k = known?.[s];
     if (k) return g.islands.map((_, i) => (i === k.island ? 1 : 0));
     const w = weights(g, s);
-    const cap = hold(g.players[s]);
-    const values = g.islands.map(
-      (island) => Math.min(island.pile, cap) * w.goods[island.good] + 0.01,
-    );
+    const values = g.islands.map((island) => {
+      const load = flightCargo(g.players[s], island.good, island.pile, true);
+      return (
+        load.cargo.reduce((n, amount, good) => n + amount * w.goods[good], 0) +
+        0.01
+      );
+    });
     const max = Math.max(...values);
     const exp = values.map((v) => Math.exp(sharp * (v - max)));
     const z = exp.reduce((a, b) => a + b, 0);
@@ -218,14 +295,13 @@ function islandWorth(
 ) {
   const p = g.players[seat];
   const island = g.islands[i];
-  const cap = hold(p);
   let v = 0;
   dist.forEach((q, others) => {
     if (!q) return;
     const share = others ? Math.floor(island.pile / (others + 1)) : island.pile;
-    const extra =
-      (others ? shareBonus(p) : aloneBonus(p)) + yieldBonus(p, island.good);
-    v += q * (Math.min(share, cap) + extra) * w.goods[island.good];
+    const load = flightCargo(p, island.good, share, others === 0);
+    v +=
+      q * load.cargo.reduce((n, amount, good) => n + amount * w.goods[good], 0);
   });
   if (g.options.flags) {
     const mine = p.flags[i] ?? 0;
@@ -265,7 +341,8 @@ function options(
       paid,
       worth:
         planWorth(g, seat, id, w) *
-          (style[id] ?? style[planById[id].tag] ?? 1) -
+          (style[id] ?? style[planFor(g, id).tag] ?? 1) *
+          (planLevel(g.players[seat], id) > 0 ? (style.refit ?? 1) : 1) -
         cost,
     });
   }
@@ -283,12 +360,13 @@ function savingFor(g: AltoGame, seat: number, w: Weights) {
   const p = g.players[seat];
   let best = 0;
   for (const id of currentPlans(g)) {
-    if (p.built.includes(id) || buildable(g, seat, id)) continue;
-    const cost = planById[id].cost;
+    const plan = nextPlan(g, p, id);
+    if (!plan || buildable(g, seat, id)) continue;
+    const cost = plan.cost;
     const missing =
       cost.reduce((a, c, k) => a + Math.max(0, c - p.stock[k]), 0) -
-      discount(g, p, planById[id].family);
-    if (missing > 3 || g.turn >= turnsPerSeason(g)) continue;
+      discount(g, p, plan.family);
+    if (missing > 3 || (g.rules === 2 && g.turn >= turnsPerSeason(g))) continue;
     best = Math.max(
       best,
       planWorth(g, seat, id, w) -
@@ -339,7 +417,6 @@ export function botMove(
   const dist = crowd(odds, g.islands.length);
   const saving = savingFor(g, seat, w);
   // The build: the best worth over the islands it leaves open.
-  const flights = g.islands.map((_, i) => islandWorth(g, seat, i, dist[i], w));
   let build: Option | null = null;
   let buildValue = -Infinity;
   for (const o of options(g, seat, w, style)) {
@@ -352,6 +429,30 @@ export function botMove(
       build = o;
     }
   }
+  // Fittings work on the flight that builds them, including the next refit.
+  let flightGame = g;
+  if (build?.build) {
+    const id = build.build;
+    const fitted = nextPlan(g, p, id)!;
+    const fittedPlayer = {
+      ...p,
+      stock: p.stock.map((n, k) => n - (build.paid?.[k] ?? 0)) as Goods,
+      built: p.built.includes(id) ? p.built : [...p.built, id],
+      ...(p.edition === 3
+        ? { levels: { ...p.levels, [id]: fitted.level ?? 1 } }
+        : {}),
+    };
+    flightGame = {
+      ...g,
+      players: g.players.map((player, s) =>
+        s === seat ? fittedPlayer : player,
+      ),
+    };
+  }
+  const flightWeights = flightGame === g ? w : weights(flightGame, seat);
+  const flights = g.islands.map((_, i) =>
+    islandWorth(flightGame, seat, i, dist[i], flightWeights),
+  );
   // The island: a weighted draw, so bots that think alike do not all fly together.
   const temper =
     g.difficulty === 'easy' ? 1.1 : g.difficulty === 'medium' ? 0.45 : 0.3;

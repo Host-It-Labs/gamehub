@@ -1386,39 +1386,6 @@
     width: 18px;
     height: 18px;
   }
-  .rota-players[data-fit='compact'] {
-    gap: 3px;
-  }
-  /* Six contracted badges fit: the mark beside the score over the state. */
-  .rota-players[data-fit='compact'] .rota-badge {
-    display: grid;
-    grid-template-columns: auto auto;
-    grid-template-rows: 14px 14px;
-    align-items: center;
-    justify-items: center;
-    gap: 1px 4px;
-    min-height: 0;
-    padding: 3px 6px 3px 3px;
-  }
-  .rota-players[data-fit='compact'] .rota-badge-mark {
-    grid-row: 1 / 3;
-    width: 24px;
-    height: 24px;
-    font-size: 14px;
-  }
-  .rota-players[data-fit='compact'] .rota-badge-score {
-    font-size: 13px;
-    line-height: 14px;
-  }
-  .rota-players[data-fit='compact'] .turn-state {
-    width: 14px;
-    height: 14px;
-    min-width: 0;
-  }
-  .rota-players[data-fit='compact'] .player-status-icons svg {
-    width: 11px;
-    height: 11px;
-  }
   .rota-undo {
     width: 40px;
     height: 40px;
@@ -1696,6 +1663,42 @@
   .rota-stage {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
+  }
+}
+/* Six contracted badges also fit just above the phone breakpoint: keep
+   score and state beside the mark rather than making one long row. */
+@media (max-width: 1100px) {
+  .rota-players[data-fit='compact'] {
+    gap: 3px;
+  }
+  .rota-players[data-fit='compact'] .rota-badge {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: 14px 14px;
+    align-items: center;
+    justify-items: center;
+    gap: 1px 4px;
+    min-height: 0;
+    padding: 3px 6px 3px 3px;
+  }
+  .rota-players[data-fit='compact'] .rota-badge-mark {
+    grid-row: 1 / 3;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  .rota-players[data-fit='compact'] .rota-badge-score {
+    font-size: 13px;
+    line-height: 14px;
+  }
+  .rota-players[data-fit='compact'] .turn-state {
+    width: 14px;
+    height: 14px;
+    min-width: 0;
+  }
+  .rota-players[data-fit='compact'] .player-status-icons svg {
+    width: 11px;
+    height: 11px;
   }
 }
 /* Six compact badges, including three-digit scores, fit a 320px phone. */

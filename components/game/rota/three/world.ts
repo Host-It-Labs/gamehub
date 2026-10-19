@@ -65,6 +65,7 @@ import { Passengers } from '@/lib/games/rota/passengers';
 import { Crossings } from './crossings';
 import { LanternPools } from './lanterns';
 import { TownLife } from './town-life';
+import { quays } from './quays';
 
 /**
  * Rota's board in 3D: a mill town drawn in ink and flat colour, seen from
@@ -934,6 +935,7 @@ export class RotaWorld {
       });
     }
     for (const m of mergeByMaterial(runs)) this.statics.add(m);
+    this.statics.add(quays(map, this.mats));
     this.statics.add(instance(this.lib.models, this.mats, props));
   }
 
@@ -1336,10 +1338,10 @@ export class RotaWorld {
 
 function ridgeHills(n: number) {
   return [
-    { x: -3, z: -3, r: 3, h: 0.5 },
-    { x: n + 3, z: -2, r: 3.5, h: 0.6 },
-    { x: -4, z: n + 1, r: 3, h: 0.4 },
-    { x: n + 4, z: n + 2, r: 3, h: 0.45 },
+    { x: -3.8, z: -2.8, r: 3.5, h: 1.15 },
+    { x: n + 3.6, z: -2.8, r: 3.4, h: 1.4 },
+    { x: -4.2, z: n * 0.7, r: 2.8, h: 0.9 },
+    { x: n + 4, z: n + 1.4, r: 3.2, h: 1.1 },
   ];
 }
 

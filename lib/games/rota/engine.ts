@@ -8,7 +8,16 @@ import {
   type Placed,
   type Sheet,
 } from './board.ts';
-import { maps, rockfallSites, townSites, type MapId, MAP_IDS } from './maps.ts';
+import {
+  legacyMaps,
+  maps,
+  rockfallSites,
+  townSites,
+  type MapId,
+  MAP_IDS,
+  MAP_VERSION,
+  SAVED_MAP_IDS,
+} from './maps.ts';
 import {
   JUNCTION_DIE,
   PIECE_IDS,
@@ -87,6 +96,8 @@ export type RotaGame = {
   rngState: number;
   difficulty: Difficulty;
   map: MapId;
+  /** Absent on original saves: their geometry and duration stay unchanged. */
+  mapVersion?: typeof MAP_VERSION;
   ext: Extensions;
   round: number;
   rounds: number;
@@ -151,7 +162,7 @@ function rollDice(g: RotaGame) {
   g.rolls.push(dice);
   if (g.ext.rockfall && g.round > 1 && g.round < g.rounds) {
     const struck = new Set(g.strikes.filter((c) => c >= 0));
-    const sites = rockfallSites(maps[g.map], g.towns).filter(
+    const sites = rockfallSites(mapOf(g), g.towns).filter(
       (c) => !struck.has(c),
     );
     g.strikes[g.round - 1] = sites.length ? pick(g, sites) : -1;
@@ -174,6 +185,7 @@ export function createRota(
     rngState: seed >>> 0 || 1,
     difficulty: opt.difficulty ?? 'medium',
     map,
+    mapVersion: MAP_VERSION,
     ext,
     round: 1,
     rounds: m.rounds,
@@ -221,11 +233,12 @@ export function createRota(
   return g;
 }
 
-export const mapOf = (g: Pick<RotaGame, 'map'>) => maps[g.map];
+export const mapOf = (g: Pick<RotaGame, 'map' | 'mapVersion'>) =>
+  (g.mapVersion === MAP_VERSION ? maps : legacyMaps)[g.map];
 
 export function sheetOf(g: RotaGame, seat: number): Sheet {
   const s = g.seats[seat];
-  return sheet(maps[g.map], s.cells, s.rubble, g.ext.towns ? g.towns : []);
+  return sheet(mapOf(g), s.cells, s.rubble, g.ext.towns ? g.towns : []);
 }
 
 /** Dice still to place this round, by index. */
@@ -262,7 +275,11 @@ export function actingSeats(g: RotaGame) {
 const isInt = (v: unknown, lo: number, hi: number): v is number =>
   Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
 
-export function validMove(g: RotaGame, m: unknown, seat: number): m is RotaMove {
+export function validMove(
+  g: RotaGame,
+  m: unknown,
+  seat: number,
+): m is RotaMove {
   if (!m || typeof m !== 'object' || g.over) return false;
   const s = g.seats[seat];
   if (!s) return false;
@@ -319,14 +336,16 @@ export function planPoints(g: RotaGame, seat: number) {
   return g.plans.reduce((sum, id, k) => {
     const r = g.seats[seat].plans[k];
     if (!r) return sum;
-    const first = Math.min(
-      ...g.seats.map((s) => s.plans[k] || Infinity),
-    );
+    const first = Math.min(...g.seats.map((s) => s.plans[k] || Infinity));
     return sum + (r === first ? planDefs[id].first : planDefs[id].later);
   }, 0);
 }
 
-export function scoreSeat(g: RotaGame, seat: number, budget?: number): Breakdown {
+export function scoreSeat(
+  g: RotaGame,
+  seat: number,
+  budget?: number,
+): Breakdown {
   return score(sheetOf(g, seat), {
     rivers: g.ext.rivers,
     towns: g.ext.towns ? g.towns : undefined,
@@ -350,9 +369,14 @@ function resolveRound(g: RotaGame) {
   });
   if (g.ext.plans)
     g.plans.forEach((id, k) => {
-      const who = g.seats.flatMap((s, i) => (s.plans[k] === g.round ? [i] : []));
+      const who = g.seats.flatMap((s, i) =>
+        s.plans[k] === g.round ? [i] : [],
+      );
       if (who.length)
-        note(g, `${who.map((i) => g.seats[i].name).join(' & ')}: ${planDefs[id].name}`);
+        note(
+          g,
+          `${who.map((i) => g.seats[i].name).join(' & ')}: ${planDefs[id].name}`,
+        );
     });
   if (g.round >= g.rounds) {
     g.over = true;
@@ -391,7 +415,10 @@ export function play(g0: RotaGame, m: RotaMove, seat: number): RotaGame {
     case 'undo': {
       const last = s.draft.pop()!;
       s.cells[last.cell] = null;
-      if (last.die < 0) s.specials = s.specials.filter((u) => !(u.p === last.p && u.r === g.round));
+      if (last.die < 0)
+        s.specials = s.specials.filter(
+          (u) => !(u.p === last.p && u.r === g.round),
+        );
       break;
     }
     case 'done':
@@ -448,7 +475,7 @@ export function outcome(g: RotaGame): RotaOutcome {
     title: solo
       ? `${finals[0].total} points`
       : `${names.join(' & ')} ${names.length > 1 ? 'tie' : names[0] === 'You' ? 'win' : 'wins'}`,
-    detail: `${maps[g.map].name}, ${g.rounds} rounds`,
+    detail: `${mapOf(g).name}, ${g.rounds} rounds`,
     winners,
     rows: g.seats
       .map((s, i) => ({
@@ -467,8 +494,11 @@ export function isRotaGame(v: unknown): v is RotaGame {
     const g = v as RotaGame;
     if (!g || g.kind !== 'rota' || g.version !== 1 || g.rules !== ROTA_RULES)
       return false;
-    if (!MAP_IDS.includes(g.map)) return false;
-    const m = maps[g.map];
+    if (!SAVED_MAP_IDS.includes(g.map)) return false;
+    if (g.mapVersion !== undefined && g.mapVersion !== MAP_VERSION)
+      return false;
+    if (g.mapVersion === MAP_VERSION && !MAP_IDS.includes(g.map)) return false;
+    const m = mapOf(g);
     const n = m.size * m.size;
     const piece = (p: unknown) => PIECE_IDS.includes(p as PieceId);
     return (
@@ -519,4 +549,5 @@ export function isRotaGame(v: unknown): v is RotaGame {
 }
 
 /** Loose ends on a seat's sheet, for the red marks on the table. */
-export const errorsOf = (g: RotaGame, seat: number) => looseEnds(sheetOf(g, seat));
+export const errorsOf = (g: RotaGame, seat: number) =>
+  looseEnds(sheetOf(g, seat));

@@ -16,7 +16,16 @@ const lower = (k: number) => goods[k].toLowerCase();
 
 type ScoringEffect = Extract<
   Effect,
-  { type: 'points' | 'race' | 'per' | 'perHold' | 'sets' | 'thrift' }
+  {
+    type:
+      | 'points'
+      | 'race'
+      | 'per'
+      | 'perHold'
+      | 'sets'
+      | 'thrift'
+      | 'perLevel';
+  }
 >;
 
 /** Every score uses one star; the words say when or what it counts. */
@@ -25,6 +34,7 @@ export const scoresPoints = (e: Effect): e is ScoringEffect =>
   e.type === 'race' ||
   e.type === 'per' ||
   e.type === 'perHold' ||
+  e.type === 'perLevel' ||
   e.type === 'sets' ||
   e.type === 'thrift';
 
@@ -44,6 +54,8 @@ export function scoreBadge(e: ScoringEffect, next?: number, earned?: number) {
         points: e.points,
         target: `per ${e.family ? familyNames[e.family][0] : 'upgrade'}`,
       };
+    case 'perLevel':
+      return { points: e.points, target: 'per ship level' };
     case 'perHold':
       return { points: e.points, target: 'per cargo slot' };
     case 'thrift':
@@ -67,6 +79,10 @@ export function effectShort(e: Effect, next?: number): string {
       return `Alone +${e.amount}`;
     case 'share':
       return `Shared +${e.amount}`;
+    case 'route':
+      return `New cargo +${e.amount}`;
+    case 'byproduct':
+      return `${lower(e.good)} → +${e.amount} ${lower(e.cargo)}`;
     case 'discount':
       return `${e.family === 'base' ? 'Base modules' : e.family === 'ship' ? 'Ship parts' : 'Upgrades'} −${e.amount}`;
   }
@@ -100,6 +116,26 @@ export function effectRuleParts(e: Effect): RulePart[] {
         'Sharing a planet, load ',
         { bold: `${e.amount} extra cargo` },
         ', even past your hold.',
+      ];
+    case 'route':
+      return [
+        'Fly to a different cargo kind from your previous flight and load ',
+        { bold: `${e.amount} extra cargo` },
+        ', even past your hold. Your first flight has no route bonus.',
+      ];
+    case 'byproduct':
+      return [
+        `Every flight to ${e.good === 2 ? 'an' : 'a'} ${lower(e.good)} planet also brings home `,
+        { bold: `${e.amount} ${lower(e.cargo)}` },
+        ', even past your hold.',
+      ];
+    case 'perLevel':
+      return [
+        'At the end, score ',
+        { bold: `${e.points} ${e.points === 1 ? 'point' : 'points'}` },
+        ' for each ',
+        { bold: 'fitted ship level' },
+        '. A level III part counts as three.',
       ];
     case 'discount':
       return [

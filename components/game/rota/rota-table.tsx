@@ -963,7 +963,7 @@ export function RotaTable({
         <DialogContent className="modal help-modal rota-modal">
           <DialogTitle>How to play</DialogTitle>
           <DialogDescription className="sr-only">Rota rules</DialogDescription>
-          <RotaRules map={g.map} />
+          <RotaRules map={g.map} rounds={g.rounds} />
           {activeExt.map((e) => (
             <div key={e} className="rota-rules-ext">
               <h3>{extensionNames[e]}</h3>

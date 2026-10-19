@@ -1,6 +1,6 @@
 'use client';
 import type { CSSProperties } from 'react';
-import { Orbit, Package, Rocket, Star } from 'lucide-react';
+import { ArrowRight, Orbit, Package, Rocket, Star } from 'lucide-react';
 import {
   goods,
   planById,
@@ -103,12 +103,30 @@ export function CostRow({
 }) {
   const need = discounted(cost, stock, off);
   const payable = !!payment(cost, stock, off);
+  const counted = cost.reduce((n, amount) => n + amount, 0) > 10;
   const missing: string[] = [];
   const kinds = cost.map((n, k) => {
     if (!n) return null;
     const have = Math.min(stock[k], need[k]);
     const short = need[k] - have;
     if (short && !payable) missing.push(`${short} ${goods[k].toLowerCase()}`);
+    if (counted) {
+      const state =
+        need[k] === 0
+          ? 'free'
+          : short
+            ? payable
+              ? 'swap'
+              : 'missing'
+            : 'have';
+      return (
+        <span key={k} className="alto-cost-count" data-unit={state}>
+          <GoodIcon good={k as Good} size={size} />
+          {n !== need[k] && <s>{n}</s>}
+          <b>{need[k]}</b>
+        </span>
+      );
+    }
     const units = [
       ...Array<string>(have).fill('have'),
       ...Array<string>(short).fill(payable ? 'swap' : 'missing'),
@@ -132,6 +150,7 @@ export function CostRow({
     <span
       className={`alto-cost ${className}`}
       data-short={!payable || undefined}
+      data-counted={counted || undefined}
       style={{ '--units': cost.reduce((a, n) => a + n, 0) } as CSSProperties}
     >
       <span className="sr-only">
@@ -215,6 +234,18 @@ function EffectBadge({
       case 'share':
         body = <>Shared +{e.amount}</>;
         break;
+      case 'route':
+        body = <>Route +{e.amount}</>;
+        break;
+      case 'byproduct':
+        body = (
+          <>
+            <GoodIcon good={e.good} size={15} />
+            <ArrowRight size={11} />
+            <GoodIcon good={e.cargo} size={15} />+{e.amount}
+          </>
+        );
+        break;
       case 'discount':
         body = e.family ? (
           <>
@@ -285,8 +316,12 @@ export function PlanFace({
   stock,
   off = 0,
   hideCost = false,
+  plan: shownPlan,
+  level,
 }: {
   id: string;
+  plan?: Plan;
+  level?: number;
   next?: number;
   earned?: number;
   compact?: boolean;
@@ -295,13 +330,17 @@ export function PlanFace({
   off?: number;
   hideCost?: boolean;
 }) {
-  const plan = planById[id];
+  const plan = shownPlan ?? planById[id];
   return (
     <>
       <span className="alto-item-art" data-model={id}>
         <PlanMark id={id} size={96} />
       </span>
       <FamilyMark family={plan.family} />
+      {level !== undefined && plan.family === 'ship' && (
+        <LevelMark level={level} />
+      )}
+
       <span className="alto-item-body">
         {!compact && <b className="alto-item-name">{plan.name}</b>}
         <EffectLine plan={plan} next={next} earned={earned} />
@@ -320,6 +359,15 @@ export function PlanFace({
         )}
       </span>
     </>
+  );
+}
+
+/** Fitted or offered ship tier. Numerals stay readable at card size. */
+export function LevelMark({ level }: { level: number }) {
+  return (
+    <span className="alto-level" aria-label={`Level ${level}`}>
+      {['', 'I', 'II', 'III'][level] ?? level}
+    </span>
   );
 }
 
@@ -343,6 +391,11 @@ export function YearTrack({
           key={y}
           className="alto-year"
           data-state={over || y < year ? 'done' : y === year ? 'now' : 'later'}
+          style={
+            {
+              '--filled': `${over || y < year ? 100 : y === year ? (turn / turns) * 100 : 0}%`,
+            } as CSSProperties
+          }
         >
           {Array.from({ length: turns }, (_, t) => (
             <i

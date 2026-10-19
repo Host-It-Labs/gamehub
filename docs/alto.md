@@ -2,7 +2,7 @@
 
 Alto (`alto`) is a strategy game for 2–6 players, added on 30 September
 2026 at William's request: something more strategic and longer than Nox,
-Mora and Yata (10–20 minutes), where everyone still plays at the same time,
+Mora and Yata, where everyone still plays at the same time,
 that needs no knowledge of what comes later the way Seven Wonders does, with
 a base game that is quick to learn and extensions and variants on top.
 
@@ -21,9 +21,45 @@ every ship and every base all the time.
 What answers the Seven Wonders complaint: **nothing is hidden but the turn's
 picks**. Every upgrade of the match is laid out from the first turn (All
 upgrades in the menu); the only randomness is at setup. Long-term play comes
-from engines versus points, the trophy races and planning for the next year.
+from choosing a ship design, refitting it, reading other ships' destinations
+and choosing how to turn its cargo into points.
 
-### Years, ship parts and base modules (3 October 2026)
+## Ship progression (17 October 2026)
+
+William found that points demanded attention too early and that some upgrades
+were much weaker than others. The third rules edition gives ship building a
+longer arc: **30 flights** in Full, **24** in Quick, split across three years.
+The library estimates 20–35 minutes; this is a planning estimate, not a timed
+human playtest.
+
+- **Year 1: fit the ship.** Every offered upgrade is a ship part. No points
+  module competes with the opening investment. Orders open in Year 2.
+- **Year 2: refit and combine.** Hybrid parts and infrastructure join the
+  shop. Level II refits open, including tools that produce a second cargo
+  when you visit their specialty planet.
+- **Year 3: finish the design.** Level III refits and scoring modules open.
+  Refinery rewards fitted ship levels, Hangar hold capacity, Garden a broad
+  collection and Cargo Hub balanced leftover cargo. Choosing a scoring path
+  follows the ship you have built.
+- **Nothing expires.** Six offers unlock each year and remain available.
+  Ship/Base tabs and six-item pages keep the existing dock footprint;
+  changing pages keeps the prepared purchase. The full catalogue, including
+  future years and all refit costs/effects, is inspectable from the start.
+- **Refits replace, not stack.** Each part still occupies one model mount
+  and one `built` ID. `levels` records I/II/III; buying a refit pays its
+  displayed marginal cost and uses the turn's one purchase. Its effects
+  replace the previous level. Level marks and the fitted/next comparison
+  make this visible without adding another control to a flight.
+- **Routes matter.** Radar rewards switching cargo kind from your previous
+  flight, even when you share the destination. Harvester, Drill, Scoop and
+  Cutter gain secondary cargo through refits. Hold, lone-landings and
+  shared-landings remain different ways to support those tools.
+
+New games use `rules: 3`. Existing `rules: 2` solo saves and online rooms
+keep their old catalogue, prices, effects, scoring and 12/18-flight duration
+through `legacy-content.ts`; they are not reset or silently converted.
+
+### Years, ship parts and base modules (3 October 2026, historical)
 
 William found the first table unclear: tools, gear, trophies and extras
 were four words for two ideas, and the number of trips was hard to read. So:
@@ -60,8 +96,8 @@ The code keeps its first words and every id: goods are **cargo** (food,
 metal, ice, crystal: indexes 0–3), islands are **planets**, plans are
 **upgrades** (tags workshop and ship are **ship parts**, monument and civic
 **base modules**), seasons are **years**, the Winds extension is **Comets**
-and Captains is **Crew**. Saves carry `rules: 2` since the 3 October
-rebalance; older saves are not restored.
+and Captains is **Crew**. Saves carry `rules: 3` for new voyages, while
+`rules: 2` remains playable under its original rules.
 
 ## Rules (the numbers live in `lib/games/alto/content.ts`)
 
@@ -75,24 +111,26 @@ rebalance; older saves are not restored.
   cargo already held; short of one kind, two of any others pay for it), then
   tap a planet. The tap on the planet is the move (no confirm plate); Undo
   takes it back while anyone is still choosing.
-- Three years of 6 turns (Full) or 4 (Quick). Each year lays out six
-  upgrades; they leave when it ends; each upgrade once per player.
-- Ship parts: a cargo kind loads one more on every flight to it (past the
-  hold); Cargo Pod and Trailer carry one more; Radar adds to lone landings,
-  Robot Arm and Magnet to shared ones; Sidecar does hold and alone, Cooler
-  food and ice. Base modules: points at once, trophy races paying the first
+- Three years of 10 turns (Full) or 8 (Quick). Each year unlocks six
+  upgrades that stay available. Base modules are built once; ship parts
+  can be refitted to level II from Year 2 and III from Year 3.
+- Ship parts: tools load more on their cargo's planets and gain secondary
+  cargo through refits; Cargo Pod and Trailer expand the hold; Radar rewards
+  changing cargo kind, Robot Arm and Magnet shared landings; Sidecar adds
+  hold and lone cargo, Cooler food and ice. Base modules: points at once,
+  trophy races paying the first
   builder most (builders on the same turn all score the prize of the last of
   them), end scorers, and discounts (Fabricator: base modules cost 1 less;
-  Workshop: every upgrade).
+  Workshop: ship parts and refits cost 1 less).
 - End: every 3 cargo left score 1. Tie: more cargo left, then shared.
-- First Flight is a fixed 18-upgrade set (the way to learn); Random draws six a
-  year from each year's pool of nine, all shown from the start.
+- First Flight is a fixed 18-upgrade set (the way to learn); Random draws six
+  a year from that year's pool, all shown from the start.
 
 ### Extensions (each one mechanic, independent)
 
 - **Comets** (Winds in the code): each turn one planet gets 3 more; the next comet is always shown;
   never the same planet twice running. No new control.
-- **Orders**: three open orders (a few cargo for points), the next one shown.
+- **Orders**: from Year 2, three open orders (a few cargo for points), the next one shown.
   Filling one is your build for the turn; first come, simultaneous fillers all
   score.
 - **Flags**: landing alone plants a flag; at the end the most flags on each
@@ -114,19 +152,41 @@ banners, so it rarely changed anything, and it added an icon to every card.
 Measure before changing numbers. Four scripts play medium bots against each
 other (`node --experimental-strip-types scripts/<name>`):
 
-- `alto-balance.mjs [games] [options] [levels] [sizes]`: scores, upgrades
-  built per year, how often each upgrade is built and how its builders do,
+- `alto-balance.mjs [games] [options] [levels] [sizes]`: scores, upgrades and
+  refits actually built per year, fitted ship levels, how often each upgrade is built and how its builders do,
   pile sizes at each year's end and cargo loaded by kind.
 - `alto-strength-matrix.mjs [games] [sizes] [options]` (node, no flag; runs
   `alto-strength.mjs` in parallel): for every upgrade, one bot **leans** hard
   toward it or **never** builds it, at 2, 3, 4 and 6 players; both should
   stay near 0 points against the table. `!` marks an upgrade that is too
   strong (leaning gains, or skipping it costs, over 1.5), `?` a weak one.
-- `alto-strategies.mjs`: bots leaning to engines, trophies, ship parts or
-  extras against plain bots.
+- `alto-strategies.mjs`: bots leaning to engines, trophies, ship parts,
+  extras, refits or breadth against plain bots.
 - `alto-crew.mjs`: each crew's win rate and points.
 
-The 3 October 2026 rebalance (William: crystal piled up in the first trip,
+### Third-edition calibration (17 October 2026)
+
+In the final 30-game samples at two, four and six players, medium bots built
+9.5–10.6 distinct upgrades and made 4.2–5.4 refits per player. They fitted
+2.5–2.9 parts in Year 1 and finished with about 16 cargo. Scores averaged
+104–120. This leaves room to invest through the middle year without buying
+out the entire catalogue.
+
+Focused lean/avoid runs checked Cargo Pod, Radar, Robot Arm, Fabricator and
+Workshop. Separate 20-seed Random games with every extension checked Cutter
+and Vault at two and six players; skipping either cost less than five points.
+The medium bot still overprefers Cutter, and avoiding its crowded planets
+can pay better. These are bot-policy measurements, not a claim of settled
+human balance or a timed duration.
+
+Engine and multiplayer regressions cover replacement refit effects, payment
+before the flight, route history, secondary cargo, catalogue validation,
+scoring, undo and legacy saves. Browser review covers the actual refit flow,
+selection across shop pages, keyboard inspections and focus restoration,
+and phone/tablet/desktop layouts with six long player names. Physical touch
+and a full human match remain untested.
+
+Historical evidence for the superseded 3 October 2026 rebalance (William: crystal piled up in the first trip,
 some upgrades felt over- or underpowered), all bot figures, not human ones:
 
 - Before: the Cargo Pod was nearly mandatory (skipping it cost 5 points),

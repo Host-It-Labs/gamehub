@@ -87,7 +87,8 @@ export function RotaBoard({
     onWorldRef.current = onWorld;
     view.current = { sheet, livery, dusk };
   });
-  const mapId = sheet.map.id;
+  const map = sheet.map;
+  const mapKey = `${map.id}:${map.size}:${map.rounds}`;
 
   // Make the world for this map once the models are in.
   useEffect(() => {
@@ -152,9 +153,10 @@ export function RotaBoard({
       setDrawn(false);
       setProgress(0);
     };
-    // A new map makes a new world; everything else is pushed below.
+    // A saved layout and its current replacement can share an id. Rebuild
+    // for the resolved map definition so rematches use the new geometry.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapId]);
+  }, [map]);
 
   useEffect(() => {
     if (engine.current)
@@ -166,7 +168,9 @@ export function RotaBoard({
       );
   });
 
-  useLayoutEffect(() => {
+  // These refs belong to the parent table. Its DOM refs are attached after
+  // this child's layout effects, so subscribe after the whole commit.
+  useEffect(() => {
     const root = world.current,
       box = stage.current;
     if (!root || !box) return;
@@ -175,12 +179,14 @@ export function RotaBoard({
     ro.observe(root);
     ro.observe(box);
     window.addEventListener('resize', measure);
+    window.visualViewport?.addEventListener('resize', measure);
+    measure();
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
     };
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [world, stage]);
 
   const ready = !!overlay && !failed;
   // The board is framed: two frames later the town has been drawn.
@@ -232,7 +238,7 @@ export function RotaBoard({
       ) : null}
       {failed ? null : (
         <RotaLoading
-          key={mapId}
+          key={mapKey}
           progress={progress}
           done={drawn}
           fadeIn={hadTown}

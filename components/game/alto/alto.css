@@ -2364,19 +2364,21 @@
   .alto-preview-hold svg {
     width: 10px;
   }
-  /* Named score targets need the card's full width on a phone. */
-  .alto-item:has(.alto-effect.is-points) {
+  /* Base names and score targets use the whole card on a phone. */
+  .alto-item:is(.is-base, [data-family='base'], :has(.alto-effect.is-points)) {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto auto auto;
     grid-template-areas: 'art' 'name' 'effect' 'cost';
     justify-items: center;
     text-align: center;
   }
-  .alto-item:has(.alto-effect.is-points) .alto-item-art {
+  .alto-item:is(.is-base, [data-family='base'], :has(.alto-effect.is-points))
+    .alto-item-art {
     width: 28px;
     justify-self: center;
   }
-  .alto-item:has(.alto-effect.is-points) .alto-item-name {
+  .alto-item:is(.is-base, [data-family='base'], :has(.alto-effect.is-points))
+    .alto-item-name {
     justify-self: stretch;
     font-size: 12px;
   }
@@ -2645,4 +2647,257 @@
   margin-right: 5px;
   vertical-align: -3px;
   box-shadow: none;
+}
+
+/* A six-pad catalogue keeps the dock steady as earlier parts stay in stock. */
+.alto-shop-catalogue {
+  position: relative;
+  padding-top: 24px;
+}
+.alto-shop-controls {
+  position: absolute;
+  inset: -7px 4px auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 5;
+}
+.alto-shop-tabs,
+.alto-shop-pages {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 999px;
+  padding: 2px;
+  background: #141c36;
+  border: 1px solid #94bce443;
+}
+.alto-shop-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--alto-cream);
+  font: 700 12px var(--alto-display);
+  cursor: pointer;
+}
+.alto-shop-tabs button[aria-selected='true'] {
+  background: var(--alto-ship);
+  color: #10142f;
+}
+.alto-shop-tabs button:last-child[aria-selected='true'] {
+  background: var(--alto-base);
+}
+.alto-shop-controls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.alto-shop-controls button:focus-visible {
+  outline: 2px solid var(--alto-glow);
+}
+.alto-shop-pages button {
+  width: 32px;
+  padding: 3px;
+}
+.alto-shop-pages span {
+  min-width: 25px;
+  text-align: center;
+  font-size: 11px;
+}
+.alto-shop-catalogue .alto-shelf {
+  padding-top: 10px;
+}
+.alto-shop-empty {
+  min-height: 96px;
+  border-radius: 14px;
+  background: #a7c9ee05;
+}
+.alto-level {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 21px;
+  height: 18px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  border: 1px solid #a9dcff88;
+  background: #1b3551;
+  color: #d5efff;
+  font: 800 10px var(--alto-display);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.alto-item > .alto-level {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  z-index: 4;
+}
+.alto-owned-list .alto-level {
+  flex: none;
+  min-width: 16px;
+  height: 16px;
+  font-size: 9px;
+}
+.alto-built-detail > b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.alto-refit-rules {
+  display: grid;
+  gap: 14px;
+}
+.alto-refit-tier {
+  border-top: 1px solid #59647d55;
+  padding-top: 12px;
+}
+.alto-refit-tier > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.alto-refit-tier[data-fitted] > h3 {
+  color: #70afdd;
+}
+.alto-refit-tier > .alto-goods {
+  margin-bottom: 8px;
+}
+.alto-arrival .alto-goods {
+  gap: 2px;
+}
+.alto-arrival .alto-goods-chip {
+  gap: 1px;
+}
+@media (max-width: 900px) {
+  .alto-shop-catalogue {
+    padding-top: 32px;
+    grid-auto-rows: minmax(74px, auto);
+  }
+  .alto-shop-empty {
+    min-height: 74px;
+  }
+  .alto-item > .alto-level {
+    top: 2px;
+    left: 2px;
+    min-width: 16px;
+    height: 14px;
+    font-size: 8px;
+  }
+  .alto-shop-catalogue .alto-item > .alto-family {
+    display: none;
+  }
+  .alto-shop-catalogue .alto-item-seal > .alto-unlock {
+    display: inline;
+    font-size: 8px;
+  }
+}
+.alto-overview-open {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  gap: 3px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  border-radius: inherit;
+}
+.alto-overview-open:focus-visible {
+  outline: 2px solid var(--alto-glow);
+}
+.alto-last-cargo {
+  display: inline-flex;
+  border-left: 1px solid #8bbddd55;
+  padding-left: 5px;
+}
+.alto-overview-open > .alto-level {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+}
+/* Large late-voyage bills use counts, keeping every cargo kind legible. */
+.alto-cost[data-counted] .alto-cost-units {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  gap: 3px 6px;
+}
+.alto-cost-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 12px;
+}
+.alto-cost-count .alto-good {
+  width: 17px;
+  height: 17px;
+}
+.alto-cost-count[data-unit='missing'] {
+  color: #ff9b9b;
+}
+.alto-cost-count[data-unit='swap'] {
+  color: #ffcf7a;
+}
+.alto-cost-count[data-unit='free'],
+.alto-cost-count s {
+  color: #8fd9ae;
+}
+.alto-cost-count s {
+  opacity: 0.65;
+  font-size: 9px;
+}
+@container (max-width: 145px) {
+  .alto-cost[data-counted] .alto-cost-units {
+    grid-template-columns: repeat(2, max-content);
+    gap: 1px 7px;
+  }
+}
+@media (max-width: 600px) {
+  .alto-world .game-progress.is-round {
+    max-width: min(170px, calc(100vw - 220px));
+    gap: 5px;
+    padding-inline: 7px;
+    font-size: 12px;
+  }
+  .alto-world .game-progress .alto-years {
+    width: clamp(24px, calc(100vw - 298px), 80px);
+    min-width: 0;
+    gap: 3px;
+  }
+  .alto-world .game-progress .alto-year {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    min-width: 0;
+    padding: 0;
+  }
+  .alto-world .game-progress .alto-year i {
+    display: none;
+  }
+  .alto-world .game-progress .alto-year::before {
+    content: '';
+    position: absolute;
+    inset: 1px auto 1px 1px;
+    width: var(--filled, 0%);
+    max-width: calc(100% - 2px);
+    border-radius: inherit;
+    background: var(--alto-orange);
+  }
+  .alto-world .game-progress .alto-year[data-state='done']::before {
+    background: #1b20458c;
+  }
+}
+
+@media (max-width: 900px) {
+  .alto-shop-catalogue .alto-item-seal,
+  .alto-shop-catalogue .alto-item-choice {
+    right: 2px;
+  }
 }

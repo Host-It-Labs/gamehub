@@ -5,12 +5,17 @@ import { makeServer } from '../server/index.ts';
 import { AltoRooms } from '../server/alto.ts';
 import { openDatabase } from '../server/database.ts';
 import { botMove } from '../lib/games/alto/bot.ts';
-import { totalTurns } from '../lib/games/alto/engine.ts';
+import { nextPlan, planLevel, totalTurns } from '../lib/games/alto/engine.ts';
 
 const origin = 'http://localhost:3017';
 
 async function fixture(alto = {}) {
-  const app = await makeServer({ database: ':memory:', origin, bots: false, alto: { inline: true, ...alto } });
+  const app = await makeServer({
+    database: ':memory:',
+    origin,
+    bots: false,
+    alto: { inline: true, ...alto },
+  });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   const controller = new AbortController();
@@ -20,7 +25,13 @@ async function fixture(alto = {}) {
       async request(path, input) {
         const res = await fetch(base + path, {
           method: input === undefined ? 'GET' : 'POST',
-          headers: { Cookie: cookie, Origin: origin, ...(input === undefined ? {} : { 'Content-Type': 'application/json' }) },
+          headers: {
+            Cookie: cookie,
+            Origin: origin,
+            ...(input === undefined
+              ? {}
+              : { 'Content-Type': 'application/json' }),
+          },
           body: input === undefined ? undefined : JSON.stringify(input),
         });
         const set = res.headers.get('set-cookie');
@@ -28,13 +39,22 @@ async function fixture(alto = {}) {
         return { status: res.status, data: await res.json() };
       },
       stay(path) {
-        void fetch(base + path, { headers: { Cookie: cookie, Origin: origin }, signal: controller.signal })
+        void fetch(base + path, {
+          headers: { Cookie: cookie, Origin: origin },
+          signal: controller.signal,
+        })
           .then((res) => res.body?.getReader().read())
           .catch(() => {});
       },
     };
   }
-  return { client, close: async () => { controller.abort(); await app.close(); } };
+  return {
+    client,
+    close: async () => {
+      controller.abort();
+      await app.close();
+    },
+  };
 }
 const until = async (check, what) => {
   for (let i = 0; i < 100; i++) {
@@ -45,14 +65,26 @@ const until = async (check, what) => {
 };
 async function table(client) {
   const host = client();
-  await host.request('/api/auth/signup', { name: 'Host', email: 'host@example.com', password: 'test-password-123' });
+  await host.request('/api/auth/signup', {
+    name: 'Host',
+    email: 'host@example.com',
+    password: 'test-password-123',
+  });
   const invite = (await host.request('/api/tables', {})).data.token;
   const path = `/api/tables/${invite}`;
   host.id = (await host.request(path)).data.viewerId;
   const guest = client();
-  guest.id = (await guest.request(`${path}/join`, { name: 'Guest' })).data.viewerId;
+  guest.id = (
+    await guest.request(`${path}/join`, { name: 'Guest' })
+  ).data.viewerId;
   guest.stay(`${path}/events`);
-  await until(async () => (await host.request(path)).data.members.every((m) => m.connected || m.id === host.id), 'guest connected');
+  await until(
+    async () =>
+      (await host.request(path)).data.members.every(
+        (m) => m.connected || m.id === host.id,
+      ),
+    'guest connected',
+  );
   return { host, guest, path };
 }
 const launch = (extra = {}) => ({
@@ -63,7 +95,8 @@ const launch = (extra = {}) => ({
   ...extra,
 });
 const roomOf = (url) => url.replace('/alto/', '/api/alto/');
-const command = (c, room, move, requestId = randomUUID()) => c.request(`${room}/commands`, { requestId, move });
+const command = (c, room, move, requestId = randomUUID()) =>
+  c.request(`${room}/commands`, { requestId, move });
 /** Picks like a bot would, from what this seat may see. */
 async function pick(c, room) {
   const v = (await c.request(room)).data;
@@ -82,8 +115,14 @@ await test('a table launches Alto with everyone seated and a bot in the rest', a
       launch({ options: { length: 'short', plans: 'first', winds: 'yes' } }),
     ])
       assert.equal((await host.request(`${path}/launch`, input)).status, 400);
-    assert.equal((await host.request(`${path}/launch`, launch({ seats: 1 }))).status, 409);
-    assert.equal((await host.request(`${path}/launch`, launch({ seats: 7 }))).status, 409);
+    assert.equal(
+      (await host.request(`${path}/launch`, launch({ seats: 1 }))).status,
+      409,
+    );
+    assert.equal(
+      (await host.request(`${path}/launch`, launch({ seats: 7 }))).status,
+      409,
+    );
     assert.equal((await guest.request(`${path}/launch`, launch())).status, 403);
     const t = (await guest.request(path)).data;
     const voted = await guest.request(`${path}/commands`, {
@@ -94,7 +133,12 @@ await test('a table launches Alto with everyone seated and a bot in the rest', a
     });
     assert.equal(voted.status, 200);
     assert.deepEqual(voted.data.votes.alto, [guest.id]);
-    const launched = await host.request(`${path}/launch`, launch({ options: { length: 'short', plans: 'first', winds: true, flags: true } }));
+    const launched = await host.request(
+      `${path}/launch`,
+      launch({
+        options: { length: 'short', plans: 'first', winds: true, flags: true },
+      }),
+    );
     assert.equal(launched.status, 200, JSON.stringify(launched.data));
     assert.match(launched.data.url, /^\/alto\/[A-Za-z0-9_-]{32}$/);
     assert.equal((await guest.request(path)).data.handoff.kind, 'alto');
@@ -104,7 +148,14 @@ await test('a table launches Alto with everyone seated and a bot in the rest', a
     assert.equal(mine.viewerSeat, 0);
     assert.equal(theirs.viewerSeat, 1);
     assert.ok(mine.isOwner && !theirs.isOwner);
-    assert.deepEqual(mine.seats.map((s) => [s.name, s.bot]), [['Host', false], ['Guest', false], ['Bot 3', true]]);
+    assert.deepEqual(
+      mine.seats.map((s) => [s.name, s.bot]),
+      [
+        ['Host', false],
+        ['Guest', false],
+        ['Bot 3', true],
+      ],
+    );
     assert.ok(mine.game.options.winds && mine.game.options.flags);
     // The bot has already picked, out of sight.
     assert.ok(mine.game.ready[2]);
@@ -122,23 +173,48 @@ await test('picks stay secret until the last seat locks, and can be taken back b
   const { client, close } = await fixture();
   try {
     const { host, guest, path } = await table(client);
-    const room = roomOf((await host.request(`${path}/launch`, launch())).data.url);
+    const room = roomOf(
+      (await host.request(`${path}/launch`, launch())).data.url,
+    );
     const id = randomUUID();
-    assert.equal((await command(host, room, { type: 'choose', island: 1 }, id)).status, 200);
+    assert.equal(
+      (await command(host, room, { type: 'choose', island: 1 }, id)).status,
+      200,
+    );
     // The same request twice lands once.
-    assert.equal((await command(host, room, { type: 'choose', island: 1 }, id)).status, 200);
+    assert.equal(
+      (await command(host, room, { type: 'choose', island: 1 }, id)).status,
+      200,
+    );
     let seen = (await guest.request(room)).data;
     assert.equal(seen.game.pending[0], null);
     assert.ok(seen.game.ready[0]);
-    assert.deepEqual((await host.request(room)).data.game.pending[0], { island: 1 });
-    assert.equal((await command(host, room, { type: 'choose', island: 2 })).status, 409, 'already locked');
+    assert.deepEqual((await host.request(room)).data.game.pending[0], {
+      island: 1,
+    });
+    assert.equal(
+      (await command(host, room, { type: 'choose', island: 2 })).status,
+      409,
+      'already locked',
+    );
     assert.equal((await command(host, room, { type: 'undo' })).status, 200);
-    assert.equal((await command(host, room, { type: 'choose', island: 2 })).status, 200);
-    assert.equal((await host.request(room)).data.game.turn, 1, 'waits for the guest');
+    assert.equal(
+      (await command(host, room, { type: 'choose', island: 2 })).status,
+      200,
+    );
+    assert.equal(
+      (await host.request(room)).data.game.turn,
+      1,
+      'waits for the guest',
+    );
     await pick(guest, room);
     seen = (await guest.request(room)).data;
     assert.equal(seen.game.turn, 2);
-    assert.equal(seen.game.last.visits[0], 2, 'the turn’s flights are public once it resolves');
+    assert.equal(
+      seen.game.last.visits[0],
+      2,
+      'the turn’s flights are public once it resolves',
+    );
     assert.equal((await command(host, room, { type: 'undo' })).status, 409);
   } finally {
     await close();
@@ -149,11 +225,16 @@ await test('a player away too long has a bot fly for them', async () => {
   const { client, close } = await fixture({ awayMs: 150, onlineMs: 100 });
   try {
     const { host, path } = await table(client);
-    const room = roomOf((await host.request(`${path}/launch`, launch({ seats: 2 }))).data.url);
+    const room = roomOf(
+      (await host.request(`${path}/launch`, launch({ seats: 2 }))).data.url,
+    );
     await pick(host, room);
     await new Promise((r) => setTimeout(r, 200));
     assert.ok((await host.request(room)).data.seats[1].away);
-    await until(async () => (await host.request(room)).data.game.turn === 2, 'the away seat is covered');
+    await until(
+      async () => (await host.request(room)).data.game.turn === 2,
+      'the away seat is covered',
+    );
   } finally {
     await close();
   }
@@ -164,7 +245,20 @@ await test('a match plays to the end and only the admin starts another', async (
   try {
     const { host, guest, path } = await table(client);
     const room = roomOf(
-      (await host.request(`${path}/launch`, launch({ seats: 2, options: { length: 'short', plans: 'random', orders: true, captains: true } }))).data.url,
+      (
+        await host.request(
+          `${path}/launch`,
+          launch({
+            seats: 2,
+            options: {
+              length: 'short',
+              plans: 'random',
+              orders: true,
+              captains: true,
+            },
+          }),
+        )
+      ).data.url,
     );
     let v = (await host.request(room)).data;
     const turns = totalTurns(v.game);
@@ -190,9 +284,126 @@ await test('a match plays to the end and only the admin starts another', async (
 void test('rooms survive a restart', () => {
   const db = openDatabase(':memory:');
   const rooms = new AltoRooms(db, { inline: true });
-  const token = rooms.launch('table', 'a', [{ id: 'a', name: 'Ann' }], launch({ seats: 2 }));
+  const token = rooms.launch(
+    'table',
+    'a',
+    [{ id: 'a', name: 'Ann' }],
+    launch({ seats: 2 }),
+  );
   const again = new AltoRooms(db, { inline: true });
-  const view = again.get(token, { id: 'a', name: 'Ann', userId: null, sessionHash: '', expires: 0 });
+  const view = again.get(token, {
+    id: 'a',
+    name: 'Ann',
+    userId: null,
+    sessionHash: '',
+    expires: 0,
+  });
   assert.equal(view.viewerSeat, 0);
   assert.ok(view.game.ready[1], 'the bot had picked');
+});
+
+void test('a refit stays secret, can be undone and resolves exactly once across online replay', () => {
+  const db = openDatabase(':memory:');
+  const rooms = new AltoRooms(db, { inline: true });
+  const identity = (id) => ({
+    id,
+    name: id,
+    userId: null,
+    sessionHash: '',
+    expires: 0,
+  });
+  const host = identity('a');
+  const guest = identity('b');
+  let restored;
+  try {
+    const token = rooms.launch(
+      'table',
+      'a',
+      [
+        { id: 'a', name: 'Ann' },
+        { id: 'b', name: 'Bo' },
+      ],
+      launch({ seats: 2 }),
+    );
+    const row = db
+      .prepare('SELECT state FROM alto_rooms WHERE token=?')
+      .get(token);
+    const saved = JSON.parse(row.state);
+    assert.equal(saved.game.rules, 3);
+    assert.equal(totalTurns(saved.game), 24);
+    saved.game.season = 2;
+    saved.game.players[0].stock = [30, 30, 30, 30];
+    db.prepare('UPDATE alto_rooms SET state=? WHERE token=?').run(
+      JSON.stringify(saved),
+      token,
+    );
+    const send = (who, move, requestId = randomUUID()) =>
+      rooms.command(token, who, { requestId, move });
+    send(host, { type: 'choose', island: 0, build: 'rigging' });
+    send(guest, { type: 'choose', island: 1 });
+    let before = rooms.get(token, host).game;
+    assert.equal(planLevel(before.players[0], 'rigging'), 1);
+    const price = nextPlan(before, before.players[0], 'rigging').cost;
+    const stock = [...before.players[0].stock];
+    const move = { type: 'choose', island: 0, build: 'rigging' };
+    send(host, move);
+    const hidden = rooms.get(token, guest).game;
+    assert.equal(hidden.pending[0], null);
+    assert.equal(hidden.ready[0], true);
+    assert.equal(
+      planLevel(hidden.players[0], 'rigging'),
+      1,
+      'unresolved refit is private',
+    );
+    assert.deepEqual(
+      hidden.players[0].stock,
+      stock,
+      'a secret lock has not spent cargo',
+    );
+    assert.deepEqual(rooms.get(token, host).game.pending[0], {
+      island: 0,
+      build: 'rigging',
+    });
+    send(host, { type: 'undo' });
+    before = rooms.get(token, host).game;
+    assert.equal(before.pending[0], null);
+    assert.equal(before.ready[0], false);
+    assert.equal(planLevel(before.players[0], 'rigging'), 1);
+    assert.deepEqual(before.players[0].stock, stock);
+    const refitId = randomUUID();
+    const finishId = randomUUID();
+    send(host, move, refitId);
+    send(host, move, refitId);
+    const resolved = send(guest, { type: 'choose', island: 1 }, finishId).game;
+    assert.equal(resolved.history.length, before.history.length + 1);
+    assert.equal(planLevel(resolved.players[0], 'rigging'), 2);
+    assert.deepEqual(resolved.players[0].built, ['rigging']);
+    assert.deepEqual(resolved.last.paid[0], price);
+    assert.equal(resolved.last.buildLevels[0], 2);
+    assert.deepEqual(
+      resolved.players[0].stock,
+      stock.map(
+        (amount, good) => amount - price[good] + resolved.last.cargo[0][good],
+      ),
+    );
+    assert.deepEqual(
+      send(host, move, refitId).game,
+      resolved,
+      'replayed purchase does not buy a third tier',
+    );
+    assert.deepEqual(
+      send(guest, { type: 'choose', island: 1 }, finishId).game,
+      resolved,
+      'last-lock replay does not fly twice',
+    );
+    restored = new AltoRooms(db, { inline: true });
+    const persisted = restored.get(token, host).game;
+    assert.equal(planLevel(persisted.players[0], 'rigging'), 2);
+    assert.deepEqual(persisted.players[0].stock, resolved.players[0].stock);
+    assert.deepEqual(persisted.history, resolved.history);
+  } finally {
+    restored?.close();
+    rooms.close();
+    db.close();
+  }
 });

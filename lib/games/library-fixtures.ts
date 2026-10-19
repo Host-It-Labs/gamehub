@@ -273,9 +273,9 @@ export const libraryGames: LibraryGame[] = [
     href: '/alto',
     ...printedBoxArt('alto'),
     world:
-      'Fly your little ship between planets, share their cargo and build up your ship and your home base over three years',
-    duration: '10–20 min',
-    durationSpoken: '10 to 20 minutes',
+      'Build and refit your cargo ship, combine tools and trade routes, then turn your hauls into a thriving home base',
+    duration: '20–35 min',
+    durationSpoken: '20 to 35 minutes',
     players: [2, 6],
     mode: 'Competitive',
     kind: 'Engine builder',

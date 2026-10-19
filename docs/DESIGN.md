@@ -55,6 +55,28 @@ ranking should simply happen, and the moment to join is right after a game.
 Only names and results are public; emails, password and recovery hashes and
 sessions never reach a board.
 
+## Alto: build a ship before chasing points (17 October 2026)
+
+William asked for a complete gameplay rework: the old game pushed points
+too early, upgrades had uneven value, and ship development needed more depth.
+Alto now runs 30 flights in Full or 24 in Quick, still in three years with
+simultaneous private choices. Year 1 offers only ship parts; Year 2 adds
+hybrid parts, infrastructure and level II refits; Year 3 adds scoring modules
+and level III refits. Earlier offers remain available.
+
+Refits are purchases of a new level for an installed part. They replace its
+effects, pay the displayed refit cost, and keep one physical model on the
+ship. Specialist refits produce a second cargo; Radar rewards changing cargo
+kind between flights. Ship levels, hold size, breadth and balanced leftovers
+support different final scoring modules. Orders start in Year 2.
+
+The shop keeps six visible items with Ship/Base tabs and paging. A prepared
+purchase survives changing tabs or pages. Level marks and inspections show
+fitted and next effects; the full future catalogue is visible from the start.
+The existing planets, ship hardware and three-year visual progression stay.
+Rules 2 saves and rooms continue under their original rules; new voyages use
+rules 3. Current mechanics and verification are in [alto.md](alto.md).
+
 ## Real ambience recordings; Nox passes five (12 October 2026)
 
 William tried a soundscape layered from six generated 30-second ElevenLabs
@@ -1232,7 +1254,8 @@ numbers are Gamehub's. Rules, content, code map and the balance runs are in
   own survey sheet at once: three route dice and a junction die a round, one
   special a round (three a match). Networks score by the exits they link,
   the longest road and rail a point a square, the centre a point a square;
-  loose ends cost one each. Four maps (Meadow, Harbour, Ridge, Capital) and
+  loose ends cost one each. Three maps (Meadow, Harbour, Ridge; updated
+  17 October 2026) and
   four extensions (Rivers, Plans, Towns, Rockfall), each one mechanic and
   independent. 1–6 seats; solo against bots, or online from a table.
 - **Look.** A surveyor's cyanotype sheet on a walnut drafting desk at
@@ -1563,6 +1586,28 @@ set people down at the stations, realistically, with good pavements.
   site is empty; once a piece is laid there the town grows over it.
   Models brief and review:
   [concepts/2026-10-08-rota-passengers/models.md](concepts/2026-10-08-rota-passengers/models.md).
+
+### Rota: three maps that grow with the match (17 October 2026)
+
+William asked to rework the maps, extend the second to ten rounds and the
+third to fourteen, and remove the fourth map. The choices are now:
+
+- **Meadow:** 7×7, seven rounds, twelve exits and a 3×3 centre.
+- **Harbour:** 9×9, ten rounds. A stepped twelve-square dock basin cuts into
+  the east bank; four wharves and eight land exits surround the civic centre.
+- **Ridge:** 10×10, fourteen rounds. Two broken rock bands frame a central
+  valley, with ten straight-only tunnel sites, sixteen exits and twelve
+  centre squares. Its size keeps the longer match dense enough to read on
+  a phone.
+
+Every map balances road and rail exits. Mills marks three sites on Meadow,
+four on Harbour and Ridge. Scoring, the dice and the three-special limit
+stay the same. Capital is no longer offered for a new match.
+
+New matches store `mapVersion: 2`; saves and rooms without it keep their
+original map geometry, cell indices and round count, including Capital.
+Starting another match uses the current map; an old Capital table starts
+on Meadow. Details and the original balance evidence live in [rota.md](rota.md).
 
 ## Know Me and Quiz: everyone guesses everyone, four games each, the host picks (29 September 2026)
 
@@ -2879,7 +2924,7 @@ The observatory uses lazily loaded Three.js with an orthographic camera and simp
 | Yata | `midnight` | Street food: an Asian night-market counter and a Mexican plaza | Tokyo; Bangkok; Mexico; Puebla |
 | My Top Five | `orin` | Personal rankings and shared guesses | Two rounds |
 | Atlas | `miro` | Satellite globe and shared destinations | Places; Photos; Three facts |
-| Rota | `rota` | A mill town that grows round the routes, ink lines, live 3D (3 October 2026) | Meadow; Harbour; Ridge; Capital |
+| Rota | `rota` | A mill town that grows round the routes, ink lines, live 3D (3 October 2026) | Meadow (7 rounds); Harbour (10); Ridge (14) |
 
 Nox, Mora and Yata share one rules module (`lib/games/trio/engine.ts`) because they
 share a deck, a die and a trick. My Top Five and Atlas use their own party

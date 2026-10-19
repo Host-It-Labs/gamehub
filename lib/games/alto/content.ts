@@ -69,7 +69,13 @@ export type Effect =
   /** At the end: leftover cargo scores 1 for every `per` instead of three. */
   | { type: 'thrift'; per: number }
   /** At the end: points for every set of all four kinds of cargo left over. */
-  | { type: 'sets'; points: number };
+  | { type: 'sets'; points: number }
+  /** Changing cargo kind from the previous flight loads extra cargo. */
+  | { type: 'route'; amount: number }
+  /** A specialist produces a second cargo on flights to its chosen kind. */
+  | { type: 'byproduct'; good: Good; cargo: Good; amount: number }
+  /** At the end, score each fitted ship level, including refits. */
+  | { type: 'perLevel'; points: number };
 /** The model's kind: tools load more of one cargo, gear carries more,
  *  trophies and extras score. Players only see the two families. */
 export type Tag = 'workshop' | 'ship' | 'monument' | 'civic';
@@ -87,6 +93,10 @@ export type Plan = {
   tag: Tag;
   family: Family;
   effects: Effect[];
+  /** The inspection/build view's level; catalogue entries start at one. */
+  level?: number;
+  /** Replacement effects and marginal costs for Mk II and Mk III. */
+  refits?: { cost: Goods; effects: Effect[] }[];
 };
 
 const plan = (
@@ -98,99 +108,321 @@ const plan = (
   effects: Effect[],
 ): Plan => ({ id, name, season, cost, tag, family: familyOf(tag), effects });
 
-/**
- * Every upgrade. Each trip's First Flight upgrades come first, in the order
- * the shop lays them out; the rest join them when the shop is drawn at
- * random. Tools load one more of their cargo on every flight to it, so an
- * early one pays for itself several times; trophies pay most to whoever
- * builds them first.
- */
+/** Ship fittings stay available. Mk II opens in Year 2, Mk III in Year 3.
+ * Refits replace a fitting's effects; their costs pay only for the refit. */
+const ship = (
+  id: string,
+  name: string,
+  season: Plan['season'],
+  cost: Goods,
+  tag: Tag,
+  effects: Effect[],
+  refits: NonNullable<Plan['refits']>,
+): Plan => ({ ...plan(id, name, season, cost, tag, effects), refits });
 export const plans: Plan[] = [
   // Year 1: fit out your ship.
-  plan('rigging', 'Cargo Pod', 1, [1, 2, 2, 0], 'ship', [
-    { type: 'hold', amount: 1 },
-  ]),
-  plan('sawmill', 'Harvester', 1, [0, 1, 2, 0], 'workshop', [
-    { type: 'yield', good: 0, amount: 1 },
-  ]),
-  plan('mason', 'Drill', 1, [2, 0, 1, 0], 'workshop', [
-    { type: 'yield', good: 1, amount: 1 },
-  ]),
-  plan('fold', 'Scoop', 1, [1, 2, 0, 0], 'workshop', [
-    { type: 'yield', good: 2, amount: 1 },
-  ]),
-  plan('shrine', 'Telescope', 1, [1, 1, 1, 1], 'monument', [
-    { type: 'points', points: 12 },
-  ]),
-  plan('kite', 'Radar', 1, [1, 1, 1, 1], 'ship', [
-    { type: 'alone', amount: 1 },
-  ]),
-  plan('pier', 'Robot Arm', 1, [1, 1, 2, 0], 'ship', [
-    { type: 'share', amount: 1 },
-  ]),
-  plan('beacon', 'Beacon', 1, [0, 1, 1, 1], 'monument', [
-    { type: 'race', ladder: [11, 10, 9, 8, 7, 6] },
-  ]),
-  plan('post', 'Fabricator', 1, [2, 1, 1, 1], 'civic', [
+  ship(
+    'rigging',
+    'Cargo Pod',
+    1,
+    [2, 4, 2, 0],
+    'ship',
+    [{ type: 'hold', amount: 1 }],
+    [
+      { cost: [1, 2, 1, 1], effects: [{ type: 'hold', amount: 2 }] },
+      { cost: [2, 2, 1, 1], effects: [{ type: 'hold', amount: 3 }] },
+    ],
+  ),
+  ship(
+    'sawmill',
+    'Harvester',
+    1,
+    [0, 2, 4, 0],
+    'workshop',
+    [{ type: 'yield', good: 0, amount: 1 }],
+    [
+      {
+        cost: [1, 1, 1, 1],
+        effects: [
+          { type: 'yield', good: 0, amount: 2 },
+          { type: 'byproduct', good: 0, cargo: 1, amount: 1 },
+        ],
+      },
+      {
+        cost: [1, 1, 2, 1],
+        effects: [
+          { type: 'yield', good: 0, amount: 3 },
+          { type: 'byproduct', good: 0, cargo: 1, amount: 2 },
+        ],
+      },
+    ],
+  ),
+  ship(
+    'mason',
+    'Drill',
+    1,
+    [4, 0, 2, 0],
+    'workshop',
+    [{ type: 'yield', good: 1, amount: 1 }],
+    [
+      {
+        cost: [1, 1, 1, 1],
+        effects: [
+          { type: 'yield', good: 1, amount: 2 },
+          { type: 'byproduct', good: 1, cargo: 2, amount: 1 },
+        ],
+      },
+      {
+        cost: [1, 1, 2, 1],
+        effects: [
+          { type: 'yield', good: 1, amount: 3 },
+          { type: 'byproduct', good: 1, cargo: 2, amount: 2 },
+        ],
+      },
+    ],
+  ),
+  ship(
+    'fold',
+    'Scoop',
+    1,
+    [2, 4, 0, 0],
+    'workshop',
+    [{ type: 'yield', good: 2, amount: 1 }],
+    [
+      {
+        cost: [1, 1, 1, 1],
+        effects: [
+          { type: 'yield', good: 2, amount: 2 },
+          { type: 'byproduct', good: 2, cargo: 0, amount: 1 },
+        ],
+      },
+      {
+        cost: [1, 1, 2, 1],
+        effects: [
+          { type: 'yield', good: 2, amount: 3 },
+          { type: 'byproduct', good: 2, cargo: 0, amount: 2 },
+        ],
+      },
+    ],
+  ),
+  ship(
+    'kite',
+    'Radar',
+    1,
+    [2, 2, 2, 2],
+    'ship',
+    [{ type: 'route', amount: 1 }],
+    [
+      {
+        cost: [1, 1, 2, 2],
+        effects: [
+          { type: 'route', amount: 1 },
+          { type: 'alone', amount: 1 },
+        ],
+      },
+      {
+        cost: [2, 2, 3, 2],
+        effects: [
+          { type: 'route', amount: 2 },
+          { type: 'alone', amount: 1 },
+        ],
+      },
+    ],
+  ),
+  ship(
+    'pier',
+    'Robot Arm',
+    1,
+    [2, 2, 2, 0],
+    'ship',
+    [{ type: 'share', amount: 1 }],
+    [
+      { cost: [1, 2, 2, 1], effects: [{ type: 'share', amount: 2 }] },
+      { cost: [2, 2, 2, 1], effects: [{ type: 'share', amount: 3 }] },
+    ],
+  ),
+  ship(
+    'glassworks',
+    'Cutter',
+    1,
+    [2, 2, 2, 0],
+    'workshop',
+    [{ type: 'yield', good: 3, amount: 2 }],
+    [
+      {
+        cost: [1, 1, 1, 1],
+        effects: [
+          { type: 'yield', good: 3, amount: 2 },
+          { type: 'byproduct', good: 3, cargo: 0, amount: 1 },
+        ],
+      },
+      {
+        cost: [1, 1, 2, 1],
+        effects: [
+          { type: 'yield', good: 3, amount: 3 },
+          { type: 'byproduct', good: 3, cargo: 0, amount: 2 },
+        ],
+      },
+    ],
+  ),
+  // Year 2: hybrid fittings and infrastructure.
+  ship(
+    'sails',
+    'Trailer',
+    2,
+    [4, 2, 2, 2],
+    'ship',
+    [
+      { type: 'hold', amount: 1 },
+      { type: 'share', amount: 1 },
+    ],
+    [
+      {
+        cost: [2, 2, 2, 2],
+        effects: [
+          { type: 'hold', amount: 2 },
+          { type: 'share', amount: 1 },
+        ],
+      },
+      {
+        cost: [3, 3, 3, 3],
+        effects: [
+          { type: 'hold', amount: 2 },
+          { type: 'share', amount: 2 },
+        ],
+      },
+    ],
+  ),
+  ship(
+    'windmill',
+    'Cooler',
+    2,
+    [1, 2, 2, 1],
+    'workshop',
+    [
+      { type: 'yield', good: 0, amount: 1 },
+      { type: 'yield', good: 2, amount: 1 },
+    ],
+    [
+      {
+        cost: [2, 3, 2, 2],
+        effects: [
+          { type: 'yield', good: 0, amount: 2 },
+          { type: 'yield', good: 2, amount: 2 },
+        ],
+      },
+      {
+        cost: [3, 4, 3, 3],
+        effects: [
+          { type: 'yield', good: 0, amount: 2 },
+          { type: 'yield', good: 2, amount: 2 },
+          { type: 'route', amount: 1 },
+        ],
+      },
+    ],
+  ),
+  ship(
+    'balloon',
+    'Sidecar',
+    2,
+    [4, 2, 4, 2],
+    'ship',
+    [
+      { type: 'hold', amount: 1 },
+      { type: 'alone', amount: 1 },
+    ],
+    [
+      {
+        cost: [3, 2, 2, 2],
+        effects: [
+          { type: 'hold', amount: 2 },
+          { type: 'alone', amount: 1 },
+        ],
+      },
+      {
+        cost: [4, 3, 3, 3],
+        effects: [
+          { type: 'hold', amount: 2 },
+          { type: 'alone', amount: 2 },
+        ],
+      },
+    ],
+  ),
+  ship(
+    'harbor',
+    'Magnet',
+    2,
+    [2, 4, 2, 2],
+    'ship',
+    [
+      { type: 'share', amount: 2 },
+      { type: 'yield', good: 1, amount: 1 },
+    ],
+    [
+      {
+        cost: [2, 3, 1, 2],
+        effects: [
+          { type: 'share', amount: 3 },
+          { type: 'yield', good: 1, amount: 1 },
+        ],
+      },
+      {
+        cost: [3, 4, 2, 3],
+        effects: [
+          { type: 'share', amount: 3 },
+          { type: 'yield', good: 1, amount: 2 },
+        ],
+      },
+    ],
+  ),
+  plan('post', 'Fabricator', 2, [1, 1, 1, 1], 'civic', [
     { type: 'discount', amount: 1, family: 'base' },
   ]),
-  // Year 2: crystal, bigger holds, the first big scores.
-  plan('glassworks', 'Cutter', 2, [1, 0, 1, 0], 'workshop', [
-    { type: 'yield', good: 3, amount: 1 },
+  plan('market', 'Workshop', 2, [1, 2, 2, 1], 'civic', [
+    { type: 'discount', amount: 1, family: 'ship' },
   ]),
-  plan('sails', 'Trailer', 2, [2, 1, 1, 1], 'ship', [
-    { type: 'hold', amount: 1 },
+  // Year 3: score the ship and base you chose to build.
+  plan('guildhall', 'Refinery', 3, [5, 5, 5, 5], 'civic', [
+    { type: 'perLevel', points: 3 },
   ]),
-  plan('belltower', 'Dish', 2, [1, 2, 1, 1], 'monument', [
-    { type: 'race', ladder: [12, 10, 9, 8, 7, 6] },
+  plan('archive', 'Hangar', 3, [5, 7, 5, 3], 'civic', [
+    { type: 'perHold', points: 6 },
   ]),
-  plan('gardens', 'Garden', 2, [1, 1, 1, 1], 'civic', [
-    { type: 'per', points: 1 },
+  plan('gardens', 'Garden', 3, [4, 4, 4, 3], 'civic', [
+    { type: 'per', points: 2 },
   ]),
-  plan('windmill', 'Cooler', 2, [0, 2, 1, 1], 'workshop', [
-    { type: 'yield', good: 0, amount: 1 },
-    { type: 'yield', good: 2, amount: 1 },
+  plan('lighthouse', 'Signal Tower', 3, [5, 7, 5, 7], 'monument', [
+    { type: 'race', ladder: [44, 40, 36, 32, 30, 28] },
   ]),
-  plan('bridge', 'Statue', 2, [1, 1, 2, 1], 'monument', [
-    { type: 'points', points: 11 },
+  plan('shrine', 'Telescope', 3, [5, 5, 5, 5], 'monument', [
+    { type: 'points', points: 34 },
   ]),
-  plan('market', 'Workshop', 2, [1, 1, 2, 1], 'civic', [
-    { type: 'discount', amount: 1 },
+  plan('bazaar', 'Cargo Hub', 3, [2, 1, 2, 1], 'civic', [
+    { type: 'sets', points: 3 },
   ]),
-  plan('balloon', 'Sidecar', 2, [2, 1, 2, 1], 'ship', [
-    { type: 'hold', amount: 1 },
-    { type: 'alone', amount: 1 },
+  plan('beacon', 'Beacon', 3, [3, 5, 5, 5], 'monument', [
+    { type: 'race', ladder: [34, 32, 30, 28, 26, 24] },
   ]),
-  plan('harbor', 'Magnet', 2, [1, 2, 1, 1], 'ship', [
-    { type: 'share', amount: 2 },
+  plan('belltower', 'Dish', 3, [5, 5, 5, 5], 'monument', [
+    { type: 'race', ladder: [40, 36, 34, 32, 30, 28] },
   ]),
-  // Year 3: build up your base.
-  plan('lighthouse', 'Signal Tower', 3, [2, 2, 2, 2], 'monument', [
-    { type: 'race', ladder: [14, 12, 10, 9, 8, 7] },
+  plan('bridge', 'Statue', 3, [5, 5, 5, 3], 'monument', [
+    { type: 'points', points: 30 },
   ]),
-  plan('palace', 'Habitat', 3, [2, 3, 2, 3], 'monument', [
-    { type: 'race', ladder: [17, 15, 13, 11, 10, 9] },
+  plan('palace', 'Habitat', 3, [7, 7, 7, 7], 'monument', [
+    { type: 'race', ladder: [54, 48, 44, 40, 36, 34] },
   ]),
-  plan('guildhall', 'Refinery', 3, [1, 1, 2, 1], 'civic', [
-    { type: 'per', points: 2, family: 'ship' },
+  plan('observatory', 'Observatory', 3, [4, 4, 4, 6], 'monument', [
+    { type: 'per', points: 6, family: 'ship' },
   ]),
-  plan('observatory', 'Observatory', 3, [2, 1, 1, 3], 'monument', [
-    { type: 'points', points: 10 },
+  plan('fountain', 'Water Tank', 3, [5, 3, 7, 3], 'monument', [
+    { type: 'points', points: 30 },
   ]),
-  plan('archive', 'Hangar', 3, [1, 2, 2, 1], 'civic', [
-    { type: 'perHold', points: 3 },
+  plan('treasury', 'Vault', 3, [2, 2, 2, 2], 'civic', [
+    { type: 'thrift', per: 1 },
   ]),
-  plan('fountain', 'Water Tank', 3, [2, 1, 2, 1], 'monument', [
-    { type: 'points', points: 9 },
-  ]),
-  plan('treasury', 'Vault', 3, [1, 2, 1, 1], 'civic', [
-    { type: 'thrift', per: 2 },
-  ]),
-  plan('skytower', 'Archive', 3, [2, 1, 2, 2], 'monument', [
-    { type: 'per', points: 2, family: 'base' },
-  ]),
-  plan('bazaar', 'Cargo Hub', 3, [1, 1, 1, 1], 'civic', [
-    { type: 'sets', points: 4 },
+  plan('skytower', 'Archive', 3, [5, 5, 5, 5], 'monument', [
+    { type: 'per', points: 8, family: 'base' },
   ]),
 ];
 export const planById = Object.fromEntries(
@@ -309,5 +541,5 @@ export const windBonus = 3;
 export const flagPoints = { most: 5, tied: 2 };
 
 /** How long a match runs: turns in each of the three trips (seasons in the code). */
-export const lengths = { short: 4, standard: 6 } as const;
+export const lengths = { short: 8, standard: 10 } as const;
 export type Length = keyof typeof lengths;

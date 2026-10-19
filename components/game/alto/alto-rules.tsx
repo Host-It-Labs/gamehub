@@ -14,7 +14,14 @@ import {
   windBonus,
   type Plan,
 } from '@/lib/games/alto/content';
-import type { AltoOptions, ExtensionKey } from '@/lib/games/alto/engine';
+import {
+  captainFor,
+  planFor,
+  turnsPerSeason,
+  type AltoGame,
+  type AltoOptions,
+  type ExtensionKey,
+} from '@/lib/games/alto/engine';
 import { captainArt, seasonNames } from '@/lib/games/alto/art';
 import { effectRuleParts, familyLabel, planRule } from '@/lib/games/alto/text';
 import { FamilyIcon, GoodsRow, PlanMark } from './alto-parts';
@@ -25,14 +32,19 @@ import { FamilyIcon, GoodsRow, PlanMark } from './alto-parts';
 export function AltoRules({
   options,
   plans,
+  game,
 }: {
   options?: AltoOptions;
   plans?: string[][];
+  game?: AltoGame;
 }) {
-  const turns = lengths[options?.length ?? 'standard'];
+  const turns = game
+    ? turnsPerSeason(game)
+    : lengths[options?.length ?? 'standard'];
+  const legacy = game?.rules === 2;
   return (
     <Rules className="alto-rules">
-      <RuleSection title="Build your base">
+      <RuleSection title="Build your ship">
         <p>
           Over <b>three years</b>, fly your ship between the planets, load their{' '}
           <b>cargo</b> and spend it on <b>upgrades</b>: parts for your ship and
@@ -69,6 +81,24 @@ export function AltoRules({
           <b>score points</b> or make later upgrades <b>cost less</b>.
         </p>
       </RuleSection>
+      {!legacy && (
+        <RuleSection
+          title="Refit your ship"
+          note="A refit replaces the old effect; the levels do not add together. Refitting uses your one build for the flight."
+        >
+          <p>
+            <b>Year 1</b> is for ship parts. In <b>Year 2</b>, you can refit
+            them to <b>level II</b>; <b>Year 3</b> opens <b>level III</b>.
+            Earlier upgrades stay in the shop, so you can keep developing your
+            ship.
+          </p>
+          <p>
+            Some parts bring a <b>second cargo</b> home. A <b>route</b> bonus
+            pays when you visit a different cargo kind from your previous
+            flight; it does not pay on your first flight.
+          </p>
+        </RuleSection>
+      )}
       <RuleSection
         title="Read the points"
         note="Build a race module on the same turn as others and you all get the last builder’s prize."
@@ -86,16 +116,25 @@ export function AltoRules({
       </RuleSection>
       <RuleSection title="Three years">
         <p>
-          Each year the shop holds <b>{plansPerSeason} upgrades</b> for{' '}
-          <b>{turns} turns</b>; they leave when it ends. After the third, every{' '}
-          <b>{leftoverPer} cargo</b> left score 1. A tie goes to more cargo
-          left.
+          Each year lasts <b>{turns} turns</b> and {legacy ? 'holds' : 'adds'}{' '}
+          <b>{plansPerSeason} upgrades</b>
+          {legacy
+            ? '; they leave when it ends.'
+            : '; earlier upgrades stay available.'}{' '}
+          After the third, every <b>{leftoverPer} cargo</b> left score 1. A tie
+          goes to more cargo left.
         </p>
       </RuleSection>
       {extensionKeysIn(options).map((key) => (
-        <AltoExtensionRules key={key} kind={key} titled />
+        <AltoExtensionRules
+          key={key}
+          kind={key}
+          titled
+          legacy={legacy}
+          game={game}
+        />
       ))}
-      {plans && <PlanList plans={plans} />}
+      {plans && <PlanList plans={plans} game={game} />}
     </Rules>
   );
 }
@@ -140,9 +179,13 @@ export const extensionTitles: Record<ExtensionKey, string> = {
 export function AltoExtensionRules({
   kind,
   titled = false,
+  legacy = false,
+  game,
 }: {
   kind: ExtensionKey;
   titled?: boolean;
+  legacy?: boolean;
+  game?: AltoGame;
 }) {
   const title = titled ? extensionTitles[kind] : undefined;
   if (kind === 'winds')
@@ -165,6 +208,11 @@ export function AltoExtensionRules({
         note="An order is your build for the turn: an upgrade or an order, not both."
       >
         <p>
+          {!legacy && (
+            <>
+              From <b>Year 2</b>,{' '}
+            </>
+          )}
           <b>{openOrders} orders</b> wait above the shop. Instead of an upgrade,
           you may <b>fill an order</b>: pay its cargo and score its points at
           once. The <b>first</b> to fill it takes it; fill it on the same turn
@@ -193,19 +241,28 @@ export function AltoExtensionRules({
       </p>
       <RuleList
         className="alto-rule-captains"
-        items={captains.map((c) => ({
-          key: c.id,
-          mark: <img src={captainArt(c.id)} alt="" width={32} height={32} />,
-          name: c.name,
-          text: c.text,
-        }))}
+        items={captains.map((base) => {
+          const c = game ? captainFor(game, base.id) : base;
+          return {
+            key: c.id,
+            mark: <img src={captainArt(c.id)} alt="" width={32} height={32} />,
+            name: c.name,
+            text: c.text,
+          };
+        })}
       />
     </RuleSection>
   );
 }
 
 /** The upgrades of this match, year by year. */
-export function PlanList({ plans }: { plans: string[][] }) {
+export function PlanList({
+  plans,
+  game,
+}: {
+  plans: string[][];
+  game?: AltoGame;
+}) {
   return (
     <>
       {plans.map((ids, s) => (
@@ -215,24 +272,26 @@ export function PlanList({ plans }: { plans: string[][] }) {
           className="alto-rule-plans"
         >
           <RuleList
-            items={ids.map((id) => ({
-              key: id,
-              mark: <PlanMark id={id} size={36} />,
-              name: (
-                <>
-                  <span
-                    className="alto-family"
-                    data-family={planById[id].family}
-                    aria-label={familyLabel(planById[id].family)}
-                  >
-                    <FamilyIcon family={planById[id].family} size={11} />
-                  </span>
-                  {planById[id].name}{' '}
-                  <GoodsRow amounts={planById[id].cost} size={13} />
-                </>
-              ),
-              text: planRule(planById[id]),
-            }))}
+            items={ids.map((id) => {
+              const plan = game ? planFor(game, id) : planById[id];
+              return {
+                key: id,
+                mark: <PlanMark id={id} size={36} />,
+                name: (
+                  <>
+                    <span
+                      className="alto-family"
+                      data-family={plan.family}
+                      aria-label={familyLabel(plan.family)}
+                    >
+                      <FamilyIcon family={plan.family} size={11} />
+                    </span>
+                    {plan.name} <GoodsRow amounts={plan.cost} size={13} />
+                  </>
+                ),
+                text: planRule(plan),
+              };
+            })}
           />
         </RuleSection>
       ))}

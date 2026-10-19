@@ -6,6 +6,7 @@ import { CUTTING_HALF } from '@/lib/games/rota/scale';
 export { LANE_HALF, RING } from '@/lib/games/rota/neighbourhood';
 import { LANE_HALF, RING } from '@/lib/games/rota/neighbourhood';
 import { lateDusk } from '@/lib/games/rota/daylight';
+import { landscapes } from '@/lib/games/rota/landscape';
 
 const CUT = CUTTING_HALF - 0.004;
 
@@ -31,7 +32,6 @@ const RIVER_DEPTH = -0.055;
 const FINE = 9;
 const FAR = 26;
 /** The town is flat this far out; the moors rise beyond. */
-const TOWN = 8;
 /** The old town's back lanes: half their width, and the ring lane round the
  *  site this far out, with terraces between it and the board. */
 
@@ -137,6 +137,8 @@ export class Ground {
     detail = { value: 1 },
   ) {
     const n = map.size;
+    const landscape = landscapes[map.id];
+    const townReach = landscape.town;
     this.xs = axis(n);
     this.zs = axis(n);
     const nx = this.xs.length,
@@ -187,15 +189,15 @@ export class Ground {
     const material = toon('#ffffff');
     const u = this.uniforms;
     const tone = {
-      uMoor: { value: new THREE.Color('#7f8a4f') },
-      uHeather: { value: new THREE.Color('#8d7280') },
-      uYard: { value: new THREE.Color('#8f8676') },
-      uYardLight: { value: new THREE.Color('#9b927f') },
-      uSetts: { value: new THREE.Color('#77716a') },
-      uCinder: { value: new THREE.Color('#8a8172') },
-      uGrass: { value: new THREE.Color('#8f9866') },
+      uMoor: { value: new THREE.Color(landscape.moor) },
+      uHeather: { value: new THREE.Color(landscape.heather) },
+      uYard: { value: new THREE.Color(landscape.yard) },
+      uYardLight: { value: new THREE.Color(landscape.yardLight) },
+      uSetts: { value: new THREE.Color(landscape.setts) },
+      uCinder: { value: new THREE.Color(landscape.cinder) },
+      uGrass: { value: new THREE.Color(landscape.grass) },
       uLine: { value: new THREE.Color('#e7dfca') },
-      uFlags: { value: new THREE.Color('#c4b494') },
+      uFlags: { value: new THREE.Color(landscape.flags) },
       uSand: { value: new THREE.Color('#a39a86') },
       uBed: { value: new THREE.Color('#4b6f72') },
       uFoam: { value: new THREE.Color('#d9dfd8') },
@@ -231,6 +233,12 @@ vec3 rotaTownColour(RotaSurface surface, float away) {
   float street = (1.0 - smoothstep(${LANE_HALF.toFixed(3)} - 0.012, ${LANE_HALF.toFixed(3)}, near)) * reach;
   float patchy = rotaNoise(b * 0.5) * 0.6 + rotaNoise(b * 2.3) * 0.4;
   vec3 town = mix(uYard, uYardLight, smoothstep(0.45, 0.6, patchy)) * rotaEarth(surface);
+  vec2 block = floor(b + 0.5);
+  float blockAway = max(max(-block.x, -block.y), max(block.x - uN, block.y - uN));
+  float district = mod(block.x + block.y * 2.0, 4.0);
+  bool garden = ${map.id === 'meadow' ? 'district < 1.5' : map.id === 'ridge' ? '(district < 0.5 || blockAway > 4.0)' : 'false'};
+  if (garden && blockAway >= 2.0)
+    town = mix(uMoor, uGrass, 0.55) * rotaGrass(surface);
   float pave = (1.0 - smoothstep(${(LANE_HALF + 0.03).toFixed(3)}, ${(LANE_HALF + 0.042).toFixed(3)}, near))
     * smoothstep(${(RING - LANE_HALF - 0.054).toFixed(3)}, ${(RING - LANE_HALF - 0.042).toFixed(3)}, away);
   if (pave > 0.0)
@@ -275,14 +283,14 @@ void main() {
     }
     float line = 1.0 - smoothstep(0.006 - lineAA * 0.5, 0.012 + lineAA * 0.5, edge);
     col = mix(col, uLine, line * 0.7);
-  } else if (away >= ${(TOWN + 0.5).toFixed(1)}) {
+  } else if (away >= ${(townReach + 0.5).toFixed(1)}) {
     col = rotaMoorColour(surface);
   } else {
     // The old town: cobbled lanes on the half-squares beyond the first
     // ring, yards between them, and moors beyond. Only the transition needs both materials.
     col = rotaTownColour(surface, away);
-    if (away > ${(TOWN - 1.5).toFixed(1)})
-      col = mix(col, rotaMoorColour(surface), smoothstep(${(TOWN - 1.5).toFixed(1)}, ${(TOWN + 0.5).toFixed(1)}, away));
+    if (away > ${(townReach - 1.5).toFixed(1)})
+      col = mix(col, rotaMoorColour(surface), smoothstep(${(townReach - 1.5).toFixed(1)}, ${(townReach + 0.5).toFixed(1)}, away));
   }
   // Sand under the water's edge, a turquoise bed deeper down, and a band
   // of white foam where the land meets the water.
@@ -315,7 +323,7 @@ void main() {
   }`,
         );
     };
-    material.customProgramCacheKey = () => 'rota-ground-surfaces-v3';
+    material.customProgramCacheKey = () => `rota-ground-districts-v4-${map.id}`;
     this.mesh = new THREE.Mesh(g, material);
     this.mesh.receiveShadow = true;
     this.mesh.position.set(-n / 2, 0, -n / 2);
@@ -403,7 +411,8 @@ void main() {
           const roll =
             Math.pow(noise(x * 0.14, z * 0.14), 2) * 1.1 +
             noise(x * 0.5, z * 0.5) * 0.08;
-          h += roll * smooth(TOWN, TOWN + 4, outside) * flat;
+          const town = landscapes[this.map.id].town;
+          h += roll * smooth(town, town + 4, outside) * flat;
           for (const hill of opts.hills ?? []) {
             const d = Math.hypot(x - hill.x, z - hill.z) / hill.r;
             if (d < 1) h += hill.h * (1 - d * d) * (1 - d * d) * flat;

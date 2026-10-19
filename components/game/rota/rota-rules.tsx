@@ -21,15 +21,26 @@ export const extensionNames: Record<Extension, string> = {
 };
 
 export const mapLines: Record<MapId, string> = {
+  meadow: 'Seven rounds on a seven-by-seven board, with twelve exits.',
+  harbour: 'Ten rounds around a deep dock basin, with four wharves.',
+  ridge: `Fourteen rounds across two rock bands. Only straights cross an outcrop: each tunnel scores ${TUNNEL_POINTS}.`,
+  capital: 'Eight by eight, sixteen exits, eight rounds.',
+};
+
+const originalMapLines: Record<MapId, string> = {
   meadow: 'The edge of town, twelve exits.',
   harbour: 'The docks take a corner; two wharves reach into them.',
-  ridge: `Rock outcrops take only a straight: a tunnel, worth ${TUNNEL_POINTS}.`,
+  ridge: `Four rock outcrops take only a straight: each tunnel scores ${TUNNEL_POINTS}.`,
   capital: 'Eight by eight, sixteen exits, eight rounds.',
 };
 
 /** How to play: the goal, placing the dice, junctions, specials, scoring,
  *  the maps and the end. Arena's pattern (see `components/game/rules.tsx`). */
-export function RotaRules({ map }: { map?: MapId }) {
+export function RotaRules({ map, rounds }: { map?: MapId; rounds?: number }) {
+  const original =
+    map &&
+    (map === 'capital' ||
+      (rounds !== undefined && rounds !== maps[map].rounds));
   return (
     <Rules className="rota-rules">
       <RuleSection title="Link the exits">
@@ -89,18 +100,26 @@ export function RotaRules({ map }: { map?: MapId }) {
       </RuleSection>
       <RuleSection title="The maps">
         <RuleList
-          items={MAP_IDS.map((id) => ({
+          items={(original ? [map] : MAP_IDS).map((id) => ({
             key: id,
             name: maps[id].name,
-            text: mapLines[id],
+            text: original ? originalMapLines[id] : mapLines[id],
           }))}
         />
       </RuleSection>
       <RuleSection title="The end">
         <p>
-          The match lasts <b>{map ? maps[map].rounds : 7} rounds</b>
-          {map === 'capital' ? '' : ' (eight on Capital)'}. Most points wins;{' '}
-          <b>fewer loose ends</b> breaks a tie.
+          {map ? (
+            <>
+              The match lasts <b>{rounds ?? maps[map].rounds} rounds</b>.
+            </>
+          ) : (
+            <>
+              Play <b>7 rounds</b> on Meadow, <b>10</b> on Harbour or <b>14</b>{' '}
+              on Ridge.
+            </>
+          )}{' '}
+          Most points wins; <b>fewer loose ends</b> breaks a tie.
         </p>
       </RuleSection>
     </Rules>

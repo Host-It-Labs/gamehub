@@ -6,6 +6,7 @@ import { FRONTAGE, HOUSE_DEPTH } from '@/lib/games/rota/scale';
 import type { Materials } from './materials';
 import { LANE_HALF, RING } from './ground';
 import { prepareWindows } from './window-lights';
+import { greenBlock, landscapes } from '@/lib/games/rota/landscape';
 
 /**
  * The town round the site and the moors beyond it. Close in, an unbroken
@@ -96,6 +97,7 @@ export type Stack = { x: number; y: number; z: number };
 
 export function planScenery({ map, height, rivers, lite }: SceneryInput) {
   const n = map.size;
+  const landscape = landscapes[map.id];
   const r = rng(map.id.split('').reduce((s, c) => s * 31 + c.charCodeAt(0), 7));
   const out: Placement[] = [];
   const rows: Row[] = [];
@@ -154,10 +156,24 @@ export function planScenery({ map, height, rivers, lite }: SceneryInput) {
   // The camera sees more beyond the board's far edge than its near one.
   const inView = (x: number, z: number) =>
     x > -10 && x < n + 10 && z > -8 && z < n + 4.5;
-  const town = map.id === 'capital' ? 8 : 6.5;
+  const town = landscape.town;
+
+  // Exposed gritstone on Ridge's shoulders. These rocks have no tunnel:
+  // only an actual railway arrival is allowed to suggest a way through.
+  if (map.id === 'ridge') {
+    for (const [x, z, rot, scale] of [
+      [-3.8, -2.8, 0.25, 2.6],
+      [n + 3.6, -2.8, -0.35, 3.0],
+      [-4.2, n * 0.7, 0.7, 2.4],
+      [n + 4, n + 1.4, -0.4, 2.8],
+    ]) {
+      put('rock_c', x, z, scale * 0.42, rot, scale * 6);
+      put('rock_b', x + 1.3, z + 0.9, scale * 0.2, rot + 1, scale * 4);
+    }
+  }
 
   // Landmarks first: mills with their chimneys, chapels, gasholders.
-  const landmarks = map.id === 'capital' ? 9 : map.id === 'ridge' ? 5 : 7;
+  const landmarks = landscape.landmarks;
   for (let k = 0, tries = 0; k < landmarks && tries < 400; tries++) {
     // In a block of its own, between the streets.
     const x = Math.round(-6 + r() * (n + 12)),
@@ -166,7 +182,9 @@ export function planScenery({ map, height, rivers, lite }: SceneryInput) {
     if (d < 1.9 || d > town - 0.5) continue;
     const roll = r();
     const rot = Math.round(r() * 4) * (Math.PI / 2);
-    if (roll < 0.5) {
+    if (map.id === 'harbour' && roll < 0.4) {
+      if (!put('warehouse_rail', x, z, 0.38, rot)) continue;
+    } else if (roll < 0.5) {
       if (!put('mill_big', x, z, 0.5, rot)) continue;
       const cx = x + Math.cos(rot) * 0.55,
         cz = z - Math.sin(rot) * 0.55;
@@ -194,7 +212,7 @@ export function planScenery({ map, height, rivers, lite }: SceneryInput) {
   // The ring of terraces round the site: a row fronting the ring lane and
   // one fronting the hoarding, back to back across their yards, along every
   // side. A way out breaks them; nothing else does.
-  const tall = map.id === 'capital' ? 3 : 2;
+  const tall = landscape.storeys;
   const front = RING - LANE_HALF - 0.05;
   const outer = front - HOUSE_DEPTH / 2,
     inner = outer - 0.4;
@@ -312,8 +330,40 @@ export function planScenery({ map, height, rivers, lite }: SceneryInput) {
       // The first ring is the terrace round the site.
       if (d < RING || d > town + (r() - 0.5) * 1.5 || !inView(cx, cz)) continue;
       if (lite && d > town - 2 && r() < 0.5) continue;
+      // Authored green districts break up Meadow's streets and open Ridge
+      // toward its slopes. Trees stand inside blocks, never on the lanes.
+      if (greenBlock(map.id, gx, gz, n)) {
+        const pine = map.id === 'ridge';
+        put(
+          pine ? 'pine_a' : 'oak_b',
+          cx - 0.16,
+          cz + 0.12,
+          0.2,
+          r() * 6,
+          pine ? 1.8 : 1.65,
+        );
+        put(
+          pine ? 'rock_c' : 'birch',
+          cx + 0.22,
+          cz - 0.2,
+          0.12,
+          r() * 6,
+          pine ? 2.2 : 1.3,
+        );
+        if (!pine && r() > 0.45) put('stone_wall', cx, cz - 0.32, 0.09, 0, 0.7);
+        taken.push({ x: cx, z: cz, r: 0.42 });
+        continue;
+      }
       const across = (Math.floor(gx / 3) + Math.floor(gz / 2)) % 2 === 0;
       const storeys = d < 3 && r() < 0.25 ? tall + 1 : r() < 0.15 ? 1 : tall;
+      // Long bonded warehouses give the port a different roof rhythm.
+      if (
+        map.id === 'harbour' &&
+        gx > n - 3 &&
+        r() < 0.7 &&
+        put('warehouse_rail', cx, cz, 0.38, Math.PI / 2)
+      )
+        continue;
       for (const side of [-1, 1]) {
         // A row along the block's edge, its back to the yard in the middle.
         const off = 0.2 * side;

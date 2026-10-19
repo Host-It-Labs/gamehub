@@ -254,7 +254,7 @@ await test('every box shows its match length on the time badge', () => {
     relic: '60 min+',
     arena: '5 min',
     rota: '10–20 min',
-    alto: '10–20 min',
+    alto: '20–35 min',
     diner: '2–3 min / shift',
     impostor: '10–40 min',
   });

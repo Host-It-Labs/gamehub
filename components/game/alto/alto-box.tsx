@@ -233,13 +233,13 @@ export function AltoSetupBox({
             {
               value: 'first',
               name: 'First Flight',
-              meta: `The same ${3 * plansPerSeason} upgrades`,
+              meta: `${3 * plansPerSeason} upgrades, plus ship refits`,
               preview: <SetFan ids={[shown[0][0], shown[0][2], shown[0][5]]} />,
             },
             {
               value: 'random',
               name: 'Random',
-              meta: `${3 * plansPerSeason} of ${allPlans.length}, all shown`,
+              meta: `${3 * plansPerSeason} of ${allPlans.length}, plus refits`,
               preview: <SetFan ids={['shrine', 'fold', 'sawmill']} shuffled />,
             },
           ].map((card) => ({

@@ -10,6 +10,8 @@ import {
 } from 'react';
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   Crown,
   Flag,
   Orbit,
@@ -24,11 +26,9 @@ import {
   Undo2,
 } from 'lucide-react';
 import {
-  captainById,
   goods,
   islands as islandList,
   orderById,
-  planById,
   windBonus,
   type Family,
   type Good,
@@ -39,11 +39,18 @@ import {
   breakdown,
   buildable,
   canUndo,
+  captainFor,
   currentPlans,
   decisionKey,
   discount,
   fillable,
   hold,
+  maxPlanLevel,
+  nextPlan,
+  ownedPlan,
+  planAtLevel,
+  planFor,
+  planLevel,
   raceValue,
   shareBonus,
   totalGoods,
@@ -87,6 +94,7 @@ import {
   GoodsRow,
   PlanFace,
   PlanMark,
+  LevelMark,
   ShipIcon,
   YearTrack,
   seatStyle,
@@ -129,7 +137,7 @@ type Props = {
 
 type Pick = { kind: 'plan' | 'order'; id: string };
 type Inspecting =
-  | { kind: 'plan'; id: string }
+  | { kind: 'plan'; id: string; seat?: number }
   | { kind: 'order'; id: string }
   | { kind: 'island'; index: number }
   | { kind: 'player'; seat: number };
@@ -580,6 +588,10 @@ export function AltoTable({
   });
   // A prepared upgrade belongs to the turn it was chosen in.
   const pick = pickState.at === decision ? pickState.pick : null;
+  const [shopState, setShopState] = useState<{ family: Family; page: number }>({
+    family: 'ship',
+    page: 0,
+  });
   const [panel, setPanel] = useState<'rules' | 'others' | 'plans' | null>(null);
   const [inspecting, setInspecting] = useState<Inspecting | null>(null);
   const root = useRef<HTMLElement>(null);
@@ -623,12 +635,21 @@ export function AltoTable({
     [g],
   );
   const plans = currentPlans(g);
-  const shelves = (['ship', 'base'] as Family[])
-    .map((family) => ({
-      family,
-      ids: plans.filter((id) => planById[id].family === family),
-    }))
-    .filter((s) => s.ids.length);
+  const catalogue = (['ship', 'base'] as Family[]).map((family) => ({
+    family,
+    ids: plans.filter((id) => planFor(g, id).family === family),
+  }));
+  const selectedShelf =
+    catalogue.find((s) => s.family === shopState.family && s.ids.length) ??
+    catalogue.find((s) => s.ids.length)!;
+  const pageCount = Math.max(1, Math.ceil(selectedShelf.ids.length / 6));
+  const shopPage = Math.min(shopState.page, pageCount - 1);
+  const shelves = [
+    {
+      ...selectedShelf,
+      ids: selectedShelf.ids.slice(shopPage * 6, (shopPage + 1) * 6),
+    },
+  ];
   const price = (p: Pick | null): Goods | null =>
     !p
       ? null
@@ -847,8 +868,8 @@ export function AltoTable({
                     aria-hidden="true"
                     style={stagger(0, 300)}
                   >
-                    <FamilyIcon family={planById[built].family} size={11} />
-                    {planById[built].name}
+                    <FamilyIcon family={planFor(g, built).family} size={11} />
+                    {planFor(g, built).name}
                   </span>
                 )}
               </li>
@@ -944,7 +965,11 @@ export function AltoTable({
                           <span className="alto-avatar">
                             {g.seats[s].slice(0, 1)}
                           </span>
-                          <b>+{reveal!.takes[s] + reveal!.bonus[s]}</b>
+                          {reveal!.cargo ? (
+                            <GoodsRow amounts={reveal!.cargo[s]} size={13} />
+                          ) : (
+                            <b>+{reveal!.takes[s] + reveal!.bonus[s]}</b>
+                          )}
                         </span>
                       ))}
                     </span>
@@ -968,7 +993,7 @@ export function AltoTable({
               className="alto-preview"
               data-family={family}
               onClick={() => setInspecting({ kind: 'player', seat: viewer })}
-              aria-label={`Your ${family}, ${me.built.filter((id) => planById[id].family === family).length} owned upgrades${family === 'ship' ? `, hold ${hold(me)}` : ''}`}
+              aria-label={`Your ${family}, ${me.built.filter((id) => planFor(g, id).family === family).length} owned upgrades${family === 'ship' ? `, hold ${hold(me)}` : ''}`}
             >
               <span
                 className="alto-home-bay"
@@ -995,6 +1020,14 @@ export function AltoTable({
                   <span className="alto-preview-hold">
                     <Package size={12} />
                     <b>{hold(me)}</b>
+                    {g.rules === 3 && me.lastGood !== undefined && (
+                      <span
+                        className="alto-last-cargo"
+                        title={`Last flight: ${goods[me.lastGood]}. Route bonuses need a different cargo.`}
+                      >
+                        <GoodIcon good={me.lastGood} size={15} />
+                      </span>
+                    )}
                   </span>
                 )}
               </span>
@@ -1012,7 +1045,7 @@ export function AltoTable({
           <div className="alto-owned" aria-label="Owned upgrades">
             {(['ship', 'base'] as Family[]).map((family) => {
               const owned = me.built.filter(
-                (id) => planById[id].family === family,
+                (id) => planFor(g, id).family === family,
               );
               return (
                 <section
@@ -1039,11 +1072,14 @@ export function AltoTable({
                           <button
                             type="button"
                             onClick={() => setInspecting({ kind: 'plan', id })}
-                            aria-label={`Owned: ${planById[id].name}. ${planRule(planById[id])}`}
-                            title={planById[id].name}
+                            aria-label={`Owned: ${planFor(g, id).name}. ${planRule(ownedPlan(me, id))}`}
+                            title={planFor(g, id).name}
                           >
                             <PlanMark id={id} size={22} />
-                            <span>{planById[id].name}</span>
+                            <span>{planFor(g, id).name}</span>
+                            {g.rules === 3 && family === 'ship' && (
+                              <LevelMark level={planLevel(me, id)} />
+                            )}
                           </button>
                         </li>
                       ))}
@@ -1072,63 +1108,137 @@ export function AltoTable({
             <Undo2 size={18} />
           </button>
         </div>
-        {g.phase === 'plan' && g.options.orders && g.openOrders && (
-          <div className="alto-orders" aria-label="Orders">
-            {g.openOrders.map((id) => {
-              const order = orderById[id];
-              const can = !!fillable(g, viewer, id);
-              return (
-                <Piece
-                  key={id}
-                  className={`alto-order ${pick?.id === id || mine?.order === id ? 'is-picked' : ''} ${can ? '' : 'is-short'}`}
-                  label={`Order: ${order.points} points for ${order.cost
-                    .map((n, k) => (n ? `${n} ${goods[k].toLowerCase()}` : ''))
-                    .filter(Boolean)
-                    .join(', ')}`}
-                  selected={pick?.id === id}
-                  unavailable={!acting || !can}
-                  onTap={() => toggle({ kind: 'order', id })}
-                  inspect={() => setInspecting({ kind: 'order', id })}
-                >
-                  <ReceiptText size={14} aria-hidden="true" />
-                  <CostRow cost={order.cost} stock={me.stock} size={18} />
-                  <b className="alto-order-points">
-                    <Star size={11} aria-hidden="true" />
-                    {order.points}
-                  </b>
-                </Piece>
-              );
-            })}
-          </div>
-        )}
-        <div
-          className="alto-shop"
-          data-coach="hand"
-          data-shelves={shelves.length}
-          style={{ '--items': plans.length } as CSSProperties}
-        >
-          {shelves.map(({ family, ids }) => (
-            <section
-              key={family}
-              className="alto-shelf"
-              data-family={family}
-              style={{ '--count': ids.length } as CSSProperties}
-              aria-label={`${seasonNames[g.season - 1]} ${familyNames[family][1]}`}
-            >
-              <span className="alto-shelf-label" aria-hidden="true">
-                <FamilyIcon family={family} size={13} />
-                <span>{family === 'ship' ? 'Ship' : 'Base'}</span>
-              </span>
-              {ids.map((id) => {
-                const plan = planById[id];
-                const built = me.built.includes(id);
-                const cost = buildable(g, viewer, id);
-                const race = plan.effects.some((e) => e.type === 'race');
+        {g.phase === 'plan' &&
+          g.options.orders &&
+          g.openOrders &&
+          (g.rules === 2 || g.season > 1) && (
+            <div className="alto-orders" aria-label="Orders">
+              {g.openOrders.map((id) => {
+                const order = orderById[id];
+                const can = !!fillable(g, viewer, id);
                 return (
                   <Piece
                     key={id}
-                    className={`alto-item is-${plan.family} ${built ? 'is-built' : cost ? 'is-ready' : 'is-short'} ${pick?.id === id || mine?.build === id ? 'is-picked' : ''}`}
-                    label={`${plan.name}, ${familyNames[plan.family][0]}. ${planRule(plan)}${built ? ' Owned.' : mine?.build === id ? ' Queued for this flight.' : pick?.id === id ? ' Selected for this flight.' : cost ? '' : ' Not enough cargo.'}`}
+                    className={`alto-order ${pick?.id === id || mine?.order === id ? 'is-picked' : ''} ${can ? '' : 'is-short'}`}
+                    label={`Order: ${order.points} points for ${order.cost
+                      .map((n, k) =>
+                        n ? `${n} ${goods[k].toLowerCase()}` : '',
+                      )
+                      .filter(Boolean)
+                      .join(', ')}`}
+                    selected={pick?.id === id}
+                    unavailable={!acting || !can}
+                    onTap={() => toggle({ kind: 'order', id })}
+                    inspect={() => setInspecting({ kind: 'order', id })}
+                  >
+                    <ReceiptText size={14} aria-hidden="true" />
+                    <CostRow cost={order.cost} stock={me.stock} size={18} />
+                    <b className="alto-order-points">
+                      <Star size={11} aria-hidden="true" />
+                      {order.points}
+                    </b>
+                  </Piece>
+                );
+              })}
+            </div>
+          )}
+        <div
+          className="alto-shop alto-shop-catalogue"
+          data-coach="hand"
+          data-shelves="1"
+          style={{ '--items': 6 } as CSSProperties}
+        >
+          <div className="alto-shop-controls">
+            <div
+              className="alto-shop-tabs"
+              role="tablist"
+              aria-label="Upgrade family"
+            >
+              {catalogue.map(({ family, ids }) => (
+                <button
+                  key={family}
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedShelf.family === family}
+                  aria-controls="alto-upgrade-shelf"
+                  disabled={!ids.length}
+                  onClick={() => setShopState({ family, page: 0 })}
+                >
+                  <FamilyIcon family={family} size={13} />
+                  {family === 'ship' ? 'Ship' : 'Base'}
+                </button>
+              ))}
+            </div>
+            {pageCount > 1 && (
+              <div className="alto-shop-pages" aria-label="Upgrade pages">
+                <button
+                  type="button"
+                  aria-label="Previous upgrades"
+                  disabled={shopPage === 0}
+                  onClick={() =>
+                    setShopState({
+                      family: selectedShelf.family,
+                      page: shopPage - 1,
+                    })
+                  }
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span aria-live="polite">
+                  {shopPage + 1}/{pageCount}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Next upgrades"
+                  disabled={shopPage + 1 === pageCount}
+                  onClick={() =>
+                    setShopState({
+                      family: selectedShelf.family,
+                      page: shopPage + 1,
+                    })
+                  }
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+          {shelves.map(({ family, ids }) => (
+            <section
+              key={family}
+              id="alto-upgrade-shelf"
+              className="alto-shelf"
+              role="tabpanel"
+              data-family={family}
+              style={{ '--count': 6 } as CSSProperties}
+              aria-label={familyNames[family][1]}
+            >
+              {ids.map((id) => {
+                const base = planFor(g, id);
+                const fitted = planLevel(me, id);
+                const upgrade = nextPlan(g, me, id);
+                const plan = upgrade ?? (fitted ? ownedPlan(me, id) : base);
+                const complete = fitted > 0 && !upgrade;
+                const lockedTier =
+                  g.rules === 3 &&
+                  base.family === 'ship' &&
+                  fitted > 0 &&
+                  fitted < 3 &&
+                  !upgrade;
+                const cost = buildable(g, viewer, id);
+                const race = plan.effects.some((e) => e.type === 'race');
+                const status = lockedTier
+                  ? `Level ${fitted + 1} opens in Year ${fitted + 1}.`
+                  : complete
+                    ? 'Fully fitted.'
+                    : fitted
+                      ? `Refit from level ${fitted} to ${fitted + 1}.`
+                      : '';
+                return (
+                  <Piece
+                    key={id}
+                    className={`alto-item is-${plan.family} ${complete ? 'is-built' : cost ? 'is-ready' : 'is-short'} ${pick?.id === id || mine?.build === id ? 'is-picked' : ''}`}
+                    label={`${plan.name}, ${familyNames[plan.family][0]}. ${planRule(plan)} ${status}${mine?.build === id ? ' Queued for this flight.' : pick?.id === id ? ' Selected for this flight.' : cost || complete ? '' : ' Not enough cargo.'}`}
                     selected={pick?.id === id}
                     unavailable={!acting || !cost}
                     onTap={() => toggle({ kind: 'plan', id })}
@@ -1136,19 +1246,33 @@ export function AltoTable({
                   >
                     <PlanFace
                       id={id}
+                      plan={plan}
+                      level={
+                        g.rules === 3 && plan.family === 'ship'
+                          ? upgrade
+                            ? fitted + 1
+                            : Math.max(1, fitted)
+                          : undefined
+                      }
                       next={race ? raceValue(g, plan) : undefined}
-                      earned={built ? (me.scored[id] ?? 0) : undefined}
+                      earned={complete ? (me.scored[id] ?? 0) : undefined}
                       stock={me.stock}
-                      hideCost={built}
+                      hideCost={complete}
                       off={discount(g, me, plan.family)}
                     />
-                    {built && (
+                    {complete && (
                       <span className="alto-item-seal" aria-hidden="true">
-                        <Check size={12} />
-                        <span>Owned</span>
+                        {lockedTier ? (
+                          <span className="alto-unlock">Year {fitted + 1}</span>
+                        ) : (
+                          <>
+                            <Check size={12} />
+                            <span>Owned</span>
+                          </>
+                        )}
                       </span>
                     )}
-                    {!built && (pick?.id === id || mine?.build === id) && (
+                    {!complete && (pick?.id === id || mine?.build === id) && (
                       <span className="alto-item-choice" aria-hidden="true">
                         {mine?.build === id ? 'Queued' : 'Selected'}
                       </span>
@@ -1156,6 +1280,13 @@ export function AltoTable({
                   </Piece>
                 );
               })}
+              {Array.from({ length: 6 - ids.length }, (_, i) => (
+                <span
+                  key={`empty-${i}`}
+                  className="alto-shop-empty"
+                  aria-hidden="true"
+                />
+              ))}
             </section>
           ))}
         </div>
@@ -1172,8 +1303,8 @@ export function AltoTable({
               onClick={() => onMove({ type: 'captain', captain: id })}
             >
               <img src={captainArt(id)} alt="" width={96} height={96} />
-              <b>{captainById[id].name}</b>
-              <small>{captainById[id].text}</small>
+              <b>{captainFor(g, id).name}</b>
+              <small>{captainFor(g, id).text}</small>
             </button>
           ))}
         </section>
@@ -1257,14 +1388,20 @@ export function AltoTable({
           </DialogDescription>
           <div className="alto-dialog-body">
             {panel === 'rules' && (
-              <AltoRules options={g.options} plans={g.plans} />
+              <AltoRules options={g.options} plans={g.plans} game={g} />
             )}
-            {panel === 'plans' && <PlansOverview g={g} viewer={viewer} />}
+            {panel === 'plans' && (
+              <PlansOverview
+                g={g}
+                viewer={viewer}
+                onPlan={(id) => setInspecting({ kind: 'plan', id })}
+              />
+            )}
             {panel === 'others' && (
               <Others
                 g={g}
                 viewer={viewer}
-                onPlan={(id) => setInspecting({ kind: 'plan', id })}
+                onPlan={(id, seat) => setInspecting({ kind: 'plan', id, seat })}
               />
             )}
           </div>
@@ -1280,7 +1417,7 @@ export function AltoTable({
               g={g}
               viewer={viewer}
               item={inspecting}
-              onPlan={(id) => setInspecting({ kind: 'plan', id })}
+              onPlan={(id, seat) => setInspecting({ kind: 'plan', id, seat })}
             />
           )}
         </DialogContent>
@@ -1311,10 +1448,16 @@ function Inspection({
   g: AltoGame;
   viewer: number;
   item: Inspecting;
-  onPlan: (id: string) => void;
+  onPlan: (id: string, seat?: number) => void;
 }) {
   if (item.kind === 'plan') {
-    const plan = planById[item.id];
+    const inspectedSeat = item.seat ?? viewer;
+    const player = g.players[inspectedSeat];
+    const fitted = planLevel(player, item.id);
+    const offered =
+      inspectedSeat === viewer ? nextPlan(g, player, item.id) : null;
+    const plan =
+      offered ?? (fitted ? ownedPlan(player, item.id) : planFor(g, item.id));
     const race = plan.effects.find((e) => e.type === 'race');
     const builders = g.players.flatMap((p, s) =>
       p.built.includes(plan.id) ? [s] : [],
@@ -1332,13 +1475,13 @@ function Inspection({
               <FamilyIcon family={plan.family} size={14} />
               {plan.family === 'ship' ? 'Ship part' : 'Base module'}
             </span>
-            {g.players[viewer].built.includes(plan.id) ? (
+            {fitted && !offered ? (
               <GoodsRow amounts={plan.cost} size={22} />
             ) : (
               <CostRow
                 cost={plan.cost}
-                stock={g.players[viewer].stock}
-                off={discount(g, g.players[viewer], plan.family)}
+                stock={player.stock}
+                off={discount(g, player, plan.family)}
                 size={24}
               />
             )}
@@ -1346,8 +1489,8 @@ function Inspection({
               plan={plan}
               next={race ? raceValue(g, plan) : undefined}
               earned={
-                g.players[viewer].built.includes(plan.id)
-                  ? (g.players[viewer].scored[plan.id] ?? 0)
+                player.built.includes(plan.id)
+                  ? (player.scored[plan.id] ?? 0)
                   : undefined
               }
             />
@@ -1379,7 +1522,40 @@ function Inspection({
             )}
           </div>
         </div>
-        <AltoPlanRules plan={plan} />
+        {g.rules === 3 && plan.family === 'ship' ? (
+          <div className="alto-refit-rules">
+            {[1, 2, 3].map((level) => {
+              const tier = planAtLevel(g, plan.id, level);
+              return (
+                <section
+                  key={level}
+                  className="alto-refit-tier"
+                  data-fitted={level === fitted || undefined}
+                >
+                  <h3>
+                    <LevelMark level={level} />
+                    {level === fitted
+                      ? 'Fitted'
+                      : !currentPlans(g).includes(plan.id) ||
+                          level > maxPlanLevel(g, plan.id)
+                        ? `Year ${Math.max(plan.season, level)}`
+                        : level < fitted
+                          ? 'Replaced'
+                          : level === fitted + 1
+                            ? fitted
+                              ? 'Next refit'
+                              : 'Build'
+                            : 'Refit'}
+                  </h3>
+                  <GoodsRow amounts={tier.cost} size={17} />
+                  <AltoPlanRules plan={tier} />
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          <AltoPlanRules plan={plan} />
+        )}
       </>
     );
   }
@@ -1452,14 +1628,14 @@ function PlayerSheet({
   seat: number;
   viewer: number;
   titled?: boolean;
-  onPlan?: (id: string) => void;
+  onPlan?: (id: string, seat?: number) => void;
 }) {
   const p = g.players[seat];
   const b = breakdown(g, seat);
   const yields = ([0, 1, 2, 3] as Good[]).filter((k) => yieldBonus(p, k) > 0);
   const Title = titled ? DialogTitle : 'h3';
   const of = (family: Family) =>
-    p.built.filter((id) => planById[id].family === family);
+    p.built.filter((id) => planFor(g, id).family === family);
   return (
     <section className="alto-sheet" style={seatStyle(seat)}>
       <Title className="alto-sheet-title">
@@ -1492,7 +1668,7 @@ function PlayerSheet({
         {p.captain && (
           <span className="alto-stat alto-stat-captain">
             <img src={captainArt(p.captain)} alt="" width={22} height={22} />{' '}
-            {captainById[p.captain].name}
+            {captainFor(g, p.captain).name}
           </span>
         )}
       </div>
@@ -1509,15 +1685,20 @@ function PlayerSheet({
                 <li key={id}>
                   <button
                     type="button"
-                    onClick={() => onPlan?.(id)}
+                    onClick={() => onPlan?.(id, seat)}
                     disabled={!onPlan}
-                    aria-label={planById[id].name}
+                    aria-label={planFor(g, id).name}
                   >
                     <PlanMark id={id} size={44} />
                     <span className="alto-built-detail">
-                      <b>{planById[id].name}</b>
+                      <b>
+                        {planFor(g, id).name}
+                        {g.rules === 3 && planFor(g, id).family === 'ship' && (
+                          <LevelMark level={planLevel(p, id)} />
+                        )}
+                      </b>
                       <EffectLine
-                        plan={planById[id]}
+                        plan={ownedPlan(p, id)}
                         earned={p.scored[id] ?? 0}
                       />
                     </span>
@@ -1571,7 +1752,7 @@ function Others({
 }: {
   g: AltoGame;
   viewer: number;
-  onPlan: (id: string) => void;
+  onPlan: (id: string, seat?: number) => void;
 }) {
   // Your own first, then the table in seat order.
   const order = [
@@ -1587,7 +1768,15 @@ function Others({
   );
 }
 
-function PlansOverview({ g, viewer }: { g: AltoGame; viewer: number }) {
+function PlansOverview({
+  g,
+  viewer,
+  onPlan,
+}: {
+  g: AltoGame;
+  viewer: number;
+  onPlan: (id: string) => void;
+}) {
   return (
     <div className="alto-overview">
       {g.plans.map((ids, s) => (
@@ -1595,12 +1784,12 @@ function PlansOverview({ g, viewer }: { g: AltoGame; viewer: number }) {
           key={s}
           className="alto-overview-season"
           data-now={s + 1 === g.season || undefined}
-          data-past={s + 1 < g.season || undefined}
+          data-past={(g.rules === 2 && s + 1 < g.season) || undefined}
         >
           <h3>{seasonNames[s]}</h3>
           <ul>
             {ids.map((id) => {
-              const plan = planById[id];
+              const plan = planFor(g, id);
               const race = plan.effects.some((e) => e.type === 'race');
               const builders = g.players.flatMap((p, k) =>
                 p.built.includes(id) ? [k] : [],
@@ -1611,15 +1800,32 @@ function PlansOverview({ g, viewer }: { g: AltoGame; viewer: number }) {
                   className={`alto-item is-static ${g.players[viewer].built.includes(id) ? 'is-built' : ''}`}
                   data-family={plan.family}
                 >
-                  <PlanFace
-                    id={id}
-                    next={race ? raceValue(g, plan) : undefined}
-                    earned={
-                      g.players[viewer].built.includes(id)
-                        ? (g.players[viewer].scored[id] ?? 0)
-                        : undefined
-                    }
-                  />
+                  <button
+                    type="button"
+                    className="alto-overview-open"
+                    onClick={() => onPlan(id)}
+                    aria-label={`Inspect ${plan.name}${g.rules === 3 && plan.family === 'ship' ? ' and refits' : ''}`}
+                  >
+                    <PlanFace
+                      id={id}
+                      plan={
+                        g.players[viewer].built.includes(id)
+                          ? ownedPlan(g.players[viewer], id)
+                          : plan
+                      }
+                      level={
+                        g.rules === 3 && plan.family === 'ship'
+                          ? Math.max(1, planLevel(g.players[viewer], id))
+                          : undefined
+                      }
+                      next={race ? raceValue(g, plan) : undefined}
+                      earned={
+                        g.players[viewer].built.includes(id)
+                          ? (g.players[viewer].scored[id] ?? 0)
+                          : undefined
+                      }
+                    />
+                  </button>
                   {builders.length > 0 && (
                     <span className="alto-builders">
                       {builders.map((k) => (
@@ -1633,7 +1839,7 @@ function PlansOverview({ g, viewer }: { g: AltoGame; viewer: number }) {
           </ul>
         </section>
       ))}
-      <PlanList plans={g.plans} />
+      <PlanList plans={g.plans} game={g} />
     </div>
   );
 }

@@ -188,46 +188,38 @@ def cathead(B, wall, u, z, reach=0.026):
 
 
 def build_chimney(B, x, y, H=1.0, base=0.08):
-    """A mill chimney: a stone-capped square pedestal, an octagonal
-    tapering brick shaft with stone bands, sootier towards the top, and a
-    corbelled cap."""
-    ped = 0.13
-    B.add(box("plinth", (base, base, 0.022), (x, y, 0.008), GRIT))
-    B.add(box("pedestal", (base - 0.008, base - 0.008, ped - 0.02),
-              (x, y, 0.017 + (ped - 0.02) / 2), BRICK))
-    B.add(box("pedcap", (base, base, 0.012), (x, y, ped + 0.002), STONE))
-    B.add(box("pedcap2", (base - 0.012, base - 0.012, 0.01),
-              (x, y, ped + 0.012), STONE))
-    r0, r1 = 0.031, 0.021
-    z0, z1 = ped + 0.017, H * 0.925
+    """A circular engineering-brick stack, slender and genuinely tapered.
+    A dark corbelled crown replaces the old oversized pale stripes. All
+    heights follow H so the reclaimed site's short stack stays proportioned."""
+    ped = H * 0.13
+    B.add(box("plinth", (base, base, H * 0.018), (x, y, H * 0.006), GRIT))
+    B.add(box("pedestal", (base - 0.007, base - 0.007, ped),
+              (x, y, ped / 2), BRICK_DEEP))
+    B.add(box("pedcap", (base, base, H * 0.012), (x, y, ped), BRICK_DK))
+    r0, r1 = base * 0.375, base * 0.25
+    z0, z1 = ped, H * 0.94
 
     def rad(z):
         return r0 + (r1 - r0) * (z - z0) / (z1 - z0)
 
-    def octo(name, prof, mat):
-        o = lathe(name, prof, (x, y, 0), 8, mat, close=False)
-        tf(o, T(x, y) @ rot("Z", 22.5) @ T(-x, -y))
+    def round_section(name, prof, mat):
+        o = lathe(name, prof, (x, y, 0), 20, mat, close=False)
         B.add(o, uv=("cyl", (x, y)))
-    cuts = [z0, H * 0.34, H * 0.36, H * 0.6, H * 0.62, H * 0.8, H * 0.82,
-            z1]
-    mats = [BRICK, STONE, BRICK, STONE, BRICK_DK, STONE, BRICK_DEEP]
-    for i in range(len(cuts) - 1):
-        za, zb = cuts[i], cuts[i + 1]
-        out = 0.0025 if mats[i] == STONE else 0.0
-        octo("shaft", [(rad(za) + out, za), (rad(zb) + out, zb)], mats[i])
-    # Corbelled cap: oversailing brick, a stone band, the rim.
+    for za, zb, mat in ((z0, H * 0.70, BRICK),
+                        (H * 0.70, z1, BRICK_DK)):
+        round_section("shaft", [(rad(za), za), (rad(zb), zb)], mat)
     rt = rad(z1)
-    octo("cap", [(rt, z1), (rt + 0.008, z1 + 0.018), (rt + 0.008,
-                                                      z1 + 0.03)],
-         BRICK_DEEP)
-    octo("capband", [(rt + 0.01, z1 + 0.03), (rt + 0.01, z1 + 0.042)], STONE)
-    octo("rim", [(rt + 0.004, z1 + 0.042), (rt + 0.004, H),
-                 (rt - 0.004, H), (rt - 0.004, H - 0.016)], BRICK_DEEP)
-    B.add(cyl("flue", rt - 0.004, rt - 0.004, 0.001, (x, y, H - 0.016), 8,
+    round_section("crown", [(rt, z1), (rt + 0.002, H * 0.95),
+                            (rt + 0.002, H * 0.962),
+                            (rt + 0.005, H * 0.975),
+                            (rt + 0.005, H * 0.992),
+                            (rt + 0.003, H), (rt - 0.004, H),
+                            (rt - 0.004, H * 0.974)], BRICK_DEEP)
+    B.add(cyl("flue", rt - 0.004, rt - 0.004, 0.001, (x, y, H * 0.973), 20,
               VOID, cap=True))
-    for z in (H * 0.47, H * 0.71):
-        B.add(cyl("hoop", rad(z) + 0.0008, rad(z) + 0.0008, 0.003,
-                  (x, y, z), 8, IRON, cap=False))
+    for z in (H * 0.40, H * 0.62, H * 0.82):
+        B.add(cyl("hoop", rad(z) + 0.001, rad(z) + 0.001, H * 0.003,
+                  (x, y, z), 20, IRON, cap=False))
 
 
 def crate_stack(B, x, y, n=2, s=0.016, ang=0.0, seed=1):
@@ -252,196 +244,192 @@ def sacks(B, x, y, n=3, z0=0.0, seed=2):
 
 # ---------------------------------------------------------------- mills
 
-WW, WH = 0.048, 0.06        # a mill window, 1.2 x 1.5 m
+def finish_mill(B, r):
+    """Keep individually editable architectural parts beside the runtime mesh.
+    They live in a hidden source collection and are never included in glTF."""
+    if os.environ.get("ROTA_MASTER"):
+        collection = bpy.data.collections.new(r.name + "-editable-parts")
+        bpy.context.scene.collection.children.link(collection)
+        collection.hide_render = True
+        collection.hide_viewport = True
+        for obj, _ in B.parts:
+            copy = obj.copy()
+            copy.data = obj.data.copy()
+            collection.objects.link(copy)
+    B.finish(r)
+
+def mill_window(B, wall, u, z, w, h, arch=True, flush=False):
+    """Deep workshop glazing, with masonry arch and a thin six-pane frame."""
+    shape = "segment" if arch else None
+    win(B, wall, u, z, w, h, arch=shape, bars="grid", frame=FRAME,
+        recess=0.006, flush=flush, sill=STONE)
+    if arch:
+        arch_ring(B, wall, u, w, h, shape, 0.0042, BRICK_DK,
+                  proud=0.003, n=8, z0=z)
+        B.add(wall.put(box("keystone", (0.006, 0.006, 0.009),
+                           (u, -0.003, z + h + 0.0015), STONE)))
+
+
+def mill_piers(B, wall, width, bays, ztop, mat=BRICK):
+    """Vertical masonry carries the roof; sills are local to each window."""
+    pitch = width / bays
+    for i in range(bays + 1):
+        u = -width / 2 + pitch * i
+        pw = 0.014 if 0 < i < bays else 0.018
+        B.add(wall.put(box("pier", (pw, 0.007, ztop - 0.022),
+                           (u, -0.002, (ztop + 0.022) / 2), mat)))
+        B.add(wall.put(box("pier-cap", (pw + 0.006, 0.011, 0.009),
+                           (u, -0.004, ztop - 0.008), mat)))
 
 
 @asset
 def mill_big(name):
-    """A five-storey spinning mill: six bays of tall many-paned windows on
-    every floor, stone sill bands, a pale stone name band under the
-    cornice, a stack of taking-in doors with a cathead, a cart door, and
-    a stair tower at the east end carrying an iron water tank."""
+    """Four-storey spinning mill with twin slate roofs and a water tower.
+    Brick piers, shadowed arch reveals and a recessed hoist bay give the
+    long front a vertical rhythm; the two roofs read from a phone's plan view."""
     r = root(name)
     B = Build(name)
-    x0, x1 = -0.392, 0.27
-    w, d, hw, rise = x1 - x0, 0.31, 0.48, 0.056
-    cx = (x0 + x1) / 2
-    B.body(K.body("walls", w, d, hw, rise, "x", centre=(cx, 0), mat=BRICK,
-                  edge=0.25))
-    B.add(box("plinth", (w + 0.006, d + 0.006, 0.026), (cx, 0, 0.0115),
-              GRIT))
-    Wm = walls(cx, 0, w, d)
-    f, bk = Wm["front"], Wm["back"]
-    bays = 6
-    pitch = w / bays
-    us = [-w / 2 + pitch * (i + 0.5) for i in range(bays)]
-    zs = [0.034 + k * 0.088 for k in range(5)]
-    for i, u in enumerate(us):
-        for k, z in enumerate(zs):
-            if i == 1:
-                if k == 0:
-                    plank_door(B, f, u, 0.044, 0.074, GREEN)
-                    B.add(f.put(box("lintel", (0.054, 0.005, 0.007),
-                                    (u, -0.002, 0.078), STONE)))
+    cx, cy, w, d, hw = -0.06, 0, 0.65, 0.304, 0.442
+    x0, x1 = cx - w / 2, cx + w / 2
+    B.body(K.body("spinning-hall", w, d, hw, centre=(cx, cy),
+                  mat="brick:mill-red", edge=0.07, bevel=0.001))
+    B.add(box("stone-base", (w + 0.006, d + 0.006, 0.022),
+              (cx, cy, 0.009), GRIT))
+    wm = walls(cx, cy, w, d)
+    pitch = w / 7
+    us = [-w / 2 + pitch * (i + 0.5) for i in range(7)]
+    zs = [0.036, 0.133, 0.230, 0.327]
+    for side in ("front", "back"):
+        wall = wm[side]
+        mill_piers(B, wall, w, 7, hw - 0.009, "brick:mill-red")
+        for i, u in enumerate(us):
+            for floor, z in enumerate(zs):
+                if side == "front" and i == 1:
+                    plank_door(B, wall, u, 0.045, 0.073, GREEN,
+                               z0=0 if floor == 0 else z - 0.004,
+                               arch="segment", braces=False)
+                    sill_band(B, wall, u - 0.027, u + 0.027,
+                              0.075 if floor == 0 else z + 0.071,
+                              mat=BRICK_DK, h=0.007)
                 else:
-                    plank_door(B, f, u, 0.036, 0.064, GREEN, z0=z - 0.004)
-                    B.add(f.put(box("lintel", (0.044, 0.005, 0.006),
-                                    (u, -0.002, z + 0.064), STONE)))
-                continue
-            if i == 4 and k == 0:
-                plank_door(B, f, u, 0.06, 0.08, GREEN, arch="segment")
-                arch_ring(B, f, u, 0.06, 0.08, "segment", 0.008, STONE)
-                continue
-            win(B, f, u, z, WW, WH, arch="segment", bars="grid")
-    cathead(B, f, us[1], 0.462, reach=0.014)
-    for z in zs[1:]:
-        sill_band(B, f, -w / 2, w / 2, z - 0.002)
-    # Name band and cornice.
-    flat_box(B, f, (us[2] + us[3]) / 2, 0.462, 0.3, 0.02, PALE, proud=0.003)
-    letters(B, f, (us[2] + us[3]) / 2, 0.462, 10, 0.26, 0.011)
-    cornice(B, cx, 0, w, d, hw - 0.004, 0.009, STONE, out=0.003)
-    # Back: the same grid of windows.
-    for u in us:
-        for z in zs:
-            win(B, bk, u, z, WW, WH, bars="grid", flush=True)
-    for z in zs[1:]:
-        sill_band(B, bk, -w / 2, w / 2, z - 0.002)
-    # West end: three bays and a round window in the gable.
-    lw = Wm["left"]
-    for u in (-0.095, 0.0, 0.095):
-        for z in zs:
-            win(B, lw, u, z, 0.044, WH, bars="grid", flush=True)
-    for z in zs[1:]:
-        sill_band(B, lw, -d / 2, d / 2, z - 0.002)
-    win(B, lw, 0.0, hw + 0.006, 0.028, 0.028, arch="round", bars="cross")
-    # East end, either side of the tower.
-    rw = Wm["right"]
-    for u in (-0.122, 0.122):
-        for z in zs:
-            win(B, rw, u, z, 0.036, WH, bars="mullion", flush=True)
-    W.roof(B, cx, 0, w, d, hw, rise, SLATE, over=0.005, over_gable=0.004,
-           ridge_mat=SLATE_DK, gutter=ZINC)
-    for u in (-w / 2 + 0.004, us[2] + pitch / 2):
-        downpipe(B, cx + u, -d / 2 - 0.003, hw)
-    # Stair tower with its tank.
-    tx0, tx1, td, th = x1 - 0.004, 0.396, 0.18, 0.6
-    tw = tx1 - tx0
-    tcx = (tx0 + tx1) / 2
-    B.body(K.body("tower", tw, td, th, centre=(tcx, 0), mat=BRICK,
-                  edge=0.3))
-    B.add(box("tplinth", (tw, td + 0.006, 0.026), (tcx, 0, 0.0115), GRIT))
-    Wt = walls(tcx, 0, tw, td)
-    K.door(B, Wt["front"], 0.0, 0.032, 0.07, MAROON, STONE, arch="round",
-           fanlight=True, step=GRIT, panels=False, knob=None, fb=0.006)
-    for k in range(6):
-        z = 0.12 + k * 0.08
-        win(B, Wt["front"], 0.0, z, 0.026, 0.046, arch="round",
-            bars="mullion")
-        if k:
-            win(B, Wt["right"], 0.0, z - 0.04, 0.026, 0.046, arch="round",
-                bars="mullion")
-    for z in (0.098, 0.54):
-        B.add(box("tband", (tw, td + 0.004, 0.006), (tcx, 0, z), STONE))
-    B.add(box("tcorn", (tw, td + 0.008, 0.01), (tcx, 0, th - 0.002), STONE))
-    # The tank: riveted iron plates on bearers.
-    for y in (-0.05, 0.05):
-        B.add(box("bearer", (tw - 0.004, 0.008, 0.006), (tcx, y, th + 0.006),
-                  IRON))
-    tk = (tw - 0.016, td - 0.02, 0.054)
-    tz = th + 0.009 + tk[2] / 2
-    B.add(box("tank", tk, (tcx, 0, tz), TANK))
-    B.add(box("flange", (tk[0] + 0.003, tk[1] + 0.003, 0.003),
-              (tcx, 0, th + 0.032), TANK))
-    B.add(box("rim", (tk[0] + 0.004, tk[1] + 0.004, 0.003),
-              (tcx, 0, th + 0.009 + tk[2]), IRON))
-    for k in (-1, 1):
-        B.add(box("rib", (0.003, tk[1] + 0.003, tk[2] - 0.004),
-                  (tcx + k * 0.03, 0, tz), TANK))
-        B.add(box("rib", (tk[0] + 0.003, 0.003, tk[2] - 0.004),
-                  (tcx, k * 0.04, tz), TANK))
+                    mill_window(B, wall, u, z, 0.054, 0.074)
+        # A brick dentil frieze below the roof's stone coping.
+        for k in range(35):
+            u = -w / 2 + w * (k + 0.5) / 35
+            B.add(wall.put(box("dentil", (0.008, 0.006, 0.007),
+                               (u, -0.003, hw - 0.013), BRICK_DK)))
+    cathead(B, wm["front"], us[1], 0.429, reach=0.014)
+    # Two complete gables, each with an oculus, and a shadowed central valley.
+    for side in ("left", "right"):
+        wall = wm[side]
+        for u in (-d / 4, d / 4):
+            for z in zs:
+                mill_window(B, wall, u, z, 0.058, 0.074)
+            win(B, wall, u, hw + 0.017, 0.023, 0.023, arch="round",
+                bars="cross", flush=True)
+    cornice(B, cx, cy, w, d, hw - 0.001, 0.009, STONE, out=0.004)
+    for yc in (-d / 4, d / 4):
+        B.add(K.body("roof-gables", w, d / 2, 0.0, 0.067, "x",
+                     centre=(cx, yc), mat=BRICK, edge=0.09, bevel=0))
+        tf(B.parts[-1][0], T(0, 0, hw))
+        W.roof(B, cx, yc, w, d / 2, hw, 0.067, SLATE,
+               over=0.004, over_gable=0.005, ridge_mat=SLATE_DK)
+    B.add(box("valley-gutter", (w + 0.01, 0.009, 0.004),
+              (cx, 0, hw + 0.008), ZINC))
+    # The tank tower: structural corner piers and a stepped brick parapet.
+    tx, tw, td, th = 0.326, 0.132, 0.176, 0.582
+    B.body(K.body("water-tower", tw, td, th, centre=(tx, 0),
+                  mat=BRICK_DK, edge=0.07, bevel=0.001))
+    wt = walls(tx, 0, tw, td)
+    for side in ("front", "right", "back"):
+        wall = wt[side]
+        wd = td if side == "right" else tw
+        for u in (-wd / 2 + 0.005, wd / 2 - 0.005):
+            B.add(wall.put(box("tower-pier", (0.018, 0.008, th),
+                               (u, -0.003, th / 2), BRICK)))
+        for k in range(5):
+            z = 0.065 + k * 0.096
+            mill_window(B, wall, 0, z, 0.035, 0.057, flush=side == "back")
+        sill_band(B, wall, -wd / 2, wd / 2, 0.546, STONE, h=0.009)
+    K.door(B, wt["front"], 0, 0.038, 0.067, GREEN, STONE,
+           arch="round", step=GRIT, panels=False, knob=None, fb=0.005)
+    cornice(B, tx, 0, tw, td, th, 0.01, BRICK, out=0.004)
+    # A visible riveted tank recessed between the crown's four corners.
+    B.add(box("water-tank", (tw - 0.022, td - 0.024, 0.049),
+              (tx, 0, th + 0.029), TANK))
+    for side in (-1, 1):
+        B.add(box("tank-rib", (tw - 0.016, 0.003, 0.045),
+                  (tx, side * (td / 2 - 0.011), th + 0.029), IRON))
+        for x in (-tw / 2 + 0.007, tw / 2 - 0.007):
+            B.add(box("tower-corner", (0.018, 0.018, 0.06),
+                      (tx + x, side * (td / 2 - 0.007), th + 0.03), BRICK))
+            B.add(box("corner-cap", (0.022, 0.022, 0.006),
+                      (tx + x, side * (td / 2 - 0.007), th + 0.062), STONE))
+    B.add(box("tank-lid", (tw - 0.014, td - 0.016, 0.004),
+              (tx, 0, th + 0.055), IRON))
+    for x in (x0 + 0.015, x1 - 0.008):
+        downpipe(B, x, -d / 2 - 0.004, hw)
     W.carve(B)
-    B.finish(r)
+    finish_mill(B, r)
     return r
 
 
 @asset
 def mill_small(name):
-    """A three-storey weaving mill: four bays of tall windows, a timber
-    lucam (hoist housing) over a stack of loading doors, a datestone and
-    a boiler-house stack on the east gable."""
+    """A compact two-floor weaving works with a north-light saw roof.
+    The roof glazing is structural, the loading bay has its own pitched
+    hoist hood, and every side retains proper window depth."""
     r = root(name)
     B = Build(name)
-    w, d, hw, rise = 0.396, 0.256, 0.32, 0.055
-    cy = 0.0
-    B.body(K.body("walls", w, d, hw, rise, "x", centre=(0, cy), mat=BRICK_DK,
-                  edge=0.25))
-    B.add(box("plinth", (w + 0.006, d + 0.006, 0.024), (0, cy, 0.0105),
-              GRIT))
-    Wm = walls(0, cy, w, d)
-    f, bk = Wm["front"], Wm["back"]
-    pitch = w / 4
-    us = [-w / 2 + pitch * (i + 0.5) for i in range(4)]
-    zs = [0.036, 0.138, 0.24]
-    WH2 = 0.066
-    for i, u in enumerate(us):
-        for k, z in enumerate(zs):
-            win(B, bk, -u, z, 0.048, WH2, bars="grid", flush=True)
-            if i == 1:
-                if k == 0:
-                    plank_door(B, f, u, 0.05, 0.08, NAVY, arch="segment")
-                    arch_ring(B, f, u, 0.05, 0.08, "segment", 0.007, STONE)
+    w, d, hw, rise = 0.392, 0.254, 0.283, 0.101
+    B.body(K.body("weaving-hall", w, d, hw, mat=BRICK,
+                  edge=0.065, bevel=0.001))
+    B.add(box("base", (w + 0.006, d + 0.006, 0.021), (0, 0, 0.009), GRIT))
+    wm = walls(0, 0, w, d)
+    us = [-w / 2 + w / 4 * (i + 0.5) for i in range(4)]
+    for side in ("front", "back"):
+        wall = wm[side]
+        mill_piers(B, wall, w, 4, hw - 0.008)
+        for i, u in enumerate(us):
+            for k, z in enumerate((0.04, 0.16)):
+                if side == "front" and i == 1:
+                    plank_door(B, wall, u, 0.055, 0.091, GREEN,
+                               z0=0 if k == 0 else z - 0.004,
+                               arch="segment", braces=False)
+                    arch_ring(B, wall, u, 0.055, 0.091, "segment",
+                              0.006, BRICK_DK, z0=0 if k == 0 else z - 0.004)
                 else:
-                    plank_door(B, f, u, 0.036, 0.07, NAVY, z0=z - 0.004)
-                continue
-            win(B, f, u, z, 0.048, WH2, arch="segment", bars="grid")
-    for z in zs[1:]:
-        sill_band(B, f, -w / 2, w / 2, z - 0.002)
-        sill_band(B, bk, -w / 2, w / 2, z - 0.002)
+                    mill_window(B, wall, u, z, 0.057, 0.091)
     for side in ("left", "right"):
-        for u in (-0.075, 0.0, 0.075):
-            for z in zs:
-                if side == "right" and u == 0.0 and z == zs[0]:
-                    continue
-                win(B, Wm[side], u, z, 0.04, WH2, arch="segment",
-                    bars="grid", flush=True)
-        win(B, Wm[side], 0.0, hw + 0.004, 0.024, 0.024, arch="round",
-            bars="cross")
-    K.door(B, Wm["right"], 0.0, 0.032, 0.066, MAROON, STONE,
-           arch="segment", step=GRIT, panels=True, knob=None, fb=0.005)
-    # Datestone and cornice.
-    flat_box(B, f, (us[2] + us[3]) / 2, 0.3, 0.1, 0.016, PALE, proud=0.003)
-    letters(B, f, (us[2] + us[3]) / 2, 0.3, 5, 0.08, 0.009)
-    cornice(B, 0, cy, w, d, hw - 0.004, 0.008, STONE, out=0.003)
-    W.roof(B, 0, cy, w, d, hw, rise, SLATE, over=0.006, over_gable=0.004,
-           ridge_mat=SLATE_DK, gutter=ZINC)
-    # The lucam: a timber hoist housing hung on the wall at the top.
-    lu = us[1]
-    ly = cy - d / 2
-    lz0, lz1 = 0.25, 0.345
-    B.add(box("lucam", (0.054, 0.016, lz1 - lz0),
-              (lu, ly - 0.008, (lz0 + lz1) / 2), WEATHER))
-    for k in (-1, 1):
-        B.add(box("lpost", (0.004, 0.018, lz1 - lz0 + 0.002),
-                  (lu + k * 0.027, ly - 0.009, (lz0 + lz1) / 2), TIMBER))
-    B.add(box("lpanel", (0.034, 0.002, 0.05), (lu, ly - 0.0165, 0.29),
-              PLANK))
-    rl = Build("tmp")
-    W.roof(rl, 0, 0, 0.06, 0.018, 0.0, 0.018, SLATE, ridge="y", over=0.003,
-           over_gable=0.001)
-    for o, uv in rl.parts:
-        tf(o, T(lu, ly - 0.008, lz1))
-        B.add(o, uv)
-    B.add(box("lbrace", (0.004, 0.016, 0.004), (lu, ly - 0.008, lz0 - 0.003),
-              TIMBER))
-    B.add(cyl("lrope", 0.0007, 0.0007, 0.13, (lu, ly - 0.014, 0.12), 4, IRON))
-    crate(B, lu, ly - 0.014, 0.014, 0.106, mat=CRATE, ang=10)
-    # Boiler-house stack on the east gable.
-    K.chimney(B, w / 2 - 0.03, cy, hw - 0.01, hw + rise + 0.06, 0.04, 0.05,
-              BRICK_DEEP, cap=STONE, pots=0)
-    for x in (-w / 2 + 0.006, w / 2 - 0.006):
-        downpipe(B, x, cy - d / 2 - 0.003, hw)
+        for u in (-0.067, 0.067):
+            for z in (0.04, 0.16):
+                mill_window(B, wm[side], u, z, 0.059, 0.091)
+    cornice(B, 0, 0, w, d, hw - 0.002, 0.008, STONE, out=0.003)
+    # Two north-light ridges. Strong asymmetry distinguishes a weaving shed
+    # even when only the roof can be read in the near-plan phone view.
+    prof = W.sawtooth(B, -w / 2, w / 2, -d / 2, d / 2,
+                     hw, rise, 2, SLATE, GLASS, FRAME, over=0.004)
+    for yy in (-d / 2 + 0.003, d / 2 - 0.003):
+        for i in range(2):
+            xa, xb = -w / 2 + w / 2 * i, -w / 2 + w / 2 * (i + 1)
+            B.add(prism_xz("saw-gable", [(xa, hw), (xb, hw),
+                                         (xb, hw + rise)],
+                           yy - 0.003, yy + 0.003, BRICK))
+            B.add(beam("gable-coping", (xa, yy, hw + 0.004),
+                       (xb, yy, hw + rise + 0.004), (0.005, 0.008), STONE))
+    # Tall hoist lucam occupies a complete front bay, no floating crate.
+    lu, ly = us[1], -d / 2 - 0.006
+    B.add(box("hoist-bay", (0.072, 0.018, 0.153),
+              (lu, ly, 0.273), BRICK_DK))
+    hf = walls(lu, ly, 0.072, 0.018)["front"]
+    plank_door(B, hf, 0, 0.044, 0.07, GREEN, z0=0.233, braces=False)
+    W.roof(B, lu, ly, 0.077, 0.024, 0.349, 0.031, SLATE,
+           ridge="y", over=0.003, over_gable=0.001, ridge_mat=SLATE_DK)
+    cathead(B, hf, 0, 0.338, reach=0.008)
+    for x in (-w / 2 + 0.012, w / 2 - 0.012):
+        downpipe(B, x, -d / 2 - 0.004, hw)
     W.carve(B)
-    B.finish(r)
+    finish_mill(B, r)
     return r
 
 
@@ -824,13 +812,12 @@ def water_tower(name):
 
 @asset
 def chimney(name):
-    """A free-standing mill chimney, 25 m: stone-capped pedestal, tapering
-    octagonal brick shaft with stone bands and iron hoops, corbelled cap."""
+    """A 25 m circular stack with a square base and corbelled brick crown."""
     r = root(name)
     B = Build(name)
     build_chimney(B, 0, 0)
     W.carve(B)
-    B.finish(r)
+    finish_mill(B, r)
     return r
 
 
@@ -1874,126 +1861,16 @@ def tunnel_rail(name):
     return r
 
 
-def _outcrop(name, seed, tors):
-    """A gritstone outcrop filling one square: a heather ridge along Y,
-    broken gritstone edges of flat slabs along both flanks, tors on the
-    crest, a straight lined bore along Y and a stone portal on both
-    faces."""
-    rnd = random.Random(seed)
-    r = root(name)
-    B = Build(name)
-    half, spring, rise = 0.18, 0.14, 0.1
-    face_w, top = 0.54, 0.284
-    off = seed * 1.7
-
-    def h(x, y):
-        a = abs(x) + 0.02 * W.fbm(y * 2.2, x * 0.5, off)
-        crest = 0.292 + 0.014 * W.fbm(y * 1.4, 0.3, off + 4)
-        if a < 0.235:
-            v = crest
-        elif a < 0.3:
-            # Under the gritstone edge: a steep drop.
-            t = (a - 0.235) / 0.065
-            v = crest + (0.16 - crest) * t
-        else:
-            t = min(1.0, (a - 0.3) / 0.19)
-            v = 0.16 * (1 - t) ** 1.4
-        v += 0.006 * W.fbm(x * 3.5, y * 3.5, off + 2)
-        if abs(x) > 0.47:
-            v *= max(0.0, (0.5 - abs(x)) / 0.03)
-        return min(0.322, max(0.003, v))
-    mass = W.heightfield("moor", -0.497, 0.497, -0.47, 0.47, 16, 16, h,
-                         mat=MOOR, side_mat=GRITSTONE)
-
-    def rule(c, n):
-        if n.z < 0.5:
-            return GRITSTONE
-        k = W.fbm(c.x * 1.8, c.y * 1.8, off + 5)
-        if c.z > 0.16 and k > -0.3:
-            return HEATHER
-        if k > 0.2:
-            return HEATHER_BR
-        return MOOR
-    W.paint(mass, rule)
-    B.body(mass)
-    for y, flip in ((-0.49, False), (0.49, True)):
-        W.portal_face(B, 0.0, y, half, spring, rise, face_w, top, 0.045,
-                      GRIT, STONE, n=12, ring=0.026, flip=flip)
-        s = 1 if not flip else -1
-        for k in (-1, 1):
-            _wing(B, k * (face_w / 2 - 0.004), k * 0.486,
-                  lambda x: max(0.012, h(x, y + s * 0.03) - 0.006),
-                  y + (0.0 if s > 0 else -0.032), y + (0.032 if s > 0 else
-                                                      0.0), GRIT, STONE)
-    W.bore(B, 0.0, half, spring, rise, -0.494, 0.494, LINING, t=0.02,
-           cut_t=0.02, cut_from=-0.53, cut_to=0.53)
-    # Gritstone edges: a broken line of big blocks along each flank, two
-    # courses each, their faces the cliff; boulders fallen below.
-    for sx in (-1, 1):
-        y = -0.43 + rnd.uniform(0.0, 0.03)
-        while y < 0.4:
-            L = min(rnd.uniform(0.09, 0.15), 0.44 - y)
-            if L < 0.05:
-                break
-            yc = y + L / 2
-            x = sx * rnd.uniform(0.262, 0.278)
-            ztop = min(0.33, h(sx * 0.2, yc) + rnd.uniform(0.004, 0.026))
-            zb = 0.13
-            split = zb + (ztop - zb) * rnd.uniform(0.45, 0.6)
-            yaw = rnd.uniform(-0.12, 0.12)
-            sd = int((yc + 1) * 1000) * (3 if sx > 0 else 1)
-            W.slab(B, (rnd.uniform(0.085, 0.1), L, split - zb + 0.006),
-                   (x + sx * 0.006, yc, zb), yaw, GRITSTONE_DK,
-                   seed * 131 + sd)
-            W.slab(B, (rnd.uniform(0.07, 0.09), L * rnd.uniform(0.75, 0.95),
-                       ztop - split), (x - sx * 0.004, yc +
-                                       rnd.uniform(-0.01, 0.01), split),
-                   yaw + rnd.uniform(-0.1, 0.1), GRITSTONE,
-                   seed * 173 + sd)
-            y += L + rnd.uniform(0.012, 0.045)
-        for i in range(3):
-            x = sx * rnd.uniform(0.34, 0.42)
-            yy = rnd.uniform(-0.38, 0.38)
-            sz = rnd.uniform(0.035, 0.055)
-            W.slab(B, (sz, sz * 0.8, sz * 0.6), (x, yy, h(x, yy) - 0.01),
-                   rnd.uniform(0, math.tau), GRITSTONE_DK,
-                   seed * 77 + i + (10 if sx > 0 else 0))
-    # Loose stones on the crest.
-    for i in range(6):
-        x, yy = rnd.uniform(-0.2, 0.2), rnd.uniform(-0.38, 0.38)
-        sz = rnd.uniform(0.025, 0.04)
-        W.slab(B, (sz, sz * 0.8, sz * 0.45), (x, yy, h(x, yy) - 0.006),
-               rnd.uniform(0, math.tau), GRITSTONE, seed * 59 + i)
-    # Tors: stacked slabs on the crest.
-    for i, (x, y, layers) in enumerate(tors):
-        z = h(x, y) - 0.01
-        for j, (sx_, sy_, sz_) in enumerate(layers):
-            W.slab(B, (sx_, sy_, sz_), (x + rnd.uniform(-0.006, 0.006),
-                                        y + rnd.uniform(-0.006, 0.006), z),
-                   rnd.uniform(0, math.tau), GRITSTONE if j % 2 == 0 else
-                   GRITSTONE_DK, seed * 53 + i * 7 + j)
-            z += sz_ - 0.004
-    B.finish(r)
-    return r
-
-
 @asset
 def outcrop_a(name):
-    return _outcrop(name, 3, [
-        (-0.16, 0.18, [(0.11, 0.09, 0.022), (0.08, 0.065, 0.02)]),
-        (0.15, -0.22, [(0.09, 0.08, 0.026)]),
-        (0.08, 0.3, [(0.07, 0.06, 0.018), (0.045, 0.04, 0.012)]),
-    ])
+    from ridges import build_outcrop
+    return build_outcrop(name, 31, 1)
 
 
 @asset
 def outcrop_b(name):
-    return _outcrop(name, 8, [
-        (0.15, 0.12, [(0.12, 0.08, 0.02), (0.09, 0.06, 0.02),
-                      (0.05, 0.045, 0.012)]),
-        (-0.17, -0.2, [(0.08, 0.07, 0.022)]),
-        (-0.06, -0.34, [(0.07, 0.055, 0.016)]),
-    ])
+    from ridges import build_outcrop
+    return build_outcrop(name, 83, -1)
 
 
 @asset
@@ -2152,83 +2029,54 @@ def wharf_crane(name):
 
 @asset
 def mill_site(name):
-    """A cleared mill site: cinder ground over the brick footings of a
-    mill (outer walls, cross walls, rows of column pads, an engine bed),
-    weeds and rubble, and the mill chimney still standing in one corner."""
+    """A reclaimed weaving yard: legible foundation lines, a paved apron,
+    and one surviving boiler-house corner. The empty middle invites a route;
+    no full-height stack or loose rubble obscures its neighbouring cells."""
     r = root(name)
     B = Build(name)
-    rnd = random.Random(33)
-    B.add(gbox("ground", (0.79, 0.79, 0.006), (0, 0, 0.0), CINDER,
-               edge=0.25))
-    # Footings of a 0.7 x 0.3 mill and an engine house.
-    mx0, mx1, my0, my1 = -0.36, 0.3, -0.22, 0.08
-    t = 0.014
-    walls_ = [((mx0 + mx1) / 2, my0, mx1 - mx0, t),
-              ((mx0 + mx1) / 2, my1, mx1 - mx0, t)]
-    for x in (mx0, -0.14, 0.08, mx1):
-        walls_.append(("x", x, my0, my1))
-    for wl in walls_:
-        if wl[0] == "x":
-            _, x, ya, yb = wl
-            parts = [(ya, yb)]
-            if x == -0.14:
-                parts = [(ya, -0.1), (-0.02, yb)]
-            for a, b in parts:
-                hgt = rnd.uniform(0.01, 0.018)
-                B.add(gbox("footing", (t, b - a + t, hgt),
-                           (x, (a + b) / 2, hgt / 2), BRICK_DK, edge=0.0))
-        else:
-            cx_, y, L, tt = wl
-            segs = [(mx0, -0.25), (-0.19, 0.0), (0.06, mx1)] if y == my0 \
-                else [(mx0, mx1)]
-            for a, b in segs:
-                hgt = rnd.uniform(0.01, 0.018)
-                B.add(gbox("footing", (b - a + t, tt, hgt),
-                           ((a + b) / 2, y, hgt / 2), BRICK_DK, edge=0.0))
-    for x in (-0.3, -0.24, -0.08, -0.02, 0.14, 0.2, 0.26):
-        for y in (-0.15, -0.06, 0.01):
-            B.add(box("pad", (0.014, 0.014, 0.008), (x, y, 0.004), GRIT))
-    # Engine bed and boiler seating.
-    B.add(gbox("bed", (0.1, 0.06, 0.016), (0.0, 0.2, 0.007), GRIT, edge=0.0,
-               bevel=0.001))
-    for x in (-0.03, 0.03):
-        B.add(box("bolt", (0.006, 0.006, 0.006), (x, 0.2, 0.017), IRON))
-    for x in (-0.3, -0.18):
-        B.add(gbox("seat", (0.1, 0.05, 0.012), (x, 0.21, 0.005), BRICK,
-                   edge=0.0))
-    # Rubble heaps and weeds.
-    for i in range(18):
-        x, y = rnd.uniform(-0.37, 0.37), rnd.uniform(-0.37, 0.37)
-        if x > 0.24 and y > 0.24:
-            continue
-        o = box("brick", (0.012, 0.006, 0.005), (0, 0, 0),
-                rnd.choice((BRICK, BRICK_DK)))
-        tf(o, T(x, y, 0.004) @ rot("Z", rnd.uniform(0, 180)))
-        B.add(o)
-    for i in range(9):
-        x, y = rnd.uniform(-0.36, 0.36), rnd.uniform(-0.36, 0.36)
-        if x > 0.22 and y > 0.22:
-            continue
-        o = ball("weed", 1.0, (0, 0, 0), WEED, seg=6, rings=3,
-                 scale=(rnd.uniform(0.02, 0.035), rnd.uniform(0.015, 0.03),
-                        0.007))
-        tf(o, T(x, y, 0.003))
-        B.add(o)
-    for i in range(3):
-        x, y = (-0.33 + i * 0.27, 0.32)
-        o = lathe("rubble", [(0.04, -0.003), (0.03, 0.008), (0.012, 0.016),
-                             (0.0, 0.017)], (0, 0, 0), 7,
-                  (BRICK_DK, CINDER, BRICK)[i], close=False)
-        for v in o.data.vertices:
-            if v.co.z > 0:
-                v.co.x *= rnd.uniform(0.7, 1.25)
-                v.co.y *= rnd.uniform(0.7, 1.1)
-                v.co.z *= rnd.uniform(0.7, 1.15)
-        tf(o, T(x, y, 0.0))
-        B.add(o)
-    build_chimney(B, 0.33, 0.33)
+    B.add(gbox("cinder-yard", (0.78, 0.78, 0.006), (0, 0, -0.001),
+               CINDER, edge=0.2))
+    # Perimeter footing, with a clear cart entrance towards the viewer.
+    for y in (-0.32, 0.30):
+        parts = [(-0.33, -0.10), (0.10, 0.33)] if y < 0 else [(-0.33, 0.33)]
+        for xa, xb in parts:
+            B.add(box("foundation", (xb - xa, 0.019, 0.019),
+                      ((xa + xb) / 2, y, 0.009), BRICK_DK))
+            B.add(box("foundation-cap", (xb - xa, 0.021, 0.004),
+                      ((xa + xb) / 2, y, 0.020), GRIT))
+    for x in (-0.33, 0.33):
+        B.add(box("foundation", (0.019, 0.62, 0.019), (x, -0.01, 0.009),
+                  BRICK_DK))
+    # Two floor bays, deliberately open rather than a mesh of tiny debris.
+    for x in (-0.105, 0.105):
+        B.add(box("floor-beam-bed", (0.012, 0.53, 0.005),
+                  (x, -0.005, 0.004), GRIT_DK))
+    B.add(box("loading-apron", (0.38, 0.12, 0.009), (0, -0.315, 0.003), FLAGS))
+    for x in (-0.18, -0.06, 0.06, 0.18):
+        B.add(box("slab-joint", (0.002, 0.112, 0.001),
+                  (x, -0.315, 0.008), GRIT_DK))
+    # The surviving engine room rests inside the rear footprint, with its
+    # chimney set behind it. A raised arch and green door make it a landmark.
+    bx, by, bw, bd, bh = 0.215, 0.215, 0.17, 0.12, 0.12
+    B.body(K.body("boiler-room", bw, bd, bh, 0.031, "x",
+                  centre=(bx, by), mat=BRICK, edge=0.07, bevel=0.001))
+    wall = walls(bx, by, bw, bd)["front"]
+    plank_door(B, wall, -0.025, 0.057, 0.087, GREEN, arch="segment",
+               braces=False)
+    arch_ring(B, wall, -0.025, 0.057, 0.087, "segment", 0.0065, BRICK_DK)
+    mill_window(B, wall, 0.049, 0.039, 0.032, 0.046, arch=False)
+    W.roof(B, bx, by, bw, bd, bh, 0.031, SLATE, over=0.005,
+           over_gable=0.004, ridge_mat=SLATE_DK)
+    build_chimney(B, 0.297, 0.320, H=0.40, base=0.067)
+    # A single kept wall with an old capped buttress, no random rubble.
+    for x in (-0.31, -0.19):
+        B.add(box("old-pier", (0.028, 0.029, 0.075),
+                  (x, 0.29, 0.036), BRICK_DK))
+        B.add(box("old-pier-cap", (0.033, 0.033, 0.006),
+                  (x, 0.29, 0.076), GRIT))
+    B.add(box("old-wall", (0.12, 0.017, 0.05), (-0.25, 0.29, 0.025), BRICK))
     W.carve(B)
-    B.finish(r)
+    finish_mill(B, r)
     return r
 
 
@@ -2272,7 +2120,11 @@ def main():
         if r.name == "tunnel_rail":
             W.bore_check(r, 0.085, 0.155, 0.085, -0.05, 1.095, "into mound")
         if r.name.startswith("outcrop"):
-            W.bore_check(r, 0.18, 0.14, 0.1, -0.6, 0.6, "straight through")
+            from ridges import validate_clearance
+            validate_clearance(r)
+    if os.environ.get("ROTA_MASTER"):
+        bpy.ops.wm.save_as_mainfile(
+            filepath=os.path.abspath(os.environ["ROTA_MASTER"]))
     if out:
         kit.export(roots, out)
         print("GLB bytes", os.path.getsize(out))

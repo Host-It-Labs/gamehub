@@ -9,7 +9,13 @@ import {
   orientations,
   pieces,
 } from '../lib/games/rota/pieces.ts';
-import { MAP_IDS, maps } from '../lib/games/rota/maps.ts';
+import {
+  MAP_IDS,
+  MAP_VERSION,
+  maps,
+  rockfallSites,
+  townSites,
+} from '../lib/games/rota/maps.ts';
 import {
   canPlace,
   emptyCells,
@@ -85,10 +91,36 @@ await test('pieces turn and flip into their distinct orientations', () => {
   assert.ok(!pieces.overpass.station && !pieces['road-cross'].junction);
 });
 
-await test('every map has twelve or sixteen exits on free edges and one centre', () => {
+await test('three maps grow with their seven, ten and fourteen rounds', () => {
+  assert.deepEqual(MAP_IDS, ['meadow', 'harbour', 'ridge']);
+  assert.deepEqual(
+    MAP_IDS.map((id) => maps[id].rounds),
+    [7, 10, 14],
+  );
+  assert.deepEqual(
+    MAP_IDS.map((id) => maps[id].size),
+    [7, 9, 10],
+  );
+  assert.equal(maps.harbour.sea.length, 12);
+  assert.equal(maps.harbour.exits.filter((e) => e.pier).length, 4);
+  assert.equal(maps.ridge.peaks.length, 10);
+  for (const map of MAP_IDS) {
+    const g = createRota(2, 104, { map, ext: { towns: true, rockfall: true } });
+    assert.equal(g.mapVersion, MAP_VERSION);
+    assert.equal(g.rounds, maps[map].rounds);
+    assert.equal(g.seats[0].cells.length, maps[map].size ** 2);
+    assert.deepEqual(
+      g,
+      createRota(2, 104, { map, ext: { towns: true, rockfall: true } }),
+    );
+  }
+  assert.equal(createRota(1, 4, { map: 'capital' }).map, 'meadow');
+});
+
+await test('every map has balanced exits on free edges and one clear centre', () => {
   for (const id of MAP_IDS) {
     const m = maps[id];
-    assert.equal(m.exits.length, m.size === 8 ? 16 : 12, id);
+    assert.equal(m.exits.length, id === 'ridge' ? 16 : 12, id);
     const seen = new Set();
     for (const e of m.exits) {
       const key = `${e.cell}:${e.dir}`;
@@ -107,6 +139,33 @@ await test('every map has twelve or sixteen exits on free edges and one centre',
       `${id} balances road and rail exits`,
     );
     assert.ok(m.centre.length >= 9);
+    for (const list of [m.sea, m.peaks, m.centre]) {
+      assert.equal(
+        new Set(list).size,
+        list.length,
+        `${id} has unique terrain cells`,
+      );
+      assert.ok(
+        list.every((i) => Number.isInteger(i) && i >= 0 && i < m.size ** 2),
+      );
+    }
+    assert.ok(
+      m.centre.every((i) => !m.sea.includes(i) && !m.peaks.includes(i)),
+    );
+    const townCells = townSites(m);
+    assert.ok(
+      townCells.every(
+        (i) =>
+          !m.centre.includes(i) && !m.sea.includes(i) && !m.peaks.includes(i),
+      ),
+    );
+    const rocks = rockfallSites(m, townCells);
+    assert.ok(
+      rocks.every(
+        (i) =>
+          !m.sea.includes(i) && !m.peaks.includes(i) && !townCells.includes(i),
+      ),
+    );
   }
 });
 
@@ -138,7 +197,7 @@ await test('sea, rubble, peaks and towns limit where pieces go', () => {
   const peak = ridge.peaks[0];
   const around = build(ridge, [[0, 2, 'road-straight', 1]]);
   // (1,2) is a peak next to the left exit: only a straight may go there.
-  assert.equal(peak, at(1, 2));
+  assert.equal(peak, at(1, 2, ridge.size));
   assert.ok(canPlace(around, 'road-straight', 1, peak));
   assert.ok(!canPlace(around, 'road-tee', 1, peak));
   const rubble = build(meadow, [], [at(1, 0)]);
@@ -329,6 +388,18 @@ await test('bots finish every map and extension with valid moves', () => {
       });
       g = finish(g);
       assert.equal(g.final.length, 3);
+      assert.equal(g.round, maps[map].rounds, `${map} finishes its last round`);
+      assert.equal(
+        g.rolls.length,
+        maps[map].rounds,
+        `${map} rolls exactly its round count`,
+      );
+      assert.equal(g.strikes.length, maps[map].rounds);
+      assert.ok(
+        !validMove(g, { type: 'done' }, 0),
+        'a finished match cannot roll again',
+      );
+      assert.deepEqual(actingSeats(g), []);
       const o = outcome(g);
       assert.ok(o.winners.length >= 1);
       assert.ok(

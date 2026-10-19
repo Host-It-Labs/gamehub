@@ -29,6 +29,16 @@ export function AltoTableLab({ query }: { query: string }) {
     const known = new Set(plans.map((p) => p.id));
     game.players.forEach((player) => {
       player.built = [...new Set(ids.filter((id) => known.has(id)))];
+      const level = Math.max(
+        1,
+        Math.min(game.season, Number(params.get('level')) || 1),
+      );
+      player.levels = Object.fromEntries(
+        player.built.map((id) => [
+          id,
+          plans.find((p) => p.id === id)?.family === 'ship' ? level : 1,
+        ]),
+      );
       player.stock = [12, 12, 12, 12];
     });
     if (params.has('long'))

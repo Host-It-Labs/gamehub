@@ -1,3 +1,4 @@
+import * as legacy from './legacy-content.ts';
 import {
   baseHold,
   captainById,
@@ -67,6 +68,11 @@ export type AltoMove =
 export type Choice = { island: number; build?: string; order?: string };
 
 export type AltoPlayer = {
+  /** Absent on original saved matches, whose fittings keep their old effects. */
+  edition?: 3;
+  levels?: Record<string, number>;
+  lastGood?: Good;
+  builtThisYear?: number;
   stock: Goods;
   /** Plan ids in the order they were built. */
   built: string[];
@@ -95,6 +101,10 @@ export type Report = {
   paid: Goods[];
   /** Points scored at once by this turn's build or order. */
   gained: number[];
+  /** Fitted level after each build; zero when nothing was built. */
+  buildLevels?: number[];
+  /** Every cargo received, including a specialist's secondary output. */
+  cargo?: Goods[];
   flags: (number | null)[];
   /** The season ended with this turn. */
   seasonEnd?: number;
@@ -103,7 +113,7 @@ export type Report = {
 export type AltoGame = {
   kind: 'alto';
   version: 1;
-  rules: 2;
+  rules: 2 | 3;
   rngState: number;
   difficulty: Difficulty;
   seats: string[];
@@ -148,13 +158,17 @@ function shuffle<T>(list: T[], g: { rngState: number }): T[] {
   return a;
 }
 
-export const turnsPerSeason = (g: Pick<AltoGame, 'options'>) =>
-  lengths[g.options.length];
-export const totalTurns = (g: Pick<AltoGame, 'options'>) =>
-  3 * turnsPerSeason(g);
+export const turnsPerSeason = (
+  g: Pick<AltoGame, 'options'> & Partial<Pick<AltoGame, 'rules'>>,
+) => (g.rules === 2 ? legacy.lengths : lengths)[g.options.length];
+export const totalTurns = (
+  g: Pick<AltoGame, 'options'> & Partial<Pick<AltoGame, 'rules'>>,
+) => 3 * turnsPerSeason(g);
 /** 1-based turn across the whole match. */
-export const turnNumber = (g: Pick<AltoGame, 'options' | 'season' | 'turn'>) =>
-  (g.season - 1) * turnsPerSeason(g) + g.turn;
+export const turnNumber = (
+  g: Pick<AltoGame, 'options' | 'season' | 'turn'> &
+    Partial<Pick<AltoGame, 'rules'>>,
+) => (g.season - 1) * turnsPerSeason(g) + g.turn;
 export const seatNames = ['You', 'Wren', 'Juno', 'Tavi', 'Ossa', 'Pim'];
 
 export function createAlto(
@@ -169,7 +183,7 @@ export function createAlto(
   const g: AltoGame = {
     kind: 'alto',
     version: 1,
-    rules: 2,
+    rules: 3,
     rngState: seed >>> 0,
     difficulty,
     seats: seatNames.slice(0, players),
@@ -210,6 +224,9 @@ export function createAlto(
     : [];
   for (let s = 0; s < players; s++)
     g.players.push({
+      edition: 3,
+      levels: {},
+      builtThisYear: 0,
       stock: startStock(),
       built: [],
       scored: {},
@@ -260,10 +277,72 @@ const planIndex = (id: string) => planOrder.get(id) ?? 0;
 
 // ——— Effects and payments ———
 
-const effectsOf = (p: AltoPlayer) => [
-  ...(p.captain ? (captainById[p.captain]?.effects ?? []) : []),
-  ...p.built.flatMap((id) => planById[id]?.effects ?? []),
-];
+/** Original saves keep their catalogue and effects; helpers without a game use
+ * the player's edition. New players always carry edition: 3. */
+export const planFor = (g: Pick<AltoGame, 'rules'>, id: string): Plan =>
+  (g.rules === 2 ? legacy.planById[id] : planById[id]) as Plan;
+export const captainFor = (g: Pick<AltoGame, 'rules'>, id: string) =>
+  (g.rules === 2 ? legacy.captainById : captainById)[id];
+export const playerCaptain = (p: AltoPlayer, id: string) =>
+  (p.edition === 3 ? captainById : legacy.captainById)[id];
+export function planLevel(p: AltoPlayer, id: string) {
+  return p.built.includes(id)
+    ? p.edition === 3
+      ? (p.levels?.[id] ?? 1)
+      : 1
+    : 0;
+}
+export function planAtLevel(
+  g: Pick<AltoGame, 'rules'>,
+  id: string,
+  level: number,
+): Plan {
+  const base = planFor(g, id);
+  if (!base) return base;
+  const refit = level > 1 ? base.refits?.[level - 2] : undefined;
+  return { ...base, ...refit, level };
+}
+export function ownedPlan(p: AltoPlayer, id: string): Plan {
+  return planAtLevel(
+    { rules: p.edition === 3 ? 3 : 2 },
+    id,
+    Math.max(1, planLevel(p, id)),
+  );
+}
+export function maxPlanLevel(
+  g: Pick<AltoGame, 'rules' | 'season'>,
+  id: string,
+) {
+  const plan = planFor(g, id);
+  return g.rules === 3 && plan?.refits
+    ? Math.min(g.season, plan.refits.length + 1)
+    : 1;
+}
+export function nextPlan(
+  g: Pick<AltoGame, 'rules' | 'plans' | 'season'>,
+  p: AltoPlayer,
+  id: string,
+): Plan | null {
+  if (!planFor(g, id) || !currentPlans(g).includes(id)) return null;
+  const level = planLevel(p, id) + 1;
+  if (level > maxPlanLevel(g, id)) return null;
+  return planAtLevel(g, id, level);
+}
+const effectCache = new WeakMap<
+  AltoPlayer,
+  { key: string; effects: Effect[] }
+>();
+export function effectsOf(p: AltoPlayer): Effect[] {
+  const key = `${p.edition ?? 2}:${p.captain ?? ''}:${p.built.map((id) => `${id}:${p.levels?.[id] ?? 1}`).join(',')}`;
+  const cached = effectCache.get(p);
+  if (cached?.key === key) return cached.effects;
+  const effects: Effect[] = [
+    ...(p.captain ? (playerCaptain(p, p.captain)?.effects ?? []) : []),
+    ...p.built.flatMap((id) => ownedPlan(p, id)?.effects ?? []),
+  ];
+  effectCache.set(p, { key, effects });
+  return effects;
+}
 const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
 function effectTotal(p: AltoPlayer, type: Effect['type']) {
   return sum(
@@ -287,6 +366,41 @@ export function yieldBonus(p: AltoPlayer, good: Good) {
     ),
   );
 }
+/** Route rewards require a real earlier flight, and compare cargo kinds. */
+export function routeBonus(p: AltoPlayer, good: Good) {
+  return p.lastGood !== undefined && p.lastGood !== good
+    ? effectTotal(p, 'route')
+    : 0;
+}
+export function byproductBonus(p: AltoPlayer, good: Good): Goods {
+  const cargo = noGoods();
+  for (const e of effectsOf(p))
+    if (e.type === 'byproduct' && e.good === good) cargo[e.cargo] += e.amount;
+  return cargo;
+}
+/** Pure collection calculation, shared by resolution and bots. */
+export function flightCargo(
+  p: AltoPlayer,
+  good: Good,
+  share: number,
+  alone: boolean,
+) {
+  const take = Math.min(share, hold(p));
+  const cargo = byproductBonus(p, good);
+  cargo[good] +=
+    take +
+    (alone ? aloneBonus(p) : shareBonus(p)) +
+    yieldBonus(p, good) +
+    routeBonus(p, good);
+  return { take, bonus: cargo.reduce((a, n) => a + n, 0) - take, cargo };
+}
+export function shipLevels(p: AltoPlayer) {
+  return p.built.reduce(
+    (n, id) => n + (ownedPlan(p, id)?.family === 'ship' ? planLevel(p, id) : 0),
+    0,
+  );
+}
+
 /** Cargo off a build: Toolboxes (base modules only) and Workbenches, and the
  *  Trader's first build of a year. Orders take no discount. */
 export function discount(
@@ -296,7 +410,9 @@ export function discount(
 ) {
   const trader =
     p.captain === 'trader' &&
-    !p.built.some((id) => planById[id].season === g.season)
+    (p.edition === 3
+      ? (p.builtThisYear ?? 0) === 0
+      : !p.built.some((id) => legacy.planById[id].season === g.season))
       ? 1
       : 0;
   const off = sum(
@@ -366,19 +482,27 @@ export function payment(cost: Goods, stock: Goods, off = 0): Goods | null {
   return paid;
 }
 
-export function currentPlans(g: Pick<AltoGame, 'plans' | 'season'>) {
-  return g.plans[g.season - 1] ?? [];
+export function currentPlans(
+  g: Pick<AltoGame, 'plans' | 'season'> & Partial<Pick<AltoGame, 'rules'>>,
+) {
+  return g.rules === 2
+    ? (g.plans[g.season - 1] ?? [])
+    : g.plans.slice(0, g.season).flat();
 }
 /** Whether a player may build this plan now, and what it would take. */
 export function buildable(g: AltoGame, seat: number, id: string): Goods | null {
   const p = g.players[seat];
-  const plan = planById[id];
-  if (!plan || !currentPlans(g).includes(id) || p.built.includes(id))
-    return null;
+  const plan = nextPlan(g, p, id);
+  if (!plan) return null;
   return payment(plan.cost, p.stock, discount(g, p, plan.family));
 }
 export function fillable(g: AltoGame, seat: number, id: string): Goods | null {
-  if (!g.options.orders || !g.openOrders?.includes(id)) return null;
+  if (
+    !g.options.orders ||
+    !g.openOrders?.includes(id) ||
+    (g.rules === 3 && g.season === 1)
+  )
+    return null;
   const order = orderById[id];
   return order ? payment(order.cost, g.players[seat].stock, 0) : null;
 }
@@ -467,7 +591,7 @@ export function play(state: AltoGame, m: AltoMove, seat: number): AltoGame {
     const p = g.players[seat];
     p.captain = m.captain;
     delete p.captainOffer;
-    const start = captainById[m.captain].start;
+    const start = captainFor(g, m.captain).start;
     if (start) start.forEach((v, k) => (p.stock[k] += v));
     if (g.players.every((q) => q.captain)) g.phase = 'plan';
     return g;
@@ -503,6 +627,8 @@ function resolve(g: AltoGame) {
     orders: choices.map((c) => c.order ?? null),
     paid: choices.map(() => noGoods()),
     gained: Array(n).fill(0),
+    buildLevels: Array(n).fill(0),
+    cargo: Array.from({ length: n }, noGoods),
     flags: Array(n).fill(null),
   };
   // Builds, all at once: every builder of a monument this turn scores the same.
@@ -510,11 +636,16 @@ function resolve(g: AltoGame) {
   choices.forEach((c, s) => {
     const p = g.players[s];
     if (c.build) {
-      const plan = planById[c.build];
+      const plan = nextPlan(g, p, c.build)!;
       const paid = payment(plan.cost, p.stock, discount(g, p, plan.family))!;
       for (let k = 0; k < 4; k++) p.stock[k] -= paid[k];
       report.paid[s] = paid;
-      p.built.push(plan.id);
+      if (!p.built.includes(plan.id)) p.built.push(plan.id);
+      if (p.edition === 3) {
+        p.levels![plan.id] = plan.level ?? 1;
+        p.builtThisYear = (p.builtThisYear ?? 0) + 1;
+      }
+      report.buildLevels![s] = plan.level ?? 1;
       if (plan.effects.some((e) => e.type === 'race'))
         (raceBuilders[plan.id] ??= []).push(s);
       report.gained[s] = sum(
@@ -531,7 +662,7 @@ function resolve(g: AltoGame) {
     }
   });
   for (const [id, seats] of Object.entries(raceBuilders)) {
-    const plan = planById[id];
+    const plan = planFor(g, id);
     // Builders on the same turn all score the prize of the last of them.
     const value = raceValue(
       { races: { [id]: (g.races[id] ?? 0) + seats.length - 1 } },
@@ -561,13 +692,13 @@ function resolve(g: AltoGame) {
       : Math.floor(island.pile / visitors.length);
     for (const s of visitors) {
       const p = g.players[s];
-      const take = Math.min(share, hold(p));
-      const extra =
-        (alone ? aloneBonus(p) : shareBonus(p)) + yieldBonus(p, island.good);
-      island.pile -= take;
-      p.stock[island.good] += take + extra;
-      report.takes[s] = take;
-      report.bonus[s] = extra;
+      const load = flightCargo(p, island.good, share, alone);
+      island.pile -= load.take;
+      load.cargo.forEach((amount, good) => (p.stock[good] += amount));
+      report.takes[s] = load.take;
+      report.bonus[s] = load.bonus;
+      report.cargo![s] = load.cargo;
+      if (p.edition === 3) p.lastGood = island.good;
       if (alone && g.options.flags) {
         p.flags[i]++;
         report.flags[s] = i;
@@ -588,6 +719,7 @@ function resolve(g: AltoGame) {
   if (last) {
     g.season = (g.season + 1) as AltoGame['season'];
     g.turn = 1;
+    for (const p of g.players) if (p.edition === 3) p.builtThisYear = 0;
   } else g.turn++;
   for (const island of g.islands)
     island.pile = Math.min(pileCap, island.pile + growthFor(n, island.good));
@@ -609,7 +741,7 @@ export type Breakdown = {
   total: number;
 };
 export function familyCount(p: AltoPlayer, family?: Family) {
-  return p.built.filter((id) => !family || planById[id]?.family === family)
+  return p.built.filter((id) => !family || ownedPlan(p, id)?.family === family)
     .length;
 }
 export const totalGoods = (p: AltoPlayer) => sum(p.stock);
@@ -638,13 +770,14 @@ export function flagScores(g: AltoGame) {
 }
 /** Points a plan earns its owner now: its own score or, for end scorers, what it would score if the match ended. */
 export function planScore(p: AltoPlayer, id: string) {
-  const plan = planById[id];
+  const plan = ownedPlan(p, id);
   if (!plan) return 0;
   let points = p.scored[id] ?? 0;
   for (const e of plan.effects) {
     if (e.type === 'points') points += e.points;
     if (e.type === 'per') points += e.points * familyCount(p, e.family);
     if (e.type === 'perHold') points += e.points * hold(p);
+    if (e.type === 'perLevel') points += e.points * shipLevels(p);
   }
   return points;
 }
@@ -653,9 +786,14 @@ export function breakdown(g: AltoGame, seat: number): Breakdown {
   let plans = 0,
     bonus = 0;
   for (const id of p.built) {
-    const plan = planById[id];
+    const plan = ownedPlan(p, id);
     const own = planScore(p, id);
-    if (plan.effects.some((e) => e.type === 'per' || e.type === 'perHold'))
+    if (
+      plan.effects.some(
+        (e) =>
+          e.type === 'per' || e.type === 'perHold' || e.type === 'perLevel',
+      )
+    )
       bonus += own;
     else plans += own;
   }
@@ -714,7 +852,7 @@ export function isAltoSave(x: unknown): x is AltoGame {
       typeof g !== 'object' ||
       g.kind !== 'alto' ||
       g.version !== 1 ||
-      g.rules !== 2
+      (g.rules !== 2 && g.rules !== 3)
     )
       return false;
     const n = g.seats?.length;
@@ -761,7 +899,9 @@ export function isAltoSave(x: unknown): x is AltoGame {
       !g.plans.every(
         (ids, s) =>
           Array.isArray(ids) &&
-          ids.every((id) => planById[id]?.season === s + 1),
+          ids.length === plansPerSeason &&
+          new Set(ids).size === ids.length &&
+          ids.every((id) => planFor(g, id)?.season === s + 1),
       )
     )
       return false;
@@ -770,8 +910,42 @@ export function isAltoSave(x: unknown): x is AltoGame {
       if (
         !isGoods(p.stock) ||
         !Array.isArray(p.built) ||
-        !p.built.every((id) => !!planById[id])
+        new Set(p.built).size !== p.built.length ||
+        !p.built.every((id) => !!planFor(g, id) && g.plans.flat().includes(id))
       )
+        return false;
+      if (g.rules === 3) {
+        if (
+          p.edition !== 3 ||
+          !p.levels ||
+          typeof p.levels !== 'object' ||
+          Array.isArray(p.levels)
+        )
+          return false;
+        if (
+          p.lastGood !== undefined &&
+          (![0, 1, 2, 3].includes(p.lastGood) || !Number.isInteger(p.lastGood))
+        )
+          return false;
+        if (
+          !Number.isInteger(p.builtThisYear) ||
+          p.builtThisYear! < 0 ||
+          p.builtThisYear! > turnsPerSeason(g)
+        )
+          return false;
+        if (
+          Object.entries(p.levels).some(
+            ([id, level]) =>
+              !p.built.includes(id) ||
+              !Number.isInteger(level) ||
+              level < 1 ||
+              level > maxPlanLevel(g, id) ||
+              planFor(g, id)?.season > g.season,
+          )
+        )
+          return false;
+        if (p.built.some((id) => p.levels?.[id] === undefined)) return false;
+      } else if (p.edition !== undefined || p.levels !== undefined)
         return false;
       if (!Array.isArray(p.flags) || p.flags.length !== g.islands.length)
         return false;
