@@ -45,6 +45,7 @@ for (const id of [
   'folio',
   'arena',
   'rota',
+  'metro',
   'alto',
   'impostor',
   'diner',

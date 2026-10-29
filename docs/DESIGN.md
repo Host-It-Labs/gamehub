@@ -1,5 +1,49 @@
 # Gamehub design direction
 
+## Metro: a flip-and-draw metro game in a tiled hall (25 October 2026)
+
+William asked for "a kind of replication" of Next Station: Berlin, which he
+really likes. **Metro** (`metro`, a plain name, provisional) keeps that
+game's rules and scoring closely: four rounds, one line colour a round, two
+starts a colour on opposite banks, eleven cards (five a bank and the railway
+switch), the fifth card of a bank ends the round, districts times the busiest
+district plus 10 for joining both starts, interchanges 2/5/9 with boxed
+stations counting twice. Its name, city, map, look and art are Gamehub's.
+The original's advanced modes are two independent extensions, **Goals** and
+**Express**. Rules, map, code map and balance: [metro.md](metro.md).
+
+- **Look.** A sunlit tiled metro hall, deliberately away from Rota's railway
+  enamel in green and cream: a cobalt azulejo wall, a terracotta floor under
+  the dock, and the map as a panel of white glazed tiles in a limestone frame,
+  the city painted in cobalt, eight main districts in glaze washes, the four
+  corner districts plain white with a cobalt flourish, a wavy river between
+  the banks and a moon and a sun plaque on the frame. Lines are painted glaze
+  in terracotta, cobalt, olive and saffron with darker edges; earlier rounds'
+  lines sit back a little under the line being built. One light: a skylight
+  high on the left. Optima for display, Seravek for text.
+- **Roles.** Cards are painted tiles that turn over (the bank's mark in the
+  corner, the shape large); the cards flipped this round fill a wooden rack,
+  a row a bank, five slots each, so the round's end is visible; the score is
+  a perforated paper ticket (each round's districts × most, +10, the
+  interchange counts, goals); goals and the round's Express bonus are brass
+  plaques; players wear enamel line roundels ringed in their colour of the
+  round; Undo is a limestone button and Done a cobalt one that turns
+  terracotta once you have drawn.
+- **Table.** One viewport everywhere. Wide screens: rack and plaques left of
+  the map, ticket right, the turn's card(s) in the dock between Undo and
+  Done. Upright tablets put the rack and a short ticket in a strip under the
+  map; phones put the rack and plaques there and reach the score from the
+  badges or the menu. Six contracted badges fit a 320px phone. No helper
+  text: the lit stations and dashed previews in the line's colour show where
+  you may draw; tapping one draws, and when two ends reach it the ends light
+  up to choose from.
+- **Pacing.** As in Rota: each seat locks its turn with Done and the next
+  card turns once everyone has; no host Next. Others' sections from the turn
+  in play stay hidden until it resolves.
+- **Covers.** A sunny river city painted on azulejo tiles with the four lines
+  and the station shapes; "Metro" lettered in those lines
+  (`docs/concepts/2026-10-25-metro-covers`).
+
 ## Rankings that just happen (19 October 2026)
 
 Supersedes the 17 October Casual / Ranked design. William found the mode
@@ -2925,6 +2969,7 @@ The observatory uses lazily loaded Three.js with an orthographic camera and simp
 | My Top Five | `orin` | Personal rankings and shared guesses | Two rounds |
 | Atlas | `miro` | Satellite globe and shared destinations | Places; Photos; Three facts |
 | Rota | `rota` | A mill town that grows round the routes, ink lines, live 3D (3 October 2026) | Meadow (7 rounds); Harbour (10); Ridge (14) |
+| Metro | `metro` | A sunny river city on a panel of glazed azulejo tiles, lines painted in glaze (25 October 2026) | One city (4 rounds) |
 
 Nox, Mora and Yata share one rules module (`lib/games/trio/engine.ts`) because they
 share a deck, a die and a trick. My Top Five and Atlas use their own party
@@ -2952,6 +2997,7 @@ One extension means one mechanic. Content sets are independent of extensions. Ev
 - Elsewild: Roam; Sanctuary Goals; Census (Migration retired 29 September 2026).
 - Nightshift: Customer Orders; Specialty Stalls; Market Seasons.
 - Rota: Rivers; Plans; Mills; Rockfall.
+- Metro: Goals; Express.
 
 Setup has one Extensions heading. Tiles contain the same emblem used in-game, a short title, an unmistakable enabled state, and a separate information button within the tile boundary. Never nest interactive controls. Opening rules must not change selection.
 

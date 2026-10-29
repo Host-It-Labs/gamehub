@@ -4,6 +4,7 @@ import { arena } from './books/arena.ts';
 import { impostor } from './books/impostor.ts';
 import { knowMe } from './books/know-me.ts';
 import { lucky } from './books/lucky.ts';
+import { metro } from './books/metro.ts';
 import { mora } from './books/mora.ts';
 import { nox } from './books/nox.ts';
 import { puzzles } from './books/puzzles.ts';
@@ -25,6 +26,7 @@ export const soundBooks: SoundBook[] = [
   puzzles,
   lucky,
   rota,
+  metro,
   alto,
   arena,
 ];
@@ -45,6 +47,7 @@ const byGame: Record<string, SoundBook> = {
   folio: puzzles,
   relic: lucky,
   rota,
+  metro,
   alto,
   arena,
 };

@@ -3,7 +3,7 @@ import type { AnyGame, AnyMove } from '../games/standalone/registry.ts';
 import type { TriviaLength, TriviaMode } from '../games/party/trivia.ts';
 export type OnlineGameId = GameId | StandaloneId;
 /** Everything the table shelf offers: its own games plus Folio and Relic, which run in their own rooms. */
-export type ShelfGameId = OnlineGameId | 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner';
+export type ShelfGameId = OnlineGameId | 'folio' | 'relic' | 'arena' | 'rota' | 'metro' | 'alto' | 'diner';
 import type {
   Difficulty,
   GameOptions,
@@ -64,7 +64,7 @@ export type Table = GameOptions & {
    *  seconds when the table votes; without a deadline the host picks alone. */
   nextVote?: NextGameVote | null;
   /** The table moved on to Folio, Relic or Arena, which run in their own rooms. */
-  handoff?: { kind: 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner'; url: string; at: number } | null;
+  handoff?: { kind: 'folio' | 'relic' | 'arena' | 'rota' | 'metro' | 'alto' | 'diner'; url: string; at: number } | null;
 };
 export type NextGameVote = {
   endsAt: number | null;

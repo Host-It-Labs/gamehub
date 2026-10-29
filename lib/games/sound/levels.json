@@ -183,6 +183,34 @@
     "gain": 0.398,
     "hash": "81ttt7"
   },
+  "metro:flip": {
+    "gain": 0.404,
+    "hash": "e8a3sc"
+  },
+  "metro:invalid": {
+    "gain": 0.417,
+    "hash": "1lj5imu"
+  },
+  "metro:join": {
+    "gain": 0.213,
+    "hash": "229klb"
+  },
+  "metro:place": {
+    "gain": 0.282,
+    "hash": "mrhgz2"
+  },
+  "metro:round": {
+    "gain": 0.377,
+    "hash": "16b63h9"
+  },
+  "metro:scores": {
+    "gain": 0.234,
+    "hash": "1dx85nk"
+  },
+  "metro:select": {
+    "gain": 1.876,
+    "hash": "b61shb"
+  },
   "mora:drop": {
     "gain": 2.061,
     "hash": "qlskna"

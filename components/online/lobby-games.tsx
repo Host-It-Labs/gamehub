@@ -7,6 +7,8 @@ import { FolioSetupBox } from '../game/folio-box';
 import { RelicSetupBox } from '../game/relic-box';
 import { ArenaSetupBox } from '../game/arena/arena-box';
 import { RotaSetupBox, type RotaLaunch } from '../game/rota/rota-box';
+import { MetroSetupBox } from '../game/metro/metro-box';
+import type { MetroLaunch } from '@/lib/games/metro/room';
 import { AltoSetupEntry } from '../game/alto/alto-entry';
 import { DinerSetupBox, type DinerLaunch } from '../game/diner/diner-box';
 import type { AltoLaunch } from '@/lib/games/alto/room';
@@ -37,13 +39,14 @@ export type Launch =
   | { kind: 'folio' | 'relic'; difficulty?: 1 | 2 | 3; token?: string; title?: string }
   | ArenaLaunch
   | RotaLaunch
+  | MetroLaunch
   | AltoLaunch
   | DinerLaunch;
 
 /** Folio, Relic and Arena run in their own rooms; the rest are set up at the
  *  table. */
-const ownRoom = (id: string): id is 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner' =>
-  id === 'folio' || id === 'relic' || id === 'arena' || id === 'rota' || id === 'alto' || id === 'diner';
+const ownRoom = (id: string): id is 'folio' | 'relic' | 'arena' | 'rota' | 'metro' | 'alto' | 'diner' =>
+  id === 'folio' || id === 'relic' || id === 'arena' || id === 'rota' || id === 'metro' || id === 'alto' || id === 'diner';
 
 /** The table's shelf: the library's sections and boxes. The host opens a box
  *  to set it up for everyone; guests tap boxes to suggest them. */
@@ -297,6 +300,7 @@ function LaunchDialog({
         {box?.id === 'folio' && <FolioSetupBox game={box} table={options} />}
         {box?.id === 'relic' && <RelicSetupBox game={box} table={options} />}
         {box?.id === 'rota' && <RotaSetupBox game={box} table={options} />}
+        {box?.id === 'metro' && <MetroSetupBox game={box} table={options} />}
         {box?.id === 'alto' && <AltoSetupEntry game={box} table={options} />}
         {box?.id === 'diner' && <DinerSetupBox game={box} table={options} />}
         {box?.id === 'arena' && (

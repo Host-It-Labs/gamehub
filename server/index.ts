@@ -30,6 +30,7 @@ import { DeskPresence } from './desk-presence.ts';
 import { FolioRuns } from './folio.ts';
 import { ArenaRooms, ArenaRefusal, type ArenaOptions } from './arena.ts';
 import { RotaRooms, type RotaOptions } from './rota.ts';
+import { MetroRooms, type MetroOptions } from './metro.ts';
 import { AltoRooms, type AltoRoomOptions } from './alto.ts';
 import { DinerRooms, type DinerOptions } from './diner.ts';
 import { flagContent, flaggedTitle } from './content-flags.ts';
@@ -62,6 +63,8 @@ export async function makeServer(
     arena?: ArenaOptions;
     /** Rota bots and away seats; tests think inline. */
     rota?: RotaOptions;
+    /** Metro bots and away seats; tests think inline. */
+    metro?: MetroOptions;
     /** Alto bots and away seats; tests answer at once. */
     alto?: AltoRoomOptions;
     /** Diner's clock and waits; tests shorten them. */
@@ -83,6 +86,7 @@ export async function makeServer(
   const expeditions = new Expeditions(db, deskPresence);
   const folio = new FolioRuns(db);
   const rota = new RotaRooms(db, options.rota);
+  const metro = new MetroRooms(db, options.metro);
   const alto = new AltoRooms(db, options.alto);
   const diner = new DinerRooms({
     ...options.diner,
@@ -184,12 +188,14 @@ export async function makeServer(
       }
     schedule(invite);
   }
-  /** A Folio run or a Rota room the table moved on to follows the table's admin. */
+  /** A run or room the table moved on to follows the table's admin. */
   function followAdmin(t: StoredTable) {
     const run = t.handoff?.kind === 'folio' && /^\/folio\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
     if (run) folio.follow(run[1], t.owner);
     const room = t.handoff?.kind === 'rota' && /^\/rota\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
     if (room) rota.follow(room[1], t.owner);
+    const metroRoom = t.handoff?.kind === 'metro' && /^\/metro\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
+    if (metroRoom) metro.follow(metroRoom[1], t.owner);
     const voyage = t.handoff?.kind === 'alto' && /^\/alto\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
     if (voyage) alto.follow(voyage[1], t.owner);
     const shift = t.handoff?.kind === 'diner' && /^\/diner\/([A-Za-z0-9_-]{32})$/.exec(t.handoff.url);
@@ -655,6 +661,25 @@ export async function makeServer(
         }
         throw new HttpError(405, 'Method not allowed.');
       }
+      if (path.startsWith('/api/metro/')) {
+        // Metro rooms open from a table; only the people seated there may play.
+        const match = /^\/api\/metro\/([A-Za-z0-9_-]{32})(?:\/(commands|again))?$/.exec(path);
+        check(match, 404, 'Metro route not found.');
+        const [, room, action] = match;
+        if (!action && req.method === 'GET') { send(res, 200, metro.get(room, who)); return; }
+        if (action === 'commands' && req.method === 'POST') {
+          limit(`metro:${who?.id ?? ip}`, 120);
+          send(res, 200, metro.command(room, who, await body(req)));
+          return;
+        }
+        if (action === 'again' && req.method === 'POST') {
+          limit(`command:${who?.id ?? ip}`, 120);
+          await body(req);
+          send(res, 200, metro.again(room, who));
+          return;
+        }
+        throw new HttpError(405, 'Method not allowed.');
+      }
       if (path.startsWith('/api/arena/')) {
         // Arena battles run in memory; only seated players may open one.
         const match = /^\/api\/arena\/([A-Za-z0-9_-]{32})(?:\/(events|commands|again|deck|quest|draft))?$/.exec(path);
@@ -948,6 +973,9 @@ export async function makeServer(
         } else if (input.kind === 'rota') {
           // Rota seats everyone at the table; bots take any seats left over.
           url = `/rota/${rota.launch(invite, t.owner, t.members, input)}`;
+        } else if (input.kind === 'metro') {
+          // Metro seats everyone at the table; bots take any seats left over.
+          url = `/metro/${metro.launch(invite, t.owner, t.members, input)}`;
         } else if (input.kind === 'folio') {
           check(t.members.length <= 3, 409, 'Puzzles seats one to three players.');
           const run = input.token
@@ -1061,12 +1089,14 @@ export async function makeServer(
       path === '/folio' ||
       path === '/arena' ||
       path === '/rota' ||
+      path === '/metro' ||
       path === '/alto' ||
       path === '/diner' ||
       path === '/sound-lab' ||
       /^\/folio\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/arena\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/rota\/[A-Za-z0-9_-]{32}$/.test(path) ||
+      /^\/metro\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/alto\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/diner\/[A-Za-z0-9_-]{32}$/.test(path) ||
       /^\/expedition\/[A-Za-z0-9_-]{32}$/.test(path) ||

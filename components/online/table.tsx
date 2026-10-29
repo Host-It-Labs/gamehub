@@ -807,7 +807,7 @@ function Handoff({
   onJoin,
 }: {
   url: string;
-  kind: 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner';
+  kind: 'folio' | 'relic' | 'arena' | 'rota' | 'metro' | 'alto' | 'diner';
   onJoin: () => void;
 }) {
   const box = gameByLibraryId(kind);

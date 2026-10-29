@@ -45,6 +45,8 @@ import { RelicSetupBox } from './relic-box';
 import { ArenaSetupBox } from './arena/arena-box';
 import { RotaSetupBox } from './rota/rota-box';
 import type { RotaChoice } from './rota/rota-save';
+import { MetroSetupBox } from './metro/metro-box';
+import type { MetroChoice } from './metro/metro-save';
 import { AltoSetupEntry, type AltoChoice } from './alto/alto-entry';
 import { DinerSetupBox } from './diner/diner-box';
 import type { DinerChoice } from './diner/diner-entry';
@@ -60,6 +62,8 @@ import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'rea
 const ArenaGame = lazy(() => import('./arena/arena-entry'));
 // Rota's table, engine and bots load only when a match opens.
 const RotaSolo = lazy(() => import('./rota/rota-solo'));
+// Metro's table, map and bots load only when a match opens.
+const MetroSolo = lazy(() => import('./metro/metro-solo'));
 // Alto's table loads only when a match opens.
 const AltoSolo = lazy(() => import('./alto/alto-game'));
 // Diner's 3D room loads only when a shift opens.
@@ -127,7 +131,7 @@ export default function SoloGame() {
     // /arena and /rota open the library with that game's box already open.
     [preview, setPreview] = useState<LibraryGame | null>(() =>
       typeof window !== 'undefined' &&
-      (window.location.pathname === '/arena' || window.location.pathname === '/rota' || window.location.pathname === '/alto' || window.location.pathname === '/diner')
+      (window.location.pathname === '/arena' || window.location.pathname === '/rota' || window.location.pathname === '/alto' || window.location.pathname === '/diner' || window.location.pathname === '/metro')
         ? (gameByLibraryId(window.location.pathname.slice(1)) ?? null)
         : null,
     ),
@@ -166,6 +170,7 @@ export default function SoloGame() {
       (import('./arena/arena-entry').ArenaChoice & { key: number }) | null
     >(null),
     [rota, setRota] = useState<(RotaChoice & { key: number }) | null>(null),
+    [metro, setMetro] = useState<(MetroChoice & { key: number }) | null>(null),
     [alto, setAlto] = useState<(AltoChoice & { key: number }) | null>(null),
     [diner, setDiner] = useState<(DinerChoice & { key: number }) | null>(null);
   // Leaving a saved match asks once and says it is saved; practice simply leaves.
@@ -174,7 +179,7 @@ export default function SoloGame() {
     leaving.ask(() => { setOpenOwn(null); setOwnPractice(null); });
   }
   useEffect(() => {
-    if (window.location.pathname === '/arena' || window.location.pathname === '/rota' || window.location.pathname === '/alto' || window.location.pathname === '/diner')
+    if (window.location.pathname === '/arena' || window.location.pathname === '/rota' || window.location.pathname === '/alto' || window.location.pathname === '/diner' || window.location.pathname === '/metro')
       history.replaceState(history.state, '', '/');
   }, []);
   const festival = useFestivalChoice(g, 0);
@@ -680,6 +685,14 @@ export default function SoloGame() {
         </Suspense>
       </div>
     );
+  if (metro)
+    return (
+      <div className="app at-table metro">
+        <Suspense fallback={<main className="startup-loading metro-startup" aria-busy="true" />}>
+          <MetroSolo key={metro.key} choice={metro} onExit={() => setMetro(null)} />
+        </Suspense>
+      </div>
+    );
   if (diner)
     return (
       <div className="app at-table diner">
@@ -1054,6 +1067,14 @@ export default function SoloGame() {
               onPlay={(choice) => {
                 setPreview(null);
                 setAlto({ ...choice, key: Date.now() });
+              }}
+            />
+          ) : preview?.id === 'metro' ? (
+            <MetroSetupBox
+              game={preview}
+              onPlay={(choice) => {
+                setPreview(null);
+                setMetro({ ...choice, key: Date.now() });
               }}
             />
           ) : preview?.id === 'rota' ? (

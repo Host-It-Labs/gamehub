@@ -11,6 +11,7 @@ const coverSlugs: Record<string, string> = {
   folio: 'puzzles',
   arena: 'arena',
   rota: 'rota',
+  metro: 'metro',
   alto: 'alto',
   impostor: 'impostor',
   diner: 'diner',

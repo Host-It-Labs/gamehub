@@ -84,7 +84,7 @@ export type StoredTable = {
   /** The table moved on to a game with its own online room (Folio, Relic, Arena). */
   handoff?: Handoff | null;
 };
-export type Handoff = { kind: 'folio' | 'relic' | 'arena' | 'rota' | 'alto' | 'diner'; url: string; at: number };
+export type Handoff = { kind: 'folio' | 'relic' | 'arena' | 'rota' | 'metro' | 'alto' | 'diner'; url: string; at: number };
 /** Without a deadline (`host`), the table's host picks alone. */
 export type NextVote = {
   endsAt: number | null;
@@ -635,6 +635,7 @@ export class Tables {
               a.gameId === 'relic' ||
               a.gameId === 'arena' ||
               a.gameId === 'rota' ||
+              a.gameId === 'metro' ||
               a.gameId === 'alto' ||
               a.gameId === 'diner' ||
               (typeof a.gameId === 'string' && isStandaloneId(a.gameId))),

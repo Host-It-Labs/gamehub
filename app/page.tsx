@@ -24,6 +24,8 @@ const LeaderboardsPage = lazy(() => import('@/components/online/leaderboards'));
 // An online battle loads three.js with the rest of Arena, only when opened.
 const ArenaRoom = lazy(() => import('@/components/game/arena/arena-room'));
 const RotaRoom = lazy(() => import('@/components/game/rota/rota-room'));
+// An online Metro match loads its table only when opened.
+const MetroRoom = lazy(() => import('@/components/game/metro/metro-room'));
 // An online Alto match loads its table only when opened.
 const AltoRoom = lazy(() => import('@/components/game/alto/alto-room'));
 // An online Diner shift loads three.js with the diner only when opened.
@@ -96,6 +98,13 @@ export default function Gamehub() {
     return (
       <Suspense fallback={<GameStartup game="rota" name="Rota" />}>
         <RotaRoom token={survey[1]} />
+      </Suspense>
+    );
+  const line = /^\/metro\/([A-Za-z0-9_-]{32})$/.exec(path);
+  if (line)
+    return (
+      <Suspense fallback={<main className="startup-loading metro-startup" aria-busy="true" />}>
+        <MetroRoom token={line[1]} />
       </Suspense>
     );
   const battle = /^\/arena\/([A-Za-z0-9_-]{32})$/.exec(path);
