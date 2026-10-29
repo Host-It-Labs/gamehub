@@ -58,3 +58,10 @@ __pycache__/
 
 # Scratch folder for one-off inputs; keep it out of Git like /work/
 /tmp/
+
+# Personal agent notes for this machine (Claude Code loads it; never commit)
+CLAUDE.local.md
+
+# Rota rework preview renders (68 PNGs, ~37 MB): kept on disk, never committed
+/docs/concepts/2026-10-17-rota-rework/previews/
+/docs/concepts/2026-10-17-rota-rework/ridge-previews*/*.png
